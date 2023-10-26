@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.shared.web;
+package org.lucoenergia.conluz.infrastructure.shared.web;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

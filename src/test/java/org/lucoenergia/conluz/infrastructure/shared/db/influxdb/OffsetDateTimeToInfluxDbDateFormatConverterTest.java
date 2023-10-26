@@ -1,7 +1,8 @@
-package org.lucoenergia.conluz.shared.db.influxdb;
+package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.OffsetDateTimeToInfluxDbDateFormatConverter;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.OffsetDateTime;

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.shared.security;
+package org.lucoenergia.conluz.infrastructure.shared.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

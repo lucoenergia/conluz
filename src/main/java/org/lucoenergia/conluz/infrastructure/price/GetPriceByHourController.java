@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.price;
+package org.lucoenergia.conluz.infrastructure.price;
 
 import org.lucoenergia.conluz.domain.price.GetPriceByHourService;
 import org.lucoenergia.conluz.domain.price.PriceByHour;

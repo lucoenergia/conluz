@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.price;
+package org.lucoenergia.conluz.infrastructure.price;
 
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;

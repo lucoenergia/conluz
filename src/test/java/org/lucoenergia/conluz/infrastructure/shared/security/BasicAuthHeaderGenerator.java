@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.shared.security;
+package org.lucoenergia.conluz.infrastructure.shared.security;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;

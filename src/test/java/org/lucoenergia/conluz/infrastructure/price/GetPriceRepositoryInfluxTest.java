@@ -1,7 +1,9 @@
-package org.lucoenergia.conluz.price;
+package org.lucoenergia.conluz.infrastructure.price;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.price.PriceByHour;
+import org.lucoenergia.conluz.infrastructure.price.GetPriceRepositoryInflux;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 

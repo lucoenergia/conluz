@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.price;
+package org.lucoenergia.conluz.infrastructure.price;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
@@ -6,9 +6,9 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.price.GetPriceRepository;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
-import org.lucoenergia.conluz.shared.db.influxdb.InfluxDbConfiguration;
-import org.lucoenergia.conluz.shared.db.influxdb.InfluxDbConnectionManager;
-import org.lucoenergia.conluz.shared.db.influxdb.OffsetDateTimeToInfluxDbDateFormatConverter;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConfiguration;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.OffsetDateTimeToInfluxDbDateFormatConverter;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.shared.db.influxdb;
+package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;

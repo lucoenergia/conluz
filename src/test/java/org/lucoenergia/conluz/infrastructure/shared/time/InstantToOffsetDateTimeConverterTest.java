@@ -1,7 +1,9 @@
-package org.lucoenergia.conluz.shared.time;
+package org.lucoenergia.conluz.infrastructure.shared.time;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.shared.time.InstantToOffsetDateTimeConverter;
+import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 

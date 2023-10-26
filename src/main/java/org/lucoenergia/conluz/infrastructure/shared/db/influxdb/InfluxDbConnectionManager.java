@@ -1,8 +1,7 @@
-package org.lucoenergia.conluz.shared.db.influxdb;
+package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service

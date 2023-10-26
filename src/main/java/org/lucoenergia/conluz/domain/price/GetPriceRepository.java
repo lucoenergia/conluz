@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.price;
+package org.lucoenergia.conluz.domain.price;
 
 import java.time.OffsetDateTime;
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.shared.time;
+package org.lucoenergia.conluz.infrastructure.shared.time;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
