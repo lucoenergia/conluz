@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.price;
 
+import org.lucoenergia.conluz.domain.price.GetPriceByHourService;
+import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

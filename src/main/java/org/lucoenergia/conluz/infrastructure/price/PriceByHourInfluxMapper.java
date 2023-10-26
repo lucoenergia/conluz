@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.price;
 
+import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.shared.time.InstantToOffsetDateTimeConverter;
 import org.springframework.stereotype.Component;
 
