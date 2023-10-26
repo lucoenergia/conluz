@@ -10,10 +10,10 @@ import java.util.Arrays;
 import java.util.List;
 
 @SpringBootTest
-public class PriceByHourMapperTest {
+public class PriceByHourInfluxMapperTest {
 
     @Autowired
-    private PriceByHourMapper mapper;
+    private PriceByHourInfluxMapper mapper;
 
     @Test
     void testMap() {
@@ -23,7 +23,7 @@ public class PriceByHourMapperTest {
 
         PriceByHour result = mapper.map(point);
 
-        Assertions.assertEquals(point.getTime(), result.getTime().toInstant());
+        Assertions.assertEquals(point.getTime(), result.getHour().toInstant());
         Assertions.assertEquals(point.getPrice1(), result.getPrice());
     }
 
@@ -40,10 +40,10 @@ public class PriceByHourMapperTest {
 
         Assertions.assertEquals(2, result.size());
 
-        Assertions.assertEquals(pointOne.getTime(), result.get(0).getTime().toInstant());
+        Assertions.assertEquals(pointOne.getTime(), result.get(0).getHour().toInstant());
         Assertions.assertEquals(pointOne.getPrice1(), result.get(0).getPrice());
 
-        Assertions.assertEquals(pointTwo.getTime(), result.get(1).getTime().toInstant());
+        Assertions.assertEquals(pointTwo.getTime(), result.get(1).getHour().toInstant());
         Assertions.assertEquals(pointTwo.getPrice1(), result.get(1).getPrice());
     }
 }

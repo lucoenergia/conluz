@@ -9,10 +9,10 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 @SpringBootTest
-public class GetPriceRepositoryTest {
+public class GetPriceRepositoryInfluxTest {
 
     @Autowired
-    private GetPriceRepository repository;
+    private GetPriceRepositoryInflux repository;
 
     @Test
     void testGetPriceByRangeOfDates() {

@@ -4,19 +4,19 @@ import java.time.OffsetDateTime;
 
 public class PriceByHour {
 
-    private Double price;
-    private OffsetDateTime time;
+    private final Double price;
+    private final OffsetDateTime hour;
 
-    public PriceByHour(Double price, OffsetDateTime time) {
+    public PriceByHour(Double price, OffsetDateTime hour) {
         this.price = price;
-        this.time = time;
+        this.hour = hour;
     }
 
     public Double getPrice() {
         return price;
     }
 
-    public OffsetDateTime getTime() {
-        return time;
+    public OffsetDateTime getHour() {
+        return hour;
     }
 }

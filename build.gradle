@@ -20,8 +20,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.liquibase:liquibase-core'
     implementation 'org.influxdb:influxdb-java:2.23'
+
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
 }

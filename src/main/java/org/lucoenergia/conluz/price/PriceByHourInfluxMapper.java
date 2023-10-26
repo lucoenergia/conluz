@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.function.Function;
 
 @Component
-public class PriceByHourMapper {
+public class PriceByHourInfluxMapper {
 
     private final InstantToOffsetDateTimeConverter converter;
 
-    public PriceByHourMapper(InstantToOffsetDateTimeConverter converter) {
+    public PriceByHourInfluxMapper(InstantToOffsetDateTimeConverter converter) {
         this.converter = converter;
     }
 

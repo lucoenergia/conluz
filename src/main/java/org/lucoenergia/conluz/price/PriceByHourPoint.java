@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.price;
 
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
+import org.influxdb.impl.InfluxDBResultMapper;
 
 import java.time.Instant;
 
@@ -17,6 +18,9 @@ public class PriceByHourPoint {
     @Column(name = "price2")
     private Double price2;
 
+    /**
+     * Required by {@link InfluxDBResultMapper}
+     */
     public PriceByHourPoint() {
     }
 
