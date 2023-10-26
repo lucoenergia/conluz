@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '2.7.17'
     id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id "org.springdoc.openapi-gradle-plugin" version "1.8.0"
 }
 
 group = 'org.lucoenergia'
@@ -20,6 +21,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.liquibase:liquibase-core'
     implementation 'org.influxdb:influxdb-java:2.23'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.7.0'
 
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'

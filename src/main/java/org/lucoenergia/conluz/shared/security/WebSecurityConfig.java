@@ -20,6 +20,9 @@ public class WebSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
+                // Exclude "/v3/api-docs" from authentication
+                .antMatchers("/v3/api-docs").permitAll()
+                // The rest required authentication
                 .anyRequest().authenticated()
                 .and()
                 .httpBasic();
