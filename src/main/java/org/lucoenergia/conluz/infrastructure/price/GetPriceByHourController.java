@@ -12,7 +12,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/price")
+@RequestMapping("/api/v1/prices")
 public class GetPriceByHourController {
 
     private final GetPriceByHourService getPriceByHourService;
