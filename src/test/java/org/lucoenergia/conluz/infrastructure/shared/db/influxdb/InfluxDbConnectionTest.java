@@ -5,18 +5,18 @@ import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Pong;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 public class InfluxDbConnectionTest {
 
-    @Value("${spring.influxdb.url}")
-    private String databaseURL;
+    @Autowired
+    private InfluxDbConfiguration influxDbConfiguration;
 
     @Test
     void testConnection() {
-        InfluxDB influxDB = InfluxDBFactory.connect(databaseURL);
+        InfluxDB influxDB = InfluxDBFactory.connect(influxDbConfiguration.getDatabaseURL());
 
         Pong response = influxDB.ping();
 

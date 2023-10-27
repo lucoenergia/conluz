@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,7 +22,7 @@ public class GetPriceByHourControllerTest {
 
     @Test
     @WithMockUser(username = "user", authorities = {"ROLE_USER"})
-    public void testGetPriceByRangeOfDates() throws Exception {
+    void testGetPriceByRangeOfDates() throws Exception {
 
         String authHeader = BasicAuthHeaderGenerator.generate("user", "password");
 
@@ -33,5 +34,27 @@ public class GetPriceByHourControllerTest {
                         .queryParam("endDate", "2023-10-25T23:00:00.000+02:00"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(expectedContent));
+    }
+
+    @Test
+    @WithMockUser(username = "user", authorities = {"ROLE_USER"})
+    void testInvalidDateFormat() throws Exception {
+
+        String invalidStartDate = "foo";
+        String validEndDate = "2023-10-25T23:00:00.000+02:00";
+
+        String authHeader = BasicAuthHeaderGenerator.generate("user", "password");
+
+        String expectedContent = "Argument with name 'startDate' and value 'foo' has an incorrect format. The expected format is 'yyyy-mm-ddThh:mm:ss.000+h:mm'";
+
+        mockMvc.perform(get("/api/v1/price")
+                        .header("Authorization", authHeader)
+                        .queryParam("startDate", invalidStartDate)
+                        .queryParam("endDate", validEndDate))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("\"traceId\":")))
+                .andExpect(content().string(containsString("\"timestamp\":")))
+                .andExpect(content().string(containsString("\"status\":400")))
+                .andExpect(content().string(containsString("\"message\":\"Argument with name 'startDate' and value 'foo' has an incorrect format. The expected format is 'yyyy-mm-ddThh:mm:ss.000+h:mm'\"")));
     }
 }
