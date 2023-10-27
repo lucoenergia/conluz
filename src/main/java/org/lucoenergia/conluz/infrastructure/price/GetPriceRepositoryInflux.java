@@ -28,6 +28,7 @@ public class GetPriceRepositoryInflux implements GetPriceRepository {
         this.influxDbConfiguration = influxDbConfiguration;
     }
 
+    @Override
     public List<PriceByHour> getPricesByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {

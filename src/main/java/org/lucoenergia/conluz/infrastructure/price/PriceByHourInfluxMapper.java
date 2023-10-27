@@ -22,12 +22,7 @@ public class PriceByHourInfluxMapper {
 
     public List<PriceByHour> mapList(List<PriceByHourPoint> measurements) {
         return measurements.stream()
-                .map(new Function<PriceByHourPoint, PriceByHour>() {
-                    @Override
-                    public PriceByHour apply(PriceByHourPoint measurement) {
-                        return map(measurement);
-                    }
-                })
+                .map(this::map)
                 .toList();
     }
 }
