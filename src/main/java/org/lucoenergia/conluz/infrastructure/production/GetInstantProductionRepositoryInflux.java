@@ -7,6 +7,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.production.GetInstantProductionRepository;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.springframework.stereotype.Repository;
@@ -49,10 +50,5 @@ public class GetInstantProductionRepositoryInflux implements GetInstantProductio
 
             return new InstantProduction(0.0d);
         }
-    }
-
-    @Override
-    public InstantProduction getInstantProductionBySupply() {
-        throw new NotImplementedException();
     }
 }
