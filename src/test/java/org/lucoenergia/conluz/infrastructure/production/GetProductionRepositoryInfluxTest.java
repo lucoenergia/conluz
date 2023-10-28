@@ -6,10 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-public class GetInstantProductionRepositoryInfluxTest {
+public class GetProductionRepositoryInfluxTest {
 
     @Autowired
-    private GetInstantProductionRepositoryInflux repository;
+    private GetProductionRepositoryInflux repository;
 
     @Test
     void testGetInstantProduction() {

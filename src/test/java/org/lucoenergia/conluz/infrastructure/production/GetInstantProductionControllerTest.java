@@ -1,19 +1,16 @@
 package org.lucoenergia.conluz.infrastructure.production;
 
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.production.GetInstantProductionService;
-import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.infrastructure.admin.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.shared.security.BasicAuthHeaderGenerator;
+import org.lucoenergia.conluz.infrastructure.shared.security.MockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
 
@@ -33,18 +30,18 @@ public class GetInstantProductionControllerTest {
     private SupplyRepository supplyRepository;
 
     @Test
-    @WithMockUser(username = "user", authorities = {"ROLE_USER"})
+    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetInstantProduction() throws Exception {
-        String authHeader = BasicAuthHeaderGenerator.generate("user", "password");
+        String authHeader = BasicAuthHeaderGenerator.generate();
 
         mockMvc.perform(get("/api/v1/production")
-                        .header("Authorization", authHeader))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));
     }
 
     @Test
-    @WithMockUser(username = "user", authorities = {"ROLE_USER"})
+    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetInstantProductionBySupply() throws Exception {
 
         // Create some supplies
@@ -54,25 +51,25 @@ public class GetInstantProductionControllerTest {
                 new SupplyEntity("3", "My daughter's house", "Real street 22", 0.041017f)
         ));
 
-        String authHeader = BasicAuthHeaderGenerator.generate("user", "password");
+        String authHeader = BasicAuthHeaderGenerator.generate();
         String supplyId = "1";
 
         mockMvc.perform(get("/api/v1/production")
-                        .header("Authorization", authHeader)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("supplyId", supplyId))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));
     }
 
     @Test
-    @WithMockUser(username = "user", authorities = {"ROLE_USER"})
+    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetInstantProductionByUnknownSupply() throws Exception {
 
-        String authHeader = BasicAuthHeaderGenerator.generate("user", "password");
+        String authHeader = BasicAuthHeaderGenerator.generate();
         String supplyId = "1";
 
         mockMvc.perform(get("/api/v1/production")
-                        .header("Authorization", authHeader)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("supplyId", supplyId))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("\"traceId\":")))
@@ -82,14 +79,14 @@ public class GetInstantProductionControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "user", authorities = {"ROLE_USER"})
+    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetInstantProductionWithWrongParameter() throws Exception {
 
-        String authHeader = BasicAuthHeaderGenerator.generate("user", "password");
+        String authHeader = BasicAuthHeaderGenerator.generate();
         String supplyId = "1";
 
         mockMvc.perform(get("/api/v1/production")
-                        .header("Authorization", authHeader)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("supply", supplyId))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));

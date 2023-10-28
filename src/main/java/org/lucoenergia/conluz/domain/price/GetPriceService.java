@@ -6,11 +6,11 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
-public class GetPriceByHourService {
+public class GetPriceService {
 
     private final GetPriceRepository getPriceRepository;
 
-    public GetPriceByHourService(GetPriceRepository getPriceRepository) {
+    public GetPriceService(GetPriceRepository getPriceRepository) {
         this.getPriceRepository = getPriceRepository;
     }
 

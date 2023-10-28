@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.price;
 
-import org.lucoenergia.conluz.domain.price.GetPriceByHourService;
+import org.lucoenergia.conluz.domain.price.GetPriceService;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,10 +15,10 @@ import java.util.List;
 @RequestMapping("/api/v1/prices")
 public class GetPriceByHourController {
 
-    private final GetPriceByHourService getPriceByHourService;
+    private final GetPriceService getPriceService;
 
-    public GetPriceByHourController(GetPriceByHourService getPriceByHourService) {
-        this.getPriceByHourService = getPriceByHourService;
+    public GetPriceByHourController(GetPriceService getPriceService) {
+        this.getPriceService = getPriceService;
     }
 
     @GetMapping
@@ -26,6 +26,6 @@ public class GetPriceByHourController {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
 
-        return getPriceByHourService.getPricesByRangeOfDates(startDate, endDate);
+        return getPriceService.getPricesByRangeOfDates(startDate, endDate);
     }
 }

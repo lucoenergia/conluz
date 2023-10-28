@@ -7,7 +7,7 @@ import org.influxdb.impl.InfluxDBResultMapper;
 import java.time.Instant;
 
 @Measurement(name = "energy_production_huawei_hour")
-public class InstantProductionPoint {
+public class ProductionPoint {
 
     @Column(name = "time")
     private Instant time;
@@ -18,10 +18,10 @@ public class InstantProductionPoint {
     /**
      * Required by {@link InfluxDBResultMapper}
      */
-    public InstantProductionPoint() {
+    public ProductionPoint() {
     }
 
-    public InstantProductionPoint(Instant time, Double inverterPower) {
+    public ProductionPoint(Instant time, Double inverterPower) {
         this.time = time;
         this.inverterPower = inverterPower;
     }

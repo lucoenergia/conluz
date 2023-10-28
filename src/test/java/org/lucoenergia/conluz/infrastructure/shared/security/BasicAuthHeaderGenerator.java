@@ -5,6 +5,10 @@ import java.util.Base64;
 
 public class BasicAuthHeaderGenerator {
 
+    public static String generate() {
+        return generate(MockUser.USERNAME, MockUser.PASSWORD);
+    }
+
     public static String generate(String username, String password) {
         String authString = username + ":" + password;
         byte[] authBytes = authString.getBytes(StandardCharsets.UTF_8);

@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production;
 
 import org.apache.commons.lang3.StringUtils;
-import org.lucoenergia.conluz.domain.production.GetInstantProductionService;
+import org.lucoenergia.conluz.domain.production.GetProductionService;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,17 +13,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/production")
 public class GetInstantProductionController {
 
-    private final GetInstantProductionService getInstantProductionService;
+    private final GetProductionService getProductionService;
 
-    public GetInstantProductionController(GetInstantProductionService getInstantProductionService) {
-        this.getInstantProductionService = getInstantProductionService;
+    public GetInstantProductionController(GetProductionService getProductionService) {
+        this.getProductionService = getProductionService;
     }
 
     @GetMapping
     public InstantProduction getInstantProduction(@RequestParam(required = false) String supplyId) {
         if (StringUtils.isBlank(supplyId)) {
-            return getInstantProductionService.getInstantProduction();
+            return getProductionService.getInstantProduction();
         }
-        return getInstantProductionService.getInstantProductionBySupply(new SupplyId(supplyId));
+        return getProductionService.getInstantProductionBySupply(new SupplyId(supplyId));
     }
 }

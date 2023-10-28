@@ -1,12 +1,13 @@
 package org.lucoenergia.conluz.infrastructure.production;
 
 import org.lucoenergia.conluz.domain.production.InstantProduction;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.BasePointInfluxMapper;
 import org.springframework.stereotype.Component;
 
 @Component
-public class InstantProductionInfluxMapper {
+public class InstantProductionInfluxMapper extends BasePointInfluxMapper<ProductionPoint, InstantProduction> {
 
-    public InstantProduction map(InstantProductionPoint measurement) {
-        return new InstantProduction(measurement.getInverterPower());
+    public InstantProduction map(ProductionPoint point) {
+        return new InstantProduction(point.getInverterPower());
     }
 }

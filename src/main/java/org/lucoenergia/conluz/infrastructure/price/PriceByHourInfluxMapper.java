@@ -1,14 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.price;
 
 import org.lucoenergia.conluz.domain.price.PriceByHour;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.BasePointInfluxMapper;
 import org.lucoenergia.conluz.infrastructure.shared.time.InstantToOffsetDateTimeConverter;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.function.Function;
-
 @Component
-public class PriceByHourInfluxMapper {
+public class PriceByHourInfluxMapper extends BasePointInfluxMapper<PriceByHourPoint, PriceByHour> {
 
     private final InstantToOffsetDateTimeConverter converter;
 
@@ -16,13 +14,7 @@ public class PriceByHourInfluxMapper {
         this.converter = converter;
     }
 
-    public PriceByHour map(PriceByHourPoint measurement) {
-        return new PriceByHour(measurement.getPrice1(), converter.convert(measurement.getTime()));
-    }
-
-    public List<PriceByHour> mapList(List<PriceByHourPoint> measurements) {
-        return measurements.stream()
-                .map(this::map)
-                .toList();
+    public PriceByHour map(PriceByHourPoint point) {
+        return new PriceByHour(point.getPrice1(), converter.convert(point.getTime()));
     }
 }
