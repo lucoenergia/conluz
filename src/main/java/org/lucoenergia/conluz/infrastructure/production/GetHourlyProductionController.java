@@ -1,9 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.production.GetProductionService;
-import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByHour;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -34,6 +32,7 @@ public class GetHourlyProductionController {
         if (StringUtils.isBlank(supplyId)) {
             return getProductionService.getHourlyProductionByRangeOfDates(startDate, endDate);
         }
-        throw new NotImplementedException();
+        return getProductionService.getHourlyProductionByRangeOfDatesAndSupply(startDate, endDate,
+                new SupplyId(supplyId));
     }
 }

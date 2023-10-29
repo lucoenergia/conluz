@@ -8,4 +8,7 @@ public interface GetProductionRepository {
     InstantProduction getInstantProduction();
 
     List<ProductionByHour> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate);
+
+    List<ProductionByHour> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                             Float partitionCoefficient);
 }

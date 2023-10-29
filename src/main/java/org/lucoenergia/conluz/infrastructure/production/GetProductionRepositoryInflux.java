@@ -57,9 +57,16 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     @Override
     public List<ProductionByHour> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
+        return getHourlyProductionByRangeOfDates(startDate, endDate, 1f);
+    }
+
+    @Override
+    public List<ProductionByHour> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                    Float partitionCoefficient) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
-                    "SELECT * FROM \"energy_production_huawei_hour\" WHERE time >= '%s' AND time <= '%s'",
+                    "SELECT time, \"inverter-power\"*%s FROM \"energy_production_huawei_hour\" WHERE time >= '%s' AND time <= '%s'",
+                    partitionCoefficient,
                     OffsetDateTimeToInfluxDbDateFormatConverter.convert(startDate),
                     OffsetDateTimeToInfluxDbDateFormatConverter.convert(endDate)),
                     influxDbConfiguration.getDatabaseName());

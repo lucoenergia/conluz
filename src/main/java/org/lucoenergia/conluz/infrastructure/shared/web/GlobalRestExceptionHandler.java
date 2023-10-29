@@ -14,6 +14,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 @RestControllerAdvice
@@ -26,26 +27,26 @@ public class GlobalRestExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public RestError handleException(MethodArgumentNotValidException e) {
+    public ResponseEntity<RestError> handleException(MethodArgumentNotValidException e) {
 
         String message = e.getFieldErrors()
                 .stream()
                 .map(error -> error.getDefaultMessage())
                 .reduce("Errors found:", String::concat);
-        return new RestError(HttpStatus.BAD_REQUEST.value(), message);
+        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public RestError handleException(MissingServletRequestParameterException e) {
+    public ResponseEntity<RestError> handleException(MissingServletRequestParameterException e) {
 
         String parameterName = e.getParameterName();
 
         String message = messageSource.getMessage(
                 "error.missing.parameter",
-                Arrays.asList(parameterName).toArray(),
+                List.of(parameterName).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        return new RestError(HttpStatus.BAD_REQUEST.value(), message);
+        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
 

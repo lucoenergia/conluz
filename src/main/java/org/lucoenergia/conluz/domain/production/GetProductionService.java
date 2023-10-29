@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 @Service
 public class GetProductionService {
@@ -40,5 +41,16 @@ public class GetProductionService {
 
     public List<ProductionByHour> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
         return getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate);
+    }
+
+    public List<ProductionByHour> getHourlyProductionByRangeOfDatesAndSupply(OffsetDateTime startDate,
+                                                                             OffsetDateTime endDate, SupplyId id) {
+        Optional<Supply> supply = getSupplyRepository.findById(id);
+        if (supply.isEmpty()) {
+            throw new SupplyNotFoundException(id);
+        }
+
+        return getProductionRepository.getHourlyProductionByRangeOfDates(startDate,
+                endDate, supply.get().getPartitionCoefficient());
     }
 }
