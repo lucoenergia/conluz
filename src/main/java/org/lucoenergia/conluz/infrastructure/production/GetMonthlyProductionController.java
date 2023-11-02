@@ -14,25 +14,25 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/production/hourly")
-public class GetHourlyProductionController {
+@RequestMapping("/api/v1/production/monthly")
+public class GetMonthlyProductionController {
 
     private final GetProductionService getProductionService;
 
-    public GetHourlyProductionController(GetProductionService getProductionService) {
+    public GetMonthlyProductionController(GetProductionService getProductionService) {
         this.getProductionService = getProductionService;
     }
 
     @GetMapping
-    public List<ProductionByTime> getHourlyProduction(
+    public List<ProductionByTime> getMonthlyProduction(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
             @RequestParam(required = false) String supplyId) {
 
         if (StringUtils.isBlank(supplyId)) {
-            return getProductionService.getHourlyProductionByRangeOfDates(startDate, endDate);
+            return getProductionService.getMonthlyProductionByRangeOfDates(startDate, endDate);
         }
-        return getProductionService.getHourlyProductionByRangeOfDatesAndSupply(startDate, endDate,
+        return getProductionService.getMonthlyProductionByRangeOfDatesAndSupply(startDate, endDate,
                 new SupplyId(supplyId));
     }
 }

@@ -3,8 +3,7 @@ package org.lucoenergia.conluz.infrastructure.price;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
-import org.lucoenergia.conluz.infrastructure.price.PriceByHourInfluxMapper;
-import org.lucoenergia.conluz.infrastructure.price.PriceByHourPoint;
+import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -13,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @SpringBootTest
-public class PriceByHourInfluxMapperTest {
+public class PriceByHourInfluxMapperTest extends BaseIntegrationTest {
 
     @Autowired
     private PriceByHourInfluxMapper mapper;

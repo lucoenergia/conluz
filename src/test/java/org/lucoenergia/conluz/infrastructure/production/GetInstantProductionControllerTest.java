@@ -1,12 +1,15 @@
 package org.lucoenergia.conluz.infrastructure.production;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.admin.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.EnergyProductionInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.security.BasicAuthHeaderGenerator;
 import org.lucoenergia.conluz.infrastructure.shared.security.MockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,15 +22,26 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-public class GetInstantProductionControllerTest {
+public class GetInstantProductionControllerTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private SupplyRepository supplyRepository;
+    @Autowired
+    private EnergyProductionInfluxLoader energyProductionInfluxLoader;
+
+    @BeforeEach
+    void beforeEach() {
+        energyProductionInfluxLoader.loadData(MockInfluxDbConfiguration.INFLUX_DB_NAME);
+    }
+
+    @BeforeEach
+    void afterEach() {
+        energyProductionInfluxLoader.clearData();
+    }
 
     @Test
     @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})

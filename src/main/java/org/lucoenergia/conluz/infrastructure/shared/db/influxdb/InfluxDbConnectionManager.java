@@ -1,25 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
 
 import org.influxdb.InfluxDB;
-import org.influxdb.InfluxDBFactory;
-import org.springframework.stereotype.Service;
 
-@Service
-public class InfluxDbConnectionManager {
+public interface InfluxDbConnectionManager {
 
-    private final InfluxDbConfiguration influxDbConfiguration;
-
-    public InfluxDbConnectionManager(InfluxDbConfiguration influxDbConfiguration) {
-        this.influxDbConfiguration = influxDbConfiguration;
-    }
-
-    public InfluxDB getConnection() {
-        return InfluxDBFactory.connect(influxDbConfiguration.getDatabaseURL());
-    }
-
-    public void closeConnection(InfluxDB connection) {
-        if (connection != null) {
-            connection.close();
-        }
-    }
+    InfluxDB getConnection();
 }

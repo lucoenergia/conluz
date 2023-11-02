@@ -1,8 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.production;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.EnergyProductionInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.security.BasicAuthHeaderGenerator;
 import org.lucoenergia.conluz.infrastructure.shared.security.MockUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,12 +29,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-public class GetHourlyProductionControllerTest {
+public class GetHourlyProductionControllerTest extends BaseIntegrationTest {
+
+    private static final String START_DATE = "2023-09-01T00:00:00.000+02:00";
+    private static final String END_DATE = "2023-09-01T23:00:00.000+02:00";
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private SupplyRepository supplyRepository;
+    @Autowired
+    private EnergyProductionInfluxLoader energyProductionInfluxLoader;
+
+    @BeforeEach
+    void beforeEach() {
+        energyProductionInfluxLoader.loadData(MockInfluxDbConfiguration.INFLUX_DB_NAME);
+    }
+
+    @BeforeEach
+    void afterEach() {
+        energyProductionInfluxLoader.clearData();
+    }
 
     @Test
     @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
@@ -39,8 +58,8 @@ public class GetHourlyProductionControllerTest {
 
         mockMvc.perform(get("/api/v1/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("startDate", "2023-10-25T00:00:00.000+02:00")
-                        .queryParam("endDate", "2023-10-25T23:00:00.000+02:00"))
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));
     }
@@ -82,8 +101,8 @@ public class GetHourlyProductionControllerTest {
         mockMvc.perform(get("/api/v1/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("supplyId", supplyId.getId())
-                        .queryParam("startDate", "2023-10-25T00:00:00.000+02:00")
-                        .queryParam("endDate", "2023-10-25T23:00:00.000+02:00"))
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));
     }
@@ -98,8 +117,8 @@ public class GetHourlyProductionControllerTest {
         mockMvc.perform(get("/api/v1/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("supplyId", supplyId)
-                        .queryParam("startDate", "2023-10-25T00:00:00.000+02:00")
-                        .queryParam("endDate", "2023-10-25T23:00:00.000+02:00"))
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("\"traceId\":")))
                 .andExpect(content().string(containsString("\"timestamp\":")))
@@ -117,8 +136,8 @@ public class GetHourlyProductionControllerTest {
         mockMvc.perform(get("/api/v1/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("supply", supplyId)
-                        .queryParam("startDate", "2023-10-25T00:00:00.000+02:00")
-                        .queryParam("endDate", "2023-10-25T23:00:00.000+02:00"))
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));
     }
@@ -131,7 +150,7 @@ public class GetHourlyProductionControllerTest {
 
         mockMvc.perform(get("/api/v1/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("endDate", "2023-10-25T23:00:00.000+02:00"))
+                        .queryParam("endDate", END_DATE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("\"traceId\":")))
                 .andExpect(content().string(containsString("\"timestamp\":")))
@@ -147,7 +166,7 @@ public class GetHourlyProductionControllerTest {
 
         mockMvc.perform(get("/api/v1/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("startDate", "2023-10-25T23:00:00.000+02:00"))
+                        .queryParam("startDate", START_DATE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("\"traceId\":")))
                 .andExpect(content().string(containsString("\"timestamp\":")))

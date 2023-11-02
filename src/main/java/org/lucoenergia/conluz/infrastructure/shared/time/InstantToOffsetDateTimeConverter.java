@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.shared.time;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -11,12 +10,15 @@ import java.time.ZonedDateTime;
 @Component
 public class InstantToOffsetDateTimeConverter {
 
-    @Value("${conluz.time.zone.id}")
-    private String zoneId;
+    private final TimeConfiguration timeConfiguration;
+
+    public InstantToOffsetDateTimeConverter(TimeConfiguration timeConfiguration) {
+        this.timeConfiguration = timeConfiguration;
+    }
 
     public OffsetDateTime convert(Instant instant) {
 
-        ZoneId zoneId = ZoneId.of(this.zoneId);
+        ZoneId zoneId = timeConfiguration.getZoneId();
 
         ZonedDateTime zonedDateTime = instant.atZone(zoneId);
 

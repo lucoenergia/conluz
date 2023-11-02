@@ -1,12 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.production;
 
-import org.lucoenergia.conluz.domain.production.ProductionByHour;
+import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.BasePointInfluxMapper;
 import org.lucoenergia.conluz.infrastructure.shared.time.InstantToOffsetDateTimeConverter;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ProductionByHourInfluxMapper extends BasePointInfluxMapper<ProductionPoint, ProductionByHour> {
+public class ProductionByHourInfluxMapper extends BasePointInfluxMapper<ProductionPoint, ProductionByTime> {
 
     private final InstantToOffsetDateTimeConverter converter;
 
@@ -14,7 +14,7 @@ public class ProductionByHourInfluxMapper extends BasePointInfluxMapper<Producti
         this.converter = converter;
     }
 
-    public ProductionByHour map(ProductionPoint measurement) {
-        return new ProductionByHour(converter.convert(measurement.getTime()), measurement.getInverterPower());
+    public ProductionByTime map(ProductionPoint measurement) {
+        return new ProductionByTime(converter.convert(measurement.getTime()), measurement.getInverterPower());
     }
 }

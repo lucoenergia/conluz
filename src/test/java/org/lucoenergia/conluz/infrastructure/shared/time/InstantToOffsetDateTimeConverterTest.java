@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.shared.time;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.time.InstantToOffsetDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.time.*;
 
 @SpringBootTest
-public class InstantToOffsetDateTimeConverterTest {
+public class InstantToOffsetDateTimeConverterTest extends BaseIntegrationTest {
 
     @Autowired
     private InstantToOffsetDateTimeConverter converter;
@@ -38,6 +39,6 @@ public class InstantToOffsetDateTimeConverterTest {
         Assertions.assertEquals(targetZonedDateTime.getHour(), result.getHour());
         Assertions.assertEquals(25, result.getMinute());
         Assertions.assertEquals(33, result.getSecond());
-        Assertions.assertEquals(timeConfiguration.getOffset(), result.getOffset());
+        Assertions.assertEquals(timeConfiguration.getOffset(instant), result.getOffset());
     }
 }

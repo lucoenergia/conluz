@@ -18,10 +18,10 @@ public class TimeConfiguration {
         return ZoneId.of(this.zoneId);
     }
 
-    public ZoneOffset getOffset() {
+    public ZoneOffset getOffset(Instant instant) {
         ZoneId zoneId = getZoneId();
 
-        ZonedDateTime zonedDateTime = Instant.now().atZone(zoneId);
+        ZonedDateTime zonedDateTime = instant.atZone(zoneId);
 
         return zonedDateTime.getOffset();
     }

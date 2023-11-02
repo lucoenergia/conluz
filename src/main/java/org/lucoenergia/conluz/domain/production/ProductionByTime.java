@@ -2,18 +2,18 @@ package org.lucoenergia.conluz.domain.production;
 
 import java.time.OffsetDateTime;
 
-public class ProductionByHour {
+public class ProductionByTime {
 
-    private final OffsetDateTime hour;
+    private final OffsetDateTime time;
     private final Double power;
 
-    public ProductionByHour(OffsetDateTime hour, Double power) {
-        this.hour = hour;
+    public ProductionByTime(OffsetDateTime time, Double power) {
+        this.time = time;
         this.power = power;
     }
 
-    public OffsetDateTime getHour() {
-        return hour;
+    public OffsetDateTime getTime() {
+        return time;
     }
 
     public Double getPower() {

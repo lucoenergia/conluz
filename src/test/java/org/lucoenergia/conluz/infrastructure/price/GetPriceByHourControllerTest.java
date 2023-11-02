@@ -1,6 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.price;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.EnergyPricesInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.security.BasicAuthHeaderGenerator;
 import org.lucoenergia.conluz.infrastructure.shared.security.MockUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,11 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.security.web.header.Header;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.Locale;
-import java.util.spi.LocaleNameProvider;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -21,10 +21,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class GetPriceByHourControllerTest {
+public class GetPriceByHourControllerTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+    @Autowired
+    private EnergyPricesInfluxLoader energyPricesInfluxLoader;
+
+    @BeforeEach
+    void beforeEach() {
+        energyPricesInfluxLoader.loadData(MockInfluxDbConfiguration.INFLUX_DB_NAME);
+    }
+
+    @BeforeEach
+    void afterEach() {
+        energyPricesInfluxLoader.clearData();
+    }
 
     @Test
     @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
