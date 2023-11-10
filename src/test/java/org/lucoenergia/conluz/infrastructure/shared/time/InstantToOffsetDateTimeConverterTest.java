@@ -2,21 +2,21 @@ package org.lucoenergia.conluz.infrastructure.shared.time;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
-import org.lucoenergia.conluz.infrastructure.shared.time.InstantToOffsetDateTimeConverter;
-import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.*;
 
-@SpringBootTest
-public class InstantToOffsetDateTimeConverterTest extends BaseIntegrationTest {
+import static org.mockito.Mockito.when;
 
-    @Autowired
+@ExtendWith(MockitoExtension.class)
+public class InstantToOffsetDateTimeConverterTest {
+
+    @InjectMocks
     private InstantToOffsetDateTimeConverter converter;
-
-    @Autowired
+    @Mock
     private TimeConfiguration timeConfiguration;
 
     @Test
@@ -24,6 +24,11 @@ public class InstantToOffsetDateTimeConverterTest extends BaseIntegrationTest {
 
         String dateTimeString = "2023-10-26T12:25:33Z";
         Instant instant = Instant.parse(dateTimeString);
+
+        when(timeConfiguration.getZoneId())
+                .thenReturn(ZoneId.of("Europe/Madrid"));
+        when(timeConfiguration.getOffset(instant))
+                .thenReturn(ZoneOffset.ofHours(2));
 
         LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString.substring(0, dateTimeString.length() - 1));
         ZonedDateTime sourceZonedDateTime = localDateTime.atZone(ZoneId.of("UTC"));

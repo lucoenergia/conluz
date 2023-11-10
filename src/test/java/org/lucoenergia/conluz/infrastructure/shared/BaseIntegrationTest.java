@@ -33,14 +33,12 @@ public class BaseIntegrationTest {
 
     @BeforeAll
     static void setupOnce() {
-        POSTGRES_CONTAINER.start();
-        INFLUX_DB_CONTAINER.start();
-    }
-
-    @AfterAll
-    static void afterAll() {
-        POSTGRES_CONTAINER.stop();
-        INFLUX_DB_CONTAINER.stop();
+        if (!POSTGRES_CONTAINER.isRunning()) {
+            POSTGRES_CONTAINER.start();
+        }
+        if (!INFLUX_DB_CONTAINER.isRunning()) {
+            INFLUX_DB_CONTAINER.start();
+        }
     }
 
     @DynamicPropertySource
