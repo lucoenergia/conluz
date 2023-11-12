@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin;
 import org.lucoenergia.conluz.domain.admin.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.Supply;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.infrastructure.production.SupplyEntity;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;

@@ -1,10 +1,10 @@
 package org.lucoenergia.conluz.domain.shared;
 
-public class SupplyId {
+public class UserId {
 
     private final String id;
 
-    public SupplyId(String id) {
+    public UserId(String id) {
         this.id = id;
     }
 

@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.admin.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.EnergyProductionInfluxLoader;

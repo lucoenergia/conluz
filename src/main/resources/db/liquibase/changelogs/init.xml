@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <changeSet id="20231027T2302" author="Víctor Cañizares">
+        <createTable tableName="supply">
+            <column name="id" type="VARCHAR(250)">
+                <constraints primaryKey="true" primaryKeyName="supply_id_pk"/>
+            </column>
+            <column name="name" type="VARCHAR(250)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="address" type="VARCHAR(250)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="partition_coefficient" type="FLOAT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enabled" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="20231110T1945" author="Víctor Cañizares">
+        <createTable tableName="users">
+            <column name="id" type="VARCHAR(250)">
+                <constraints primaryKey="true" primaryKeyName="user_id_pk"/>
+            </column>
+            <column name="password" type="VARCHAR(250)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_name" type="VARCHAR(250)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_name" type="VARCHAR(250)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="address" type="VARCHAR(250)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone_number" type="VARCHAR(250)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(250)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enabled" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
