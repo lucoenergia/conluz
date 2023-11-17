@@ -25,7 +25,9 @@ public class WebSecurityConfig {
                 // The rest required authentication
                 .anyRequest().authenticated()
                 .and()
-                .httpBasic();
+                .httpBasic()
+                .and()
+                .csrf().disable();
 
         return http.build();
     }
