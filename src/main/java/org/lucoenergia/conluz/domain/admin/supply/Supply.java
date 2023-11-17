@@ -1,27 +1,19 @@
-package org.lucoenergia.conluz.infrastructure.admin;
+package org.lucoenergia.conluz.domain.admin.supply;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
+public class Supply {
 
-@Entity(name = "supply")
-public class SupplyEntity {
+    private final String id;
+    private final String name;
+    private final String address;
+    private final Float partitionCoefficient;
+    private final Boolean enabled;
 
-    @Id
-    private String id;
-    private String name;
-    private String address;
-    private Float partitionCoefficient;
-    private Boolean enabled;
-
-    public SupplyEntity() {
-        enabled = true;
-    }
-
-    public SupplyEntity(String id, String name, String address, Float partitionCoefficient) {
+    public Supply(String id, String name, String address, Float partitionCoefficient, Boolean enabled) {
         this.id = id;
         this.name = name;
         this.address = address;
         this.partitionCoefficient = partitionCoefficient;
+        this.enabled = enabled;
     }
 
     public String getId() {

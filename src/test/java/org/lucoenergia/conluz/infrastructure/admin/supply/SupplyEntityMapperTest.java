@@ -1,8 +1,10 @@
-package org.lucoenergia.conluz.infrastructure.admin;
+package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 
 public class SupplyEntityMapperTest {
 

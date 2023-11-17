@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.web;
 
-import org.lucoenergia.conluz.domain.admin.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -15,7 +15,6 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 @RestControllerAdvice
 public class GlobalRestExceptionHandler {

@@ -1,8 +1,10 @@
-package org.lucoenergia.conluz.infrastructure.admin;
+package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.User;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 
 public class UserEntityMapperTest {
 

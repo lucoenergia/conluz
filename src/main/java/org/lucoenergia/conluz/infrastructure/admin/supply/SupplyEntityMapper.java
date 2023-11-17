@@ -1,6 +1,6 @@
-package org.lucoenergia.conluz.infrastructure.admin;
+package org.lucoenergia.conluz.infrastructure.admin.supply;
 
-import org.lucoenergia.conluz.domain.admin.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.springframework.stereotype.Component;
 
 @Component

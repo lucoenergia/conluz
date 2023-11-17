@@ -1,7 +1,7 @@
-package org.lucoenergia.conluz.infrastructure.admin;
+package org.lucoenergia.conluz.infrastructure.admin.user;
 
-import org.lucoenergia.conluz.domain.admin.GetUserRepository;
-import org.lucoenergia.conluz.domain.admin.User;
+import org.lucoenergia.conluz.domain.admin.user.GetUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Repository;
 
@@ -27,5 +27,9 @@ public class GetUserRepositoryImpl implements GetUserRepository {
         }
 
         return Optional.of(userEntityMapper.map(entity.get()));
+    }
+
+    public boolean existsById(UserId id) {
+        return userRepository.existsById(id.getId());
     }
 }

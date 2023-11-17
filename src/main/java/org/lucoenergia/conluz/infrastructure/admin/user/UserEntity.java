@@ -1,7 +1,10 @@
-package org.lucoenergia.conluz.infrastructure.admin;
+package org.lucoenergia.conluz.infrastructure.admin.user;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
+
+import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity(name = "users")
 public class UserEntity {
@@ -15,6 +18,12 @@ public class UserEntity {
     private String email;
     private String phoneNumber;
     private Boolean enabled;
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<SupplyEntity> supplies = new ArrayList<>();
 
     public UserEntity() {
         enabled = true;
@@ -62,5 +71,19 @@ public class UserEntity {
 
     public Boolean getEnabled() {
         return enabled;
+    }
+
+    public List<SupplyEntity> getSupplies() {
+        return supplies;
+    }
+
+    public void addSupply(SupplyEntity supply) {
+        supplies.add(supply);
+        supply.setUser(this);
+    }
+
+    public void removeSupply(SupplyEntity supply) {
+        supplies.remove(supply);
+        supply.setUser(null);
     }
 }

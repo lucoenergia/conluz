@@ -1,8 +1,8 @@
 package org.lucoenergia.conluz.domain.production;
 
-import org.lucoenergia.conluz.domain.admin.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.Supply;
-import org.lucoenergia.conluz.domain.admin.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.stereotype.Service;
 

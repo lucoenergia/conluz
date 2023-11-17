@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin;
+package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

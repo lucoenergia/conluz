@@ -1,7 +1,8 @@
-package org.lucoenergia.conluz.infrastructure.admin;
+package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
 public class UserEntityMother {
 

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.domain.admin;
+package org.lucoenergia.conluz.domain.admin.user;
 
 public class User {
 

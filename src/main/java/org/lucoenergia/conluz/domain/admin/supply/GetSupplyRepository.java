@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.domain.admin;
+package org.lucoenergia.conluz.domain.admin.supply;
 
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 
