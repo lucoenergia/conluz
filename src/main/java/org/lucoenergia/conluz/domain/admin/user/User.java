@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.admin.user;
 public class User {
 
     private final String id;
+    private final Integer number;
     private final String firstName;
     private final String lastName;
     private final String address;
@@ -10,9 +11,10 @@ public class User {
     private final String phoneNumber;
     private final Boolean enabled;
 
-    public User(String id, String firstName, String lastName, String address, String email,
+    public User(String id, Integer number, String firstName, String lastName, String address, String email,
                 String phoneNumber, Boolean enabled) {
         this.id = id;
+        this.number = number;
         this.firstName = firstName;
         this.lastName = lastName;
         this.address = address;
@@ -47,5 +49,9 @@ public class User {
 
     public Boolean getEnabled() {
         return enabled;
+    }
+
+    public Integer getNumber() {
+        return number;
     }
 }

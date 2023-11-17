@@ -9,7 +9,7 @@ public class CreateUserAssembler implements Assembler<CreateUserBody, User> {
 
     @Override
     public User assemble(CreateUserBody request) {
-        return new User(request.getId(), request.getFirstName(), request.getLastName(), request.getAddress(),
-                request.getEmail(), request.getPhoneNumber(), true);
+        return new User(request.getId(), request.getNumber(), request.getFirstName(), request.getLastName(),
+                request.getAddress(), request.getEmail(), request.getPhoneNumber(), true);
     }
 }

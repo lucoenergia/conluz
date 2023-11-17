@@ -12,7 +12,7 @@ public class UserEntityMapperTest {
 
     @Test
     void testMap() {
-        UserEntity entity = new UserEntity("22123456Z",
+        UserEntity entity = new UserEntity("22123456Z", 1,
                 "$2a$12$6H.wXn1D4wvpZlJ/fTNDu.pdIinw.LBw68JYVxYR86Dz/2HTXM4X2", "John",
                 "Doe", "Fake Street 123", "johndoe@email.com", "+34666333111",
                 true);
@@ -20,6 +20,7 @@ public class UserEntityMapperTest {
         User result = mapper.map(entity);
 
         Assertions.assertEquals(entity.getId(), result.getId());
+        Assertions.assertEquals(entity.getNumber(), result.getNumber());
         Assertions.assertEquals(entity.getFirstName(), result.getFirstName());
         Assertions.assertEquals(entity.getLastName(), result.getLastName());
         Assertions.assertEquals(entity.getAddress(), result.getAddress());

@@ -54,7 +54,7 @@ public class CreateUserControllerTest extends BaseIntegrationTest {
                 }
                                 """;
 
-        User expectedUser = new User("12345678Z", "John", "Doe", "Fake Street 123",
+        User expectedUser = new User("12345678Z", 1, "John", "Doe", "Fake Street 123",
                 "johndoe@email.com", "+34666555444", true);
         // Convert the User object to JSON
         String expectedUserAsJson = objectMapper.writeValueAsString(expectedUser);

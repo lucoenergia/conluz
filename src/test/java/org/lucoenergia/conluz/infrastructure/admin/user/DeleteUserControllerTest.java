@@ -36,7 +36,7 @@ public class DeleteUserControllerTest extends BaseIntegrationTest {
     void testDeleteUser() throws Exception {
 
         // Create a user
-        User user = new User("12345678Z", "John", "Doe", "Fake Street 123",
+        User user = new User("12345678Z", 1, "John", "Doe", "Fake Street 123",
                 "johndoe@email.com", "+34666555444", true);
         createUserService.create(user, "A good pa!!w0rd");
         Assertions.assertTrue(getUserRepository.existsById(new UserId(user.getId())));

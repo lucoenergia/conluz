@@ -8,6 +8,7 @@ public class UserEntityMother {
 
     public static UserEntity random() {
         return new UserEntity(RandomStringUtils.randomAlphabetic(9),
+                RandomUtils.nextInt(),
                 "$2a$12$" + RandomStringUtils.randomAlphabetic(53),
                 RandomStringUtils.random(5, true, false),
                 RandomStringUtils.random(10, true, false),

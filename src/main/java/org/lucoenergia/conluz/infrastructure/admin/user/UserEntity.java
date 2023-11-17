@@ -11,6 +11,7 @@ public class UserEntity {
 
     @Id
     private String id;
+    private Integer number;
     private String password;
     private String firstName;
     private String lastName;
@@ -29,9 +30,10 @@ public class UserEntity {
         enabled = true;
     }
 
-    public UserEntity(String id, String password, String firstName, String lastName, String address, String email,
+    public UserEntity(String id, Integer number, String password, String firstName, String lastName, String address, String email,
                       String phoneNumber, Boolean enabled) {
         this.id = id;
+        this.number = number;
         this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -85,5 +87,13 @@ public class UserEntity {
     public void removeSupply(SupplyEntity supply) {
         supplies.remove(supply);
         supply.setUser(null);
+    }
+
+    public Integer getNumber() {
+        return number;
+    }
+
+    public void setNumber(Integer number) {
+        this.number = number;
     }
 }
