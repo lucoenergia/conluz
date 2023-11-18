@@ -25,12 +25,12 @@ class GetUserRepositoryImplTest extends BaseIntegrationTest {
     @Test
     void testFindById() {
 
-        UserEntity userOne = UserEntityMother.random();
+        UserEntity userOne = UserMother.randomUserEntity();
         // Create some users
         userRepository.saveAll(Arrays.asList(
                 userOne,
-                UserEntityMother.random(),
-                UserEntityMother.random()
+                UserMother.randomUserEntity(),
+                UserMother.randomUserEntity()
         ));
         UserId userId = new UserId(userOne.getId());
 

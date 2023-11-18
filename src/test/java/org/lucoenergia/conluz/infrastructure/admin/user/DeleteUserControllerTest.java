@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.user.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.CreateUserService;
 import org.lucoenergia.conluz.domain.admin.user.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -16,18 +17,20 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Transactional
 public class DeleteUserControllerTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
-    private CreateUserService createUserService;
+    private CreateUserRepository createUserRepository;
     @Autowired
     private GetUserRepository getUserRepository;
 
@@ -38,7 +41,7 @@ public class DeleteUserControllerTest extends BaseIntegrationTest {
         // Create a user
         User user = new User("12345678Z", 1, "John", "Doe", "Fake Street 123",
                 "johndoe@email.com", "+34666555444", true);
-        createUserService.create(user, "A good pa!!w0rd");
+        createUserRepository.create(user, "A good pa!!w0rd");
         Assertions.assertTrue(getUserRepository.existsById(new UserId(user.getId())));
 
         String authHeader = BasicAuthHeaderGenerator.generate();

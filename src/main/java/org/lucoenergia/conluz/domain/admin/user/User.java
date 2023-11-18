@@ -20,7 +20,7 @@ public class User {
         this.address = address;
         this.email = email;
         this.phoneNumber = phoneNumber;
-        this.enabled = enabled;
+        this.enabled = enabled != null ? enabled : true;
     }
 
     public String getId() {

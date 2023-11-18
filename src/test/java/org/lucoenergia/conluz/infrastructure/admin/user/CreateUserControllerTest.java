@@ -17,6 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Transactional
 public class CreateUserControllerTest extends BaseIntegrationTest {
 
     @Autowired
@@ -32,8 +34,6 @@ public class CreateUserControllerTest extends BaseIntegrationTest {
     private ObjectMapper objectMapper; // ObjectMapper to convert objects to JSON
     @Autowired
     private GetUserRepository getUserRepository;
-    @Autowired
-    private DeleteUserService deleteUserService;
 
     @Test
     @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
@@ -67,9 +67,5 @@ public class CreateUserControllerTest extends BaseIntegrationTest {
                 .andExpect(content().string(expectedUserAsJson));
 
         Assertions.assertTrue(getUserRepository.existsById(new UserId(expectedUser.getId())));
-
-        // Removes the created user
-        deleteUserService.delete(new UserId(expectedUser.getId()));
-        Assertions.assertFalse(getUserRepository.existsById(new UserId(expectedUser.getId())));
     }
 }

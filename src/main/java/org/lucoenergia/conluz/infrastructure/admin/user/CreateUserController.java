@@ -23,7 +23,7 @@ public class CreateUserController {
     }
 
     @PostMapping
-    public User getPriceByRangeOfDates(@RequestBody CreateUserBody body) {
+    public User createUser(@RequestBody CreateUserBody body) {
         return service.create(assembler.assemble(body), body.getPassword());
     }
 }

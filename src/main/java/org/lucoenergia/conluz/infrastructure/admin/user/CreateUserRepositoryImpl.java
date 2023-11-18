@@ -23,7 +23,7 @@ public class CreateUserRepositoryImpl implements CreateUserRepository {
     public User create(User user, String password) {
         String encodedPassword = passwordEncoder.encode(password);
         UserEntity entity = new UserEntity(user.getId(), user.getNumber(), encodedPassword, user.getFirstName(),
-                user.getLastName(), user.getAddress(), user.getEmail(), user.getPhoneNumber(), true);
+                user.getLastName(), user.getAddress(), user.getEmail(), user.getPhoneNumber(), user.getEnabled());
 
         return mapper.map(repository.save(entity));
     }
