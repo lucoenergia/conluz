@@ -20,7 +20,7 @@ public class DeleteUserRepositoryImpl implements DeleteUserRepository {
     public void delete(UserId id) {
         Optional<UserEntity> entity = userRepository.findById(id.getId());
         if (entity.isEmpty()) {
-            throw new UserNotFoundException(id.getId());
+            throw new UserNotFoundException(id);
         }
         userRepository.delete(entity.get());
     }

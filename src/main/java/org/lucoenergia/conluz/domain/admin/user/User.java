@@ -9,7 +9,7 @@ public class User {
     private final String address;
     private final String email;
     private final String phoneNumber;
-    private final Boolean enabled;
+    private Boolean enabled;
 
     public User(String id, Integer number, String firstName, String lastName, String address, String email,
                 String phoneNumber, Boolean enabled) {
@@ -20,7 +20,18 @@ public class User {
         this.address = address;
         this.email = email;
         this.phoneNumber = phoneNumber;
-        this.enabled = enabled != null ? enabled : true;
+        this.enabled = enabled;
+    }
+
+    public User(String id, Integer number, String firstName, String lastName, String address, String email,
+                String phoneNumber) {
+        this.id = id;
+        this.number = number;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.address = address;
+        this.email = email;
+        this.phoneNumber = phoneNumber;
     }
 
     public String getId() {

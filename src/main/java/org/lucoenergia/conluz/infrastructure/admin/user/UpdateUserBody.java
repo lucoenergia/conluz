@@ -3,12 +3,9 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 
-public class CreateUserBody {
+public class UpdateUserBody {
 
-    @NotEmpty
-    private String id;
     @Min(value = 1)
     @NotEmpty
     private Integer number;
@@ -22,16 +19,6 @@ public class CreateUserBody {
     @NotEmpty
     private String email;
     private String phoneNumber;
-    @NotEmpty
-    private String password;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public Integer getNumber() {
         return number;
@@ -79,13 +66,5 @@ public class CreateUserBody {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 }
