@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
  * Updates an existing user
  */
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v1")
 public class UpdateUserController {
 
     private final UpdateUserAssembler assembler;
@@ -19,8 +19,8 @@ public class UpdateUserController {
         this.service = service;
     }
 
-    @PutMapping
-    public User updateUser(@RequestParam("id") String userId, @RequestBody UpdateUserBody body) {
+    @PutMapping("/users/{id}")
+    public User updateUser(@PathVariable("id") String userId, @RequestBody UpdateUserBody body) {
         return service.update(assembler.assemble(userId, body));
     }
 }

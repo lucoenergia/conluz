@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.CreateUserRepository;
-import org.lucoenergia.conluz.domain.admin.user.CreateUserService;
 import org.lucoenergia.conluz.domain.admin.user.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -19,13 +18,13 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-public class DeleteUserControllerTest extends BaseIntegrationTest {
+public class EnableUserControllerTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -36,20 +35,20 @@ public class DeleteUserControllerTest extends BaseIntegrationTest {
 
     @Test
     @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
-    void testDeleteUser() throws Exception {
+    void testEnableUser() throws Exception {
 
         // Create a user
         User user = new User("12345678Z", 1, "John", "Doe", "Fake Street 123",
-                "johndoe@email.com", "+34666555444", true);
-        createUserRepository.create(user, "A good pa!!w0rd");
+                "johndoe@email.com", "+34666555444", false);
+        createUserRepository.create(user, UserMother.randomPassword());
         Assertions.assertTrue(getUserRepository.existsById(new UserId(user.getId())));
 
         String authHeader = BasicAuthHeaderGenerator.generate();
 
-        mockMvc.perform(delete(String.format("/api/v1/users/%s", user.getId()))
+        mockMvc.perform(post(String.format("/api/v1/users/%s/enable", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
-        Assertions.assertFalse(getUserRepository.existsById(new UserId(user.getId())));
+        Assertions.assertTrue(getUserRepository.findById(new UserId(user.getId())).get().getEnabled());
     }
 }

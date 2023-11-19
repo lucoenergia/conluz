@@ -50,10 +50,9 @@ public class UpdateUserControllerTest extends BaseIntegrationTest {
                 "alicesmith@email.com", "+34666555111");
         String body = objectMapper.writeValueAsString(userModified);
 
-        mockMvc.perform(put("/api/v1/users")
+        mockMvc.perform(put(String.format("/api/v1/users/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .param("id", "12345678Z")
                         .content(body))
                 .andDo(print())
                 .andExpect(status().isOk())
