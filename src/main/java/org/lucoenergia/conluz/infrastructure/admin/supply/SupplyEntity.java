@@ -20,11 +20,12 @@ public class SupplyEntity {
         enabled = true;
     }
 
-    public SupplyEntity(String id, String name, String address, Float partitionCoefficient) {
+    public SupplyEntity(String id, String name, String address, Float partitionCoefficient, Boolean enabled) {
         this.id = id;
         this.name = name;
         this.address = address;
         this.partitionCoefficient = partitionCoefficient;
+        this.enabled = enabled;
     }
 
     public String getId() {

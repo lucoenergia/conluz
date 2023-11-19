@@ -13,7 +13,7 @@ public class SupplyEntityMapperTest {
     @Test
     void testMap() {
         SupplyEntity entity = new SupplyEntity("XX000012345678901234F0RT", "My supply",
-                "Fake Street 123", 3.1245f);
+                "Fake Street 123", 3.1245f, true);
 
         Supply result = mapper.map(entity);
 

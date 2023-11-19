@@ -61,9 +61,9 @@ public class GetInstantProductionControllerTest extends BaseIntegrationTest {
 
         // Create some supplies
         supplyRepository.saveAll(Arrays.asList(
-                new SupplyEntity("1", "My house", "Fake street", 0.030763f),
-                new SupplyEntity("2", "The garage", "Sesame Street 666", 0.015380f),
-                new SupplyEntity("3", "My daughter's house", "Real street 22", 0.041017f)
+                new SupplyEntity("1", "My house", "Fake street", 0.030763f, true),
+                new SupplyEntity("2", "The garage", "Sesame Street 666", 0.015380f, true),
+                new SupplyEntity("3", "My daughter's house", "Real street 22", 0.041017f, true)
         ));
 
         String authHeader = BasicAuthHeaderGenerator.generate();

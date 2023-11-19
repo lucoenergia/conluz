@@ -48,7 +48,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
                 <constraints foreignKeyName="supply_user_id_fk" referencedTableName="users" referencedColumnNames="id"/>
             </column>
             <column name="name" type="VARCHAR(250)">
-                <constraints nullable="false"/>
+                <constraints nullable="true"/>
             </column>
             <column name="address" type="VARCHAR(250)">
                 <constraints nullable="false"/>

@@ -1,8 +1,8 @@
-package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
+package org.lucoenergia.conluz.domain.shared;
 
 import java.util.List;
 
-public abstract class BasePointInfluxMapper<P, R> {
+public abstract class BaseMapper<P, R> {
 
     public abstract R map(P point);
 

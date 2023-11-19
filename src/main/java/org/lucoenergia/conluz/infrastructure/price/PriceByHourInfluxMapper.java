@@ -1,12 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.price;
 
 import org.lucoenergia.conluz.domain.price.PriceByHour;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.BasePointInfluxMapper;
+import org.lucoenergia.conluz.domain.shared.BaseMapper;
 import org.lucoenergia.conluz.infrastructure.shared.time.InstantToOffsetDateTimeConverter;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PriceByHourInfluxMapper extends BasePointInfluxMapper<PriceByHourPoint, PriceByHour> {
+public class PriceByHourInfluxMapper extends BaseMapper<PriceByHourPoint, PriceByHour> {
 
     private final InstantToOffsetDateTimeConverter converter;
 
