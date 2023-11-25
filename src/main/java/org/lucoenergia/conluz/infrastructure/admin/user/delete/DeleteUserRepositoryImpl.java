@@ -1,29 +1,29 @@
-package org.lucoenergia.conluz.infrastructure.admin.user;
+package org.lucoenergia.conluz.infrastructure.admin.user.delete;
 
-import org.lucoenergia.conluz.domain.admin.user.DisableUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.DeleteUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public class DisableUserRepositoryImpl implements DisableUserRepository {
+public class DeleteUserRepositoryImpl implements DeleteUserRepository {
 
     private final UserRepository userRepository;
 
-    public DisableUserRepositoryImpl(UserRepository userRepository) {
+    public DeleteUserRepositoryImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
     @Override
-    public void disable(UserId id) {
+    public void delete(UserId id) {
         Optional<UserEntity> entity = userRepository.findById(id.getId());
         if (entity.isEmpty()) {
             throw new UserNotFoundException(id);
         }
-        UserEntity user = entity.get();
-        user.setEnabled(false);
-        userRepository.save(user);
+        userRepository.delete(entity.get());
     }
 }

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user;
+package org.lucoenergia.conluz.infrastructure.admin.user.delete;
 
 import org.lucoenergia.conluz.domain.admin.user.DeleteUserService;
 import org.lucoenergia.conluz.domain.shared.UserId;

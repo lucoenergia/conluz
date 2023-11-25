@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.Positive;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Positive;
 
 public class CreateSupplyBody {
 

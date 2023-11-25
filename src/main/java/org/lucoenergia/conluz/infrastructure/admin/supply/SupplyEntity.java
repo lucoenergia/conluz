@@ -1,8 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
-
-import javax.persistence.*;
 
 @Entity(name = "supply")
 public class SupplyEntity {

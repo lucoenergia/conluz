@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user;
+package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.springframework.stereotype.Component;

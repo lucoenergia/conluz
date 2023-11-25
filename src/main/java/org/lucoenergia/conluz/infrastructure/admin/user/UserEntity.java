@@ -1,8 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.admin.user;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 
-import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 

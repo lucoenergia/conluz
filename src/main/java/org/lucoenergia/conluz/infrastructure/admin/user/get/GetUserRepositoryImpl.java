@@ -1,10 +1,13 @@
-package org.lucoenergia.conluz.infrastructure.admin.user;
+package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
 import org.lucoenergia.conluz.domain.admin.user.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;

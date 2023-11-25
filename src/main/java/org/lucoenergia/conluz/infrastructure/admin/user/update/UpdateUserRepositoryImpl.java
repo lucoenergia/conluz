@@ -1,9 +1,12 @@
-package org.lucoenergia.conluz.infrastructure.admin.user;
+package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
 import org.lucoenergia.conluz.domain.admin.user.UpdateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 

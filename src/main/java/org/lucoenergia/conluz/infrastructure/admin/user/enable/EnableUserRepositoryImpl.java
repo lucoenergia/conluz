@@ -1,8 +1,10 @@
-package org.lucoenergia.conluz.infrastructure.admin.user;
+package org.lucoenergia.conluz.infrastructure.admin.user.enable;
 
 import org.lucoenergia.conluz.domain.admin.user.EnableUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;

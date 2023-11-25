@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user;
+package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
 import org.lucoenergia.conluz.domain.admin.user.GetUserService;
 import org.lucoenergia.conluz.domain.admin.user.User;

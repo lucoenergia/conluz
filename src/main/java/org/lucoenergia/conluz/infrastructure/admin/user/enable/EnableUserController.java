@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user;
+package org.lucoenergia.conluz.infrastructure.admin.user.enable;
 
 import org.lucoenergia.conluz.domain.admin.user.EnableUserService;
 import org.lucoenergia.conluz.domain.shared.UserId;
