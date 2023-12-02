@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1")
 public class EnableUserController {
@@ -18,7 +20,7 @@ public class EnableUserController {
     }
 
     @PostMapping(path = "/users/{id}/enable")
-    public void enableUser(@PathVariable("id") String userId) {
+    public void enableUser(@PathVariable("id") UUID userId) {
         service.enable(UserId.of(userId));
     }
 }

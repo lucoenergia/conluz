@@ -1,14 +1,16 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply;
+package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Positive;
+
+import java.util.UUID;
 
 public class CreateSupplyBody {
 
     @NotEmpty
     private String id;
     @NotEmpty
-    private String userId;
+    private UUID userId;
     @NotEmpty
     private String address;
     @Positive
@@ -38,11 +40,11 @@ public class CreateSupplyBody {
         this.partitionCoefficient = partitionCoefficient;
     }
 
-    public String getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 }

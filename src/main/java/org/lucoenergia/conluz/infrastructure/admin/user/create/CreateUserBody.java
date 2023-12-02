@@ -80,7 +80,7 @@ public class CreateUserBody {
 
     public User getUser() {
         User user = new User();
-        user.setId(this.getId());
+        user.setPersonalId(this.getId());
         user.setNumber(this.getNumber());
         user.setFullName(this.getFullName());
         user.setAddress(this.getAddress());

@@ -1,10 +1,13 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply;
+package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
 import org.lucoenergia.conluz.domain.admin.supply.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;

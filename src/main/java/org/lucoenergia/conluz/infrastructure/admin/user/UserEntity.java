@@ -7,12 +7,15 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity(name = "users")
 public class UserEntity {
 
     @Id
-    private String id;
+    private UUID id;
+
+    private String personalId;
     private Integer number;
     private String password;
     private String fullName;
@@ -29,12 +32,21 @@ public class UserEntity {
     )
     private List<SupplyEntity> supplies = new ArrayList<>();
 
-    public String getId() {
+
+    public UUID getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setId(UUID uuid) {
+        this.id = uuid;
+    }
+
+    public String getPersonalId() {
+        return personalId;
+    }
+
+    public void setPersonalId(String id) {
+        this.personalId = id;
     }
 
     public Integer getNumber() {
@@ -117,6 +129,7 @@ public class UserEntity {
 
     public static UserEntity createNewUser(User user, String encodedPassword) {
         UserEntity entity = new UserEntity();
+        entity.setPersonalId(user.getPersonalId());
         entity.setId(user.getId());
         entity.setNumber(user.getNumber());
         entity.setPassword(encodedPassword);
@@ -132,6 +145,7 @@ public class UserEntity {
     public User getUser() {
         User user = new User();
         user.setId(this.getId());
+        user.setPersonalId(this.getPersonalId());
         user.setNumber(this.getNumber());
         user.setPassword(this.getPassword());
         user.setFullName(this.getFullName());

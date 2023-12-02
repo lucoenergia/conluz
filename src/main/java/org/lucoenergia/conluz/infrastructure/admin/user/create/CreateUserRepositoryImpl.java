@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.create;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
@@ -28,8 +28,8 @@ public class CreateUserRepositoryImpl implements CreateUserRepository {
 
     @Override
     public User create(User user, String password) {
-        if (repository.existsById(user.getId())) {
-            throw new UserAlreadyExistsException(UserId.of(user.getId()));
+        if (repository.existsByPersonalId(user.getPersonalId())) {
+            throw new UserAlreadyExistsException(UserPersonalId.of(user.getPersonalId()));
         }
         String encodedPassword = passwordEncoder.encode(password);
         UserEntity entity = UserEntity.createNewUser(user, encodedPassword);

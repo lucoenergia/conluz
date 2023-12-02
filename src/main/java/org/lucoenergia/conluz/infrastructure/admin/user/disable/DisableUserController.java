@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1")
 public class DisableUserController {
@@ -18,7 +20,7 @@ public class DisableUserController {
     }
 
     @PostMapping(path = "/users/{id}/disable")
-    public void disableUser(@PathVariable("id") String userId) {
+    public void disableUser(@PathVariable("id") UUID userId) {
         service.disable(UserId.of(userId));
     }
 }

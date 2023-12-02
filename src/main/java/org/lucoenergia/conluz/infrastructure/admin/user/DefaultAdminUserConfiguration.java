@@ -18,7 +18,7 @@ public interface DefaultAdminUserConfiguration {
 
     default User getDefaultAdminUser() {
         return new User.Builder()
-                .id(getDefaultAdminUserId())
+                .personalId(getDefaultAdminUserId())
                 .fullName(getDefaultAdminUserFullName())
                 .number(getDefaultAdminUserNumber())
                 .email(getDefaultAdminUserEmail())

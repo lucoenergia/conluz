@@ -1,11 +1,14 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.create;
+package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
+import java.util.UUID;
+
 public class UserResponse {
 
-    private String id;
+    private UUID id;
+    private String personalId;
     private Integer number;
     private String fullName;
     private String address;
@@ -16,6 +19,7 @@ public class UserResponse {
 
     public UserResponse(User user) {
         id = user.getId();
+        personalId = user.getPersonalId();
         number = user.getNumber();
         fullName = user.getFullName();
         address = user.getAddress();
@@ -25,8 +29,12 @@ public class UserResponse {
         role = user.getRole();
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
+    }
+
+    public String getPersonalId() {
+        return personalId;
     }
 
     public Integer getNumber() {

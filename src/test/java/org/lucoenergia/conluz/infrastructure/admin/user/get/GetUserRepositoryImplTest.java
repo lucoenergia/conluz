@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.get;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
@@ -24,7 +24,7 @@ class GetUserRepositoryImplTest extends BaseIntegrationTest {
 
 
     @Test
-    void testFindById() {
+    void testFindByPersonalId() {
 
         UserEntity userOne = UserMother.randomUserEntity();
         // Create some users
@@ -33,9 +33,9 @@ class GetUserRepositoryImplTest extends BaseIntegrationTest {
                 UserMother.randomUserEntity(),
                 UserMother.randomUserEntity()
         ));
-        UserId userId = UserId.of(userOne.getId());
+        UserPersonalId userPersonalId = UserPersonalId.of(userOne.getPersonalId());
 
-        Optional<User> result = getUserRepository.findById(userId);
+        Optional<User> result = getUserRepository.findByPersonalId(userPersonalId);
 
         Assertions.assertTrue(result.isPresent());
     }

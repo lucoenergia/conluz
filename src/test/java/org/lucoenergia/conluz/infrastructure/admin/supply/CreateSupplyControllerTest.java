@@ -13,6 +13,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,18 +33,18 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
+        User user = UserMother.randomUserWithId(UUID.fromString("e7ab39cd-9250-40a9-b829-f11f65aae27d"));
+        createUserRepository.create(user, UserMother.randomPassword());
+
         String body = """
                 {
                   "id": "ES0033333333333333AA0A",
-                  "userId": "12345678Z",
+                  "userId": "e7ab39cd-9250-40a9-b829-f11f65aae27d",
                   "address": "Fake Street 123",
                   "partitionCoefficient": "3.0763",
                   "registerReference": "13077A018000390000FP"
                 }
         """;
-
-        User user = UserMother.randomUserWithId("12345678Z");
-        createUserRepository.create(user, UserMother.randomPassword());
 
         mockMvc.perform(post("/api/v1/supplies")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -55,7 +57,8 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.partitionCoefficient").value("3.0763"))
                 .andExpect(jsonPath("$.name").isEmpty())
                 .andExpect(jsonPath("$.enabled").value(true))
-                .andExpect(jsonPath("$.user.id").value(user.getId()))
+                .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
+                .andExpect(jsonPath("$.user.personalId").value(user.getPersonalId()))
                 .andExpect(jsonPath("$.user.number").value(user.getNumber()))
                 .andExpect(jsonPath("$.user.fullName").value(user.getFullName()))
                 .andExpect(jsonPath("$.user.address").value(user.getAddress()))

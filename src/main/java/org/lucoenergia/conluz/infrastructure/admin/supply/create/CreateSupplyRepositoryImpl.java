@@ -1,9 +1,13 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply;
+package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyCannotBeCreatedException;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
@@ -41,7 +45,12 @@ public class CreateSupplyRepositoryImpl implements CreateSupplyRepository {
 
         userRepository.save(userEntity);
 
-        Supply newSupply = supplyEntityMapper.map(supplyRepository.findById(supply.getId()).get());
+        Optional<SupplyEntity> newSupplyEntity = supplyRepository.findById(supply.getId());
+        if (newSupplyEntity.isEmpty()) {
+            throw new SupplyCannotBeCreatedException();
+        }
+
+        Supply newSupply = supplyEntityMapper.map(newSupplyEntity.get());
         newSupply.setUser(userEntityMapper.map(userEntity));
 
         return newSupply;

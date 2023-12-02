@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserService;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;

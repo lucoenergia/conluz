@@ -1,22 +1,24 @@
 package org.lucoenergia.conluz.domain.admin.user;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import org.lucoenergia.conluz.infrastructure.shared.EnvVar;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 
 public class User implements UserDetails {
 
     @NotBlank
-    private String id;
+    @org.hibernate.validator.constraints.UUID
+    private UUID id;
+    @NotBlank
+    private String personalId;
     @NotBlank
     private String password;
     @Min(value = 0)
@@ -33,16 +35,24 @@ public class User implements UserDetails {
     private Boolean enabled;
     private Role role;
 
-    public void enable() {
-        this.setEnabled(true);
-    }
-
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(UUID id) {
         this.id = id;
+    }
+
+    public void initializeUuid() {
+        this.setId(UUID.randomUUID());
+    }
+
+    public String getPersonalId() {
+        return personalId;
+    }
+
+    public void setPersonalId(String personalId) {
+        this.personalId = personalId;
     }
 
     public void setPassword(String password) {
@@ -89,6 +99,10 @@ public class User implements UserDetails {
         this.phoneNumber = phoneNumber;
     }
 
+    public void enable() {
+        this.setEnabled(true);
+    }
+
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
     }
@@ -113,7 +127,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return getId();
+        return getPersonalId();
     }
 
     @Override
@@ -136,6 +150,7 @@ public class User implements UserDetails {
         return enabled;
     }
 
+
     public static class Builder {
         private final User user;
 
@@ -143,8 +158,13 @@ public class User implements UserDetails {
             user = new User();
         }
 
-        public Builder id(String id) {
-            user.id = id;
+        public Builder id(UUID uuid) {
+            user.id = uuid;
+            return this;
+        }
+
+        public Builder personalId(String id) {
+            user.personalId = id;
             return this;
         }
 

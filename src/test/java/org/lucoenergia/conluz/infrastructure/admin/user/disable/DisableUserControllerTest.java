@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
-import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ class DisableUserControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.setEnabled(true);
         createUserRepository.create(user, UserMother.randomPassword());
-        Assertions.assertTrue(getUserRepository.existsById(UserId.of(user.getId())));
+        Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
 
         // Login as default admin user
         String authHeader = loginAsDefaultAdmin();
@@ -40,6 +40,6 @@ class DisableUserControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
-        Assertions.assertFalse(getUserRepository.findById(UserId.of(user.getId())).get().isEnabled());
+        Assertions.assertFalse(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).get().isEnabled());
     }
 }

@@ -1,8 +1,9 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply;
+package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,7 +25,8 @@ public class CreateSupplyController {
     }
 
     @PostMapping
-    public Supply createUser(@RequestBody CreateSupplyBody body) {
-        return service.create(assembler.assemble(body), UserId.of(body.getUserId()));
+    public SupplyResponse createUser(@RequestBody CreateSupplyBody body) {
+        Supply newSupply = service.create(assembler.assemble(body), UserId.of(body.getUserId()));
+        return new SupplyResponse(newSupply);
     }
 }

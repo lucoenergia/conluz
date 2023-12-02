@@ -8,8 +8,11 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <!-- Create table 'users' -->
     <changeSet id="20231027T2302" author="Víctor Cañizares">
         <createTable tableName="users">
-            <column name="id" type="VARCHAR(250)">
+            <column name="id" type="UUID">
                 <constraints primaryKey="true" primaryKeyName="user_id_pk"/>
+            </column>
+            <column name="personal_id" type="VARCHAR(250)">
+                <constraints nullable="false"/>
             </column>
             <column name="number" type="INTEGER">
                 <constraints nullable="false"/>
@@ -44,7 +47,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
             <column name="id" type="VARCHAR(250)">
                 <constraints primaryKey="true" primaryKeyName="supply_id_pk"/>
             </column>
-            <column name="user_id" type="VARCHAR(250)">
+            <column name="user_id" type="UUID">
                 <constraints foreignKeyName="supply_user_id_fk" referencedTableName="users" referencedColumnNames="id"/>
             </column>
             <column name="name" type="VARCHAR(250)">

@@ -14,7 +14,7 @@ public class UserEntityMapperTest {
 
         User result = mapper.map(entity);
 
-        Assertions.assertEquals(entity.getId(), result.getId());
+        Assertions.assertEquals(entity.getPersonalId(), result.getPersonalId());
         Assertions.assertEquals(entity.getNumber(), result.getNumber());
         Assertions.assertEquals(entity.getFullName(), result.getFullName());
         Assertions.assertEquals(entity.getAddress(), result.getAddress());

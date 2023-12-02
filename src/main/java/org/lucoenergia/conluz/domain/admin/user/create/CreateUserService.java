@@ -21,6 +21,7 @@ public class CreateUserService {
 
     public User create(User user, String password) {
         user.enable();
+        user.initializeUuid();
         return repository.create(user, password);
     }
 
@@ -28,15 +29,12 @@ public class CreateUserService {
         User user = new User();
 
         // Get values from env vars
-        user.setId(defaultAdminUserConfiguration.getDefaultAdminUserId());
+        user.setPersonalId(defaultAdminUserConfiguration.getDefaultAdminUserId());
         user.setNumber(defaultAdminUserConfiguration.getDefaultAdminUserNumber());
         user.setFullName(defaultAdminUserConfiguration.getDefaultAdminUserFullName());
         user.setAddress(defaultAdminUserConfiguration.getDefaultAdminUserAddress());
         user.setEmail(defaultAdminUserConfiguration.getDefaultAdminUserEmail());
         user.setPassword(defaultAdminUserConfiguration.getDefaultAdminUserPassword());
-
-        // Enable user
-        user.setEnabled(true);
 
         // Set role to ADMIN
         user.setRole(Role.ADMIN);

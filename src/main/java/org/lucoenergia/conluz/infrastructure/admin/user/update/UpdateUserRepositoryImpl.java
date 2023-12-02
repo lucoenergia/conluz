@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class UpdateUserRepositoryImpl implements UpdateUserRepository {
@@ -24,10 +25,10 @@ public class UpdateUserRepositoryImpl implements UpdateUserRepository {
 
     @Override
     public User update(User user) {
-        UserId id = UserId.of(user.getId());
-        Optional<UserEntity> result = repository.findById(user.getId());
+        UUID userUuid = user.getId();
+        Optional<UserEntity> result = repository.findById(userUuid);
         if (result.isEmpty()) {
-            throw new UserNotFoundException(id);
+            throw new UserNotFoundException(UserId.of(userUuid));
         }
         UserEntity currentUser = result.get();
         currentUser.setNumber(user.getNumber());

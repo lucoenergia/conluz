@@ -22,7 +22,7 @@ public class CreateUserRepositoryImplTest extends BaseIntegrationTest {
 
         User newUser = repository.create(user, password);
 
-        Assertions.assertEquals(user.getId(), newUser.getId());
+        Assertions.assertEquals(user.getPersonalId(), newUser.getPersonalId());
         Assertions.assertEquals(user.getNumber(), newUser.getNumber());
         Assertions.assertEquals(user.getFullName(), newUser.getFullName());
         Assertions.assertEquals(user.getRole(), newUser.getRole());

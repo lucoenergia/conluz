@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
-import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +30,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
         // Create a user
         User user = UserMother.randomUser();
         createUserRepository.create(user, "A good pa!!w0rd");
-        Assertions.assertTrue(getUserRepository.existsById(UserId.of(user.getId())));
+        Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
 
         // Login as default admin
         String authHeader = loginAsDefaultAdmin();
@@ -39,6 +39,6 @@ class DeleteUserControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
-        Assertions.assertFalse(getUserRepository.existsById(UserId.of(user.getId())));
+        Assertions.assertFalse(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
     }
 }

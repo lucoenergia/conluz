@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply;
+package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.infrastructure.shared.web.Assembler;

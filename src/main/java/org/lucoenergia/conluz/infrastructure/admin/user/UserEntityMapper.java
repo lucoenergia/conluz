@@ -11,6 +11,7 @@ public class UserEntityMapper extends BaseMapper<UserEntity,User> {
     public User map(UserEntity entity) {
         User user = new User();
         user.setId(entity.getId());
+        user.setPersonalId(entity.getPersonalId());
         user.setNumber(entity.getNumber());
         user.setPassword(entity.getPassword());
         user.setFullName(entity.getFullName());

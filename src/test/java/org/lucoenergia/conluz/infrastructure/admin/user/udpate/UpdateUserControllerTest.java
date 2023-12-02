@@ -11,6 +11,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -29,7 +31,8 @@ class UpdateUserControllerTest extends BaseControllerTest {
 
         // Creates a user
         User user = new User();
-        user.setId("12345678Z");
+        user.setId(UUID.randomUUID());
+        user.setPersonalId("12345678Z");
         user.setNumber(1);
         user.setFullName("John Doe");
         user.setAddress("Fake Street 123");
@@ -41,7 +44,8 @@ class UpdateUserControllerTest extends BaseControllerTest {
 
         // Modify data of the user
         User userModified = new User();
-        userModified.setId("12345678Z");
+        userModified.setId(UUID.randomUUID());
+        userModified.setPersonalId("12345678Z");
         userModified.setNumber(2);
         userModified.setFullName("Alice Smith");
         userModified.setAddress("Fake Street 666");
@@ -57,7 +61,8 @@ class UpdateUserControllerTest extends BaseControllerTest {
                         .content(body))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("12345678Z"))
+                .andExpect(jsonPath("$.id").value(user.getId().toString()))
+                .andExpect(jsonPath("$.personalId").value(userModified.getPersonalId()))
                 .andExpect(jsonPath("$.number").value("2"))
                 .andExpect(jsonPath("$.fullName").value("Alice Smith"))
                 .andExpect(jsonPath("$.address").value("Fake Street 666"))

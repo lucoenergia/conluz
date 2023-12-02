@@ -4,5 +4,5 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 
 public interface DeleteUserRepository {
 
-    public void delete(UserId id);
+    void delete(UserId id);
 }
