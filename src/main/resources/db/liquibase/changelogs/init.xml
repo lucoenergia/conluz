@@ -17,19 +17,19 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
             <column name="password" type="VARCHAR(250)">
                 <constraints nullable="false"/>
             </column>
-            <column name="first_name" type="VARCHAR(250)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="last_name" type="VARCHAR(250)">
+            <column name="full_name" type="VARCHAR(250)">
                 <constraints nullable="false"/>
             </column>
             <column name="address" type="VARCHAR(250)">
                 <constraints nullable="false"/>
             </column>
             <column name="phone_number" type="VARCHAR(250)">
-                <constraints nullable="false"/>
+                <constraints nullable="true"/>
             </column>
             <column name="email" type="VARCHAR(250)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="VARCHAR(250)">
                 <constraints nullable="false"/>
             </column>
             <column name="enabled" type="BOOLEAN">

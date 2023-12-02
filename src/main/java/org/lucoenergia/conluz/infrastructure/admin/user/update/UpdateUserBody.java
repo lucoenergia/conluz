@@ -1,24 +1,15 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
+import org.lucoenergia.conluz.domain.admin.user.Role;
 
 public class UpdateUserBody {
 
-    @Min(value = 1)
-    @NotEmpty
     private Integer number;
-    @NotEmpty
-    private String firstName;
-    @NotEmpty
-    private String lastName;
-    @NotEmpty
+    private String fullName;
     private String address;
-    @Email
-    @NotEmpty
     private String email;
     private String phoneNumber;
+    private Role role;
 
     public Integer getNumber() {
         return number;
@@ -28,20 +19,12 @@ public class UpdateUserBody {
         this.number = number;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public String getFullName() {
+        return fullName;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public String getAddress() {
@@ -66,5 +49,13 @@ public class UpdateUserBody {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 }

@@ -4,16 +4,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
-import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
+import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.EnergyProductionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
-import org.lucoenergia.conluz.infrastructure.shared.security.BasicAuthHeaderGenerator;
-import org.lucoenergia.conluz.infrastructure.shared.security.MockUser;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
@@ -23,12 +18,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@AutoConfigureMockMvc
 @Transactional
-public class GetInstantProductionControllerTest extends BaseIntegrationTest {
+class GetInstantProductionControllerTest extends BaseControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
     @Autowired
     private SupplyRepository supplyRepository;
     @Autowired
@@ -45,9 +37,8 @@ public class GetInstantProductionControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetInstantProduction() throws Exception {
-        String authHeader = BasicAuthHeaderGenerator.generate();
+        String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(get("/api/v1/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -56,7 +47,6 @@ public class GetInstantProductionControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetInstantProductionBySupply() throws Exception {
 
         // Create some supplies
@@ -66,7 +56,7 @@ public class GetInstantProductionControllerTest extends BaseIntegrationTest {
                 new SupplyEntity("3", "My daughter's house", "Real street 22", 0.041017f, true)
         ));
 
-        String authHeader = BasicAuthHeaderGenerator.generate();
+        String authHeader = loginAsDefaultAdmin();
         String supplyId = "1";
 
         mockMvc.perform(get("/api/v1/production")
@@ -77,10 +67,9 @@ public class GetInstantProductionControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetInstantProductionByUnknownSupply() throws Exception {
 
-        String authHeader = BasicAuthHeaderGenerator.generate();
+        String authHeader = loginAsDefaultAdmin();
         String supplyId = "1";
 
         mockMvc.perform(get("/api/v1/production")
@@ -94,10 +83,9 @@ public class GetInstantProductionControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetInstantProductionWithWrongParameter() throws Exception {
 
-        String authHeader = BasicAuthHeaderGenerator.generate();
+        String authHeader = loginAsDefaultAdmin();
         String supplyId = "1";
 
         mockMvc.perform(get("/api/v1/production")

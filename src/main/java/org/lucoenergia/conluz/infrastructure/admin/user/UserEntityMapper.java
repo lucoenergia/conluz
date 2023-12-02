@@ -4,15 +4,22 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 public class UserEntityMapper extends BaseMapper<UserEntity,User> {
 
     @Override
     public User map(UserEntity entity) {
-        return new User(entity.getId(), entity.getNumber(), entity.getFirstName(), entity.getLastName(),
-                entity.getAddress(), entity.getEmail(), entity.getPhoneNumber(),
-                entity.getEnabled());
+        User user = new User();
+        user.setId(entity.getId());
+        user.setNumber(entity.getNumber());
+        user.setPassword(entity.getPassword());
+        user.setFullName(entity.getFullName());
+        user.setAddress(entity.getAddress());
+        user.setEmail(entity.getEmail());
+        user.setPhoneNumber(entity.getPhoneNumber());
+        user.setEnabled(entity.getEnabled());
+        user.setRole(entity.getRole());
+
+        return user;
     }
 }

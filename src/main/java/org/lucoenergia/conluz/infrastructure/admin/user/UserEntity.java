@@ -1,9 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.user;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
+import org.lucoenergia.conluz.domain.admin.user.Role;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 
 import java.util.ArrayList;
@@ -16,35 +15,19 @@ public class UserEntity {
     private String id;
     private Integer number;
     private String password;
-    private String firstName;
-    private String lastName;
+    private String fullName;
     private String address;
     private String email;
     private String phoneNumber;
-    private Boolean enabled;
+    private Boolean enabled = true;
+    @Enumerated(EnumType.STRING)
+    private Role role;
     @OneToMany(
             mappedBy = "user",
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
     private List<SupplyEntity> supplies = new ArrayList<>();
-
-    public UserEntity() {
-        enabled = true;
-    }
-
-    public UserEntity(String id, Integer number, String password, String firstName, String lastName, String address, String email,
-                      String phoneNumber, Boolean enabled) {
-        this.id = id;
-        this.number = number;
-        this.password = password;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.address = address;
-        this.email = email;
-        this.phoneNumber = phoneNumber;
-        this.enabled = enabled;
-    }
 
     public String getId() {
         return id;
@@ -70,20 +53,12 @@ public class UserEntity {
         this.password = password;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public String getFullName() {
+        return fullName;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setFullName(String firstName) {
+        this.fullName = firstName;
     }
 
     public String getAddress() {
@@ -118,6 +93,14 @@ public class UserEntity {
         this.enabled = enabled;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
     public List<SupplyEntity> getSupplies() {
         return supplies;
     }
@@ -130,5 +113,34 @@ public class UserEntity {
     public void removeSupply(SupplyEntity supply) {
         supplies.remove(supply);
         supply.setUser(null);
+    }
+
+    public static UserEntity createNewUser(User user, String encodedPassword) {
+        UserEntity entity = new UserEntity();
+        entity.setId(user.getId());
+        entity.setNumber(user.getNumber());
+        entity.setPassword(encodedPassword);
+        entity.setFullName(user.getFullName());
+        entity.setAddress(user.getAddress());
+        entity.setEmail(user.getEmail());
+        entity.setPhoneNumber(user.getPhoneNumber());
+        entity.setEnabled(user.isEnabled());
+        entity.setRole(user.getRole());
+        return entity;
+    }
+
+    public User getUser() {
+        User user = new User();
+        user.setId(this.getId());
+        user.setNumber(this.getNumber());
+        user.setPassword(this.getPassword());
+        user.setFullName(this.getFullName());
+        user.setAddress(this.getAddress());
+        user.setEmail(this.getEmail());
+        user.setPhoneNumber(this.getPhoneNumber());
+        user.setEnabled(this.getEnabled());
+        user.setRole(this.getRole());
+
+        return user;
     }
 }

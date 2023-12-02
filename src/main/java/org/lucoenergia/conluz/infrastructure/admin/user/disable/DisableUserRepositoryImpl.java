@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.disable;
 
-import org.lucoenergia.conluz.domain.admin.user.DisableUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.disable.DisableUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;

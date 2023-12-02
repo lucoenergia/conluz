@@ -1,28 +1,18 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
+import org.lucoenergia.conluz.domain.admin.user.Role;
+import org.lucoenergia.conluz.domain.admin.user.User;
 
 public class CreateUserBody {
 
-    @NotEmpty
     private String id;
-    @Min(value = 1)
-    @NotEmpty
     private Integer number;
-    @NotEmpty
-    private String firstName;
-    @NotEmpty
-    private String lastName;
-    @NotEmpty
+    private String fullName;
     private String address;
-    @Email
-    @NotEmpty
     private String email;
     private String phoneNumber;
-    @NotEmpty
     private String password;
+    private Role role;
 
     public String getId() {
         return id;
@@ -40,20 +30,12 @@ public class CreateUserBody {
         this.number = number;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public String getFullName() {
+        return fullName;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public String getAddress() {
@@ -86,5 +68,25 @@ public class CreateUserBody {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public User getUser() {
+        User user = new User();
+        user.setId(this.getId());
+        user.setNumber(this.getNumber());
+        user.setFullName(this.getFullName());
+        user.setAddress(this.getAddress());
+        user.setEmail(this.getEmail());
+        user.setPhoneNumber(this.getPhoneNumber());
+        user.setRole(this.getRole());
+        return user;
     }
 }

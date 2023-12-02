@@ -1,7 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
-import org.lucoenergia.conluz.domain.admin.user.UpdateUserService;
+import org.lucoenergia.conluz.domain.admin.user.update.UpdateUserService;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.user.create.UserResponse;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -20,7 +21,7 @@ public class UpdateUserController {
     }
 
     @PutMapping("/users/{id}")
-    public User updateUser(@PathVariable("id") String userId, @RequestBody UpdateUserBody body) {
-        return service.update(assembler.assemble(userId, body));
+    public UserResponse updateUser(@PathVariable("id") String userId, @RequestBody UpdateUserBody body) {
+        return new UserResponse(service.update(assembler.assemble(userId, body)));
     }
 }

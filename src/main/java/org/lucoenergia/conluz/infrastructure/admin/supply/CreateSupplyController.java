@@ -25,6 +25,6 @@ public class CreateSupplyController {
 
     @PostMapping
     public Supply createUser(@RequestBody CreateSupplyBody body) {
-        return service.create(assembler.assemble(body), new UserId(body.getUserId()));
+        return service.create(assembler.assemble(body), UserId.of(body.getUserId()));
     }
 }

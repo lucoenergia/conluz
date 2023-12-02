@@ -4,8 +4,12 @@ public class UserId {
 
     private final String id;
 
-    public UserId(String id) {
+    private UserId(String id) {
         this.id = id;
+    }
+
+    public static UserId of(String id) {
+        return new UserId(id);
     }
 
     public String getId() {

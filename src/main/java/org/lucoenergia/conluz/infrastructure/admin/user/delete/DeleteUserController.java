@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.delete;
 
-import org.lucoenergia.conluz.domain.admin.user.DeleteUserService;
+import org.lucoenergia.conluz.domain.admin.user.delete.DeleteUserService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +16,6 @@ public class DeleteUserController {
 
     @DeleteMapping("/users/{id}")
     public void deleteUser(@PathVariable("id") String userId) {
-        service.delete(new UserId(userId));
+        service.delete(UserId.of(userId));
     }
 }
