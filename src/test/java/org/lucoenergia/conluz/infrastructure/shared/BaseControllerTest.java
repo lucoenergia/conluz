@@ -20,8 +20,6 @@ public class BaseControllerTest extends BaseIntegrationTest {
     @Autowired
     protected ObjectMapper objectMapper;
 
-    private String defaultAdminToken;
-
     protected String loginAsDefaultAdmin() throws Exception {
 
         // Login to get the JWT token

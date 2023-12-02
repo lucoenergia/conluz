@@ -1,7 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.auth;
 
+import org.lucoenergia.conluz.infrastructure.shared.EnvVar;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
 @Configuration
 public class JwtConfiguration {
@@ -17,6 +19,7 @@ public class JwtConfiguration {
     }
 
     public String getSecretKey() {
-        return secretKey;
+        String secretKeyEnvVarValue = System.getenv(EnvVar.CONLUZ_JWT_SECRET_KEY.name());
+        return StringUtils.hasText(secretKeyEnvVarValue) ? secretKeyEnvVarValue : secretKey;
     }
 }
