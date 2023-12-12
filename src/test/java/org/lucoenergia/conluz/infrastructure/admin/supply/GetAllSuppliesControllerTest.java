@@ -3,20 +3,15 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.user.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserMother;
-import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
-import org.lucoenergia.conluz.infrastructure.shared.security.BasicAuthHeaderGenerator;
-import org.lucoenergia.conluz.infrastructure.shared.security.MockUser;
+import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -24,20 +19,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
 @Transactional
-public class GetAllSuppliesControllerTest extends BaseIntegrationTest {
+class GetAllSuppliesControllerTest extends BaseControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
 
     @Test
-    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetAllSuppliesWithDefaultPagination() throws Exception {
 
         // Create two users
@@ -48,13 +38,13 @@ public class GetAllSuppliesControllerTest extends BaseIntegrationTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne);
-        createSupplyRepository.create(supplyOne, new UserId(userOne.getId()));
+        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         Supply supplyTwo = SupplyMother.random(userOne);
-        createSupplyRepository.create(supplyTwo, new UserId(userOne.getId()));
+        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
         Supply supplyThree = SupplyMother.random(userTwo);
-        createSupplyRepository.create(supplyThree, new UserId(userTwo.getId()));
+        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = BasicAuthHeaderGenerator.generate();
+        String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(get("/api/v1/supplies")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -69,7 +59,6 @@ public class GetAllSuppliesControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = MockUser.USERNAME, authorities = {MockUser.ROLE})
     void testGetAllUsersWithCustomPagination() throws Exception {
 
         // Create two users
@@ -80,13 +69,13 @@ public class GetAllSuppliesControllerTest extends BaseIntegrationTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne);
-        createSupplyRepository.create(supplyOne, new UserId(userOne.getId()));
+        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         Supply supplyTwo = SupplyMother.random(userOne);
-        createSupplyRepository.create(supplyTwo, new UserId(userOne.getId()));
+        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
         Supply supplyThree = SupplyMother.random(userTwo);
-        createSupplyRepository.create(supplyThree, new UserId(userTwo.getId()));
+        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = BasicAuthHeaderGenerator.generate();
+        String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(get("/api/v1/supplies")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

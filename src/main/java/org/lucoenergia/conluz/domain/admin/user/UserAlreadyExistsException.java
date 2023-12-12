@@ -1,16 +1,16 @@
 package org.lucoenergia.conluz.domain.admin.user;
 
-import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 
 public class UserAlreadyExistsException extends RuntimeException {
 
-    private final UserId id;
+    private final UserPersonalId id;
 
-    public UserAlreadyExistsException(UserId id) {
+    public UserAlreadyExistsException(UserPersonalId id) {
         this.id = id;
     }
 
-    public UserId getUserId() {
+    public UserPersonalId getUserId() {
         return id;
     }
 }

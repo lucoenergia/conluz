@@ -1,11 +1,13 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.enable;
 
-import org.lucoenergia.conluz.domain.admin.user.EnableUserService;
+import org.lucoenergia.conluz.domain.admin.user.enable.EnableUserService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -18,7 +20,7 @@ public class EnableUserController {
     }
 
     @PostMapping(path = "/users/{id}/enable")
-    public void enableUser(@PathVariable("id") String userId) {
-        service.enable(new UserId(userId));
+    public void enableUser(@PathVariable("id") UUID userId) {
+        service.enable(UserId.of(userId));
     }
 }

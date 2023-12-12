@@ -1,7 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
-import org.lucoenergia.conluz.domain.admin.user.GetUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
@@ -29,6 +30,17 @@ public class GetUserRepositoryImpl implements GetUserRepository {
     }
 
     @Override
+    public Optional<User> findByPersonalId(UserPersonalId id) {
+        Optional<UserEntity> entity = userRepository.findByPersonalId(id.getPersonalId());
+
+        if (entity.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(userEntityMapper.map(entity.get()));
+    }
+
+    @Override
     public Optional<User> findById(UserId id) {
         Optional<UserEntity> entity = userRepository.findById(id.getId());
 
@@ -40,8 +52,8 @@ public class GetUserRepositoryImpl implements GetUserRepository {
     }
 
     @Override
-    public boolean existsById(UserId id) {
-        return userRepository.existsById(id.getId());
+    public boolean existsByPersonalId(UserPersonalId id) {
+        return userRepository.existsByPersonalId(id.getPersonalId());
     }
 
     @Override

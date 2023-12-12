@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.delete;
 
-import org.lucoenergia.conluz.domain.admin.user.DeleteUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.delete.DeleteUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;

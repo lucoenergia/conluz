@@ -2,15 +2,20 @@ package org.lucoenergia.conluz.domain.admin.user;
 
 import org.lucoenergia.conluz.domain.shared.UserId;
 
+import java.util.Optional;
+
 public class UserNotFoundException extends RuntimeException {
 
-    private final UserId id;
+    private final Optional<UserId> id;
 
+    public UserNotFoundException() {
+        this.id = Optional.empty();
+    }
     public UserNotFoundException(UserId id) {
-        this.id = id;
+        this.id = Optional.of(id);
     }
 
-    public UserId getUserId() {
+    public Optional<UserId> getUserUuid() {
         return id;
     }
 }

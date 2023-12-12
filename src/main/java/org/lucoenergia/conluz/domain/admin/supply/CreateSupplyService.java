@@ -1,8 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.supply;
 
 
-import org.lucoenergia.conluz.domain.admin.user.CreateUserRepository;
-import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
 

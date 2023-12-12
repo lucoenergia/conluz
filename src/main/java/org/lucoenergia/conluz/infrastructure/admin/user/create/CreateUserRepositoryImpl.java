@@ -1,18 +1,17 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
-import org.lucoenergia.conluz.domain.admin.user.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
-import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-
+@Transactional
 @Repository
 public class CreateUserRepositoryImpl implements CreateUserRepository {
 
@@ -29,12 +28,11 @@ public class CreateUserRepositoryImpl implements CreateUserRepository {
 
     @Override
     public User create(User user, String password) {
-        if (repository.existsById(user.getId())) {
-            throw new UserAlreadyExistsException(new UserId(user.getId()));
+        if (repository.existsByPersonalId(user.getPersonalId())) {
+            throw new UserAlreadyExistsException(UserPersonalId.of(user.getPersonalId()));
         }
         String encodedPassword = passwordEncoder.encode(password);
-        UserEntity entity = new UserEntity(user.getId(), user.getNumber(), encodedPassword, user.getFirstName(),
-                user.getLastName(), user.getAddress(), user.getEmail(), user.getPhoneNumber(), user.getEnabled());
+        UserEntity entity = UserEntity.createNewUser(user, encodedPassword);
 
         return mapper.map(repository.save(entity));
     }

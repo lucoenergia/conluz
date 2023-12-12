@@ -2,40 +2,62 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
+
+import java.util.UUID;
 
 public class UserMother {
 
     public static UserEntity randomUserEntity() {
-        return randomUserEntityWithId(RandomStringUtils.randomAlphabetic(9));
+        return randomUserEntityWithPersonalId(RandomStringUtils.randomAlphabetic(9));
     }
 
-    public static UserEntity randomUserEntityWithId(String id) {
-        return new UserEntity(id,
-                RandomUtils.nextInt(),
-                "$2a$12$" + RandomStringUtils.randomAlphabetic(53),
-                RandomStringUtils.random(5, true, false),
-                RandomStringUtils.random(10, true, false),
-                RandomStringUtils.randomAlphabetic(30),
-                RandomStringUtils.random(5, true, false) + "@" + RandomStringUtils.random(5, true, false) + ".com", "+34666333111",
-                RandomUtils.nextBoolean()
-        );
+    public static UserEntity randomUserEntityWithPersonalId(String personalId) {
+        UserEntity user = new UserEntity();
+        user.setId(UUID.randomUUID());
+        user.setPersonalId(personalId);
+        user.setPassword("$2a$12$" + RandomStringUtils.randomAlphabetic(53));
+        user.setNumber(RandomUtils.nextInt());
+        user.setFullName(RandomStringUtils.random(15, true, false));
+        user.setAddress(RandomStringUtils.randomAlphabetic(30));
+        user.setEmail(RandomStringUtils.random(5, true, false) + "@" + RandomStringUtils.random(5, true, false) + ".com");
+        user.setPhoneNumber("+34666333111");
+        user.setEnabled(RandomUtils.nextBoolean());
+        user.setRole(Role.PARTNER);
+        return user;
     }
 
     public static User randomUser() {
-        return randomUserWithId(RandomStringUtils.randomAlphabetic(9));
+        return randomUserWithPersonalId(RandomStringUtils.randomAlphabetic(9));
     }
 
-    public static User randomUserWithId(String id) {
-        return new User(id,
-                RandomUtils.nextInt(),
-                RandomStringUtils.random(5, true, false),
-                RandomStringUtils.random(10, true, false),
-                RandomStringUtils.randomAlphabetic(30),
-                RandomStringUtils.random(5, true, false) + "@" + RandomStringUtils.random(5, true, false) + ".com",
-                "+34666333111",
-                RandomUtils.nextBoolean()
-        );
+    public static User randomUserWithPersonalId(String personalId) {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setPersonalId(personalId);
+        user.setNumber(RandomUtils.nextInt());
+        user.setFullName(RandomStringUtils.random(15, true, false));
+        user.setAddress(RandomStringUtils.randomAlphabetic(30));
+        user.setEmail(RandomStringUtils.random(5, true, false) + "@" + RandomStringUtils.random(5, true, false) + ".com");
+        user.setPhoneNumber("+34666333111");
+        user.setEnabled(RandomUtils.nextBoolean());
+        user.setRole(Role.PARTNER);
+        return user;
+    }
+
+    public static User randomUserWithId(UUID id) {
+        User user = new User();
+        user.setId(id);
+        user.setPersonalId(RandomStringUtils.randomAlphabetic(9));
+        user.setNumber(RandomUtils.nextInt());
+        user.setFullName(RandomStringUtils.random(15, true, false));
+        user.setAddress(RandomStringUtils.randomAlphabetic(30));
+        user.setEmail(RandomStringUtils.random(5, true, false) + "@" + RandomStringUtils.random(5, true, false) + ".com");
+        user.setPhoneNumber("+34666333111");
+        user.setEnabled(RandomUtils.nextBoolean());
+        user.setRole(Role.PARTNER);
+        return user;
     }
 
     public static String randomPassword() {
