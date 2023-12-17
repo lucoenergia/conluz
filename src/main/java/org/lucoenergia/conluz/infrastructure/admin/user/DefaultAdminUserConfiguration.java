@@ -2,6 +2,8 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import org.lucoenergia.conluz.domain.admin.user.User;
 
+import java.util.Optional;
+
 public interface DefaultAdminUserConfiguration {
 
     String getDefaultAdminUserId();
@@ -16,13 +18,23 @@ public interface DefaultAdminUserConfiguration {
 
     String getDefaultAdminUserPassword();
 
-    default User getDefaultAdminUser() {
-        return new User.Builder()
-                .personalId(getDefaultAdminUserId())
-                .fullName(getDefaultAdminUserFullName())
-                .number(getDefaultAdminUserNumber())
-                .email(getDefaultAdminUserEmail())
-                .address(getDefaultAdminUserAddress())
-                .build();
+    default Optional<User> getDefaultAdminUser() {
+        if (isConfigurationSet()) {
+            return Optional.of(new User.Builder()
+                    .personalId(getDefaultAdminUserId())
+                    .password(getDefaultAdminUserPassword())
+                    .fullName(getDefaultAdminUserFullName())
+                    .number(getDefaultAdminUserNumber())
+                    .email(getDefaultAdminUserEmail())
+                    .address(getDefaultAdminUserAddress())
+                    .build());
+        }
+        return Optional.empty();
+    }
+
+    default boolean isConfigurationSet() {
+        return getDefaultAdminUserId() != null && getDefaultAdminUserFullName() != null &&
+                getDefaultAdminUserNumber()  != null && getDefaultAdminUserEmail() != null &&
+                getDefaultAdminUserAddress()  != null;
     }
 }
