@@ -15,7 +15,11 @@ public class DefaultAdminUserConfigurationImpl implements DefaultAdminUserConfig
 
     @Override
     public Integer getDefaultAdminUserNumber() {
-        return Integer.valueOf(System.getenv(EnvVar.CONLUZ_USER_DEFAULT_ADMIN_NUMBER.name()));
+        try {
+            return Integer.valueOf(System.getenv(EnvVar.CONLUZ_USER_DEFAULT_ADMIN_NUMBER.name()));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     @Override

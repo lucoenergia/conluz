@@ -7,6 +7,8 @@ import org.lucoenergia.conluz.infrastructure.admin.user.DefaultAdminUserConfigur
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @Transactional
 public class CreateUserService {
@@ -26,19 +28,14 @@ public class CreateUserService {
     }
 
     public void createDefaultAdminUser() {
-        User user = new User();
 
-        // Get values from env vars
-        user.setPersonalId(defaultAdminUserConfiguration.getDefaultAdminUserId());
-        user.setNumber(defaultAdminUserConfiguration.getDefaultAdminUserNumber());
-        user.setFullName(defaultAdminUserConfiguration.getDefaultAdminUserFullName());
-        user.setAddress(defaultAdminUserConfiguration.getDefaultAdminUserAddress());
-        user.setEmail(defaultAdminUserConfiguration.getDefaultAdminUserEmail());
-        user.setPassword(defaultAdminUserConfiguration.getDefaultAdminUserPassword());
+        Optional<User> userOptional = defaultAdminUserConfiguration.getDefaultAdminUser();
 
-        // Set role to ADMIN
-        user.setRole(Role.ADMIN);
+        userOptional.ifPresent(user -> {
+            // Set role to ADMIN
+            user.setRole(Role.ADMIN);
 
-        create(user, user.getPassword());
+            create(user, user.getPassword());
+        });
     }
 }
