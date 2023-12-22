@@ -10,10 +10,10 @@ import java.util.Locale;
 class LocaleConfigurationTest extends BaseIntegrationTest {
 
     @Autowired
-    private CustomLocaleResolver customLocaleResolver;
+    private LocaleConfiguration localeConfiguration;
 
     @Test
     void testDefaultLocale() {
-        Assertions.assertEquals(customLocaleResolver.getDefaultLocale(), Locale.getDefault().toString());
+        Assertions.assertEquals(localeConfiguration.getDefaultLocale().toLowerCase(), Locale.getDefault().toString());
     }
 }
