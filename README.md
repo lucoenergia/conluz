@@ -36,42 +36,7 @@ The application focuses on seamless interaction with the underlying infrastructu
 
    > **Note:**
    >
-   > You can use the class `org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator` to generate a random JWT secret key.  
-
-#### Default admin user
-
-> **Important:**
->
-> This configuration step will be required only the first time you run the app.
-
-
-To be able to configure an Energy Community and admin user is required.
-
-To initiate the use of Conluz, it is essential to configure an admin user first. This admin user will serve as the starting point for configuring additional users and specific features related to the energy community.
-
-The information that is required to provide to set up this admin user is:
-- number
-- id
-- fullName
-- email
-- address
-
-This information must be provided to the app in the shape of these env vars:
-- `CONLUZ_USER_DEFAULT_ADMIN_NUMBER`
-- `CONLUZ_USER_DEFAULT_ADMIN_ID`
-- `CONLUZ_USER_DEFAULT_ADMIN_FULL_NAME`
-- `CONLUZ_USER_DEFAULT_ADMIN_EMAIL`
-- `CONLUZ_USER_DEFAULT_ADMIN_ADDRESS`
-
-For instance:
-
-```
-   export CONLUZ_USER_DEFAULT_ADMIN_ADDRESS="Fake Streen 123"
-   export CONLUZ_USER_DEFAULT_ADMIN_EMAIL="youremail@email.com"
-   export CONLUZ_USER_DEFAULT_ADMIN_FULL_NAME="Acme Energy Community"
-   export CONLUZ_USER_DEFAULT_ADMIN_ID="12345678Z"
-   export CONLUZ_USER_DEFAULT_ADMIN_NUMBER="0"
-```
+   > You can use the class `org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator` to generate a random JWT secret key.
 
 #### Data storage
 1. **PostgreSQL database**
@@ -120,6 +85,53 @@ TBD
 
 
 ## Usage
+
+### Initialize configuration
+
+#### Default admin user
+
+To be able to use the application you need to create at least one user with administrative privileges.
+
+To be able to create that user you can user the `/api/v1/init` endpoint that does not require authentication:
+
+```shell
+
+```
+
+
+
+> **Important:**
+>
+> This configuration step will be required only the first time you run the app.
+
+
+To be able to configure an Energy Community and admin user is required.
+
+To initiate the use of Conluz, it is essential to configure an admin user first. This admin user will serve as the starting point for configuring additional users and specific features related to the energy community.
+
+The information that is required to provide to set up this admin user is:
+- number
+- id
+- fullName
+- email
+- address
+
+This information must be provided to the app in the shape of these env vars:
+- `CONLUZ_USER_DEFAULT_ADMIN_NUMBER`
+- `CONLUZ_USER_DEFAULT_ADMIN_ID`
+- `CONLUZ_USER_DEFAULT_ADMIN_FULL_NAME`
+- `CONLUZ_USER_DEFAULT_ADMIN_EMAIL`
+- `CONLUZ_USER_DEFAULT_ADMIN_ADDRESS`
+
+For instance:
+
+```
+   export CONLUZ_USER_DEFAULT_ADMIN_ADDRESS="Fake Streen 123"
+   export CONLUZ_USER_DEFAULT_ADMIN_EMAIL="youremail@email.com"
+   export CONLUZ_USER_DEFAULT_ADMIN_FULL_NAME="Acme Energy Community"
+   export CONLUZ_USER_DEFAULT_ADMIN_ID="12345678Z"
+   export CONLUZ_USER_DEFAULT_ADMIN_NUMBER="0"
+```
 
 ### User Authentication
 

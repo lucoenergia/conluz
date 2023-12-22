@@ -6,7 +6,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 
-public class SupplyEntityMapperTest {
+class SupplyEntityMapperTest {
 
     private final SupplyEntityMapper mapper = new SupplyEntityMapper();
 

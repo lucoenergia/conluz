@@ -31,7 +31,7 @@ class CreateUserControllerTest extends BaseControllerTest {
 
         String body = """
                 {
-                  "id": "12345678Z",
+                  "personalId": "12345678Z",
                   "fullName": "John Doe",
                   "number": 1,
                   "address": "Fake Street 123",

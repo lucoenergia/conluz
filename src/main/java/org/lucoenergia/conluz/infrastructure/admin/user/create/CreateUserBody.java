@@ -5,7 +5,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 
 public class CreateUserBody {
 
-    private String id;
+    private String personalId;
     private Integer number;
     private String fullName;
     private String address;
@@ -14,12 +14,12 @@ public class CreateUserBody {
     private String password;
     private Role role;
 
-    public String getId() {
-        return id;
+    public String getPersonalId() {
+        return personalId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setPersonalId(String personalId) {
+        this.personalId = personalId;
     }
 
     public Integer getNumber() {
@@ -80,7 +80,7 @@ public class CreateUserBody {
 
     public User getUser() {
         User user = new User();
-        user.setPersonalId(this.getId());
+        user.setPersonalId(this.getPersonalId());
         user.setNumber(this.getNumber());
         user.setFullName(this.getFullName());
         user.setAddress(this.getAddress());

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
