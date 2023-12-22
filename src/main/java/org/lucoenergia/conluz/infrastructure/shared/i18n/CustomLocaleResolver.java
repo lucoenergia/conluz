@@ -14,6 +14,10 @@ public class CustomLocaleResolver {
     @Value("${conluz.i18n.locale.default}")
     private String defaultLocale;
 
+    public String getDefaultLocale() {
+        return defaultLocale;
+    }
+
     @Bean
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
