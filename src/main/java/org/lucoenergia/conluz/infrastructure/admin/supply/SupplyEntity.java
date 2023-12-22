@@ -6,7 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
-@Entity(name = "supply")
+@Entity(name = "supplies")
 public class SupplyEntity {
 
     @Id

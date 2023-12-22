@@ -36,42 +36,7 @@ The application focuses on seamless interaction with the underlying infrastructu
 
    > **Note:**
    >
-   > You can use the class `org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator` to generate a random JWT secret key.  
-
-#### Default admin user
-
-> **Important:**
->
-> This configuration step will be required only the first time you run the app.
-
-
-To be able to configure an Energy Community and admin user is required.
-
-To initiate the use of Conluz, it is essential to configure an admin user first. This admin user will serve as the starting point for configuring additional users and specific features related to the energy community.
-
-The information that is required to provide to set up this admin user is:
-- number
-- id
-- fullName
-- email
-- address
-
-This information must be provided to the app in the shape of these env vars:
-- `CONLUZ_USER_DEFAULT_ADMIN_NUMBER`
-- `CONLUZ_USER_DEFAULT_ADMIN_ID`
-- `CONLUZ_USER_DEFAULT_ADMIN_FULL_NAME`
-- `CONLUZ_USER_DEFAULT_ADMIN_EMAIL`
-- `CONLUZ_USER_DEFAULT_ADMIN_ADDRESS`
-
-For instance:
-
-```
-   export CONLUZ_USER_DEFAULT_ADMIN_ADDRESS="Fake Streen 123"
-   export CONLUZ_USER_DEFAULT_ADMIN_EMAIL="youremail@email.com"
-   export CONLUZ_USER_DEFAULT_ADMIN_FULL_NAME="Acme Energy Community"
-   export CONLUZ_USER_DEFAULT_ADMIN_ID="12345678Z"
-   export CONLUZ_USER_DEFAULT_ADMIN_NUMBER="0"
-```
+   > You can use the class `org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator` to generate a random JWT secret key.
 
 #### Data storage
 1. **PostgreSQL database**
@@ -121,6 +86,42 @@ TBD
 
 ## Usage
 
+### Initialize configuration
+
+#### Default admin user
+
+To be able to start using Conluz you must configure a user with administrative privileges.
+
+This admin user will serve as the starting point for configuring additional users and the rest of the features related to the energy community.
+
+The information that is required to provide to set up this admin user is:
+- personal id
+- password
+- fullName
+- email
+- address
+
+To be able to create that user you can use the `POST /api/v1/init` endpoint that does not require authentication providing a body like this:
+
+```json
+   {
+      "defaultAdminUser":
+      {
+         "personalId": "01234567Z",
+         "password": "a secure password!!",
+         "fullName": "Energy Community Acme",
+         "email": "adminemail@email.com",
+         "address": "Fake Street 123 66633 Teruel (Spain)"
+      }
+   }
+```
+
+> **Important:**
+>
+> Once you initialize the default admin user for the first time, you will be unable to call this endpoint again. 
+> 
+> Instead, you should use the provided endpoints that require authentication.
+
 ### User Authentication
 
    When a user logs in or requests access to Conluz API, the authentication server generates a JWT token after verifying the user's credentials.
@@ -139,11 +140,23 @@ TBD
 
 **Token Issuance**
 
-   The server issues the JWT token to the client, which securely stores the token.
+   To get a valid token, firstly, a user must be configured in the application.
+   
+   Once the user is configured in the application, then you can use the `POST /api/v2/login` endpoint providing a body like this:
+   ```json
+    {
+      "username": "01234567Z",
+      "password": "a secure password!!"
+    }
+   ```
 
-   Example JWT token (encoded):
+   If the login is successful, the server issues the JWT token to the client, which securely stores the token.
 
-   ```eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3OFoiLCJpYXQiOjE3MDI2NjM2NzEsImV4cCI6MTcwMjY2NTQ3MX0.Mdgr_x8q9yEf20ZbkRna7OU1LH5-1ol6UPXr3dmYW1o```
+   Example login endpoint response:
+
+   ```json
+   {"token":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTIzNDU2N1oiLCJpYXQiOjE3MDMyODA2MTksImV4cCI6MTcwMzI4MjQxOX0.mNS-1EiY8tYDcVvrU_oR6Rlj9bpB3QNcSpqdP_7KH_o"}
+   ```
 
 **Token usage**
 

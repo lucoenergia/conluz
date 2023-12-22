@@ -5,11 +5,31 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
 http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
+    <!-- Create table 'config' -->
+    <changeSet id="create_config" author="Víctor Cañizares">
+        <createTable tableName="config">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="config_id_pk"/>
+            </column>
+            <column name="default_admin_user_initialized" type="BOOLEAN" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- Initialize config table -->
+    <changeSet id="init_config_table" author="Víctor Cañizares">
+        <sql>
+            INSERT INTO config (id, default_admin_user_initialized)
+            VALUES (gen_random_uuid(), false);
+        </sql>
+    </changeSet>
+
     <!-- Create table 'users' -->
-    <changeSet id="20231027T2302" author="Víctor Cañizares">
+    <changeSet id="create_users" author="Víctor Cañizares">
         <createTable tableName="users">
             <column name="id" type="UUID">
-                <constraints primaryKey="true" primaryKeyName="user_id_pk"/>
+                <constraints primaryKey="true" primaryKeyName="users_id_pk"/>
             </column>
             <column name="personal_id" type="VARCHAR(250)">
                 <constraints nullable="false"/>
@@ -41,14 +61,14 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
         </createTable>
     </changeSet>
 
-    <!-- Create table 'supply' -->
-    <changeSet id="20231110T1945" author="Víctor Cañizares">
-        <createTable tableName="supply">
+    <!-- Create table 'supplies' -->
+    <changeSet id="create_supplies" author="Víctor Cañizares">
+        <createTable tableName="supplies">
             <column name="id" type="VARCHAR(250)">
-                <constraints primaryKey="true" primaryKeyName="supply_id_pk"/>
+                <constraints primaryKey="true" primaryKeyName="supplies_id_pk"/>
             </column>
             <column name="user_id" type="UUID">
-                <constraints foreignKeyName="supply_user_id_fk" referencedTableName="users" referencedColumnNames="id"/>
+                <constraints foreignKeyName="supplies_user_id_fk" referencedTableName="users" referencedColumnNames="id"/>
             </column>
             <column name="name" type="VARCHAR(250)">
                 <constraints nullable="true"/>

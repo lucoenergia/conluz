@@ -42,6 +42,10 @@ public class PagedRequest {
         return size;
     }
 
+    public void addOrder(Order order) {
+        orders.add(order);
+    }
+
     public List<Order> getOrders() {
         return new ArrayList<>(orders);
     }
