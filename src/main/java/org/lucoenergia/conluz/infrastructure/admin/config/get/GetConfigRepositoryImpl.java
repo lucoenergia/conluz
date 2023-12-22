@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Transactional
 @Repository
@@ -20,10 +21,9 @@ public class GetConfigRepositoryImpl implements GetConfigRepository {
 
     @Override
     public boolean isDefaultAdminInitialized() {
-        List<ConfigEntity> config = configRepository.findAll();
-        if (config.isEmpty()) {
-            return false;
-        }
-        return config.get(0).isDefaultAdminUserInitialized();
+        Optional<ConfigEntity> config = configRepository.find();
+        return config
+                .map(ConfigEntity::isDefaultAdminUserInitialized)
+                .orElse(false);
     }
 }

@@ -6,6 +6,8 @@ import org.lucoenergia.conluz.infrastructure.admin.config.ConfigRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Transactional
 @Repository
 public class UpdateConfigRepositoryImpl implements UpdateConfigRepository {
@@ -18,8 +20,11 @@ public class UpdateConfigRepositoryImpl implements UpdateConfigRepository {
 
     @Override
     public void markDefaultAdminUserAsInitialized() {
-        ConfigEntity configEntity = configRepository.find();
-        configEntity.markDefaultAdminUserAsInitialized();
-        configRepository.save(configEntity);
+        Optional<ConfigEntity> configEntity = configRepository.find();
+        if (configEntity.isEmpty()) {
+            return;
+        }
+        configEntity.get().markDefaultAdminUserAsInitialized();
+        configRepository.save(configEntity.get());
     }
 }
