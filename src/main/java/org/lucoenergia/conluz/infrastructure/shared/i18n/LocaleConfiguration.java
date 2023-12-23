@@ -4,6 +4,9 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.i18n.LocaleContext;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.context.i18n.SimpleLocaleContext;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 
@@ -23,6 +26,9 @@ public class LocaleConfiguration {
     public void setDefaultLocale() {
         final Locale locale = new Locale(defaultLocale);
         Locale.setDefault(locale);
+        LocaleContextHolder.setDefaultLocale(locale);
+        LocaleContext localeContext = new SimpleLocaleContext(locale);
+        LocaleContextHolder.setLocaleContext(localeContext);
     }
 
     @Bean
