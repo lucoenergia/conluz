@@ -1,5 +1,7 @@
 # Conluz
 
+![Build & Test](https://github.com/lucoenergia/conluz/actions/workflows/java_ci_with_gradle.yml/badge.svg)
+
 Welcome to Conluz, the energy community management application!
 
 Conluz is a robust application designed for the efficient management of an energy community. This platform enables the administration of community members and their corresponding supply points. Functioning as an API-driven solution, Conluz facilitates the retrieval of consumption data for each supply point, production data from the energy plant, and real-time electricity prices.
