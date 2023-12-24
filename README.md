@@ -192,7 +192,7 @@ Please make sure to update tests as appropriate.
 
 ## License
 
-This project is licensed under the [MIT License](https://choosealicense.com/licenses/mit/).
+This project is licensed under the [Apache 2 License](https://www.apache.org/licenses/LICENSE-2.0).
 
 ## Contact
 
