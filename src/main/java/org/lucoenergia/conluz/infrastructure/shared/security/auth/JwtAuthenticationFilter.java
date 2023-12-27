@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.auth;
+package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 
 import jakarta.servlet.FilterChain;
@@ -12,7 +12,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -20,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -37,17 +37,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        final Optional<String> token = getTokenFromRequest(request);
-        final String username;
 
+        final Optional<String> token = getTokenFromRequest(request);
+        final UUID userId;
+
+        // If no token is provided, we should continue the filter chain
+        // This is specially important for not authenticated endpoints
         if (token.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
-        username = authRepository.getUsernameFromToken(Token.of(token.get()));
+        userId = authRepository.getUserIdFromToken(Token.of(token.get()));
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            User user = (User) userDetailsService.loadUserByUsername(username);
+        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            User user = (User) userDetailsService.loadUserByUsername(userId.toString());
 
             if (authRepository.isTokenValid(Token.of(token.get()), user)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -57,7 +60,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else {
+                throw new InvalidTokenException(token.get());
             }
+        } else {
+            throw new InvalidTokenException(token.get());
         }
 
         filterChain.doFilter(request, response);

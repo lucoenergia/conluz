@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.security;
 
-import org.lucoenergia.conluz.infrastructure.admin.user.auth.JwtAuthenticationFilter;
+import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.auth;
+package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;

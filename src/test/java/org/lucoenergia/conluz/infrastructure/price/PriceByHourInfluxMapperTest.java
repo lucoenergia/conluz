@@ -17,7 +17,7 @@ import java.util.List;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class PriceByHourInfluxMapperTest {
+class PriceByHourInfluxMapperTest {
 
     @InjectMocks
     private PriceByHourInfluxMapper mapper;
