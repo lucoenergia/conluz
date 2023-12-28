@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.infrastructure.admin.user.update.UpdateUserBody;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -43,26 +44,24 @@ class UpdateUserControllerTest extends BaseControllerTest {
         createUserRepository.create(user, UserMother.randomPassword());
 
         // Modify data of the user
-        User userModified = new User();
-        userModified.setId(UUID.randomUUID());
-        userModified.setPersonalId("12345678Z");
+        UpdateUserBody userModified = new UpdateUserBody();
         userModified.setNumber(2);
         userModified.setFullName("Alice Smith");
         userModified.setAddress("Fake Street 666");
         userModified.setEmail("alicesmith@email.com");
         userModified.setPhoneNumber("+34666555111");
-        userModified.setEnabled(true);
         userModified.setRole(Role.PARTNER);
-        String body = objectMapper.writeValueAsString(userModified);
+
+        String bodyAsString = objectMapper.writeValueAsString(userModified);
 
         mockMvc.perform(put(String.format("/api/v1/users/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content(bodyAsString))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(user.getId().toString()))
-                .andExpect(jsonPath("$.personalId").value(userModified.getPersonalId()))
+                .andExpect(jsonPath("$.personalId").value(user.getPersonalId()))
                 .andExpect(jsonPath("$.number").value("2"))
                 .andExpect(jsonPath("$.fullName").value("Alice Smith"))
                 .andExpect(jsonPath("$.address").value("Fake Street 666"))

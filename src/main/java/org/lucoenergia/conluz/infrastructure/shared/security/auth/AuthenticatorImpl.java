@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.auth;
+package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 import org.lucoenergia.conluz.domain.admin.user.auth.Authenticator;
 import org.lucoenergia.conluz.domain.admin.user.auth.Credentials;

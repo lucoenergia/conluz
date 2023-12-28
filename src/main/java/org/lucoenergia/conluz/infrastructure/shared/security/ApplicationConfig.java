@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.shared.security;
 
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
-import org.lucoenergia.conluz.infrastructure.admin.user.auth.UserDetailsServiceImpl;
+import org.lucoenergia.conluz.infrastructure.admin.user.auth.UserDetailsServiceFromDatabase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -41,6 +41,6 @@ public class ApplicationConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return new UserDetailsServiceImpl(userRepository);
+        return new UserDetailsServiceFromDatabase(userRepository);
     }
 }

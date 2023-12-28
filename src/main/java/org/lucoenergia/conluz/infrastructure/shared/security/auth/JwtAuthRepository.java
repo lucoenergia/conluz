@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.auth;
+package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -15,10 +15,14 @@ import java.security.Key;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Repository
 public class JwtAuthRepository implements AuthRepository {
+
+    private static final String CUSTOM_CLAIM_ROLE = "role";
 
     private final JwtConfiguration jwtConfiguration;
 
@@ -32,8 +36,8 @@ public class JwtAuthRepository implements AuthRepository {
         Instant now = Instant.now();
 
         String token = Jwts.builder()
-                .addClaims(new HashedMap<>())
-                .setSubject(user.getUsername())
+                .addClaims(getCustomClaims(user))
+                .setSubject(user.getId().toString())
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plus(getExpirationDuration())))
                 .signWith(getKey(), SignatureAlgorithm.HS256)
@@ -42,19 +46,35 @@ public class JwtAuthRepository implements AuthRepository {
         return Token.of(token);
     }
 
+    private Map<String, Object> getCustomClaims(User user) {
+        Map<String, Object> claims = new HashedMap<>();
+        claims.put("role", user.getRole().name());
+        return claims;
+    }
+
     @Override
-    public String getUsernameFromToken(Token token) {
-        return getClaim(token, Claims::getSubject);
+    public UUID getUserIdFromToken(Token token) {
+        try {
+            return UUID.fromString(getClaim(token, Claims::getSubject));
+        } catch (IllegalArgumentException e) {
+            throw new InvalidTokenException(token.getToken());
+        }
     }
 
     @Override
     public boolean isTokenValid(Token token, User user) {
-        final String username = getUsernameFromToken(token);
-        return username.equals(user.getUsername()) && !isTokenExpired(token);
+        final UUID id = getUserIdFromToken(token);
+        return id.equals(user.getId()) && !isTokenExpired(token);
     }
 
-    private Date getExpirationDate(Token token) {
+    @Override
+    public Date getExpirationDate(Token token) {
         return getClaim(token, Claims::getExpiration);
+    }
+
+    @Override
+    public String getRole(Token token) {
+        return (String) getAllClaims(token).get(CUSTOM_CLAIM_ROLE);
     }
 
     private Duration getExpirationDuration() {

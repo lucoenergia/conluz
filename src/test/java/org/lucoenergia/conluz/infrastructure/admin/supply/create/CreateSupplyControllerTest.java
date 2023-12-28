@@ -41,8 +41,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "id": "ES0033333333333333AA0A",
                   "userId": "e7ab39cd-9250-40a9-b829-f11f65aae27d",
                   "address": "Fake Street 123",
-                  "partitionCoefficient": "3.0763",
-                  "registerReference": "13077A018000390000FP"
+                  "partitionCoefficient": "3.0763"
                 }
         """;
 
