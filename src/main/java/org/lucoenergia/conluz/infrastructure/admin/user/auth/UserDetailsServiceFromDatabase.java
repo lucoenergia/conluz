@@ -20,20 +20,16 @@ public class UserDetailsServiceFromDatabase implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(final String userId) throws UsernameNotFoundException {
-        try {
-            Optional<UserEntity> userEntity = Optional.empty();
-            if (UUIDValidator.validate(userId)) {
-                userEntity = userRepository.findById(UUID.fromString(userId));
-            }
-            if (userEntity.isEmpty()) {
-                userEntity = userRepository.findByPersonalId(userId);
-            }
-            if (userEntity.isEmpty()) {
-                throw new UsernameNotFoundException(userId);
-            }
-            return userEntity.get().getUser();
-        } catch (IllegalArgumentException e) {
+        Optional<UserEntity> userEntity = Optional.empty();
+        if (UUIDValidator.validate(userId)) {
+            userEntity = userRepository.findById(UUID.fromString(userId));
+        }
+        if (userEntity.isEmpty()) {
+            userEntity = userRepository.findByPersonalId(userId);
+        }
+        if (userEntity.isEmpty()) {
             throw new UsernameNotFoundException(userId);
         }
+        return userEntity.get().getUser();
     }
 }
