@@ -25,7 +25,7 @@ dependencies {
 
     implementation 'org.liquibase:liquibase-core'
     implementation 'org.influxdb:influxdb-java:2.23'
-    implementation 'org.springdoc:springdoc-openapi-ui:1.7.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
     implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
     implementation "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
@@ -41,4 +41,9 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+openApi {
+    outputFileName.set("conluz-api.yaml")
+    waitTimeInSeconds.set(10)
 }
