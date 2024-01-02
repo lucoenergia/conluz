@@ -30,9 +30,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(authRequest ->
                         authRequest.
                                 requestMatchers(
-                                        "/api/docs/**",
-                                        "/swagger-ui/**",
-                                        "/v3/api-docs/**",
+                                        "/api-docs/**",
                                         "/api/v1/login",
                                         "/api/v1/init"
                                 ).permitAll()
