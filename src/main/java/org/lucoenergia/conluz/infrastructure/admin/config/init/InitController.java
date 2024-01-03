@@ -47,7 +47,6 @@ public class InitController {
     })
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @UnauthorizedErrorResponse
     public void init(@RequestBody InitBody body) {
         initService.init(body.toDefaultAdminUserDomain());
     }
