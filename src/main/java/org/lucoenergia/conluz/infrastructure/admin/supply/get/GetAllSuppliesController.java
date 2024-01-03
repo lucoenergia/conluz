@@ -50,7 +50,7 @@ public class GetAllSuppliesController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "",
+                    description = "Query executed successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
