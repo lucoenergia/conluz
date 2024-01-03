@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.config;
+package org.lucoenergia.conluz.infrastructure.admin.config.init;
 
 import org.lucoenergia.conluz.domain.admin.user.DefaultAdminUser;
 

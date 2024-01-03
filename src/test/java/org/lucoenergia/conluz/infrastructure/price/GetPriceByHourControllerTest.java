@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,6 +40,7 @@ class GetPriceByHourControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2023-10-25T00:00:00.000+02:00")
                         .queryParam("endDate", "2023-10-25T23:00:00.000+02:00"))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().string(expectedContent));
     }
@@ -56,6 +58,7 @@ class GetPriceByHourControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", invalidStartDate)
                         .queryParam("endDate", validEndDate))
+                .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("\"traceId\":")))
                 .andExpect(content().string(containsString("\"timestamp\":")))

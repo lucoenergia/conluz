@@ -181,7 +181,29 @@ To be able to create that user you can use the `POST /api/v1/init` endpoint that
 
 ### API docs
 
+Conluz provides API documentation in OpenAPI format, allowing anyone to understand and interact with the available endpoints. 
 
+> **Important!**
+> 
+> To be able to access the documentation, first of all, you have to **run the app**.
+
+You can access the documentation using two methods:
+
+### 1. Download OpenAPI Specification
+
+You can download the OpenAPI specification in either YAML or JSON format to view the detailed documentation. Follow the steps below:
+
+- Navigate to the [API Documentation](http://localhost:8080/api-docs) section.
+
+Then you can download and inspect the specification using your preferred tool.
+
+### 2. Swagger UI
+
+Alternatively, you can access the API documentation through the Swagger UI, a user-friendly graphical interface. Follow these steps:
+
+- Navigate to the [Swagger UI](http://localhost:8080/api-docs/swagger-ui/index.html) link.
+- Explore and interact with the API endpoints in a visually appealing and intuitive way.
+- Swagger UI provides an easy way to understand request and response formats, and even allows you to make sample requests directly from the documentation.
 
 ## Contributing
 
