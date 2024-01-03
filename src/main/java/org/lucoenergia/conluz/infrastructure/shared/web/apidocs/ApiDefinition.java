@@ -26,31 +26,31 @@ import org.springframework.stereotype.Component;
         ),
         tags = {
                 @Tag(
-                        name = "Authentication",
+                        name = ApiTag.AUTHENTICATION,
                         description = "Authentication API endpoints handle actions like user login, providing secure access to the application by verifying user credentials and generating authentication tokens."
                 ),
                 @Tag(
-                        name = "Configuration",
+                        name = ApiTag.CONFIGURATION,
                         description = "REST API endpoints for application configuration enable actions like setting preferences, adjusting parameters, and managing global settings, ensuring customizable and efficient application deployment."
                 ),
                 @Tag(
-                        name = "Consumption",
+                        name = ApiTag.CONSUMPTION,
                         description = "REST API endpoints empower querying energy consumption data for diverse community supplies, enabling detailed analysis and optimization of resource usage."
                 ),
                 @Tag(
-                        name = "Prices",
+                        name = ApiTag.PRICES,
                         description = "REST API endpoints facilitate querying energy prices, providing real-time data from diverse sources for analysis, enabling informed decisions within the energy market."
                 ),
                 @Tag(
-                        name = "Production",
+                        name = ApiTag.PRODUCTION,
                         description = "REST API endpoints enable querying production data from an energy community's power plant, accessing renewable energy metrics for analysis and monitoring."
                 ),
                 @Tag(
-                        name = "Users",
+                        name = ApiTag.USERS,
                         description = "REST API endpoints for user management encompass actions like creating, editing, querying, disabling, and enabling users, ensuring flexible and secure access control."
                 ),
                 @Tag(
-                        name = "Supplies",
+                        name = ApiTag.SUPPLIES,
                         description = "REST API endpoints for supply management include actions such as creating, editing, querying, and deleting supplies associated with users."
                 )
         },
