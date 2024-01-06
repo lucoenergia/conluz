@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.shared.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.ConluzAccessDeniedHandler;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.ConluzAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -8,7 +11,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -17,11 +22,13 @@ public class WebSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationProvider authenticationProvider;
+    private final ObjectMapper objectMapper;
 
     public WebSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                             AuthenticationProvider authenticationProvider) {
+                             AuthenticationProvider authenticationProvider, ObjectMapper objectMapper) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.authenticationProvider = authenticationProvider;
+        this.objectMapper = objectMapper;
     }
 
     @Bean
@@ -41,8 +48,23 @@ public class WebSecurityConfig {
                         sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> {
+                            httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(authenticationEntryPoint());
+                            httpSecurityExceptionHandlingConfigurer.accessDeniedHandler(accessDeniedHandler());
+                        }
+                );
 
         return http.build();
+    }
+
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return new ConluzAccessDeniedHandler(objectMapper);
+    }
+
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return new ConluzAuthenticationEntryPoint(objectMapper);
     }
 }
