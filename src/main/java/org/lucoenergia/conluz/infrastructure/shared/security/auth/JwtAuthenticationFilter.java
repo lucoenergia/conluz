@@ -24,7 +24,7 @@ import java.util.UUID;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String AUTHORIZATION_HEADER_PREFIX = "Bearer ";
+    public static final String AUTHORIZATION_HEADER_PREFIX = "Bearer ";
 
     private final AuthRepository authRepository;
     private final UserDetailsService userDetailsService;
