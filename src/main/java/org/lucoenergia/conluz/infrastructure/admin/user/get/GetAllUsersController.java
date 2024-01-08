@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +16,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequ
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
+import org.springdoc.core.converters.models.PageableAsQueryParam;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -93,7 +95,8 @@ public class GetAllUsersController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public PagedResult<UserResponse> getAllUsers(PagedRequest page) {
+    @PageableAsQueryParam
+    public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) PagedRequest page) {
         PagedResult<User> users = service.findAll(page);
 
         List<UserResponse> responseUsers = users.getItems().stream()
