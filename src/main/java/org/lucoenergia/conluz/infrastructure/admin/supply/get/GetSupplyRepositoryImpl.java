@@ -8,7 +8,8 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
-import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationMapper;
+import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationRequestMapper;
+import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationResultMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
@@ -19,13 +20,16 @@ public class GetSupplyRepositoryImpl implements GetSupplyRepository {
 
     private final SupplyRepository supplyRepository;
     private final SupplyEntityMapper supplyEntityMapper;
-    private final PaginationMapper<SupplyEntity, Supply> paginationMapper;
+    private final PaginationRequestMapper paginationRequestMapper;
+    private final PaginationResultMapper<SupplyEntity, Supply> paginationResultMapper;
 
     public GetSupplyRepositoryImpl(SupplyRepository supplyRepository, SupplyEntityMapper supplyEntityMapper,
-                                   PaginationMapper<SupplyEntity, Supply> paginationMapper) {
+                                   PaginationRequestMapper paginationRequestMapper,
+                                   PaginationResultMapper<SupplyEntity, Supply> paginationResultMapper) {
         this.supplyRepository = supplyRepository;
         this.supplyEntityMapper = supplyEntityMapper;
-        this.paginationMapper = paginationMapper;
+        this.paginationRequestMapper = paginationRequestMapper;
+        this.paginationResultMapper = paginationResultMapper;
     }
 
     @Override
@@ -46,7 +50,7 @@ public class GetSupplyRepositoryImpl implements GetSupplyRepository {
 
     @Override
     public PagedResult<Supply> findAll(PagedRequest pagedRequest) {
-        Page<SupplyEntity> result = supplyRepository.findAll(paginationMapper.mapRequest(pagedRequest));
-        return paginationMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
+        Page<SupplyEntity> result = supplyRepository.findAll(paginationRequestMapper.mapRequest(pagedRequest));
+        return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
     }
 }

@@ -20,7 +20,7 @@ public class PagedRequest {
     }
 
     public static PagedRequest of(Integer page, Integer size) {
-        return of(page, size, Collections.emptyList());
+        return of(page, size, new ArrayList<>());
     }
 
     public static PagedRequest of(Integer page, Integer size, List<Order> orders) {

@@ -7,14 +7,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserService;
-import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
+import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationRequestMapper;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,9 +35,11 @@ import java.util.List;
 public class GetAllUsersController {
 
     private final GetUserService service;
+    private final PaginationRequestMapper paginationRequestMapper;
 
-    public GetAllUsersController(GetUserService service) {
+    public GetAllUsersController(GetUserService service, PaginationRequestMapper paginationRequestMapper) {
         this.service = service;
+        this.paginationRequestMapper = paginationRequestMapper;
     }
 
     @GetMapping
@@ -93,8 +96,8 @@ public class GetAllUsersController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public PagedResult<UserResponse> getAllUsers(PagedRequest page) {
-        PagedResult<User> users = service.findAll(page);
+    public PagedResult<UserResponse> getAllUsers(Pageable page) {
+        PagedResult<User> users = service.findAll(paginationRequestMapper.mapRequest(page));
 
         List<UserResponse> responseUsers = users.getItems().stream()
                 .map(UserResponse::new).toList();
