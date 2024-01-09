@@ -1,8 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.shared.pagination;
 
 import org.lucoenergia.conluz.domain.shared.pagination.Direction;
+import org.lucoenergia.conluz.domain.shared.pagination.Order;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
-import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -11,7 +11,17 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class PaginationMapper<T, R> {
+public class PaginationRequestMapper {
+
+    public PagedRequest mapRequest(Pageable page) {
+        if (page.getSort().isSorted()) {
+            List<Order> orders = Sort.by(page.getSort().toList()).stream()
+                    .map( order -> new Order(mapDirection(order.getDirection()), order.getProperty()))
+                    .toList();
+            return PagedRequest.of(page.getPageNumber(), page.getPageSize(), orders);
+        }
+        return PagedRequest.of(page.getPageNumber(), page.getPageSize());
+    }
 
     public Pageable mapRequest(PagedRequest pagedRequest) {
         if (pagedRequest.isSorted()) {
@@ -31,8 +41,10 @@ public class PaginationMapper<T, R> {
         };
     }
 
-    public PagedResult<R> mapResult(org.springframework.data.domain.Page<T> page, List<R> items) {
-        return new PagedResult<>(items, page.getSize(), page.getTotalElements(), page.getTotalPages(),
-                page.getNumber());
+    private Direction mapDirection(Sort.Direction direction) {
+        return switch (direction) {
+            case ASC -> Direction.ASC;
+            case DESC -> Direction.DESC;
+        };
     }
 }

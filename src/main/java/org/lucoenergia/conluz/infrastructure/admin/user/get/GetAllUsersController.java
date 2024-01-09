@@ -2,21 +2,20 @@ package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserService;
-import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
+import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationRequestMapper;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springdoc.core.converters.models.PageableAsQueryParam;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,9 +35,11 @@ import java.util.List;
 public class GetAllUsersController {
 
     private final GetUserService service;
+    private final PaginationRequestMapper paginationRequestMapper;
 
-    public GetAllUsersController(GetUserService service) {
+    public GetAllUsersController(GetUserService service, PaginationRequestMapper paginationRequestMapper) {
         this.service = service;
+        this.paginationRequestMapper = paginationRequestMapper;
     }
 
     @GetMapping
@@ -52,43 +53,7 @@ public class GetAllUsersController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Query executed successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                               "items": [
-                                                 {
-                                                   "id": "a2bf32b5-4537-4e02-b9df-c87908e5418e",
-                                                   "personalId": "01234567Z",
-                                                   "number": 0,
-                                                   "fullName": "Energy Community Acme",
-                                                   "address": "Fake Street 123",
-                                                   "email": "acmecom@email.com",
-                                                   "phoneNumber": null,
-                                                   "enabled": true,
-                                                   "role": "ADMIN"
-                                                 },
-                                                 {
-                                                   "id": "fb13c5c6-5f6a-41d3-97a2-a94fc73d7385",
-                                                   "personalId": "KvKnvXPfU",
-                                                   "number": 21,
-                                                   "fullName": "John Doe",
-                                                   "address": "Main Street 22",
-                                                   "email": "johndoe@kBikj.com",
-                                                   "phoneNumber": "+34666333111",
-                                                   "enabled": false,
-                                                   "role": "PARTNER"
-                                                 }
-                                               ],
-                                               "size": 10,
-                                               "totalElements": 2,
-                                               "totalPages": 1,
-                                               "number": 0
-                                             }
-                                            """
-                            )
-                    )
+                    useReturnTypeSchema = true
             )
     })
     @ForbiddenErrorResponse
@@ -96,8 +61,8 @@ public class GetAllUsersController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
-    public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) PagedRequest page) {
-        PagedResult<User> users = service.findAll(page);
+    public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) Pageable page) {
+            PagedResult<User> users = service.findAll(paginationRequestMapper.mapRequest(page));
 
         List<UserResponse> responseUsers = users.getItems().stream()
                 .map(UserResponse::new).toList();
