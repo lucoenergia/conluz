@@ -1,8 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
+@Schema(requiredProperties = {
+        "personalId", "number", "fullName", "email", "password", "role"
+})
 public class CreateUserBody {
 
     private String personalId;
@@ -78,7 +82,7 @@ public class CreateUserBody {
         this.role = role;
     }
 
-    public User getUser() {
+    public User mapToUser() {
         User user = new User();
         user.setPersonalId(this.getPersonalId());
         user.setNumber(this.getNumber());

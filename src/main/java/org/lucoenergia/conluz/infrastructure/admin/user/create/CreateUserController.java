@@ -1,8 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -47,24 +45,7 @@ public class CreateUserController {
             @ApiResponse(
                     responseCode = "200",
                     description = "User created successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                               "id":"d2422836-98cc-4766-8e91-65f0cf6cf9cb",
-                                               "personalId":"12345678Z",
-                                               "number":1,
-                                               "fullName":"John Doe",
-                                               "address":"Fake Street 123",
-                                               "email":"johndoe@email.com",
-                                               "phoneNumber":"+34666555444",
-                                               "enabled":true,
-                                               "role":"PARTNER"
-                                            }
-                                            """
-                            )
-                    )
+                    useReturnTypeSchema = true
             )
     })
     @ForbiddenErrorResponse
@@ -72,7 +53,7 @@ public class CreateUserController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     public UserResponse createUser(@RequestBody CreateUserBody body) {
-        User user = service.create(body.getUser(), body.getPassword());
+        User user = service.create(body.mapToUser(), body.getPassword());
         return new UserResponse(user);
     }
 }

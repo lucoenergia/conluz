@@ -6,7 +6,6 @@ import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -15,8 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
 class CreateUserControllerTest extends BaseControllerTest {
@@ -40,7 +39,7 @@ class CreateUserControllerTest extends BaseControllerTest {
                   "password": "a secure password1!",
                   "role": "PARTNER"
                 }
-                                """;
+        """;
 
         User expectedUser = new User();
         expectedUser.setPersonalId("12345678Z");
