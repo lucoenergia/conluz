@@ -7,15 +7,15 @@ import java.util.UUID;
 
 public class UserResponse {
 
-    private UUID id;
-    private String personalId;
-    private Integer number;
-    private String fullName;
-    private String address;
-    private String email;
-    private String phoneNumber;
-    private Boolean enabled;
-    private Role role;
+    private final UUID id;
+    private final String personalId;
+    private final Integer number;
+    private final String fullName;
+    private final String address;
+    private final String email;
+    private final String phoneNumber;
+    private final Boolean enabled;
+    private final Role role;
 
     public UserResponse(User user) {
         id = user.getId();
