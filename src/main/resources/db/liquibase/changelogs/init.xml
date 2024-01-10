@@ -44,7 +44,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
                 <constraints nullable="false"/>
             </column>
             <column name="address" type="VARCHAR(250)">
-                <constraints nullable="false"/>
+                <constraints nullable="true"/>
             </column>
             <column name="phone_number" type="VARCHAR(250)">
                 <constraints nullable="true"/>

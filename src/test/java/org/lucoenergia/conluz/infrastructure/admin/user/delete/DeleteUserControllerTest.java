@@ -29,7 +29,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
 
         // Create a user
         User user = UserMother.randomUser();
-        createUserRepository.create(user, "A good pa!!w0rd");
+        createUserRepository.create(user);
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
 
         // Login as default admin

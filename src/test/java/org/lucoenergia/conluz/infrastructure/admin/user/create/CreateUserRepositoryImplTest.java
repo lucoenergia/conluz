@@ -18,9 +18,8 @@ public class CreateUserRepositoryImplTest extends BaseIntegrationTest {
     @Test
     void testCreate() {
         User user = UserMother.randomUser();
-        String password = UserMother.randomPassword();
 
-        User newUser = repository.create(user, password);
+        User newUser = repository.create(user);
 
         Assertions.assertEquals(user.getPersonalId(), newUser.getPersonalId());
         Assertions.assertEquals(user.getNumber(), newUser.getNumber());

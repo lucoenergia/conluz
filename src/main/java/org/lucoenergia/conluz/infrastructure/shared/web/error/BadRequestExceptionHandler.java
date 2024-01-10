@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.shared.web.error;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import jakarta.validation.ConstraintViolationException;
 import org.lucoenergia.conluz.infrastructure.shared.web.RestError;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -8,6 +10,7 @@ import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,9 +21,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class BadRequestExceptionHandler {
@@ -78,10 +80,21 @@ public class BadRequestExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<RestError> handleException(MethodArgumentNotValidException e) {
 
-        String message = e.getFieldErrors()
-                .stream()
-                .map(error -> error.getDefaultMessage())
-                .reduce("Errors found:", String::concat);
+        List<String> errorMessages = new ArrayList<>();
+        for (FieldError error : e.getFieldErrors()) {
+            errorMessages.add(messageSource.getMessage(
+                    "error.property.invalid",
+                    Arrays.asList(error.getField(), error.getRejectedValue(), error.getDefaultMessage()).toArray(),
+                    LocaleContextHolder.getLocale()
+            ));
+        }
+
+        String message = messageSource.getMessage(
+                "error.properties.invalid.with.reason",
+                List.of(String.join("", errorMessages)).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -117,10 +130,29 @@ public class BadRequestExceptionHandler {
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<RestError> handleException(ConstraintViolationException e) {
+
+        String message = e.getConstraintViolations()
+                .stream()
+                .map(error -> messageSource.getMessage(
+                        "error.property.invalid",
+                        List.of(error.getPropertyPath(), error.getInvalidValue(), error.getMessage()).toArray(),
+                        LocaleContextHolder.getLocale()
+                ))
+                .reduce(messageSource.getMessage(
+                        "error.properties.invalid",
+                        List.of().toArray(),
+                        LocaleContextHolder.getLocale()
+                ), String::concat);
+
+        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RestError> handleException(HttpMessageNotReadableException e) {
 
-        String message;
+        String message = null;
 
         if (e.getCause() instanceof UnrecognizedPropertyException unrecognizedPropertyException) {
             message = messageSource.getMessage(
@@ -128,7 +160,20 @@ public class BadRequestExceptionHandler {
                     List.of(unrecognizedPropertyException.getPropertyName()).toArray(),
                     LocaleContextHolder.getLocale()
             );
-        } else {
+        } else if (e.getCause() instanceof InvalidFormatException invalidValueException) {
+            Optional<String> fieldName = invalidValueException.getPath() != null &&
+                    !invalidValueException.getPath().isEmpty() ?
+                    Optional.of(invalidValueException.getPath().get(0).getFieldName()) : Optional.empty();
+
+            if (fieldName.isPresent()) {
+                message = messageSource.getMessage(
+                        "error.property.invalid.format",
+                        List.of(fieldName.orElse(""), invalidValueException.getValue()).toArray(),
+                        LocaleContextHolder.getLocale()
+                );
+            }
+        }
+        if (message == null) {
             message = messageSource.getMessage(
                     "error.bad.request",
                     List.of().toArray(),

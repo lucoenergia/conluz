@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.create;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserService;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
@@ -12,6 +13,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
+@Validated
 public class CreateUserController {
 
     private final CreateUserService service;
@@ -52,8 +55,8 @@ public class CreateUserController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public UserResponse createUser(@RequestBody CreateUserBody body) {
-        User user = service.create(body.mapToUser(), body.getPassword());
+    public UserResponse createUser(@Valid @RequestBody CreateUserBody body) {
+        User user = service.create(body.mapToUser());
         return new UserResponse(user);
     }
 }

@@ -27,7 +27,7 @@ public class CreateDefaultAdminUserService {
             throw new DefaultAdminUserAlreadyInitializedException();
         }
 
-        createUserService.create(user, user.getPassword());
+        createUserService.create(user);
 
         updateConfigRepository.markDefaultAdminUserAsInitialized();
     }

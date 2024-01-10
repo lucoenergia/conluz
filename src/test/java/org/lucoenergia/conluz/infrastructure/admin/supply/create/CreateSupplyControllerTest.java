@@ -34,7 +34,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         User user = UserMother.randomUserWithId(UUID.fromString("e7ab39cd-9250-40a9-b829-f11f65aae27d"));
-        createUserRepository.create(user, UserMother.randomPassword());
+        createUserRepository.create(user);
 
         String body = """
                 {

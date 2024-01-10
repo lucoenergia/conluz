@@ -1,8 +1,8 @@
 package org.lucoenergia.conluz.domain.admin.user;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.*;
+import org.lucoenergia.conluz.infrastructure.shared.format.UUIDValidator;
+import org.lucoenergia.conluz.infrastructure.shared.format.ValidUUID;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,25 +14,26 @@ import java.util.UUID;
 
 public class User implements UserDetails {
 
-    @NotBlank
-    @org.hibernate.validator.constraints.UUID
+    @NotNull
+    @ValidUUID
     private UUID id;
     @NotBlank
     private String personalId;
     @NotBlank
     private String password;
     @Min(value = 0)
-    @NotBlank
+    @NotNull
     private Integer number;
     @NotBlank
     private String fullName;
-    @NotBlank
     private String address;
     @Email
     @NotBlank
     private String email;
     private String phoneNumber;
+    @NotNull
     private Boolean enabled;
+    @NotNull
     private Role role;
 
     public UUID getId() {

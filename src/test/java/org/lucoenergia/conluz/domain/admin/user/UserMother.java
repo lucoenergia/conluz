@@ -17,6 +17,7 @@ public class UserMother {
     public static UserEntity randomUserEntityWithPersonalId(String personalId) {
         UserEntity user = new UserEntity();
         user.setId(UUID.randomUUID());
+        user.setPassword(randomPassword());
         user.setPersonalId(personalId);
         user.setPassword("$2a$12$" + RandomStringUtils.randomAlphabetic(53));
         user.setNumber(RandomUtils.nextInt());
@@ -36,6 +37,7 @@ public class UserMother {
     public static User randomUserWithPersonalId(String personalId) {
         User user = new User();
         user.setId(UUID.randomUUID());
+        user.setPassword(randomPassword());
         user.setPersonalId(personalId);
         user.setNumber(RandomUtils.nextInt());
         user.setFullName(RandomStringUtils.random(15, true, false));
@@ -50,6 +52,7 @@ public class UserMother {
     public static User randomUserWithId(UUID id) {
         User user = new User();
         user.setId(id);
+        user.setPassword(randomPassword());
         user.setPersonalId(RandomStringUtils.randomAlphabetic(9));
         user.setNumber(RandomUtils.nextInt());
         user.setFullName(RandomStringUtils.random(15, true, false));

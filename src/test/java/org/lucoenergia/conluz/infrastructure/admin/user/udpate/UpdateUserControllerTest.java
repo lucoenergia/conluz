@@ -41,7 +41,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
         user.setPhoneNumber("+34666555444");
         user.setEnabled(true);
         user.setRole(Role.ADMIN);
-        createUserRepository.create(user, UserMother.randomPassword());
+        createUserRepository.create(user);
 
         // Modify data of the user
         UpdateUserBody userModified = new UpdateUserBody();

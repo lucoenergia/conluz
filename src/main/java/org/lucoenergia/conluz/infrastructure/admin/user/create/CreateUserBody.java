@@ -1,6 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
@@ -9,13 +13,21 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 })
 public class CreateUserBody {
 
+    @NotBlank
     private String personalId;
+    @NotNull
+    @Min(value = 0)
     private Integer number;
+    @NotBlank
     private String fullName;
     private String address;
+    @NotBlank
+    @Email
     private String email;
     private String phoneNumber;
+    @NotBlank
     private String password;
+    @NotNull
     private Role role;
 
     public String getPersonalId() {
@@ -86,6 +98,7 @@ public class CreateUserBody {
         User user = new User();
         user.setPersonalId(this.getPersonalId());
         user.setNumber(this.getNumber());
+        user.setPassword(this.getPassword());
         user.setFullName(this.getFullName());
         user.setAddress(this.getAddress());
         user.setEmail(this.getEmail());

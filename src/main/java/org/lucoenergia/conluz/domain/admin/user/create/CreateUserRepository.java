@@ -4,5 +4,5 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 
 public interface CreateUserRepository {
 
-    User create (User user, String password);
+    User create (User user);
 }

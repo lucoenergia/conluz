@@ -30,7 +30,7 @@ class EnableUserControllerTest extends BaseControllerTest {
         // Create a user
         User user = UserMother.randomUser();
         user.setEnabled(false);
-        createUserRepository.create(user, UserMother.randomPassword());
+        createUserRepository.create(user);
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
 
         String authHeader = loginAsDefaultAdmin();
