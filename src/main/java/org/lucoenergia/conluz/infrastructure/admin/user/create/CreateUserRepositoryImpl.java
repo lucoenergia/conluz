@@ -27,11 +27,11 @@ public class CreateUserRepositoryImpl implements CreateUserRepository {
     }
 
     @Override
-    public User create(User user, String password) {
+    public User create(User user) {
         if (repository.existsByPersonalId(user.getPersonalId())) {
             throw new UserAlreadyExistsException(UserPersonalId.of(user.getPersonalId()));
         }
-        String encodedPassword = passwordEncoder.encode(password);
+        String encodedPassword = passwordEncoder.encode(user.getPassword());
         UserEntity entity = UserEntity.createNewUser(user, encodedPassword);
 
         return mapper.map(repository.save(entity));

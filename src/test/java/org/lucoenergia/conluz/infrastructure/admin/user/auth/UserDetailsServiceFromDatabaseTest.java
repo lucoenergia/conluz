@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +33,7 @@ class UserDetailsServiceFromDatabaseTest extends BaseIntegrationTest {
     void testUserFoundById() {
 
         // Create a user
-        User user = createUserRepository.create(UserMother.randomUser(), "A good pa!!w0rd");
+        User user = createUserRepository.create(UserMother.randomUser());
 
         User result = (User) userDetailsService.loadUserByUsername(user.getId().toString());
 
@@ -54,7 +53,7 @@ class UserDetailsServiceFromDatabaseTest extends BaseIntegrationTest {
     void testUserFoundByPersonalId() {
 
         // Create a user
-        User user = createUserRepository.create(UserMother.randomUser(), "A good pa!!w0rd");
+        User user = createUserRepository.create(UserMother.randomUser());
 
         User result = (User) userDetailsService.loadUserByUsername(user.getPersonalId());
 

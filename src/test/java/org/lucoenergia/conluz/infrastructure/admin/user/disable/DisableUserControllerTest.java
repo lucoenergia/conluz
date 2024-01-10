@@ -30,7 +30,7 @@ class DisableUserControllerTest extends BaseControllerTest {
         // Create a user enabled
         User user = UserMother.randomUser();
         user.setEnabled(true);
-        createUserRepository.create(user, UserMother.randomPassword());
+        createUserRepository.create(user);
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
 
         // Login as default admin user

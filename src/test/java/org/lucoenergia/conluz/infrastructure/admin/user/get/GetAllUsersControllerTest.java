@@ -28,11 +28,11 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
 
     @Test
-    void testGetAllUsersWithDefaultPagination() throws Exception {
+    void testWithDefaultPagination() throws Exception {
 
         // Create a user
         User userOne = UserMother.randomUser();
-        createUserRepository.create(userOne, UserMother.randomPassword());
+        createUserRepository.create(userOne);
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -59,15 +59,15 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithCustomPagination() throws Exception {
+    void testWithCustomPagination() throws Exception {
 
         // Create a user
         User userOne = UserMother.randomUser();
-        createUserRepository.create(userOne, UserMother.randomPassword());
+        createUserRepository.create(userOne);
         User userTwo = UserMother.randomUser();
-        createUserRepository.create(userTwo, UserMother.randomPassword());
+        createUserRepository.create(userTwo);
         User userThree = UserMother.randomUser();
-        createUserRepository.create(userThree, UserMother.randomPassword());
+        createUserRepository.create(userThree);
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -86,7 +86,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithUnknownParameter() throws Exception {
+    void testWithUnknownParameter() throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -105,7 +105,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithWrongContentType() throws Exception {
+    void testWithWrongContentType() throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -121,7 +121,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithCustomSortingByUnknownField() throws Exception {
+    void testWithCustomSortingByUnknownField() throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -138,7 +138,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithCustomSortingByUnknownDirection() throws Exception {
+    void testWithCustomSortingByUnknownDirection() throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -155,18 +155,18 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithCustomSorting() throws Exception {
+    void testWithCustomSorting() throws Exception {
 
         // Create a user
         User userOne = UserMother.randomUser();
         userOne.setFullName("Bod Dylan");
-        createUserRepository.create(userOne, UserMother.randomPassword());
+        createUserRepository.create(userOne);
         User userTwo = UserMother.randomUser();
         userTwo.setFullName("Bruce Dickinson");
-        createUserRepository.create(userTwo, UserMother.randomPassword());
+        createUserRepository.create(userTwo);
         User userThree = UserMother.randomUser();
         userThree.setFullName("Rob Halford");
-        createUserRepository.create(userThree, UserMother.randomPassword());
+        createUserRepository.create(userThree);
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -188,23 +188,23 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithCustomSortingByMultipleFields() throws Exception {
+    void testWithCustomSortingByMultipleFields() throws Exception {
 
         // Create a user
         User userOne = UserMother.randomUser();
         userOne.setFullName("Bod Dylan");
         userOne.setPersonalId("aaa");
-        createUserRepository.create(userOne, UserMother.randomPassword());
+        createUserRepository.create(userOne);
         User userOneB = UserMother.randomUser();
         userOneB.setFullName("Bod Dylan");
         userOne.setPersonalId("bbb");
-        createUserRepository.create(userOneB, UserMother.randomPassword());
+        createUserRepository.create(userOneB);
         User userTwo = UserMother.randomUser();
         userTwo.setFullName("Bruce Dickinson");
-        createUserRepository.create(userTwo, UserMother.randomPassword());
+        createUserRepository.create(userTwo);
         User userThree = UserMother.randomUser();
         userThree.setFullName("Rob Halford");
-        createUserRepository.create(userThree, UserMother.randomPassword());
+        createUserRepository.create(userThree);
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -228,18 +228,18 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithCustomSortingAndCustomPagination() throws Exception {
+    void testWithCustomSortingAndCustomPagination() throws Exception {
 
         // Create a user
         User userOne = UserMother.randomUser();
         userOne.setFullName("Bod Dylan");
-        createUserRepository.create(userOne, UserMother.randomPassword());
+        createUserRepository.create(userOne);
         User userTwo = UserMother.randomUser();
         userTwo.setFullName("Bruce Dickinson");
-        createUserRepository.create(userTwo, UserMother.randomPassword());
+        createUserRepository.create(userTwo);
         User userThree = UserMother.randomUser();
         userThree.setFullName("Rob Halford");
-        createUserRepository.create(userThree, UserMother.randomPassword());
+        createUserRepository.create(userThree);
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -260,7 +260,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithMissingToken() throws Exception {
+    void testWithMissingToken() throws Exception {
 
         mockMvc.perform(get("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -273,7 +273,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithWrongToken() {
+    void testWithWrongToken() {
 
         final String wrongToken = JwtAuthenticationFilter.AUTHORIZATION_HEADER_PREFIX +
                 "wrong";
@@ -285,7 +285,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetAllUsersWithExpiredToken() {
+    void testWithExpiredToken() {
 
         final String expiredToken = JwtAuthenticationFilter.AUTHORIZATION_HEADER_PREFIX +
                 "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.jO3pgdDj4mg9TnRzL7f8RUL1ytJS7057jAg6zaCcwn0";

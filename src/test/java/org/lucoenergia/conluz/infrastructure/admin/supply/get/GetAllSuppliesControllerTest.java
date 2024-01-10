@@ -32,9 +32,9 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create two users
         User userOne = UserMother.randomUser();
-        createUserRepository.create(userOne, UserMother.randomPassword());
+        createUserRepository.create(userOne);
         User userTwo = UserMother.randomUser();
-        createUserRepository.create(userTwo, UserMother.randomPassword());
+        createUserRepository.create(userTwo);
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne);
@@ -63,9 +63,9 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create two users
         User userOne = UserMother.randomUser();
-        createUserRepository.create(userOne, UserMother.randomPassword());
+        createUserRepository.create(userOne);
         User userTwo = UserMother.randomUser();
-        createUserRepository.create(userTwo, UserMother.randomPassword());
+        createUserRepository.create(userTwo);
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne);
