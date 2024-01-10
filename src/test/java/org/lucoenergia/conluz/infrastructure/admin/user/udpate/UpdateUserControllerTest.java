@@ -39,6 +39,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
         user.setAddress("Fake Street 123");
         user.setEmail("johndoe@email.com");
         user.setPhoneNumber("+34666555444");
+        user.setPassword(UserMother.randomPassword());
         user.setEnabled(true);
         user.setRole(Role.ADMIN);
         createUserRepository.create(user);
