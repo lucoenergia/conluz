@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.Collections;
 
 @RestControllerAdvice
-public class SupplyRestExceptionHandler {
+public class SupplyExceptionHandler {
 
     private final MessageSource messageSource;
 
-    public SupplyRestExceptionHandler(MessageSource messageSource) {
+    public SupplyExceptionHandler(MessageSource messageSource) {
         this.messageSource = messageSource;
     }
 

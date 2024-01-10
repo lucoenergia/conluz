@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.web.error;
 
+import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.create.DefaultAdminUserAlreadyInitializedException;
 import org.lucoenergia.conluz.infrastructure.shared.web.RestError;
 import org.springframework.context.MessageSource;
@@ -12,11 +13,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.List;
 
 @RestControllerAdvice
-public class DefaultAdminUserAlreadyInitializedExceptionHandler {
+public class UserExceptionHandler {
 
     private final MessageSource messageSource;
 
-    public DefaultAdminUserAlreadyInitializedExceptionHandler(MessageSource messageSource) {
+    public UserExceptionHandler(MessageSource messageSource) {
         this.messageSource = messageSource;
     }
 
@@ -29,5 +30,16 @@ public class DefaultAdminUserAlreadyInitializedExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return new ResponseEntity<>(new RestError(HttpStatus.FORBIDDEN.value(), message), HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<RestError> handleException(UserAlreadyExistsException e) {
+
+        String message = messageSource.getMessage(
+                "error.user.already.exists",
+                List.of(e.getUserId().getPersonalId()).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 }
