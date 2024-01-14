@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.security.auth.InvalidTokenException;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -278,7 +279,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         final String wrongToken = JwtAuthenticationFilter.AUTHORIZATION_HEADER_PREFIX +
                 "wrong";
 
-        Assertions.assertThrows(MalformedJwtException.class,
+        Assertions.assertThrows(InvalidTokenException.class,
                 () -> mockMvc.perform(get("/api/v1/users")
                         .header(HttpHeaders.AUTHORIZATION, wrongToken)
                         .contentType(MediaType.APPLICATION_JSON)));

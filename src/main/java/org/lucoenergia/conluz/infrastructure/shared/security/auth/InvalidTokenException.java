@@ -8,6 +8,11 @@ public class InvalidTokenException extends RuntimeException {
         this.token = token;
     }
 
+    public InvalidTokenException(String token, Throwable ex) {
+        super(ex);
+        this.token = token;
+    }
+
     public String getToken() {
         return token;
     }
