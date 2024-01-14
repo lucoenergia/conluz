@@ -3,6 +3,9 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -14,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class JwtAuthRepositoryTest {
+
+    private final static String SECRET_KEY = "b5f86373ba5d7593f4c6eab57862bf4be76369c1adbe263ae2d50ddae40b8ca2";
 
     @InjectMocks
     private JwtAuthRepository repository;
@@ -50,10 +55,25 @@ class JwtAuthRepositoryTest {
     @Test
     void testGetUserIdByInvalidToken() {
         String invalidToken = "invalid-token";
+
+        Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(SECRET_KEY);
+
         InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
                 () -> repository.getUserIdFromToken(Token.of(invalidToken)));
 
         Assertions.assertEquals(invalidToken, exception.getToken());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    @NullSource
+    void testMissingSecretKey(String secretKey) {
+        String invalidToken = "invalid-token";
+
+        Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(secretKey);
+
+        Assertions.assertThrows(SecretKeyNotFoundException.class,
+                () -> repository.getUserIdFromToken(Token.of(invalidToken)));
     }
 
     private void mockJwtConfig() {

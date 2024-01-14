@@ -14,7 +14,7 @@
     </springProfile>
 
     <!-- Production environment -->
-    <springProfile name="prod">
+    <springProfile name="prod,production">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
         </root>

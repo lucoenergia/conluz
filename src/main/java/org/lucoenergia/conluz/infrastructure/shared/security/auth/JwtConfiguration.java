@@ -7,7 +7,7 @@ import org.springframework.util.StringUtils;
 @Configuration
 public class JwtConfiguration {
 
-    private static final String CONLUZ_JWT_SECRET_KEY = "CONLUZ_JWT_SECRET_KEY";
+    public static final String CONLUZ_JWT_SECRET_KEY = "CONLUZ_JWT_SECRET_KEY";
 
     @Value("${conluz.security.jwt.expiration-time}")
     private Integer expirationTime;

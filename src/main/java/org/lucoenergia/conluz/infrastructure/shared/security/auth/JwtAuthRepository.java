@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -86,14 +87,22 @@ public class JwtAuthRepository implements AuthRepository {
     }
 
     private Key getKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtConfiguration.getSecretKey());
+        String secretKey = jwtConfiguration.getSecretKey();
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new SecretKeyNotFoundException();
+        }
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
     private Claims getAllClaims(Token token) {
-        return Jwts
-                .parserBuilder().setSigningKey(getKey()).build()
-                .parseClaimsJws(token.getToken()).getBody();
+        try {
+            return Jwts
+                    .parserBuilder().setSigningKey(getKey()).build()
+                    .parseClaimsJws(token.getToken()).getBody();
+        } catch (MalformedJwtException e) {
+            throw new InvalidTokenException(token.getToken(), e);
+        }
     }
 
     private <T> T getClaim(Token token, Function<Claims, T> claimsResolver) {
