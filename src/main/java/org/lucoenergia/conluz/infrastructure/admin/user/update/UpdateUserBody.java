@@ -1,14 +1,28 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 
+@Schema(requiredProperties = {
+        "number", "fullName", "email", "role"
+})
 public class UpdateUserBody {
 
+    @NotNull
+    @Min(value = 0)
     private Integer number;
+    @NotBlank
     private String fullName;
     private String address;
+    @NotBlank
+    @Email
     private String email;
     private String phoneNumber;
+    @NotNull
     private Role role;
 
     public Integer getNumber() {

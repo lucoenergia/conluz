@@ -226,7 +226,7 @@ class CreateUserControllerTest extends BaseControllerTest {
 
     @ParameterizedTest
     @MethodSource("getBodyWithInvalidFormatValues")
-    void testInvalidFormat(String body) throws Exception {
+    void testWithInvalidFormatValues(String body) throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
 
