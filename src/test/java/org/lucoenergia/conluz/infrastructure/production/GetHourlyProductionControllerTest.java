@@ -109,7 +109,7 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
                 .andExpect(content().string(containsString("\"traceId\":")))
                 .andExpect(content().string(containsString("\"timestamp\":")))
                 .andExpect(content().string(containsString("\"status\":400")))
-                .andExpect(content().string(containsString("\"message\":\"El punto de suministro con identificador '1' no has sido encontrado. Revise que el identificador sea correcto.\"")));
+                .andExpect(content().string(containsString("\"message\":\"El punto de suministro con identificador '1' no ha sido encontrado. Revise que el identificador sea correcto.\"")));
     }
 
     @Test

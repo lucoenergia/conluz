@@ -15,7 +15,7 @@ public class UserNotFoundException extends RuntimeException {
         this.id = Optional.of(id);
     }
 
-    public Optional<UserId> getUserUuid() {
+    public Optional<UserId> getUserId() {
         return id;
     }
 }

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
@@ -120,6 +121,34 @@ class CreateUserControllerTest extends BaseControllerTest {
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(expectedUser.getPersonalId())));
     }
 
+    @Test
+    void testWithDuplicatedUser() throws Exception {
+
+        String authHeader = loginAsDefaultAdmin();
+
+        String body = String.format("""
+                        {
+                          "personalId": "%s",
+                          "fullName": "John Doe",
+                          "number": 1,
+                          "email": "johndoe@email.com",
+                          "password": "a secure password1!",
+                          "role": "PARTNER"
+                        }
+                """, DefaultUserAdminMother.PERSONAL_ID);
+
+        mockMvc.perform(post("/api/v1/users")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
     @ParameterizedTest
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
@@ -197,7 +226,7 @@ class CreateUserControllerTest extends BaseControllerTest {
 
     @ParameterizedTest
     @MethodSource("getBodyWithInvalidFormatValues")
-    void testInvalidFormat(String body) throws Exception {
+    void testWithInvalidFormatValues(String body) throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
 

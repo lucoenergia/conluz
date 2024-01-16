@@ -40,7 +40,17 @@ public class CreateUserController {
     @PostMapping
     @Operation(
             summary = "Creates a new user within the system.",
-            description = "This endpoint facilitates the creation of a new user within the system. This endpoint requires clients to send a request containing essential user details, including username, password, and any additional relevant information. Authentication is mandated, utilizing an authentication token, to ensure secure access. Upon successful user creation, the server responds with an HTTP status code of 200, along with comprehensive details about the newly created user, such as a unique identifier and username. In cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.",
+            description = """
+                This endpoint facilitates the creation of a new user within the system.
+                
+                This endpoint requires clients to send a request containing essential user details, including username, password, and any additional relevant information.
+                
+                Authentication is mandated, utilizing an authentication token, to ensure secure access.
+                
+                Upon successful user creation, the server responds with an HTTP status code of 200, along with comprehensive details about the newly created user, such as a unique identifier and username.
+                
+                In cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.
+                """,
             tags = ApiTag.USERS,
             operationId = "createUser"
     )
