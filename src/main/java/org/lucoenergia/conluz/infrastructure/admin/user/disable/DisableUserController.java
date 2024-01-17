@@ -33,7 +33,17 @@ public class DisableUserController {
     @PostMapping(path = "/users/{id}/disable")
     @Operation(
             summary = "Disables a user by ID",
-            description = "This endpoint is designed to disable a user within the system by specifying the user's unique identifier in the endpoint path. This operation requires proper authentication, through an authentication token, to ensure secure access. Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been disabled. The endpoint provides an effective means to temporarily suspend user accounts or restrict access, crucial for security and user management purposes. In cases where the disablement encounters errors, the server returns an appropriate error status code along with a descriptive error message to guide clients in addressing and resolving the issue.",
+            description = """
+                This endpoint is designed to disable a user within the system by specifying the user's unique identifier in the endpoint path.
+                
+                This operation requires proper authentication, through an authentication token, to ensure secure access.
+                
+                Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been disabled.
+                
+                The endpoint provides an effective means to temporarily suspend user accounts or restrict access, crucial for security and user management purposes.
+                
+                In cases where the disablement encounters errors, the server returns an appropriate error status code along with a descriptive error message to guide clients in addressing and resolving the issue.
+            """,
             tags = ApiTag.USERS,
             operationId = "disableUser"
     )
