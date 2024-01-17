@@ -30,7 +30,15 @@ public class DeleteUserController {
     @DeleteMapping("/users/{id}")
     @Operation(
             summary = "Removes a user by ID",
-            description = "This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path. To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access. Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed. In cases where the deletion process encounters errors, the server returns an appropriate error status code, along with a descriptive error message to guide clients in diagnosing and addressing the issue.",
+            description = """
+                    This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.
+                    
+                    To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.
+                    
+                    Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.
+                    
+                    In cases where the deletion process encounters errors, the server returns an appropriate error status code, along with a descriptive error message to guide clients in diagnosing and addressing the issue.
+                """,
             tags = ApiTag.USERS,
             operationId = "deleteUser"
     )
