@@ -30,7 +30,16 @@ public class EnableUserController {
     @PostMapping(path = "/users/{id}/enable")
     @Operation(
             summary = "Enables a user by ID",
-            description = "This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path. Proper authentication, through an authentication token, is required for secure access. Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled. This endpoint provides a crucial mechanism for restoring user access or lifting restrictions, supporting effective user management. In situations where the enabling process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.",
+            description = """
+                    This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path.
+                    
+                    Proper authentication, through an authentication token, is required for secure access.
+                    
+                    Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled.
+                    
+                    This endpoint provides a crucial mechanism for restoring user access or lifting restrictions, supporting effective user management.
+                    
+                    In situations where the enabling process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.""",
             tags = ApiTag.USERS,
             operationId = "disableUser"
     )
