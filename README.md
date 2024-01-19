@@ -144,7 +144,7 @@ To be able to create that user you can use the `POST /api/v1/init` endpoint that
 
    To get a valid token, firstly, a user must be configured in the application.
    
-   Once the user is configured in the application, then you can use the `POST /api/v2/login` endpoint providing a body like this:
+   Once the user is configured in the application, then you can use the `POST /api/v1/login` endpoint providing a body like this:
    ```json
     {
       "username": "01234567Z",
