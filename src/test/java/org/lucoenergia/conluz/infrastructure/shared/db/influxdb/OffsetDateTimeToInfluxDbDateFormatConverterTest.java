@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
 
-public class OffsetDateTimeToInfluxDbDateFormatConverterTest {
+class OffsetDateTimeToInfluxDbDateFormatConverterTest {
 
     @Test
     void testConvert() {

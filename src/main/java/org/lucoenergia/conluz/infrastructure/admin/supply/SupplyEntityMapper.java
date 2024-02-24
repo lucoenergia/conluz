@@ -9,7 +9,12 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
 
     @Override
     public Supply map(SupplyEntity entity) {
-        return new Supply(entity.getId(), entity.getName(), entity.getAddress(), entity.getPartitionCoefficient(),
-                entity.getEnabled());
+        return new Supply.Builder()
+                .withId(entity.getId())
+                .withAddress(entity.getAddress())
+                .withPartitionCoefficient(entity.getPartitionCoefficient())
+                .withEnabled(entity.getEnabled())
+                .withName(entity.getName())
+                .build();
     }
 }

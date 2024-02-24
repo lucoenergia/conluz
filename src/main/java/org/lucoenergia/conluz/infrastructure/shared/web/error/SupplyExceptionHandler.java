@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.web.error;
 
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-import org.lucoenergia.conluz.infrastructure.shared.web.RestError;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;

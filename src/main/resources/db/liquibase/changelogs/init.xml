@@ -85,6 +85,15 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
         </createTable>
     </changeSet>
 
-
+    <!-- Create table 'datadis_config' -->
+    <changeSet id="create_datadis_config" author="Víctor Cañizares">
+        <createTable tableName="datadis_config">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="datadis_config_id_pk"/>
+            </column>
+            <column name="username" type="TEXT"/>
+            <column name="password" type="TEXT"/>
+        </createTable>
+    </changeSet>
 
 </databaseChangeLog>
