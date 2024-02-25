@@ -4,7 +4,7 @@ import okhttp3.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.infrastructure.shared.web.rest.RestClientBuilder;
+import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -16,13 +16,13 @@ class DatadisAuthorizerTest {
 
     private DatadisAuthorizer datadisAuthorizer;
     private DatadisConfigRepository datadisConfigRepository;
-    private RestClientBuilder restClientBuilder;
+    private ConluzRestClientBuilder conluzRestClientBuilder;
 
     @BeforeEach
     public void setUp() {
-        restClientBuilder = Mockito.mock(RestClientBuilder.class);
+        conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
         datadisConfigRepository = Mockito.mock(DatadisConfigRepository.class);
-        datadisAuthorizer = new DatadisAuthorizer(datadisConfigRepository, restClientBuilder);
+        datadisAuthorizer = new DatadisAuthorizer(datadisConfigRepository, conluzRestClientBuilder);
     }
 
     @Test
@@ -43,7 +43,7 @@ class DatadisAuthorizerTest {
         Response response = Mockito.mock(Response.class);
         ResponseBody body = Mockito.mock(ResponseBody.class);
         Mockito
-                .when(restClientBuilder.build())
+                .when(conluzRestClientBuilder.build())
                 .thenReturn(client);
         Mockito.when(client.newCall(Mockito.any(Request.class))).thenReturn(call);
         Mockito.when(call.execute()).thenReturn(response);

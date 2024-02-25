@@ -10,54 +10,31 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisException;
-import org.lucoenergia.conluz.infrastructure.shared.web.rest.RestClientBuilder;
+import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.time.Month;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
-class DatadisConsumptionRepositoryRestTest {
+class GetDatadisConsumptionRepositoryRestTest {
 
-    private DatadisConsumptionRepositoryRest repository;
+    private GetDatadisConsumptionRepositoryRest repository;
     private DatadisAuthorizer datadisAuthorizer;
-    private RestClientBuilder restClientBuilder;
+    private ConluzRestClientBuilder conluzRestClientBuilder;
 
     @BeforeEach
     public void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         datadisAuthorizer = Mockito.mock(DatadisAuthorizer.class);
-        restClientBuilder = Mockito.mock(RestClientBuilder.class);
-        repository = new DatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, restClientBuilder);
-    }
-
-    @Test
-    void testGetMonthlyConsumptionWithEmptySuppliesList() {
-        // Assemble
-        final List<Supply> supplies = Collections.emptyList();
-        final Month month = Month.APRIL;
-        final int year = 2023;
-
-        Mockito
-                .when(datadisAuthorizer.getAuthTokenWithBearerFormat())
-                .thenReturn("token");
-
-        // Act
-        Map<String, List<Consumption>> result = repository.getMonthlyConsumption(supplies, month, year);
-
-        // Assert
-        Assertions.assertTrue(result.isEmpty());
+        conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
+        repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder);
     }
 
     @Test
     void testGetMonthlyConsumptionWithSupplyWithoutDistributorCode() {
         // Assemble
-        final List<Supply> supplies = Arrays.asList(
-                new Supply.Builder().build()
-        );
+        final Supply supply = new Supply.Builder().build();
         final Month month = Month.APRIL;
         final int year = 2023;
 
@@ -67,7 +44,7 @@ class DatadisConsumptionRepositoryRestTest {
 
         // Act & assert
         DatadisSupplyConfigurationException exception = Assertions.assertThrows(DatadisSupplyConfigurationException.class,
-                () -> repository.getMonthlyConsumption(supplies, month, year));
+                () -> repository.getHourlyConsumptionsByMonth(supply, month, year));
 
         Assertions.assertEquals("Distributor code is mandatory to get monthly consumption.",
                 exception.getMessage());
@@ -76,9 +53,7 @@ class DatadisConsumptionRepositoryRestTest {
     @Test
     void testGetMonthlyConsumptionWithSupplyWithoutPointType() {
         // Assemble
-        final List<Supply> supplies = Arrays.asList(
-                new Supply.Builder().withDistributorCode("2").build()
-        );
+        final Supply supply = new Supply.Builder().withDistributorCode("2").build();
         final Month month = Month.APRIL;
         final int year = 2023;
 
@@ -88,7 +63,7 @@ class DatadisConsumptionRepositoryRestTest {
 
         // Act & assert
         DatadisSupplyConfigurationException exception = Assertions.assertThrows(DatadisSupplyConfigurationException.class,
-                () -> repository.getMonthlyConsumption(supplies, month, year));
+                () -> repository.getHourlyConsumptionsByMonth(supply, month, year));
 
         Assertions.assertEquals("Point type is mandatory to get monthly consumption.",
                 exception.getMessage());
@@ -98,14 +73,12 @@ class DatadisConsumptionRepositoryRestTest {
     void testGetMonthlyConsumptionWithUnsuccessfulResponseAndEmptyBody() throws IOException {
         // Assemble
         final User user = new User.Builder().personalId("authorizedNif").build();
-        final List<Supply> supplies = Arrays.asList(
-                new Supply.Builder()
+        final Supply supply = new Supply.Builder()
                         .withId("cups")
                         .withUser(user)
                         .withDistributorCode("distributorCode")
                         .withPointType("pointType")
-                        .build()
-        );
+                        .build();
         final Month month = Month.APRIL;
         final int year = 2023;
 
@@ -118,7 +91,7 @@ class DatadisConsumptionRepositoryRestTest {
         Response response = Mockito.mock(Response.class);
         ResponseBody body = Mockito.mock(ResponseBody.class);
         Mockito
-                .when(restClientBuilder.build())
+                .when(conluzRestClientBuilder.build())
                 .thenReturn(client);
         Mockito.when(client.newCall(Mockito.any(Request.class))).thenReturn(call);
         Mockito.when(call.execute()).thenReturn(response);
@@ -129,7 +102,7 @@ class DatadisConsumptionRepositoryRestTest {
 
         // Act & Assert
         DatadisException exception = Assertions.assertThrows(DatadisException.class,
-                () -> repository.getMonthlyConsumption(supplies, month, year));
+                () -> repository.getHourlyConsumptionsByMonth(supply, month, year));
 
         Assertions.assertEquals(
                 "Unable to get consumptions for supply with ID cups. Code 429, message: Consulta ya realizada en las últimas 24 horas.",
@@ -140,14 +113,12 @@ class DatadisConsumptionRepositoryRestTest {
     void testGetMonthlyConsumptionWithSuccessfulResponse() throws IOException {
         // Assemble
         final User user = new User.Builder().personalId("authorizedNif").build();
-        final List<Supply> supplies = Arrays.asList(
-                new Supply.Builder()
+        final Supply supply = new Supply.Builder()
                         .withId("ES0031300329693002BQ0F")
                         .withUser(user)
                         .withDistributorCode("distributorCode")
                         .withPointType("pointType")
-                        .build()
-        );
+                        .build();
         final Month month = Month.APRIL;
         final int year = 2023;
 
@@ -160,7 +131,7 @@ class DatadisConsumptionRepositoryRestTest {
         Response response = Mockito.mock(Response.class);
         ResponseBody body = Mockito.mock(ResponseBody.class);
         Mockito
-                .when(restClientBuilder.build())
+                .when(conluzRestClientBuilder.build())
                 .thenReturn(client);
         Mockito.when(client.newCall(Mockito.any(Request.class))).thenReturn(call);
         Mockito.when(call.execute()).thenReturn(response);
@@ -193,24 +164,23 @@ class DatadisConsumptionRepositoryRestTest {
                 """);
 
         // Act & Assert
-        Map<String, List<Consumption>> result = repository.getMonthlyConsumption(supplies, month, year);
+        List<Consumption> result = repository.getHourlyConsumptionsByMonth(supply, month, year);
 
         Assertions.assertFalse(result.isEmpty());
-        Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals(3, result.get("ES0031300329693002BQ0F").size());
+        Assertions.assertEquals(3, result.size());
 
-        Assertions.assertEquals("ES0031300329693002BQ0F", result.get("ES0031300329693002BQ0F").get(0).getCups());
-        Assertions.assertEquals("2023/10/01", result.get("ES0031300329693002BQ0F").get(0).getDate());
-        Assertions.assertEquals("01:00", result.get("ES0031300329693002BQ0F").get(0).getTime());
-        Assertions.assertEquals(0.0f, result.get("ES0031300329693002BQ0F").get(0).getConsumptionKWh());
-        Assertions.assertEquals("Real", result.get("ES0031300329693002BQ0F").get(0).getObtainMethod());
-        Assertions.assertEquals(0.0f, result.get("ES0031300329693002BQ0F").get(0).getSurplusEnergyKWh());
+        Assertions.assertEquals("ES0031300329693002BQ0F", result.get(0).getCups());
+        Assertions.assertEquals("2023/10/01", result.get(0).getDate());
+        Assertions.assertEquals("01:00", result.get(0).getTime());
+        Assertions.assertEquals(0.0f, result.get(0).getConsumptionKWh());
+        Assertions.assertEquals("Real", result.get(0).getObtainMethod());
+        Assertions.assertEquals(0.0f, result.get(0).getSurplusEnergyKWh());
 
-        Assertions.assertEquals("ES0031300329693002BQ0F", result.get("ES0031300329693002BQ0F").get(2).getCups());
-        Assertions.assertEquals("2023/10/01", result.get("ES0031300329693002BQ0F").get(2).getDate());
-        Assertions.assertEquals("03:00", result.get("ES0031300329693002BQ0F").get(2).getTime());
-        Assertions.assertEquals(4.2f, result.get("ES0031300329693002BQ0F").get(2).getConsumptionKWh());
-        Assertions.assertEquals("Real", result.get("ES0031300329693002BQ0F").get(2).getObtainMethod());
-        Assertions.assertEquals(0.5f, result.get("ES0031300329693002BQ0F").get(2).getSurplusEnergyKWh());
+        Assertions.assertEquals("ES0031300329693002BQ0F", result.get(2).getCups());
+        Assertions.assertEquals("2023/10/01", result.get(2).getDate());
+        Assertions.assertEquals("03:00", result.get(2).getTime());
+        Assertions.assertEquals(4.2f, result.get(2).getConsumptionKWh());
+        Assertions.assertEquals("Real", result.get(2).getObtainMethod());
+        Assertions.assertEquals(0.5f, result.get(2).getSurplusEnergyKWh());
     }
 }

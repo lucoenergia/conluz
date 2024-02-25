@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.shared.datadis;
 
 import okhttp3.*;
-import org.lucoenergia.conluz.infrastructure.shared.web.rest.RestClientBuilder;
+import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
@@ -15,11 +15,11 @@ public class DatadisAuthorizer {
     private static final String BODY_PARAM_PASSWORD = "password";
 
     private final DatadisConfigRepository datadisConfigRepository;
-    private final RestClientBuilder restClientBuilder;
+    private final ConluzRestClientBuilder conluzRestClientBuilder;
 
-    public DatadisAuthorizer(DatadisConfigRepository datadisConfigRepository, RestClientBuilder restClientBuilder) {
+    public DatadisAuthorizer(DatadisConfigRepository datadisConfigRepository, ConluzRestClientBuilder conluzRestClientBuilder) {
         this.datadisConfigRepository = datadisConfigRepository;
-        this.restClientBuilder = restClientBuilder;
+        this.conluzRestClientBuilder = conluzRestClientBuilder;
     }
 
     public String getAuthToken() {
@@ -27,7 +27,7 @@ public class DatadisAuthorizer {
         String username = config.getUsername();
         String password = config.getPassword();
 
-        OkHttpClient client = restClientBuilder.build();
+        OkHttpClient client = conluzRestClientBuilder.build();
 
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)

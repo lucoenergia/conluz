@@ -8,6 +8,8 @@ import java.util.Optional;
 
 public interface GetSupplyRepository {
 
+    long count();
+
     Optional<Supply> findById(SupplyId id);
 
     boolean existsById(SupplyId id);

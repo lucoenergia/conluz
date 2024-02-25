@@ -5,7 +5,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RestClientBuilder {
+public class ConluzRestClientBuilder {
 
     public OkHttpClient build() {
         return build(false);

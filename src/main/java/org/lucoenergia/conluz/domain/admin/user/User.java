@@ -1,8 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.user;
 
 import jakarta.validation.constraints.*;
-import org.lucoenergia.conluz.infrastructure.shared.format.UUIDValidator;
-import org.lucoenergia.conluz.infrastructure.shared.format.ValidUUID;
+import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

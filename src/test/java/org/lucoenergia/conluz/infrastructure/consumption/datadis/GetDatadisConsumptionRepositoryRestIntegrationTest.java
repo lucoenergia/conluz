@@ -13,17 +13,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Month;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Transactional
 @Disabled("These tests should not be included in a CI pipeline because connects with datadis.es, so, needs real data.")
-class DatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegrationTest {
+class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
-    private DatadisConsumptionRepositoryRest datadisConsumptionRepositoryRest;
+    private GetDatadisConsumptionRepositoryRest datadisConsumptionRepositoryRest;
     @Autowired
     private DatadisConfigRepository datadisConfigRepository;
 
@@ -35,14 +33,12 @@ class DatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegrationTes
         final String pointType = "5";
 
         final User user = new User.Builder().personalId(authorizedNif).build();
-        final List<Supply> supplies = Arrays.asList(
-                new Supply.Builder()
+        final Supply supply = new Supply.Builder()
                         .withId(cups)
                         .withUser(user)
                         .withDistributorCode(distributorCode)
                         .withPointType(pointType)
-                        .build()
-        );
+                        .build();
         final Month month = Month.OCTOBER;
         final int year = 2023;
 
@@ -57,11 +53,9 @@ class DatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegrationTes
         config.setPassword(password);
         datadisConfigRepository.save(config);
 
-        Map<String, List<Consumption>> result = datadisConsumptionRepositoryRest.getMonthlyConsumption(supplies, month, year);
+        List<Consumption> result = datadisConsumptionRepositoryRest.getHourlyConsumptionsByMonth(supply, month, year);
 
         Assertions.assertNotNull(result);
         Assertions.assertFalse(result.isEmpty());
-        Assertions.assertTrue(result.containsKey("ES0031300197172001CW0F"));
-        Assertions.assertFalse(result.get("ES0031300197172001CW0F").isEmpty());
     }
 }
