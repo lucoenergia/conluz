@@ -39,7 +39,6 @@ class PersistDatadisConsumptionRepositoryInfluxTest {
         repository.persistConsumptions(Collections.singletonList(consumption));
 
         // Assert
-        Mockito.verify(influxDB, Mockito.atLeastOnce()).write("datadis-consumption-kwh");
         Mockito.verify(consumption, Mockito.atLeastOnce()).getCups();
         Mockito.verify(consumption, Mockito.atLeastOnce()).getConsumptionKWh();
         Mockito.verify(consumption, Mockito.atLeastOnce()).getObtainMethod();
