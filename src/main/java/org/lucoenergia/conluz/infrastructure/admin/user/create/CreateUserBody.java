@@ -106,4 +106,17 @@ public class CreateUserBody {
         user.setRole(this.getRole());
         return user;
     }
+
+    @Override
+    public String toString() {
+        return "CreateUserBody{" +
+                "personalId='" + personalId + '\'' +
+                ", number=" + number +
+                ", fullName='" + fullName + '\'' +
+                ", address='" + address + '\'' +
+                ", email='" + email + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                ", role=" + role +
+                '}';
+    }
 }
