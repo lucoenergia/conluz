@@ -14,6 +14,11 @@ public class InfluxDbConnectionManagerImpl implements InfluxDbConnectionManager 
     }
 
     public InfluxDB getConnection() {
-        return InfluxDBFactory.connect(config.getDatabaseURL(), config.getUsername(), config.getPassword());
+        InfluxDB connection = InfluxDBFactory.connect(config.getDatabaseURL(), config.getUsername(),
+                config.getPassword());
+        connection.setDatabase(config.getDatabaseName());
+        connection.setLogLevel(InfluxDB.LogLevel.BASIC);
+        connection.enableGzip();
+        return connection;
     }
 }

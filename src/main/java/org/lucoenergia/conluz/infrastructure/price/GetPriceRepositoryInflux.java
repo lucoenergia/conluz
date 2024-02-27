@@ -6,9 +6,8 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.price.GetPriceRepository;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConfiguration;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.OffsetDateTimeToInfluxDbDateFormatConverter;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
@@ -19,13 +18,12 @@ public class GetPriceRepositoryInflux implements GetPriceRepository {
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
     private final PriceByHourInfluxMapper priceByHourInfluxMapper;
+    private final DateToInfluxDbDateFormatConverter dateConverter;
 
-    private final InfluxDbConfiguration influxDbConfiguration;
-
-    public GetPriceRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager, PriceByHourInfluxMapper priceByHourInfluxMapper, InfluxDbConfiguration influxDbConfiguration) {
+    public GetPriceRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager, PriceByHourInfluxMapper priceByHourInfluxMapper, DateToInfluxDbDateFormatConverter dateConverter) {
         this.influxDbConnectionManager = influxDbConnectionManager;
         this.priceByHourInfluxMapper = priceByHourInfluxMapper;
-        this.influxDbConfiguration = influxDbConfiguration;
+        this.dateConverter = dateConverter;
     }
 
     @Override
@@ -35,9 +33,8 @@ public class GetPriceRepositoryInflux implements GetPriceRepository {
 
             Query query = new Query(String.format(
                     "SELECT * FROM \"omie-daily-prices\" WHERE time >= '%s' AND time <= '%s'",
-                    OffsetDateTimeToInfluxDbDateFormatConverter.convert(startDate),
-                    OffsetDateTimeToInfluxDbDateFormatConverter.convert(endDate)),
-                    influxDbConfiguration.getDatabaseName());
+                    dateConverter.convert(startDate),
+                    dateConverter.convert(endDate)));
 
             QueryResult queryResult = connection.query(query);
 

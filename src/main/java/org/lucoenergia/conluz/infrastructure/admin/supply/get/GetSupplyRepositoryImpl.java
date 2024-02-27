@@ -33,6 +33,11 @@ public class GetSupplyRepositoryImpl implements GetSupplyRepository {
     }
 
     @Override
+    public long count() {
+        return supplyRepository.count();
+    }
+
+    @Override
     public Optional<Supply> findById(SupplyId id) {
         Optional<SupplyEntity> supplyEntity = supplyRepository.findById(id.getId());
 

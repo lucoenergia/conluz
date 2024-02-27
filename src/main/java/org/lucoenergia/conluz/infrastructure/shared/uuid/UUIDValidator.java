@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.shared.format;
+package org.lucoenergia.conluz.infrastructure.shared.uuid;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

@@ -7,10 +7,9 @@ import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.production.GetProductionRepository;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConfiguration;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDuration;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.OffsetDateTimeToInfluxDbDateFormatConverter;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
@@ -22,14 +21,17 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
 
-    private final InfluxDbConfiguration influxDbConfiguration;
+    private final DateToInfluxDbDateFormatConverter dateConverter;
 
     private final InstantProductionInfluxMapper instantProductionInfluxMapper;
     private final ProductionByHourInfluxMapper productionByHourInfluxMapper;
 
-    public GetProductionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager, InfluxDbConfiguration influxDbConfiguration, InstantProductionInfluxMapper instantProductionInfluxMapper, ProductionByHourInfluxMapper productionByHourInfluxMapper) {
+    public GetProductionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
+                                         DateToInfluxDbDateFormatConverter dateConverter,
+                                         InstantProductionInfluxMapper instantProductionInfluxMapper,
+                                         ProductionByHourInfluxMapper productionByHourInfluxMapper) {
         this.influxDbConnectionManager = influxDbConnectionManager;
-        this.influxDbConfiguration = influxDbConfiguration;
+        this.dateConverter = dateConverter;
         this.instantProductionInfluxMapper = instantProductionInfluxMapper;
         this.productionByHourInfluxMapper = productionByHourInfluxMapper;
     }
@@ -37,8 +39,7 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     @Override
     public InstantProduction getInstantProduction() {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
-            Query query = new Query("SELECT * FROM \"energy_production_huawei_hour\" LIMIT 1",
-                    influxDbConfiguration.getDatabaseName());
+            Query query = new Query("SELECT * FROM \"energy_production_huawei_hour\" LIMIT 1");
 
             QueryResult queryResult = connection.query(query);
 
@@ -68,9 +69,8 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
             Query query = new Query(String.format(
                     "SELECT time, \"inverter-power\"*%s FROM \"energy_production_huawei_hour\" WHERE time >= '%s' AND time <= '%s'",
                     partitionCoefficient,
-                    OffsetDateTimeToInfluxDbDateFormatConverter.convert(startDate),
-                    OffsetDateTimeToInfluxDbDateFormatConverter.convert(endDate)),
-                    influxDbConfiguration.getDatabaseName());
+                    dateConverter.convert(startDate),
+                    dateConverter.convert(endDate)));
 
             QueryResult queryResult = connection.query(query);
 
@@ -126,10 +126,9 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
             Query query = new Query(String.format(
                     "SELECT SUM(\"inverter-power\")*%s AS \"inverter-power\" FROM \"energy_production_huawei_hour\" WHERE time >= '%s' AND time <= '%s' GROUP BY time(%s)",
                     partitionCoefficient,
-                    OffsetDateTimeToInfluxDbDateFormatConverter.convert(startDate),
-                    OffsetDateTimeToInfluxDbDateFormatConverter.convert(endDate),
-                    duration),
-                    influxDbConfiguration.getDatabaseName());
+                    dateConverter.convert(startDate),
+                    dateConverter.convert(endDate),
+                    duration));
 
             QueryResult queryResult = connection.query(query);
 

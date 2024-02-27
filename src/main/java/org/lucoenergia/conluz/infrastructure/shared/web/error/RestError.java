@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.shared.web;
+package org.lucoenergia.conluz.infrastructure.shared.web.error;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

@@ -1,0 +1,59 @@
+package org.lucoenergia.conluz.domain.consumption.datadis;
+
+public class Consumption {
+
+    private String cups;
+    private String date;
+    private String time;
+    private Float consumptionKWh;
+    private String obtainMethod;
+    private Float surplusEnergyKWh;
+
+    public String getCups() {
+        return cups;
+    }
+
+    public void setCups(String cups) {
+        this.cups = cups;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+
+    public Float getConsumptionKWh() {
+        return consumptionKWh;
+    }
+
+    public void setConsumptionKWh(Float consumptionKWh) {
+        this.consumptionKWh = consumptionKWh;
+    }
+
+    public String getObtainMethod() {
+        return obtainMethod;
+    }
+
+    public void setObtainMethod(String obtainMethod) {
+        this.obtainMethod = obtainMethod;
+    }
+
+    public Float getSurplusEnergyKWh() {
+        return surplusEnergyKWh;
+    }
+
+    public void setSurplusEnergyKWh(Float surplusEnergyKWh) {
+        this.surplusEnergyKWh = surplusEnergyKWh;
+    }
+}

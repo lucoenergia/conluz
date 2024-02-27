@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.auth;
 
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
-import org.lucoenergia.conluz.infrastructure.shared.format.UUIDValidator;
+import org.lucoenergia.conluz.infrastructure.shared.uuid.UUIDValidator;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
