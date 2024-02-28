@@ -1,0 +1,15 @@
+number,fullName,personalId,address,email,phoneNumber,role
+1,John Doe,123456789,123 Main St,john.doe@example.com,123-456-7890,admin,password1
+2,Jane Smith,987654321,456 Elm St,jane.smith@example.com,234-567-8901,partner,password2
+3,Michael Johnson,456123789,789 Oak St,michael.johnson@example.com,345-678-9012,partner,password3
+4,Emily Brown,789123456,101 Pine St,emily.brown@example.com,456-789-0123,partner,password4
+5,David Wilson,321654987,202 Maple St,david.wilson@example.com,567-890-1234,admin,password5
+6,Sarah Martinez,321654987,303 Cedar St,sarah.martinez@example.com,678-901-2345,partner,password6
+7,Sarah Martinez,321654987,303 Cedar St,sarah.martinez@example.com,678-901-2345,partner,password7
+8,Lisa Taylor,147258369,505 Walnut St,,890-123-4567,password8
+.garcia@example.com,,admin,password9
+10,Amanda Thomas,258369147,,amanda.thomas@example.com,012-345-6789,partner,password10
+11,Christopher Hernandez,,808 Orange St,christopher.hernandez@example.com,123-456-7890,partner,password11
+12,,852963741,909 Grape St,mary.young@example.com,234-567-8901,admin,password12
+,Matthew King,963741852,1010 Lemon St,matthew.king@example.com,345-678-9012,partner,password13
+14,Lauren Scott,159487263,1111 Cherry St,lauren.scott@example.com,456-789-0123,,password14

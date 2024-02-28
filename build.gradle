@@ -25,13 +25,15 @@ dependencies {
 
     implementation 'org.liquibase:liquibase-core'
     implementation 'org.influxdb:influxdb-java:2.23'
+    runtimeOnly 'org.postgresql:postgresql'
+
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
     implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
     implementation "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
 
-    runtimeOnly 'org.postgresql:postgresql'
+    implementation group: 'com.opencsv', name: 'opencsv', version: '5.9'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'

@@ -26,6 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class CreateUserControllerTest extends BaseControllerTest {
 
+    private final static String URL = "/api/v1/users";
+
     @Autowired
     private GetUserRepository getUserRepository;
 
@@ -57,7 +59,7 @@ class CreateUserControllerTest extends BaseControllerTest {
         expectedUser.setEnabled(true);
         expectedUser.setRole(Role.PARTNER);
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -101,7 +103,7 @@ class CreateUserControllerTest extends BaseControllerTest {
         expectedUser.setEnabled(true);
         expectedUser.setRole(Role.PARTNER);
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -137,7 +139,7 @@ class CreateUserControllerTest extends BaseControllerTest {
                         }
                 """, DefaultUserAdminMother.PERSONAL_ID);
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -155,7 +157,7 @@ class CreateUserControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -230,7 +232,7 @@ class CreateUserControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -280,7 +282,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     testWithoutBody() throws Exception {
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -294,7 +296,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithoutToken() throws Exception {
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
