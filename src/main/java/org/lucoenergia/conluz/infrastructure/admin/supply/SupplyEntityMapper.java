@@ -11,6 +11,7 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
     public Supply map(SupplyEntity entity) {
         return new Supply.Builder()
                 .withId(entity.getId())
+                .withCode(entity.getCode())
                 .withAddress(entity.getAddress())
                 .withPartitionCoefficient(entity.getPartitionCoefficient())
                 .withEnabled(entity.getEnabled())

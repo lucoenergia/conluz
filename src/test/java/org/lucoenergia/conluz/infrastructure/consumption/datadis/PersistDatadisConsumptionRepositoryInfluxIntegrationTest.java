@@ -28,7 +28,7 @@ class PersistDatadisConsumptionRepositoryInfluxIntegrationTest extends BaseInteg
         int year = 2024;
         Consumption consumption = ConsumptionMother.random();
         consumption.setDate(String.format("%s/%02d/01", year, month.getValue()));
-        Supply supply = new Supply.Builder().withId(consumption.getCups()).build();
+        Supply supply = new Supply.Builder().withCode(consumption.getCups()).build();
 
         // Act
         repository.persistConsumptions(Collections.singletonList(consumption));

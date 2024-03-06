@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Objects;
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/production")
 public class GetInstantProductionController {
@@ -55,8 +58,8 @@ public class GetInstantProductionController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public InstantProduction getInstantProduction(@RequestParam(required = false) String supplyId) {
-        if (StringUtils.isBlank(supplyId)) {
+    public InstantProduction getInstantProduction(@RequestParam(required = false) UUID supplyId) {
+        if (Objects.isNull(supplyId)) {
             return getProductionService.getInstantProduction();
         }
         return getProductionService.getInstantProductionBySupply(new SupplyId(supplyId));

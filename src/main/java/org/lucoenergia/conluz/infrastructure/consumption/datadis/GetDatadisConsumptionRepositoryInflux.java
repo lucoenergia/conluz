@@ -43,7 +43,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
             Query query = new Query(String.format(
                     "SELECT * FROM \"%s\" WHERE cups = '%s' AND time >= '%s' AND time <= '%s'",
                     DatadisConfig.CONSUMPTION_KWH_MEASUREMENT,
-                    supply.getId(),
+                    supply.getCode(),
                     startDate,
                     endDate));
 

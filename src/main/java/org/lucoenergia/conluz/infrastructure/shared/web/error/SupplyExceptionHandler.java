@@ -22,7 +22,7 @@ public class SupplyExceptionHandler {
     @ExceptionHandler(SupplyNotFoundException.class)
     public ResponseEntity<RestError> handleException(SupplyNotFoundException e) {
 
-        String supplyId = e.getId().getId();
+        String supplyId = e.getId().getId().toString();
 
         String message = messageSource.getMessage(
                 "error.supply.not.found",

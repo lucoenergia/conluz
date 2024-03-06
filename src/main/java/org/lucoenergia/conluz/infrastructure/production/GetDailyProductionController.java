@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.production.GetProductionService;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -23,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/production/daily")
@@ -62,9 +63,9 @@ public class GetDailyProductionController {
     public List<ProductionByTime> getDailyProduction(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
-            @RequestParam(required = false) String supplyId) {
+            @RequestParam(required = false) UUID supplyId) {
 
-        if (StringUtils.isBlank(supplyId)) {
+        if (Objects.isNull(supplyId)) {
             return getProductionService.getDailyProductionByRangeOfDates(startDate, endDate);
         }
         return getProductionService.getDailyProductionByRangeOfDatesAndSupply(startDate, endDate,

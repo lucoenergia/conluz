@@ -3,9 +3,12 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
+import java.util.UUID;
+
 public class SupplyResponse {
 
-    private final String id;
+    private final UUID id;
+    private final String code;
     private final UserResponse user;
     private final String name;
     private final String address;
@@ -14,6 +17,7 @@ public class SupplyResponse {
 
     public SupplyResponse(Supply supply) {
         this.id = supply.getId();
+        this.code = supply.getCode();
         this.name = supply.getName();
         this.address = supply.getAddress();
         this.partitionCoefficient = supply.getPartitionCoefficient();
@@ -21,8 +25,11 @@ public class SupplyResponse {
         this.user = supply.getUser() != null ? new UserResponse(supply.getUser()) : null;
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
+    }
+    public String getCode() {
+        return code;
     }
 
     public UserResponse getUser() {

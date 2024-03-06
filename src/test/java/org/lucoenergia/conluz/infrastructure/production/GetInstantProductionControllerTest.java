@@ -2,8 +2,14 @@ package org.lucoenergia.conluz.infrastructure.production;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.EnergyProductionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
@@ -12,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -21,6 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class GetInstantProductionControllerTest extends BaseControllerTest {
 
+    @Autowired
+    private UserRepository userRepository;
     @Autowired
     private SupplyRepository supplyRepository;
     @Autowired
@@ -49,19 +58,24 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetInstantProductionBySupply() throws Exception {
 
-        // Create some supplies
-        supplyRepository.saveAll(Arrays.asList(
-                new SupplyEntity("1", "My house", "Fake street", 0.030763f, true),
-                new SupplyEntity("2", "The garage", "Sesame Street 666", 0.015380f, true),
-                new SupplyEntity("3", "My daughter's house", "Real street 22", 0.041017f, true)
-        ));
+        UserEntity user = UserMother.randomUserEntity();
+        user = userRepository.save(user);
 
         String authHeader = loginAsDefaultAdmin();
-        String supplyId = "1";
+        UUID supplyId = UUID.randomUUID();
+        SupplyEntity supplyEntity = SupplyEntityMother.random(user);
+        supplyEntity.setId(supplyId);
+
+        // Create some supplies
+        supplyRepository.saveAll(Arrays.asList(
+                supplyEntity,
+                SupplyEntityMother.random(user),
+                SupplyEntityMother.random(user)
+        ));
 
         mockMvc.perform(get("/api/v1/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .param("supplyId", supplyId))
+                        .param("supplyId", supplyId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));
     }
@@ -70,16 +84,16 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     void testGetInstantProductionByUnknownSupply() throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
-        String supplyId = "1";
+        UUID supplyId = UUID.randomUUID();
 
         mockMvc.perform(get("/api/v1/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .param("supplyId", supplyId))
+                        .param("supplyId", supplyId.toString()))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("\"traceId\":")))
                 .andExpect(content().string(containsString("\"timestamp\":")))
                 .andExpect(content().string(containsString("\"status\":400")))
-                .andExpect(content().string(containsString("\"message\":\"El punto de suministro con identificador '1' no ha sido encontrado. Revise que el identificador sea correcto.\"")));
+                .andExpect(content().string(containsString(String.format("\"message\":\"El punto de suministro con identificador '%s' no ha sido encontrado. Revise que el identificador sea correcto.\"", supplyId))));
     }
 
     @Test
