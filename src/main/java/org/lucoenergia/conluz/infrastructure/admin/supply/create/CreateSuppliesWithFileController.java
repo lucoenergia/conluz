@@ -4,6 +4,9 @@ import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyService;
@@ -83,14 +86,17 @@ public class CreateSuppliesWithFileController {
             @ApiResponse(
                     responseCode = "200",
                     description = "File processed successfully",
-                    useReturnTypeSchema = true
+                    content = {@Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CreateSuppliesInBulkResponse.class))}
             )
     })
     @ForbiddenErrorResponse
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public ResponseEntity createSuppliesWithFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity createSuppliesWithFile(
+            @Parameter(description="CSV file format: code(String), address(String), partitionCoefficient(Float), address(String), personalId(String).")
+            @RequestParam("file") MultipartFile file) {
 
         Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);
         if (optionalResponseEntity.isPresent()) {
@@ -127,7 +133,7 @@ public class CreateSuppliesWithFileController {
                 } catch (Exception e) {
                     response.addError(SupplyCode.of(supply.getCode()),
                             messageSource.getMessage("error.supply.unable.to.create", new List[]{},
-                            LocaleContextHolder.getLocale()));
+                                    LocaleContextHolder.getLocale()));
                 }
             });
         } catch (Exception ex) {
@@ -139,7 +145,7 @@ public class CreateSuppliesWithFileController {
             }
             return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
                     messageSource.getMessage("error.bad.request", new List[]{},
-                    LocaleContextHolder.getLocale())),
+                            LocaleContextHolder.getLocale())),
                     HttpStatus.BAD_REQUEST);
         }
 
