@@ -4,12 +4,16 @@ import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserService;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -22,20 +26,22 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+
 
 /**
- * Add a new user
+ * Controller class for importing users in bulk from a CSV file.
  */
 @RestController
 @RequestMapping(
@@ -44,14 +50,15 @@ import java.util.List;
         produces = MediaType.APPLICATION_JSON_VALUE
 )
 @Validated
-public class ImportUsersController {
+public class CreateUsersWithFileController {
 
-    public static final String CSV_CONTENT_TYPE = "text/csv";
-
+    private final CsvFileRequestValidator csvFileRequestValidator;
     private final MessageSource messageSource;
     private final CreateUserService createUserService;
 
-    public ImportUsersController(MessageSource messageSource, CreateUserService createUserService) {
+    public CreateUsersWithFileController(CsvFileRequestValidator csvFileRequestValidator, MessageSource messageSource,
+                                         CreateUserService createUserService) {
+        this.csvFileRequestValidator = csvFileRequestValidator;
         this.messageSource = messageSource;
         this.createUserService = createUserService;
     }
@@ -77,24 +84,23 @@ public class ImportUsersController {
             @ApiResponse(
                     responseCode = "200",
                     description = "File processed successfully",
-                    useReturnTypeSchema = true
+                    content = {@Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CreateUsersInBulkResponse.class))}
             )
     })
     @ForbiddenErrorResponse
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public ResponseEntity createUsersWithFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity createUsersWithFile(
+            @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String), address(String), email(String), phoneNumber(String), role(String), password(String).")
+            @RequestParam("file") MultipartFile file) {
 
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.equals(CSV_CONTENT_TYPE)) {
-            return buildUnsupportedMediaTypeErrorResponse(contentType);
+        Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);
+        if (optionalResponseEntity.isPresent()) {
+            return optionalResponseEntity.get();
         }
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".csv")) {
-            return buildUnsupportedExtensionErrorResponse();
-        }
-        ImportUsersResponse response = new ImportUsersResponse();
+        CreateUsersInBulkResponse response = new CreateUsersInBulkResponse();
 
         try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
 

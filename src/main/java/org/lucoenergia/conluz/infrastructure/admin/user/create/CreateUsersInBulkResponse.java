@@ -5,31 +5,31 @@ import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ImportUsersResponse {
+public class CreateUsersInBulkResponse {
 
     private final List<UserPersonalId> created = new ArrayList<>();
-    private final List<ImportUserError> errors = new ArrayList<>();
+    private final List<CreateUsersInBulkError> errors = new ArrayList<>();
 
     public void addCreated(UserPersonalId personalId) {
         created.add(personalId);
     }
     public void addError(UserPersonalId personalId, String errorMessage) {
-        errors.add(new ImportUserError(personalId, errorMessage));
+        errors.add(new CreateUsersInBulkError(personalId, errorMessage));
     }
 
     public List<String> getCreated() {
         return created.stream().map(UserPersonalId::getPersonalId).toList();
     }
 
-    public List<ImportUserError> getErrors() {
+    public List<CreateUsersInBulkError> getErrors() {
         return new ArrayList<>(errors);
     }
 
-    public static class ImportUserError {
+    public static class CreateUsersInBulkError {
         private final UserPersonalId personalId;
         private final String errorMessage;
 
-        public ImportUserError(UserPersonalId personalId, String errorMessage) {
+        public CreateUsersInBulkError(UserPersonalId personalId, String errorMessage) {
             this.personalId = personalId;
             this.errorMessage = errorMessage;
         }

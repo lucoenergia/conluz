@@ -46,11 +46,9 @@ public class UserExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<RestError> handleException(UserNotFoundException e) {
 
-        String userId = e.getUserId().isPresent() ? e.getUserId().get().toString() : "";
-
         String message = messageSource.getMessage(
                 "error.user.not.found",
-                List.of(userId).toArray(),
+                List.of(e.getId()).toArray(),
                 LocaleContextHolder.getLocale()
         );
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);

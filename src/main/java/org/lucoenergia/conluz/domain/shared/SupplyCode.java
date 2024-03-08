@@ -8,6 +8,10 @@ public class SupplyCode {
         this.code = code;
     }
 
+    public static SupplyCode of(String code) {
+        return new SupplyCode(code);
+    }
+
     public String getCode() {
         return code;
     }

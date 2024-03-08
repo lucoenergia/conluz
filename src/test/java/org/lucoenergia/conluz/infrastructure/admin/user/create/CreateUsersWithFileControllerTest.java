@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
-class ImportUsersControllerTest extends BaseControllerTest {
+class CreateUsersWithFileControllerTest extends BaseControllerTest {
 
     private final static String URL = "/api/v1/users/import";
 
