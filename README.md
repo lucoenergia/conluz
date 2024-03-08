@@ -209,34 +209,74 @@ Alternatively, you can access the API documentation through the Swagger UI, a us
 
 > **Important!**
 >
-> Ensure that Docker is installed on your system. If not, you can download it from Docker's [official website](https://www.docker.com/get-started/).
+> Docker: Ensure that Docker is installed on your system. If not, you can download it from Docker's [official website](https://www.docker.com/get-started/).
+> Docker Compose: This is a tool for defining and managing multi-container Docker applications. If you have Docker Desktop on your machine, Docker Compose should be pre-installed. If not, you can get it from [here](https://docs.docker.com/compose/install/).
+
+### Deploy the app from the scratch
 
 Here are the steps to deploy the app:
 1. Clone the repository
 ```shell
    git clone git@github.com:lucoenergia/conluz.git
    ```
-2. Navigate to the project directory
+2. Navigate to the deploy folder within the project directory
 ```shell
-   cd conluz
+   cd conluz/deploy
    ```
-3. Build the Docker image
+3. Place an `.env` file in the same directory as your `docker-compose.yml` with the following content:
 ```shell
-   docker build -t conluz:1.0 -f deploy/Dockerfile .
+CONLUZ_JWT_SECRET_KEY=your-secret-key
+```
+Replace your-secret-key with your actual secret key.
+4. Build the Docker image
+```shell
+   docker build -t conluz:1.0 -f Dockerfile .
    ```
 This command builds the Docker image from the Dockerfile and tags it with the name conluz:1.0. You have to replace the version number by the one you want to deploy.
-4.  Run the Docker container
+Here's what's happening in the command:
+- `-t conluz:1.0` names (or "tags") the image.
+- `-f deploy/Dockerfile` tells Docker where to find your Dockerfile.
+- `.` tells Docker to use the current directory as the context for the build (i.e., sets the "build context").
+To confirm if the Docker image has been built successfully, you can list all available Docker images with the command:
 ```shell
-   docker run -d --name conluz -p 8080:8080 conluz:1.0
+docker images
+```
+You should see the image (conluz:1.0) in the resulting list.
+5. Start the services with Docker Compose
+```shell
+   docker compose up -d
    ```
-This command runs the Docker image as a container, maps the host's port 8080 to the container's port 8080, and names the container conluz.
+This command will start all your services in the background. Docker Compose will start all the services defined in the `docker-compose.yml` file, in the correct order.
 
 At this point, the application should be running at http://localhost:8080.
 
 To stop the application, you can `run docker stop conluz`.
 
-To delete the container, you can run `docker rm conluz`.
+To delete the application container, you can run `docker rm conluz`.
 
+### Re-deploy a new version of the app
+
+1. Stop the currently running Docker container.
+
+You can do this with the `docker stop <container_id> command`. <container_id> is the id of your currently running Docker container.
+
+2. Remove the stopped Docker container 
+
+This isn't strictly necessary if you're using anonymous/non-persistent volumes, but it's a good practice nonetheless to clean up after yourself. You can use the `docker rm <container_id>` command to remove the stopped container.
+
+3. Build a new Docker image with the version of the app you want to deploy 
+
+This can be done using the `docker build` command. Make sure to tag your image with a new version tag, something like:
+ ```shell
+docker build -t conluz:2.0 -f deploy/Dockerfile .
+```
+4. Run a new Docker container with the new image
+
+This can be done running this command:
+
+```shell
+docker compose up conluz -d
+```
 
 ## Contributing
 
