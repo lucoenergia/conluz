@@ -12,7 +12,7 @@ public class Supply {
 
     @NotNull
     @ValidUUID
-    private final UUID id;
+    private UUID id;
     @NotBlank
     private final String code;
     @NotNull
@@ -23,7 +23,7 @@ public class Supply {
     @NotNull
     private final Float partitionCoefficient;
     @NotNull
-    private final Boolean enabled;
+    private Boolean enabled;
     private final LocalDate validDateFrom;
     private final String distributor;
     private final String distributorCode;
@@ -41,6 +41,14 @@ public class Supply {
         this.distributor = builder.distributor;
         this.distributorCode = builder.distributorCode;
         this.pointType = builder.pointType;
+    }
+
+    public void enable() {
+        enabled = true;
+    }
+
+    public void initializeUuid() {
+        id = UUID.randomUUID();
     }
 
     public static class Builder {

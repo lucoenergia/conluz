@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.create;
+package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
@@ -6,10 +6,13 @@ import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
-import org.lucoenergia.conluz.domain.admin.user.create.CreateUserService;
+import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyService;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
+import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -22,47 +25,50 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+
 
 /**
- * Add a new user
+ * Controller class for importing supplies in bulk from a CSV file.
  */
 @RestController
 @RequestMapping(
-        value = "/api/v1/users/import",
+        value = "/api/v1/supplies/import",
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
 @Validated
-public class ImportUsersController {
+public class CreateSuppliesWithFileController {
 
-    public static final String CSV_CONTENT_TYPE = "text/csv";
-
+    private final CsvFileRequestValidator csvFileRequestValidator;
     private final MessageSource messageSource;
-    private final CreateUserService createUserService;
+    private final CreateSupplyService createSupplyService;
 
-    public ImportUsersController(MessageSource messageSource, CreateUserService createUserService) {
+    public CreateSuppliesWithFileController(CsvFileRequestValidator csvFileRequestValidator, MessageSource messageSource,
+                                            CreateSupplyService createSupplyService) {
+        this.csvFileRequestValidator = csvFileRequestValidator;
         this.messageSource = messageSource;
-        this.createUserService = createUserService;
+        this.createSupplyService = createSupplyService;
     }
 
     @PostMapping
     @Operation(
-            summary = "Creates users in bulk importing a CSV file.",
+            summary = "Creates supplies in bulk importing a CSV file.",
             description = """
-                    This endpoint facilitates the creation of a set of users within the system by importing a CSV file.
+                    This endpoint facilitates the creation of a set of supplies within the system by importing a CSV file.
                                     
-                    This endpoint requires clients to send a request containing a file with essential details for each user, including username, password, and any additional relevant information.
+                    This endpoint requires clients to send a request containing a file with essential details for each supply, including code, address, users and any additional relevant information.
                                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
                                     
@@ -70,8 +76,8 @@ public class ImportUsersController {
                                     
                     In cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.
                     """,
-            tags = ApiTag.USERS,
-            operationId = "createUsersWithFile"
+            tags = ApiTag.SUPPLIES,
+            operationId = "createSuppliesWithFile"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -84,42 +90,43 @@ public class ImportUsersController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public ResponseEntity createUsersWithFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity createSuppliesWithFile(@RequestParam("file") MultipartFile file) {
 
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.equals(CSV_CONTENT_TYPE)) {
-            return buildUnsupportedMediaTypeErrorResponse(contentType);
+        Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);
+        if (optionalResponseEntity.isPresent()) {
+            return optionalResponseEntity.get();
         }
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".csv")) {
-            return buildUnsupportedExtensionErrorResponse();
-        }
-        ImportUsersResponse response = new ImportUsersResponse();
+        CreateSuppliesInBulkResponse response = new CreateSuppliesInBulkResponse();
 
         try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
 
             // create csv bean reader
-            CsvToBean<CreateUserBody> csvToBean = new CsvToBeanBuilder<CreateUserBody>(reader)
-                    .withType(CreateUserBody.class)
+            CsvToBean<CreateSupplyBody> csvToBean = new CsvToBeanBuilder<CreateSupplyBody>(reader)
+                    .withType(CreateSupplyBody.class)
                     .withIgnoreLeadingWhiteSpace(true)
                     .build();
 
-            // convert `CsvToBean` object to list of users
-            List<CreateUserBody> users = csvToBean.parse();
+            // convert `CsvToBean` object to list of supplies
+            List<CreateSupplyBody> supplies = csvToBean.parse();
 
-            // save users in DB
-            users.forEach(user -> {
+            // save supplies in DB
+            supplies.forEach(supply -> {
                 try {
-                    User newUser = createUserService.create(user.mapToUser());
-                    response.addCreated(UserPersonalId.of(newUser.getPersonalId()));
-                } catch (UserAlreadyExistsException e) {
-                    response.addError(UserPersonalId.of(user.getPersonalId()),
-                            messageSource.getMessage("error.user.already.exists",
-                                    Collections.singletonList(user.getPersonalId()).toArray(),
+                    Supply newSupply = createSupplyService.create(supply.mapToSupply(), UserPersonalId.of(supply.getPersonalId()));
+                    response.addCreated(SupplyCode.of(newSupply.getCode()));
+                } catch (SupplyAlreadyExistsException e) {
+                    response.addError(SupplyCode.of(supply.getCode()),
+                            messageSource.getMessage("error.supply.already.exists",
+                                    Collections.singletonList(supply.getCode()).toArray(),
+                                    LocaleContextHolder.getLocale()));
+                } catch (UserNotFoundException e) {
+                    response.addError(SupplyCode.of(supply.getCode()),
+                            messageSource.getMessage("error.user.not.found",
+                                    Collections.singletonList(supply.getPersonalId()).toArray(),
                                     LocaleContextHolder.getLocale()));
                 } catch (Exception e) {
-                    response.addError(UserPersonalId.of(user.getPersonalId()),
-                            messageSource.getMessage("error.user.unable.to.create", new List[]{},
+                    response.addError(SupplyCode.of(supply.getCode()),
+                            messageSource.getMessage("error.supply.unable.to.create", new List[]{},
                             LocaleContextHolder.getLocale()));
                 }
             });
@@ -137,23 +144,5 @@ public class ImportUsersController {
         }
 
         return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-    private ResponseEntity<RestError> buildUnsupportedMediaTypeErrorResponse(String contentType) {
-        String message = messageSource.getMessage(
-                "error.http.media.type.not.supported",
-                Collections.singletonList(contentType).toArray(),
-                LocaleContextHolder.getLocale()
-        );
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
-    }
-
-    private ResponseEntity<RestError> buildUnsupportedExtensionErrorResponse() {
-        String message = messageSource.getMessage(
-                "error.http.extension.not.supported",
-                new List[]{},
-                LocaleContextHolder.getLocale()
-        );
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 }

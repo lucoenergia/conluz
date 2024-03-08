@@ -1,16 +1,22 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Positive;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.user.User;
 
 import java.util.UUID;
 
+@Schema(requiredProperties = {
+        "code", "personalId", "address", "partitionCoefficient"
+})
 public class CreateSupplyBody {
 
     @NotEmpty
     private String code;
     @NotEmpty
-    private UUID userId;
+    private String personalId;
     @NotEmpty
     private String address;
     @Positive
@@ -40,11 +46,20 @@ public class CreateSupplyBody {
         this.partitionCoefficient = partitionCoefficient;
     }
 
-    public UUID getUserId() {
-        return userId;
+    public String getPersonalId() {
+        return personalId;
     }
 
-    public void setUserId(UUID userId) {
-        this.userId = userId;
+    public void setPersonalId(String personalId) {
+        this.personalId = personalId;
+    }
+
+    public Supply mapToSupply() {
+        Supply.Builder builder = new Supply.Builder();
+        builder.withCode(code)
+                .withAddress(address)
+                .withPartitionCoefficient(partitionCoefficient)
+                .withUser(new User.Builder().personalId(personalId).build());
+        return builder.build();
     }
 }

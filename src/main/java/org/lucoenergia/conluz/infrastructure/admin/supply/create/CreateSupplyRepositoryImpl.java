@@ -41,7 +41,7 @@ public class CreateSupplyRepositoryImpl implements CreateSupplyRepository {
             throw new UserNotFoundException(id);
         }
         if (supplyRepository.countByCode(supply.getCode()) > 0) {
-            throw new SupplyAlreadyExistsException(new SupplyCode(supply.getCode()));
+            throw new SupplyAlreadyExistsException(SupplyCode.of(supply.getCode()));
         }
 
         UserEntity userEntity = result.get();

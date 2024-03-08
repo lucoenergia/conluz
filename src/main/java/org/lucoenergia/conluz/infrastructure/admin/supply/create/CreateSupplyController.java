@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -83,7 +84,7 @@ public class CreateSupplyController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     public SupplyResponse createSupply(@RequestBody CreateSupplyBody body) {
-        Supply newSupply = service.create(assembler.assemble(body), UserId.of(body.getUserId()));
+        Supply newSupply = service.create(assembler.assemble(body), UserPersonalId.of(body.getPersonalId()));
         return new SupplyResponse(newSupply);
     }
 }
