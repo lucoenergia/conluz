@@ -1,7 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.core.io.ClassPathResource;
@@ -27,11 +25,11 @@ class ImportUsersControllerTest extends BaseControllerTest {
     @Test
     void testMinimumBody() throws Exception {
 
-        ClassPathResource resource = new ClassPathResource("users.csv");
+        ClassPathResource resource = new ClassPathResource("fixtures/users/users.csv");
 
         MockMultipartFile file = new MockMultipartFile(
                 "file",
-                "users.csv",
+                "fixtures/users/users.csv",
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
@@ -51,11 +49,11 @@ class ImportUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        ClassPathResource resource = new ClassPathResource("users.csv");
+        ClassPathResource resource = new ClassPathResource("fixtures/users/users.csv");
 
         MockMultipartFile file = new MockMultipartFile(
                 "file",
-                "users.csv",
+                "fixtures/users/users.csv",
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
@@ -76,11 +74,11 @@ class ImportUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongFileMimeType() throws Exception {
 
-        ClassPathResource resource = new ClassPathResource("users.csv");
+        ClassPathResource resource = new ClassPathResource("fixtures/users/users.csv");
 
         MockMultipartFile file = new MockMultipartFile(
                 "file",
-                "users.csv",
+                "fixtures/users/users.csv",
                 "application/octet-stream",
                 Files.readAllBytes(resource.getFile().toPath()));
 
@@ -124,11 +122,11 @@ class ImportUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithEmptyCsvFile() throws Exception {
 
-        ClassPathResource resource = new ClassPathResource("empty.csv");
+        ClassPathResource resource = new ClassPathResource("fixtures/empty.csv");
 
         MockMultipartFile file = new MockMultipartFile(
                 "file",
-                "users.csv",
+                "fixtures/users/users.csv",
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
@@ -148,11 +146,11 @@ class ImportUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithMalformedCsvFile() throws Exception {
 
-        ClassPathResource resource = new ClassPathResource("users_malformed.csv");
+        ClassPathResource resource = new ClassPathResource("fixtures/users/users_malformed.csv");
 
         MockMultipartFile file = new MockMultipartFile(
                 "file",
-                "users.csv",
+                "fixtures/users/users.csv",
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 

@@ -2,8 +2,10 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyCannotBeCreatedException;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
@@ -14,6 +16,7 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class CreateSupplyRepositoryImpl implements CreateSupplyRepository {
@@ -37,15 +40,25 @@ public class CreateSupplyRepositoryImpl implements CreateSupplyRepository {
         if (result.isEmpty()) {
             throw new UserNotFoundException(id);
         }
+        if (supplyRepository.countByCode(supply.getCode()) > 0) {
+            throw new SupplyAlreadyExistsException(new SupplyCode(supply.getCode()));
+        }
+
         UserEntity userEntity = result.get();
-        SupplyEntity supplyEntity = new SupplyEntity(supply.getId(), supply.getName(), supply.getAddress(),
-                supply.getPartitionCoefficient(), supply.getEnabled());
+        SupplyEntity supplyEntity = new SupplyEntity.Builder()
+                .withId(UUID.randomUUID())
+                .withCode(supply.getCode())
+                .withName(supply.getName())
+                .withAddress(supply.getAddress())
+                .withPartitionCoefficient(supply.getPartitionCoefficient())
+                .withEnabled(supply.getEnabled())
+                .build();
 
         userEntity.addSupply(supplyEntity);
 
         userRepository.save(userEntity);
 
-        Optional<SupplyEntity> newSupplyEntity = supplyRepository.findById(supply.getId());
+        Optional<SupplyEntity> newSupplyEntity = supplyRepository.findByCode(supply.getCode());
         if (newSupplyEntity.isEmpty()) {
             throw new SupplyCannotBeCreatedException();
         }

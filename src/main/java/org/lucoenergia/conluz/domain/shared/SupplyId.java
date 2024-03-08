@@ -1,14 +1,16 @@
 package org.lucoenergia.conluz.domain.shared;
 
+import java.util.UUID;
+
 public class SupplyId {
 
-    private final String id;
+    private final UUID id;
 
-    public SupplyId(String id) {
+    public SupplyId(UUID id) {
         this.id = id;
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 }

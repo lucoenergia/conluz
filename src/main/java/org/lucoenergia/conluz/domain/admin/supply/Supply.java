@@ -1,16 +1,28 @@
 package org.lucoenergia.conluz.domain.admin.supply;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 public class Supply {
 
-    private final String id;
+    @NotNull
+    @ValidUUID
+    private final UUID id;
+    @NotBlank
+    private final String code;
+    @NotNull
     private User user;
     private final String name;
+    @NotBlank
     private final String address;
+    @NotNull
     private final Float partitionCoefficient;
+    @NotNull
     private final Boolean enabled;
     private final LocalDate validDateFrom;
     private final String distributor;
@@ -19,6 +31,7 @@ public class Supply {
 
     private Supply(Builder builder) {
         this.id = builder.id;
+        this.code = builder.code;
         this.user = builder.user;
         this.name = builder.name;
         this.address = builder.address;
@@ -31,7 +44,8 @@ public class Supply {
     }
 
     public static class Builder {
-        private String id;
+        private UUID id;
+        private String code;
         private User user;
         private String name;
         private String address;
@@ -42,8 +56,13 @@ public class Supply {
         private String distributorCode;
         private String pointType;
 
-        public Builder withId(String id) {
+        public Builder withId(UUID id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder withCode(String code) {
+            this.code = code;
             return this;
         }
 
@@ -97,8 +116,11 @@ public class Supply {
         }
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
+    }
+    public String getCode() {
+        return code;
     }
 
     public User getUser() {

@@ -55,13 +55,13 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
-        LOGGER.info("Processing supply {}", supply.getId());
+        LOGGER.info("Processing supply {}", supply.getCode());
 
         validateSupply(supply);
 
         // Create the complete URL with the query parameter
         final String url = UriComponentsBuilder.fromUriString(DatadisConfig.BASE_URL + GET_CONSUMPTION_DATA_PATH)
-                .queryParam(DatadisParams.CUPS, supply.getId())
+                .queryParam(DatadisParams.CUPS, supply.getCode())
                 .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDistributorCode())
                 .queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId())
                 .queryParam(DatadisParams.START_DATE, monthDate)
@@ -91,7 +91,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
                 result.addAll(consumptions);
             } else {
                 throw new DatadisException(String.format("Unable to get consumptions for supply with ID %s. Code %s, message: %s",
-                        supply.getId(), response.code(), response.body() != null ? response.body().string() : response.message()));
+                        supply.getCode(), response.code(), response.body() != null ? response.body().string() : response.message()));
             }
         } catch (IOException e) {
             throw new DatadisException("Unable to make the request to datadis.es", e);

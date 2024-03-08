@@ -64,8 +64,11 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <!-- Create table 'supplies' -->
     <changeSet id="create_supplies" author="Víctor Cañizares">
         <createTable tableName="supplies">
-            <column name="id" type="VARCHAR(250)">
+            <column name="id" type="UUID">
                 <constraints primaryKey="true" primaryKeyName="supplies_id_pk"/>
+            </column>
+            <column name="code" type="VARCHAR(250)">
+                <constraints nullable="false"/>
             </column>
             <column name="user_id" type="UUID">
                 <constraints foreignKeyName="supplies_user_id_fk" referencedTableName="users" referencedColumnNames="id"/>

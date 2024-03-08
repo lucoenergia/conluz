@@ -60,7 +60,8 @@ public class GetAllSuppliesController {
                                             {
                                                "items":[
                                                   {
-                                                     "id":"hhtc50AmS9KRqvZuYecV",
+                                                     "id":"123e4567-e89b-12d3-a456-426614174000",
+                                                     "code":"hhtc50AmS9KRqvZuYecV",
                                                      "user":{
                                                          "id":"e7ab39cd-9250-40a9-b829-f11f65aae27d",
                                                          "personalId":"rAtjrSXAU",
@@ -78,7 +79,8 @@ public class GetAllSuppliesController {
                                                      "enabled":true
                                                   },
                                                   {
-                                                     "id":"mbHX0arnmS4KgooidQxj",
+                                                     "id":"3f4fb466-2753-4f6d-bf73-8478e876e50b",
+                                                     "code":"mbHX0arnmS4KgooidQxj",
                                                      "user":{
                                                          "id":"81b4de42-a49f-440f-868a-f1cf72199ae7",
                                                          "personalId":"j3E44iio",
@@ -96,7 +98,8 @@ public class GetAllSuppliesController {
                                                      "enabled":true
                                                   },
                                                   {
-                                                     "id":"6OOtEWtt4a0epeugj1y2",
+                                                     "id":"785de77b-8c22-4d2f-9d12-f172113f9aa4",
+                                                     "code":"6OOtEWtt4a0epeugj1y2",
                                                      "user":{
                                                          "id":"e7ab39cd-9250-40a9-b829-f11f65aae27d",
                                                          "personalId":"rAtjrSXAU",

@@ -74,7 +74,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         // Assemble
         final User user = new User.Builder().personalId("authorizedNif").build();
         final Supply supply = new Supply.Builder()
-                        .withId("cups")
+                        .withCode("cups")
                         .withUser(user)
                         .withDistributorCode("distributorCode")
                         .withPointType("pointType")
@@ -114,7 +114,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         // Assemble
         final User user = new User.Builder().personalId("authorizedNif").build();
         final Supply supply = new Supply.Builder()
-                        .withId("ES0031300329693002BQ0F")
+                        .withCode("ES0031300329693002BQ0F")
                         .withUser(user)
                         .withDistributorCode("distributorCode")
                         .withPointType("pointType")

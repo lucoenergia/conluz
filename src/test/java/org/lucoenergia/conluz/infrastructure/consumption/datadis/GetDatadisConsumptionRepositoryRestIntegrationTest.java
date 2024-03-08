@@ -34,7 +34,7 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
 
         final User user = new User.Builder().personalId(authorizedNif).build();
         final Supply supply = new Supply.Builder()
-                        .withId(cups)
+                        .withCode(cups)
                         .withUser(user)
                         .withDistributorCode(distributorCode)
                         .withPointType(pointType)

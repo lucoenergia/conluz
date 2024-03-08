@@ -31,7 +31,7 @@ class DatadisConsumptionSyncServiceTest {
         // Given
         User user = UserMother.randomUser();
         Supply supply = new Supply.Builder()
-                .withId(RandomStringUtils.random(20, true, true))
+                .withCode(RandomStringUtils.random(20, true, true))
                 .withUser(user)
                 .withValidDateFrom(LocalDate.now().minusMonths(4))
                 .build();
@@ -63,7 +63,7 @@ class DatadisConsumptionSyncServiceTest {
         // Given
         User user = UserMother.randomUser();
         Supply supply = new Supply.Builder()
-                .withId(RandomStringUtils.random(20, true, true))
+                .withCode(RandomStringUtils.random(20, true, true))
                 .withUser(user)
                 .build();
 
@@ -94,7 +94,7 @@ class DatadisConsumptionSyncServiceTest {
         // Given
         User user = UserMother.randomUser();
         Supply supply = new Supply.Builder()
-                .withId(RandomStringUtils.random(20, true, true))
+                .withCode(RandomStringUtils.random(20, true, true))
                 .withUser(user)
                 .withValidDateFrom(LocalDate.now().minusMonths(20))
                 .build();

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -75,19 +76,21 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetHourlyProductionBySupply() throws Exception {
 
+        SupplyId supplyId = new SupplyId(UUID.randomUUID());
+
         // Create some supplies
         supplyRepository.saveAll(Arrays.asList(
-                new SupplyEntity("1", "My house", "Fake street", 0.030763f, true),
-                new SupplyEntity("2", "The garage", "Sesame Street 666", 0.015380f, true),
-                new SupplyEntity("3", "My daughter's house", "Real street 22", 0.041017f, true)
+                new SupplyEntity.Builder().withId(supplyId.getId()).build(),
+                new SupplyEntity.Builder().withId(UUID.randomUUID()).build(),
+                new SupplyEntity.Builder().withId(UUID.randomUUID()).build()
         ));
-        SupplyId supplyId = new SupplyId("1");
+
 
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(get("/api/v1/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("supplyId", supplyId.getId())
+                        .queryParam("supplyId", supplyId.getId().toString())
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
@@ -98,18 +101,18 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     void testGetHourlyProductionByUnknownSupply() throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
-        String supplyId = "1";
+        UUID supplyId = UUID.randomUUID();
 
         mockMvc.perform(get("/api/v1/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("supplyId", supplyId)
+                        .queryParam("supplyId", supplyId.toString())
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("\"traceId\":")))
                 .andExpect(content().string(containsString("\"timestamp\":")))
                 .andExpect(content().string(containsString("\"status\":400")))
-                .andExpect(content().string(containsString("\"message\":\"El punto de suministro con identificador '1' no ha sido encontrado. Revise que el identificador sea correcto.\"")));
+                .andExpect(content().string(containsString(String.format("\"message\":\"El punto de suministro con identificador '%s' no ha sido encontrado. Revise que el identificador sea correcto.\"", supplyId))));
     }
 
     @Test

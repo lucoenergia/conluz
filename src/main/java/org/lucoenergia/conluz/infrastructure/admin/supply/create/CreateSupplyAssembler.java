@@ -10,7 +10,7 @@ public class CreateSupplyAssembler implements Assembler<CreateSupplyBody, Supply
     @Override
     public Supply assemble(CreateSupplyBody body) {
         return new Supply.Builder()
-                .withId(body.getId())
+                .withCode(body.getCode())
                 .withAddress(body.getAddress())
                 .withPartitionCoefficient(body.getPartitionCoefficient())
                 .withEnabled(true)

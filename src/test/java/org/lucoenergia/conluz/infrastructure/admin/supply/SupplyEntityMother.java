@@ -1,20 +1,20 @@
-package org.lucoenergia.conluz.domain.admin.supply;
+package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
 import java.util.Random;
 import java.util.UUID;
 
-public class SupplyMother {
+public class SupplyEntityMother {
 
-    public static Supply random() {
-        return random(UserMother.randomUser());
+    public static SupplyEntity random() {
+        return random(UserMother.randomUserEntity());
     }
 
-    public static Supply random(User user) {
-        return new Supply.Builder()
+    public static SupplyEntity random(UserEntity user) {
+        return new SupplyEntity.Builder()
                 .withId(UUID.randomUUID())
                 .withCode(RandomStringUtils.random(20, true, true))
                 .withAddress(RandomStringUtils.random(20, true, true))

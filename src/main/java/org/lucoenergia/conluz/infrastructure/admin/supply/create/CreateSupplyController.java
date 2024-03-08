@@ -55,7 +55,8 @@ public class CreateSupplyController {
                             examples = @ExampleObject(
                                     value = """
                                             {
-                                               "id":"ES0033333333333333AA0A",
+                                               "id":"785de77b-8c22-4d2f-9d12-f172113f9aa4",
+                                               "code":"ES0033333333333333AA0A",
                                                "user":{
                                                   "id":"e7ab39cd-9250-40a9-b829-f11f65aae27d",
                                                   "personalId":"rAtjrSXAU",

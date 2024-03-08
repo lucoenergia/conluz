@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/production/yearly")
@@ -62,9 +64,9 @@ public class GetYearlyProductionController {
     public List<ProductionByTime> getYearlyProduction(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
-            @RequestParam(required = false) String supplyId) {
+            @RequestParam(required = false) UUID supplyId) {
 
-        if (StringUtils.isBlank(supplyId)) {
+        if (Objects.isNull(supplyId)) {
             return getProductionService.getYearlyProductionByRangeOfDates(startDate, endDate);
         }
         return getProductionService.getYearlyProductionByRangeOfDatesAndSupply(startDate, endDate,
