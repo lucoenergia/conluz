@@ -4,6 +4,9 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+deploy/.env
+deploy/postgres
+deploy/influxdb
 
 ### STS ###
 .apt_generated
