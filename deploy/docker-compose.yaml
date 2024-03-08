@@ -23,6 +23,10 @@ services:
     image: conluz:0.0.1
     ports:
       - "8080:8080"
+    # Create a .env file in the folder where this file is located and define the environment variables there.
+    # When run docker-compose up, Docker will automatically pick up the .env file in the same directory as this docker-compose.yml file, and substitute the values of the environment variables accordingly.
+    environment:
+      - CONLUZ_JWT_SECRET_KEY
     depends_on:
       - postgres
       - influxdb
