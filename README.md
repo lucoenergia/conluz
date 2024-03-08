@@ -205,6 +205,39 @@ Alternatively, you can access the API documentation through the Swagger UI, a us
 - Explore and interact with the API endpoints in a visually appealing and intuitive way.
 - Swagger UI provides an easy way to understand request and response formats, and even allows you to make sample requests directly from the documentation.
 
+## Deployment
+
+> **Important!**
+>
+> Ensure that Docker is installed on your system. If not, you can download it from Docker's [official website](https://www.docker.com/get-started/).
+
+Here are the steps to deploy the app:
+1. Clone the repository
+```shell
+   git clone git@github.com:lucoenergia/conluz.git
+   ```
+2. Navigate to the project directory
+```shell
+   cd conluz
+   ```
+3. Build the Docker image
+```shell
+   docker build -t conluz:1.0 -f deploy/Dockerfile .
+   ```
+This command builds the Docker image from the Dockerfile and tags it with the name conluz:1.0. You have to replace the version number by the one you want to deploy.
+4.  Run the Docker container
+```shell
+   docker run -d --name conluz -p 8080:8080 conluz:1.0
+   ```
+This command runs the Docker image as a container, maps the host's port 8080 to the container's port 8080, and names the container conluz.
+
+At this point, the application should be running at http://localhost:8080.
+
+To stop the application, you can `run docker stop conluz`.
+
+To delete the container, you can run `docker rm conluz`.
+
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first
