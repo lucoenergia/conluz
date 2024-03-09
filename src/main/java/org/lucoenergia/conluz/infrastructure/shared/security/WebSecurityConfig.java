@@ -39,7 +39,8 @@ public class WebSecurityConfig {
                                 requestMatchers(
                                         "/api-docs/**",
                                         "/api/v1/login",
-                                        "/api/v1/init"
+                                        "/api/v1/init",
+                                        "/actuator/**"
                                 ).permitAll()
                                 .anyRequest().authenticated()
                 )
