@@ -2,10 +2,11 @@
 FROM openjdk:17-jdk-alpine
 
 # Tries to find a .jar file from within the build/libs directory from the current path.
-ARG JAR_FILE=../build/libs/*.jar
+ARG JAR_FILE=build/libs/conluz-*.jar
 # Copy the jar file to the container image.
 COPY ${JAR_FILE} conluz.jar
 
+# Command that will be executed when a container is started from this image.
 # Run the application using the java -jar command.
 # This sets conluz as default application, which Docker will execute when a container is launched from the image.
-ENTRYPOINT ["java", "-jar", "/conluz.jar"]
+ENTRYPOINT java -jar /conluz.jar
