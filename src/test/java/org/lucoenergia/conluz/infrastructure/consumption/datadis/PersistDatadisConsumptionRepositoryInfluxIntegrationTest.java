@@ -34,7 +34,7 @@ class PersistDatadisConsumptionRepositoryInfluxIntegrationTest extends BaseInteg
         repository.persistConsumptions(Collections.singletonList(consumption));
 
         // Assert
-        Thread.sleep(5_000L);
+        Thread.sleep(10_000L);
         List<Consumption> consumptions = getDatadisConsumptionRepositoryInflux.getHourlyConsumptionsByMonth(supply, month, year);
 
         Assertions.assertFalse(consumptions.isEmpty());
