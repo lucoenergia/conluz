@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -22,6 +23,8 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -53,6 +56,8 @@ import java.util.Optional;
 )
 @Validated
 public class CreateSuppliesWithFileController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CreateSuppliesWithFileController.class);
 
     private final CsvFileRequestValidator csvFileRequestValidator;
     private final MessageSource messageSource;
@@ -95,7 +100,7 @@ public class CreateSuppliesWithFileController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     public ResponseEntity createSuppliesWithFile(
-            @Parameter(description="CSV file format: code(String), address(String), partitionCoefficient(Float), address(String), personalId(String).")
+            @Parameter(description = "CSV file format: code(String), address(String), partitionCoefficient(Float), address(String), personalId(String).")
             @RequestParam("file") MultipartFile file) {
 
         Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);
@@ -112,7 +117,6 @@ public class CreateSuppliesWithFileController {
                     .withIgnoreLeadingWhiteSpace(true)
                     .build();
 
-            // convert `CsvToBean` object to list of supplies
             List<CreateSupplyBody> supplies = csvToBean.parse();
 
             // save supplies in DB
@@ -121,16 +125,19 @@ public class CreateSuppliesWithFileController {
                     Supply newSupply = createSupplyService.create(supply.mapToSupply(), UserPersonalId.of(supply.getPersonalId()));
                     response.addCreated(SupplyCode.of(newSupply.getCode()));
                 } catch (SupplyAlreadyExistsException e) {
+                    LOGGER.error("Supply already exists", e);
                     response.addError(SupplyCode.of(supply.getCode()),
                             messageSource.getMessage("error.supply.already.exists",
                                     Collections.singletonList(supply.getCode()).toArray(),
                                     LocaleContextHolder.getLocale()));
                 } catch (UserNotFoundException e) {
+                    LOGGER.error("User not found", e);
                     response.addError(SupplyCode.of(supply.getCode()),
                             messageSource.getMessage("error.user.not.found",
                                     Collections.singletonList(supply.getPersonalId()).toArray(),
                                     LocaleContextHolder.getLocale()));
                 } catch (Exception e) {
+                    LOGGER.error("Unable to create supply", e);
                     response.addError(SupplyCode.of(supply.getCode()),
                             messageSource.getMessage("error.supply.unable.to.create", new List[]{},
                                     LocaleContextHolder.getLocale()));
@@ -138,11 +145,20 @@ public class CreateSuppliesWithFileController {
             });
         } catch (Exception ex) {
             if (ex.getCause() instanceof CsvRequiredFieldEmptyException) {
+                LOGGER.error("Error parsing supplies file", ex.getCause());
                 return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
                         messageSource.getMessage("error.fields.number.does.not.match", new List[]{},
                                 LocaleContextHolder.getLocale())),
                         HttpStatus.BAD_REQUEST);
             }
+            if (ex.getCause() instanceof CsvDataTypeMismatchException) {
+                LOGGER.error("Error parsing supply line", ex.getCause());
+                return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
+                        messageSource.getMessage("error.supply.unable.to.parse.file", new List[]{},
+                                LocaleContextHolder.getLocale())),
+                        HttpStatus.BAD_REQUEST);
+            }
+            LOGGER.error("Error processing supplies file", ex);
             return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
                     messageSource.getMessage("error.bad.request", new List[]{},
                             LocaleContextHolder.getLocale())),

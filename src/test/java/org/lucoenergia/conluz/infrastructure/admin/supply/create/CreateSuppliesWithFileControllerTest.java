@@ -40,6 +40,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
 
     private final static String URL = "/api/v1/supplies/import";
     public static final String SUPPLIES_CSV = "fixtures/supplies/supplies.csv";
+    public static final String SUPPLIES_BAD_FORMAT_CSV = "fixtures/supplies/supplies_bad_format.csv";
     public static final String EMPTY_CSV = "fixtures/empty.csv";
     public static final String SUPPLIES_MALFORMED_CSV = "fixtures/supplies/supplies_malformed.csv";
     public static final String MULTIPART_FILE_NAME = "file";
@@ -89,6 +90,31 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.errors[*].supply", hasItem("ES007890123456")))
                 .andExpect(jsonPath("$.errors[*].errorMessage", hasItem("El usuario con identificador '456123789D' no ha sido encontrado. Revise que el identificador sea correcto.")))
                 .andExpect(jsonPath("$.errors[*].errorMessage", not(hasItem("No ha sido posible crear el punto de suministro con los datos proporcionados."))));
+    }
+
+    @Test
+    void testWithWrongFormat() throws Exception {
+
+        ClassPathResource resource = new ClassPathResource(SUPPLIES_BAD_FORMAT_CSV);
+
+        MockMultipartFile file = new MockMultipartFile(
+                MULTIPART_FILE_NAME,
+                SUPPLIES_CSV,
+                TEXT_CSV_MEDIA_TYPE,
+                Files.readAllBytes(resource.getFile().toPath()));
+
+        String authHeader = loginAsDefaultAdmin();
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
     @Test
