@@ -13,10 +13,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(
@@ -32,7 +29,7 @@ public class SetDatadisConfigController {
         this.service = service;
     }
 
-    @PostMapping
+    @PutMapping
     @Operation(
             summary = "Sets up the configuration to be able to connect with Datadis.",
             description = """

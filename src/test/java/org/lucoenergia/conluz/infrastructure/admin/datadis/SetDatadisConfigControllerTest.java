@@ -10,11 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -45,7 +43,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(
-                MockMvcRequestBuilders.post(URL)
+                put(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyAsString))
@@ -70,7 +68,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(
-                        MockMvcRequestBuilders.post(URL)
+                        put(URL)
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(bodyAsString))
@@ -88,7 +86,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
     testWithoutBody() throws Exception {
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(post(URL)
+        mockMvc.perform(put(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -102,7 +100,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
     @Test
     void testWithoutToken() throws Exception {
 
-        mockMvc.perform(post(URL)
+        mockMvc.perform(put(URL)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
