@@ -2,11 +2,11 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfig;
+import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
 
 import java.time.Instant;
 
-@Measurement(name = DatadisConfig.CONSUMPTION_KWH_MEASUREMENT)
+@Measurement(name = DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT)
 public class DatadisConsumptionPoint {
 
     @Column(name = "time")

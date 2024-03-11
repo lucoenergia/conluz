@@ -7,7 +7,7 @@ import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.GetDatadisConsumptionRepository;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfig;
+import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
@@ -42,7 +42,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
 
             Query query = new Query(String.format(
                     "SELECT * FROM \"%s\" WHERE cups = '%s' AND time >= '%s' AND time <= '%s'",
-                    DatadisConfig.CONSUMPTION_KWH_MEASUREMENT,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                     supply.getCode(),
                     startDate,
                     endDate));

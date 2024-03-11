@@ -28,7 +28,7 @@ class DatadisAuthorizerIntegrationTest extends BaseIntegrationTest {
         final String password = "";
 
         // Save Datadis config on the DB
-        final DatadisConfig config = new DatadisConfig();
+        final DatadisConfigEntity config = new DatadisConfigEntity();
         config.setId(UUID.randomUUID());
         config.setUsername(username);
         config.setPassword(password);

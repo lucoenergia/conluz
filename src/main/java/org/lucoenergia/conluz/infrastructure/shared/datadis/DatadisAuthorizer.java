@@ -24,11 +24,11 @@ public class DatadisAuthorizer {
     }
 
     public String getAuthToken() {
-        Optional<DatadisConfig> optionalConfig = datadisConfigRepository.findFirstByOrderByIdAsc();
+        Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findFirstByOrderByIdAsc();
         if (optionalConfig.isEmpty()) {
             throw new DatadisException("No Datadis configuration found");
         }
-        DatadisConfig config = optionalConfig.get();
+        DatadisConfigEntity config = optionalConfig.get();
         String username = config.getUsername();
         String password = config.getPassword();
 

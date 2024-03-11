@@ -35,7 +35,7 @@ class DatadisAuthorizerTest {
         final String username = "wrong_user";
         final String password = "wrong_password";
 
-        final DatadisConfig config = new DatadisConfig();
+        final DatadisConfigEntity config = new DatadisConfigEntity();
         config.setId(UUID.randomUUID());
         config.setUsername(username);
         config.setPassword(password);

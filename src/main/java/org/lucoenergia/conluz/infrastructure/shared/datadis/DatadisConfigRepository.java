@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface DatadisConfigRepository extends JpaRepository<DatadisConfig, UUID> {
+public interface DatadisConfigRepository extends JpaRepository<DatadisConfigEntity, UUID> {
 
-    Optional<DatadisConfig> findFirstByOrderByIdAsc();
+    Optional<DatadisConfigEntity> findFirstByOrderByIdAsc();
 }

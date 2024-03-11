@@ -4,7 +4,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.Point;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.PersistDatadisConsumptionRepository;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfig;
+import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateToMillisecondsConverter;
 import org.springframework.stereotype.Repository;
@@ -30,7 +30,7 @@ public class PersistDatadisConsumptionRepositoryInflux implements PersistDatadis
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             for (Consumption consumption : consumptions) {
-                connection.write(Point.measurement(DatadisConfig.CONSUMPTION_KWH_MEASUREMENT)
+                connection.write(Point.measurement(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT)
                         .time(dateToMillisecondsConverter.convert(mergeDateAndTime(consumption)), TimeUnit.MILLISECONDS)
                         .tag("cups", consumption.getCups())
                         .addField("consumption_kwh", consumption.getConsumptionKWh())

@@ -6,7 +6,7 @@ import jakarta.persistence.Id;
 import java.util.UUID;
 
 @Entity(name = "datadis_config")
-public class DatadisConfig {
+public class DatadisConfigEntity {
 
     public static final String BASE_URL = "https://datadis.es/api-private/api";
     public static final String CONSUMPTION_KWH_MEASUREMENT = "datadis-consumption-kwh";

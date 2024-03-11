@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfig;
+import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,7 +47,7 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
         final String password = "password";
 
         // Save Datadis config on the DB
-        final DatadisConfig config = new DatadisConfig();
+        final DatadisConfigEntity config = new DatadisConfigEntity();
         config.setId(UUID.randomUUID());
         config.setUsername(username);
         config.setPassword(password);

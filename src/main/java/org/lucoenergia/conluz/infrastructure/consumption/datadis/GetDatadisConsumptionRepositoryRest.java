@@ -60,7 +60,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         validateSupply(supply);
 
         // Create the complete URL with the query parameter
-        final String url = UriComponentsBuilder.fromUriString(DatadisConfig.BASE_URL + GET_CONSUMPTION_DATA_PATH)
+        final String url = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_CONSUMPTION_DATA_PATH)
                 .queryParam(DatadisParams.CUPS, supply.getCode())
                 .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDistributorCode())
                 .queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId())
