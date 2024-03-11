@@ -33,6 +33,3 @@ services:
       - CONLUZ_JWT_SECRET_KEY
       - SPRING_DATASOURCE_URL
       - SPRING_INFLUXDB_URL
-    depends_on:
-      - postgres
-      - influxdb
