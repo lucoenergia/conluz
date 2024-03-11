@@ -1,5 +1,6 @@
 # This base image contains OpenJDK 17 on Alpine Linux which is a lightweight Linux distribution.
-FROM openjdk:17-jdk-alpine
+# https://hub.docker.com/layers/library/eclipse-temurin/17-focal/images/sha256-35d99da9aed93017ce7345247674e4d995eef49d4b67763e5bface2dd0703c32?context=explore
+FROM eclipse-temurin:17-focal
 
 # Tries to find a .jar file from within the build/libs directory from the current path.
 ARG JAR_FILE=build/libs/conluz-*.jar
