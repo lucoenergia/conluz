@@ -6,6 +6,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 public class DatadisAuthorizer {
@@ -23,7 +24,11 @@ public class DatadisAuthorizer {
     }
 
     public String getAuthToken() {
-        DatadisConfig config = datadisConfigRepository.findFirstByOrderByIdAsc();
+        Optional<DatadisConfig> optionalConfig = datadisConfigRepository.findFirstByOrderByIdAsc();
+        if (optionalConfig.isEmpty()) {
+            throw new DatadisException("No Datadis configuration found");
+        }
+        DatadisConfig config = optionalConfig.get();
         String username = config.getUsername();
         String password = config.getPassword();
 

@@ -1,7 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
@@ -291,7 +289,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         final String expiredToken = JwtAuthenticationFilter.AUTHORIZATION_HEADER_PREFIX +
                 "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.jO3pgdDj4mg9TnRzL7f8RUL1ytJS7057jAg6zaCcwn0";
 
-        Assertions.assertThrows(ExpiredJwtException.class,
+        Assertions.assertThrows(InvalidTokenException.class,
                 () -> mockMvc.perform(get("/api/v1/users")
                         .header(HttpHeaders.AUTHORIZATION, expiredToken)
                         .contentType(MediaType.APPLICATION_JSON)));

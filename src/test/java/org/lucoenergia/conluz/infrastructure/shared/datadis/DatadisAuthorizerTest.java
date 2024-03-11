@@ -8,9 +8,12 @@ import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBui
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class DatadisAuthorizerTest {
 
@@ -36,7 +39,7 @@ class DatadisAuthorizerTest {
         config.setId(UUID.randomUUID());
         config.setUsername(username);
         config.setPassword(password);
-        Mockito.when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(config);
+        Mockito.when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(config));
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -69,5 +72,20 @@ class DatadisAuthorizerTest {
                     "message": "Bad credentials"
                 }
                 """));
+    }
+
+    @Test
+    void testGetAuthTokenNoConfig() {
+        // setup
+        DatadisConfigRepository datadisConfigRepository = mock(DatadisConfigRepository.class);
+        ConluzRestClientBuilder conluzRestClientBuilder = mock(ConluzRestClientBuilder.class);
+
+        when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
+
+        // invocation
+        DatadisAuthorizer datadisAuthorizer = new DatadisAuthorizer(datadisConfigRepository, conluzRestClientBuilder);
+
+        // verification and assertion
+        Assertions.assertThrows(DatadisException.class, datadisAuthorizer::getAuthToken);
     }
 }
