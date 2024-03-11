@@ -84,8 +84,8 @@ class DatadisConsumptionSyncServiceTest {
         verify(getSupplyRepository, times(1)).count();
         verify(getSupplyRepository, times(1)).findAll(any());
 
-        verify(getDatadisConsumptionRepository, times(0)).getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt());
-        verify(persistDatadisConsumptionRepository, times(0)).persistConsumptions(Collections.singletonList(consumption));
+        verify(getDatadisConsumptionRepository, times(1)).getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt());
+        verify(persistDatadisConsumptionRepository, times(1)).persistConsumptions(Collections.singletonList(consumption));
     }
 
     @Test

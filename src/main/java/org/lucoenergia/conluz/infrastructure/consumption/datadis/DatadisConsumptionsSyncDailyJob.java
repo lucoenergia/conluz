@@ -1,11 +1,15 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumptionSyncService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DatadisConsumptionsSyncDailyJob {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DatadisConsumptionsSyncDailyJob.class);
 
     private final DatadisConsumptionSyncService datadisConsumptionSyncService;
 
@@ -24,6 +28,8 @@ public class DatadisConsumptionsSyncDailyJob {
      */
     @Scheduled(cron = "0 0 4 * * ?")
     public void everyFiveSeconds() {
+        LOGGER.info("Datadis consumption daily sync started...");
         datadisConsumptionSyncService.synchronizeConsumptions();
+        LOGGER.info("...finished Datadis consumption daily sync.");
     }
 }

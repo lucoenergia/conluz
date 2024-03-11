@@ -40,6 +40,7 @@ public class DatadisConsumptionSyncService {
         );
 
         LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
         LocalDate oneYearAgo = today.minusYears(1);
 
         for (Supply supply : suppliesPageResult.getItems()) {
@@ -47,10 +48,11 @@ public class DatadisConsumptionSyncService {
             // Get validity date
             LocalDate validDateFrom = supply.getValidDateFrom();
 
+            // If the valid date is not present, we set the valid date on yesterday
             if (validDateFrom == null) {
-                continue;
+                validDateFrom = yesterday;
             }
-
+            // If the valid date is older than a year, we set the valid date to one year ago
             if (validDateFrom.isBefore(oneYearAgo)) {
                 validDateFrom = oneYearAgo;
             }
