@@ -1,15 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.apache.commons.collections4.map.HashedMap;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.security.Key;
@@ -22,6 +21,8 @@ import java.util.function.Function;
 
 @Repository
 public class JwtAuthRepository implements AuthRepository {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthRepository.class);
 
     private static final String CUSTOM_CLAIM_ROLE = "role";
 
@@ -100,7 +101,8 @@ public class JwtAuthRepository implements AuthRepository {
             return Jwts
                     .parserBuilder().setSigningKey(getKey()).build()
                     .parseClaimsJws(token.getToken()).getBody();
-        } catch (MalformedJwtException e) {
+        } catch (MalformedJwtException | ExpiredJwtException e) {
+            LOGGER.error(e.getMessage());
             throw new InvalidTokenException(token.getToken(), e);
         }
     }
