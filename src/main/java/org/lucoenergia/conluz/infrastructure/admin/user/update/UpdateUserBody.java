@@ -6,9 +6,12 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.user.Role;
+import org.lucoenergia.conluz.domain.admin.user.User;
+
+import java.util.UUID;
 
 @Schema(requiredProperties = {
-        "number", "fullName", "email", "role"
+        "number", "fullName", "personalId", "role"
 })
 public class UpdateUserBody {
 
@@ -16,9 +19,10 @@ public class UpdateUserBody {
     @Min(value = 0)
     private Integer number;
     @NotBlank
+    private String personalId;
+    @NotBlank
     private String fullName;
     private String address;
-    @NotBlank
     @Email
     private String email;
     private String phoneNumber;
@@ -31,6 +35,14 @@ public class UpdateUserBody {
 
     public void setNumber(Integer number) {
         this.number = number;
+    }
+
+    public String getPersonalId() {
+        return personalId;
+    }
+
+    public void setPersonalId(String personalId) {
+        this.personalId = personalId;
     }
 
     public String getFullName() {
@@ -71,5 +83,18 @@ public class UpdateUserBody {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public User toUser(UUID uuid) {
+        User user = new User();
+        user.setId(uuid);
+        user.setPersonalId(this.getPersonalId());
+        user.setNumber(this.getNumber());
+        user.setFullName(this.getFullName());
+        user.setAddress(this.getAddress());
+        user.setEmail(this.getEmail());
+        user.setPhoneNumber(this.getPhoneNumber());
+        user.setRole(this.getRole());
+        return user;
     }
 }

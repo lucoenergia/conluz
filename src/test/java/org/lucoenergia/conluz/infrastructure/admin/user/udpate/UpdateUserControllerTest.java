@@ -53,6 +53,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
         // Modify data of the user
         UpdateUserBody userModified = new UpdateUserBody();
         userModified.setNumber(2);
+        userModified.setPersonalId("12345666A");
         userModified.setFullName("Alice Smith");
         userModified.setAddress("Fake Street 666");
         userModified.setEmail("alicesmith@email.com");
@@ -68,7 +69,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(user.getId().toString()))
-                .andExpect(jsonPath("$.personalId").value(user.getPersonalId()))
+                .andExpect(jsonPath("$.personalId").value(userModified.getPersonalId()))
                 .andExpect(jsonPath("$.number").value(userModified.getNumber()))
                 .andExpect(jsonPath("$.fullName").value(userModified.getFullName()))
                 .andExpect(jsonPath("$.address").value(userModified.getAddress()))
@@ -100,8 +101,8 @@ class UpdateUserControllerTest extends BaseControllerTest {
         // Modify data of the user
         UpdateUserBody userModified = new UpdateUserBody();
         userModified.setNumber(2);
+        userModified.setPersonalId("12345666A");
         userModified.setFullName("Alice Smith");
-        userModified.setEmail("alicesmith@email.com");
         userModified.setRole(Role.PARTNER);
 
         String bodyAsString = objectMapper.writeValueAsString(userModified);
@@ -113,7 +114,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(user.getId().toString()))
-                .andExpect(jsonPath("$.personalId").value(user.getPersonalId()))
+                .andExpect(jsonPath("$.personalId").value(userModified.getPersonalId()))
                 .andExpect(jsonPath("$.number").value(userModified.getNumber()))
                 .andExpect(jsonPath("$.fullName").value(userModified.getFullName()))
                 .andExpect(jsonPath("$.address").isEmpty())

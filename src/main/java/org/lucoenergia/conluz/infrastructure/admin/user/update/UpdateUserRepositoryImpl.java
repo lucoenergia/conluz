@@ -32,6 +32,7 @@ public class UpdateUserRepositoryImpl implements UpdateUserRepository {
         }
         UserEntity currentUser = result.get();
         currentUser.setNumber(user.getNumber());
+        currentUser.setPersonalId(user.getPersonalId());
         currentUser.setFullName(user.getFullName());
         currentUser.setEmail(user.getEmail());
         currentUser.setAddress(user.getAddress());

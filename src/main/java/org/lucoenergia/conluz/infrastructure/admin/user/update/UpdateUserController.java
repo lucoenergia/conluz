@@ -24,11 +24,9 @@ import java.util.UUID;
 @Validated
 public class UpdateUserController {
 
-    private final UpdateUserAssembler assembler;
     private final UpdateUserService service;
 
-    public UpdateUserController(UpdateUserAssembler assembler, UpdateUserService service) {
-        this.assembler = assembler;
+    public UpdateUserController(UpdateUserService service) {
         this.service = service;
     }
 
@@ -59,6 +57,6 @@ public class UpdateUserController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     public UserResponse updateUser(@PathVariable("id") UUID userId, @Valid @RequestBody UpdateUserBody body) {
-        return new UserResponse(service.update(assembler.assemble(userId, body)));
+        return new UserResponse(service.update(body.toUser(userId)));
     }
 }
