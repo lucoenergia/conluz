@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -37,11 +37,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
 
         // Create three supplies
-        Supply supplyOne = SupplyMother.random(userOne);
+        Supply supplyOne = SupplyMother.random(userOne).build();
         createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
-        Supply supplyTwo = SupplyMother.random(userOne);
+        Supply supplyTwo = SupplyMother.random(userOne).build();
         createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
-        Supply supplyThree = SupplyMother.random(userTwo);
+        Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
         String authHeader = loginAsDefaultAdmin();
@@ -68,11 +68,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
 
         // Create three supplies
-        Supply supplyOne = SupplyMother.random(userOne);
+        Supply supplyOne = SupplyMother.random(userOne).build();
         createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
-        Supply supplyTwo = SupplyMother.random(userOne);
+        Supply supplyTwo = SupplyMother.random(userOne).build();
         createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
-        Supply supplyThree = SupplyMother.random(userTwo);
+        Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
         String authHeader = loginAsDefaultAdmin();

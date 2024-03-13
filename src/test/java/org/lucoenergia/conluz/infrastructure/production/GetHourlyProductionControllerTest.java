@@ -76,7 +76,7 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetHourlyProductionBySupply() throws Exception {
 
-        SupplyId supplyId = new SupplyId(UUID.randomUUID());
+        SupplyId supplyId = SupplyId.of(UUID.randomUUID());
 
         // Create some supplies
         supplyRepository.saveAll(Arrays.asList(

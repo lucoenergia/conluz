@@ -62,6 +62,6 @@ public class GetInstantProductionController {
         if (Objects.isNull(supplyId)) {
             return getProductionService.getInstantProduction();
         }
-        return getProductionService.getInstantProductionBySupply(new SupplyId(supplyId));
+        return getProductionService.getInstantProductionBySupply(SupplyId.of(supplyId));
     }
 }

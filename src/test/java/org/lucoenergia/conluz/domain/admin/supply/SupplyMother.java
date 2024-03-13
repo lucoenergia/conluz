@@ -9,11 +9,11 @@ import java.util.UUID;
 
 public class SupplyMother {
 
-    public static Supply random() {
+    public static Supply.Builder random() {
         return random(UserMother.randomUser());
     }
 
-    public static Supply random(User user) {
+    public static Supply.Builder random(User user) {
         return new Supply.Builder()
                 .withId(UUID.randomUUID())
                 .withCode(RandomStringUtils.random(20, true, true))
@@ -21,7 +21,6 @@ public class SupplyMother {
                 .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(new Random().nextBoolean())
                 .withUser(user)
-                .withName(RandomStringUtils.random(10, true, false))
-                .build();
+                .withName(RandomStringUtils.random(10, true, false));
     }
 }

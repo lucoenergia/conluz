@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity(name = "supplies")
@@ -20,6 +21,10 @@ public class SupplyEntity {
     private String address;
     private Float partitionCoefficient;
     private Boolean enabled;
+    private LocalDate validDateFrom;
+    private String distributor;
+    private String distributorCode;
+    private Integer pointType;
 
     public SupplyEntity() {
         enabled = true;
@@ -33,6 +38,11 @@ public class SupplyEntity {
         private String address;
         private Float partitionCoefficient;
         private Boolean enabled;
+
+        private LocalDate validDateFrom;
+        private String distributor;
+        private String distributorCode;
+        private Integer pointType;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -69,6 +79,26 @@ public class SupplyEntity {
             return this;
         }
 
+        public Builder withValidDateFrom(LocalDate validDateFrom) {
+            this.validDateFrom = validDateFrom;
+            return this;
+        }
+
+        public Builder withDistributor(String distributor) {
+            this.distributor = distributor;
+            return this;
+        }
+
+        public Builder withDistributorCode(String distributorCode) {
+            this.distributorCode = distributorCode;
+            return this;
+        }
+
+        public Builder withPointType(Integer pointType) {
+            this.pointType = pointType;
+            return this;
+        }
+
         public SupplyEntity build() {
             SupplyEntity entity = new SupplyEntity();
             entity.id = this.id;
@@ -78,6 +108,10 @@ public class SupplyEntity {
             entity.address = this.address;
             entity.partitionCoefficient = this.partitionCoefficient;
             entity.enabled = this.enabled;
+            entity.validDateFrom = this.validDateFrom;
+            entity.distributor = this.distributor;
+            entity.distributorCode = this.distributorCode;
+            entity.pointType = this.pointType;
             return entity;
         }
     }
@@ -149,5 +183,37 @@ public class SupplyEntity {
 
     public void setUser(UserEntity user) {
         this.user = user;
+    }
+
+    public LocalDate getValidDateFrom() {
+        return validDateFrom;
+    }
+
+    public void setValidDateFrom(LocalDate validDateFrom) {
+        this.validDateFrom = validDateFrom;
+    }
+
+    public String getDistributor() {
+        return distributor;
+    }
+
+    public void setDistributor(String distributor) {
+        this.distributor = distributor;
+    }
+
+    public String getDistributorCode() {
+        return distributorCode;
+    }
+
+    public void setDistributorCode(String distributorCode) {
+        this.distributorCode = distributorCode;
+    }
+
+    public Integer getPointType() {
+        return pointType;
+    }
+
+    public void setPointType(Integer pointType) {
+        this.pointType = pointType;
     }
 }

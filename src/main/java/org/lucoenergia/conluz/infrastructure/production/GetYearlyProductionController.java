@@ -70,6 +70,6 @@ public class GetYearlyProductionController {
             return getProductionService.getYearlyProductionByRangeOfDates(startDate, endDate);
         }
         return getProductionService.getYearlyProductionByRangeOfDatesAndSupply(startDate, endDate,
-                new SupplyId(supplyId));
+                SupplyId.of(supplyId));
     }
 }

@@ -70,6 +70,6 @@ public class GetMonthlyProductionController {
             return getProductionService.getMonthlyProductionByRangeOfDates(startDate, endDate);
         }
         return getProductionService.getMonthlyProductionByRangeOfDatesAndSupply(startDate, endDate,
-                new SupplyId(supplyId));
+                SupplyId.of(supplyId));
     }
 }

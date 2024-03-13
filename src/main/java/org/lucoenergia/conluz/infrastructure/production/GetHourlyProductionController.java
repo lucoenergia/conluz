@@ -70,6 +70,6 @@ public class GetHourlyProductionController {
             return getProductionService.getHourlyProductionByRangeOfDates(startDate, endDate);
         }
         return getProductionService.getHourlyProductionByRangeOfDatesAndSupply(startDate, endDate,
-                new SupplyId(supplyId));
+                SupplyId.of(supplyId));
     }
 }

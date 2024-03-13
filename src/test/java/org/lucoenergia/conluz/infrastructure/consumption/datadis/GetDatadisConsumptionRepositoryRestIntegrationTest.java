@@ -30,7 +30,7 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
         final String authorizedNif = "nif";
         final String cups = "cups";
         final String distributorCode = "2";
-        final String pointType = "5";
+        final Integer pointType = 5;
 
         final User user = new User.Builder().personalId(authorizedNif).build();
         final Supply supply = new Supply.Builder()

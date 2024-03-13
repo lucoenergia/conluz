@@ -69,6 +69,6 @@ public class GetDailyProductionController {
             return getProductionService.getDailyProductionByRangeOfDates(startDate, endDate);
         }
         return getProductionService.getDailyProductionByRangeOfDatesAndSupply(startDate, endDate,
-                new SupplyId(supplyId));
+                SupplyId.of(supplyId));
     }
 }

@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;

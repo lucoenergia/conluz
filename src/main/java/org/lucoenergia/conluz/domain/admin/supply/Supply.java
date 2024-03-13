@@ -14,20 +14,20 @@ public class Supply {
     @ValidUUID
     private UUID id;
     @NotBlank
-    private final String code;
+    private String code;
     @NotNull
     private User user;
-    private final String name;
+    private String name;
     @NotBlank
-    private final String address;
+    private String address;
     @NotNull
-    private final Float partitionCoefficient;
+    private Float partitionCoefficient;
     @NotNull
     private Boolean enabled;
-    private final LocalDate validDateFrom;
-    private final String distributor;
-    private final String distributorCode;
-    private final String pointType;
+    private LocalDate validDateFrom;
+    private String distributor;
+    private String distributorCode;
+    private Integer pointType;
 
     private Supply(Builder builder) {
         this.id = builder.id;
@@ -62,7 +62,7 @@ public class Supply {
         private LocalDate validDateFrom;
         private String distributor;
         private String distributorCode;
-        private String pointType;
+        private Integer pointType;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -114,7 +114,7 @@ public class Supply {
             return this;
         }
 
-        public Builder withPointType(String pointType) {
+        public Builder withPointType(Integer pointType) {
             this.pointType = pointType;
             return this;
         }
@@ -167,7 +167,27 @@ public class Supply {
         return distributorCode;
     }
 
-    public String getPointType() {
+    public Integer getPointType() {
         return pointType;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public void setValidDateFrom(LocalDate validDateFrom) {
+        this.validDateFrom = validDateFrom;
+    }
+
+    public void setDistributor(String distributor) {
+        this.distributor = distributor;
+    }
+
+    public void setDistributorCode(String distributorCode) {
+        this.distributorCode = distributorCode;
+    }
+
+    public void setPointType(Integer pointType) {
+        this.pointType = pointType;
     }
 }

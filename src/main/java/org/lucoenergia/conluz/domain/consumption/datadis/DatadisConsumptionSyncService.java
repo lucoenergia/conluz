@@ -1,29 +1,41 @@
 package org.lucoenergia.conluz.domain.consumption.datadis;
 
-import org.lucoenergia.conluz.domain.admin.supply.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
+import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSupply;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadisRest;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class DatadisConsumptionSyncService {
 
+    private final static Logger LOGGER = LoggerFactory.getLogger(DatadisConsumptionSyncService.class);
+
     private final GetDatadisConsumptionRepository getDatadisConsumptionRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository;
+    private final DatadisSuppliesSyncService datadisSuppliesSyncService;
 
     public DatadisConsumptionSyncService(@Qualifier("getDatadisConsumptionRepositoryRest") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
                                          GetSupplyRepository getSupplyRepository,
-                                         PersistDatadisConsumptionRepository persistDatadisConsumptionRepository) {
+                                         PersistDatadisConsumptionRepository persistDatadisConsumptionRepository,
+                                         DatadisSuppliesSyncService datadisSuppliesSyncService) {
         this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.persistDatadisConsumptionRepository = persistDatadisConsumptionRepository;
+        this.datadisSuppliesSyncService = datadisSuppliesSyncService;
     }
 
     /**
@@ -33,6 +45,14 @@ public class DatadisConsumptionSyncService {
      * the current date, retrieving the monthly consumptions for each month and year.
      */
     public void synchronizeConsumptions() {
+
+        // Synchronize supplies
+        try {
+            datadisSuppliesSyncService.synchronizeSupplies();
+        } catch (Exception e) {
+            LOGGER.error("Unable to synchronize supplies from datadis.es", e);
+        }
+
         // Get all supplies
         long total = getSupplyRepository.count();
         PagedResult<Supply> suppliesPageResult = getSupplyRepository.findAll(

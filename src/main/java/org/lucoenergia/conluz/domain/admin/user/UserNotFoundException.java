@@ -14,6 +14,11 @@ public class UserNotFoundException extends RuntimeException {
         this.id = Optional.empty();
     }
 
+    public UserNotFoundException(String message) {
+        super(message);
+        this.id = Optional.empty();
+    }
+
     public UserNotFoundException(UserId id) {
         this.id = Optional.of(id);
     }

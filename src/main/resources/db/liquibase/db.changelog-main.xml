@@ -6,4 +6,5 @@
 http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
     <include file="changelogs/init.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_supplies_fields.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

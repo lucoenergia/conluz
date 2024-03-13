@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
-import org.lucoenergia.conluz.domain.admin.supply.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyCannotBeCreatedException;
@@ -19,15 +19,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public class CreateSupplyRepositoryImpl implements CreateSupplyRepository {
+public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
 
     private final SupplyRepository supplyRepository;
     private final UserRepository userRepository;
     private final SupplyEntityMapper supplyEntityMapper;
     private final UserEntityMapper userEntityMapper;
 
-    public CreateSupplyRepositoryImpl(SupplyRepository supplyRepository, UserRepository userRepository,
-                                      SupplyEntityMapper supplyEntityMapper, UserEntityMapper userEntityMapper) {
+    public CreateSupplyRepositoryDatabase(SupplyRepository supplyRepository, UserRepository userRepository,
+                                          SupplyEntityMapper supplyEntityMapper, UserEntityMapper userEntityMapper) {
         this.supplyRepository = supplyRepository;
         this.userRepository = userRepository;
         this.supplyEntityMapper = supplyEntityMapper;

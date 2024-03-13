@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
-import org.lucoenergia.conluz.domain.admin.supply.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
@@ -16,16 +16,16 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public class GetSupplyRepositoryImpl implements GetSupplyRepository {
+public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
 
     private final SupplyRepository supplyRepository;
     private final SupplyEntityMapper supplyEntityMapper;
     private final PaginationRequestMapper paginationRequestMapper;
     private final PaginationResultMapper<SupplyEntity, Supply> paginationResultMapper;
 
-    public GetSupplyRepositoryImpl(SupplyRepository supplyRepository, SupplyEntityMapper supplyEntityMapper,
-                                   PaginationRequestMapper paginationRequestMapper,
-                                   PaginationResultMapper<SupplyEntity, Supply> paginationResultMapper) {
+    public GetSupplyRepositoryDatabase(SupplyRepository supplyRepository, SupplyEntityMapper supplyEntityMapper,
+                                       PaginationRequestMapper paginationRequestMapper,
+                                       PaginationResultMapper<SupplyEntity, Supply> paginationResultMapper) {
         this.supplyRepository = supplyRepository;
         this.supplyEntityMapper = supplyEntityMapper;
         this.paginationRequestMapper = paginationRequestMapper;

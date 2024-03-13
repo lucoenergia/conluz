@@ -77,7 +77,7 @@ class GetDatadisConsumptionRepositoryRestTest {
                         .withCode("cups")
                         .withUser(user)
                         .withDistributorCode("distributorCode")
-                        .withPointType("pointType")
+                        .withPointType(5)
                         .build();
         final Month month = Month.APRIL;
         final int year = 2023;
@@ -117,7 +117,7 @@ class GetDatadisConsumptionRepositoryRestTest {
                         .withCode("ES0031300329693002BQ0F")
                         .withUser(user)
                         .withDistributorCode("distributorCode")
-                        .withPointType("pointType")
+                        .withPointType(5)
                         .build();
         final Month month = Month.APRIL;
         final int year = 2023;

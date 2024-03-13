@@ -1,10 +1,10 @@
-package org.lucoenergia.conluz.domain.admin.supply;
+package org.lucoenergia.conluz.domain.admin.supply.create;
 
 
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
-import org.lucoenergia.conluz.domain.admin.user.get.GetUserService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.springframework.stereotype.Service;

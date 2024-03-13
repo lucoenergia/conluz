@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import jakarta.persistence.*;
+import org.lucoenergia.conluz.domain.admin.user.DefaultAdminUser;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;

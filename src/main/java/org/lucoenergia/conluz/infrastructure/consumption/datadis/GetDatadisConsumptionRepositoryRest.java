@@ -55,7 +55,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
-        LOGGER.info("Processing supply {}", supply.getCode());
+        LOGGER.info("Processing supply to get consumptions {}", supply.getCode());
 
         validateSupply(supply);
 
@@ -94,7 +94,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
                         supply.getCode(), response.code(), response.body() != null ? response.body().string() : response.message()));
             }
         } catch (IOException e) {
-            throw new DatadisException("Unable to make the request to datadis.es", e);
+            throw new DatadisException("Unable to get consumptions from datadis.es", e);
         }
 
         LOGGER.info("Supply processed.");
@@ -110,7 +110,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         if (supply.getDistributorCode() == null || supply.getDistributorCode().isEmpty()) {
             throw new DatadisSupplyConfigurationException("Distributor code is mandatory to get monthly consumption.");
         }
-        if (supply.getPointType() == null || supply.getPointType().isEmpty()) {
+        if (supply.getPointType() == null) {
             throw new DatadisSupplyConfigurationException("Point type is mandatory to get monthly consumption.");
         }
     }

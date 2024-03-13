@@ -2,8 +2,9 @@ package org.lucoenergia.conluz.domain.consumption.datadis;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.supply.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
@@ -19,10 +20,13 @@ class DatadisConsumptionSyncServiceTest {
     private final GetDatadisConsumptionRepository getDatadisConsumptionRepository = mock(GetDatadisConsumptionRepository.class);
     private final GetSupplyRepository getSupplyRepository = mock(GetSupplyRepository.class);
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository = mock(PersistDatadisConsumptionRepository.class);
+
+    private final DatadisSuppliesSyncService datadisSuppliesSyncService = mock(DatadisSuppliesSyncService.class);
     private final DatadisConsumptionSyncService datadisConsumptionSyncService = new DatadisConsumptionSyncService(
             getDatadisConsumptionRepository,
             getSupplyRepository,
-            persistDatadisConsumptionRepository
+            persistDatadisConsumptionRepository,
+            datadisSuppliesSyncService
     );
 
     @Test

@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.user.get;
 
+import org.lucoenergia.conluz.domain.admin.user.DefaultAdminUser;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -17,4 +18,6 @@ public interface GetUserRepository {
     boolean existsByPersonalId(UserPersonalId id);
 
     PagedResult<User> findAll(PagedRequest pagedRequest);
+
+    Optional<User> getDefaultAdminUser();
 }

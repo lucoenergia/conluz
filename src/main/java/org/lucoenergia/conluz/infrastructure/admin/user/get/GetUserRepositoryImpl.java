@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
+import org.lucoenergia.conluz.domain.admin.user.DefaultAdminUser;
+import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -36,7 +39,6 @@ public class GetUserRepositoryImpl implements GetUserRepository {
     @Override
     public Optional<User> findByPersonalId(UserPersonalId id) {
         Optional<UserEntity> entity = userRepository.findByPersonalId(id.getPersonalId());
-
         if (entity.isEmpty()) {
             return Optional.empty();
         }
@@ -64,5 +66,14 @@ public class GetUserRepositoryImpl implements GetUserRepository {
     public PagedResult<User> findAll(PagedRequest pagedRequest) {
         Page<UserEntity> result = userRepository.findAll(paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, userEntityMapper.mapList(result.toList()));
+    }
+
+    @Override
+    public Optional<User> getDefaultAdminUser() {
+        Optional<UserEntity> entity = userRepository.findByNumberAndRole(0, Role.ADMIN);
+        if (entity.isEmpty()) {
+            Optional.empty();
+        }
+        return Optional.of(userEntityMapper.map(entity.get()));
     }
 }
