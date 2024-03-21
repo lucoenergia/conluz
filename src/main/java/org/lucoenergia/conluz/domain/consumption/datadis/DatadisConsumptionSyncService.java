@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisSupplyConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -65,6 +66,8 @@ public class DatadisConsumptionSyncService {
 
         for (Supply supply : suppliesPageResult.getItems()) {
 
+            LOGGER.debug("Processing supply with ID: {}", supply.getId());
+
             // Get validity date
             LocalDate validDateFrom = supply.getValidDateFrom();
 
@@ -82,9 +85,16 @@ public class DatadisConsumptionSyncService {
                 Month month = validDateFrom.getMonth();
                 int year = validDateFrom.getYear();
 
-                List<Consumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
-                if (!consumptions.isEmpty()) {
-                    persistDatadisConsumptionRepository.persistConsumptions(consumptions);
+                LOGGER.debug("Processing month: {}/{}", month.getValue(), year);
+
+                try {
+                    List<Consumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
+                    if (!consumptions.isEmpty()) {
+                        persistDatadisConsumptionRepository.persistConsumptions(consumptions);
+                    }
+                } catch (DatadisSupplyConfigurationException e) {
+                    LOGGER.error("Unable to retrieve consumptions of supply with ID {} for month {}/{}. Error: {}", supply.getId(),
+                            month.getValue(), year, e.getMessage());
                 }
 
                 validDateFrom = validDateFrom.plusMonths(1);
