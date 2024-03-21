@@ -64,7 +64,6 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         // Create the complete URL with the query parameter
         final String url = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_SUPPLIES_PATH)
-                .queryParam(DatadisParams.DISTRIBUTOR_CODE, DistributorCode.E_DISTRIBUCION)
                 .queryParam(DatadisParams.AUTHORIZED_NIF, defaultAdminUser.get().getPersonalId())
                 .build()
                 .toUriString();
