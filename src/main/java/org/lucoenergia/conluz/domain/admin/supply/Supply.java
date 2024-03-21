@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.admin.supply;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.lucoenergia.conluz.domain.admin.datadis.DistributorCode;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 
@@ -9,6 +10,9 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public class Supply {
+
+    private static final Integer DEFAULT_POINT_TYPE = 5;
+    private static final String DEFAULT_DISTRIBUTOR_CODE = DistributorCode.E_DISTRIBUCION;
 
     @NotNull
     @ValidUUID
@@ -127,6 +131,7 @@ public class Supply {
     public UUID getId() {
         return id;
     }
+
     public String getCode() {
         return code;
     }
@@ -164,11 +169,11 @@ public class Supply {
     }
 
     public String getDistributorCode() {
-        return distributorCode;
+        return distributorCode != null ? distributorCode : DEFAULT_DISTRIBUTOR_CODE;
     }
 
     public Integer getPointType() {
-        return pointType;
+        return pointType != null ? pointType : DEFAULT_POINT_TYPE;
     }
 
     public void setAddress(String address) {
