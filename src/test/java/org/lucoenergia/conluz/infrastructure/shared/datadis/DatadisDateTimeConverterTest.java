@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 
 import java.time.Instant;
+import java.time.Month;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 
@@ -43,5 +44,18 @@ class DatadisDateTimeConverterTest {
 
         // Assert
         assertEquals("11:15", result);
+    }
+
+    @Test
+    void testConvertFromMonthAndYear() {
+        // Assemble
+        Month month = Month.FEBRUARY;
+        int year = 2024;
+
+        // Act
+        String result = datadisDateTimeConverter.convertFromMonthAndYear(month, year);
+
+        // Assert
+        assertEquals("2024/02", result);
     }
 }

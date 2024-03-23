@@ -1,13 +1,9 @@
 package org.lucoenergia.conluz.domain.consumption.datadis;
 
-import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
-import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSupply;
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadisRest;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
-import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisSupplyConfigurationException;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
+import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -16,27 +12,22 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class DatadisConsumptionSyncService {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(DatadisConsumptionSyncService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DatadisConsumptionSyncService.class);
 
     private final GetDatadisConsumptionRepository getDatadisConsumptionRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository;
-    private final DatadisSuppliesSyncService datadisSuppliesSyncService;
 
     public DatadisConsumptionSyncService(@Qualifier("getDatadisConsumptionRepositoryRest") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
                                          GetSupplyRepository getSupplyRepository,
-                                         PersistDatadisConsumptionRepository persistDatadisConsumptionRepository,
-                                         DatadisSuppliesSyncService datadisSuppliesSyncService) {
+                                         PersistDatadisConsumptionRepository persistDatadisConsumptionRepository) {
         this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.persistDatadisConsumptionRepository = persistDatadisConsumptionRepository;
-        this.datadisSuppliesSyncService = datadisSuppliesSyncService;
     }
 
     /**
@@ -47,26 +38,16 @@ public class DatadisConsumptionSyncService {
      */
     public void synchronizeConsumptions() {
 
-        // Synchronize supplies
-        try {
-            datadisSuppliesSyncService.synchronizeSupplies();
-        } catch (Exception e) {
-            LOGGER.error("Unable to synchronize supplies from datadis.es", e);
-        }
-
         // Get all supplies
-        long total = getSupplyRepository.count();
-        PagedResult<Supply> suppliesPageResult = getSupplyRepository.findAll(
-                PagedRequest.of(0, Long.valueOf(total).intValue())
-        );
+        List<Supply> allSupplies = getSupplyRepository.findAll();
 
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
         LocalDate oneYearAgo = today.minusYears(1);
 
-        for (Supply supply : suppliesPageResult.getItems()) {
+        for (Supply supply : allSupplies) {
 
-            LOGGER.debug("Processing supply with ID: {}", supply.getId());
+            LOGGER.info("Processing supply with ID: {}", supply.getId());
 
             // Get validity date
             LocalDate validDateFrom = supply.getValidDateFrom();
@@ -85,7 +66,7 @@ public class DatadisConsumptionSyncService {
                 Month month = validDateFrom.getMonth();
                 int year = validDateFrom.getYear();
 
-                LOGGER.debug("Processing month: {}/{}", month.getValue(), year);
+                LOGGER.info("Processing month: {}/{}", month.getValue(), year);
 
                 try {
                     List<Consumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);

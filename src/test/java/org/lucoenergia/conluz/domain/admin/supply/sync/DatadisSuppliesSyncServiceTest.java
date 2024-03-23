@@ -1,83 +1,91 @@
 package org.lucoenergia.conluz.domain.admin.supply.sync;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
-import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
-import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
-import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyMother;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-class DatadisSuppliesSyncServiceTest {
+@Transactional
+class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
 
-    private final GetSupplyRepository getSupplyRepository = Mockito.mock(GetSupplyRepository.class);
-    private final UpdateSupplyRepository updateSupplyRepository = Mockito.mock(UpdateSupplyRepository.class);
-    private final GetSupplyRepositoryDatadis getSupplyRepositoryDatadis = Mockito.mock(GetSupplyRepositoryDatadis.class);
+    @Autowired
+    private GetSupplyRepository getSupplyRepository;
+    @Autowired
+    private UpdateSupplyRepository updateSupplyRepository;
+    @Autowired
+    private GetUserRepository getUserRepository;
+    @Autowired
+    private CreateUserRepository createUserRepository;
+    @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    private final GetSupplyRepositoryDatadis getSupplyRepositoryDatadis = mock(GetSupplyRepositoryDatadis.class);
 
-    private final DatadisSuppliesSyncService service = new DatadisSuppliesSyncService(
-            getSupplyRepository, updateSupplyRepository, getSupplyRepositoryDatadis
-    );
+    private DatadisSuppliesSyncService service;
 
-    @Test
-    void testSynchronizeZeroSupplies() {
-        // Assemble
-        List<Supply> supplies = new ArrayList<>();
-        List<DatadisSupply> datadisSupplies = new ArrayList<>();
-
-        Mockito.when(getSupplyRepository.count()).thenReturn(2L);
-        Mockito.when(getSupplyRepository.findAll(any(PagedRequest.class)))
-                .thenReturn(new PagedResult<>(supplies, 2, 2, 1, 0));
-
-        Mockito.when(getSupplyRepositoryDatadis.getSupplies()).thenReturn(datadisSupplies);
-
-        // Act
-        service.synchronizeSupplies();
-
-        // Assert
-        verify(getSupplyRepository, times(1)).findAll(any(PagedRequest.class));
-        verify(getSupplyRepositoryDatadis, times(1)).getSupplies();
-        verify(updateSupplyRepository, times(0)).update(Mockito.any());
+    @BeforeEach
+    void setup() {
+        service = new DatadisSuppliesSyncService(getSupplyRepository,
+                updateSupplyRepository, getSupplyRepositoryDatadis, getUserRepository);
     }
 
     @Test
-    void testSynchronizeSupplies() {
+    void synchronizeSuppliesSuccessTest() {
         // Assemble
-        String cups1 = "ES4561237890F";
-        String cups2 = "ES3216549870F";
-        String cups3 = "ES1472583690F";
-        List<Supply> supplies = Arrays.asList(
-                SupplyMother.random().withCode(cups1).build(),
-                SupplyMother.random().withCode(cups2).build(),
-                SupplyMother.random().withCode(cups3).build()
-        );
-        List<DatadisSupply> datadisSupplies = Arrays.asList(
-                DatadisSupplyMother.random(cups1).build(),
-                DatadisSupplyMother.random("foo").build()
-        );
+        String codeOne = "codeOne";
+        String codeTwo = "codeTwo";
+        String codeThree = "codeThree";
 
-        Mockito.when(getSupplyRepository.count()).thenReturn(3L);
-        Mockito.when(getSupplyRepository.findAll(any(PagedRequest.class)))
-                .thenReturn(new PagedResult<>(supplies, 3, 3, 1, 0));
+        User user = UserMother.randomUser();
+        user = createUserRepository.create(user);
 
-        Mockito.when(getSupplyRepositoryDatadis.getSupplies()).thenReturn(datadisSupplies);
+        DatadisSupply datadisSupply = new DatadisSupply.Builder()
+                .withCups(codeOne)
+                .withAddress("TestAddress")
+                .withDistributor("EDISTRIBUCION")
+                .withDistributorCode("2")
+                .withPointType(5)
+                .withValidDateFrom("2024/06/01")
+                .build();
+        List<DatadisSupply> datadisSupplies = new ArrayList<>();
+        datadisSupplies.add(datadisSupply);
+
+        Supply supplyOne = SupplyMother.random()
+                .withCode(codeOne)
+                .withAddress("OldAddress")
+                .build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(user.getId()));
+        createSupplyRepository.create(SupplyMother.random().withCode(codeTwo).build(), UserId.of(user.getId()));
+        createSupplyRepository.create(SupplyMother.random().withCode(codeThree).build(), UserId.of(user.getId()));
+
+        when(getSupplyRepositoryDatadis.getSuppliesByUser(Mockito.any(User.class))).thenReturn(datadisSupplies);
 
         // Act
         service.synchronizeSupplies();
 
         // Assert
-        verify(getSupplyRepository, times(1)).findAll(any(PagedRequest.class));
-        verify(getSupplyRepositoryDatadis, times(1)).getSupplies();
-        verify(updateSupplyRepository, times(1)).update(Mockito.any());
+        Assertions.assertEquals(datadisSupply.getAddress(), getSupplyRepository.findById(SupplyId.of(supplyOne.getId())).get().getAddress());
     }
 }

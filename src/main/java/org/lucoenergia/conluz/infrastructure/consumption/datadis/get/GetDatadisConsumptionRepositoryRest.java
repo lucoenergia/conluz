@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.get;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,6 +9,7 @@ import okhttp3.Response;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.*;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
@@ -36,12 +37,15 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
     private final ObjectMapper objectMapper;
     private final DatadisAuthorizer datadisAuthorizer;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
+    private final DatadisDateTimeConverter datadisDateTimeConverter;
 
     public GetDatadisConsumptionRepositoryRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
-                                               ConluzRestClientBuilder conluzRestClientBuilder) {
+                                               ConluzRestClientBuilder conluzRestClientBuilder,
+                                               DatadisDateTimeConverter datadisDateTimeConverter) {
         this.objectMapper = objectMapper;
         this.datadisAuthorizer = datadisAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
+        this.datadisDateTimeConverter = datadisDateTimeConverter;
     }
 
     @Override
@@ -49,13 +53,13 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
         final List<Consumption> result = new ArrayList<>();
 
-        final String monthDate = getDateAsString(month, year);
+        final String monthDate = datadisDateTimeConverter.convertFromMonthAndYear(month, year);
 
         final String authToken = datadisAuthorizer.getAuthTokenWithBearerFormat();
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
-        LOGGER.info("Processing supply to get consumptions {}", supply.getCode());
+        LOGGER.info("Processing supply {} to get consumptions.", supply.getId());
 
         validateSupply(supply);
 
@@ -90,20 +94,16 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
                 result.addAll(consumptions);
             } else {
-                throw new DatadisException(String.format("Unable to get consumptions for supply with ID %s. Code %s, message: %s",
-                        supply.getCode(), response.code(), response.body() != null ? response.body().string() : response.message()));
+                LOGGER.error("Unable to get consumptions for supply with ID {}. Code {}, message: {}",
+                        supply.getCode(), response.code(), response.body() != null ? response.body().string() : response.message());
             }
         } catch (IOException e) {
-            throw new DatadisException("Unable to get consumptions from datadis.es", e);
+            LOGGER.error("Unable to get consumptions from datadis.es", e);
         }
 
         LOGGER.info("Supply processed.");
 
         return result;
-    }
-
-    private String getDateAsString(Month month, int year) {
-        return String.format("%s/%s", year, month.getValue());
     }
 
     private void validateSupply(Supply supply) {

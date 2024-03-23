@@ -2,9 +2,14 @@ package org.lucoenergia.conluz.infrastructure.production;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.EnergyProductionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
@@ -13,7 +18,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
@@ -28,7 +32,9 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     private static final String END_DATE = "2023-09-01T23:00:00.000+02:00";
 
     @Autowired
-    private SupplyRepository supplyRepository;
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreateUserRepository createUserRepository;
     @Autowired
     private EnergyProductionInfluxLoader energyProductionInfluxLoader;
 
@@ -76,21 +82,18 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetHourlyProductionBySupply() throws Exception {
 
-        SupplyId supplyId = SupplyId.of(UUID.randomUUID());
+        String authHeader = loginAsDefaultAdmin();
+
+        User user = createUserRepository.create(UserMother.randomUser());
 
         // Create some supplies
-        supplyRepository.saveAll(Arrays.asList(
-                new SupplyEntity.Builder().withId(supplyId.getId()).build(),
-                new SupplyEntity.Builder().withId(UUID.randomUUID()).build(),
-                new SupplyEntity.Builder().withId(UUID.randomUUID()).build()
-        ));
-
-
-        String authHeader = loginAsDefaultAdmin();
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
+        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
+        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
 
         mockMvc.perform(get("/api/v1/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("supplyId", supplyId.getId().toString())
+                        .queryParam("supplyId", supply.getId().toString())
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())

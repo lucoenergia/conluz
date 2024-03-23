@@ -8,7 +8,10 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
+import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.get.GetDatadisConsumptionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisException;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
@@ -22,51 +25,16 @@ class GetDatadisConsumptionRepositoryRestTest {
     private GetDatadisConsumptionRepositoryRest repository;
     private DatadisAuthorizer datadisAuthorizer;
     private ConluzRestClientBuilder conluzRestClientBuilder;
+    private DatadisDateTimeConverter datadisDateTimeConverter;
 
     @BeforeEach
     public void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         datadisAuthorizer = Mockito.mock(DatadisAuthorizer.class);
         conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
-        repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder);
-    }
-
-    @Test
-    void testGetMonthlyConsumptionWithSupplyWithoutDistributorCode() {
-        // Assemble
-        final Supply supply = new Supply.Builder().build();
-        final Month month = Month.APRIL;
-        final int year = 2023;
-
-        Mockito
-                .when(datadisAuthorizer.getAuthTokenWithBearerFormat())
-                .thenReturn("token");
-
-        // Act & assert
-        DatadisSupplyConfigurationException exception = Assertions.assertThrows(DatadisSupplyConfigurationException.class,
-                () -> repository.getHourlyConsumptionsByMonth(supply, month, year));
-
-        Assertions.assertEquals("Distributor code is mandatory to get monthly consumption.",
-                exception.getMessage());
-    }
-
-    @Test
-    void testGetMonthlyConsumptionWithSupplyWithoutPointType() {
-        // Assemble
-        final Supply supply = new Supply.Builder().withDistributorCode("2").build();
-        final Month month = Month.APRIL;
-        final int year = 2023;
-
-        Mockito
-                .when(datadisAuthorizer.getAuthTokenWithBearerFormat())
-                .thenReturn("token");
-
-        // Act & assert
-        DatadisSupplyConfigurationException exception = Assertions.assertThrows(DatadisSupplyConfigurationException.class,
-                () -> repository.getHourlyConsumptionsByMonth(supply, month, year));
-
-        Assertions.assertEquals("Point type is mandatory to get monthly consumption.",
-                exception.getMessage());
+        datadisDateTimeConverter = Mockito.mock(DatadisDateTimeConverter.class);
+        repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
+                datadisDateTimeConverter);
     }
 
     @Test
@@ -101,12 +69,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         Mockito.when(body.string()).thenReturn("Consulta ya realizada en las últimas 24 horas.");
 
         // Act & Assert
-        DatadisException exception = Assertions.assertThrows(DatadisException.class,
-                () -> repository.getHourlyConsumptionsByMonth(supply, month, year));
-
-        Assertions.assertEquals(
-                "Unable to get consumptions for supply with ID cups. Code 429, message: Consulta ya realizada en las últimas 24 horas.",
-                exception.getMessage());
+        Assertions.assertDoesNotThrow(() -> repository.getHourlyConsumptionsByMonth(supply, month, year));
     }
 
     @Test

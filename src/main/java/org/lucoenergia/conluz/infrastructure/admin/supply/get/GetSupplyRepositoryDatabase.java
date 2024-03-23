@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationResultM
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -57,5 +58,13 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
     public PagedResult<Supply> findAll(PagedRequest pagedRequest) {
         Page<SupplyEntity> result = supplyRepository.findAll(paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
+    }
+
+    @Override
+    public List<Supply> findAll() {
+        long total = count();
+        PagedResult<Supply> allSupplies = findAll(PagedRequest.of(0, Long.valueOf(total).intValue()));
+
+        return allSupplies.getItems();
     }
 }

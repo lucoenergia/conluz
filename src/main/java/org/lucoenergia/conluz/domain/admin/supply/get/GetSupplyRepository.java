@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface GetSupplyRepository {
@@ -16,4 +17,5 @@ public interface GetSupplyRepository {
     boolean existsById(SupplyId id);
 
     PagedResult<Supply> findAll(PagedRequest pagedRequest);
+    List<Supply> findAll();
 }

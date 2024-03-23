@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.domain.admin.supply.sync;
+package org.lucoenergia.conluz.domain.admin.supply;
 
 public class DatadisSupply {
 

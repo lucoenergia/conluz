@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumptionSyncService;
 import org.slf4j.Logger;

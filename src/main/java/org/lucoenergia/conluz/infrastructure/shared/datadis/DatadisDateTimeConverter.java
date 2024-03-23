@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.Month;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -36,5 +37,9 @@ public class DatadisDateTimeConverter {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(TIME_FORMAT);
 
         return formatter.format(zonedDateTime);
+    }
+
+    public String convertFromMonthAndYear(Month month, int year) {
+        return String.format("%d/%02d", year, month.getValue());
     }
 }

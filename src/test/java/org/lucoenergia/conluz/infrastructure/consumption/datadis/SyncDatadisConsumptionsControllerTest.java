@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class DatadisConsumptionsControllerTest extends BaseControllerTest {
+class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
 
     private static final String URL = "/api/v1/consumption/datadis/sync";
 

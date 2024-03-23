@@ -4,6 +4,7 @@ import org.influxdb.InfluxDB;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.ConsumptionMother;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.persist.PersistDatadisConsumptionRepositoryInflux;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateToMillisecondsConverter;
 import org.mockito.InjectMocks;

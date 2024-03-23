@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis;
+package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 public class DatadisSupplyConfigurationException extends RuntimeException {
 

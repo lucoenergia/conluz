@@ -1,17 +1,16 @@
-package org.lucoenergia.conluz.domain.admin.supply.get;
+package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.lucoenergia.conluz.domain.admin.datadis.DistributorCode;
-import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSupply;
-import org.lucoenergia.conluz.domain.admin.supply.sync.GetSupplyRepositoryDatadis;
+import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
-import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.*;
+import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
+import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisParams;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadis {
@@ -36,35 +34,27 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
     private final DatadisAuthorizer datadisAuthorizer;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
 
-    private final GetUserRepository getUserRepository;
-
     public GetSupplyRepositoryDatadisRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
-                                          ConluzRestClientBuilder conluzRestClientBuilder,
-                                          GetUserRepository getUserRepository) {
+                                          ConluzRestClientBuilder conluzRestClientBuilder) {
         this.objectMapper = objectMapper;
         this.datadisAuthorizer = datadisAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
-        this.getUserRepository = getUserRepository;
     }
 
-    public List<DatadisSupply> getSupplies() {
+    @Override
+    public List<DatadisSupply> getSuppliesByUser(User user) {
 
         final List<DatadisSupply> result = new ArrayList<>();
-
-        Optional<User> defaultAdminUser = getUserRepository.getDefaultAdminUser();
-        if (defaultAdminUser.isEmpty()) {
-            throw new UserNotFoundException("Default admin user not found.");
-        }
 
         final String authToken = datadisAuthorizer.getAuthTokenWithBearerFormat();
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
-        LOGGER.debug("Getting all supplies from datadis.es");
+        LOGGER.info("Getting all supplies from datadis.es of user {}", user.getId());
 
         // Create the complete URL with the query parameter
         final String url = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_SUPPLIES_PATH)
-                .queryParam(DatadisParams.AUTHORIZED_NIF, defaultAdminUser.get().getPersonalId())
+                .queryParam(DatadisParams.AUTHORIZED_NIF, user.getPersonalId())
                 .build()
                 .toUriString();
 
@@ -87,14 +77,18 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
                 result.addAll(datadisSupplies);
             } else {
-                throw new DatadisException(String.format("Unable to get supplies. Code %s, message: %s",
-                        response.code(), response.body() != null ? response.body().string() : response.message()));
+                LOGGER.error("Unable to get supplies from user {}. Code {}, message: {}",
+                        user.getId(), response.code(),
+                        response.body() != null ? response.body().string() : response.message());
+
+                return result;
             }
         } catch (IOException e) {
-            throw new DatadisException("Unable to get supplies from datadis.es", e);
+            LOGGER.error(String.format("Unable to get supplies from datadis.es for user %s", user.getId()), e);
+            return result;
         }
 
-        LOGGER.debug("Supplies retrieved.");
+        LOGGER.info("Supplies retrieved.");
 
         return result;
     }

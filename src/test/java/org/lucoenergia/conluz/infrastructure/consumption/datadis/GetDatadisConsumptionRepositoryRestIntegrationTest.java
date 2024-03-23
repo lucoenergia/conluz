@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.get.GetDatadisConsumptionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigRepository;

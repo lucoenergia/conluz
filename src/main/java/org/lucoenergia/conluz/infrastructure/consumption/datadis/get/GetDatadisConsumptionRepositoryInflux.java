@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.get;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
@@ -7,6 +7,7 @@ import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;

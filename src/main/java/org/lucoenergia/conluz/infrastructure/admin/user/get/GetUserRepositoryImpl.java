@@ -1,9 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
-import org.lucoenergia.conluz.domain.admin.user.DefaultAdminUser;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -17,6 +15,7 @@ import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationResultM
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -34,6 +33,11 @@ public class GetUserRepositoryImpl implements GetUserRepository {
         this.userEntityMapper = userEntityMapper;
         this.paginationRequestMapper = paginationRequestMapper;
         this.paginationResultMapper = paginationResultMapper;
+    }
+
+    @Override
+    public long count() {
+        return userRepository.count();
     }
 
     @Override
@@ -66,6 +70,15 @@ public class GetUserRepositoryImpl implements GetUserRepository {
     public PagedResult<User> findAll(PagedRequest pagedRequest) {
         Page<UserEntity> result = userRepository.findAll(paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, userEntityMapper.mapList(result.toList()));
+    }
+
+    @Override
+    public List<User> findAll() {
+        long total = count();
+
+        PagedResult<User> allUsers = findAll(PagedRequest.of(0, Long.valueOf(total).intValue()));
+
+        return allUsers.getItems();
     }
 
     @Override

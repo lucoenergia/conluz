@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.persist;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.Point;

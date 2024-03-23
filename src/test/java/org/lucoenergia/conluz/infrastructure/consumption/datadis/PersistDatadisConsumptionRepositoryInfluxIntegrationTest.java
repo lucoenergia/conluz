@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.ConsumptionMother;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.get.GetDatadisConsumptionRepositoryInflux;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.persist.PersistDatadisConsumptionRepositoryInflux;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;

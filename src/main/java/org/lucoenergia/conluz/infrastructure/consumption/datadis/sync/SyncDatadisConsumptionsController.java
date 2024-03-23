@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,11 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/consumption/datadis/sync")
-public class DatadisConsumptionsController {
+public class SyncDatadisConsumptionsController {
 
     private final DatadisConsumptionSyncService datadisConsumptionSyncService;
 
-    public DatadisConsumptionsController(DatadisConsumptionSyncService datadisConsumptionSyncService) {
+    public SyncDatadisConsumptionsController(DatadisConsumptionSyncService datadisConsumptionSyncService) {
         this.datadisConsumptionSyncService = datadisConsumptionSyncService;
     }
 
