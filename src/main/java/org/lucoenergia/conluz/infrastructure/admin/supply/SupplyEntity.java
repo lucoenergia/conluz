@@ -25,6 +25,9 @@ public class SupplyEntity {
     private String distributor;
     private String distributorCode;
     private Integer pointType;
+    private String shellyMac;
+    private String shellyId;
+    private String shellyMqttPrefix;
 
     public SupplyEntity() {
         enabled = true;
@@ -43,6 +46,9 @@ public class SupplyEntity {
         private String distributor;
         private String distributorCode;
         private Integer pointType;
+        private String shellyMac;
+        private String shellyId;
+        private String shellyMqttPrefix;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -99,6 +105,21 @@ public class SupplyEntity {
             return this;
         }
 
+        public Builder withShellyMac(String shellyMac) {
+            this.shellyMac = shellyMac;
+            return this;
+        }
+
+        public Builder withShellyId(String shellyId) {
+            this.shellyId = shellyId;
+            return this;
+        }
+
+        public Builder withShellyMqttPrefix(String shellyMqttPrefix) {
+            this.shellyMqttPrefix = shellyMqttPrefix;
+            return this;
+        }
+
         public SupplyEntity build() {
             SupplyEntity entity = new SupplyEntity();
             entity.id = this.id;
@@ -112,6 +133,9 @@ public class SupplyEntity {
             entity.distributor = this.distributor;
             entity.distributorCode = this.distributorCode;
             entity.pointType = this.pointType;
+            entity.shellyMac = this.shellyMac;
+            entity.shellyId = this.shellyId;
+            entity.shellyMqttPrefix = this.shellyMqttPrefix;
             return entity;
         }
     }
@@ -215,5 +239,29 @@ public class SupplyEntity {
 
     public void setPointType(Integer pointType) {
         this.pointType = pointType;
+    }
+
+    public String getShellyMac() {
+        return shellyMac;
+    }
+
+    public void setShellyMac(String shellyMac) {
+        this.shellyMac = shellyMac;
+    }
+
+    public String getShellyId() {
+        return shellyId;
+    }
+
+    public void setShellyId(String shellyId) {
+        this.shellyId = shellyId;
+    }
+
+    public String getShellyMqttPrefix() {
+        return shellyMqttPrefix;
+    }
+
+    public void setShellyMqttPrefix(String shellyMqttPrefix) {
+        this.shellyMqttPrefix = shellyMqttPrefix;
     }
 }

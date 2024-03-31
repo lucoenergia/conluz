@@ -1,9 +1,10 @@
-package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
+package org.lucoenergia.conluz.infrastructure.price;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
-import org.influxdb.dto.Query;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxLoader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -57,13 +58,11 @@ public class EnergyPricesInfluxLoader implements InfluxLoader {
     }
 
     @Override
-    public void loadData(String database) {
+    public void loadData() {
 
         try (InfluxDB influxDBConnection = influxDbConnectionManager.getConnection()) {
 
-            BatchPoints batchPoints = BatchPoints
-                    .database(database)
-                    .build();
+            BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
             PRICES.stream().forEach(point -> batchPoints.point(Point.measurement(MEASUREMENT)
                     .time(((Long) ((List) point).get(0)), TimeUnit.NANOSECONDS)
@@ -77,12 +76,5 @@ public class EnergyPricesInfluxLoader implements InfluxLoader {
 
     @Override
     public void clearData() {
-//        try (InfluxDB influxDBConnection = influxDbConnectionManager.getConnection()) {
-//            influxDBConnection.query(
-//                    new Query(
-//                            String.format("DELETE FROM \"%s\"", MEASUREMENT)
-//                    )
-//            );
-//        }
     }
 }

@@ -3,9 +3,11 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional
 @Component
-public class UserEntityMapper extends BaseMapper<UserEntity,User> {
+public class UserEntityMapper extends BaseMapper<UserEntity, User> {
 
     @Override
     public User map(UserEntity entity) {

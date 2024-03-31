@@ -4,7 +4,9 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional
 @Component
 public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
 
@@ -24,6 +26,15 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
                 .withEnabled(entity.getEnabled())
                 .withName(entity.getName())
                 .withUser(userEntityMapper.map(entity.getUser()))
+
+                .withDistributor(entity.getDistributor())
+                .withDistributorCode(entity.getDistributorCode())
+                .withPointType(entity.getPointType())
+
+                .withShellyMac(entity.getShellyMac())
+                .withShellyId(entity.getShellyId())
+                .withShellyMqttPrefix(entity.getShellyMqttPrefix())
+
                 .build();
     }
 }

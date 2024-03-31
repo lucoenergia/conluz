@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.domain.consumption.datadis;
 
-public class Consumption {
+public class DatadisConsumption {
 
     private String cups;
     private String date;

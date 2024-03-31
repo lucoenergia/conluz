@@ -14,10 +14,12 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
 
+@Transactional
 @Repository
 public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
 
@@ -52,6 +54,15 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                 .withAddress(supply.getAddress())
                 .withPartitionCoefficient(supply.getPartitionCoefficient())
                 .withEnabled(supply.getEnabled())
+
+                .withDistributor(supply.getDistributor())
+                .withDistributorCode(supply.getDistributorCode())
+                .withPointType(supply.getPointType())
+
+                .withShellyMac(supply.getShellyMac())
+                .withShellyId(supply.getShellyId())
+                .withShellyMqttPrefix(supply.getShellyMqttPrefix())
+
                 .build();
 
         userEntity.addSupply(supplyEntity);

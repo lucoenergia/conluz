@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.get.GetDatadisConsumptionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
@@ -54,7 +54,7 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
         config.setPassword(password);
         datadisConfigRepository.save(config);
 
-        List<Consumption> result = datadisConsumptionRepositoryRest.getHourlyConsumptionsByMonth(supply, month, year);
+        List<DatadisConsumption> result = datadisConsumptionRepositoryRest.getHourlyConsumptionsByMonth(supply, month, year);
 
         Assertions.assertNotNull(result);
         Assertions.assertFalse(result.isEmpty());

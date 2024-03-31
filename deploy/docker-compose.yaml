@@ -27,6 +27,7 @@ services:
     volumes:
       - ${PATH_TO_INFLUXDB_DATA}:/var/lib/influxdb
       - ./conluz-influxdb-init.sh:/docker-entrypoint-initdb.d/conluz-influxdb-init.sh
+    restart: always
 
   conluz:
     container_name: conluz

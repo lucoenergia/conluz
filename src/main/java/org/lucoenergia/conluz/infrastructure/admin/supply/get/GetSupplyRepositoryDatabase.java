@@ -12,10 +12,12 @@ import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationRequest
 import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationResultMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
+@Transactional
 @Repository
 public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
 
@@ -63,7 +65,7 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
     @Override
     public List<Supply> findAll() {
         long total = count();
-        PagedResult<Supply> allSupplies = findAll(PagedRequest.of(0, Long.valueOf(total).intValue()));
+        PagedResult<Supply> allSupplies = findAll(PagedRequest.of(0, Long.valueOf(total > 0 ? total : 1).intValue()));
 
         return allSupplies.getItems();
     }

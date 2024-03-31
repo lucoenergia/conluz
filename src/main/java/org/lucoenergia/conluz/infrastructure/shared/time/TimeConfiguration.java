@@ -3,10 +3,7 @@ package org.lucoenergia.conluz.infrastructure.shared.time;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.time.*;
 
 @Configuration
 public class TimeConfiguration {
@@ -24,5 +21,9 @@ public class TimeConfiguration {
         ZonedDateTime zonedDateTime = instant.atZone(zoneId);
 
         return zonedDateTime.getOffset();
+    }
+
+    public OffsetDateTime now() {
+        return OffsetDateTime.now(getZoneId());
     }
 }
