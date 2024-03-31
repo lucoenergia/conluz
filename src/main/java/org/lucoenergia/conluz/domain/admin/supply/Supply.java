@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Supply {
@@ -28,10 +29,15 @@ public class Supply {
     private Float partitionCoefficient;
     @NotNull
     private Boolean enabled;
+    // Data gathered from datadis.es
     private LocalDate validDateFrom;
     private String distributor;
     private String distributorCode;
     private Integer pointType;
+    // Shelly settings
+    private String shellyMac;
+    private String shellyId;
+    private String shellyMqttPrefix;
 
     private Supply(Builder builder) {
         this.id = builder.id;
@@ -45,6 +51,9 @@ public class Supply {
         this.distributor = builder.distributor;
         this.distributorCode = builder.distributorCode;
         this.pointType = builder.pointType;
+        this.shellyId = builder.shellyId;
+        this.shellyMqttPrefix = builder.shellyMqttPrefix;
+        this.shellyMac = builder.shellyMac;
     }
 
     public void enable() {
@@ -67,6 +76,10 @@ public class Supply {
         private String distributor;
         private String distributorCode;
         private Integer pointType;
+        private String shellyMac;
+        private String shellyId;
+        private String shellyMqttPrefix;
+
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -120,6 +133,21 @@ public class Supply {
 
         public Builder withPointType(Integer pointType) {
             this.pointType = pointType;
+            return this;
+        }
+
+        public Builder withShellyId(String shellyId) {
+            this.shellyId = shellyId;
+            return this;
+        }
+
+        public Builder withShellyMac(String shellyMac) {
+            this.shellyMac = shellyMac;
+            return this;
+        }
+
+        public Builder withShellyMqttPrefix(String shellyMqttPrefix) {
+            this.shellyMqttPrefix = shellyMqttPrefix;
             return this;
         }
 
@@ -194,5 +222,41 @@ public class Supply {
 
     public void setPointType(Integer pointType) {
         this.pointType = pointType;
+    }
+
+    public String getShellyMac() {
+        return shellyMac;
+    }
+
+    public void setShellyMac(String shellyMac) {
+        this.shellyMac = shellyMac;
+    }
+
+    public String getShellyId() {
+        return shellyId;
+    }
+
+    public void setShellyId(String shellyId) {
+        this.shellyId = shellyId;
+    }
+
+    public String getShellyMqttPrefix() {
+        return shellyMqttPrefix;
+    }
+
+    public void setShellyMqttPrefix(String shellyMqttPrefix) {
+        this.shellyMqttPrefix = shellyMqttPrefix;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Supply supply)) return false;
+        return Objects.equals(getId(), supply.getId()) && Objects.equals(getCode(), supply.getCode()) && Objects.equals(getUser(), supply.getUser());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getCode(), getUser());
     }
 }

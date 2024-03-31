@@ -5,8 +5,8 @@ import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisDateTimeConverter;
@@ -34,7 +34,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
     }
 
     @Override
-    public List<Consumption> getHourlyConsumptionsByMonth(Supply supply, Month month, int year) {
+    public List<DatadisConsumption> getHourlyConsumptionsByMonth(Supply supply, Month month, int year) {
 
         String startDate = dateConverter.convertToFirstDayOfTheMonth(month, year);
         String endDate = dateConverter.convertToLastDayOfTheMonth(month, year);
@@ -56,11 +56,11 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
         }
     }
 
-    private List<Consumption> mapToConsumption(List<DatadisConsumptionPoint> consumptionPoints) {
+    private List<DatadisConsumption> mapToConsumption(List<DatadisConsumptionPoint> consumptionPoints) {
         // Map fields from datadisConsumptionPoint to consumption here
         return consumptionPoints.stream()
                 .map(consumptionPoint -> {
-                    Consumption consumption = new Consumption();
+                    DatadisConsumption consumption = new DatadisConsumption();
                     consumption.setCups(consumptionPoint.getCups());
                     consumption.setDate(datadisDateTimeConverter.convertFromInstantToDate(consumptionPoint.getTime()));
                     consumption.setTime(datadisDateTimeConverter.convertFromInstantToTime(consumptionPoint.getTime()));

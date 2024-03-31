@@ -3,8 +3,6 @@ package org.lucoenergia.conluz.infrastructure.price;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.EnergyPricesInfluxLoader;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 
@@ -21,7 +19,7 @@ class GetPriceByHourControllerTest extends BaseControllerTest {
 
     @BeforeEach
     void beforeEach() {
-        energyPricesInfluxLoader.loadData(MockInfluxDbConfiguration.INFLUX_DB_NAME);
+        energyPricesInfluxLoader.loadData();
     }
 
     @BeforeEach

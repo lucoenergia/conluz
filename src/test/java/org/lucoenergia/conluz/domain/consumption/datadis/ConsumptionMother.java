@@ -10,8 +10,8 @@ import java.util.Random;
 
 public class ConsumptionMother {
 
-    public static Consumption random() {
-        Consumption consumption = new Consumption();
+    public static DatadisConsumption random() {
+        DatadisConsumption consumption = new DatadisConsumption();
         consumption.setCups(RandomStringUtils.random(20, true, true));
         consumption.setDate(randomDate());
         consumption.setTime(randomTime());

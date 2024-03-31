@@ -7,8 +7,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.consumption.datadis.Consumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.*;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
@@ -49,9 +49,9 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
     }
 
     @Override
-    public List<Consumption> getHourlyConsumptionsByMonth(@NotNull Supply supply, @NotNull Month month, @NotNull int year) {
+    public List<DatadisConsumption> getHourlyConsumptionsByMonth(@NotNull Supply supply, @NotNull Month month, @NotNull int year) {
 
-        final List<Consumption> result = new ArrayList<>();
+        final List<DatadisConsumption> result = new ArrayList<>();
 
         final String monthDate = datadisDateTimeConverter.convertFromMonthAndYear(month, year);
 
@@ -89,7 +89,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
                 String jsonData = response.body().string();
 
-                List<Consumption> consumptions = objectMapper.readValue(jsonData, new TypeReference<List<Consumption>>() {
+                List<DatadisConsumption> consumptions = objectMapper.readValue(jsonData, new TypeReference<List<DatadisConsumption>>() {
                 });
 
                 result.addAll(consumptions);

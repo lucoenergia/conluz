@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
 
-import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.springframework.stereotype.Component;
 
 import java.time.*;
@@ -8,12 +7,6 @@ import java.time.format.DateTimeFormatter;
 
 @Component
 public class DateToInfluxDbDateFormatConverter {
-
-    private final TimeConfiguration timeConfiguration;
-
-    public DateToInfluxDbDateFormatConverter(TimeConfiguration timeConfiguration) {
-        this.timeConfiguration = timeConfiguration;
-    }
 
     public String convert(OffsetDateTime time) {
 

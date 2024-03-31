@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 
-public class UserEntityMapperTest {
+class UserEntityMapperTest {
 
     private final UserEntityMapper mapper = new UserEntityMapper();
 

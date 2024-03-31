@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 
@@ -214,5 +215,17 @@ public class User implements UserDetails {
         public User build() {
             return user;
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User user)) return false;
+        return Objects.equals(getId(), user.getId()) && Objects.equals(getPersonalId(), user.getPersonalId()) && Objects.equals(getNumber(), user.getNumber());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getPersonalId(), getNumber());
     }
 }

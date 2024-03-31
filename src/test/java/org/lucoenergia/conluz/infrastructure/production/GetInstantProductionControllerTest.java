@@ -2,17 +2,13 @@ package org.lucoenergia.conluz.infrastructure.production;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
-import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.EnergyProductionInfluxLoader;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +33,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
 
     @BeforeEach
     void beforeEach() {
-        energyProductionInfluxLoader.loadData(MockInfluxDbConfiguration.INFLUX_DB_NAME);
+        energyProductionInfluxLoader.loadData();
     }
 
     @BeforeEach

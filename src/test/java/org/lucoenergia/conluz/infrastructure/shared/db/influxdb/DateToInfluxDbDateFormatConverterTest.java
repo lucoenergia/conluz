@@ -1,24 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
-import org.mockito.Mockito;
 
 import java.time.Month;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 
 class DateToInfluxDbDateFormatConverterTest {
 
-    private final TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
-    private final DateToInfluxDbDateFormatConverter converter = new DateToInfluxDbDateFormatConverter(timeConfiguration);
-
-    @BeforeEach
-    void setup() {
-        Mockito.when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
-    }
+    private final DateToInfluxDbDateFormatConverter converter = new DateToInfluxDbDateFormatConverter();
 
     @Test
     void testConvert() {

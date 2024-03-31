@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
-import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumptionSyncService;
+import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;

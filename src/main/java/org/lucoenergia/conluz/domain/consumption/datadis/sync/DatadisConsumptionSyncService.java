@@ -1,8 +1,10 @@
-package org.lucoenergia.conluz.domain.consumption.datadis;
+package org.lucoenergia.conluz.domain.consumption.datadis.sync;
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +71,7 @@ public class DatadisConsumptionSyncService {
                 LOGGER.info("Processing month: {}/{}", month.getValue(), year);
 
                 try {
-                    List<Consumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
+                    List<DatadisConsumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
                     if (!consumptions.isEmpty()) {
                         persistDatadisConsumptionRepository.persistConsumptions(consumptions);
                     }
