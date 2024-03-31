@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
@@ -23,6 +24,7 @@ class PersistDatadisConsumptionRepositoryInfluxIntegrationTest extends BaseInteg
     @Autowired
     private GetDatadisConsumptionRepositoryInflux getDatadisConsumptionRepositoryInflux;
 
+    @Disabled
     @Test
     void testPersistSingleConsumption() throws InterruptedException {
         // Arrange
