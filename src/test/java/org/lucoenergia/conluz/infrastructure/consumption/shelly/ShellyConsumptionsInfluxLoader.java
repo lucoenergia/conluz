@@ -6,7 +6,6 @@ import org.influxdb.dto.Point;
 import org.influxdb.dto.Query;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxLoader;
-import org.lucoenergia.conluz.infrastructure.shared.energy.EnergyMeasureConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -101,13 +100,17 @@ public class ShellyConsumptionsInfluxLoader implements InfluxLoader {
 
             INSTANT_CONSUMPTIONS.stream().forEach(point -> batchPoints.point(Point.measurement(ShellyConfig.CONSUMPTION_KW_MEASUREMENT)
                     .time(((Long) ((List) point).get(0)), TimeUnit.MILLISECONDS)
-                    .addField(ShellyInstantConsumptionPoint.CONSUMPTION_KWH, EnergyMeasureConverter.convertFromWhToKwh((Double) ((List) point).get(1)))
+                    .addField(ShellyInstantConsumptionPoint.CONSUMPTION_KW, convertFromWToKW((Double) ((List) point).get(1)))
                     .tag(ShellyInstantConsumptionPoint.CHANNEL, ((String) ((List) point).get(2)))
                     .tag(ShellyInstantConsumptionPoint.PREFIX, ((String) ((List) point).get(3)))
                     .build()
             ));
             influxDBConnection.write(batchPoints);
         }
+    }
+
+    public static Double convertFromWToKW(Double energyInW) {
+        return energyInW / 1000;
     }
 
     @Override

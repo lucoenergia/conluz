@@ -12,7 +12,7 @@ public class ShellyConsumptionMother {
 
     public static ShellyInstantConsumption.Builder random() {
         return new ShellyInstantConsumption.Builder()
-                .withConsumptionKWh(new Random().nextDouble())
+                .withConsumptionKW(new Random().nextDouble())
                 .withChannel(Arrays.asList("0", "1").get(ThreadLocalRandom.current().nextInt(2)))
                 .withTimestamp(Instant.now())
                 .withPrefix(RandomStringUtils.randomAlphanumeric(10));

@@ -3,8 +3,9 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.consumption.datadis.ConsumptionMother;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.persist.PersistDatadisConsumptionRepositoryInflux;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateToMillisecondsConverter;
@@ -12,7 +13,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Collections;
 

@@ -5,13 +5,13 @@ import java.time.Instant;
 public class ShellyInstantConsumption {
 
     private final Instant timestamp;
-    private final Double consumptionKWh;
+    private final Double consumptionKW;
     private final String channel;
     private final String prefix;
 
     private ShellyInstantConsumption(Builder builder) {
         this.timestamp = builder.timestamp;
-        this.consumptionKWh = builder.consumptionKWh;
+        this.consumptionKW = builder.consumptionKW;
         this.channel = builder.channel;
         this.prefix = builder.prefix;
     }
@@ -19,7 +19,7 @@ public class ShellyInstantConsumption {
     public static class Builder {
 
         private Instant timestamp;
-        private Double consumptionKWh;
+        private Double consumptionKW;
         private String channel;
         private String prefix;
 
@@ -28,8 +28,8 @@ public class ShellyInstantConsumption {
             return this;
         }
 
-        public Builder withConsumptionKWh(Double consumptionKWh) {
-            this.consumptionKWh = consumptionKWh;
+        public Builder withConsumptionKW(Double consumptionKWh) {
+            this.consumptionKW = consumptionKWh;
             return this;
         }
 
@@ -52,8 +52,8 @@ public class ShellyInstantConsumption {
         return timestamp;
     }
 
-    public Double getConsumptionKWh() {
-        return consumptionKWh;
+    public Double getConsumptionKW() {
+        return consumptionKW;
     }
 
     public String getChannel() {
@@ -68,7 +68,7 @@ public class ShellyInstantConsumption {
     public String toString() {
         return "ShellyConsumption{" +
                 "timestamp=" + timestamp +
-                ", consumptionKWh=" + consumptionKWh +
+                ", consumptionKW=" + consumptionKW +
                 ", channel=" + channel +
                 ", prefix='" + prefix + '\'' +
                 '}';

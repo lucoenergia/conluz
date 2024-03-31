@@ -54,8 +54,8 @@ public class ShellyConsumptionsHourlyAggregator {
                 try {
                     Query query = new Query(String.format(
                             "SELECT INTEGRAL(%s, 1h) AS %s FROM \"%s\" WHERE %s = '%s' AND time >= '%s' AND time <= '%s' GROUP BY time(1h)",
-                            ShellyInstantConsumptionPoint.CONSUMPTION_KWH,
-                            ShellyInstantConsumptionPoint.CONSUMPTION_KWH,
+                            ShellyInstantConsumptionPoint.CONSUMPTION_KW,
+                            ShellyInstantConsumptionPoint.CONSUMPTION_KW,
                             ShellyConfig.CONSUMPTION_KW_MEASUREMENT,
                             ShellyInstantConsumptionPoint.PREFIX,
                             supply.getShellyMqttPrefix(),
@@ -78,7 +78,7 @@ public class ShellyConsumptionsHourlyAggregator {
         return consumptionPoints.stream()
                 .map(consumptionPoint -> new ShellyConsumption.Builder()
                         .withPrefix(supply.getShellyMqttPrefix())
-                        .withConsumptionKWh(consumptionPoint.getConsumptionKWh())
+                        .withConsumptionKWh(consumptionPoint.getConsumptionKW())
                         .withTimestamp(consumptionPoint.getTime())
                         .build())
                 .toList();

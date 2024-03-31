@@ -53,19 +53,19 @@ class PersistShellyConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         List<ShellyInstantConsumption> result = getShellyConsumptionRepositoryInflux.getAllInstantConsumptions();
         Assertions.assertEquals(consumptions.size(), result.size());
 
-        Assertions.assertEquals(result.get(0).getConsumptionKWh(), consumptionOne.getConsumptionKWh());
+        Assertions.assertEquals(result.get(0).getConsumptionKW(), consumptionOne.getConsumptionKW());
         Assertions.assertEquals(result.get(0).getPrefix(), consumptionOne.getPrefix());
         Assertions.assertEquals(result.get(0).getChannel(), consumptionOne.getChannel());
 
-        Assertions.assertEquals(result.get(1).getConsumptionKWh(), consumptionTwo.getConsumptionKWh());
+        Assertions.assertEquals(result.get(1).getConsumptionKW(), consumptionTwo.getConsumptionKW());
         Assertions.assertEquals(result.get(1).getPrefix(), consumptionTwo.getPrefix());
         Assertions.assertEquals(result.get(1).getChannel(), consumptionTwo.getChannel());
 
-        Assertions.assertEquals(result.get(2).getConsumptionKWh(), consumptionThree.getConsumptionKWh());
+        Assertions.assertEquals(result.get(2).getConsumptionKW(), consumptionThree.getConsumptionKW());
         Assertions.assertEquals(result.get(2).getPrefix(), consumptionThree.getPrefix());
         Assertions.assertEquals(result.get(2).getChannel(), consumptionThree.getChannel());
 
-        Assertions.assertEquals(result.get(3).getConsumptionKWh(), consumptionFour.getConsumptionKWh());
+        Assertions.assertEquals(result.get(3).getConsumptionKW(), consumptionFour.getConsumptionKW());
         Assertions.assertEquals(result.get(3).getPrefix(), consumptionFour.getPrefix());
         Assertions.assertEquals(result.get(3).getChannel(), consumptionFour.getChannel());
 

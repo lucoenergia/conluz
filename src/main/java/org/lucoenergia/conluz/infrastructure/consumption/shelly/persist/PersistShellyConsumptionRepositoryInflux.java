@@ -40,7 +40,7 @@ public class PersistShellyConsumptionRepositoryInflux implements PersistShellyCo
                         .time(consumption.getTimestamp().toEpochMilli(), TimeUnit.MILLISECONDS)
                         .tag(ShellyInstantConsumptionPoint.PREFIX, consumption.getPrefix())
                         .tag(ShellyInstantConsumptionPoint.CHANNEL, consumption.getChannel())
-                        .addField(ShellyInstantConsumptionPoint.CONSUMPTION_KWH, consumption.getConsumptionKWh())
+                        .addField(ShellyInstantConsumptionPoint.CONSUMPTION_KW, consumption.getConsumptionKW())
                         .build();
 
                 batchPoints.point(point);
@@ -63,7 +63,7 @@ public class PersistShellyConsumptionRepositoryInflux implements PersistShellyCo
                 Point point = Point.measurement(ShellyConfig.CONSUMPTION_KWH_MEASUREMENT)
                         .time(consumption.getTimestamp().toEpochMilli(), TimeUnit.MILLISECONDS)
                         .tag(ShellyInstantConsumptionPoint.PREFIX, consumption.getPrefix())
-                        .addField(ShellyInstantConsumptionPoint.CONSUMPTION_KWH, consumption.getConsumptionKWh())
+                        .addField(ShellyInstantConsumptionPoint.CONSUMPTION_KW, consumption.getConsumptionKWh())
                         .build();
 
                 batchPoints.point(point);

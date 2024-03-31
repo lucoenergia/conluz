@@ -10,7 +10,7 @@ public class ShellyInstantConsumptionPoint {
 
     public static final String PREFIX = "prefix";
     public static final String CHANNEL = "channel";
-    public static final String CONSUMPTION_KWH = "consumption_kwh";
+    public static final String CONSUMPTION_KW = "consumption_kw";
 
     @Column(name = "time")
     private Instant time;
@@ -18,8 +18,8 @@ public class ShellyInstantConsumptionPoint {
     private String prefix;
     @Column(name = CHANNEL, tag = true)
     private String channel;
-    @Column(name = CONSUMPTION_KWH)
-    private Double consumptionKWh;
+    @Column(name = CONSUMPTION_KW)
+    private Double consumptionKW;
 
     public Instant getTime() {
         return time;
@@ -33,7 +33,7 @@ public class ShellyInstantConsumptionPoint {
         return channel;
     }
 
-    public Double getConsumptionKWh() {
-        return consumptionKWh;
+    public Double getConsumptionKW() {
+        return consumptionKW;
     }
 }

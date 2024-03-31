@@ -35,7 +35,7 @@ class ShellyConsumptionMessageProcessorTest {
 
         ShellyInstantConsumption capturedArgument = argumentCaptor.getValue();
         Assertions.assertNotNull(capturedArgument.getTimestamp());
-        Assertions.assertEquals(0.001, capturedArgument.getConsumptionKWh());
+        Assertions.assertEquals(0.001, capturedArgument.getConsumptionKW());
         Assertions.assertEquals("1", capturedArgument.getChannel());
         Assertions.assertEquals("123asdf654asdf8/foo", capturedArgument.getPrefix());
     }
