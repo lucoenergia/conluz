@@ -15,6 +15,6 @@ public class PriceByHourInfluxMapper extends BaseMapper<PriceByHourPoint, PriceB
     }
 
     public PriceByHour map(PriceByHourPoint point) {
-        return new PriceByHour(point.getPrice1(), converter.convert(point.getTime()));
+        return new PriceByHour(point.getPrice(), converter.convert(point.getTime()));
     }
 }

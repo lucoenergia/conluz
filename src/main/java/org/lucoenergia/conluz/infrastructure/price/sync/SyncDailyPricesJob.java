@@ -1,6 +1,6 @@
-package org.lucoenergia.conluz.infrastructure.price.omie.sync;
+package org.lucoenergia.conluz.infrastructure.price.sync;
 
-import org.lucoenergia.conluz.domain.price.SyncDailyPricesRepository;
+import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +15,11 @@ public class SyncDailyPricesJob {
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncDailyPricesJob.class);
 
     private final TimeConfiguration timeConfiguration;
-    private final SyncDailyPricesRepository syncDailyPricesRepository;
+    private final SyncDailyPricesService syncDailyPricesService;
 
-    public SyncDailyPricesJob(TimeConfiguration timeConfiguration, SyncDailyPricesRepository syncDailyPricesRepository) {
+    public SyncDailyPricesJob(TimeConfiguration timeConfiguration, SyncDailyPricesService syncDailyPricesService) {
         this.timeConfiguration = timeConfiguration;
-        this.syncDailyPricesRepository = syncDailyPricesRepository;
+        this.syncDailyPricesService = syncDailyPricesService;
     }
 
     /**
@@ -37,7 +37,7 @@ public class SyncDailyPricesJob {
 
         OffsetDateTime today = timeConfiguration.now();
 
-        syncDailyPricesRepository.syncDailyPrices(today);
+        syncDailyPricesService.syncDailyPrices(today);
 
         LOGGER.info("...finished OMIE prices daily retrieval.");
     }

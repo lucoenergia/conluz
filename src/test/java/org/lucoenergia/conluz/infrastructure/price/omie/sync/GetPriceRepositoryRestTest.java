@@ -1,13 +1,16 @@
 package org.lucoenergia.conluz.infrastructure.price.omie.sync;
 
-import okhttp3.*;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
+import org.lucoenergia.conluz.infrastructure.price.omie.get.GetPriceRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
-import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -21,14 +24,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
-class SyncDailyPricesRepositoryRestTest extends BaseIntegrationTest {
+class GetPriceRepositoryRestTest extends BaseIntegrationTest {
 
     public static final String OMIE_PRICES = "src/test/resources/fixtures/price/omie_prices.txt";
 
-    private SyncDailyPricesRepositoryRest repository;
+    private GetPriceRepositoryRest repository;
     @Autowired
     private TimeConfiguration timeConfiguration;
 
@@ -40,7 +43,7 @@ class SyncDailyPricesRepositoryRestTest extends BaseIntegrationTest {
 
     @BeforeEach
     void setup() {
-        repository = new SyncDailyPricesRepositoryRest(conluzRestClientBuilder, timeConfiguration);
+        repository = new GetPriceRepositoryRest(conluzRestClientBuilder, timeConfiguration);
     }
 
     @Test
@@ -65,7 +68,7 @@ class SyncDailyPricesRepositoryRestTest extends BaseIntegrationTest {
         when(responseBody.string()).thenReturn(bodyString);
 
         // Act
-        List<PriceByHour> prices = repository.syncDailyPrices(dateTime);
+        List<PriceByHour> prices = repository.getPricesByDay(dateTime);
 
         // Assert
         assertEquals(24, prices.size());

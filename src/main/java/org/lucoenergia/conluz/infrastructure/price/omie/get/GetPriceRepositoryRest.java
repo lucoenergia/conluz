@@ -1,20 +1,21 @@
-package org.lucoenergia.conluz.infrastructure.price.omie.sync;
+package org.lucoenergia.conluz.infrastructure.price.omie.get;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.commons.lang3.NotImplementedException;
+import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
-import org.lucoenergia.conluz.domain.price.SyncDailyPricesRepository;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -25,21 +26,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
-public class SyncDailyPricesRepositoryRest implements SyncDailyPricesRepository {
+@Qualifier(value = "getPriceRepositoryRest")
+public class GetPriceRepositoryRest implements GetPriceRepository {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SyncDailyPricesRepositoryRest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GetPriceRepositoryRest.class);
     private static final String OMIE_URL = "https://www.omie.es/es/file-download";
 
     private final ConluzRestClientBuilder conluzRestClientBuilder;
     private final TimeConfiguration timeConfiguration;
 
-    public SyncDailyPricesRepositoryRest(ConluzRestClientBuilder conluzRestClientBuilder, TimeConfiguration timeConfiguration) {
+    public GetPriceRepositoryRest(ConluzRestClientBuilder conluzRestClientBuilder, TimeConfiguration timeConfiguration) {
         this.conluzRestClientBuilder = conluzRestClientBuilder;
         this.timeConfiguration = timeConfiguration;
     }
 
     @Override
-    public List<PriceByHour> syncDailyPrices(OffsetDateTime day) {
+    public List<PriceByHour> getPricesByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public List<PriceByHour> getPricesByDay(OffsetDateTime day) {
 
         final String dayFormatted = formatDay(day);
 

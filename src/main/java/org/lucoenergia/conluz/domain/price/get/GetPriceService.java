@@ -1,5 +1,6 @@
-package org.lucoenergia.conluz.domain.price;
+package org.lucoenergia.conluz.domain.price.get;
 
+import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
