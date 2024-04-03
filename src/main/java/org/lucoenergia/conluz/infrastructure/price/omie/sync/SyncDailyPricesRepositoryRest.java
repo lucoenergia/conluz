@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -127,9 +128,12 @@ public class SyncDailyPricesRepositoryRest implements SyncDailyPricesRepository 
                 // Convert LocalDateTime to OffsetDateTime
                 final OffsetDateTime offsetDateTime = convertToOffsetDateTime(dateTime, timeConfiguration.getZoneId());
 
-                final double price = Double.parseDouble(fields[4]);
+                // We divide the value by 1000 because the price comes in MWh and we use kWh
+                double priceKwh = Double.parseDouble(fields[4]) / 1000;
+                // Format number to have exactly 6 decimals
+                priceKwh = Math.floor(priceKwh * 1e6) / 1e6;
 
-                resultList.add(new PriceByHour(price, offsetDateTime));
+                resultList.add(new PriceByHour(priceKwh, offsetDateTime));
             }
         }
         return resultList;
