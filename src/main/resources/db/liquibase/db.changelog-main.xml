@@ -8,4 +8,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/init.xml" relativeToChangelogFile="true" />
     <include file="changelogs/add_supplies_fields.xml" relativeToChangelogFile="true" />
     <include file="changelogs/add_supplies_shelly_fields.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/create_huawei_config_table.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>
