@@ -10,7 +10,7 @@ import java.time.Instant;
 @Measurement(name = OmieConfig.PRICES_KWH_MEASUREMENT)
 public class PriceByHourPoint {
 
-    public static final String PRICE = "price";
+    public static final String PRICE = "price1";
 
     @Column(name = "time")
     private Instant time;
