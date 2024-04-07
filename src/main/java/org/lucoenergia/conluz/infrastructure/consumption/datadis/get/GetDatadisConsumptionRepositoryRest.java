@@ -55,7 +55,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
         final String monthDate = datadisDateTimeConverter.convertFromMonthAndYear(month, year);
 
-        final String authToken = datadisAuthorizer.getAuthTokenWithBearerFormat();
+        final String authToken = datadisAuthorizer.getAuthBearerToken();
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 

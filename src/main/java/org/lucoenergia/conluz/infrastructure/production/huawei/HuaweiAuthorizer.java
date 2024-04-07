@@ -1,12 +1,15 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei;
 
 import okhttp3.*;
+import org.lucoenergia.conluz.infrastructure.shared.security.auth.Authorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.Optional;
 
-public class HuaweiAuthorizer {
+@Component
+public class HuaweiAuthorizer implements Authorizer {
 
     private static final String URL = HuaweiConfig.BASE_URL + "/login";
     private static final String BODY_PARAM_USERNAME = "userName";
@@ -21,6 +24,7 @@ public class HuaweiAuthorizer {
         this.huaweiConfigRepository = huaweiConfigRepository;
     }
 
+    @Override
     public String getAuthToken() {
         Optional<HuaweiConfigEntity> optionalConfig = huaweiConfigRepository.findFirstByOrderByIdAsc();
         if (optionalConfig.isEmpty()) {
