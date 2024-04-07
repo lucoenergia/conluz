@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production;
+package org.lucoenergia.conluz.infrastructure.production.get;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
+import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;

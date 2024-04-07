@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production;
+package org.lucoenergia.conluz.infrastructure.production.get;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -7,38 +7,41 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.production.GetProductionService;
-import org.lucoenergia.conluz.domain.production.InstantProduction;
+import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/production")
-public class GetInstantProductionController {
+@RequestMapping("/api/v1/production/monthly")
+public class GetMonthlyProductionController {
 
     private final GetProductionService getProductionService;
 
-    public GetInstantProductionController(GetProductionService getProductionService) {
+    public GetMonthlyProductionController(GetProductionService getProductionService) {
         this.getProductionService = getProductionService;
     }
 
     @GetMapping
     @Operation(
-            summary = "Delivers real-time energy production details for a specific power plant supply.",
-            description = "This endpoint offers real-time insights into the instantaneous energy production of a designated power plant supply, identified by its unique supply ID. Clients must authenticate using an authentication token. Upon a successful request, the server responds with an HTTP status code of 200, furnishing up-to-the-moment production metrics for the specified supply. In cases of errors or invalid parameters, the server issues an appropriate error status code accompanied by descriptive messages. This endpoint proves invaluable for immediate monitoring and analysis of energy output, enabling timely decision-making and performance evaluation for the designated power plant supply.",
+            summary = "Retrieves monthly energy production data for a specified power plant supply within a given date interval.",
+            description = "This endpoint enables users to retrieve monthly energy production data from a specific power plant supply, identified by its unique supply ID, within a specified date interval. Clients can include query parameters to define the start and end dates, providing flexibility in customizing the data retrieval. Proper authentication, through an authentication token, is required for secure access. A successful request returns an HTTP status code of 200, delivering a dataset that includes monthly energy production metrics for each day within the specified interval for the specified power plant supply. In cases of errors or invalid parameters, the server responds with an appropriate error status code accompanied by a descriptive message. This endpoint is valuable for monitoring and analyzing the monthly energy output of a specific power plant supply, facilitating performance assessment and optimization based on the provided date range.",
             tags = ApiTag.PRODUCTION,
-            operationId = "getInstantProduction"
+            operationId = "getMonthlyProduction"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -58,10 +61,15 @@ public class GetInstantProductionController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public InstantProduction getInstantProduction(@RequestParam(required = false) UUID supplyId) {
+    public List<ProductionByTime> getMonthlyProduction(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
+            @RequestParam(required = false) UUID supplyId) {
+
         if (Objects.isNull(supplyId)) {
-            return getProductionService.getInstantProduction();
+            return getProductionService.getMonthlyProductionByRangeOfDates(startDate, endDate);
         }
-        return getProductionService.getInstantProductionBySupply(SupplyId.of(supplyId));
+        return getProductionService.getMonthlyProductionByRangeOfDatesAndSupply(startDate, endDate,
+                SupplyId.of(supplyId));
     }
 }

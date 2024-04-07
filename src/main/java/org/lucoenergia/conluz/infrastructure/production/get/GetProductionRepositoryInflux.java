@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production;
+package org.lucoenergia.conluz.infrastructure.production.get;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
@@ -7,6 +7,7 @@ import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.production.GetProductionRepository;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
+import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDuration;

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production;
+package org.lucoenergia.conluz.infrastructure.production.get;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -27,21 +27,21 @@ import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/production/hourly")
-public class GetHourlyProductionController {
+@RequestMapping("/api/v1/production/yearly")
+public class GetYearlyProductionController {
 
     private final GetProductionService getProductionService;
 
-    public GetHourlyProductionController(GetProductionService getProductionService) {
+    public GetYearlyProductionController(GetProductionService getProductionService) {
         this.getProductionService = getProductionService;
     }
 
     @GetMapping
     @Operation(
-            summary = "Retrieves hourly energy production data for a specified power plant supply within a given date interval.",
-            description = "This endpoint enables users to retrieve hourly energy production data from a specific power plant supply, identified by its unique supply ID, within a specified date interval. Clients can include query parameters to define the start and end dates, providing flexibility in customizing the data retrieval. Proper authentication, through an authentication token, is required for secure access. A successful request returns an HTTP status code of 200, delivering a dataset that includes hourly energy production metrics for each day within the specified interval for the specified power plant supply. In cases of errors or invalid parameters, the server responds with an appropriate error status code accompanied by a descriptive message. This endpoint is valuable for monitoring and analyzing the hourly energy output of a specific power plant supply, facilitating performance assessment and optimization based on the provided date range.",
+            summary = "Retrieves yearly energy production data for a specified power plant supply within a given date interval.",
+            description = "This endpoint enables users to retrieve yearly energy production data from a specific power plant supply, identified by its unique supply ID, within a specified date interval. Clients can include query parameters to define the start and end dates, providing flexibility in customizing the data retrieval. Proper authentication, through an authentication token, is required for secure access. A successful request returns an HTTP status code of 200, delivering a dataset that includes yearly energy production metrics for each day within the specified interval for the specified power plant supply. In cases of errors or invalid parameters, the server responds with an appropriate error status code accompanied by a descriptive message. This endpoint is valuable for monitoring and analyzing the yearly energy output of a specific power plant supply, facilitating performance assessment and optimization based on the provided date range.",
             tags = ApiTag.PRODUCTION,
-            operationId = "getHourlyProduction"
+            operationId = "getYearlyProduction"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -61,15 +61,15 @@ public class GetHourlyProductionController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public List<ProductionByTime> getHourlyProduction(
+    public List<ProductionByTime> getYearlyProduction(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
             @RequestParam(required = false) UUID supplyId) {
 
         if (Objects.isNull(supplyId)) {
-            return getProductionService.getHourlyProductionByRangeOfDates(startDate, endDate);
+            return getProductionService.getYearlyProductionByRangeOfDates(startDate, endDate);
         }
-        return getProductionService.getHourlyProductionByRangeOfDatesAndSupply(startDate, endDate,
+        return getProductionService.getYearlyProductionByRangeOfDatesAndSupply(startDate, endDate,
                 SupplyId.of(supplyId));
     }
 }

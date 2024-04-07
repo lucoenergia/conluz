@@ -1,7 +1,8 @@
-package org.lucoenergia.conluz.infrastructure.production;
+package org.lucoenergia.conluz.infrastructure.production.get;
 
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
+import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.time.InstantToOffsetDateTimeConverter;
 import org.springframework.stereotype.Component;
 

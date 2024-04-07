@@ -1,10 +1,11 @@
-package org.lucoenergia.conluz.infrastructure.production;
+package org.lucoenergia.conluz.infrastructure.production.get;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.production.GetProductionService;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -26,21 +27,21 @@ import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/production/daily")
-public class GetDailyProductionController {
+@RequestMapping("/api/v1/production/hourly")
+public class GetHourlyProductionController {
 
     private final GetProductionService getProductionService;
 
-    public GetDailyProductionController(GetProductionService getProductionService) {
+    public GetHourlyProductionController(GetProductionService getProductionService) {
         this.getProductionService = getProductionService;
     }
 
     @GetMapping
     @Operation(
-            summary = "Retrieves daily energy production data for a specified power plant supply within a given date interval.",
-            description = "This endpoint enables users to retrieve daily energy production data from a specific power plant supply, identified by its unique supply ID, within a specified date interval. Clients can include query parameters to define the start and end dates, providing flexibility in customizing the data retrieval. Proper authentication, through an authentication token, is required for secure access. A successful request returns an HTTP status code of 200, delivering a dataset that includes daily energy production metrics for each day within the specified interval for the specified power plant supply. In cases of errors or invalid parameters, the server responds with an appropriate error status code accompanied by a descriptive message. This endpoint is valuable for monitoring and analyzing the daily energy output of a specific power plant supply, facilitating performance assessment and optimization based on the provided date range.",
+            summary = "Retrieves hourly energy production data for a specified power plant supply within a given date interval.",
+            description = "This endpoint enables users to retrieve hourly energy production data from a specific power plant supply, identified by its unique supply ID, within a specified date interval. Clients can include query parameters to define the start and end dates, providing flexibility in customizing the data retrieval. Proper authentication, through an authentication token, is required for secure access. A successful request returns an HTTP status code of 200, delivering a dataset that includes hourly energy production metrics for each day within the specified interval for the specified power plant supply. In cases of errors or invalid parameters, the server responds with an appropriate error status code accompanied by a descriptive message. This endpoint is valuable for monitoring and analyzing the hourly energy output of a specific power plant supply, facilitating performance assessment and optimization based on the provided date range.",
             tags = ApiTag.PRODUCTION,
-            operationId = "getDailyProduction"
+            operationId = "getHourlyProduction"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -60,15 +61,15 @@ public class GetDailyProductionController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public List<ProductionByTime> getDailyProduction(
+    public List<ProductionByTime> getHourlyProduction(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
             @RequestParam(required = false) UUID supplyId) {
 
         if (Objects.isNull(supplyId)) {
-            return getProductionService.getDailyProductionByRangeOfDates(startDate, endDate);
+            return getProductionService.getHourlyProductionByRangeOfDates(startDate, endDate);
         }
-        return getProductionService.getDailyProductionByRangeOfDatesAndSupply(startDate, endDate,
+        return getProductionService.getHourlyProductionByRangeOfDatesAndSupply(startDate, endDate,
                 SupplyId.of(supplyId));
     }
 }
