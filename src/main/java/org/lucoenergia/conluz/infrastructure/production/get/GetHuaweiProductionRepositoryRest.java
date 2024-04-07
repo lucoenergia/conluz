@@ -68,10 +68,10 @@ public class GetHuaweiProductionRepositoryRest {
 
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
-
-                String jsonData = response.body().string();
-
-                result.addAll(processBody(jsonData));
+                if (response.body() != null) {
+                    String jsonData = response.body().string();
+                    result.addAll(processBody(jsonData));
+                }
             } else {
                 LOGGER.error("Unable to get real-time production from stations {}. Code {}, message: {}",
                         stationCodes, response.code(),
