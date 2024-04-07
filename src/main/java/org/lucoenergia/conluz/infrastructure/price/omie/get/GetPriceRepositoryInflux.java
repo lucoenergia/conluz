@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.infrastructure.price.PriceByHourInfluxMapper;
 import org.lucoenergia.conluz.infrastructure.price.PriceByHourPoint;
+import org.lucoenergia.conluz.infrastructure.price.omie.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -37,7 +38,8 @@ public class GetPriceRepositoryInflux implements GetPriceRepository {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             Query query = new Query(String.format(
-                    "SELECT * FROM \"omie-daily-prices\" WHERE time >= '%s' AND time <= '%s'",
+                    "SELECT * FROM %s WHERE time >= '%s' AND time <= '%s'",
+                    OmieConfig.PRICES_KWH_MEASUREMENT,
                     dateConverter.convert(startDate),
                     dateConverter.convert(endDate)));
 
