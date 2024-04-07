@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.price;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
+import org.lucoenergia.conluz.infrastructure.price.omie.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxLoader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class EnergyPricesInfluxLoader implements InfluxLoader {
 
-    private static final String MEASUREMENT = "omie-daily-prices";
     private static final String FIELD_PRICE1 = "price1";
     private static final String FIELD_PRICE2 = "price2";
     /**
@@ -64,7 +64,7 @@ public class EnergyPricesInfluxLoader implements InfluxLoader {
 
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
-            PRICES.stream().forEach(point -> batchPoints.point(Point.measurement(MEASUREMENT)
+            PRICES.stream().forEach(point -> batchPoints.point(Point.measurement(OmieConfig.PRICES_KWH_MEASUREMENT)
                     .time(((Long) ((List) point).get(0)), TimeUnit.NANOSECONDS)
                     .addField(FIELD_PRICE1, ((Double) ((List) point).get(1)))
                     .addField(FIELD_PRICE2, ((Double) ((List) point).get(2)))

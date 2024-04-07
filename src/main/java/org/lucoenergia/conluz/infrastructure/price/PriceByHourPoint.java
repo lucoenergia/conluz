@@ -3,20 +3,20 @@ package org.lucoenergia.conluz.infrastructure.price;
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 import org.influxdb.impl.InfluxDBResultMapper;
+import org.lucoenergia.conluz.infrastructure.price.omie.OmieConfig;
 
 import java.time.Instant;
 
-@Measurement(name = "omie-daily-prices")
+@Measurement(name = OmieConfig.PRICES_KWH_MEASUREMENT)
 public class PriceByHourPoint {
+
+    public static final String PRICE = "price1";
 
     @Column(name = "time")
     private Instant time;
 
-    @Column(name = "price1")
-    private Double price1;
-
-    @Column(name = "price2")
-    private Double price2;
+    @Column(name = PRICE)
+    private Double price;
 
     /**
      * Required by {@link InfluxDBResultMapper}
@@ -24,21 +24,16 @@ public class PriceByHourPoint {
     public PriceByHourPoint() {
     }
 
-    public PriceByHourPoint(Instant time, Double price1, Double price2) {
+    public PriceByHourPoint(Instant time, Double price) {
         this.time = time;
-        this.price1 = price1;
-        this.price2 = price2;
+        this.price = price;
     }
 
     public Instant getTime() {
         return time;
     }
 
-    public Double getPrice1() {
-        return price1;
-    }
-
-    public Double getPrice2() {
-        return price2;
+    public Double getPrice() {
+        return price;
     }
 }

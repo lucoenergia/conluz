@@ -1,19 +1,25 @@
-package org.lucoenergia.conluz.infrastructure.price;
+package org.lucoenergia.conluz.infrastructure.price.omie.get;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
-import org.lucoenergia.conluz.domain.price.GetPriceRepository;
+import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
+import org.lucoenergia.conluz.infrastructure.price.PriceByHourInfluxMapper;
+import org.lucoenergia.conluz.infrastructure.price.PriceByHourPoint;
+import org.lucoenergia.conluz.infrastructure.price.omie.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 
 @Repository
+@Qualifier(value = "getPriceRepositoryInflux")
 public class GetPriceRepositoryInflux implements GetPriceRepository {
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
@@ -32,7 +38,8 @@ public class GetPriceRepositoryInflux implements GetPriceRepository {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             Query query = new Query(String.format(
-                    "SELECT * FROM \"omie-daily-prices\" WHERE time >= '%s' AND time <= '%s'",
+                    "SELECT * FROM %s WHERE time >= '%s' AND time <= '%s'",
+                    OmieConfig.PRICES_KWH_MEASUREMENT,
                     dateConverter.convert(startDate),
                     dateConverter.convert(endDate)));
 
@@ -44,5 +51,10 @@ public class GetPriceRepositoryInflux implements GetPriceRepository {
 
             return priceByHourInfluxMapper.mapList(measurementPoints);
         }
+    }
+
+    @Override
+    public List<PriceByHour> getPricesByDay(OffsetDateTime startDate) {
+        throw new NotImplementedException();
     }
 }
