@@ -26,7 +26,7 @@ public class DatadisAuthorizer {
     public String getAuthToken() {
         Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findFirstByOrderByIdAsc();
         if (optionalConfig.isEmpty()) {
-            throw new DatadisException("No Datadis configuration found");
+            throw new DatadisException("Datadis configuration not found");
         }
         DatadisConfigEntity config = optionalConfig.get();
         String username = config.getUsername();
