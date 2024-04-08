@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 
 class GetHuaweiProductionRepositoryRestTest {
 
-
     private final HuaweiAuthorizer huaweiAuthorizer = Mockito.mock(HuaweiAuthorizer.class);
 
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
@@ -36,7 +35,7 @@ class GetHuaweiProductionRepositoryRestTest {
     }
 
     @Test
-    void shouldReturnEmptyListWhenStationCodesIsEmpty() {
+    void getRealTimeProduction_shouldReturnEmptyListWhenStationCodesIsEmpty() {
         // Given
         List<String> stationCodes = List.of();
 
@@ -48,7 +47,7 @@ class GetHuaweiProductionRepositoryRestTest {
     }
 
     @Test
-    void shouldReturnProductionWhenStationCodesIsNotEmpty() throws IOException {
+    void getRealTimeProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() throws IOException {
         // Given
         List<String> stationCodes = Arrays.asList("BA4372D08E014822AB065017416F254C", "5D02E8B40AD342159AC8D8A2BCD4FAB5");
 
@@ -89,7 +88,7 @@ class GetHuaweiProductionRepositoryRestTest {
                 """;
 
 
-        when(huaweiAuthorizer.getAuthBearerToken()).thenReturn("TOKEN");
+        when(huaweiAuthorizer.getAuthToken()).thenReturn("TOKEN");
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         when(conluzRestClientBuilder.build()).thenReturn(client);

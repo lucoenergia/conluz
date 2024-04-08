@@ -3,11 +3,33 @@ package org.lucoenergia.conluz.infrastructure.production.huawei;
 public class RealTimeProduction {
 
     private String stationCode;
+    /**
+     * Plant health status.
+     * The following plant health states are supported:
+     * 1: disconnected
+     * 2: faulty
+     * 3: healthy
+     */
     private int realHealthState;
+    /**
+     * Yield today (kWh)
+     */
     private double dayPower;
+    /**
+     * Total yield (kWh)
+     */
     private double totalPower;
+    /**
+     * Revenue today, in the currency specified in the management system.
+     */
     private double dayIncome;
+    /**
+     * Yield this month (kWh)
+     */
     private double monthPower;
+    /**
+     * Total revenue, in the currency specified in the management system.
+     */
     private double totalIncome;
 
     public String getStationCode() {

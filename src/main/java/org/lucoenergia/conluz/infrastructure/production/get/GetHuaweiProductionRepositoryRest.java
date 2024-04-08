@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiException;
 import org.lucoenergia.conluz.infrastructure.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
@@ -19,7 +21,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class GetHuaweiProductionRepositoryRest {
@@ -47,7 +51,7 @@ public class GetHuaweiProductionRepositoryRest {
             return result;
         }
 
-        final String authToken = huaweiAuthorizer.getAuthBearerToken();
+        final String authToken = huaweiAuthorizer.getAuthToken();
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
@@ -55,15 +59,26 @@ public class GetHuaweiProductionRepositoryRest {
 
         // Create the complete URL with the query parameter
         final String url = UriComponentsBuilder.fromUriString(URL)
-                .queryParam(PARAM_STATION_CODES, String.join(",", stationCodes))
                 .build()
                 .toUriString();
+
+        Map<String, Object> map = new HashMap<>();
+        map.put(PARAM_STATION_CODES, String.join(",", stationCodes));
+        RequestBody requestBody = null;
+        try {
+            requestBody = RequestBody.create(
+                    objectMapper.writeValueAsString(map),
+                    okhttp3.MediaType.parse(String.join(";", List.of(MediaType.APPLICATION_JSON_VALUE, "charset=UTF-8")))
+            );
+        } catch (JsonProcessingException e) {
+            throw new HuaweiException("Error generating body to get real-time production", e);
+        }
 
         final Request request = new Request.Builder()
                 .url(url)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header(HttpHeaders.AUTHORIZATION, authToken)
-                .get()
+                .header(HuaweiAuthorizer.TOKEN_HEADER, authToken)
+                .post(requestBody)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
