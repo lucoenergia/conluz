@@ -1,4 +1,7 @@
-package org.lucoenergia.conluz.domain.production;
+package org.lucoenergia.conluz.domain.production.get;
+
+import org.lucoenergia.conluz.domain.production.InstantProduction;
+import org.lucoenergia.conluz.domain.production.ProductionByTime;
 
 import java.time.OffsetDateTime;
 import java.util.List;

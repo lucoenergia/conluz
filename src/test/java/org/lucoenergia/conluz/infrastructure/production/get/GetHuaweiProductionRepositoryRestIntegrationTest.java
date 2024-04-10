@@ -1,10 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.production.get;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigEntity;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigRepository;
-import org.lucoenergia.conluz.infrastructure.production.huawei.RealTimeProduction;
+import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;

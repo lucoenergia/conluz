@@ -1,8 +1,10 @@
-package org.lucoenergia.conluz.domain.production;
+package org.lucoenergia.conluz.domain.production.get;
 
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.production.InstantProduction;
+import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.stereotype.Service;
 

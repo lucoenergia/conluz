@@ -32,7 +32,7 @@ public class SyncDailyPricesJob {
      * The sixth and final field is for the day of the week. A '*' means "every day of the week".
      */
     @Scheduled(cron = "0 6 * * * *")
-    public void everyFiveSeconds() {
+    public void run() {
         LOGGER.info("OMIE prices daily retrieval started...");
 
         OffsetDateTime today = timeConfiguration.now();
@@ -41,5 +41,4 @@ public class SyncDailyPricesJob {
 
         LOGGER.info("...finished OMIE prices daily retrieval.");
     }
-
 }

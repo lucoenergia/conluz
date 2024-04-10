@@ -8,7 +8,7 @@ import okhttp3.ResponseBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
-import org.lucoenergia.conluz.infrastructure.production.huawei.RealTimeProduction;
+import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 

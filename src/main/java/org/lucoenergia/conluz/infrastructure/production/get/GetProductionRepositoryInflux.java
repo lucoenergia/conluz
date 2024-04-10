@@ -4,7 +4,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
-import org.lucoenergia.conluz.domain.production.GetProductionRepository;
+import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;

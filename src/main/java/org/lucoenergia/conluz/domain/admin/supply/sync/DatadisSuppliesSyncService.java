@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
-import org.lucoenergia.conluz.infrastructure.shared.time.StringToLocalDateConverter;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,13 +25,15 @@ public class DatadisSuppliesSyncService {
     private final UpdateSupplyRepository updateSupplyRepository;
     private final GetSupplyRepositoryDatadis getSupplyRepositoryDatadis;
     private final GetUserRepository getUserRepository;
+    private final DateConverter dateConverter;
 
     public DatadisSuppliesSyncService(GetSupplyRepository getSupplyRepository, UpdateSupplyRepository updateSupplyRepository,
-                                      GetSupplyRepositoryDatadis getSupplyRepositoryDatadis, GetUserRepository getUserRepository) {
+                                      GetSupplyRepositoryDatadis getSupplyRepositoryDatadis, GetUserRepository getUserRepository, DateConverter dateConverter) {
         this.getSupplyRepository = getSupplyRepository;
         this.updateSupplyRepository = updateSupplyRepository;
         this.getSupplyRepositoryDatadis = getSupplyRepositoryDatadis;
         this.getUserRepository = getUserRepository;
+        this.dateConverter = dateConverter;
     }
 
     /**
@@ -53,7 +55,7 @@ public class DatadisSuppliesSyncService {
                     supply.setDistributor(datadisSupply.getDistributor());
                     supply.setPointType(datadisSupply.getPointType());
                     supply.setValidDateFrom(datadisSupply.getValidDateFrom() != null ?
-                            StringToLocalDateConverter.convert(datadisSupply.getValidDateFrom()) :
+                            dateConverter.convertStringToLocalDate(datadisSupply.getValidDateFrom()) :
                             null);
 
                     updateSupplyRepository.update(supply);

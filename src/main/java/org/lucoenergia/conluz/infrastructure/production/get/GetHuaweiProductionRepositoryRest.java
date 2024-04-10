@@ -7,10 +7,12 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.lucoenergia.conluz.domain.production.EnergyStation;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
-import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiException;
-import org.lucoenergia.conluz.infrastructure.production.huawei.RealTimeProduction;
+import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Repository
 public class GetHuaweiProductionRepositoryRest {
@@ -36,26 +39,32 @@ public class GetHuaweiProductionRepositoryRest {
     private final ObjectMapper objectMapper;
     private final HuaweiAuthorizer huaweiAuthorizer;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
+    private final DateConverter dateConverter;
 
-    public GetHuaweiProductionRepositoryRest(ObjectMapper objectMapper, HuaweiAuthorizer huaweiAuthorizer, ConluzRestClientBuilder conluzRestClientBuilder) {
+    public GetHuaweiProductionRepositoryRest(ObjectMapper objectMapper, HuaweiAuthorizer huaweiAuthorizer, ConluzRestClientBuilder conluzRestClientBuilder, DateConverter dateConverter) {
         this.objectMapper = objectMapper;
         this.huaweiAuthorizer = huaweiAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
+        this.dateConverter = dateConverter;
     }
 
-    public List<RealTimeProduction> getRealTimeProduction(List<String> stationCodes) {
+    public List<RealTimeProduction> getRealTimeProduction(List<EnergyStation> stations) {
 
         List<RealTimeProduction> result = new ArrayList<>();
 
-        if (stationCodes == null || stationCodes.isEmpty()) {
+        if (stations == null || stations.isEmpty()) {
             return result;
         }
+
+        String stationCodes = stations.stream()
+                .map(EnergyStation::getCode)
+                .collect(Collectors.joining(", "));
 
         final String authToken = huaweiAuthorizer.getAuthToken();
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
-        LOGGER.info("Getting real time production from stations {} .", stationCodes);
+        LOGGER.info("Getting real time production from stations {} .", stations);
 
         // Create the complete URL with the query parameter
         final String url = UriComponentsBuilder.fromUriString(URL)
@@ -63,7 +72,7 @@ public class GetHuaweiProductionRepositoryRest {
                 .toUriString();
 
         Map<String, Object> map = new HashMap<>();
-        map.put(PARAM_STATION_CODES, String.join(",", stationCodes));
+        map.put(PARAM_STATION_CODES, stationCodes);
         RequestBody requestBody = null;
         try {
             requestBody = RequestBody.create(
@@ -89,11 +98,11 @@ public class GetHuaweiProductionRepositoryRest {
                 }
             } else {
                 LOGGER.error("Unable to get real-time production from stations {}. Code {}, message: {}",
-                        stationCodes, response.code(),
+                        stations, response.code(),
                         response.body() != null ? response.body().string() : response.message());
             }
         } catch (IOException e) {
-            LOGGER.error(String.format("Unable to get real-time production from stations %s", stationCodes), e);
+            LOGGER.error(String.format("Unable to get real-time production from stations %s", stations), e);
         }
 
         LOGGER.info("Stations processed.");
@@ -112,14 +121,18 @@ public class GetHuaweiProductionRepositoryRest {
 
                 JsonNode dataItemMap = node.get("dataItemMap");
 
-                RealTimeProduction item = new RealTimeProduction();
-                item.setStationCode(node.get("stationCode").asText());
-                item.setDayIncome(dataItemMap.get("day_income").asDouble());
-                item.setDayPower(dataItemMap.get("day_power").asDouble());
-                item.setMonthPower(dataItemMap.get("month_power").asDouble());
-                item.setTotalPower(dataItemMap.get("total_power").asDouble());
-                item.setTotalIncome(dataItemMap.get("total_income").asDouble());
-                item.setRealHealthState(dataItemMap.get("real_health_state").asInt());
+                long currentTime = dataNode.path("params").path("currentTime").asLong();
+
+                RealTimeProduction item = new RealTimeProduction.Builder()
+                        .setTime(dateConverter.convertMillisecondsToOffsetDateTime(currentTime))
+                        .setStationCode(node.get("stationCode").asText())
+                        .setDayIncome(dataItemMap.get("day_income").asDouble())
+                        .setDayPower(dataItemMap.get("day_power").asDouble())
+                        .setMonthPower(dataItemMap.get("month_power").asDouble())
+                        .setTotalPower(dataItemMap.get("total_power").asDouble())
+                        .setTotalIncome(dataItemMap.get("total_income").asDouble())
+                        .setRealHealthState(dataItemMap.get("real_health_state").asInt())
+                        .build();
 
                 dataList.add(item);
             }
