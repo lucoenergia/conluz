@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.EnergyStation;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
+import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiRealTimeProductionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
@@ -23,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-class GetHuaweiProductionRepositoryRestTest {
+class GetHuaweiRealTimeProductionRepositoryRestTest {
 
     private final HuaweiAuthorizer huaweiAuthorizer = Mockito.mock(HuaweiAuthorizer.class);
 
@@ -31,11 +32,11 @@ class GetHuaweiProductionRepositoryRestTest {
 
     private final DateConverter dateConverter = Mockito.mock(DateConverter.class);
 
-    private GetHuaweiProductionRepositoryRest repositoryRest;
+    private GetHuaweiRealTimeProductionRepositoryRest repositoryRest;
 
     @BeforeEach
     public void setUp() {
-        repositoryRest = new GetHuaweiProductionRepositoryRest(new ObjectMapper(), huaweiAuthorizer,
+        repositoryRest = new GetHuaweiRealTimeProductionRepositoryRest(new ObjectMapper(), huaweiAuthorizer,
                 conluzRestClientBuilder, dateConverter);
     }
 

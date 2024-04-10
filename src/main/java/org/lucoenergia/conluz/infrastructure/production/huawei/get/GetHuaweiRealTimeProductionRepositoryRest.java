@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production.get;
+package org.lucoenergia.conluz.infrastructure.production.huawei.get;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,9 +29,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Repository
-public class GetHuaweiProductionRepositoryRest {
+public class GetHuaweiRealTimeProductionRepositoryRest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GetHuaweiProductionRepositoryRest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GetHuaweiRealTimeProductionRepositoryRest.class);
 
     private static final String URL = HuaweiConfig.BASE_URL + "/getStationRealKpi";
     private static final String PARAM_STATION_CODES = "stationCodes";
@@ -41,9 +41,9 @@ public class GetHuaweiProductionRepositoryRest {
     private final ConluzRestClientBuilder conluzRestClientBuilder;
     private final DateConverter dateConverter;
 
-    public GetHuaweiProductionRepositoryRest(ObjectMapper objectMapper, HuaweiAuthorizer huaweiAuthorizer,
-                                             ConluzRestClientBuilder conluzRestClientBuilder,
-                                             DateConverter dateConverter) {
+    public GetHuaweiRealTimeProductionRepositoryRest(ObjectMapper objectMapper, HuaweiAuthorizer huaweiAuthorizer,
+                                                     ConluzRestClientBuilder conluzRestClientBuilder,
+                                                     DateConverter dateConverter) {
         this.objectMapper = objectMapper;
         this.huaweiAuthorizer = huaweiAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
@@ -68,14 +68,14 @@ public class GetHuaweiProductionRepositoryRest {
 
         LOGGER.info("Getting real time production from stations {} .", stations);
 
-        // Create the complete URL with the query parameter
+        // Create the complete URL
         final String url = UriComponentsBuilder.fromUriString(URL)
                 .build()
                 .toUriString();
 
         Map<String, Object> map = new HashMap<>();
         map.put(PARAM_STATION_CODES, stationCodes);
-        RequestBody requestBody = null;
+        RequestBody requestBody;
         try {
             requestBody = RequestBody.create(
                     objectMapper.writeValueAsString(map),

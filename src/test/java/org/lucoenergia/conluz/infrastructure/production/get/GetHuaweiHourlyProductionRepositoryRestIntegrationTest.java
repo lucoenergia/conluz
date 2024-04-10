@@ -3,9 +3,12 @@ package org.lucoenergia.conluz.infrastructure.production.get;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.EnergyStation;
+import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
+import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigEntity;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigRepository;
-import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
+import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiHourlyProductionRepositoryRest;
+import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiRealTimeProductionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,15 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Disabled("This test must be enabled just to do a test with real data")
 @Transactional
-class GetHuaweiProductionRepositoryRestIntegrationTest extends BaseIntegrationTest {
+class GetHuaweiHourlyProductionRepositoryRestIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
-    private GetHuaweiProductionRepositoryRest repository;
+    private GetHuaweiHourlyProductionRepositoryRest repository;
     @Autowired
     private HuaweiConfigRepository huaweiConfigRepository;
 
     @Test
-    void getRealTimeProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() {
+    void getHourlyProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() {
         // Given
         String stationCode = "code";
         List<EnergyStation> stationCodes = List.of(new EnergyStation.Builder().withCode(stationCode).build());
@@ -40,7 +43,7 @@ class GetHuaweiProductionRepositoryRestIntegrationTest extends BaseIntegrationTe
         huaweiConfigRepository.save(huaweiConfigEntity);
 
         // When
-        List<RealTimeProduction> realTimeProductions = repository.getRealTimeProduction(stationCodes);
+        List<HourlyProduction> realTimeProductions = repository.getHourlyProduction(stationCodes);
 
         // Then
         assertEquals(1, realTimeProductions.size());

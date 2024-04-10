@@ -3,9 +3,11 @@ package org.lucoenergia.conluz.domain.production.huawei.sync;
 import org.lucoenergia.conluz.domain.production.EnergyStation;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
+import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.domain.production.huawei.persist.PersistHuaweiProductionRepository;
-import org.lucoenergia.conluz.infrastructure.production.get.GetHuaweiProductionRepositoryRest;
+import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiHourlyProductionRepositoryRest;
+import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiRealTimeProductionRepositoryRest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,14 +16,16 @@ import java.util.List;
 public class SyncHuaweiProductionService {
 
     private final PersistHuaweiProductionRepository persistHuaweiProductionRepository;
-    private final GetHuaweiProductionRepositoryRest getHuaweiProductionRepositoryRest;
+    private final GetHuaweiRealTimeProductionRepositoryRest getHuaweiRealTimeProductionRepositoryRest;
+    private final GetHuaweiHourlyProductionRepositoryRest getHuaweiHourlyProductionRepositoryRest;
     private final GetEnergyStationRepository getEnergyStationRepository;
 
     public SyncHuaweiProductionService(PersistHuaweiProductionRepository persistHuaweiProductionRepository,
-                                       GetHuaweiProductionRepositoryRest getHuaweiProductionRepositoryRest,
+                                       GetHuaweiRealTimeProductionRepositoryRest getHuaweiRealTimeProductionRepositoryRest, GetHuaweiHourlyProductionRepositoryRest getHuaweiHourlyProductionRepositoryRest,
                                        GetEnergyStationRepository getEnergyStationRepository) {
         this.persistHuaweiProductionRepository = persistHuaweiProductionRepository;
-        this.getHuaweiProductionRepositoryRest = getHuaweiProductionRepositoryRest;
+        this.getHuaweiRealTimeProductionRepositoryRest = getHuaweiRealTimeProductionRepositoryRest;
+        this.getHuaweiHourlyProductionRepositoryRest = getHuaweiHourlyProductionRepositoryRest;
         this.getEnergyStationRepository = getEnergyStationRepository;
     }
 
@@ -36,9 +40,21 @@ public class SyncHuaweiProductionService {
         List<EnergyStation> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
 
         // Get the productions for every station
-        List<RealTimeProduction> productions = getHuaweiProductionRepositoryRest.getRealTimeProduction(huaweiStations);
+        List<RealTimeProduction> productions = getHuaweiRealTimeProductionRepositoryRest.getRealTimeProduction(huaweiStations);
 
         // Persist the production data
         persistHuaweiProductionRepository.persistRealTimeProduction(productions);
+    }
+
+    public void syncHourlyProduction() {
+
+        // Get all energy stations with Huawei inverter
+        List<EnergyStation> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
+
+        // Get the productions for every station
+        List<HourlyProduction> productions = getHuaweiHourlyProductionRepositoryRest.getHourlyProduction(huaweiStations);
+
+        // Persist the production data
+        persistHuaweiProductionRepository.persistHourlyProduction(productions);
     }
 }

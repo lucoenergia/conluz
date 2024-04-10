@@ -44,4 +44,8 @@ public class DateConverter {
     public OffsetDateTime convertMillisecondsToOffsetDateTime(long milliseconds) {
         return Instant.ofEpochMilli(milliseconds).atZone(timeConfiguration.getZoneId()).toOffsetDateTime();
     }
+
+    public OffsetDateTime now() {
+        return timeConfiguration.now();
+    }
 }
