@@ -41,7 +41,9 @@ public class GetHuaweiProductionRepositoryRest {
     private final ConluzRestClientBuilder conluzRestClientBuilder;
     private final DateConverter dateConverter;
 
-    public GetHuaweiProductionRepositoryRest(ObjectMapper objectMapper, HuaweiAuthorizer huaweiAuthorizer, ConluzRestClientBuilder conluzRestClientBuilder, DateConverter dateConverter) {
+    public GetHuaweiProductionRepositoryRest(ObjectMapper objectMapper, HuaweiAuthorizer huaweiAuthorizer,
+                                             ConluzRestClientBuilder conluzRestClientBuilder,
+                                             DateConverter dateConverter) {
         this.objectMapper = objectMapper;
         this.huaweiAuthorizer = huaweiAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;

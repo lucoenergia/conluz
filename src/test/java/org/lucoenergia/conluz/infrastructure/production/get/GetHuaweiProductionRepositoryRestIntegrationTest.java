@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.production.get;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.production.EnergyStation;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigEntity;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
@@ -13,7 +15,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-//@Disabled("This test must be enabled just to do a test with real data")
+@Disabled("This test must be enabled just to do a test with real data")
 @Transactional
 class GetHuaweiProductionRepositoryRestIntegrationTest extends BaseIntegrationTest {
 
@@ -26,7 +28,7 @@ class GetHuaweiProductionRepositoryRestIntegrationTest extends BaseIntegrationTe
     void getRealTimeProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() {
         // Given
         String stationCode = "code";
-        List<String> stationCodes = List.of(stationCode);
+        List<EnergyStation> stationCodes = List.of(new EnergyStation.Builder().withCode(stationCode).build());
 
         String username = "username";
         String password = "password";

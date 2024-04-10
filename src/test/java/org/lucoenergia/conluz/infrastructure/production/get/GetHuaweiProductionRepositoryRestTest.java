@@ -7,8 +7,10 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.production.EnergyStation;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 
@@ -27,17 +29,20 @@ class GetHuaweiProductionRepositoryRestTest {
 
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
 
+    private final DateConverter dateConverter = Mockito.mock(DateConverter.class);
+
     private GetHuaweiProductionRepositoryRest repositoryRest;
 
     @BeforeEach
     public void setUp() {
-        repositoryRest = new GetHuaweiProductionRepositoryRest(new ObjectMapper(), huaweiAuthorizer, conluzRestClientBuilder);
+        repositoryRest = new GetHuaweiProductionRepositoryRest(new ObjectMapper(), huaweiAuthorizer,
+                conluzRestClientBuilder, dateConverter);
     }
 
     @Test
     void getRealTimeProduction_shouldReturnEmptyListWhenStationCodesIsEmpty() {
         // Given
-        List<String> stationCodes = List.of();
+        List<EnergyStation> stationCodes = List.of();
 
         // When
         List<RealTimeProduction> realTimeProductions = repositoryRest.getRealTimeProduction(stationCodes);
@@ -49,7 +54,10 @@ class GetHuaweiProductionRepositoryRestTest {
     @Test
     void getRealTimeProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() throws IOException {
         // Given
-        List<String> stationCodes = Arrays.asList("BA4372D08E014822AB065017416F254C", "5D02E8B40AD342159AC8D8A2BCD4FAB5");
+        List<EnergyStation> stationCodes = Arrays.asList(
+                new EnergyStation.Builder().withCode("BA4372D08E014822AB065017416F254C").build(),
+                new EnergyStation.Builder().withCode("5D02E8B40AD342159AC8D8A2BCD4FAB5").build()
+        );
 
         String responseBodyString = """
                 {
