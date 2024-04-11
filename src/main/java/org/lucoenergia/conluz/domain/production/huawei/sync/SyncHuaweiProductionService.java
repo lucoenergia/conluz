@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.domain.production.huawei.sync;
 
-import org.lucoenergia.conluz.domain.production.EnergyStation;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
@@ -37,7 +37,7 @@ public class SyncHuaweiProductionService {
     public void syncRealTimeProduction() {
 
         // Get all energy stations with Huawei inverter
-        List<EnergyStation> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
+        List<Plant> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
 
         // Get the productions for every station
         List<RealTimeProduction> productions = getHuaweiRealTimeProductionRepositoryRest.getRealTimeProduction(huaweiStations);
@@ -49,7 +49,7 @@ public class SyncHuaweiProductionService {
     public void syncHourlyProduction() {
 
         // Get all energy stations with Huawei inverter
-        List<EnergyStation> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
+        List<Plant> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
 
         // Get the productions for every station
         List<HourlyProduction> productions = getHuaweiHourlyProductionRepositoryRest.getHourlyProduction(huaweiStations);

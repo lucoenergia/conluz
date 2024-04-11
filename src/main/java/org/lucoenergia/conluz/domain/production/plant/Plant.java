@@ -1,13 +1,15 @@
-package org.lucoenergia.conluz.domain.production;
+package org.lucoenergia.conluz.domain.production.plant;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
-public class EnergyStation {
+public class Plant {
 
     @NotNull
     @ValidUUID
@@ -27,7 +29,9 @@ public class EnergyStation {
      */
     @NotNull
     private Double totalPower;
-    private OffsetDateTime connectionDate;
+    private LocalDate connectionDate;
+    @NotNull
+    private User user;
 
     public UUID getId() {
         return id;
@@ -57,8 +61,20 @@ public class EnergyStation {
         return totalPower;
     }
 
-    public OffsetDateTime getConnectionDate() {
+    public LocalDate getConnectionDate() {
         return connectionDate;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public void initializeUuid() {
+        id = UUID.randomUUID();
     }
 
     public static class Builder {
@@ -69,7 +85,8 @@ public class EnergyStation {
         private String description;
         private InverterProvider inverterProvider;
         private Double totalPower;
-        private OffsetDateTime connectionDate;
+        private LocalDate connectionDate;
+        private User user;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -106,13 +123,18 @@ public class EnergyStation {
             return this;
         }
 
-        public Builder withConnectionDate(OffsetDateTime connectionDate) {
+        public Builder withConnectionDate(LocalDate connectionDate) {
             this.connectionDate = connectionDate;
             return this;
         }
 
-        public EnergyStation build() {
-            EnergyStation station = new EnergyStation();
+        public Builder withUser(User user) {
+            this.user = user;
+            return this;
+        }
+
+        public Plant build() {
+            Plant station = new Plant();
             station.id = this.id;
             station.name = this.name;
             station.code = this.code;
@@ -121,6 +143,7 @@ public class EnergyStation {
             station.inverterProvider = this.inverterProvider;
             station.totalPower = this.totalPower;
             station.connectionDate = this.connectionDate;
+            station.user = this.user;
             return station;
         }
     }

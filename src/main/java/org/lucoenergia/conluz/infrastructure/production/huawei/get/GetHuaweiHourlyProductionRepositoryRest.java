@@ -7,13 +7,12 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.lucoenergia.conluz.domain.production.EnergyStation;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiException;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
-import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +51,7 @@ public class GetHuaweiHourlyProductionRepositoryRest {
         this.dateConverter = dateConverter;
     }
 
-    public List<HourlyProduction> getHourlyProduction(List<EnergyStation> stations) {
+    public List<HourlyProduction> getHourlyProduction(List<Plant> stations) {
 
         List<HourlyProduction> result = new ArrayList<>();
 
@@ -61,7 +60,7 @@ public class GetHuaweiHourlyProductionRepositoryRest {
         }
 
         String stationCodes = stations.stream()
-                .map(EnergyStation::getCode)
+                .map(Plant::getCode)
                 .collect(Collectors.joining(", "));
 
         final String authToken = huaweiAuthorizer.getAuthToken();

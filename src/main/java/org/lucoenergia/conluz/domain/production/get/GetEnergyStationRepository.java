@@ -1,13 +1,13 @@
 package org.lucoenergia.conluz.domain.production.get;
 
-import org.lucoenergia.conluz.domain.production.EnergyStation;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 
 import java.util.List;
 
 public interface GetEnergyStationRepository {
 
-    List<EnergyStation> findAll();
+    List<Plant> findAll();
 
-    List<EnergyStation> findAllByInverterProvider(InverterProvider provider);
+    List<Plant> findAllByInverterProvider(InverterProvider provider);
 }

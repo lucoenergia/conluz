@@ -6,10 +6,10 @@
 http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
     <!-- Create table 'huawei_config' -->
-    <changeSet id="create_energy_stations" author="Víctor Cañizares">
-        <createTable tableName="energy_stations">
+    <changeSet id="create_plants" author="Víctor Cañizares">
+        <createTable tableName="plants">
             <column name="id" type="UUID">
-                <constraints primaryKey="true" primaryKeyName="energy_stations_id_pk"/>
+                <constraints primaryKey="true" primaryKeyName="plants_id_pk"/>
             </column>
             <column name="name" type="text">
                 <constraints nullable="false"/>
@@ -27,7 +27,10 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
             <column name="total_power" type="double">
                 <constraints nullable="false"/>
             </column>
-            <column name="connection_date" type="timestamptz"/>
+            <column name="connection_date" type="date"/>
+            <column name="user_id" type="UUID">
+                <constraints foreignKeyName="plants_user_id_fk" referencedTableName="users" referencedColumnNames="id"/>
+            </column>
         </createTable>
     </changeSet>
 

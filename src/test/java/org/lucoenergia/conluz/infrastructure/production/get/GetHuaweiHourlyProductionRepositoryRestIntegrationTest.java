@@ -2,13 +2,11 @@ package org.lucoenergia.conluz.infrastructure.production.get;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.production.EnergyStation;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
-import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigEntity;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigRepository;
 import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiHourlyProductionRepositoryRest;
-import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiRealTimeProductionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +29,7 @@ class GetHuaweiHourlyProductionRepositoryRestIntegrationTest extends BaseIntegra
     void getHourlyProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() {
         // Given
         String stationCode = "code";
-        List<EnergyStation> stationCodes = List.of(new EnergyStation.Builder().withCode(stationCode).build());
+        List<Plant> stationCodes = List.of(new Plant.Builder().withCode(stationCode).build());
 
         String username = "username";
         String password = "password";

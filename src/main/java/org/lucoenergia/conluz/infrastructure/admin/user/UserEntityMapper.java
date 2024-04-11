@@ -20,7 +20,7 @@ public class UserEntityMapper extends BaseMapper<UserEntity, User> {
         user.setAddress(entity.getAddress());
         user.setEmail(entity.getEmail());
         user.setPhoneNumber(entity.getPhoneNumber());
-        user.setEnabled(entity.getEnabled());
+        user.setEnabled(entity.isEnabled());
         user.setRole(entity.getRole());
 
         return user;

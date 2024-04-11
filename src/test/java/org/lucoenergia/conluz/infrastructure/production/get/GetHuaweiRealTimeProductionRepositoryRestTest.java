@@ -7,7 +7,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.production.EnergyStation;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiRealTimeProductionRepositoryRest;
@@ -43,7 +43,7 @@ class GetHuaweiRealTimeProductionRepositoryRestTest {
     @Test
     void getRealTimeProduction_shouldReturnEmptyListWhenStationCodesIsEmpty() {
         // Given
-        List<EnergyStation> stationCodes = List.of();
+        List<Plant> stationCodes = List.of();
 
         // When
         List<RealTimeProduction> realTimeProductions = repositoryRest.getRealTimeProduction(stationCodes);
@@ -55,9 +55,9 @@ class GetHuaweiRealTimeProductionRepositoryRestTest {
     @Test
     void getRealTimeProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() throws IOException {
         // Given
-        List<EnergyStation> stationCodes = Arrays.asList(
-                new EnergyStation.Builder().withCode("BA4372D08E014822AB065017416F254C").build(),
-                new EnergyStation.Builder().withCode("5D02E8B40AD342159AC8D8A2BCD4FAB5").build()
+        List<Plant> stationCodes = Arrays.asList(
+                new Plant.Builder().withCode("BA4372D08E014822AB065017416F254C").build(),
+                new Plant.Builder().withCode("5D02E8B40AD342159AC8D8A2BCD4FAB5").build()
         );
 
         String responseBodyString = """

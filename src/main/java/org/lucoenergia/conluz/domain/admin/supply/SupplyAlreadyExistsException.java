@@ -10,7 +10,7 @@ public class SupplyAlreadyExistsException extends RuntimeException {
         this.code = code;
     }
 
-    public SupplyCode getUserId() {
+    public SupplyCode getCode() {
         return code;
     }
 }
