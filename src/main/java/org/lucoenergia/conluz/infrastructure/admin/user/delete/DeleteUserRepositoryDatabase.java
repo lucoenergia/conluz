@@ -6,15 +6,17 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@Transactional
 @Repository
-public class DeleteUserRepositoryImpl implements DeleteUserRepository {
+public class DeleteUserRepositoryDatabase implements DeleteUserRepository {
 
     private final UserRepository userRepository;
 
-    public DeleteUserRepositoryImpl(UserRepository userRepository) {
+    public DeleteUserRepositoryDatabase(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
