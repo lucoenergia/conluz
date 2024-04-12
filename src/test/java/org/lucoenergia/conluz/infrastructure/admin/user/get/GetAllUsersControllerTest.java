@@ -23,6 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class GetAllUsersControllerTest extends BaseControllerTest {
 
+    private static final String URL = "/api/v1/users";
+
     @Autowired
     private CreateUserRepository createUserRepository;
 
@@ -35,7 +37,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -70,7 +72,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("page", "1")
@@ -89,7 +91,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("unkwnon", "foo"))
@@ -108,7 +110,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.TEXT_PLAIN))
                 .andDo(print())
@@ -124,7 +126,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "unknown,asc"))
@@ -141,7 +143,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "fullName,unknown"))
@@ -169,7 +171,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "fullName,asc"))
@@ -207,7 +209,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "fullName,asc")
@@ -242,7 +244,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "fullName,desc")
@@ -261,7 +263,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithMissingToken() throws Exception {
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get(URL)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
@@ -278,7 +280,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
                 "wrong";
 
         Assertions.assertThrows(InvalidTokenException.class,
-                () -> mockMvc.perform(get("/api/v1/users")
+                () -> mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, wrongToken)
                         .contentType(MediaType.APPLICATION_JSON)));
     }
@@ -290,7 +292,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
                 "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.jO3pgdDj4mg9TnRzL7f8RUL1ytJS7057jAg6zaCcwn0";
 
         Assertions.assertThrows(InvalidTokenException.class,
-                () -> mockMvc.perform(get("/api/v1/users")
+                () -> mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, expiredToken)
                         .contentType(MediaType.APPLICATION_JSON)));
     }

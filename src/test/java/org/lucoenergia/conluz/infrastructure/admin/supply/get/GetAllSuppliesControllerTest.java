@@ -51,7 +51,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size").value("10"))
+                .andExpect(jsonPath("$.size").value("20"))
                 .andExpect(jsonPath("$.totalElements").value("3"))
                 .andExpect(jsonPath("$.totalPages").value("1"))
                 .andExpect(jsonPath("$.number").value("0"))

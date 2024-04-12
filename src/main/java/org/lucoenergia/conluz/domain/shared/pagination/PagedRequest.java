@@ -7,7 +7,7 @@ import java.util.List;
 public class PagedRequest {
 
     public static final int FIRST_PAGE = 0;
-    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int DEFAULT_PAGE_SIZE = 20;
 
     private final Integer page;
     private final Integer size;
