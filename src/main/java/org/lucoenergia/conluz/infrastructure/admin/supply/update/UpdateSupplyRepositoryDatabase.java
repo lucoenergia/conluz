@@ -13,12 +13,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public class UpdateSupplyRepositoryImpl implements UpdateSupplyRepository {
+public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
 
     private final SupplyRepository repository;
     private final SupplyEntityMapper mapper;
 
-    public UpdateSupplyRepositoryImpl(SupplyRepository repository, SupplyEntityMapper mapper) {
+    public UpdateSupplyRepositoryDatabase(SupplyRepository repository, SupplyEntityMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }

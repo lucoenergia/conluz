@@ -15,12 +15,12 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class UpdateSupplyRepositoryImplTest {
+class UpdateSupplyRepositoryDatabaseTest {
 
     SupplyRepository repository = Mockito.mock(SupplyRepository.class);
     SupplyEntityMapper mapper = Mockito.mock(SupplyEntityMapper.class);
 
-    UpdateSupplyRepositoryImpl repositoryImpl = new UpdateSupplyRepositoryImpl(repository, mapper);
+    UpdateSupplyRepositoryDatabase repositoryImpl = new UpdateSupplyRepositoryDatabase(repository, mapper);
 
     @Test
     void testUpdateWithExistingSupply() {
