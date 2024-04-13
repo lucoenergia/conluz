@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.price.sync;
 
 import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
+import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Component;
 import java.time.OffsetDateTime;
 
 @Component
-public class SyncDailyPricesJob {
+public class SyncDailyPricesJob implements Job {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncDailyPricesJob.class);
 
@@ -31,6 +32,7 @@ public class SyncDailyPricesJob {
      * The fifth field is for the month. A '*' means "every month".
      * The sixth and final field is for the day of the week. A '*' means "every day of the week".
      */
+    @Override
     @Scheduled(cron = "0 6 * * * *")
     public void run() {
         LOGGER.info("OMIE prices daily retrieval started...");

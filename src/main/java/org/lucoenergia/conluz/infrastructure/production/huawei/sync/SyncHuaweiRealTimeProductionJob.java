@@ -1,13 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
 
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
+import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SyncHuaweiRealTimeProductionJob {
+public class SyncHuaweiRealTimeProductionJob implements Job {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncHuaweiRealTimeProductionJob.class);
 
@@ -21,6 +22,7 @@ public class SyncHuaweiRealTimeProductionJob {
      * This method is a scheduled task that is executed every 5 minutes.
      * It synchronizes the real-time production data from Huawei energy stations.
      */
+    @Override
     @Scheduled(cron = "0 */5 * * * *")
     public void run() {
         LOGGER.info("Huawei real-time production sync started...");

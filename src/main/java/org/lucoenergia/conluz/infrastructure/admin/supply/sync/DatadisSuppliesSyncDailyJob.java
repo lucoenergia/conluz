@@ -1,13 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.sync;
 
 import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
+import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DatadisSuppliesSyncDailyJob {
+public class DatadisSuppliesSyncDailyJob implements Job {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatadisSuppliesSyncDailyJob.class);
 
@@ -26,8 +27,9 @@ public class DatadisSuppliesSyncDailyJob {
      * * (every month)
      * ? (any day of the week)
      */
+    @Override
     @Scheduled(cron = "0 0 2 * * ?")
-    public void everyFiveSeconds() {
+    public void run() {
         LOGGER.info("Datadis supplies daily sync started...");
         datadisSuppliesSyncService.synchronizeSupplies();
         LOGGER.info("...finished Datadis supplies daily sync.");
