@@ -7,8 +7,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.RetentionPolicy;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateToMillisecondsConverter;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -18,12 +17,12 @@ import java.util.concurrent.TimeUnit;
 public class PersistDatadisConsumptionRepositoryInflux implements PersistDatadisConsumptionRepository {
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
-    private final DateToMillisecondsConverter dateToMillisecondsConverter;
+    private final DateConverter dateConverter;
 
     public PersistDatadisConsumptionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
-                                                     DateToMillisecondsConverter dateToMillisecondsConverter) {
+                                                     DateConverter dateConverter) {
         this.influxDbConnectionManager = influxDbConnectionManager;
-        this.dateToMillisecondsConverter = dateToMillisecondsConverter;
+        this.dateConverter = dateConverter;
     }
 
     @Override
@@ -35,7 +34,7 @@ public class PersistDatadisConsumptionRepositoryInflux implements PersistDatadis
 
             for (DatadisConsumption consumption : consumptions) {
                 Point point = Point.measurement(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT)
-                        .time(dateToMillisecondsConverter.convert(mergeDateAndTime(consumption)), TimeUnit.MILLISECONDS)
+                        .time(dateConverter.convertStringDateToMilliseconds(mergeDateAndTime(consumption)), TimeUnit.MILLISECONDS)
                         .tag("cups", consumption.getCups())
                         .addField("consumption_kwh", consumption.getConsumptionKWh())
                         .addField("obtain_method", consumption.getObtainMethod())

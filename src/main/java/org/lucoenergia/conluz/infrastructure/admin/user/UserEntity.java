@@ -1,10 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import jakarta.persistence.*;
-import org.lucoenergia.conluz.domain.admin.user.DefaultAdminUser;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +32,12 @@ public class UserEntity {
             orphanRemoval = true
     )
     private List<SupplyEntity> supplies = new ArrayList<>();
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<PlantEntity> plants = new ArrayList<>();
 
 
     public UUID getId() {
@@ -98,7 +104,7 @@ public class UserEntity {
         this.phoneNumber = phoneNumber;
     }
 
-    public Boolean getEnabled() {
+    public Boolean isEnabled() {
         return enabled;
     }
 
@@ -128,6 +134,20 @@ public class UserEntity {
         supply.setUser(null);
     }
 
+    public List<PlantEntity> getPlants() {
+        return plants;
+    }
+
+    public void addPlant(PlantEntity plant) {
+        plants.add(plant);
+        plant.setUser(this);
+    }
+
+    public void removePlant(PlantEntity plant) {
+        plants.remove(plant);
+        plant.setUser(null);
+    }
+
     public static UserEntity createNewUser(User user, String encodedPassword) {
         UserEntity entity = new UserEntity();
         entity.setPersonalId(user.getPersonalId());
@@ -153,7 +173,7 @@ public class UserEntity {
         user.setAddress(this.getAddress());
         user.setEmail(this.getEmail());
         user.setPhoneNumber(this.getPhoneNumber());
-        user.setEnabled(this.getEnabled());
+        user.setEnabled(this.isEnabled());
         user.setRole(this.getRole());
 
         return user;

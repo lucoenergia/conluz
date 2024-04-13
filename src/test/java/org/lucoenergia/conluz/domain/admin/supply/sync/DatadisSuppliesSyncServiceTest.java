@@ -18,6 +18,7 @@ import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,8 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private DateConverter dateConverter;
     private final GetSupplyRepositoryDatadis getSupplyRepositoryDatadis = mock(GetSupplyRepositoryDatadis.class);
 
     private DatadisSuppliesSyncService service;
@@ -48,7 +51,7 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
     @BeforeEach
     void setup() {
         service = new DatadisSuppliesSyncService(getSupplyRepository,
-                updateSupplyRepository, getSupplyRepositoryDatadis, getUserRepository);
+                updateSupplyRepository, getSupplyRepositoryDatadis, getUserRepository, dateConverter);
     }
 
     @Test

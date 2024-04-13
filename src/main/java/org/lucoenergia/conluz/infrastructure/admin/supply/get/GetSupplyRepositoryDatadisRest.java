@@ -46,7 +46,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         final List<DatadisSupply> result = new ArrayList<>();
 
-        final String authToken = datadisAuthorizer.getAuthTokenWithBearerFormat();
+        final String authToken = datadisAuthorizer.getAuthBearerToken();
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 

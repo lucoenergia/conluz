@@ -9,7 +9,7 @@ import java.util.UUID;
 public class DatadisConfigEntity {
 
     public static final String BASE_URL = "https://datadis.es/api-private/api";
-    public static final String CONSUMPTION_KWH_MEASUREMENT = "datadis-consumption-kwh";
+    public static final String CONSUMPTION_KWH_MEASUREMENT = "datadis_consumption_kwh";
 
     @Id
     private UUID id;

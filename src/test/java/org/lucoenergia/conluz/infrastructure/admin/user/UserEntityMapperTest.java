@@ -21,6 +21,6 @@ class UserEntityMapperTest {
         Assertions.assertEquals(entity.getAddress(), result.getAddress());
         Assertions.assertEquals(entity.getEmail(), result.getEmail());
         Assertions.assertEquals(entity.getPhoneNumber(), result.getPhoneNumber());
-        Assertions.assertEquals(entity.getEnabled(), result.isEnabled());
+        Assertions.assertEquals(entity.isEnabled(), result.isEnabled());
     }
 }

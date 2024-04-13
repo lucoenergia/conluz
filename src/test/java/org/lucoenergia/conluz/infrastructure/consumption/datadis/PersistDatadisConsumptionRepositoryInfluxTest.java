@@ -8,7 +8,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.ConsumptionMother;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.persist.PersistDatadisConsumptionRepositoryInflux;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateToMillisecondsConverter;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -26,7 +26,7 @@ class PersistDatadisConsumptionRepositoryInfluxTest {
     private InfluxDbConnectionManager influxDbConnectionManager;
 
     @Mock
-    private DateToMillisecondsConverter dateToMillisecondsConverter;
+    private DateConverter dateConverter;
 
     @Mock
     private InfluxDB influxDB;

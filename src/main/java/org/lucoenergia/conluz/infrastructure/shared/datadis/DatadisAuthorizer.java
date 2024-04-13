@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.shared.datadis;
 
 import okhttp3.*;
+import org.lucoenergia.conluz.infrastructure.shared.security.auth.Authorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -9,7 +10,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 @Component
-public class DatadisAuthorizer {
+public class DatadisAuthorizer implements Authorizer {
 
     private static final String URL = "https://datadis.es/nikola-auth/tokens/login";
     private static final String BODY_PARAM_USERNAME = "username";
@@ -23,10 +24,11 @@ public class DatadisAuthorizer {
         this.conluzRestClientBuilder = conluzRestClientBuilder;
     }
 
+    @Override
     public String getAuthToken() {
         Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findFirstByOrderByIdAsc();
         if (optionalConfig.isEmpty()) {
-            throw new DatadisException("No Datadis configuration found");
+            throw new DatadisException("Datadis configuration not found");
         }
         DatadisConfigEntity config = optionalConfig.get();
         String username = config.getUsername();
@@ -58,9 +60,5 @@ public class DatadisAuthorizer {
         } catch (IOException e) {
             throw new DatadisException("Unable to make the request to datadis.es", e);
         }
-    }
-
-    public String getAuthTokenWithBearerFormat() {
-        return "Bearer " + getAuthToken();
     }
 }

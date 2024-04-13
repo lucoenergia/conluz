@@ -49,7 +49,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         final int year = 2023;
 
         Mockito
-                .when(datadisAuthorizer.getAuthTokenWithBearerFormat())
+                .when(datadisAuthorizer.getAuthBearerToken())
                 .thenReturn("token");
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
@@ -84,7 +84,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         final int year = 2023;
 
         Mockito
-                .when(datadisAuthorizer.getAuthTokenWithBearerFormat())
+                .when(datadisAuthorizer.getAuthBearerToken())
                 .thenReturn("token");
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
