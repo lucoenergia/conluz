@@ -1,14 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.production.plant;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -23,6 +19,7 @@ public class PlantEntity {
     private UserEntity user;
     private String address;
     private String description;
+    @Enumerated(EnumType.STRING)
     private InverterProvider inverterProvider;
     /**
      * Represented using kWp
@@ -127,47 +124,47 @@ public class PlantEntity {
         private Double totalPower;
         private LocalDate connectionDate;
 
-        public Builder setId(UUID id) {
+        public Builder withId(UUID id) {
             this.id = id;
             return this;
         }
 
-        public Builder setName(String name) {
+        public Builder withName(String name) {
             this.name = name;
             return this;
         }
 
-        public Builder setCode(String code) {
+        public Builder withCode(String code) {
             this.code = code;
             return this;
         }
 
-        public Builder setUser(UserEntity user) {
+        public Builder withUser(UserEntity user) {
             this.user = user;
             return this;
         }
 
-        public Builder setAddress(String address) {
+        public Builder withAddress(String address) {
             this.address = address;
             return this;
         }
 
-        public Builder setDescription(String description) {
+        public Builder withDescription(String description) {
             this.description = description;
             return this;
         }
 
-        public Builder setInverterProvider(InverterProvider inverterProvider) {
+        public Builder withInverterProvider(InverterProvider inverterProvider) {
             this.inverterProvider = inverterProvider;
             return this;
         }
 
-        public Builder setTotalPower(Double totalPower) {
+        public Builder withTotalPower(Double totalPower) {
             this.totalPower = totalPower;
             return this;
         }
 
-        public Builder setConnectionDate(LocalDate connectionDate) {
+        public Builder withConnectionDate(LocalDate connectionDate) {
             this.connectionDate = connectionDate;
             return this;
         }

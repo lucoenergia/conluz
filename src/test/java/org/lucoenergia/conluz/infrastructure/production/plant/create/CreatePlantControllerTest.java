@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
@@ -277,13 +276,13 @@ class CreatePlantControllerTest extends BaseControllerTest {
         String plantCode = "PS-456798";
 
         plantRepository.save(new PlantEntity.Builder()
-                .setCode(plantCode)
-                .setTotalPower(23D)
-                .setAddress("Fake Street 123")
-                .setInverterProvider(InverterProvider.HUAWEI)
-                .setId(UUID.randomUUID())
-                .setName("A name")
-                .setUser(user)
+                .withCode(plantCode)
+                .withTotalPower(23D)
+                .withAddress("Fake Street 123")
+                .withInverterProvider(InverterProvider.HUAWEI)
+                .withId(UUID.randomUUID())
+                .withName("A name")
+                .withUser(user)
                 .build());
 
         String body = String.format("""

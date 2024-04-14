@@ -47,14 +47,14 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
 
         UserEntity userEntity = result.get();
         PlantEntity plantEntity = new PlantEntity.Builder()
-                .setId(UUID.randomUUID())
-                .setCode(plant.getCode())
-                .setName(plant.getName())
-                .setAddress(plant.getAddress())
-                .setDescription(plant.getDescription())
-                .setInverterProvider(plant.getInverterProvider())
-                .setTotalPower(plant.getTotalPower())
-                .setConnectionDate(plant.getConnectionDate())
+                .withId(UUID.randomUUID())
+                .withCode(plant.getCode())
+                .withName(plant.getName())
+                .withAddress(plant.getAddress())
+                .withDescription(plant.getDescription())
+                .withInverterProvider(plant.getInverterProvider())
+                .withTotalPower(plant.getTotalPower())
+                .withConnectionDate(plant.getConnectionDate())
                 .build();
 
         userEntity.addPlant(plantEntity);

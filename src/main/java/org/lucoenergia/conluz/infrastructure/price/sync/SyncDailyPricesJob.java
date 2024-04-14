@@ -24,16 +24,11 @@ public class SyncDailyPricesJob implements Job {
     }
 
     /**
-     * Aggregate instant Shelly consumptions by hour every hour.
-     * The first field is for seconds. '0' here means at the beginning of the minute.
-     * The second field is for the minute field. '0' here means the cron job gets executed every time the minute is '0', or, in other words, at the beginning of each hour.
-     * The third field is for the hour.
-     * The fourth field is for the day of the month. A '*' means "every day".
-     * The fifth field is for the month. A '*' means "every month".
-     * The sixth and final field is for the day of the week. A '*' means "every day of the week".
+     * This method is executed based on a cron expression to retrieve OMIE prices daily.
+     * It retrieves the current date and time and passes it to synchronize the daily prices.
      */
     @Override
-    @Scheduled(cron = "0 6 * * * *")
+    @Scheduled(cron = "0 0 6 * * * ")
     public void run() {
         LOGGER.info("OMIE prices daily retrieval started...");
 

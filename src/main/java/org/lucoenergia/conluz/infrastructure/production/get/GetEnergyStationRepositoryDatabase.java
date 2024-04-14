@@ -26,7 +26,7 @@ public class GetEnergyStationRepositoryDatabase implements GetEnergyStationRepos
         List<PlantEntity> entities = plantRepository.findAll();
         return entities.stream()
                 .map(this::mapEntityToDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -34,7 +34,7 @@ public class GetEnergyStationRepositoryDatabase implements GetEnergyStationRepos
         List<PlantEntity> entities = plantRepository.findAllByInverterProvider(provider);
         return entities.stream()
                 .map(this::mapEntityToDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Plant mapEntityToDomain(PlantEntity entity) {
