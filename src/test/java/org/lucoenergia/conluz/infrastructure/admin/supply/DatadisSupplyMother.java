@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.lucoenergia.conluz.domain.admin.datadis.DistributorCode;
+import org.lucoenergia.conluz.domain.consumption.datadis.DistributorCode;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 
 import java.util.Random;

@@ -1,20 +1,20 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
+package org.lucoenergia.conluz.infrastructure.production.huawei.config;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 
 @Schema(requiredProperties = {
         "username", "password"
 })
-public class ConfigureDatadisBody {
+public class ConfigureHuaweiBody {
 
     @NotBlank
     private String username;
     @NotBlank
     private String password;
 
-    public ConfigureDatadisBody(String username, String password) {
+    public ConfigureHuaweiBody(String username, String password) {
         this.username = username;
         this.password = password;
     }
@@ -35,7 +35,10 @@ public class ConfigureDatadisBody {
         this.password = password;
     }
 
-    public DatadisConfig toDatadisConfig() {
-        return new DatadisConfig(username, password);
+    public HuaweiConfig toHuaweiConfig() {
+        return new HuaweiConfig.Builder()
+                .setUsername(username)
+                .setPassword(password)
+                .build();
     }
 }

@@ -1,10 +1,9 @@
-package org.lucoenergia.conluz.infrastructure.admin.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.admin.datadis.SetDatadisConfigurationRepository;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.ConfigureDatadisBody;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.SetDatadisConfigurationRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.springframework.beans.factory.annotation.Autowired;

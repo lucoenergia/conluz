@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production.huawei;
+package org.lucoenergia.conluz.infrastructure.production.huawei.config;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -1,8 +1,7 @@
-package org.lucoenergia.conluz.infrastructure.admin.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.datadis.DatadisConfig;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.mockito.Mockito;
 
@@ -13,10 +12,10 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 import java.util.UUID;
 
-class SetDatadisConfigurationRepositoryImplTest {
+class SetDatadisConfigurationRepositoryDatabaseTest {
 
     private final DatadisConfigRepository datadisConfigRepository = Mockito.mock(DatadisConfigRepository.class);
-    private final SetDatadisConfigurationRepositoryImpl repository = new SetDatadisConfigurationRepositoryImpl(datadisConfigRepository);
+    private final SetDatadisConfigurationRepositoryDatabase repository = new SetDatadisConfigurationRepositoryDatabase(datadisConfigRepository);
 
     @Test
     void testSetDatadisConfiguration_notExist() {

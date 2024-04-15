@@ -2,8 +2,8 @@ package org.lucoenergia.conluz.infrastructure.production.huawei.get;
 
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
-import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigEntity;
-import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiConfigRepository;
+import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigEntity;
+import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;

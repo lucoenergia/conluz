@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 
 import org.apache.commons.lang3.StringUtils;
-import org.lucoenergia.conluz.domain.admin.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 
 public class SetDatadisConfigResponse {
 

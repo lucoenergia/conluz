@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.domain.admin.datadis;
+package org.lucoenergia.conluz.domain.consumption.datadis;
 
 public class DistributorCode {
 

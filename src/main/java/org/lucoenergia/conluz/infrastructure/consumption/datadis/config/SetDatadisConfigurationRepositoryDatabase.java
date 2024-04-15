@@ -1,8 +1,7 @@
-package org.lucoenergia.conluz.infrastructure.admin.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 
-import org.lucoenergia.conluz.domain.admin.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.admin.datadis.SetDatadisConfigurationRepository;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.SetDatadisConfigurationRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,11 +9,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public class SetDatadisConfigurationRepositoryImpl implements SetDatadisConfigurationRepository {
+public class SetDatadisConfigurationRepositoryDatabase implements SetDatadisConfigurationRepository {
 
     private final DatadisConfigRepository datadisConfigRepository;
 
-    public SetDatadisConfigurationRepositoryImpl(DatadisConfigRepository datadisConfigRepository) {
+    public SetDatadisConfigurationRepositoryDatabase(DatadisConfigRepository datadisConfigRepository) {
         this.datadisConfigRepository = datadisConfigRepository;
     }
 

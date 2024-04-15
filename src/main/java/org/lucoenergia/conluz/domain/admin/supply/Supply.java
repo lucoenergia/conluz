@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.domain.admin.supply;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.lucoenergia.conluz.domain.admin.datadis.DistributorCode;
+import org.lucoenergia.conluz.domain.consumption.datadis.DistributorCode;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 

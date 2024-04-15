@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis;
+package org.lucoenergia.conluz.domain.consumption.datadis;
 
 /**
  * Set it to 0 (Zero) if you want to get the consumption per hour and to 1 (One) if you want to get the consumption per

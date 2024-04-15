@@ -13,7 +13,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigura
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisParams;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.MeasurementType;
+import org.lucoenergia.conluz.domain.consumption.datadis.MeasurementType;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
