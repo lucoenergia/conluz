@@ -55,6 +55,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
         List<RealTimeProduction> result = new ArrayList<>();
 
         if (stations == null || stations.isEmpty()) {
+            LOGGER.debug("No Huawei stations provided");
             return result;
         }
 

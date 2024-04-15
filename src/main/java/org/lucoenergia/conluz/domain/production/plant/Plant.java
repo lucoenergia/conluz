@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Plant {
@@ -146,5 +147,26 @@ public class Plant {
             station.user = this.user;
             return station;
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Plant plant)) return false;
+        return Objects.equals(getId(), plant.getId()) && Objects.equals(getName(), plant.getName()) && Objects.equals(getCode(), plant.getCode());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getName(), getCode());
+    }
+
+    @Override
+    public String toString() {
+        return "Plant{" +
+                "name='" + name + '\'' +
+                ", code='" + code + '\'' +
+                ", id=" + id +
+                '}';
     }
 }
