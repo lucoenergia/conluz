@@ -1,6 +1,8 @@
-package org.lucoenergia.conluz.infrastructure.shared.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 import okhttp3.*;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisException;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.Authorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.http.HttpHeaders;

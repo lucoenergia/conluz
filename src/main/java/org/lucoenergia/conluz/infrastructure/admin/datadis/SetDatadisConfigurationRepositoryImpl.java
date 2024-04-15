@@ -2,8 +2,8 @@ package org.lucoenergia.conluz.infrastructure.admin.datadis;
 
 import org.lucoenergia.conluz.domain.admin.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.admin.datadis.SetDatadisConfigurationRepository;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigRepository;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;

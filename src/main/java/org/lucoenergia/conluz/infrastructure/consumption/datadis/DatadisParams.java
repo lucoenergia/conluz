@@ -1,6 +1,9 @@
-package org.lucoenergia.conluz.infrastructure.shared.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 public class DatadisParams {
+
+    private DatadisParams() {
+    }
 
     public static final String CUPS = "cups";
     public static final String DISTRIBUTOR_CODE = "distributorCode";

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.shared.datadis;
+package org.lucoenergia.conluz.domain.consumption.datadis;
 
 public class DatadisException extends RuntimeException {
 

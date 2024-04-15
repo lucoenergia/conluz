@@ -4,6 +4,10 @@ import okhttp3.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisException;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 

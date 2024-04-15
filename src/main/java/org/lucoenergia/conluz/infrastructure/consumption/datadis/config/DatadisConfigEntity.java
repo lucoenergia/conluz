@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.shared.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

@@ -4,8 +4,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.admin.datadis.SetDatadisConfigurationRepository;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.ConfigureDatadisBody;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigRepository;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class SetDatadisConfigControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/datadis/config";
+    private static final String URL = "/api/v1/consumption/datadis/config";
 
     @Autowired
     private DatadisConfigRepository repository;

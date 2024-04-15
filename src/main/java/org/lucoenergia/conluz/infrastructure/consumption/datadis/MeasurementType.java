@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.shared.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 /**
  * Set it to 0 (Zero) if you want to get the consumption per hour and to 1 (One) if you want to get the consumption per
@@ -6,6 +6,10 @@ package org.lucoenergia.conluz.infrastructure.shared.datadis;
  * E-distribución additionally for PointType 3.
  */
 public class MeasurementType {
+
+    private MeasurementType() {
+    }
+
     public static final String PER_HOUR = "0";
     public static final String PER_QUARTER_HOUR = "1";
 }

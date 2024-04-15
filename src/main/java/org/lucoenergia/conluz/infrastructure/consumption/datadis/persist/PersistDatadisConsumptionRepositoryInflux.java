@@ -5,7 +5,7 @@ import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Repository;

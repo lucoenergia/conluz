@@ -1,10 +1,9 @@
-package org.lucoenergia.conluz.infrastructure.admin.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.lucoenergia.conluz.domain.admin.config.init.InitService;
 import org.lucoenergia.conluz.domain.admin.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.admin.datadis.SetDatadisConfigurationService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -17,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/datadis/config",
+        value = "/api/v1/consumption/datadis/config",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )

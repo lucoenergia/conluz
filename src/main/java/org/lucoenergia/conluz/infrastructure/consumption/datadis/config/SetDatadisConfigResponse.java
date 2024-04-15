@@ -1,7 +1,5 @@
-package org.lucoenergia.conluz.infrastructure.admin.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.admin.datadis.DatadisConfig;
 

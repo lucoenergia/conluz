@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.shared.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;

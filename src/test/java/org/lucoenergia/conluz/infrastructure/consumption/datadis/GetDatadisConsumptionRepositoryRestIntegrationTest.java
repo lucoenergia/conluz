@@ -8,8 +8,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.get.GetDatadisConsumptionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigEntity;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisConfigRepository;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 

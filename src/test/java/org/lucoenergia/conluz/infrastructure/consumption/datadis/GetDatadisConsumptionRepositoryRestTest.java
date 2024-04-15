@@ -9,8 +9,6 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.get.GetDatadisConsumptionRepositoryRest;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisAuthorizer;
-import org.lucoenergia.conluz.infrastructure.shared.datadis.DatadisDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 

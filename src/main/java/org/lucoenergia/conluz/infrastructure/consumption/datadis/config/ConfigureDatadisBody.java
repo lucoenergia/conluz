@@ -1,12 +1,8 @@
-package org.lucoenergia.conluz.infrastructure.admin.datadis;
+package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Positive;
 import org.lucoenergia.conluz.domain.admin.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.user.User;
 
 @Schema(requiredProperties = {
         "username", "password"
