@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
 
+import org.apache.commons.lang3.StringUtils;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.BatchPoints;
@@ -15,8 +16,14 @@ public class InfluxDbConnectionManagerImpl implements InfluxDbConnectionManager 
     }
 
     public InfluxDB getConnection() {
-        InfluxDB connection = InfluxDBFactory.connect(config.getDatabaseURL(), config.getUsername(),
-                config.getPassword());
+        String username = config.getUsername();
+        String password = config.getPassword();
+        InfluxDB connection;
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+            connection = InfluxDBFactory.connect(config.getDatabaseURL());
+        } else {
+            connection = InfluxDBFactory.connect(config.getDatabaseURL(), username, password);
+        }
         connection.setDatabase(config.getDatabaseName());
         connection.setLogLevel(InfluxDB.LogLevel.NONE);
         connection.enableGzip();
