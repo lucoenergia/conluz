@@ -9,7 +9,6 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyAggregateConsumptionPoint;
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyConsumption;
 import org.lucoenergia.conluz.domain.consumption.shelly.persist.PersistShellyConsumptionRepository;
-import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConfig;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
@@ -56,7 +55,7 @@ public class ShellyConsumptionsHourlyAggregator {
                             "SELECT INTEGRAL(%s, 1h) AS %s FROM \"%s\" WHERE %s = '%s' AND time >= '%s' AND time <= '%s' GROUP BY time(1h)",
                             ShellyInstantConsumptionPoint.CONSUMPTION_KW,
                             ShellyInstantConsumptionPoint.CONSUMPTION_KW,
-                            ShellyConfig.CONSUMPTION_KW_MEASUREMENT,
+                            ShellyInstantConsumptionPoint.MEASUREMENT,
                             ShellyInstantConsumptionPoint.PREFIX,
                             supply.getShellyMqttPrefix(),
                             startDateAsString,

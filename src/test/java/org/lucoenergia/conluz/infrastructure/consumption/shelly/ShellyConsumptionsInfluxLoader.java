@@ -98,7 +98,7 @@ public class ShellyConsumptionsInfluxLoader implements InfluxLoader {
 
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
-            INSTANT_CONSUMPTIONS.stream().forEach(point -> batchPoints.point(Point.measurement(ShellyConfig.CONSUMPTION_KW_MEASUREMENT)
+            INSTANT_CONSUMPTIONS.stream().forEach(point -> batchPoints.point(Point.measurement(ShellyInstantConsumptionPoint.MEASUREMENT)
                     .time(((Long) ((List) point).get(0)), TimeUnit.MILLISECONDS)
                     .addField(ShellyInstantConsumptionPoint.CONSUMPTION_KW, convertFromWToKW((Double) ((List) point).get(1)))
                     .tag(ShellyInstantConsumptionPoint.CHANNEL, ((String) ((List) point).get(2)))
@@ -116,10 +116,10 @@ public class ShellyConsumptionsInfluxLoader implements InfluxLoader {
     @Override
     public void clearData() {
         try (InfluxDB influxDBConnection = influxDbConnectionManager.getConnection()) {
-            String query = String.format("DROP SERIES FROM \"%s\"", ShellyConfig.CONSUMPTION_KW_MEASUREMENT);
+            String query = String.format("DROP SERIES FROM \"%s\"", ShellyInstantConsumptionPoint.MEASUREMENT);
             influxDBConnection.query(new Query(query));
 
-            query = String.format("DROP SERIES FROM \"%s\"", ShellyConfig.CONSUMPTION_KWH_MEASUREMENT);
+            query = String.format("DROP SERIES FROM \"%s\"", ShellyConsumptionPoint.MEASUREMENT);
             influxDBConnection.query(new Query(query));
         }
     }

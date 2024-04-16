@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConsumptio
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.get.GetShellyConsumptionRepositoryInflux;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.List;
 import static org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConsumptionsInfluxLoader.*;
 
 
+@Transactional
 class ShellyConsumptionsHourlyAggregatorTest extends BaseIntegrationTest {
 
     private static final OffsetDateTime START_DATE = OffsetDateTime.parse("2023-10-24T00:00:00.000+00:00");

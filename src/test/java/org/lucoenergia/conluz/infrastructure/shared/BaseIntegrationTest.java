@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.shared;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;

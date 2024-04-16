@@ -6,7 +6,7 @@ import org.influxdb.dto.Point;
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyConsumption;
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyInstantConsumption;
 import org.lucoenergia.conluz.domain.consumption.shelly.persist.PersistShellyConsumptionRepository;
-import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConfig;
+import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class PersistShellyConsumptionRepositoryInflux implements PersistShellyCo
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
             for (ShellyInstantConsumption consumption : consumptions) {
-                Point point = Point.measurement(ShellyConfig.CONSUMPTION_KW_MEASUREMENT)
+                Point point = Point.measurement(ShellyInstantConsumptionPoint.MEASUREMENT)
                         .time(consumption.getTimestamp().toEpochMilli(), TimeUnit.MILLISECONDS)
                         .tag(ShellyInstantConsumptionPoint.PREFIX, consumption.getPrefix())
                         .tag(ShellyInstantConsumptionPoint.CHANNEL, consumption.getChannel())
@@ -60,10 +60,10 @@ public class PersistShellyConsumptionRepositoryInflux implements PersistShellyCo
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
             for (ShellyConsumption consumption : consumptions) {
-                Point point = Point.measurement(ShellyConfig.CONSUMPTION_KWH_MEASUREMENT)
+                Point point = Point.measurement(ShellyConsumptionPoint.MEASUREMENT)
                         .time(consumption.getTimestamp().toEpochMilli(), TimeUnit.MILLISECONDS)
-                        .tag(ShellyInstantConsumptionPoint.PREFIX, consumption.getPrefix())
-                        .addField(ShellyInstantConsumptionPoint.CONSUMPTION_KW, consumption.getConsumptionKWh())
+                        .tag(ShellyConsumptionPoint.PREFIX, consumption.getPrefix())
+                        .addField(ShellyConsumptionPoint.CONSUMPTION_KWH, consumption.getConsumptionKWh())
                         .build();
 
                 batchPoints.point(point);

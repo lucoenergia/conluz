@@ -5,9 +5,10 @@ import org.influxdb.annotation.Measurement;
 
 import java.time.Instant;
 
-@Measurement(name = ShellyConfig.CONSUMPTION_KWH_MEASUREMENT)
+@Measurement(name = ShellyConsumptionPoint.MEASUREMENT)
 public class ShellyConsumptionPoint {
 
+    public static final String MEASUREMENT = "shelly_consumption_kwh";
     public static final String PREFIX = "prefix";
     public static final String CONSUMPTION_KWH = "consumption_kwh";
 

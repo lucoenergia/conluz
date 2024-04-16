@@ -8,7 +8,6 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyConsumption;
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyInstantConsumption;
 import org.lucoenergia.conluz.domain.consumption.shelly.get.GetShellyConsumptionRepository;
-import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConfig;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
@@ -44,7 +43,7 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
                     "SELECT time, %s, %s FROM \"%s\" WHERE prefix = '%s' AND time >= '%s' AND time <= '%s'",
                     ShellyInstantConsumptionPoint.PREFIX,
                     ShellyInstantConsumptionPoint.CONSUMPTION_KW,
-                    ShellyConfig.CONSUMPTION_KWH_MEASUREMENT,
+                    ShellyInstantConsumptionPoint.MEASUREMENT,
                     supply.getShellyMqttPrefix(),
                     startDateAsString,
                     endDateAsString));
@@ -61,7 +60,7 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
     public List<ShellyInstantConsumption> getAllInstantConsumptions() {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             String query = "SELECT time, " + ShellyInstantConsumptionPoint.PREFIX + ", " + ShellyInstantConsumptionPoint.CHANNEL + ", " +
-                    ShellyInstantConsumptionPoint.CONSUMPTION_KW + " FROM " + ShellyConfig.CONSUMPTION_KW_MEASUREMENT;
+                    ShellyInstantConsumptionPoint.CONSUMPTION_KW + " FROM " + ShellyInstantConsumptionPoint.MEASUREMENT;
             QueryResult queryResult = connection.query(new Query(query));
 
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
@@ -73,8 +72,8 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
     @Override
     public List<ShellyConsumption> getAllConsumptions() {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
-            String query = "SELECT time, " + ShellyInstantConsumptionPoint.PREFIX + ", " +
-                    ShellyInstantConsumptionPoint.CONSUMPTION_KW + " FROM " + ShellyConfig.CONSUMPTION_KWH_MEASUREMENT;
+            String query = "SELECT time, " + ShellyConsumptionPoint.PREFIX + ", " +
+                    ShellyConsumptionPoint.CONSUMPTION_KWH + " FROM " + ShellyConsumptionPoint.MEASUREMENT;
             QueryResult queryResult = connection.query(new Query(query));
 
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
