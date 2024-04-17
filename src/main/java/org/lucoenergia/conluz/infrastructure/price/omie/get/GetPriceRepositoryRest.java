@@ -16,10 +16,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.zone.ZoneRules;
 import java.util.ArrayList;
@@ -50,7 +47,7 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
 
         final String dayFormatted = formatDay(day);
 
-        final OkHttpClient client = conluzRestClientBuilder.build();
+        final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(30));
 
         LOGGER.info("Synchronizing OMIE prices for day {}.", dayFormatted);
 

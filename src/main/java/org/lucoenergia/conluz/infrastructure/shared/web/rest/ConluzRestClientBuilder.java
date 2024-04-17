@@ -12,7 +12,7 @@ public class ConluzRestClientBuilder {
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
     public OkHttpClient build() {
-        return build(false);
+        return build(false, DEFAULT_TIMEOUT);
     }
 
     /**
@@ -33,14 +33,17 @@ public class ConluzRestClientBuilder {
      * @param enableLogging true if logging interceptor should be added, false otherwise
      * @return the built OkHttpClient instance
      */
-    public OkHttpClient build(boolean enableLogging) {
+    public OkHttpClient build(boolean enableLogging, Duration timeout) {
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
         if (enableLogging) {
             clientBuilder.addInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY));
         }
-        clientBuilder.connectTimeout(DEFAULT_TIMEOUT);
-        clientBuilder.writeTimeout(DEFAULT_TIMEOUT);
-        clientBuilder.readTimeout(DEFAULT_TIMEOUT);
+        if (timeout == null) {
+            timeout = DEFAULT_TIMEOUT;
+        }
+        clientBuilder.connectTimeout(timeout);
+        clientBuilder.writeTimeout(timeout);
+        clientBuilder.readTimeout(timeout);
 
         return clientBuilder.build();
     }
