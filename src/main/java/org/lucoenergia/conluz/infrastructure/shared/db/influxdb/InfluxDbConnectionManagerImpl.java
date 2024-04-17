@@ -4,10 +4,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.BatchPoints;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InfluxDbConnectionManagerImpl implements InfluxDbConnectionManager {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(InfluxDbConnectionManagerImpl.class);
 
     private final InfluxDbConfiguration config;
 
@@ -21,6 +25,7 @@ public class InfluxDbConnectionManagerImpl implements InfluxDbConnectionManager 
         InfluxDB connection;
         if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
             connection = InfluxDBFactory.connect(config.getDatabaseURL());
+            LOGGER.warn("InfluxDB connection established without credentials.");
         } else {
             connection = InfluxDBFactory.connect(config.getDatabaseURL(), username, password);
         }
