@@ -11,12 +11,14 @@ import org.lucoenergia.conluz.infrastructure.price.omie.get.GetPriceRepositoryRe
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -25,6 +27,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 class GetPriceRepositoryRestTest extends BaseIntegrationTest {
@@ -56,7 +59,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
 
         String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_PRICES)));
 
-        when(conluzRestClientBuilder.build()).thenReturn(okHttpClient);
+        when(conluzRestClientBuilder.build(eq(false), ArgumentMatchers.any(Duration.class))).thenReturn(okHttpClient);
         when(okHttpClient.newCall(argThat(argument ->
                 argument != null &&
                 argument.url() != null &&
