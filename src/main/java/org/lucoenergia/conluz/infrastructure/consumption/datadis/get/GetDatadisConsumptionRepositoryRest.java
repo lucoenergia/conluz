@@ -25,6 +25,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,7 +62,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
         final String authToken = datadisAuthorizer.getAuthBearerToken();
 
-        final OkHttpClient client = conluzRestClientBuilder.build();
+        final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(60));
 
         LOGGER.info("Processing supply {} to get consumptions.", supply.getId());
 

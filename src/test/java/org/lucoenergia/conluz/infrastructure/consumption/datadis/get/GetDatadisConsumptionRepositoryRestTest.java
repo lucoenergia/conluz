@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBui
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Month;
 import java.util.List;
 
@@ -56,7 +57,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         Response response = Mockito.mock(Response.class);
         ResponseBody body = Mockito.mock(ResponseBody.class);
         Mockito
-                .when(conluzRestClientBuilder.build())
+                .when(conluzRestClientBuilder.build(false, Duration.ofSeconds(60)))
                 .thenReturn(client);
         Mockito.when(client.newCall(Mockito.any(Request.class))).thenReturn(call);
         Mockito.when(call.execute()).thenReturn(response);
@@ -91,7 +92,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         Response response = Mockito.mock(Response.class);
         ResponseBody body = Mockito.mock(ResponseBody.class);
         Mockito
-                .when(conluzRestClientBuilder.build())
+                .when(conluzRestClientBuilder.build(false, Duration.ofSeconds(60)))
                 .thenReturn(client);
         Mockito.when(client.newCall(Mockito.any(Request.class))).thenReturn(call);
         Mockito.when(call.execute()).thenReturn(response);

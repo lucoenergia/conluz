@@ -20,6 +20,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,7 +49,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         final String authToken = datadisAuthorizer.getAuthBearerToken();
 
-        final OkHttpClient client = conluzRestClientBuilder.build();
+        final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(60));
 
         LOGGER.info("Getting all supplies from datadis.es of user {}", user.getId());
 
