@@ -9,7 +9,7 @@ import java.time.Duration;
 @Component
 public class ConluzRestClientBuilder {
 
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
 
     public OkHttpClient build() {
         return build(false, DEFAULT_TIMEOUT);
