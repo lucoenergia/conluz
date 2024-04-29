@@ -55,7 +55,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
         List<RealTimeProduction> result = new ArrayList<>();
 
         if (stations == null || stations.isEmpty()) {
-            LOGGER.debug("No Huawei stations provided");
+            LOGGER.info("No Huawei stations provided");
             return result;
         }
 
@@ -67,7 +67,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
-        LOGGER.info("Getting real time production from stations {} .", stations);
+        LOGGER.info("Getting real time production from stations {} .", stationCodes);
 
         // Create the complete URL
         final String url = UriComponentsBuilder.fromUriString(URL)

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production.persist;
+package org.lucoenergia.conluz.infrastructure.production.huawei.persist;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;

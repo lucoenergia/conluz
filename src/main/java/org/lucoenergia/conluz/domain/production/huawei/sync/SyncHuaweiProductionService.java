@@ -50,14 +50,14 @@ public class SyncHuaweiProductionService {
         // Get Huawei configuration
         Optional<HuaweiConfig> huaweiConfig = getHuaweiConfigRepository.getHuaweiConfig();
         if (huaweiConfig.isEmpty()) {
-            LOGGER.debug("No Huawei config found");
+            LOGGER.info("No Huawei config found");
             return;
         }
 
         // Get all energy stations with Huawei inverter
         List<Plant> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
         if (huaweiStations.isEmpty()) {
-            LOGGER.debug("No Huawei stations found");
+            LOGGER.info("No Huawei stations found");
             return;
         }
 
@@ -73,14 +73,14 @@ public class SyncHuaweiProductionService {
         // Get Huawei configuration
         Optional<HuaweiConfig> huaweiConfig = getHuaweiConfigRepository.getHuaweiConfig();
         if (huaweiConfig.isEmpty()) {
-            LOGGER.debug("No Huawei config found");
+            LOGGER.info("No Huawei config found");
             return;
         }
 
         // Get all energy stations with Huawei inverter
         List<Plant> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
         if (huaweiStations.isEmpty()) {
-            LOGGER.debug("No Huawei stations found");
+            LOGGER.info("No Huawei stations found");
             return;
         }
 

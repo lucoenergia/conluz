@@ -10,8 +10,8 @@ import org.lucoenergia.conluz.domain.consumption.shelly.ShellyAggregateConsumpti
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyConsumption;
 import org.lucoenergia.conluz.domain.consumption.shelly.persist.PersistShellyConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionPoint;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,12 +25,12 @@ public class ShellyConsumptionsHourlyAggregator {
     private static final Logger LOGGER = LoggerFactory.getLogger(ShellyConsumptionsHourlyAggregator.class);
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
-    private final DateToInfluxDbDateFormatConverter dateConverter;
+    private final DateConverter dateConverter;
     private final GetSupplyRepository getSupplyRepository;
     private final PersistShellyConsumptionRepository persistShellyConsumptionRepository;
 
     public ShellyConsumptionsHourlyAggregator(InfluxDbConnectionManager influxDbConnectionManager,
-                                              DateToInfluxDbDateFormatConverter dateConverter,
+                                              DateConverter dateConverter,
                                               GetSupplyRepository getSupplyRepository,
                                               PersistShellyConsumptionRepository persistShellyConsumptionRepository) {
         this.influxDbConnectionManager = influxDbConnectionManager;
@@ -41,14 +41,18 @@ public class ShellyConsumptionsHourlyAggregator {
 
     public void aggregate(OffsetDateTime startDate, OffsetDateTime endDate) {
 
-        String startDateAsString = dateConverter.convert(startDate);
-        String endDateAsString = dateConverter.convert(endDate);
+        String startDateAsString = dateConverter.convertToString(startDate);
+        String endDateAsString = dateConverter.convertToString(endDate);
+
+        LOGGER.info("Aggregating Shelly consumption from {} to {}", startDateAsString, endDateAsString);
 
         List<Supply> supplies = getSupplyRepository.findAll();
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             for (Supply supply : supplies) {
+
+                LOGGER.info("Aggregating Shelly consumption from supply {}", supply.getShellyId());
 
                 try {
                     Query query = new Query(String.format(

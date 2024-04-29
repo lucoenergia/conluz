@@ -4,13 +4,13 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
-import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
+import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
 import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDuration;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
@@ -22,13 +22,13 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
 
-    private final DateToInfluxDbDateFormatConverter dateConverter;
+    private final DateConverter dateConverter;
 
     private final InstantProductionInfluxMapper instantProductionInfluxMapper;
     private final ProductionByHourInfluxMapper productionByHourInfluxMapper;
 
     public GetProductionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
-                                         DateToInfluxDbDateFormatConverter dateConverter,
+                                         DateConverter dateConverter,
                                          InstantProductionInfluxMapper instantProductionInfluxMapper,
                                          ProductionByHourInfluxMapper productionByHourInfluxMapper) {
         this.influxDbConnectionManager = influxDbConnectionManager;
@@ -70,8 +70,8 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
             Query query = new Query(String.format(
                     "SELECT time, \"inverter-power\"*%s FROM \"energy_production_huawei_hour\" WHERE time >= '%s' AND time <= '%s'",
                     partitionCoefficient,
-                    dateConverter.convert(startDate),
-                    dateConverter.convert(endDate)));
+                    dateConverter.convertToString(startDate),
+                    dateConverter.convertToString(endDate)));
 
             QueryResult queryResult = connection.query(query);
 
@@ -127,8 +127,8 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
             Query query = new Query(String.format(
                     "SELECT SUM(\"inverter-power\")*%s AS \"inverter-power\" FROM \"energy_production_huawei_hour\" WHERE time >= '%s' AND time <= '%s' GROUP BY time(%s)",
                     partitionCoefficient,
-                    dateConverter.convert(startDate),
-                    dateConverter.convert(endDate),
+                    dateConverter.convertToString(startDate),
+                    dateConverter.convertToString(endDate),
                     duration));
 
             QueryResult queryResult = connection.query(query);

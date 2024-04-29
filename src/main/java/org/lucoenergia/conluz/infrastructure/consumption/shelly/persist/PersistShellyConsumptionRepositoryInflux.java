@@ -30,6 +30,8 @@ public class PersistShellyConsumptionRepositoryInflux implements PersistShellyCo
     @Override
     public void persistInstantConsumptions(List<ShellyInstantConsumption> consumptions) {
 
+        LOGGER.info("Persisting Shelly instant consumptions data");
+
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             // Create new batch points object
@@ -47,12 +49,14 @@ public class PersistShellyConsumptionRepositoryInflux implements PersistShellyCo
             }
             connection.write(batchPoints);
         } catch (Exception e) {
-            LOGGER.error("Unable to persist Shelly consumptions", e);
+            LOGGER.error("Unable to persist Shelly instant consumptions", e);
         }
     }
 
     @Override
     public void persistConsumptions(List<ShellyConsumption> consumptions) {
+
+        LOGGER.info("Persisting Shelly consumptions data");
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 

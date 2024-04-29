@@ -10,8 +10,8 @@ import org.lucoenergia.conluz.domain.consumption.shelly.ShellyInstantConsumption
 import org.lucoenergia.conluz.domain.consumption.shelly.get.GetShellyConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionPoint;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
@@ -23,10 +23,10 @@ import java.util.List;
 public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptionRepository {
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
-    private final DateToInfluxDbDateFormatConverter dateConverter;
+    private final DateConverter dateConverter;
 
     public GetShellyConsumptionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
-                                                DateToInfluxDbDateFormatConverter dateConverter) {
+                                                DateConverter dateConverter) {
         this.influxDbConnectionManager = influxDbConnectionManager;
         this.dateConverter = dateConverter;
     }
@@ -34,8 +34,8 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
     @Override
     public List<ShellyInstantConsumption> getHourlyConsumptionsByRangeOfDatesAndSupply(Supply supply, OffsetDateTime startDate,
                                                                                        OffsetDateTime endDate) {
-        String startDateAsString = dateConverter.convert(startDate);
-        String endDateAsString = dateConverter.convert(endDate);
+        String startDateAsString = dateConverter.convertToString(startDate);
+        String endDateAsString = dateConverter.convertToString(endDate);
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 

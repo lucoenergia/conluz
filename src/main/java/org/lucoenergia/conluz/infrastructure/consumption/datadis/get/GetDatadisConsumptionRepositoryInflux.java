@@ -8,10 +8,10 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionPoint;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
@@ -23,11 +23,11 @@ import java.util.List;
 public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumptionRepository {
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
-    private final DateToInfluxDbDateFormatConverter dateConverter;
+    private final DateConverter dateConverter;
     private final DatadisDateTimeConverter datadisDateTimeConverter;
 
     public GetDatadisConsumptionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
-                                                 DateToInfluxDbDateFormatConverter dateConverter, DatadisDateTimeConverter datadisDateTimeConverter) {
+                                                 DateConverter dateConverter, DatadisDateTimeConverter datadisDateTimeConverter) {
         this.influxDbConnectionManager = influxDbConnectionManager;
         this.dateConverter = dateConverter;
         this.datadisDateTimeConverter = datadisDateTimeConverter;
@@ -36,8 +36,8 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
     @Override
     public List<DatadisConsumption> getHourlyConsumptionsByMonth(Supply supply, Month month, int year) {
 
-        String startDate = dateConverter.convertToFirstDayOfTheMonth(month, year);
-        String endDate = dateConverter.convertToLastDayOfTheMonth(month, year);
+        String startDate = dateConverter.convertToFirstDayOfTheMonthAsString(month, year);
+        String endDate = dateConverter.convertToLastDayOfTheMonthAsString(month, year);
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 

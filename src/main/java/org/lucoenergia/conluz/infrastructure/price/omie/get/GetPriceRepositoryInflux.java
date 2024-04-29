@@ -5,13 +5,13 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
-import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
+import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.infrastructure.price.PriceByHourInfluxMapper;
 import org.lucoenergia.conluz.infrastructure.price.PriceByHourPoint;
 import org.lucoenergia.conluz.infrastructure.price.omie.OmieConfig;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.DateToInfluxDbDateFormatConverter;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
@@ -24,9 +24,10 @@ public class GetPriceRepositoryInflux implements GetPriceRepository {
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
     private final PriceByHourInfluxMapper priceByHourInfluxMapper;
-    private final DateToInfluxDbDateFormatConverter dateConverter;
+    private final DateConverter dateConverter;
 
-    public GetPriceRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager, PriceByHourInfluxMapper priceByHourInfluxMapper, DateToInfluxDbDateFormatConverter dateConverter) {
+    public GetPriceRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
+                                    PriceByHourInfluxMapper priceByHourInfluxMapper, DateConverter dateConverter) {
         this.influxDbConnectionManager = influxDbConnectionManager;
         this.priceByHourInfluxMapper = priceByHourInfluxMapper;
         this.dateConverter = dateConverter;
@@ -40,8 +41,8 @@ public class GetPriceRepositoryInflux implements GetPriceRepository {
             Query query = new Query(String.format(
                     "SELECT * FROM %s WHERE time >= '%s' AND time <= '%s'",
                     OmieConfig.PRICES_KWH_MEASUREMENT,
-                    dateConverter.convert(startDate),
-                    dateConverter.convert(endDate)));
+                    dateConverter.convertToString(startDate),
+                    dateConverter.convertToString(endDate)));
 
             QueryResult queryResult = connection.query(query);
 
