@@ -34,10 +34,17 @@ services:
     build: .
     image: conluz:0.0.1
     ports:
-      - "8080:8080"
+      - "8443:8443"
     # Create a .env file in the folder where this file is located and define the environment variables there.
     # When run docker-compose up, Docker will automatically pick up the .env file in the same directory as this docker-compose.yml file, and substitute the values of the environment variables accordingly.
     environment:
       - CONLUZ_JWT_SECRET_KEY
       - SPRING_DATASOURCE_URL
       - SPRING_INFLUXDB_URL
+      - SPRING_INFLUXDB_USERNAME
+      - SPRING_INFLUXDB_PASSWORD
+      - SPRING_INFLUXDB_DATABASE
+      - CONLUZ_MQTT_SERVER_PASSWORD
+      - CONLUZ_MQTT_SERVER_TOPICS
+      - CONLUZ_MQTT_SERVER_URI
+      - CONLUZ_MQTT_SERVER_USERNAME
