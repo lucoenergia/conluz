@@ -12,10 +12,14 @@ import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiRealTimeProductionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,7 +34,9 @@ class GetHuaweiRealTimeProductionRepositoryRestTest {
 
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
 
-    private final DateConverter dateConverter = Mockito.mock(DateConverter.class);
+    private final TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
+    private final ZoneId zoneId = ZoneId.of("Europe/Madrid");
+    private final DateConverter dateConverter = new DateConverter(timeConfiguration);
 
     private GetHuaweiRealTimeProductionRepositoryRest repositoryRest;
 
@@ -38,6 +44,8 @@ class GetHuaweiRealTimeProductionRepositoryRestTest {
     public void setUp() {
         repositoryRest = new GetHuaweiRealTimeProductionRepositoryRest(new ObjectMapper(), huaweiAuthorizer,
                 conluzRestClientBuilder, dateConverter);
+
+        when(timeConfiguration.getZoneId()).thenReturn(zoneId);
     }
 
     @Test
@@ -120,6 +128,7 @@ class GetHuaweiRealTimeProductionRepositoryRestTest {
         assertEquals(2, realTimeProductions.size());
 
         assertEquals("BA4372D08E014822AB065017416F254C", realTimeProductions.get(0).getStationCode());
+        assertEquals(OffsetDateTime.parse("2017-08-18T10:56:37.854+02:00"), realTimeProductions.get(0).getTime());
         assertEquals(0.000d, realTimeProductions.get(0).getDayIncome());
         assertEquals(10000d, realTimeProductions.get(0).getDayPower());
         assertEquals(900.000d, realTimeProductions.get(0).getMonthPower());
@@ -128,6 +137,7 @@ class GetHuaweiRealTimeProductionRepositoryRestTest {
         assertEquals(3, realTimeProductions.get(0).getRealHealthState());
 
         assertEquals("5D02E8B40AD342159AC8D8A2BCD4FAB5", realTimeProductions.get(1).getStationCode());
+        assertEquals(OffsetDateTime.parse("2017-08-18T10:56:37.854+02:00"), realTimeProductions.get(1).getTime());
         assertEquals(26832.000d, realTimeProductions.get(1).getDayIncome());
         assertEquals(16770.000d, realTimeProductions.get(1).getDayPower());
         assertEquals(35100.000d, realTimeProductions.get(1).getMonthPower());

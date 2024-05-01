@@ -98,6 +98,8 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
                 if (response.body() != null) {
                     String jsonData = response.body().string();
                     result.addAll(processBody(jsonData));
+                } else {
+                    LOGGER.error("Response body is empty");
                 }
             } else {
                 LOGGER.error("Unable to get real-time production from stations {}. Code {}, message: {}",
@@ -116,6 +118,11 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
     private List<RealTimeProduction> processBody(String body) throws JsonProcessingException {
         JsonNode root = objectMapper.readTree(body);
         JsonNode dataNode = root.get("data");
+        long currentTime = root.path("params").path("currentTime").asLong();
+        if (currentTime <= 0) {
+            LOGGER.error("Current time is less than or equal to zero. Current time is {}", currentTime);
+            return new ArrayList<>();
+        }
 
         List<RealTimeProduction> dataList = new ArrayList<>();
 
@@ -123,8 +130,6 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
             for (JsonNode node : dataNode) {
 
                 JsonNode dataItemMap = node.get("dataItemMap");
-
-                long currentTime = dataNode.path("params").path("currentTime").asLong();
 
                 RealTimeProduction item = new RealTimeProduction.Builder()
                         .setTime(dateConverter.convertMillisecondsToOffsetDateTime(currentTime))
