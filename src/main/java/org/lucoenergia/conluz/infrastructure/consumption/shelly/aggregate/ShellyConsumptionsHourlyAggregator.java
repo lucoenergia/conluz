@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.consumption.shelly.aggregate;
 
+import org.apache.commons.lang3.StringUtils;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
@@ -51,6 +52,10 @@ public class ShellyConsumptionsHourlyAggregator {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             for (Supply supply : supplies) {
+
+                if (StringUtils.isBlank(supply.getShellyId())) {
+                    continue;
+                }
 
                 LOGGER.info("Aggregating Shelly consumption from supply {}", supply.getShellyId());
 

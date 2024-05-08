@@ -4,6 +4,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 
+import java.time.LocalDate;
 import java.util.Random;
 import java.util.UUID;
 
@@ -21,6 +22,13 @@ public class SupplyMother {
                 .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(new Random().nextBoolean())
                 .withUser(user)
-                .withName(RandomStringUtils.random(10, true, false));
+                .withName(RandomStringUtils.random(10, true, false))
+                .withDistributor(RandomStringUtils.random(10, true, false))
+                .withDistributorCode(RandomStringUtils.random(1, false, true))
+                .withPointType(new Random().nextInt())
+                .withValidDateFrom(LocalDate.now())
+                .withShellyId(RandomStringUtils.random(10, true, true))
+                .withShellyMac(RandomStringUtils.random(10, true, true))
+                .withShellyMqttPrefix(RandomStringUtils.random(10, true, true));
     }
 }
