@@ -55,6 +55,7 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                 .withPartitionCoefficient(supply.getPartitionCoefficient())
                 .withEnabled(supply.getEnabled())
 
+                .withValidDateFrom(supply.getValidDateFrom())
                 .withDistributor(supply.getDistributor())
                 .withDistributorCode(supply.getDistributorCode())
                 .withPointType(supply.getPointType())

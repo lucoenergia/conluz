@@ -27,6 +27,7 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
                 .withName(entity.getName())
                 .withUser(userEntityMapper.map(entity.getUser()))
 
+                .withValidDateFrom(entity.getValidDateFrom())
                 .withDistributor(entity.getDistributor())
                 .withDistributorCode(entity.getDistributorCode())
                 .withPointType(entity.getPointType())

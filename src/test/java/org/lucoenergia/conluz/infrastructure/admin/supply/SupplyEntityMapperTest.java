@@ -22,5 +22,14 @@ class SupplyEntityMapperTest {
         Assertions.assertEquals(entity.getPartitionCoefficient(), result.getPartitionCoefficient());
         Assertions.assertEquals(entity.getEnabled(), result.getEnabled());
         Assertions.assertEquals(entity.getUser().getPersonalId(), result.getUser().getPersonalId());
+
+        Assertions.assertEquals(entity.getValidDateFrom(), result.getValidDateFrom());
+        Assertions.assertEquals(entity.getDistributor(), result.getDistributor());
+        Assertions.assertEquals(entity.getDistributorCode(), result.getDistributorCode());
+        Assertions.assertEquals(entity.getPointType(), result.getPointType());
+
+        Assertions.assertEquals(entity.getShellyMac(), result.getShellyMac());
+        Assertions.assertEquals(entity.getShellyId(), result.getShellyId());
+        Assertions.assertEquals(entity.getShellyMqttPrefix(), result.getShellyMqttPrefix());
     }
 }

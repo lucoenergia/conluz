@@ -4,6 +4,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
+import java.time.LocalDate;
 import java.util.Random;
 import java.util.UUID;
 
@@ -22,6 +23,15 @@ public class SupplyEntityMother {
                 .withEnabled(new Random().nextBoolean())
                 .withUser(user)
                 .withName(RandomStringUtils.random(10, true, false))
+
+                .withDistributor("EDISTRIBUCION")
+                .withDistributorCode("2")
+                .withPointType(5)
+                .withValidDateFrom(LocalDate.now())
+
+                .withShellyId(RandomStringUtils.random(20, true, true))
+                .withShellyMac(RandomStringUtils.random(10, true, true))
+                .withShellyMqttPrefix(RandomStringUtils.random(20, true, true))
                 .build();
     }
 }
