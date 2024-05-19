@@ -1,5 +1,7 @@
-version: '3.1'
+version: '3.7'
+
 services:
+
   postgres:
     image: postgres:16
     container_name: postgres
@@ -48,3 +50,27 @@ services:
       - CONLUZ_MQTT_SERVER_TOPICS
       - CONLUZ_MQTT_SERVER_URI
       - CONLUZ_MQTT_SERVER_USERNAME
+    restart: always
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ${PATH_TO_PROMETHEUS_DATA}:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    restart: always
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    volumes:
+      - ${PATH_TO_NODE_EXPORTER_DATA}/proc:/host/proc:ro
+      - ${PATH_TO_NODE_EXPORTER_DATA}/sys:/host/sys:ro
+      - ${PATH_TO_NODE_EXPORTER_DATA}/:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+    restart: always
