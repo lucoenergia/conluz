@@ -54,6 +54,7 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
+    container_name: prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - ${PATH_TO_PROMETHEUS_DATA}:/prometheus
@@ -65,10 +66,11 @@ services:
 
   node-exporter:
     image: prom/node-exporter:latest
+    container_name: node-exporter
     volumes:
-      - ${PATH_TO_NODE_EXPORTER_DATA}/proc:/host/proc:ro
-      - ${PATH_TO_NODE_EXPORTER_DATA}/sys:/host/sys:ro
-      - ${PATH_TO_NODE_EXPORTER_DATA}/:/rootfs:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
     command:
       - --path.procfs=/host/proc
       - --path.sysfs=/host/sys
