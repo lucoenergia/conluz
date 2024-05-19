@@ -128,7 +128,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPages").value("1"))
                 .andExpect(jsonPath("$.number").value("0"))
                 .andExpect(jsonPath("$.items.size()").value(3))
-                .andExpect(jsonPath("$.items[0].id").value(supplyOne.getId()));
+                .andExpect(jsonPath("$.items[0].id").value(supplyOne.getId().toString()));
     }
 
     @Test
@@ -239,9 +239,9 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPages").value("1"))
                 .andExpect(jsonPath("$.number").value("0"))
                 .andExpect(jsonPath("$.items.size()").value(3))
-                .andExpect(jsonPath("$.items[0].id").value(supplyThree.getId().toString()))
+                .andExpect(jsonPath("$.items[0].id").value(supplyOne.getId().toString()))
                 .andExpect(jsonPath("$.items[1].id").value(supplyTwo.getId().toString()))
-                .andExpect(jsonPath("$.items[2].id").value(supplyOne.getId().toString()));
+                .andExpect(jsonPath("$.items[2].id").value(supplyThree.getId().toString()));
     }
 
     @Test
@@ -312,7 +312,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPages").value("3"))
                 .andExpect(jsonPath("$.number").value("1"))
                 .andExpect(jsonPath("$.items.size()").value(1))
-                .andExpect(jsonPath("$.items[0].id").value(supplyTwo.getId()));
+                .andExpect(jsonPath("$.items[0].id").value(supplyTwo.getId().toString()));
     }
 
     @Test
