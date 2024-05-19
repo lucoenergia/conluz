@@ -37,11 +37,15 @@ public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
         currentSupply.setName(supply.getName());
         currentSupply.setAddress(supply.getAddress());
         currentSupply.setPartitionCoefficient(supply.getPartitionCoefficient());
-        currentSupply.setEnabled(supply.getEnabled());
+
         currentSupply.setValidDateFrom(supply.getValidDateFrom());
         currentSupply.setDistributor(supply.getDistributor());
         currentSupply.setDistributorCode(supply.getDistributorCode());
         currentSupply.setPointType(supply.getPointType());
+
+        currentSupply.setShellyMac(supply.getShellyMac());
+        currentSupply.setShellyId(supply.getShellyId());
+        currentSupply.setShellyMqttPrefix(supply.getShellyMqttPrefix());
 
         return mapper.map(repository.save(currentSupply));
     }

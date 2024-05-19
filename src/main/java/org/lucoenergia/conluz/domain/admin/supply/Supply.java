@@ -12,9 +12,6 @@ import java.util.UUID;
 
 public class Supply {
 
-    private static final Integer DEFAULT_POINT_TYPE = 5;
-    private static final String DEFAULT_DISTRIBUTOR_CODE = DistributorCode.E_DISTRIBUCION;
-
     @NotNull
     @ValidUUID
     private UUID id;
@@ -197,11 +194,11 @@ public class Supply {
     }
 
     public String getDistributorCode() {
-        return distributorCode != null ? distributorCode : DEFAULT_DISTRIBUTOR_CODE;
+        return distributorCode;
     }
 
     public Integer getPointType() {
-        return pointType != null ? pointType : DEFAULT_POINT_TYPE;
+        return pointType;
     }
 
     public void setAddress(String address) {
