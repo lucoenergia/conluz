@@ -36,8 +36,12 @@ public class DateConverter {
         return instant.atOffset(zonedDateTime.getOffset());
     }
 
-    public LocalDate convertStringToLocalDate(String dateString) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+    public static LocalDate convertStringToLocalDate(String dateString) {
+        return convertStringToLocalDate(dateString, "yyyy/MM/dd");
+    }
+
+    public static LocalDate convertStringToLocalDate(String dateString, String pattern) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
         return LocalDate.parse(dateString, formatter);
     }
 

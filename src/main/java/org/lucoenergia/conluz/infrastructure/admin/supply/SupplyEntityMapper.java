@@ -21,10 +21,10 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
         return new Supply.Builder()
                 .withId(entity.getId())
                 .withCode(entity.getCode())
+                .withName(entity.getName())
                 .withAddress(entity.getAddress())
                 .withPartitionCoefficient(entity.getPartitionCoefficient())
                 .withEnabled(entity.getEnabled())
-                .withName(entity.getName())
                 .withUser(userEntityMapper.map(entity.getUser()))
 
                 .withValidDateFrom(entity.getValidDateFrom())

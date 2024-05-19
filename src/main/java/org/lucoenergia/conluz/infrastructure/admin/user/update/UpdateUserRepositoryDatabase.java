@@ -13,12 +13,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public class UpdateUserRepositoryImpl implements UpdateUserRepository {
+public class UpdateUserRepositoryDatabase implements UpdateUserRepository {
 
     private final UserRepository repository;
     private final UserEntityMapper mapper;
 
-    public UpdateUserRepositoryImpl(UserRepository repository, UserEntityMapper mapper) {
+    public UpdateUserRepositoryDatabase(UserRepository repository, UserEntityMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }
