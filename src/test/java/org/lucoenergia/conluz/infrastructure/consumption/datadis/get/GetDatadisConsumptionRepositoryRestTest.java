@@ -40,11 +40,12 @@ class GetDatadisConsumptionRepositoryRestTest {
         // Assemble
         final User user = new User.Builder().personalId("authorizedNif").build();
         final Supply supply = new Supply.Builder()
-                        .withCode("cups")
-                        .withUser(user)
-                        .withDatadisDistributorCode("distributorCode")
-                        .withDatadisPointType(5)
-                        .build();
+                .withCode("cups")
+                .withUser(user)
+                .withDatadisDistributorCode("distributorCode")
+                .withDatadisPointType(5)
+                .withDatadisIsThirdParty(true)
+                .build();
         final Month month = Month.APRIL;
         final int year = 2023;
 
@@ -75,11 +76,12 @@ class GetDatadisConsumptionRepositoryRestTest {
         // Assemble
         final User user = new User.Builder().personalId("authorizedNif").build();
         final Supply supply = new Supply.Builder()
-                        .withCode("ES0031300329693002BQ0F")
-                        .withUser(user)
-                        .withDatadisDistributorCode("distributorCode")
-                        .withDatadisPointType(5)
-                        .build();
+                .withCode("ES0031300329693002BQ0F")
+                .withUser(user)
+                .withDatadisDistributorCode("distributorCode")
+                .withDatadisPointType(5)
+                .withDatadisIsThirdParty(false)
+                .build();
         final Month month = Month.APRIL;
         final int year = 2023;
 

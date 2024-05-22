@@ -69,16 +69,17 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         validateSupply(supply);
 
         // Create the complete URL with the query parameter
-        final String url = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_CONSUMPTION_DATA_PATH)
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_CONSUMPTION_DATA_PATH)
                 .queryParam(DatadisParams.CUPS, supply.getCode())
                 .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDatadisDistributorCode())
-                .queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId())
                 .queryParam(DatadisParams.START_DATE, monthDate)
                 .queryParam(DatadisParams.END_DATE, monthDate)
                 .queryParam(DatadisParams.MEASUREMENT_TYPE, MeasurementType.PER_HOUR)
-                .queryParam(DatadisParams.POINT_TYPE, supply.getDatadisPointType())
-                .build()
-                .toUriString();
+                .queryParam(DatadisParams.POINT_TYPE, supply.getDatadisPointType());
+        if (supply.getDatadisIsThirdParty()) {
+            urlBuilder = urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId());
+        }
+        final String url = urlBuilder.build().toUriString();
 
         final Request request = new Request.Builder()
                 .url(url)
