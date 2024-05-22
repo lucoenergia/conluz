@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantService;
-import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -86,7 +86,7 @@ public class CreatePlantController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     public PlantResponse createPlant(@Valid @RequestBody CreatePlantBody body) {
-        Plant newPlant = service.create(body.mapToPlant(), UserPersonalId.of(body.getPersonalId()));
+        Plant newPlant = service.create(body.mapToPlant(), SupplyCode.of(body.getSupplyCode()));
         return new PlantResponse(newPlant);
     }
 }

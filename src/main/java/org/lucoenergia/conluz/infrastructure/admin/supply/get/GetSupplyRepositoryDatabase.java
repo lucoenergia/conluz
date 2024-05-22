@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
@@ -43,7 +44,16 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
     @Override
     public Optional<Supply> findById(SupplyId id) {
         Optional<SupplyEntity> supplyEntity = supplyRepository.findById(id.getId());
+        if (supplyEntity.isEmpty()) {
+            return Optional.empty();
+        }
 
+        return Optional.of(supplyEntityMapper.map(supplyEntity.get()));
+    }
+
+    @Override
+    public Optional<Supply> findByCode(SupplyCode code) {
+        Optional<SupplyEntity> supplyEntity = supplyRepository.findByCode(code.getCode());
         if (supplyEntity.isEmpty()) {
             return Optional.empty();
         }

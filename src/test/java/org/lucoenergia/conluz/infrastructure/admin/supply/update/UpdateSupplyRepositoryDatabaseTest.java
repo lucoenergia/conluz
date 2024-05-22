@@ -33,10 +33,10 @@ class UpdateSupplyRepositoryDatabaseTest {
                 .withAddress("address")
                 .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
-                .withValidDateFrom(LocalDate.now())
-                .withDistributor("distributor")
-                .withDistributorCode("distributorCode")
-                .withPointType(1)
+                .withDatadisValidDateFrom(LocalDate.now())
+                .withDatadisDistributor("distributor")
+                .withDatadisDistributorCode("distributorCode")
+                .withDatadisPointType(1)
                 .build();
         SupplyEntity supplyEntity = new SupplyEntity();
         Mockito.when(repository.findById(testSupplyUuid)).thenReturn(Optional.of(supplyEntity));

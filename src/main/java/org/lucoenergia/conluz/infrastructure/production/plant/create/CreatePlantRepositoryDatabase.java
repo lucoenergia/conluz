@@ -1,15 +1,15 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.create;
 
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
 import org.lucoenergia.conluz.domain.production.plant.PlantCannotBeCreatedException;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantCode;
-import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
@@ -23,29 +23,30 @@ import java.util.UUID;
 @Repository
 public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
 
-    private final UserRepository userRepository;
+    private final SupplyRepository supplyRepository;
     private final PlantRepository plantRepository;
-    private final UserEntityMapper userEntityMapper;
+    private final SupplyEntityMapper supplyEntityMapper;
     private final PlantEntityMapper plantEntityMapper;
 
-    public CreatePlantRepositoryDatabase(UserRepository userRepository, PlantRepository plantRepository, UserEntityMapper userEntityMapper, PlantEntityMapper plantEntityMapper) {
-        this.userRepository = userRepository;
+    public CreatePlantRepositoryDatabase(SupplyRepository supplyRepository, PlantRepository plantRepository,
+                                         SupplyEntityMapper supplyEntityMapper, PlantEntityMapper plantEntityMapper) {
+        this.supplyRepository = supplyRepository;
         this.plantRepository = plantRepository;
-        this.userEntityMapper = userEntityMapper;
+        this.supplyEntityMapper = supplyEntityMapper;
         this.plantEntityMapper = plantEntityMapper;
     }
 
     @Override
-    public Plant create(Plant plant, UserId id) {
-        Optional<UserEntity> result = userRepository.findById(id.getId());
+    public Plant create(Plant plant, SupplyId id) {
+        Optional<SupplyEntity> result = supplyRepository.findById(id.getId());
         if (result.isEmpty()) {
-            throw new UserNotFoundException(id);
+            throw new SupplyNotFoundException(id);
         }
         if (plantRepository.countByCode(plant.getCode()) > 0) {
             throw new PlantAlreadyExistsException(PlantCode.of(plant.getCode()));
         }
 
-        UserEntity userEntity = result.get();
+        SupplyEntity supplyEntity = result.get();
         PlantEntity plantEntity = new PlantEntity.Builder()
                 .withId(UUID.randomUUID())
                 .withCode(plant.getCode())
@@ -57,9 +58,9 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
                 .withConnectionDate(plant.getConnectionDate())
                 .build();
 
-        userEntity.addPlant(plantEntity);
+        supplyEntity.addPlant(plantEntity);
 
-        userRepository.save(userEntity);
+        supplyRepository.save(supplyEntity);
 
         Optional<PlantEntity> newPlantEntity = plantRepository.findByCode(plant.getCode());
         if (newPlantEntity.isEmpty()) {
@@ -67,7 +68,7 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
         }
 
         Plant newPlant = plantEntityMapper.map(newPlantEntity.get());
-        newPlant.setUser(userEntityMapper.map(userEntity));
+        newPlant.setSupply(supplyEntityMapper.map(supplyEntity));
 
         return newPlant;
     }

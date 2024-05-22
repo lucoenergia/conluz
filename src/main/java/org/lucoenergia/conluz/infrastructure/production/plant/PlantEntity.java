@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import jakarta.persistence.*;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
 import java.time.LocalDate;
@@ -16,7 +17,7 @@ public class PlantEntity {
     private String name;
     private String code;
     @ManyToOne(fetch = FetchType.LAZY)
-    private UserEntity user;
+    private SupplyEntity supply;
     private String address;
     private String description;
     @Enumerated(EnumType.STRING)
@@ -51,12 +52,12 @@ public class PlantEntity {
         this.code = code;
     }
 
-    public UserEntity getUser() {
-        return user;
+    public SupplyEntity getSupply() {
+        return supply;
     }
 
-    public void setUser(UserEntity user) {
-        this.user = user;
+    public void setSupply(SupplyEntity supply) {
+        this.supply = supply;
     }
 
     public String getAddress() {
@@ -117,7 +118,7 @@ public class PlantEntity {
         private UUID id;
         private String name;
         private String code;
-        private UserEntity user;
+        private SupplyEntity supply;
         private String address;
         private String description;
         private InverterProvider inverterProvider;
@@ -139,8 +140,8 @@ public class PlantEntity {
             return this;
         }
 
-        public Builder withUser(UserEntity user) {
-            this.user = user;
+        public Builder withSupply(SupplyEntity supply) {
+            this.supply = supply;
             return this;
         }
 
@@ -175,7 +176,7 @@ public class PlantEntity {
             plantEntity.setId(id);
             plantEntity.setName(name);
             plantEntity.setCode(code);
-            plantEntity.setUser(user);
+            plantEntity.setSupply(supply);
             plantEntity.setAddress(address);
             plantEntity.setDescription(description);
             plantEntity.setInverterProvider(inverterProvider);

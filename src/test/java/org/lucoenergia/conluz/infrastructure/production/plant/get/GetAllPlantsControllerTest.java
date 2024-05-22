@@ -2,6 +2,9 @@ package org.lucoenergia.conluz.infrastructure.production.plant.get;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -9,6 +12,7 @@ import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.InvalidTokenException;
@@ -34,24 +38,29 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
     private CreatePlantRepository createPlantRepository;
 
     @Test
     void testWithDefaultPaginationAndSorting() throws Exception {
 
-        // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
         // Create three supplies
-        Plant plantOne = PlantMother.random(userOne).withCode("TS-456789").build();
-        createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
-        Plant plantTwo = PlantMother.random(userOne).withCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, UserId.of(userOne.getId()));
-        Plant plantThree = PlantMother.random(userTwo).withCode("TS-789456").build();
-        createPlantRepository.create(plantThree, UserId.of(userTwo.getId()));
+        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -74,7 +83,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[0].inverterProvider").value(plantTwo.getInverterProvider().name()))
                 .andExpect(jsonPath("$.items[0].totalPower").value(plantTwo.getTotalPower()))
                 .andExpect(jsonPath("$.items[0].connectionDate").value(plantTwo.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
-                .andExpect(jsonPath("$.items[0].user.personalId").value(plantTwo.getUser().getPersonalId()))
+                .andExpect(jsonPath("$.items[0].supply.code").value(plantTwo.getSupply().getCode()))
 
                 .andExpect(jsonPath("$.items[1].id").isNotEmpty())
                 .andExpect(jsonPath("$.items[1].code").value(plantOne.getCode()))
@@ -84,7 +93,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[1].inverterProvider").value(plantOne.getInverterProvider().name()))
                 .andExpect(jsonPath("$.items[1].totalPower").value(plantOne.getTotalPower()))
                 .andExpect(jsonPath("$.items[1].connectionDate").value(plantOne.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
-                .andExpect(jsonPath("$.items[1].user.personalId").value(plantOne.getUser().getPersonalId()))
+                .andExpect(jsonPath("$.items[1].supply.code").value(plantOne.getSupply().getCode()))
 
                 .andExpect(jsonPath("$.items[2].id").isNotEmpty())
                 .andExpect(jsonPath("$.items[2].code").value(plantThree.getCode()))
@@ -94,7 +103,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[2].inverterProvider").value(plantThree.getInverterProvider().name()))
                 .andExpect(jsonPath("$.items[2].totalPower").value(plantThree.getTotalPower()))
                 .andExpect(jsonPath("$.items[2].connectionDate").value(plantThree.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
-                .andExpect(jsonPath("$.items[2].user.personalId").value(plantThree.getUser().getPersonalId()));
+                .andExpect(jsonPath("$.items[2].supply.code").value(plantThree.getSupply().getCode()));
     }
 
     @Test
@@ -117,19 +126,21 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomPaginationAndDefaultSorting() throws Exception {
 
-        // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        // Create three supplies
-        Plant plantOne = PlantMother.random(userOne).withCode("TS-456789").build();
-        createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
-        Plant plantTwo = PlantMother.random(userOne).withCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, UserId.of(userOne.getId()));
-        Plant plantThree = PlantMother.random(userTwo).withCode("TS-789456").build();
-        createPlantRepository.create(plantThree, UserId.of(userTwo.getId()));
+        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -151,13 +162,13 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownParameter() throws Exception {
 
-        // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
 
-        // Create three supplies
-        Plant plantOne = PlantMother.random(userOne).withCode("TS-456789").build();
-        createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
+        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -194,19 +205,21 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownField() throws Exception {
 
-        // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        // Create three supplies
-        Plant plantOne = PlantMother.random(userOne).withCode("TS-456789").build();
-        createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
-        Plant plantTwo = PlantMother.random(userOne).withCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, UserId.of(userOne.getId()));
-        Plant plantThree = PlantMother.random(userTwo).withCode("TS-789456").build();
-        createPlantRepository.create(plantThree, UserId.of(userTwo.getId()));
+        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -225,19 +238,21 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownDirection() throws Exception {
 
-        // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        // Create three supplies
-        Plant plantOne = PlantMother.random(userOne).withCode("TS-456789").build();
-        createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
-        Plant plantTwo = PlantMother.random(userOne).withCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, UserId.of(userOne.getId()));
-        Plant plantThree = PlantMother.random(userTwo).withCode("TS-789456").build();
-        createPlantRepository.create(plantThree, UserId.of(userTwo.getId()));
+        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -256,28 +271,30 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSorting() throws Exception {
 
-        // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        // Create three supplies
-        Plant plantOne = PlantMother.random(userOne)
+        Plant plantOne = PlantMother.random(supplyOne)
                 .withCode("TS-456789")
                 .withName("Plant One")
                 .build();
-        createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
-        Plant plantTwo = PlantMother.random(userOne)
+        createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyOne)
                 .withCode("TS-123456")
                 .withName("Plant Two")
                 .build();
-        createPlantRepository.create(plantTwo, UserId.of(userOne.getId()));
-        Plant plantThree = PlantMother.random(userTwo)
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantThree = PlantMother.random(supplyTwo)
                 .withCode("TS-789456")
                 .withName("Plant Three")
                 .build();
-        createPlantRepository.create(plantThree, UserId.of(userTwo.getId()));
+        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -300,31 +317,33 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByMultipleFields() throws Exception {
 
-        // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        // Create three supplies
-        Plant plantOne = PlantMother.random(userOne)
+        Plant plantOne = PlantMother.random(supplyOne)
                 .withCode("TS-456789")
                 .withName("Plant One")
                 .withTotalPower(60D)
                 .build();
-        createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
-        Plant plantTwo = PlantMother.random(userOne)
+        createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyOne)
                 .withCode("TS-123456")
                 .withName("Plant Two")
                 .withTotalPower(60D)
                 .build();
-        createPlantRepository.create(plantTwo, UserId.of(userOne.getId()));
-        Plant plantThree = PlantMother.random(userTwo)
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantThree = PlantMother.random(supplyTwo)
                 .withCode("TS-789456")
                 .withName("Plant Three")
                 .withTotalPower(30D)
                 .build();
-        createPlantRepository.create(plantThree, UserId.of(userTwo.getId()));
+        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -348,31 +367,33 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingAndCustomPagination() throws Exception {
 
-        // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        // Create three supplies
-        Plant plantOne = PlantMother.random(userOne)
+        Plant plantOne = PlantMother.random(supplyOne)
                 .withCode("TS-456789")
                 .withName("Plant One")
                 .withTotalPower(60D)
                 .build();
-        createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
-        Plant plantTwo = PlantMother.random(userOne)
+        createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyOne)
                 .withCode("TS-123456")
                 .withName("Plant Two")
                 .withTotalPower(60D)
                 .build();
-        createPlantRepository.create(plantTwo, UserId.of(userOne.getId()));
-        Plant plantThree = PlantMother.random(userTwo)
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantThree = PlantMother.random(supplyTwo)
                 .withCode("TS-789456")
                 .withName("Plant Three")
                 .withTotalPower(30D)
                 .build();
-        createPlantRepository.create(plantThree, UserId.of(userTwo.getId()));
+        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 

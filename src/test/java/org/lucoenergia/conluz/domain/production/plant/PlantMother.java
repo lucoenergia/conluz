@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.domain.production.plant;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
@@ -13,10 +15,10 @@ import java.util.UUID;
 public class PlantMother {
 
     public static Plant.Builder random() {
-        return random(UserMother.randomUser());
+        return random(SupplyMother.random().build());
     }
 
-    public static Plant.Builder random(User user) {
+    public static Plant.Builder random(Supply supply) {
         return new Plant.Builder()
                 .withId(UUID.randomUUID())
                 .withCode(RandomStringUtils.random(20, true, true))
@@ -26,7 +28,7 @@ public class PlantMother {
                 .withInverterProvider(InverterProvider.HUAWEI)
                 .withConnectionDate(LocalDate.now())
                 .withAddress(RandomStringUtils.random(20, true, true))
-                .withUser(user);
+                .withSupply(supply);
     }
 
 
@@ -40,6 +42,6 @@ public class PlantMother {
                 .withInverterProvider(InverterProvider.HUAWEI)
                 .withConnectionDate(LocalDate.now())
                 .withAddress(RandomStringUtils.random(20, true, true))
-                .withUser(UserMother.randomUserEntity());
+                .withSupply(SupplyMother.randomEntity().build());
     }
 }

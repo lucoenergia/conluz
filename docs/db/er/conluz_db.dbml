@@ -64,10 +64,8 @@ Table "plants" {
   "inverter_provider" text [not null]
   "total_power" doubleprecision [not null]
   "connection_date" date
-  "user_id" uuid
   "supply_id" uuid
 }
-Ref "plants_user_id_fk":"users"."id" < "plants"."user_id"
 Ref "plants_supply_id_fk":"supplies"."id" < "plants"."supply_id"
 
 Table "supplies" {
@@ -78,25 +76,13 @@ Table "supplies" {
   "address" "character varying(250)" [not null]
   "partition_coefficient" doubleprecision [not null]
   "enabled" boolean [not null]
-}
-Ref "supplies_user_id_fk":"users"."id" < "supplies"."user_id"
-
-Table "supplies_shelly_data" {
-  "id" uuid [pk, not null]
-  "supply_id" uuid
   "shelly_mac" "character varying(250)"
   "shelly_id" "character varying(250)"
   "shelly_mqtt_prefix" "character varying(250)"
+  "datadis_is_third_party" bool
+  "datadis_valid_date_from" date
+  "datadis_distributor" "character varying(250)"
+  "datadis_distributor_code" "character varying(250)"
+  "datadis_point_type" integer
 }
-Ref "shelly_supply_id_fk":"supplies"."id" < "supplies_shelly_data"."supply_id"
-
-Table "supplies_datadis_data" {
-  "id" uuid [pk, not null]
-  "supply_id" uuid
-  "is_third_party" bool
-  "valid_date_from" date
-  "distributor" "character varying(250)"
-  "distributor_code" "character varying(250)"
-  "point_type" integer
-}
-Ref "datadis_supply_id_fk":"supplies"."id" < "supplies_datadis_data"."supply_id"
+Ref "supplies_user_id_fk":"users"."id" < "supplies"."user_id"

@@ -36,8 +36,8 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
         final Supply supply = new Supply.Builder()
                         .withCode(cups)
                         .withUser(user)
-                        .withDistributorCode(distributorCode)
-                        .withPointType(pointType)
+                        .withDatadisDistributorCode(distributorCode)
+                        .withDatadisPointType(pointType)
                         .build();
         final Month month = Month.OCTOBER;
         final int year = 2023;

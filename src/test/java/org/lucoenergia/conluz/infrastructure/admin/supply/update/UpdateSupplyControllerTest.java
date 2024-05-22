@@ -6,12 +6,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.infrastructure.admin.user.update.UpdateUserBody;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -19,7 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,10 +55,10 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
         supplyModified.setAddress("address");
         supplyModified.setPartitionCoefficient(1.2f);
         supplyModified.setEnabled(false);
-        supplyModified.setValidDateFrom("2023-04-26");
-        supplyModified.setDistributor("2");
-        supplyModified.setDistributorCode("EDISTRIBUCION");
-        supplyModified.setPointType(5);
+        supplyModified.setDatadisValidDateFrom("2023-04-26");
+        supplyModified.setDatadisDistributor("2");
+        supplyModified.setDatadisDistributorCode("EDISTRIBUCION");
+        supplyModified.setDatadisPointType(5);
         supplyModified.setShellyId("shelly-id");
         supplyModified.setShellyMac("shelly-mac");
         supplyModified.setShellyMqttPrefix("shelly-mqtt-prefix");
@@ -79,10 +76,10 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.address").value(supplyModified.getAddress()))
                 .andExpect(jsonPath("$.partitionCoefficient").value(supplyModified.getPartitionCoefficient()))
                 .andExpect(jsonPath("$.enabled").value(supply.getEnabled()))
-                .andExpect(jsonPath("$.validDateFrom").value(supplyModified.getValidDateFrom()))
-                .andExpect(jsonPath("$.distributor").value(supplyModified.getDistributor()))
-                .andExpect(jsonPath("$.distributorCode").value(supplyModified.getDistributorCode()))
-                .andExpect(jsonPath("$.pointType").value(supplyModified.getPointType()))
+                .andExpect(jsonPath("$.validDateFrom").value(supplyModified.getDatadisValidDateFrom()))
+                .andExpect(jsonPath("$.distributor").value(supplyModified.getDatadisDistributor()))
+                .andExpect(jsonPath("$.distributorCode").value(supplyModified.getDatadisDistributorCode()))
+                .andExpect(jsonPath("$.pointType").value(supplyModified.getDatadisPointType()))
                 .andExpect(jsonPath("$.shellyMac").value(supplyModified.getShellyMac()))
                 .andExpect(jsonPath("$.shellyId").value(supplyModified.getShellyId()))
                 .andExpect(jsonPath("$.shellyMqttPrefix").value(supplyModified.getShellyMqttPrefix()))

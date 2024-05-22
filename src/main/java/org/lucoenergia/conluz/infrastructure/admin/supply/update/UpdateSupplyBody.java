@@ -4,10 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Positive;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 
-import java.text.DateFormat;
 import java.util.UUID;
 
 @Schema(requiredProperties = {
@@ -23,10 +21,10 @@ public class UpdateSupplyBody {
     @Positive
     private Float partitionCoefficient;
     private Boolean enabled;
-    private String validDateFrom;
-    private String distributor;
-    private String distributorCode;
-    private Integer pointType;
+    private String datadisValidDateFrom;
+    private String datadisDistributor;
+    private String datadisDistributorCode;
+    private Integer datadisPointType;
     private String shellyMac;
     private String shellyId;
     private String shellyMqttPrefix;
@@ -72,36 +70,36 @@ public class UpdateSupplyBody {
         this.enabled = enabled;
     }
 
-    public String getValidDateFrom() {
-        return validDateFrom;
+    public String getDatadisValidDateFrom() {
+        return datadisValidDateFrom;
     }
 
-    public void setValidDateFrom(String validDateFrom) {
-        this.validDateFrom = validDateFrom;
+    public void setDatadisValidDateFrom(String datadisValidDateFrom) {
+        this.datadisValidDateFrom = datadisValidDateFrom;
     }
 
-    public String getDistributor() {
-        return distributor;
+    public String getDatadisDistributor() {
+        return datadisDistributor;
     }
 
-    public void setDistributor(String distributor) {
-        this.distributor = distributor;
+    public void setDatadisDistributor(String datadisDistributor) {
+        this.datadisDistributor = datadisDistributor;
     }
 
-    public String getDistributorCode() {
-        return distributorCode;
+    public String getDatadisDistributorCode() {
+        return datadisDistributorCode;
     }
 
-    public void setDistributorCode(String distributorCode) {
-        this.distributorCode = distributorCode;
+    public void setDatadisDistributorCode(String datadisDistributorCode) {
+        this.datadisDistributorCode = datadisDistributorCode;
     }
 
-    public Integer getPointType() {
-        return pointType;
+    public Integer getDatadisPointType() {
+        return datadisPointType;
     }
 
-    public void setPointType(Integer pointType) {
-        this.pointType = pointType;
+    public void setDatadisPointType(Integer datadisPointType) {
+        this.datadisPointType = datadisPointType;
     }
 
     public String getShellyMac() {
@@ -135,10 +133,12 @@ public class UpdateSupplyBody {
                 .withName(name)
                 .withAddress(address)
                 .withPartitionCoefficient(partitionCoefficient)
-                .withValidDateFrom(validDateFrom != null ? DateConverter.convertStringToLocalDate(validDateFrom, "yyyy-MM-dd") : null)
-                .withDistributor(distributor)
-                .withDistributorCode(distributorCode)
-                .withPointType(pointType)
+                .withDatadisValidDateFrom(datadisValidDateFrom != null ?
+                        DateConverter.convertStringToLocalDate(datadisValidDateFrom, "yyyy-MM-dd") :
+                        null)
+                .withDatadisDistributor(datadisDistributor)
+                .withDatadisDistributorCode(datadisDistributorCode)
+                .withDatadisPointType(datadisPointType)
                 .withShellyMac(shellyMac)
                 .withShellyId(shellyId)
                 .withShellyMqttPrefix(shellyMqttPrefix);

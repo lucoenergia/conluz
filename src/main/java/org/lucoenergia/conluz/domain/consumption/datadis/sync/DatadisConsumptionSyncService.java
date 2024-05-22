@@ -52,7 +52,7 @@ public class DatadisConsumptionSyncService {
             LOGGER.info("Processing supply with ID: {}", supply.getId());
 
             // Get validity date
-            LocalDate validDateFrom = supply.getValidDateFrom();
+            LocalDate validDateFrom = supply.getDatadisValidDateFrom();
 
             // If the valid date is not present, we set the valid date on yesterday
             if (validDateFrom == null) {

@@ -24,10 +24,10 @@ public class SupplyEntityMother {
                 .withUser(user)
                 .withName(RandomStringUtils.random(10, true, false))
 
-                .withDistributor("EDISTRIBUCION")
-                .withDistributorCode("2")
-                .withPointType(5)
-                .withValidDateFrom(LocalDate.now())
+                .withDatadisDistributor("EDISTRIBUCION")
+                .withDatadisDistributorCode("2")
+                .withDatadisPointType(5)
+                .withDatadisValidDateFrom(LocalDate.now())
 
                 .withShellyId(RandomStringUtils.random(20, true, true))
                 .withShellyMac(RandomStringUtils.random(10, true, true))
