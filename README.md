@@ -56,7 +56,11 @@ You don't need to do an extra effort of creating all the table manually, because
 
 2. **InfluxDB database**
 
-TBD
+Conluz uses InfluxDB as a time series database to store consumption, production and energy prices data gathered from different sources like datadis.es, Shelly meters or Huawei inverters.
+
+#### Monitoring
+
+You can monitor the resources of the server where Conluz is running by using Prometheus + Node Exporter.
 
 ### Installation
 
@@ -72,8 +76,73 @@ TBD
     ```bash
    ./gradlew build
     ```
-   
-3. Run the application
+
+3. Configure Postgres database
+
+#### New Postgres installation
+
+To have a PostgreSQL database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
+You just need to execute the command `docker compose up -d postgres`
+
+#### Already existing Postgres installation
+
+If you already have a Postgres database up and running, you need to execute these commands:
+
+```sql
+CREATE DATABASE conluz_db; 
+CREATE DATABASE conluz_db_test;
+CREATE USER luz WITH PASSWORD 'blank';
+GRANT ALL PRIVILEGES ON DATABASE conluz_db TO luz;
+GRANT ALL PRIVILEGES ON DATABASE conluz_db_test TO luz;
+```
+These commands will:
+- Create two databases: `conluz_db` for running Conluz locally and `conluz_db_test` for integration tests. 
+- Create a user called `luz` which will be used by Conluz.
+- Grant privileges to the user `luz` over the databases `conluz_db` and `conluz_db_test`.
+
+Then, you have to configure the database connection settings by defining the following environment variables:
+
+```
+SPRING_DATASOURCE_URL="jdbc:postgresql://postgres_ip:5432/conluz_db"
+```
+
+If you are running Postgres locally on `localhost:5432` you don't need to provide this environment variable because that is the default configuration.
+
+4. Configure InfluxDB database
+
+#### New InfluxDB installation
+
+To have an InfluxDB database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
+You just need to execute the command `docker compose up -d influxdb`
+
+#### Already existing InfluxDB installation
+If you already have an InfluxDB database up and running, you need to execute these commands:
+
+```sql
+CREATE DATABASE conluz_db
+CREATE USER luz WITH PASSWORD 'blank'
+GRANT ALL ON conluz_db TO luz
+CREATE RETENTION POLICY one_month ON conluz_db DURATION 30d REPLICATION 1
+CREATE RETENTION POLICY one_year ON conluz_db DURATION 365d REPLICATION 1
+CREATE RETENTION POLICY forever ON conluz_db DURATION INF REPLICATION 1 DEFAULT
+```
+These commands will:
+- Create a database called "conluz_db".
+- Create a user called "luz".
+- Grant privileges to the user "luz" over the database "conluz_db".
+- Create a set of policies required by the app.
+
+By default, the InfluxDB settings are:
+```
+url=http://localhost:8086
+username=luz
+password=blank
+database=conluz_db
+```
+
+If you have your InfluxDB running with a different server, port, user credentials or database name, you would need to update the file `src/main/resources/application.properties` with your values.  
+
+5. Run the application
    
    > **Important:**
    > 
@@ -228,14 +297,15 @@ Here are the steps to deploy the app:
 CONLUZ_JWT_SECRET_KEY=your-secret-key
 ```
 Replace your-secret-key with your actual secret key.
-4. Build the Docker image
+4. Navigate back to the project root folder and build the Docker image
 ```shell
+   cd ..
    docker build -t conluz:1.0 -f Dockerfile .
    ```
 This command builds the Docker image from the Dockerfile and tags it with the name conluz:1.0. You have to replace the version number by the one you want to deploy.
 Here's what's happening in the command:
 - `-t conluz:1.0` names (or "tags") the image.
-- `-f deploy/Dockerfile` tells Docker where to find your Dockerfile.
+- `-f Dockerfile` tells Docker where to find your Dockerfile.
 - `.` tells Docker to use the current directory as the context for the build (i.e., sets the "build context").
 To confirm if the Docker image has been built successfully, you can list all available Docker images with the command:
 ```shell
@@ -268,7 +338,7 @@ This isn't strictly necessary if you're using anonymous/non-persistent volumes, 
 
 This can be done using the `docker build` command. Make sure to tag your image with a new version tag, something like:
  ```shell
-docker build -t conluz:2.0 -f deploy/Dockerfile .
+docker build -t conluz:2.0 -f Dockerfile .
 ```
 4. Run a new Docker container with the new image
 
