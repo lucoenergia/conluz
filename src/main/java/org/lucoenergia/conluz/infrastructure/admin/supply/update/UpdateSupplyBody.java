@@ -25,6 +25,7 @@ public class UpdateSupplyBody {
     private String datadisDistributor;
     private String datadisDistributorCode;
     private Integer datadisPointType;
+    private Boolean datadisIsThirdParty;
     private String shellyMac;
     private String shellyId;
     private String shellyMqttPrefix;
@@ -102,6 +103,14 @@ public class UpdateSupplyBody {
         this.datadisPointType = datadisPointType;
     }
 
+    public Boolean getDatadisIsThirdParty() {
+        return datadisIsThirdParty;
+    }
+
+    public void setDatadisIsThirdParty(Boolean datadisIsThirdParty) {
+        this.datadisIsThirdParty = datadisIsThirdParty;
+    }
+
     public String getShellyMac() {
         return shellyMac;
     }
@@ -139,6 +148,7 @@ public class UpdateSupplyBody {
                 .withDatadisDistributor(datadisDistributor)
                 .withDatadisDistributorCode(datadisDistributorCode)
                 .withDatadisPointType(datadisPointType)
+                .withDatadisIsThirdParty(datadisIsThirdParty)
                 .withShellyMac(shellyMac)
                 .withShellyId(shellyId)
                 .withShellyMqttPrefix(shellyMqttPrefix);

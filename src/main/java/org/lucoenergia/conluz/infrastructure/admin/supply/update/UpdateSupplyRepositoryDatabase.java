@@ -42,6 +42,7 @@ public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
         currentSupply.setDatadisDistributor(supply.getDatadisDistributor());
         currentSupply.setDatadisDistributorCode(supply.getDatadisDistributorCode());
         currentSupply.setDatadisPointType(supply.getDatadisPointType());
+        currentSupply.setDatadisIsThirdParty(supply.getDatadisIsThirdParty());
 
         currentSupply.setShellyMac(supply.getShellyMac());
         currentSupply.setShellyId(supply.getShellyId());
