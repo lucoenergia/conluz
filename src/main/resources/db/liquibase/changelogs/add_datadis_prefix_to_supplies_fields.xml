@@ -3,7 +3,7 @@
         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
     <changeSet id="add_datadis_prefix_to_supplies_fields_20240520T2300" author="Víctor Cañizares">
         <renameColumn tableName="supplies" newColumnName="datadis_valid_date_from" oldColumnName="valid_date_from"/>
