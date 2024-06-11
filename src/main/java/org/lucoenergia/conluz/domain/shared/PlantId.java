@@ -17,4 +17,11 @@ public class PlantId {
     public static PlantId of(UUID id) {
         return new PlantId(id);
     }
+
+    @Override
+    public String toString() {
+        return "PlantId{" +
+                "id=" + id.toString() +
+                '}';
+    }
 }
