@@ -7,8 +7,8 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
-import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,13 +31,15 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
         final String cups = "cups";
         final String distributorCode = "2";
         final Integer pointType = 5;
+        final boolean isIsThirdParty = true;
 
         final User user = new User.Builder().personalId(authorizedNif).build();
         final Supply supply = new Supply.Builder()
                         .withCode(cups)
                         .withUser(user)
-                        .withDistributorCode(distributorCode)
-                        .withPointType(pointType)
+                        .withDatadisDistributorCode(distributorCode)
+                        .withDatadisPointType(pointType)
+                        .withDatadisIsThirdParty(isIsThirdParty)
                         .build();
         final Month month = Month.OCTOBER;
         final int year = 2023;

@@ -55,10 +55,11 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                 .withPartitionCoefficient(supply.getPartitionCoefficient())
                 .withEnabled(supply.getEnabled())
 
-                .withValidDateFrom(supply.getValidDateFrom())
-                .withDistributor(supply.getDistributor())
-                .withDistributorCode(supply.getDistributorCode())
-                .withPointType(supply.getPointType())
+                .withDatadisValidDateFrom(supply.getDatadisValidDateFrom())
+                .withDatadisDistributor(supply.getDatadisDistributor())
+                .withDatadisDistributorCode(supply.getDatadisDistributorCode())
+                .withDatadisPointType(supply.getDatadisPointType())
+                .withDatadisIsThirdParty(supply.getDatadisIsThirdParty())
 
                 .withShellyMac(supply.getShellyMac())
                 .withShellyId(supply.getShellyId())

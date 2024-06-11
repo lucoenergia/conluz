@@ -32,12 +32,6 @@ public class UserEntity {
             orphanRemoval = true
     )
     private List<SupplyEntity> supplies = new ArrayList<>();
-    @OneToMany(
-            mappedBy = "user",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<PlantEntity> plants = new ArrayList<>();
 
 
     public UUID getId() {
@@ -132,20 +126,6 @@ public class UserEntity {
     public void removeSupply(SupplyEntity supply) {
         supplies.remove(supply);
         supply.setUser(null);
-    }
-
-    public List<PlantEntity> getPlants() {
-        return plants;
-    }
-
-    public void addPlant(PlantEntity plant) {
-        plants.add(plant);
-        plant.setUser(this);
-    }
-
-    public void removePlant(PlantEntity plant) {
-        plants.remove(plant);
-        plant.setUser(null);
     }
 
     public static UserEntity createNewUser(User user, String encodedPassword) {

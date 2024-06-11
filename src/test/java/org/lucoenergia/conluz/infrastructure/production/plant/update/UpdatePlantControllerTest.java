@@ -3,6 +3,9 @@ package org.lucoenergia.conluz.infrastructure.production.plant.update;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -10,6 +13,7 @@ import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +38,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
     private CreatePlantRepository createPlantRepository;
 
     @Test
@@ -41,18 +47,22 @@ class UpdatePlantControllerTest extends BaseControllerTest {
 
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        Plant plantOne = PlantMother.random(userOne).withCode("TS-456789").build();
-        plantOne = createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
+        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        plantOne = createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 
         // Modify data of the plant
         UpdatePlantBody plantModified = new UpdatePlantBody();
         plantModified.setCode("TS-234123");
-        plantModified.setPersonalId(userTwo.getPersonalId());
+        plantModified.setSupplyCode(supplyTwo.getCode());
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
         plantModified.setDescription("The main plant");
@@ -70,7 +80,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(plantOne.getId().toString()))
                 .andExpect(jsonPath("$.code").value(plantModified.getCode()))
-                .andExpect(jsonPath("$.user.personalId").value(plantModified.getPersonalId()))
+                .andExpect(jsonPath("$.supply.code").value(plantModified.getSupplyCode()))
                 .andExpect(jsonPath("$.name").value(plantModified.getName()))
                 .andExpect(jsonPath("$.description").value(plantModified.getDescription()))
                 .andExpect(jsonPath("$.connectionDate").value(plantModified.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
@@ -83,26 +93,28 @@ class UpdatePlantControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        // Create three supplies
-        Plant plantOne = PlantMother.random(userOne).withCode("TS-456789").build();
-        plantOne = createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
-        Plant plantTwo = PlantMother.random(userOne).withCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, UserId.of(userOne.getId()));
-        Plant plantThree = PlantMother.random(userTwo).withCode("TS-789456").build();
-        createPlantRepository.create(plantThree, UserId.of(userTwo.getId()));
+        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        plantOne = createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         UpdatePlantBody plantModified = new UpdatePlantBody();
         plantModified.setCode("TS-234123");
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
         plantModified.setTotalPower(25.6D);
-        plantModified.setPersonalId(userTwo.getPersonalId());
+        plantModified.setSupplyCode(supplyTwo.getCode());
         plantModified.setInverterProvider(InverterProvider.HUAWEI);
         String bodyAsString = objectMapper.writeValueAsString(plantModified);
 
@@ -114,7 +126,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(plantOne.getId().toString()))
                 .andExpect(jsonPath("$.code").value(plantModified.getCode()))
-                .andExpect(jsonPath("$.user.personalId").value(plantModified.getPersonalId()))
+                .andExpect(jsonPath("$.supply.code").value(plantModified.getSupplyCode()))
                 .andExpect(jsonPath("$.name").value(plantModified.getName()))
                 .andExpect(jsonPath("$.description").isEmpty())
                 .andExpect(jsonPath("$.connectionDate").isEmpty())
@@ -153,10 +165,12 @@ class UpdatePlantControllerTest extends BaseControllerTest {
 
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
 
         // Create three supplies
-        Plant plantOne = PlantMother.random(userOne).withCode("TS-456789").build();
-        plantOne = createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
+        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        plantOne = createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
         String authHeader = loginAsDefaultAdmin();
 
@@ -165,7 +179,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
         plantModified.setTotalPower(25.6D);
-        plantModified.setPersonalId("unknown");
+        plantModified.setSupplyCode("unknown");
         String bodyAsString = objectMapper.writeValueAsString(plantModified);
 
         mockMvc.perform(put("/api/v1/plants/" + plantOne.getId())

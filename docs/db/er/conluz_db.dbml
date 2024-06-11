@@ -1,0 +1,88 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table "config" {
+  "id" uuid [pk, not null]
+  "default_admin_user_initialized" boolean [not null, default: false]
+}
+
+Table "databasechangelog" {
+  "id" "character varying(255)" [not null]
+  "author" "character varying(255)" [not null]
+  "filename" "character varying(255)" [not null]
+  "dateexecuted" timestamp [not null]
+  "orderexecuted" integer [not null]
+  "exectype" "character varying(10)" [not null]
+  "md5sum" "character varying(35)"
+  "description" "character varying(255)"
+  "comments" "character varying(255)"
+  "tag" "character varying(255)"
+  "liquibase" "character varying(20)"
+  "contexts" "character varying(255)"
+  "labels" "character varying(255)"
+  "deployment_id" "character varying(10)"
+}
+
+Table "databasechangeloglock" {
+  "id" integer [pk, not null]
+  "locked" boolean [not null]
+  "lockgranted" timestamp
+  "lockedby" "character varying(255)"
+}
+
+Table "datadis_config" {
+  "id" uuid [pk, not null]
+  "username" text
+  "password" text
+}
+
+Table "huawei_config" {
+  "id" uuid [pk, not null]
+  "username" text
+  "password" text
+}
+
+Table "users" {
+  "id" uuid [pk, not null]
+  "personal_id" "character varying(250)" [not null]
+  "number" integer [not null]
+  "password" "character varying(250)" [not null]
+  "full_name" "character varying(250)" [not null]
+  "address" "character varying(250)"
+  "phone_number" "character varying(250)"
+  "email" "character varying(250)" [not null]
+  "role" "character varying(250)" [not null]
+  "enabled" boolean [not null]
+}
+
+Table "plants" {
+  "id" uuid [pk, not null]
+  "name" text [not null]
+  "code" text [not null]
+  "address" text [not null]
+  "description" text
+  "inverter_provider" text [not null]
+  "total_power" doubleprecision [not null]
+  "connection_date" date
+  "supply_id" uuid
+}
+Ref "plants_supply_id_fk":"supplies"."id" < "plants"."supply_id"
+
+Table "supplies" {
+  "id" uuid [pk, not null]
+  "code" "character varying(250)" [not null]
+  "user_id" uuid
+  "name" "character varying(250)"
+  "address" "character varying(250)" [not null]
+  "partition_coefficient" doubleprecision [not null]
+  "enabled" boolean [not null]
+  "shelly_mac" "character varying(250)"
+  "shelly_id" "character varying(250)"
+  "shelly_mqtt_prefix" "character varying(250)"
+  "datadis_is_third_party" bool
+  "datadis_valid_date_from" date
+  "datadis_distributor" "character varying(250)"
+  "datadis_distributor_code" "character varying(250)"
+  "datadis_point_type" integer
+}
+Ref "supplies_user_id_fk":"users"."id" < "supplies"."user_id"

@@ -51,10 +51,10 @@ public class DatadisSuppliesSyncService {
                 Supply supply = allSupplies.get(datadisSupply.getCups());
                 if (supply != null) {
                     supply.setAddress(datadisSupply.getAddress());
-                    supply.setDistributorCode(datadisSupply.getDistributorCode());
-                    supply.setDistributor(datadisSupply.getDistributor());
-                    supply.setPointType(datadisSupply.getPointType());
-                    supply.setValidDateFrom(datadisSupply.getValidDateFrom() != null ?
+                    supply.setDatadisDistributorCode(datadisSupply.getDistributorCode());
+                    supply.setDatadisDistributor(datadisSupply.getDistributor());
+                    supply.setDatadisPointType(datadisSupply.getPointType());
+                    supply.setDatadisValidDateFrom(datadisSupply.getValidDateFrom() != null ?
                             dateConverter.convertStringToLocalDate(datadisSupply.getValidDateFrom()) :
                             null);
 

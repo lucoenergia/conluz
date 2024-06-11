@@ -4,8 +4,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
@@ -35,6 +38,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
     private PlantRepository plantRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private SupplyRepository supplyRepository;
 
     @Test
     void testFullBody() throws Exception {
@@ -45,6 +50,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
         UserEntity user = UserMother.randomUserEntity();
         user.setPersonalId(userPersonalId);
         userRepository.save(user);
+        SupplyEntity supply = SupplyMother.randomEntity().withUser(user).build();
+        supplyRepository.save(supply);
 
         String plantCode = "PS-456798";
 
@@ -52,14 +59,14 @@ class CreatePlantControllerTest extends BaseControllerTest {
                         {
                           "code": "%s",
                           "name": "Plant one",
-                          "personalId": "%s",
+                          "supplyCode": "%s",
                           "address": "Fake Street 123",
                           "description": "Plant number one",
                           "totalPower": "60.00",
                           "connectionDate": "2024-05-23",
                           "inverterProvider": "HUAWEI"
                         }
-                """, plantCode, userPersonalId);
+                """, plantCode, supply.getCode());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -75,14 +82,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPower").value("60.0"))
                 .andExpect(jsonPath("$.connectionDate").value("2024-05-23"))
                 .andExpect(jsonPath("$.inverterProvider").value("HUAWEI"))
-                .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
-                .andExpect(jsonPath("$.user.personalId").value(user.getPersonalId()))
-                .andExpect(jsonPath("$.user.number").value(user.getNumber()))
-                .andExpect(jsonPath("$.user.fullName").value(user.getFullName()))
-                .andExpect(jsonPath("$.user.address").value(user.getAddress()))
-                .andExpect(jsonPath("$.user.email").value(user.getEmail()))
-                .andExpect(jsonPath("$.user.phoneNumber").value(user.getPhoneNumber()))
-                .andExpect(jsonPath("$.user.enabled").value(user.isEnabled()));
+                .andExpect(jsonPath("$.supply.code").value(supply.getCode()));
 
         Assertions.assertEquals(1, plantRepository.countByCode(plantCode));
     }
@@ -96,6 +96,9 @@ class CreatePlantControllerTest extends BaseControllerTest {
         UserEntity user = UserMother.randomUserEntity();
         user.setPersonalId(userPersonalId);
         userRepository.save(user);
+        SupplyEntity supply = SupplyMother.randomEntity().withUser(user).build();
+        supplyRepository.save(supply);
+
 
         String plantCode = "PS-456798";
 
@@ -103,12 +106,12 @@ class CreatePlantControllerTest extends BaseControllerTest {
                         {
                           "code": "%s",
                           "name": "Plant one",
-                          "personalId": "%s",
+                          "supplyCode": "%s",
                           "address": "Fake Street 123",
                           "totalPower": "60.00",
                           "inverterProvider": "HUAWEI"
                         }
-                """, plantCode, userPersonalId);
+                """, plantCode, supply.getCode());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -124,14 +127,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPower").value("60.0"))
                 .andExpect(jsonPath("$.connectionDate").isEmpty())
                 .andExpect(jsonPath("$.inverterProvider").value("HUAWEI"))
-                .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
-                .andExpect(jsonPath("$.user.personalId").value(user.getPersonalId()))
-                .andExpect(jsonPath("$.user.number").value(user.getNumber()))
-                .andExpect(jsonPath("$.user.fullName").value(user.getFullName()))
-                .andExpect(jsonPath("$.user.address").value(user.getAddress()))
-                .andExpect(jsonPath("$.user.email").value(user.getEmail()))
-                .andExpect(jsonPath("$.user.phoneNumber").value(user.getPhoneNumber()))
-                .andExpect(jsonPath("$.user.enabled").value(user.isEnabled()));
+                .andExpect(jsonPath("$.supply.code").value(supply.getCode()));
 
         Assertions.assertEquals(1, plantRepository.countByCode(plantCode));
     }
@@ -268,10 +264,10 @@ class CreatePlantControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsDefaultAdmin();
 
-        String userPersonalId = "54889216G";
-        UserEntity user = UserMother.randomUserEntity();
-        user.setPersonalId(userPersonalId);
-        user = userRepository.save(user);
+        UserEntity userOne = UserMother.randomUserEntity();
+        userRepository.save(userOne);
+        SupplyEntity supplyOne = SupplyMother.randomEntity().withUser(userOne).build();
+        supplyRepository.save(supplyOne);
 
         String plantCode = "PS-456798";
 
@@ -282,19 +278,19 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .withInverterProvider(InverterProvider.HUAWEI)
                 .withId(UUID.randomUUID())
                 .withName("A name")
-                .withUser(user)
+                .withSupply(supplyOne)
                 .build());
 
         String body = String.format("""
                         {
                           "code": "%s",
                           "name": "Plant one",
-                          "personalId": "%s",
+                          "supplyCode": "%s",
                           "address": "Fake Street 123",
                           "totalPower": "60.00",
                           "inverterProvider": "HUAWEI"
                         }
-                """, plantCode, userPersonalId);
+                """, plantCode, supplyOne.getCode());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

@@ -24,13 +24,15 @@ public class SupplyResponse {
     @Schema(description = "Whether the supply is enabled or disabled", example = "true")
     private final Boolean enabled;
     @Schema(description = "Date on which the supply point was registered as valid", example = "true")
-    private final LocalDate validDateFrom;
+    private final LocalDate datadisValidDateFrom;
     @Schema(description = "Name of the distribution company", example = "Endesa")
-    private final String distributor;
+    private final String datadisDistributor;
     @Schema(description = "Code of the distribution company", example = "2")
-    private final String distributorCode;
+    private final String datadisDistributorCode;
     @Schema(description = "Type of measurement point", example = "3")
-    private final Integer pointType;
+    private final Integer datadisPointType;
+    @Schema(description = "Whether is an authorized third parth supply or not", example = "true")
+    private final Boolean datadisIsThirdParty;
     @Schema(description = "MAC address of the Shelly", example = "24:4c:ab:41:99:f6")
     private final String shellyMac;
     @Schema(description = "Unique identifier of the Shelly", example = "shellyem-244CAB4199F6")
@@ -47,10 +49,11 @@ public class SupplyResponse {
         this.partitionCoefficient = supply.getPartitionCoefficient();
         this.enabled = supply.getEnabled();
         this.user = supply.getUser() != null ? new UserResponse(supply.getUser()) : null;
-        this.validDateFrom = supply.getValidDateFrom();
-        this.distributor = supply.getDistributor();
-        this.distributorCode = supply.getDistributorCode();
-        this.pointType = supply.getPointType();
+        this.datadisIsThirdParty = supply.getDatadisIsThirdParty();
+        this.datadisValidDateFrom = supply.getDatadisValidDateFrom();
+        this.datadisDistributor = supply.getDatadisDistributor();
+        this.datadisDistributorCode = supply.getDatadisDistributorCode();
+        this.datadisPointType = supply.getDatadisPointType();
         this.shellyMac = supply.getShellyMac();
         this.shellyId = supply.getShellyId();
         this.shellyMqttPrefix = supply.getShellyMqttPrefix();
@@ -83,20 +86,24 @@ public class SupplyResponse {
         return enabled;
     }
 
-    public LocalDate getValidDateFrom() {
-        return validDateFrom;
+    public LocalDate getDatadisValidDateFrom() {
+        return datadisValidDateFrom;
     }
 
-    public String getDistributor() {
-        return distributor;
+    public String getDatadisDistributor() {
+        return datadisDistributor;
     }
 
-    public String getDistributorCode() {
-        return distributorCode;
+    public String getDatadisDistributorCode() {
+        return datadisDistributorCode;
     }
 
-    public Integer getPointType() {
-        return pointType;
+    public Integer getDatadisPointType() {
+        return datadisPointType;
+    }
+
+    public Boolean getDatadisIsThirdParty() {
+        return datadisIsThirdParty;
     }
 
     public String getShellyMac() {

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
@@ -21,7 +22,7 @@ public class CreatePlantBody {
     private String name;
     private String description;
     @NotBlank
-    private String personalId;
+    private String supplyCode;
     @NotNull
     private InverterProvider inverterProvider;
     private LocalDate connectionDate;
@@ -54,12 +55,12 @@ public class CreatePlantBody {
         this.description = description;
     }
 
-    public String getPersonalId() {
-        return personalId;
+    public String getSupplyCode() {
+        return supplyCode;
     }
 
-    public void setPersonalId(String personalId) {
-        this.personalId = personalId;
+    public void setSupplyCode(String supplyCode) {
+        this.supplyCode = supplyCode;
     }
 
     public InverterProvider getInverterProvider() {
@@ -100,7 +101,7 @@ public class CreatePlantBody {
                 .withAddress(address)
                 .withName(name)
                 .withDescription(description)
-                .withUser(new User.Builder().personalId(personalId).build())
+                .withSupply(new Supply.Builder().withCode(supplyCode).build())
                 .withInverterProvider(inverterProvider)
                 .withTotalPower(totalPower)
                 .withConnectionDate(connectionDate);

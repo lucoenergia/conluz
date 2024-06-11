@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant.update;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
@@ -21,7 +22,7 @@ public class UpdatePlantBody {
     private String name;
     private String description;
     @NotBlank
-    private String personalId;
+    private String supplyCode;
     @NotNull
     private InverterProvider inverterProvider;
     private LocalDate connectionDate;
@@ -54,12 +55,12 @@ public class UpdatePlantBody {
         this.description = description;
     }
 
-    public String getPersonalId() {
-        return personalId;
+    public String getSupplyCode() {
+        return supplyCode;
     }
 
-    public void setPersonalId(String personalId) {
-        this.personalId = personalId;
+    public void setSupplyCode(String supplyCode) {
+        this.supplyCode = supplyCode;
     }
 
     public InverterProvider getInverterProvider() {
@@ -104,7 +105,7 @@ public class UpdatePlantBody {
                 .withConnectionDate(connectionDate)
                 .withAddress(address)
                 .withTotalPower(totalPower)
-                .withUser(new User.Builder().personalId(personalId).build());
+                .withSupply(new Supply.Builder().withCode(supplyCode).build());
         return builder.build();
     }
 }

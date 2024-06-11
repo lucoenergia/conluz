@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
 import java.time.LocalDate;
@@ -11,7 +12,7 @@ public class PlantResponse {
 
     private final UUID id;
     private final String code;
-    private final UserResponse user;
+    private final SupplyResponse supply;
     private final String name;
     private final String address;
     private final String description;
@@ -22,7 +23,7 @@ public class PlantResponse {
     public PlantResponse(Plant plant) {
         this.id = plant.getId();
         this.code = plant.getCode();
-        this.user = new UserResponse(plant.getUser());
+        this.supply = new SupplyResponse(plant.getSupply());
         this.name = plant.getName();
         this.address = plant.getAddress();
         this.description = plant.getDescription();
@@ -39,8 +40,8 @@ public class PlantResponse {
         return code;
     }
 
-    public UserResponse getUser() {
-        return user;
+    public SupplyResponse getSupply() {
+        return supply;
     }
 
     public String getName() {

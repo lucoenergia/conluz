@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,10 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class PlantEntityMapper extends BaseMapper<PlantEntity, Plant> {
 
-    private final UserEntityMapper userEntityMapper;
+    private final SupplyEntityMapper supplyEntityMapper;
 
-    public PlantEntityMapper(UserEntityMapper userEntityMapper) {
-        this.userEntityMapper = userEntityMapper;
+    public PlantEntityMapper(SupplyEntityMapper supplyEntityMapper) {
+        this.supplyEntityMapper = supplyEntityMapper;
     }
 
     @Override
@@ -23,7 +24,7 @@ public class PlantEntityMapper extends BaseMapper<PlantEntity, Plant> {
                 .withCode(entity.getCode())
                 .withAddress(entity.getAddress())
                 .withName(entity.getName())
-                .withUser(userEntityMapper.map(entity.getUser()))
+                .withSupply(supplyEntityMapper.map(entity.getSupply()))
                 .withDescription(entity.getDescription())
                 .withTotalPower(entity.getTotalPower())
                 .withConnectionDate(entity.getConnectionDate())

@@ -69,16 +69,17 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         validateSupply(supply);
 
         // Create the complete URL with the query parameter
-        final String url = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_CONSUMPTION_DATA_PATH)
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_CONSUMPTION_DATA_PATH)
                 .queryParam(DatadisParams.CUPS, supply.getCode())
-                .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDistributorCode())
-                .queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId())
+                .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDatadisDistributorCode())
                 .queryParam(DatadisParams.START_DATE, monthDate)
                 .queryParam(DatadisParams.END_DATE, monthDate)
                 .queryParam(DatadisParams.MEASUREMENT_TYPE, MeasurementType.PER_HOUR)
-                .queryParam(DatadisParams.POINT_TYPE, supply.getPointType())
-                .build()
-                .toUriString();
+                .queryParam(DatadisParams.POINT_TYPE, supply.getDatadisPointType());
+        if (supply.getDatadisIsThirdParty()) {
+            urlBuilder = urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId());
+        }
+        final String url = urlBuilder.build().toUriString();
 
         final Request request = new Request.Builder()
                 .url(url)
@@ -112,10 +113,10 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
     }
 
     private void validateSupply(Supply supply) {
-        if (supply.getDistributorCode() == null || supply.getDistributorCode().isEmpty()) {
+        if (supply.getDatadisDistributorCode() == null || supply.getDatadisDistributorCode().isEmpty()) {
             throw new DatadisSupplyConfigurationException("Distributor code is mandatory to get monthly consumption.");
         }
-        if (supply.getPointType() == null) {
+        if (supply.getDatadisPointType() == null) {
             throw new DatadisSupplyConfigurationException("Point type is mandatory to get monthly consumption.");
         }
     }

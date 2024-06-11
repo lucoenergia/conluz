@@ -2,6 +2,9 @@ package org.lucoenergia.conluz.infrastructure.production.plant.delete;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -10,6 +13,7 @@ import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantId;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +35,8 @@ class DeletePlantControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
     private CreatePlantRepository createPlantRepository;
     @Autowired
     private GetPlantRepository getPlantRepository;
@@ -41,16 +47,20 @@ class DeletePlantControllerTest extends BaseControllerTest {
         // Create two users
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
+        Supply supplyOne = SupplyMother.random().build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
+        Supply supplyTwo = SupplyMother.random().build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
         // Create three supplies
-        Plant plantOne = PlantMother.random(userOne).withCode("TS-456789").build();
-        createPlantRepository.create(plantOne, UserId.of(userOne.getId()));
-        Plant plantTwo = PlantMother.random(userOne).withCode("TS-123456").build();
-        plantTwo = createPlantRepository.create(plantTwo, UserId.of(userOne.getId()));
-        Plant plantThree = PlantMother.random(userTwo).withCode("TS-789456").build();
-        createPlantRepository.create(plantThree, UserId.of(userTwo.getId()));
+        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        plantTwo = createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         // Login as default admin
         String authHeader = loginAsDefaultAdmin();

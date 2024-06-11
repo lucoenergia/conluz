@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.domain.production.plant;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 
@@ -32,7 +32,7 @@ public class Plant {
     private Double totalPower;
     private LocalDate connectionDate;
     @NotNull
-    private User user;
+    private Supply supply;
 
     public UUID getId() {
         return id;
@@ -66,12 +66,12 @@ public class Plant {
         return connectionDate;
     }
 
-    public User getUser() {
-        return user;
+    public Supply getSupply() {
+        return supply;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setSupply(Supply supply) {
+        this.supply = supply;
     }
 
     public void initializeUuid() {
@@ -87,7 +87,7 @@ public class Plant {
         private InverterProvider inverterProvider;
         private Double totalPower;
         private LocalDate connectionDate;
-        private User user;
+        private Supply supply;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -129,8 +129,8 @@ public class Plant {
             return this;
         }
 
-        public Builder withUser(User user) {
-            this.user = user;
+        public Builder withSupply(Supply supply) {
+            this.supply = supply;
             return this;
         }
 
@@ -144,7 +144,7 @@ public class Plant {
             station.inverterProvider = this.inverterProvider;
             station.totalPower = this.totalPower;
             station.connectionDate = this.connectionDate;
-            station.user = this.user;
+            station.supply = this.supply;
             return station;
         }
     }
