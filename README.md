@@ -152,7 +152,7 @@ If you have your InfluxDB running with a different server, port, user credential
    ./gradlew bootRun
     ```
 
-    The application will be accessible at http://localhost:8080.
+    The application will be accessible at https://localhost:8443.
 
 
 ## Usage
@@ -262,7 +262,7 @@ You can access the documentation using two methods:
 
 You can download the OpenAPI specification in either YAML or JSON format to view the detailed documentation. Follow the steps below:
 
-- Navigate to the [API Documentation](http://localhost:8080/api-docs) section.
+- Navigate to the [API Documentation](https://localhost:8443/api-docs) section.
 
 Then you can download and inspect the specification using your preferred tool.
 
@@ -270,7 +270,7 @@ Then you can download and inspect the specification using your preferred tool.
 
 Alternatively, you can access the API documentation through the Swagger UI, a user-friendly graphical interface. Follow these steps:
 
-- Navigate to the [Swagger UI](http://localhost:8080/api-docs/swagger-ui/index.html) link.
+- Navigate to the [Swagger UI](https://localhost:8443/api-docs/swagger-ui/index.html) link.
 - Explore and interact with the API endpoints in a visually appealing and intuitive way.
 - Swagger UI provides an easy way to understand request and response formats, and even allows you to make sample requests directly from the documentation.
 
@@ -318,7 +318,7 @@ You should see the image (conluz:1.0) in the resulting list.
    ```
 This command will start all your services in the background. Docker Compose will start all the services defined in the `docker-compose.yml` file, in the correct order.
 
-At this point, the application should be running at http://localhost:8080.
+At this point, the application should be running at https://localhost:8443.
 
 To stop the application, you can `run docker stop conluz`.
 

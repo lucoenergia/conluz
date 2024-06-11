@@ -56,7 +56,7 @@ import org.springframework.stereotype.Component;
         },
         servers = {
                 @Server(
-                        url = "htto://localhost:8080",
+                        url = "https://localhost:8443",
                         description = "Local testing server"
                 )
         },
