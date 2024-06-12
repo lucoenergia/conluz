@@ -31,6 +31,7 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
                 .withDatadisDistributor(entity.getDatadisDistributor())
                 .withDatadisDistributorCode(entity.getDatadisDistributorCode())
                 .withDatadisPointType(entity.getDatadisPointType())
+                .withDatadisIsThirdParty(entity.getDatadisIsThirdParty())
 
                 .withShellyMac(entity.getShellyMac())
                 .withShellyId(entity.getShellyId())
