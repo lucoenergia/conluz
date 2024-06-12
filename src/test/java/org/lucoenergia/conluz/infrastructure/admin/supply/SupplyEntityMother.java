@@ -28,6 +28,7 @@ public class SupplyEntityMother {
                 .withDatadisDistributorCode("2")
                 .withDatadisPointType(5)
                 .withDatadisValidDateFrom(LocalDate.now())
+                .withDatadisIsThirdParty(new Random().nextBoolean())
 
                 .withShellyId(RandomStringUtils.random(20, true, true))
                 .withShellyMac(RandomStringUtils.random(10, true, true))
