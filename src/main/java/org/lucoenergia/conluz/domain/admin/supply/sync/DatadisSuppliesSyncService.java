@@ -40,8 +40,8 @@ public class DatadisSuppliesSyncService {
      * Synchronizes the supplies for all users retrieving data from datadis.es
      */
     public void synchronizeSupplies() {
-        // Get all users
-        List<User> allUsers = getUserRepository.findAll();
+        // Get all users with at least one supply
+        List<User> allUsers = getUserRepository.findAllUsersWithAtLeastOneSupply();
         Map<String, Supply> allSupplies = getSupplyRepository.findAll().stream()
                 .collect(Collectors.toMap(Supply::getCode, supply -> supply));
 

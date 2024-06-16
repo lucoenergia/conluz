@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.domain.admin.user.get;
 
-import org.lucoenergia.conluz.domain.admin.user.DefaultAdminUser;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -25,4 +24,6 @@ public interface GetUserRepository {
     List<User> findAll();
 
     Optional<User> getDefaultAdminUser();
+
+    List<User> findAllUsersWithAtLeastOneSupply();
 }

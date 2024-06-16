@@ -26,8 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @Transactional
 class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
@@ -89,6 +88,47 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
         service.synchronizeSupplies();
 
         // Assert
+        Assertions.assertEquals(datadisSupply.getAddress(), getSupplyRepository.findById(SupplyId.of(supplyOne.getId())).get().getAddress());
+    }
+
+    @Test
+    void synchronizeUsersWithoutSupply() {
+        // Assemble
+        String codeOne = "codeOne";
+        String codeTwo = "codeTwo";
+        String codeThree = "codeThree";
+
+        User userOne = UserMother.randomUser();
+        userOne = createUserRepository.create(userOne);
+        User userTwo = UserMother.randomUser();
+        userTwo = createUserRepository.create(userTwo);
+
+        DatadisSupply datadisSupply = new DatadisSupply.Builder()
+                .withCups(codeOne)
+                .withAddress("TestAddress")
+                .withDistributor("EDISTRIBUCION")
+                .withDistributorCode("2")
+                .withPointType(5)
+                .withValidDateFrom("2024/06/01")
+                .build();
+        List<DatadisSupply> datadisSupplies = new ArrayList<>();
+        datadisSupplies.add(datadisSupply);
+
+        Supply supplyOne = SupplyMother.random()
+                .withCode(codeOne)
+                .withAddress("OldAddress")
+                .build();
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userTwo.getId()));
+        createSupplyRepository.create(SupplyMother.random().withCode(codeTwo).build(), UserId.of(userTwo.getId()));
+        createSupplyRepository.create(SupplyMother.random().withCode(codeThree).build(), UserId.of(userTwo.getId()));
+
+        when(getSupplyRepositoryDatadis.getSuppliesByUser(Mockito.any(User.class))).thenReturn(datadisSupplies);
+
+        // Act
+        service.synchronizeSupplies();
+
+        // Assert
+        Mockito.verify(getSupplyRepositoryDatadis, times(1)).getSuppliesByUser(Mockito.any(User.class));
         Assertions.assertEquals(datadisSupply.getAddress(), getSupplyRepository.findById(SupplyId.of(supplyOne.getId())).get().getAddress());
     }
 }

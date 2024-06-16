@@ -89,4 +89,9 @@ public class GetUserRepositoryImpl implements GetUserRepository {
         }
         return Optional.of(userEntityMapper.map(entity.get()));
     }
+
+    @Override
+    public List<User> findAllUsersWithAtLeastOneSupply() {
+        return userEntityMapper.mapList(userRepository.findAllUsersWithAtLeastOneSupply());
+    }
 }
