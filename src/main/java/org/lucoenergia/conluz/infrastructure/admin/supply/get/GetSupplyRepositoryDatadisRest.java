@@ -8,6 +8,7 @@ import okhttp3.Response;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisParams;
@@ -54,10 +55,11 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
         LOGGER.info("Getting all supplies from datadis.es of user {}", user.getId());
 
         // Create the complete URL with the query parameter
-        final String url = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_SUPPLIES_PATH)
-                .queryParam(DatadisParams.AUTHORIZED_NIF, user.getPersonalId())
-                .build()
-                .toUriString();
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_SUPPLIES_PATH);
+        if (datadisAuthorizer.isAuthorizedNif(UserPersonalId.of(user.getPersonalId()))) {
+            urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, user.getPersonalId());
+        }
+        String url = urlBuilder.build().toUriString();
 
         final Request request = new Request.Builder()
                 .url(url)

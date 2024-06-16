@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 import okhttp3.*;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisException;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.Authorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
@@ -62,5 +63,18 @@ public class DatadisAuthorizer implements Authorizer {
         } catch (IOException e) {
             throw new DatadisException("Unable to make the request to datadis.es", e);
         }
+    }
+
+    public boolean isOwner(UserPersonalId id) {
+        Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findFirstByOrderByIdAsc();
+        if (optionalConfig.isEmpty()) {
+            throw new DatadisException("Datadis configuration not found");
+        }
+        DatadisConfigEntity config = optionalConfig.get();
+        return config.getUsername().equals(id.getPersonalId());
+    }
+
+    public boolean isAuthorizedNif(UserPersonalId id) {
+        return !isOwner(id);
     }
 }
