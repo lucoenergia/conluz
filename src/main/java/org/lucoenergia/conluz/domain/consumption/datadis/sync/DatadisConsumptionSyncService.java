@@ -80,6 +80,9 @@ public class DatadisConsumptionSyncService {
                     List<DatadisConsumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
                     if (!consumptions.isEmpty()) {
                         persistDatadisConsumptionRepository.persistConsumptions(consumptions);
+                        LOGGER.info("Consumptions persisted");
+                    } else {
+                        LOGGER.warn("Consumptions are empty");
                     }
                 } catch (DatadisSupplyConfigurationException e) {
                     LOGGER.error("Unable to retrieve consumptions of supply with ID {} for month {}/{}. Error: {}", supply.getId(),
