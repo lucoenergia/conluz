@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.consumption.datadis.sync;
 
+import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
@@ -48,6 +49,11 @@ public class DatadisConsumptionSyncService {
         LocalDate oneYearAgo = today.minusYears(1);
 
         for (Supply supply : allSupplies) {
+
+            if (StringUtils.isBlank(supply.getDatadisDistributorCode())) {
+                LOGGER.warn("Skipping supply with ID: {} because does not have distributor code", supply.getId());
+                continue;
+            }
 
             LOGGER.info("Processing supply with ID: {}", supply.getId());
 

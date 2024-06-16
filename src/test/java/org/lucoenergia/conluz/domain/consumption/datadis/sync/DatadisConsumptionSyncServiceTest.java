@@ -61,6 +61,10 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         Supply supplyWithMoreThanOneYearValidDateFrom = SupplyMother.random()
                 .withDatadisValidDateFrom(LocalDate.now().minusMonths(24)).build();
         supplyWithMoreThanOneYearValidDateFrom = createSupplyRepository.create(supplyWithMoreThanOneYearValidDateFrom, UserId.of(user.getId()));
+        Supply supplyWithoutDistributorCode = SupplyMother.random()
+                .withDatadisDistributorCode(null)
+                .withDatadisValidDateFrom(LocalDate.now().minusMonths(24)).build();
+        supplyWithoutDistributorCode = createSupplyRepository.create(supplyWithoutDistributorCode, UserId.of(user.getId()));
 
         List<DatadisConsumption> consumptions = List.of(mock(DatadisConsumption.class));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
@@ -76,6 +80,8 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
                 .getHourlyConsumptionsByMonth(eq(supplyWithNotNullValidDateFrom), any(Month.class), anyInt());
         verify(getDatadisConsumptionRepository, times(12))
                 .getHourlyConsumptionsByMonth(eq(supplyWithMoreThanOneYearValidDateFrom), any(Month.class), anyInt());
+        verify(getDatadisConsumptionRepository, times(0))
+                .getHourlyConsumptionsByMonth(eq(supplyWithoutDistributorCode), any(Month.class), anyInt());
         verify(persistDatadisConsumptionRepository, times(21)).persistConsumptions(anyList());
     }
 }

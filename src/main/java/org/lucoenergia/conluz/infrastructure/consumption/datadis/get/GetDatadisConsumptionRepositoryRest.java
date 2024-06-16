@@ -101,7 +101,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
                 result.addAll(consumptions);
             } else {
                 LOGGER.error("Unable to get consumptions for supply with ID {}. Code {}, message: {}",
-                        supply.getCode(), response.code(), response.body() != null ? response.body().string() : response.message());
+                        supply.getId(), response.code(), response.body() != null ? response.body().string() : response.message());
             }
         } catch (IOException e) {
             LOGGER.error("Unable to get consumptions from datadis.es", e);

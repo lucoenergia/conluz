@@ -46,6 +46,9 @@ public class DatadisSuppliesSyncService {
                 .collect(Collectors.toMap(Supply::getCode, supply -> supply));
 
         for (User user : allUsers) {
+
+            LOGGER.info("Processing users with ID {}", user.getId());
+
             List<DatadisSupply> datadisSupplies = getSupplyRepositoryDatadis.getSuppliesByUser(user);
             for (DatadisSupply datadisSupply : datadisSupplies) {
                 Supply supply = allSupplies.get(datadisSupply.getCups());
