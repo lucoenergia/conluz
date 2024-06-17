@@ -46,7 +46,7 @@ public class DatadisConsumptionSyncService {
 
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
-        LocalDate oneYearAgo = today.minusYears(1);
+        LocalDate oneYearAgo = today.minusYears(1).withDayOfMonth(1);
 
         for (Supply supply : allSupplies) {
 
@@ -69,7 +69,7 @@ public class DatadisConsumptionSyncService {
                 validDateFrom = oneYearAgo;
             }
 
-            while (validDateFrom.isBefore(today)) {
+            while (validDateFrom.isBefore(today) || validDateFrom.isEqual(today)) {
 
                 Month month = validDateFrom.getMonth();
                 int year = validDateFrom.getYear();
