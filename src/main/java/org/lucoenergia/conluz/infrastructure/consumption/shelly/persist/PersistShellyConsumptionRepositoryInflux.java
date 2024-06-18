@@ -30,7 +30,7 @@ public class PersistShellyConsumptionRepositoryInflux implements PersistShellyCo
     @Override
     public void persistInstantConsumptions(List<ShellyInstantConsumption> consumptions) {
 
-        LOGGER.info("Persisting Shelly instant consumptions data");
+        LOGGER.debug("Persisting Shelly instant consumptions data");
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
