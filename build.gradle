@@ -1,8 +1,6 @@
-import org.springframework.boot.gradle.plugin.SpringBootPlugin
-
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.2.1'
+    id 'org.springframework.boot' version '3.2.6'
     id 'io.spring.dependency-management' version '1.1.4'
 }
 
@@ -28,7 +26,7 @@ dependencies {
 
     implementation 'org.springframework.integration:spring-integration-mqtt:6.2.3'
 
-    implementation 'org.liquibase:liquibase-core'
+    implementation 'org.liquibase:liquibase-core:4.28.0'
     implementation 'org.influxdb:influxdb-java:2.23'
     runtimeOnly 'org.postgresql:postgresql'
 
@@ -39,6 +37,9 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
 
     implementation 'com.opencsv:opencsv:5.9'
+
+    implementation "org.apache.commons:commons-compress:1.26.0"
+    implementation "org.apache.commons:commons-collections4:4.4"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
