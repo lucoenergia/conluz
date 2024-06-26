@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.shared.web.error;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +40,8 @@ import java.io.IOException;
  */
 public class ConluzAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConluzAuthenticationEntryPoint.class);
+
     private final ObjectMapper objectMapper;
 
     public ConluzAuthenticationEntryPoint(ObjectMapper objectMapper) {
@@ -50,15 +54,17 @@ public class ConluzAuthenticationEntryPoint implements AuthenticationEntryPoint 
      *
      * @param request       the request being handled
      * @param response      the response to be populated
-     * @param authException the exception that caused the authentication failure
+     * @param exception the exception that caused the authentication failure
      * @throws IOException      if an I/O error occurs
      */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
-                         AuthenticationException authException) throws IOException {
+                         AuthenticationException exception) throws IOException {
+
+        LOGGER.error("Unable to authorize the request.", exception);
 
         // Customize the response when authentication fails
-        String errorMessage = "Authentication Failed: " + authException.getMessage();
+        String errorMessage = "Authentication Failed: " + exception.getMessage();
 
         ResponseEntity<RestError> entity = new ResponseEntity<>(new RestError(HttpStatus.UNAUTHORIZED.value(),
                 errorMessage), HttpStatus.UNAUTHORIZED);
