@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.login;
 
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.security.auth.AuthParameter;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,8 +10,7 @@ import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.PA
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.PERSONAL_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @Transactional
 class LoginUserControllerTest extends BaseControllerTest {
@@ -138,6 +138,7 @@ class LoginUserControllerTest extends BaseControllerTest {
                         .content(loginBody))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty());
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(cookie().exists(AuthParameter.ACCESS_TOKEN.getCookieName()));
     }
 }
