@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Assertions;
@@ -24,6 +25,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
@@ -56,6 +58,24 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    void testTokenNotPresentAsHeaderButPresentAsCookie() throws ServletException, IOException {
+
+        Mockito.when(request.getHeader(HttpHeaders.AUTHORIZATION))
+                .thenReturn(null);
+
+        Mockito.when(request.getCookies())
+                .thenReturn(Stream.generate(() -> new Cookie(AuthParameter.ACCESS_TOKEN.getCookieName(), "foo"))
+                        .limit(1)
+                        .toArray(Cookie[]::new));
+
+        Mockito.when(authRepository.getUserIdFromToken(Mockito.any(Token.class)))
+                .thenThrow(InvalidTokenException.class);
+
+        Assertions.assertThrows(InvalidTokenException.class,
+                () -> filter.doFilterInternal(request, response, filterChain));
+    }
+
+    @Test
     void testTokenWithInvalidFormat() {
 
         final String invalidToken = "invalid-token";
@@ -72,9 +92,9 @@ class JwtAuthenticationFilterTest {
     @Test
     void testTokenWithValidFormatButEmptyUserId() {
 
-        final String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTIzNDU2N1oiLCJpYXQiOjE3MDMyODA2MTksImV4cCI6MTcwMzI4MjQxOX0.mNS-1EiY8tYDcVvrU_oR6Rlj9bpB3QNcSpqdP_7KH_o";
+        final String validToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTIzNDU2N1oiLCJpYXQiOjE3MDMyODA2MTksImV4cCI6MTcwMzI4MjQxOX0.mNS-1EiY8tYDcVvrU_oR6Rlj9bpB3QNcSpqdP_7KH_o";
         Mockito.when(request.getHeader(HttpHeaders.AUTHORIZATION))
-                .thenReturn("Bearer " + invalidToken);
+                .thenReturn("Bearer " + validToken);
 
         Mockito.when(authRepository.getUserIdFromToken(Mockito.any(Token.class)))
                 .thenReturn(null);
