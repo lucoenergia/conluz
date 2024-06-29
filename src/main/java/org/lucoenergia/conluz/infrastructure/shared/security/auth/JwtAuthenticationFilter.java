@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -18,6 +19,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -71,11 +73,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private Optional<String> getTokenFromRequest(HttpServletRequest request) {
+        Optional<String> result = getTokenFromHeader(request);
+        return result
+                .or(() -> getTokenFromCookie(request));
+    }
+
+    private Optional<String> getTokenFromHeader(HttpServletRequest request) {
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (StringUtils.hasText(authHeader) && authHeader.startsWith(AUTHORIZATION_HEADER_PREFIX)) {
             return Optional.of(authHeader.substring(AUTHORIZATION_HEADER_PREFIX.length()));
         }
         return Optional.empty();
+    }
+
+    private Optional<String> getTokenFromCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return Optional.empty();
+        }
+
+        return Arrays.stream(request.getCookies())
+                .filter(cookie -> AuthParameter.ACCESS_TOKEN.getCookieName().equalsIgnoreCase(cookie.getName()))
+                .map(Cookie::getValue)
+                .findFirst();
     }
 }
