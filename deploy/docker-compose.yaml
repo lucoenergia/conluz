@@ -76,3 +76,20 @@ services:
       - --path.sysfs=/host/sys
       - --path.rootfs=/rootfs
     restart: always
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    environment:
+      - SPRING_INFLUXDB_URL
+      - SPRING_INFLUXDB_USERNAME
+      - SPRING_INFLUXDB_PASSWORD
+      - SPRING_INFLUXDB_DATABASE
+      - CONLUZ_MQTT_SERVER_TOPIC_PREFIX
+      - CONLUZ_MQTT_SERVER_URI
+      - CONLUZ_MQTT_SERVER_USERNAME
+      - CONLUZ_MQTT_SERVER_PASSWORD
+    depends_on:
+      - influxdb
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf
+    restart: unless-stopped
