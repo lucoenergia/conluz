@@ -11,9 +11,8 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyConsumption;
-import org.lucoenergia.conluz.domain.consumption.shelly.get.GetShellyConsumptionRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConsumptionsInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionsInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.get.GetShellyConsumptionRepositoryInflux;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-import static org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConsumptionsInfluxLoader.*;
+import static org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionsInfluxLoader.*;
 
 
 @Transactional
@@ -32,7 +31,7 @@ class ShellyConsumptionsHourlyAggregatorTest extends BaseIntegrationTest {
     private static final OffsetDateTime END_DATE = OffsetDateTime.parse("2023-10-26T00:00:00.000+00:00");
 
     @Autowired
-    private ShellyConsumptionsInfluxLoader shellyConsumptionsInfluxLoader;
+    private ShellyInstantConsumptionsInfluxLoader shellyInstantConsumptionsInfluxLoader;
     @Autowired
     private ShellyConsumptionsHourlyAggregator shellyConsumptionsHourlyAggregator;
     @Autowired
@@ -44,12 +43,12 @@ class ShellyConsumptionsHourlyAggregatorTest extends BaseIntegrationTest {
 
     @BeforeEach
     void beforeEach() {
-        shellyConsumptionsInfluxLoader.loadData();
+        shellyInstantConsumptionsInfluxLoader.loadData();
     }
 
     @AfterEach
     void afterEach() {
-        shellyConsumptionsInfluxLoader.clearData();
+        shellyInstantConsumptionsInfluxLoader.clearData();
     }
 
     @Test

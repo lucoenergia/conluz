@@ -46,7 +46,7 @@ class ShellyConsumptionMessageProcessorTest {
             "shellies/123asdf654asdf8/foo/emeter/0/voltage",
             "shellies/123asdf654asdf8/foo/emeter/1/reactive_power",
     })
-    void testOnMessage_nonPowerMessage(String topic) throws InterruptedException {
+    void testOnMessage_nonPowerMessage(String topic) {
         Message<String> message = MessageBuilder.withPayload("1.0")
                 .setHeader("mqtt_receivedTopic", topic)
                 .build();
