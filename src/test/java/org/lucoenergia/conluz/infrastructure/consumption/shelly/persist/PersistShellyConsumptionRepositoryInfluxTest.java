@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyInstantConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConsumptionMother;
-import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConsumptionsInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionsInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.get.GetShellyConsumptionRepositoryInflux;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +17,7 @@ import java.util.List;
 class PersistShellyConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
 
     @Autowired
-    private ShellyConsumptionsInfluxLoader shellyConsumptionsInfluxLoader;
+    private ShellyInstantConsumptionsInfluxLoader shellyInstantConsumptionsInfluxLoader;
     @Autowired
     private PersistShellyConsumptionRepositoryInflux persistShellyConsumptionRepositoryInflux;
     @Autowired
@@ -25,7 +25,7 @@ class PersistShellyConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
 
     @AfterEach
     void afterEach() {
-        shellyConsumptionsInfluxLoader.clearData();
+        shellyInstantConsumptionsInfluxLoader.clearData();
     }
 
     @Test

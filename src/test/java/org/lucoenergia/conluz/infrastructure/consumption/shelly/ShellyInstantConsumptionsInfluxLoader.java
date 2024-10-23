@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 @Profile("test")
 @Component
-public class ShellyConsumptionsInfluxLoader implements InfluxLoader {
+public class ShellyInstantConsumptionsInfluxLoader implements InfluxLoader {
 
     public static final String SUPPLY_A_MQTT_PREFIX = "s87sd56df9d9/aaa";
     public static final String SUPPLY_B_MQTT_PREFIX = "s87sd56df9d9/bbb";
@@ -87,7 +87,7 @@ public class ShellyConsumptionsInfluxLoader implements InfluxLoader {
     @Autowired
     private final InfluxDbConnectionManager influxDbConnectionManager;
 
-    public ShellyConsumptionsInfluxLoader(InfluxDbConnectionManager influxDbConnectionManager) {
+    public ShellyInstantConsumptionsInfluxLoader(InfluxDbConnectionManager influxDbConnectionManager) {
         this.influxDbConnectionManager = influxDbConnectionManager;
     }
 

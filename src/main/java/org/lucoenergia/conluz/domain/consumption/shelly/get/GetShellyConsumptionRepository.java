@@ -16,4 +16,7 @@ public interface GetShellyConsumptionRepository {
     List<ShellyInstantConsumption> getAllInstantConsumptions();
 
     List<ShellyConsumption> getAllConsumptions();
+
+    List<ShellyInstantConsumption> getShellyMqttPowerMessagesByRangeOfDates(OffsetDateTime startDate,
+                                                                            OffsetDateTime endDate);
 }
