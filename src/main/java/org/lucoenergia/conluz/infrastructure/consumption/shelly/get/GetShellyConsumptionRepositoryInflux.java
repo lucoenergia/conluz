@@ -86,9 +86,9 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
     }
 
     @Override
-    public List<ShellyInstantConsumption> getShellyMqttPowerMessagesByRangeOfDates(OffsetDateTime periodBefore, OffsetDateTime now) {
-        String startDateAsString = dateConverter.convertToString(periodBefore);
-        String endDateAsString = dateConverter.convertToString(now);
+    public List<ShellyInstantConsumption> getShellyMqttPowerMessagesByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
+        String startDateAsString = dateConverter.convertToString(startDate);
+        String endDateAsString = dateConverter.convertToString(endDate);
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 

@@ -42,7 +42,7 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements
         OffsetDateTime now = timeConfiguration.now();
         OffsetDateTime periodBefore = now.minusMinutes(5);
 
-        processor.parse(periodBefore, now);
+        processor.process(periodBefore, now);
 
         LOGGER.info("...finished Shelly MQTT power message to instant consumption processor.");
     }

@@ -21,10 +21,10 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessor {
         this.persistShellyConsumptionRepository = persistShellyConsumptionRepository;
     }
 
-    public void parse(OffsetDateTime periodBefore, OffsetDateTime now) {
+    public void process(OffsetDateTime startDate, OffsetDateTime endDate) {
 
         List<ShellyInstantConsumption> instantConsumptions = getShellyConsumptionRepository.getShellyMqttPowerMessagesByRangeOfDates(
-                periodBefore, now);
+                startDate, endDate);
 
         persistShellyConsumptionRepository.persistInstantConsumptions(instantConsumptions);
     }
