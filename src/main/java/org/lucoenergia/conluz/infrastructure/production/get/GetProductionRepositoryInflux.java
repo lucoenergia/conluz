@@ -7,6 +7,7 @@ import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDuration;
@@ -40,7 +41,9 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     @Override
     public InstantProduction getInstantProduction() {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
-            Query query = new Query("SELECT * FROM \"energy_production_huawei_hour\" LIMIT 1");
+            Query query = new Query(String.format("SELECT * FROM \"%s\" LIMIT 1",
+                    HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT
+            ));
 
             QueryResult queryResult = connection.query(query);
 
@@ -68,8 +71,10 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
                                                                     Float partitionCoefficient) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
-                    "SELECT time, \"inverter-power\"*%s FROM \"energy_production_huawei_hour\" WHERE time >= '%s' AND time <= '%s'",
+                    "SELECT time, \"%s\"*%s FROM \"%s\" WHERE time >= '%s' AND time <= '%s'",
+                    ProductionPoint.INVERTER_POWER,
                     partitionCoefficient,
+                    HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
                     dateConverter.convertToString(startDate),
                     dateConverter.convertToString(endDate)));
 
@@ -114,7 +119,7 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     @Override
     public List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                                     Float partitionCoefficient) {
+                                                                    Float partitionCoefficient) {
         return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
                 partitionCoefficient, InfluxDuration.YEARLY);
     }
@@ -125,8 +130,11 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
                                                                                 String duration) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
-                    "SELECT SUM(\"inverter-power\")*%s AS \"inverter-power\" FROM \"energy_production_huawei_hour\" WHERE time >= '%s' AND time <= '%s' GROUP BY time(%s)",
+                    "SELECT SUM(\"%s\")*%s AS \"%s\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s' GROUP BY time(%s)",
+                    ProductionPoint.INVERTER_POWER,
+                    ProductionPoint.INVERTER_POWER,
                     partitionCoefficient,
+                    HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
                     dateConverter.convertToString(startDate),
                     dateConverter.convertToString(endDate),
                     duration));

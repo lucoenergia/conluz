@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.production;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxLoader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +18,8 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class EnergyProductionInfluxLoader implements InfluxLoader {
 
-    private static final String MEASUREMENT = "energy_production_huawei_hour";
-    private static final String FIELD_INVERTER_POWER = "inverter-power";
+    private static final String MEASUREMENT = HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT;
+    private static final String FIELD_INVERTER_POWER = ProductionPoint.INVERTER_POWER;
     /**
      * Time interval is time >= '2023-09-01T00:00:00.000+02:00' and time <= '2023-09-01T23:00:00.000+02:00'
      */

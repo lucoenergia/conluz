@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.domain.production.huawei.persist.PersistHuaweiProductionRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Repository;
@@ -61,7 +62,7 @@ public class PersistHuaweiProductionRepositoryInflux implements PersistHuaweiPro
                 Point point = Point.measurement(HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT)
                         .time(dateConverter.convertOffsetDateTimeToMilliseconds(production.getTime()), TimeUnit.MILLISECONDS)
                         .tag("station_code", production.getStationCode())
-                        .addField("inverter_power", production.getInverterPower())
+                        .addField(ProductionPoint.INVERTER_POWER, production.getInverterPower())
                         .addField("ongrid_power", production.getOngridPower())
                         .addField("power_profit", production.getPowerProfit())
                         .addField("theory_power", production.getTheoryPower())

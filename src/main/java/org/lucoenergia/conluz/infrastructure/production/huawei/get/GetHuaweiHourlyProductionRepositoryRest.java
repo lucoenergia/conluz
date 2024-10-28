@@ -10,6 +10,7 @@ import okhttp3.Response;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiException;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
@@ -131,7 +132,7 @@ public class GetHuaweiHourlyProductionRepositoryRest {
                 HourlyProduction item = new HourlyProduction.Builder()
                         .withTime(dateConverter.convertMillisecondsToOffsetDateTime(currentTime))
                         .withStationCode(node.get("stationCode").asText())
-                        .withInverterPower(dataItemMap.get("inverter_power") != null ? dataItemMap.get("inverter_power").asDouble() : null)
+                        .withInverterPower(dataItemMap.get(ProductionPoint.INVERTER_POWER) != null ? dataItemMap.get(ProductionPoint.INVERTER_POWER).asDouble() : null)
                         .withOngridPower(dataItemMap.get("ongrid_power") != null ? dataItemMap.get("ongrid_power").asDouble() : null)
                         .withPowerProfit(dataItemMap.get("power_profit") != null ? dataItemMap.get("power_profit").asDouble() : null)
                         .withTheoryPower(dataItemMap.get("theory_power") != null ? dataItemMap.get("theory_power").asDouble() : null)
