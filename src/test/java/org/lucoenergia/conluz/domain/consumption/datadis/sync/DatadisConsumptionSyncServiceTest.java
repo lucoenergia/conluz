@@ -84,4 +84,6 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
                 .getHourlyConsumptionsByMonth(eq(supplyWithoutDistributorCode), any(Month.class), anyInt());
         verify(persistDatadisConsumptionRepository, times(23)).persistConsumptions(anyList());
     }
+
+
 }

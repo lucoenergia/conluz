@@ -103,27 +103,33 @@ class GetDatadisConsumptionRepositoryRestTest {
         Mockito.when(response.body()).thenReturn(body);
         Mockito.when(body.string()).thenReturn("""
                 [ {
-                  "cups" : "ES0031300329693002BQ0F",
-                  "date" : "2023/10/01",
-                  "time" : "01:00",
-                  "consumptionKWh" : 0.0,
-                  "obtainMethod" : "Real",
-                  "surplusEnergyKWh" : 0.0
-                }, {
-                  "cups" : "ES0031300329693002BQ0F",
-                  "date" : "2023/10/01",
-                  "time" : "02:00",
-                  "consumptionKWh" : 0.0,
-                  "obtainMethod" : "Real",
-                  "surplusEnergyKWh" : 0.0
-                }, {
-                  "cups" : "ES0031300329693002BQ0F",
-                  "date" : "2023/10/01",
-                  "time" : "03:00",
-                  "consumptionKWh" : 4.2,
-                  "obtainMethod" : "Real",
-                  "surplusEnergyKWh" : 0.5
-                }]
+                   "cups" : "ES0031300329693002BQ0F",
+                   "date" : "2023/10/01",
+                   "time" : "01:00",
+                   "consumptionKWh" : 0.012,
+                   "obtainMethod" : "Real",
+                   "surplusEnergyKWh" : 0.10,
+                   "generationEnergyKWh" : 0.20,
+                   "selfConsumptionEnergyKWh" : 0.40
+                 }, {
+                   "cups" : "ES0031300329693002BQ0F",
+                   "date" : "2023/10/01",
+                   "time" : "02:00",
+                   "consumptionKWh" : 0.03,
+                   "obtainMethod" : "Real",
+                   "surplusEnergyKWh" : 0.0,
+                   "generationEnergyKWh" : 0.0,
+                   "selfConsumptionEnergyKWh" : 0.0
+                 }, {
+                   "cups" : "ES0031300329693002BQ0F",
+                   "date" : "2023/10/01",
+                   "time" : "03:00",
+                   "consumptionKWh" : 0.026,
+                   "obtainMethod" : "Real",
+                   "surplusEnergyKWh" : 0.0,
+                   "generationEnergyKWh" : 0.0,
+                   "selfConsumptionEnergyKWh" : 0.0
+                 }]
                 """);
 
         // Act & Assert
@@ -135,15 +141,19 @@ class GetDatadisConsumptionRepositoryRestTest {
         Assertions.assertEquals("ES0031300329693002BQ0F", result.get(0).getCups());
         Assertions.assertEquals("2023/10/01", result.get(0).getDate());
         Assertions.assertEquals("01:00", result.get(0).getTime());
-        Assertions.assertEquals(0.0f, result.get(0).getConsumptionKWh());
+        Assertions.assertEquals(0.012f, result.get(0).getConsumptionKWh());
         Assertions.assertEquals("Real", result.get(0).getObtainMethod());
-        Assertions.assertEquals(0.0f, result.get(0).getSurplusEnergyKWh());
+        Assertions.assertEquals(0.10f, result.get(0).getSurplusEnergyKWh());
+        Assertions.assertEquals(0.20f, result.get(0).getGenerationEnergyKWh());
+        Assertions.assertEquals(0.40f, result.get(0).getSelfConsumptionEnergyKWh());
 
         Assertions.assertEquals("ES0031300329693002BQ0F", result.get(2).getCups());
         Assertions.assertEquals("2023/10/01", result.get(2).getDate());
         Assertions.assertEquals("03:00", result.get(2).getTime());
-        Assertions.assertEquals(4.2f, result.get(2).getConsumptionKWh());
+        Assertions.assertEquals(0.026f, result.get(2).getConsumptionKWh());
         Assertions.assertEquals("Real", result.get(2).getObtainMethod());
-        Assertions.assertEquals(0.5f, result.get(2).getSurplusEnergyKWh());
+        Assertions.assertEquals(0.0f, result.get(2).getSurplusEnergyKWh());
+        Assertions.assertEquals(0.0f, result.get(2).getGenerationEnergyKWh());
+        Assertions.assertEquals(0.0f, result.get(2).getSelfConsumptionEnergyKWh());
     }
 }

@@ -8,6 +8,8 @@ public class DatadisConsumption {
     private Float consumptionKWh;
     private String obtainMethod;
     private Float surplusEnergyKWh;
+    private Float generationEnergyKWh;
+    private Float selfConsumptionEnergyKWh;
 
     public String getCups() {
         return cups;
@@ -55,5 +57,21 @@ public class DatadisConsumption {
 
     public void setSurplusEnergyKWh(Float surplusEnergyKWh) {
         this.surplusEnergyKWh = surplusEnergyKWh;
+    }
+
+    public Float getGenerationEnergyKWh() {
+        return generationEnergyKWh;
+    }
+
+    public void setGenerationEnergyKWh(Float generationEnergyKWh) {
+        this.generationEnergyKWh = generationEnergyKWh;
+    }
+
+    public Float getSelfConsumptionEnergyKWh() {
+        return selfConsumptionEnergyKWh;
+    }
+
+    public void setSelfConsumptionEnergyKWh(Float selfConsumptionEnergyKWh) {
+        this.selfConsumptionEnergyKWh = selfConsumptionEnergyKWh;
     }
 }
