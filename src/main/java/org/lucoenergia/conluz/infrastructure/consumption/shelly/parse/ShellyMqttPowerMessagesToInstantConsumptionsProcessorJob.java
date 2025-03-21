@@ -35,7 +35,7 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements
     @Override
     @Scheduled(cron = "*/30 * * * * *")
     public void run() {
-        LOGGER.info("Shelly MQTT power message to instant consumption processor started...");
+        LOGGER.debug("Shelly MQTT power message to instant consumption processor started...");
 
         // We perform the process every 30 seconds between now and 5 minutes before. This way, could have at least 10 retries
         // just in case the process does not work the first time.
@@ -44,6 +44,6 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements
 
         processor.process(periodBefore, now);
 
-        LOGGER.info("...finished Shelly MQTT power message to instant consumption processor.");
+        LOGGER.debug("...finished Shelly MQTT power message to instant consumption processor.");
     }
 }

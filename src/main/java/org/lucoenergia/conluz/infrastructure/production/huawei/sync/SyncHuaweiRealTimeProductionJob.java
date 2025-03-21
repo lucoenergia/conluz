@@ -25,10 +25,10 @@ public class SyncHuaweiRealTimeProductionJob implements Job {
     @Override
     @Scheduled(cron = "0 */5 * * * *")
     public void run() {
-        LOGGER.info("Huawei real-time production sync started...");
+        LOGGER.debug("Huawei real-time production sync started...");
 
         syncHuaweiProductionService.syncRealTimeProduction();
 
-        LOGGER.info("...finished Huawei real-time sync.");
+        LOGGER.debug("...finished Huawei real-time sync.");
     }
 }
