@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
 
   postgres:
@@ -33,8 +31,7 @@ services:
 
   conluz:
     container_name: conluz
-    build: .
-    image: conluz:0.0.1
+    image: conluz:latest
     ports:
       - "8443:8443"
     # Create a .env file in the folder where this file is located and define the environment variables there.
