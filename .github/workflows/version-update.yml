@@ -1,0 +1,56 @@
+# Explanation:
+#
+#  Trigger: The workflow runs when there is a push to the main branch.
+#
+#  Increment version: The version from build.gradle is read using grep, then split into parts (major, minor, patch). The patch version is incremented.
+#
+#  Commit and push changes: After updating the build.gradle file, the change is committed and pushed back to the main branch.
+#
+#  Tagging: The commit is tagged with the new version, and the tag is pushed to the remote repository.
+
+name: Version Update
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  version-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+
+      - name: Increment version in build.gradle
+        run: |
+          VERSION=$(grep -oP 'version = "\K[0-9]+\.[0-9]+\.[0-9]+' build.gradle)
+          echo "Current version: $VERSION"
+          # Increment the patch version (you can modify this to increment major/minor instead)
+          IFS='.' read -r -a version_parts <<< "$VERSION"
+          PATCH=$((version_parts[2] + 1))
+          NEW_VERSION="${version_parts[0]}.${version_parts[1]}.$PATCH"
+          echo "New version: $NEW_VERSION"
+          
+          # Update the version in build.gradle file
+          sed -i "s/version = \"$VERSION\"/version = \"$NEW_VERSION\"/" build.gradle
+
+      - name: Commit and push version update
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add build.gradle
+          git commit -m "Bump version to $NEW_VERSION"
+          git push origin main
+
+      - name: Tag the commit with the new version
+        run: |
+          git tag "$NEW_VERSION"
+          git push origin "$NEW_VERSION"
