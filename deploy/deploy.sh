@@ -23,7 +23,7 @@ done
 
 # Update the code
 echo "Updating code from Git..."
-cd .. && git pull origin main
+cd .. && git pull
 
 # Build the JAR
 echo "Building the project..."
