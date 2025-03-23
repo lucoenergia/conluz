@@ -76,7 +76,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
                 .queryParam(DatadisParams.END_DATE, monthDate)
                 .queryParam(DatadisParams.MEASUREMENT_TYPE, MeasurementType.PER_HOUR)
                 .queryParam(DatadisParams.POINT_TYPE, supply.getDatadisPointType());
-        if (supply.getDatadisIsThirdParty()) {
+        if (Boolean.TRUE.equals(supply.getDatadisIsThirdParty())) {
             urlBuilder = urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId());
         }
         final String url = urlBuilder.build().toUriString();
@@ -93,15 +93,14 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
 
-                String jsonData = response.body().string();
+                String jsonData = response.body() != null ? response.body().string() : "";
 
-                List<DatadisConsumption> consumptions = objectMapper.readValue(jsonData, new TypeReference<List<DatadisConsumption>>() {
-                });
+                List<DatadisConsumption> consumptions = objectMapper.readValue(jsonData, new TypeReference<>() {});
 
                 result.addAll(consumptions);
             } else {
-                LOGGER.error("Unable to get consumptions for supply with ID {}. Code {}, message: {}",
-                        supply.getId(), response.code(), response.body() != null ? response.body().string() : response.message());
+                LOGGER.error("Unable to get consumptions for supply with ID {} for month {} and year {}. Code {}, message: {}",
+                        supply.getId(), month, year, response.code(), response.body() != null ? response.body().string() : response.message());
             }
         } catch (IOException e) {
             LOGGER.error("Unable to get consumptions from datadis.es", e);

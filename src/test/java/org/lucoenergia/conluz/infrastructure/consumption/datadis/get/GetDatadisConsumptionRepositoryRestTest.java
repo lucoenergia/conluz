@@ -20,17 +20,16 @@ import java.util.List;
 
 class GetDatadisConsumptionRepositoryRestTest {
 
-    private GetDatadisConsumptionRepositoryRest repository;
     private DatadisAuthorizer datadisAuthorizer;
     private ConluzRestClientBuilder conluzRestClientBuilder;
-    private DatadisDateTimeConverter datadisDateTimeConverter;
+    private GetDatadisConsumptionRepositoryRest repository;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         datadisAuthorizer = Mockito.mock(DatadisAuthorizer.class);
         conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
-        datadisDateTimeConverter = Mockito.mock(DatadisDateTimeConverter.class);
+        DatadisDateTimeConverter datadisDateTimeConverter = Mockito.mock(DatadisDateTimeConverter.class);
         repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
                 datadisDateTimeConverter);
     }
@@ -155,5 +154,41 @@ class GetDatadisConsumptionRepositoryRestTest {
         Assertions.assertEquals(0.0f, result.get(2).getSurplusEnergyKWh());
         Assertions.assertEquals(0.0f, result.get(2).getGenerationEnergyKWh());
         Assertions.assertEquals(0.0f, result.get(2).getSelfConsumptionEnergyKWh());
+    }
+
+
+    @Test
+    void testGetHourlyConsumptionWithUnsuccessfulResponse() throws IOException {
+        // Assemble
+        final User user = new User.Builder().personalId("authorizedNif").build();
+        final Supply supply = new Supply.Builder()
+                .withCode("ES0031300329693002BQ0F")
+                .withUser(user)
+                .withDatadisDistributorCode("distributorCode")
+                .withDatadisPointType(5)
+                .withDatadisIsThirdParty(false)
+                .build();
+        final Month month = Month.APRIL;
+        final int year = 2023;
+
+        Mockito
+                .when(datadisAuthorizer.getAuthBearerToken())
+                .thenReturn("token");
+
+        OkHttpClient client = Mockito.mock(OkHttpClient.class);
+        Call call = Mockito.mock(Call.class);
+        Response response = Mockito.mock(Response.class);
+        Mockito
+                .when(conluzRestClientBuilder.build(false, Duration.ofSeconds(60)))
+                .thenReturn(client);
+        Mockito.when(client.newCall(Mockito.any(Request.class))).thenReturn(call);
+        Mockito.when(call.execute()).thenReturn(response);
+        Mockito.when(response.isSuccessful()).thenReturn(false);
+
+        // Act
+        List<DatadisConsumption> result = repository.getHourlyConsumptionsByMonth(supply, month, year);
+
+        // Assert
+        Assertions.assertTrue(result.isEmpty());
     }
 }

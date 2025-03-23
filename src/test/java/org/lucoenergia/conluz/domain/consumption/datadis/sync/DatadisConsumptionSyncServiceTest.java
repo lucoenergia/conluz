@@ -74,16 +74,14 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         service.synchronizeConsumptions();
 
         // Then
-        verify(getDatadisConsumptionRepository, times(1))
+        verify(getDatadisConsumptionRepository, times(13))
                 .getHourlyConsumptionsByMonth(eq(supplyWithNullValidDateFrom), any(Month.class), anyInt());
-        verify(getDatadisConsumptionRepository, times(9))
+        verify(getDatadisConsumptionRepository, times(13))
                 .getHourlyConsumptionsByMonth(eq(supplyWithNotNullValidDateFrom), any(Month.class), anyInt());
         verify(getDatadisConsumptionRepository, times(13))
                 .getHourlyConsumptionsByMonth(eq(supplyWithMoreThanOneYearValidDateFrom), any(Month.class), anyInt());
         verify(getDatadisConsumptionRepository, times(0))
                 .getHourlyConsumptionsByMonth(eq(supplyWithoutDistributorCode), any(Month.class), anyInt());
-        verify(persistDatadisConsumptionRepository, times(23)).persistConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, times(39)).persistConsumptions(anyList());
     }
-
-
 }

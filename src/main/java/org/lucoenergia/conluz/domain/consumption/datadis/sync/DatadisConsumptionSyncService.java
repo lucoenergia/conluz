@@ -45,7 +45,6 @@ public class DatadisConsumptionSyncService {
         List<Supply> allSupplies = getSupplyRepository.findAll();
 
         LocalDate today = LocalDate.now();
-        LocalDate yesterday = today.minusDays(1);
         LocalDate oneYearAgo = today.minusYears(1).withDayOfMonth(1);
 
         for (Supply supply : allSupplies) {
@@ -57,17 +56,7 @@ public class DatadisConsumptionSyncService {
 
             LOGGER.info("Processing supply with ID: {}", supply.getId());
 
-            // Get validity date
-            LocalDate validDateFrom = supply.getDatadisValidDateFrom();
-
-            // If the valid date is not present, we set the valid date on yesterday
-            if (validDateFrom == null) {
-                validDateFrom = yesterday;
-            }
-            // If the valid date is older than a year, we set the valid date to one year ago
-            if (validDateFrom.isBefore(oneYearAgo)) {
-                validDateFrom = oneYearAgo;
-            }
+            LocalDate validDateFrom = oneYearAgo;
 
             while (validDateFrom.isBefore(today) || validDateFrom.isEqual(today)) {
 
