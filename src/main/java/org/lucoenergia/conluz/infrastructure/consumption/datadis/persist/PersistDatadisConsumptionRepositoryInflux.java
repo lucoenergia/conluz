@@ -39,6 +39,8 @@ public class PersistDatadisConsumptionRepositoryInflux implements PersistDatadis
                         .addField("consumption_kwh", consumption.getConsumptionKWh())
                         .addField("obtain_method", consumption.getObtainMethod())
                         .addField("surplus_energy_kwh", consumption.getSurplusEnergyKWh())
+                        .addField("generation_energy_kwh", consumption.getGenerationEnergyKWh())
+                        .addField("self_consumption_energy_kwh", consumption.getSelfConsumptionEnergyKWh())
                         .build();
 
                 batchPoints.point(point);

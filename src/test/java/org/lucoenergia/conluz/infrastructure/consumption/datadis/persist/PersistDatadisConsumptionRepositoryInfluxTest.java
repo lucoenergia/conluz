@@ -47,5 +47,7 @@ class PersistDatadisConsumptionRepositoryInfluxTest {
         Mockito.verify(consumption, Mockito.atLeastOnce()).getConsumptionKWh();
         Mockito.verify(consumption, Mockito.atLeastOnce()).getObtainMethod();
         Mockito.verify(consumption, Mockito.atLeastOnce()).getSurplusEnergyKWh();
+        Mockito.verify(consumption, Mockito.atLeastOnce()).getGenerationEnergyKWh();
+        Mockito.verify(consumption, Mockito.atLeastOnce()).getSelfConsumptionEnergyKWh();
     }
 }
