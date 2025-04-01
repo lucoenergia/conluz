@@ -74,15 +74,38 @@ Table "supplies" {
   "user_id" uuid
   "name" "character varying(250)"
   "address" "character varying(250)" [not null]
-  "partition_coefficient" doubleprecision [not null]
   "enabled" boolean [not null]
-  "shelly_mac" "character varying(250)"
-  "shelly_id" "character varying(250)"
-  "shelly_mqtt_prefix" "character varying(250)"
-  "datadis_is_third_party" bool
-  "datadis_valid_date_from" date
-  "datadis_distributor" "character varying(250)"
-  "datadis_distributor_code" "character varying(250)"
-  "datadis_point_type" integer
+  "is_third_party" bool
 }
 Ref "supplies_user_id_fk":"users"."id" < "supplies"."user_id"
+
+Table "supplies_shares" {
+  "id" uuid [pk, not null]
+  "supply_id" uuid [not null]
+  "valid_date_from" date
+  "valid_date_to" date
+  "partition_coefficient" doubleprecision [not null]
+}
+Ref "supplies_shares_supply_id_fk":"supplies"."id" < "supplies_shares"."supply_id"
+
+Table "supplies_shelly" {
+  "id" uuid [pk, not null]
+  "supply_id" uuid [not null]
+  "code" "character varying(250)" [not null]
+  "mac" "character varying(250)"
+  "mqtt_prefix" "character varying(250)"
+  "installation_date" date
+  "enabled" boolean [not null]
+}
+Ref "supplies_shelly_supply_id_fk":"supplies"."id" < "supplies_shelly"."supply_id"
+
+Table "supplies_datadis" {
+  "id" uuid [pk, not null]
+  "supply_id" uuid [not null]
+  "valid_date_from" date
+  "valid_date_to" date
+  "distributor" "character varying(250)"
+  "distributor_code" "character varying(250)"
+  "point_type" integer
+}
+Ref "supplies_datadis_supply_id_fk":"supplies"."id" < "supplies_datadis"."supply_id"
