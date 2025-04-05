@@ -23,11 +23,11 @@ class SupplyEntityMapperTest {
         Assertions.assertEquals(entity.getEnabled(), result.getEnabled());
         Assertions.assertEquals(entity.getUser().getPersonalId(), result.getUser().getPersonalId());
 
-        Assertions.assertEquals(entity.getDatadisValidDateFrom(), result.getValidDateFrom());
-        Assertions.assertEquals(entity.getDatadisDistributor(), result.getDistributor());
-        Assertions.assertEquals(entity.getDatadisDistributorCode(), result.getDistributorCode());
-        Assertions.assertEquals(entity.getDatadisPointType(), result.getPointType());
-        Assertions.assertEquals(entity.getDatadisIsThirdParty(), result.isThirdParty());
+        Assertions.assertEquals(entity.getValidDateFrom(), result.getValidDateFrom());
+        Assertions.assertEquals(entity.getDistributor(), result.getDistributor());
+        Assertions.assertEquals(entity.getDistributorCode(), result.getDistributorCode());
+        Assertions.assertEquals(entity.getPointType(), result.getPointType());
+        Assertions.assertEquals(entity.getThirdParty(), result.isThirdParty());
 
         Assertions.assertEquals(entity.getShellyMac(), result.getShellyMac());
         Assertions.assertEquals(entity.getShellyId(), result.getShellyId());
