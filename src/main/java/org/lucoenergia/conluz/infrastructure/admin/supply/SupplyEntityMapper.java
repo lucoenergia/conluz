@@ -27,11 +27,11 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
                 .withEnabled(entity.getEnabled())
                 .withUser(userEntityMapper.map(entity.getUser()))
 
-                .withDatadisValidDateFrom(entity.getDatadisValidDateFrom())
-                .withDatadisDistributor(entity.getDatadisDistributor())
-                .withDatadisDistributorCode(entity.getDatadisDistributorCode())
-                .withDatadisPointType(entity.getDatadisPointType())
-                .withDatadisIsThirdParty(entity.getDatadisIsThirdParty())
+                .withValidDateFrom(entity.getDatadisValidDateFrom())
+                .withDistributor(entity.getDatadisDistributor())
+                .withDistributorCode(entity.getDatadisDistributorCode())
+                .withPointType(entity.getDatadisPointType())
+                .withThirdParty(entity.getDatadisIsThirdParty())
 
                 .withShellyMac(entity.getShellyMac())
                 .withShellyId(entity.getShellyId())

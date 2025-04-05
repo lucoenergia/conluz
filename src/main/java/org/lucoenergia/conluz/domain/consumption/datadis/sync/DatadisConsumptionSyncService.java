@@ -49,7 +49,7 @@ public class DatadisConsumptionSyncService {
 
         for (Supply supply : allSupplies) {
 
-            if (StringUtils.isBlank(supply.getDatadisDistributorCode())) {
+            if (StringUtils.isBlank(supply.getDistributorCode())) {
                 LOGGER.warn("Skipping supply with ID: {} because does not have distributor code", supply.getId());
                 continue;
             }

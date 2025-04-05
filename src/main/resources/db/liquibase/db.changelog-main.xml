@@ -14,4 +14,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/add_datadis_prefix_to_supplies_fields.xml" relativeToChangelogFile="true" />
     <include file="changelogs/replace_user_id_by_supply_id_in_plants_table.xml" relativeToChangelogFile="true" />
     <include file="changelogs/make_plants_supply_id_not_null.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/rename_datadis_supplies_fields.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

@@ -71,12 +71,12 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         // Create the complete URL with the query parameter
         UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_CONSUMPTION_DATA_PATH)
                 .queryParam(DatadisParams.CUPS, supply.getCode())
-                .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDatadisDistributorCode())
+                .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDistributorCode())
                 .queryParam(DatadisParams.START_DATE, monthDate)
                 .queryParam(DatadisParams.END_DATE, monthDate)
                 .queryParam(DatadisParams.MEASUREMENT_TYPE, MeasurementType.PER_HOUR)
-                .queryParam(DatadisParams.POINT_TYPE, supply.getDatadisPointType());
-        if (Boolean.TRUE.equals(supply.getDatadisIsThirdParty())) {
+                .queryParam(DatadisParams.POINT_TYPE, supply.getPointType());
+        if (Boolean.TRUE.equals(supply.isThirdParty())) {
             urlBuilder = urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId());
         }
         final String url = urlBuilder.build().toUriString();
@@ -112,10 +112,10 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
     }
 
     private void validateSupply(Supply supply) {
-        if (supply.getDatadisDistributorCode() == null || supply.getDatadisDistributorCode().isEmpty()) {
+        if (supply.getDistributorCode() == null || supply.getDistributorCode().isEmpty()) {
             throw new DatadisSupplyConfigurationException("Distributor code is mandatory to get monthly consumption.");
         }
-        if (supply.getDatadisPointType() == null) {
+        if (supply.getPointType() == null) {
             throw new DatadisSupplyConfigurationException("Point type is mandatory to get monthly consumption.");
         }
     }

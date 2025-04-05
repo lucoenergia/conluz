@@ -38,11 +38,11 @@ public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
         currentSupply.setAddress(supply.getAddress());
         currentSupply.setPartitionCoefficient(supply.getPartitionCoefficient());
 
-        currentSupply.setDatadisValidDateFrom(supply.getDatadisValidDateFrom());
-        currentSupply.setDatadisDistributor(supply.getDatadisDistributor());
-        currentSupply.setDatadisDistributorCode(supply.getDatadisDistributorCode());
-        currentSupply.setDatadisPointType(supply.getDatadisPointType());
-        currentSupply.setDatadisIsThirdParty(supply.getDatadisIsThirdParty());
+        currentSupply.setDatadisValidDateFrom(supply.getValidDateFrom());
+        currentSupply.setDatadisDistributor(supply.getDistributor());
+        currentSupply.setDatadisDistributorCode(supply.getDistributorCode());
+        currentSupply.setDatadisPointType(supply.getPointType());
+        currentSupply.setDatadisIsThirdParty(supply.isThirdParty());
 
         currentSupply.setShellyMac(supply.getShellyMac());
         currentSupply.setShellyId(supply.getShellyId());

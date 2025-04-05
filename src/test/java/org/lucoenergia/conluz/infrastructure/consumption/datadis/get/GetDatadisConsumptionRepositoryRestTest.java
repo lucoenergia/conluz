@@ -41,9 +41,9 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Supply supply = new Supply.Builder()
                 .withCode("cups")
                 .withUser(user)
-                .withDatadisDistributorCode("distributorCode")
-                .withDatadisPointType(5)
-                .withDatadisIsThirdParty(true)
+                .withDistributorCode("distributorCode")
+                .withPointType(5)
+                .withThirdParty(true)
                 .build();
         final Month month = Month.APRIL;
         final int year = 2023;
@@ -77,9 +77,9 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Supply supply = new Supply.Builder()
                 .withCode("ES0031300329693002BQ0F")
                 .withUser(user)
-                .withDatadisDistributorCode("distributorCode")
-                .withDatadisPointType(5)
-                .withDatadisIsThirdParty(false)
+                .withDistributorCode("distributorCode")
+                .withPointType(5)
+                .withThirdParty(false)
                 .build();
         final Month month = Month.APRIL;
         final int year = 2023;
@@ -164,9 +164,9 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Supply supply = new Supply.Builder()
                 .withCode("ES0031300329693002BQ0F")
                 .withUser(user)
-                .withDatadisDistributorCode("distributorCode")
-                .withDatadisPointType(5)
-                .withDatadisIsThirdParty(false)
+                .withDistributorCode("distributorCode")
+                .withPointType(5)
+                .withThirdParty(false)
                 .build();
         final Month month = Month.APRIL;
         final int year = 2023;

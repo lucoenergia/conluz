@@ -25,12 +25,11 @@ public class Supply {
     private Float partitionCoefficient;
     @NotNull
     private Boolean enabled;
-    // Data gathered from datadis.es
-    private LocalDate datadisValidDateFrom;
-    private String datadisDistributor;
-    private String datadisDistributorCode;
-    private Integer datadisPointType;
-    private Boolean datadisIsThirdParty;
+    private LocalDate validDateFrom;
+    private String distributor;
+    private String distributorCode;
+    private Integer pointType;
+    private Boolean thirdParty;
     // Shelly settings
     private String shellyMac;
     private String shellyId;
@@ -44,11 +43,11 @@ public class Supply {
         this.address = builder.address;
         this.partitionCoefficient = builder.partitionCoefficient;
         this.enabled = builder.enabled;
-        this.datadisValidDateFrom = builder.datadisValidDateFrom;
-        this.datadisDistributor = builder.datadisDistributor;
-        this.datadisDistributorCode = builder.datadisDistributorCode;
-        this.datadisPointType = builder.datadisPointType;
-        this.datadisIsThirdParty = builder.datadisIsThirdParty;
+        this.validDateFrom = builder.validDateFrom;
+        this.distributor = builder.distributor;
+        this.distributorCode = builder.distributorCode;
+        this.pointType = builder.pointType;
+        this.thirdParty = builder.thirdParty;
         this.shellyId = builder.shellyId;
         this.shellyMqttPrefix = builder.shellyMqttPrefix;
         this.shellyMac = builder.shellyMac;
@@ -70,15 +69,14 @@ public class Supply {
         private String address;
         private Float partitionCoefficient;
         private Boolean enabled;
-        private LocalDate datadisValidDateFrom;
-        private String datadisDistributor;
-        private String datadisDistributorCode;
-        private Integer datadisPointType;
-        private Boolean datadisIsThirdParty;
+        private LocalDate validDateFrom;
+        private String distributor;
+        private String distributorCode;
+        private Integer pointType;
+        private Boolean thirdParty;
         private String shellyMac;
         private String shellyId;
         private String shellyMqttPrefix;
-
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -115,28 +113,28 @@ public class Supply {
             return this;
         }
 
-        public Builder withDatadisValidDateFrom(LocalDate validDateFrom) {
-            this.datadisValidDateFrom = validDateFrom;
+        public Builder withValidDateFrom(LocalDate validDateFrom) {
+            this.validDateFrom = validDateFrom;
             return this;
         }
 
-        public Builder withDatadisDistributor(String distributor) {
-            this.datadisDistributor = distributor;
+        public Builder withDistributor(String distributor) {
+            this.distributor = distributor;
             return this;
         }
 
-        public Builder withDatadisDistributorCode(String distributorCode) {
-            this.datadisDistributorCode = distributorCode;
+        public Builder withDistributorCode(String distributorCode) {
+            this.distributorCode = distributorCode;
             return this;
         }
 
-        public Builder withDatadisPointType(Integer pointType) {
-            this.datadisPointType = pointType;
+        public Builder withPointType(Integer pointType) {
+            this.pointType = pointType;
             return this;
         }
 
-        public Builder withDatadisIsThirdParty(Boolean isThirdParty) {
-            this.datadisIsThirdParty = isThirdParty;
+        public Builder withThirdParty(Boolean thirdParty) {
+            this.thirdParty = thirdParty;
             return this;
         }
 
@@ -192,44 +190,44 @@ public class Supply {
         return enabled;
     }
 
-    public LocalDate getDatadisValidDateFrom() {
-        return datadisValidDateFrom;
+    public LocalDate getValidDateFrom() {
+        return validDateFrom;
     }
 
-    public String getDatadisDistributor() {
-        return datadisDistributor;
+    public String getDistributor() {
+        return distributor;
     }
 
-    public String getDatadisDistributorCode() {
-        return datadisDistributorCode;
+    public String getDistributorCode() {
+        return distributorCode;
     }
 
-    public Integer getDatadisPointType() {
-        return datadisPointType;
+    public Integer getPointType() {
+        return pointType;
     }
 
-    public Boolean getDatadisIsThirdParty() {
-        return datadisIsThirdParty;
+    public Boolean isThirdParty() {
+        return thirdParty;
     }
 
     public void setAddress(String address) {
         this.address = address;
     }
 
-    public void setDatadisValidDateFrom(LocalDate datadisValidDateFrom) {
-        this.datadisValidDateFrom = datadisValidDateFrom;
+    public void setValidDateFrom(LocalDate validDateFrom) {
+        this.validDateFrom = validDateFrom;
     }
 
-    public void setDatadisDistributor(String datadisDistributor) {
-        this.datadisDistributor = datadisDistributor;
+    public void setDistributor(String distributor) {
+        this.distributor = distributor;
     }
 
-    public void setDatadisDistributorCode(String datadisDistributorCode) {
-        this.datadisDistributorCode = datadisDistributorCode;
+    public void setDistributorCode(String distributorCode) {
+        this.distributorCode = distributorCode;
     }
 
-    public void setDatadisPointType(Integer datadisPointType) {
-        this.datadisPointType = datadisPointType;
+    public void setPointType(Integer pointType) {
+        this.pointType = pointType;
     }
 
     public String getShellyMac() {

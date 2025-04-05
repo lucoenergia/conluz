@@ -1,0 +1,36 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Rename datadis fields to remove prefix -->
+    <changeSet author="Víctor Cañizares" id="rename_datadis_supplies_fields">
+        <renameColumn tableName="supplies"
+                      oldColumnName="datadis_is_third_party"
+                      newColumnName="third_party"
+                      columnDataType="bool"
+                      remarks="rename datadis_is_third_party to third_party"/>
+        <renameColumn tableName="supplies"
+                      oldColumnName="datadis_valid_date_from"
+                      newColumnName="valid_date_from"
+                      columnDataType="DATE"
+                      remarks="rename datadis_valid_date_from to valid_date_from"/>
+        <renameColumn tableName="supplies"
+                      oldColumnName="datadis_distributor"
+                      newColumnName="distributor"
+                      columnDataType="VARCHAR(250)"
+                      remarks="rename datadis_distributor to distributor"/>
+        <renameColumn tableName="supplies"
+                      oldColumnName="datadis_distributor_code"
+                      newColumnName="distributor_code"
+                      columnDataType="VARCHAR(250)"
+                      remarks="rename datadis_distributor_code to distributor_code"/>
+        <renameColumn tableName="supplies"
+                      oldColumnName="datadis_point_type"
+                      newColumnName="point_type"
+                      columnDataType="INT"
+                      remarks="rename datadis_point_type to point_type"/>
+    </changeSet>
+
+</databaseChangeLog>

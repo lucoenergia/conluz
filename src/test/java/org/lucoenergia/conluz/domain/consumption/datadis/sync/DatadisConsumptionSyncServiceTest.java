@@ -53,17 +53,17 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         User user = UserMother.randomUser();
         user = createUserRepository.create(user);
 
-        Supply supplyWithNullValidDateFrom = SupplyMother.random().withDatadisValidDateFrom(null).build();
+        Supply supplyWithNullValidDateFrom = SupplyMother.random().withValidDateFrom(null).build();
         supplyWithNullValidDateFrom = createSupplyRepository.create(supplyWithNullValidDateFrom, UserId.of(user.getId()));
         Supply supplyWithNotNullValidDateFrom = SupplyMother.random()
-                .withDatadisValidDateFrom(LocalDate.now().minusMonths(8)).build();
+                .withValidDateFrom(LocalDate.now().minusMonths(8)).build();
         supplyWithNotNullValidDateFrom = createSupplyRepository.create(supplyWithNotNullValidDateFrom, UserId.of(user.getId()));
         Supply supplyWithMoreThanOneYearValidDateFrom = SupplyMother.random()
-                .withDatadisValidDateFrom(LocalDate.now().minusMonths(24)).build();
+                .withValidDateFrom(LocalDate.now().minusMonths(24)).build();
         supplyWithMoreThanOneYearValidDateFrom = createSupplyRepository.create(supplyWithMoreThanOneYearValidDateFrom, UserId.of(user.getId()));
         Supply supplyWithoutDistributorCode = SupplyMother.random()
-                .withDatadisDistributorCode(null)
-                .withDatadisValidDateFrom(LocalDate.now().minusMonths(24)).build();
+                .withDistributorCode(null)
+                .withValidDateFrom(LocalDate.now().minusMonths(24)).build();
         supplyWithoutDistributorCode = createSupplyRepository.create(supplyWithoutDistributorCode, UserId.of(user.getId()));
 
         List<DatadisConsumption> consumptions = List.of(mock(DatadisConsumption.class));

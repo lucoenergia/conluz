@@ -49,11 +49,11 @@ public class SupplyResponse {
         this.partitionCoefficient = supply.getPartitionCoefficient();
         this.enabled = supply.getEnabled();
         this.user = supply.getUser() != null ? new UserResponse(supply.getUser()) : null;
-        this.datadisIsThirdParty = supply.getDatadisIsThirdParty();
-        this.datadisValidDateFrom = supply.getDatadisValidDateFrom();
-        this.datadisDistributor = supply.getDatadisDistributor();
-        this.datadisDistributorCode = supply.getDatadisDistributorCode();
-        this.datadisPointType = supply.getDatadisPointType();
+        this.datadisIsThirdParty = supply.isThirdParty();
+        this.datadisValidDateFrom = supply.getValidDateFrom();
+        this.datadisDistributor = supply.getDistributor();
+        this.datadisDistributorCode = supply.getDistributorCode();
+        this.datadisPointType = supply.getPointType();
         this.shellyMac = supply.getShellyMac();
         this.shellyId = supply.getShellyId();
         this.shellyMqttPrefix = supply.getShellyMqttPrefix();
