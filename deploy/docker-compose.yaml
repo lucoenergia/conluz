@@ -12,6 +12,8 @@ services:
       - ${PATH_TO_POSTGRES_DATA}:/var/lib/postgresql/data # Get a backup locally
       - ./conluz-postgres-init.sh:/docker-entrypoint-initdb.d/conluz-postgres-init.sh  # Mount the init.sql script
     restart: always
+    networks:
+      - conluz_network
 
   influxdb:
     image: influxdb:1.8
@@ -28,10 +30,15 @@ services:
       - ${PATH_TO_INFLUXDB_DATA}:/var/lib/influxdb
       - ./conluz-influxdb-init.sh:/docker-entrypoint-initdb.d/conluz-influxdb-init.sh
     restart: always
+    networks:
+      - conluz_network
 
   conluz:
     container_name: conluz
-    image: conluz:latest
+#    image: conluz:latest
+    build:
+      context: .. # The context defines the directory where your application code resides and the Docker daemon executes the build commands within that context.
+      dockerfile: Dockerfile # The dockerfile key points to the Dockerfile that should be used for building the image.
     ports:
       - "8443:8443"
     # Create a .env file in the folder where this file is located and define the environment variables there.
@@ -50,31 +57,59 @@ services:
       - CONLUZ_MQTT_SERVER_URI
       - CONLUZ_MQTT_SERVER_USERNAME
     restart: always
+    networks:
+      - conluz_network
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - ${PATH_TO_PROMETHEUS_DATA}:/prometheus
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: promtail
     ports:
-      - 9090:9090
-    restart: always
-
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
+      - "3110:3110"
     volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - --path.procfs=/host/proc
-      - --path.sysfs=/host/sys
-      - --path.rootfs=/rootfs
-    restart: always
+      - ./promtail/config:/etc/promtail
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock  # necesario para que promtail acceda a la Docker API
+    command: -config.file=/etc/promtail/local-config.yaml
+    networks:
+      - conluz_network
+    depends_on:
+      - loki
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki/config:/etc/loki
+    networks:
+      - conluz_network
+
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: prometheus
+#    volumes:
+#      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+#      - ${PATH_TO_PROMETHEUS_DATA}:/prometheus
+#    command:
+#      - --config.file=/etc/prometheus/prometheus.yml
+#    ports:
+#      - 9090:9090
+#    restart: always
+
+#  node-exporter:
+#    image: prom/node-exporter:latest
+#    container_name: node-exporter
+#    volumes:
+#      - /proc:/host/proc:ro
+#      - /sys:/host/sys:ro
+#      - /:/rootfs:ro
+#    command:
+#      - --path.procfs=/host/proc
+#      - --path.sysfs=/host/sys
+#      - --path.rootfs=/rootfs
+#    restart: always
+
   telegraf:
     image: telegraf:latest
     container_name: telegraf
@@ -92,3 +127,12 @@ services:
     volumes:
       - ./telegraf.conf:/etc/telegraf/telegraf.conf
     restart: unless-stopped
+    networks:
+      - conluz_network
+
+volumes:
+  conluz-logs:
+
+networks:
+  conluz_network:
+    driver: bridge
