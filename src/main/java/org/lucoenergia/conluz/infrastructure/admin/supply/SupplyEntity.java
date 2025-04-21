@@ -34,13 +34,19 @@ public class SupplyEntity {
 
     @OneToMany(
             mappedBy = "supply",
+            fetch = FetchType.LAZY,
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
     private List<PlantEntity> plants = new ArrayList<>();
 
-    @OneToMany(mappedBy = "supplies", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<SupplyBetaEntity> betas;
+    @OneToMany(
+            mappedBy = "supply",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<SupplyPartitionEntity> partitions;
 
     public SupplyEntity() {
         enabled = true;
@@ -307,17 +313,17 @@ public class SupplyEntity {
         plant.setSupply(null);
     }
 
-    public List<SupplyBetaEntity> getBetas() {
-        return betas;
+    public List<SupplyPartitionEntity> getPartitions() {
+        return partitions;
     }
 
-    public void addBeta(SupplyBetaEntity beta) {
-        betas.add(beta);
+    public void addBeta(SupplyPartitionEntity beta) {
+        partitions.add(beta);
         beta.setSupply(this);
     }
 
-    public void removeBeta(SupplyBetaEntity beta) {
-        betas.remove(beta);
+    public void removeBeta(SupplyPartitionEntity beta) {
+        partitions.remove(beta);
         beta.setSupply(null);
     }
 }

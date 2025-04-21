@@ -6,8 +6,8 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "supplies_betas")
-public class SupplyBetaEntity {
+@Table(name = "supplies_partitions")
+public class SupplyPartitionEntity {
 
     @Id
     @Column(name = "id")
@@ -19,11 +19,11 @@ public class SupplyBetaEntity {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(name = "partition_coefficient")
-    private double partitionCoefficient;
+    @Column(name = "coefficient")
+    private double coefficient;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "supplies_id")
+    @JoinColumn(name = "supply_id")
     private SupplyEntity supply;
 
     public UUID getId() {
@@ -50,12 +50,12 @@ public class SupplyBetaEntity {
         this.endDate = endDate;
     }
 
-    public double getPartitionCoefficient() {
-        return partitionCoefficient;
+    public double getCoefficient() {
+        return coefficient;
     }
 
-    public void setPartitionCoefficient(double partitionCoefficient) {
-        this.partitionCoefficient = partitionCoefficient;
+    public void setCoefficient(double partitionCoefficient) {
+        this.coefficient = partitionCoefficient;
     }
 
     public SupplyEntity getSupply() {
