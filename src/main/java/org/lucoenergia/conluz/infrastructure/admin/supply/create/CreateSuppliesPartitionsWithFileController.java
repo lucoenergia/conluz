@@ -10,12 +10,13 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
+import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
-import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionService;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
-import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -44,6 +45,7 @@ import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 
 /**
@@ -51,42 +53,42 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping(
-        value = "/api/v1/supplies/import",
+        value = "/api/v1/supplies/partitions/import",
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
 @Validated
-public class CreateSuppliesWithFileController {
+public class CreateSuppliesPartitionsWithFileController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CreateSuppliesWithFileController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CreateSuppliesPartitionsWithFileController.class);
 
     private final CsvFileRequestValidator csvFileRequestValidator;
     private final MessageSource messageSource;
-    private final CreateSupplyService createSupplyService;
+    private final CreateSupplyPartitionService createSupplyPartitionService;
 
-    public CreateSuppliesWithFileController(CsvFileRequestValidator csvFileRequestValidator, MessageSource messageSource,
-                                            CreateSupplyService createSupplyService) {
+    public CreateSuppliesPartitionsWithFileController(CsvFileRequestValidator csvFileRequestValidator, MessageSource messageSource,
+                                                      CreateSupplyPartitionService createSupplyPartitionService) {
         this.csvFileRequestValidator = csvFileRequestValidator;
         this.messageSource = messageSource;
-        this.createSupplyService = createSupplyService;
+        this.createSupplyPartitionService = createSupplyPartitionService;
     }
 
     @PostMapping
     @Operation(
-            summary = "Creates supplies in bulk importing a CSV file.",
+            summary = "Creates supplies partitions in bulk importing a CSV file.",
             description = """
-                    This endpoint facilitates the creation of a set of supplies within the system by importing a CSV file.
-                                    
-                    This endpoint requires clients to send a request containing a file with essential details for each supply, including code, address, users and any additional relevant information.
-                                    
+                    This endpoint facilitates the creation of a set of supplies partitions within the system by importing a CSV file.
+                    
+                    This endpoint requires clients to send a request containing a file with an identifier and the coefficient for each supply.
+                    
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                                    
-                    Upon successful file processing, the server responds with an HTTP status code of 200, along with comprehensive details about the result of the bulk operation, including what users have been created or any potential error.
-                                    
+                    
+                    Upon successful file processing, the server responds with an HTTP status code of 200, along with comprehensive details about the result of the bulk operation, including what supplies partitions have been created or any potential error.
+                    
                     In cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.
                     """,
             tags = ApiTag.SUPPLIES,
-            operationId = "createSuppliesWithFile"
+            operationId = "createSuppliesPartitionsWithFile"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -101,45 +103,59 @@ public class CreateSuppliesWithFileController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     public ResponseEntity createSuppliesWithFile(
-            @Parameter(description = "CSV file format: code(String), address(String), partitionCoefficient(Float), address(String), personalId(String).")
-            @RequestParam("file") MultipartFile file) {
+            @Parameter(description = "CSV file format: code(String), coefficient(Float).", required = true)
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "Identifier of the sharing agreement", required = true)
+            @RequestParam("sharingAgreementId") UUID sharingAgreementId
+    ) {
 
-        Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);
-        if (optionalResponseEntity.isPresent()) {
-            return optionalResponseEntity.get();
+        Optional<ResponseEntity<RestError>> validationErrors = csvFileRequestValidator.validate(file);
+        if (validationErrors.isPresent()) {
+            return validationErrors.get();
         }
-        CreationInBulkResponse<String, String> response = new CreationInBulkResponse<>();
+        CreationInBulkResponse<CreateSupplyPartitionDto, SupplyPartition> response = new CreationInBulkResponse<>();
 
         try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
 
             // create csv bean reader
-            CsvToBean<CreateSupplyBody> csvToBean = new CsvToBeanBuilder<CreateSupplyBody>(reader)
-                    .withType(CreateSupplyBody.class)
+            CsvToBean<CreateSupplyPartitionDto> csvToBean = new CsvToBeanBuilder<CreateSupplyPartitionDto>(reader)
+                    .withType(CreateSupplyPartitionDto.class)
                     .withIgnoreLeadingWhiteSpace(true)
                     .build();
 
-            List<CreateSupplyBody> supplies = csvToBean.parse();
+            List<CreateSupplyPartitionDto> suppliesPartitions = csvToBean.parse();
+            try {
+                createSupplyPartitionService.validateTotalCoefficient(suppliesPartitions);
+            } catch (IllegalArgumentException e) {
+                LOGGER.error("Invalid total coefficient.", e);
+                response.addError(null,
+                        messageSource.getMessage("error.supply.already.exists",
+                                Collections.emptyList().toArray(),
+                                LocaleContextHolder.getLocale()));
+            }
 
-            // save supplies in DB
-            supplies.forEach(supply -> {
+            suppliesPartitions.forEach(supplyPartition -> {
                 try {
-                    Supply newSupply = createSupplyService.create(supply.mapToSupply(), UserPersonalId.of(supply.getPersonalId()));
-                    response.addCreated(newSupply.getCode());
+                    SupplyPartition newSupplyPartition = createSupplyPartitionService.create(SupplyCode.of(supplyPartition.getCode()),
+                            supplyPartition.getCoefficient(),
+                            SharingAgreementId.of(sharingAgreementId)
+                    );
+                    response.addCreated(newSupplyPartition);
                 } catch (SupplyAlreadyExistsException e) {
                     LOGGER.error("Supply already exists", e);
-                    response.addError(supply.getCode(),
+                    response.addError(supplyPartition,
                             messageSource.getMessage("error.supply.already.exists",
-                                    Collections.singletonList(supply.getCode()).toArray(),
+                                    Collections.singletonList(supplyPartition.getCode()).toArray(),
                                     LocaleContextHolder.getLocale()));
-                } catch (UserNotFoundException e) {
-                    LOGGER.error("User not found", e);
-                    response.addError(supply.getCode(),
-                            messageSource.getMessage("error.user.not.found",
-                                    Collections.singletonList(supply.getPersonalId()).toArray(),
+                } catch (SharingAgreementNotFoundException e) {
+                    LOGGER.error("Sharing agreement not found", e);
+                    response.addError(supplyPartition,
+                            messageSource.getMessage("error.sharing.agreement.not.found",
+                                    Collections.singletonList(sharingAgreementId).toArray(),
                                     LocaleContextHolder.getLocale()));
                 } catch (Exception e) {
-                    LOGGER.error("Unable to create supply", e);
-                    response.addError(supply.getCode(),
+                    LOGGER.error("Unable to create supply partition", e);
+                    response.addError(supplyPartition,
                             messageSource.getMessage("error.supply.unable.to.create", new List[]{},
                                     LocaleContextHolder.getLocale()));
                 }

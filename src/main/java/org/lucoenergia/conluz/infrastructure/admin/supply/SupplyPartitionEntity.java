@@ -13,12 +13,6 @@ public class SupplyPartitionEntity {
     @Column(name = "id")
     private UUID id;
 
-    @Column(name = "start_date")
-    private LocalDate startDate;
-
-    @Column(name = "end_date")
-    private LocalDate endDate;
-
     @Column(name = "coefficient")
     private double coefficient;
 
@@ -26,28 +20,16 @@ public class SupplyPartitionEntity {
     @JoinColumn(name = "supply_id")
     private SupplyEntity supply;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sharing_agreement_id")
+    private SharingAgreementEntity sharingAgreement;
+
     public UUID getId() {
         return id;
     }
 
     public void setId(UUID id) {
         this.id = id;
-    }
-
-    public LocalDate getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
-    }
-
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
     }
 
     public double getCoefficient() {
@@ -64,5 +46,13 @@ public class SupplyPartitionEntity {
 
     public void setSupply(SupplyEntity supply) {
         this.supply = supply;
+    }
+
+    public SharingAgreementEntity getSharingAgreement() {
+        return sharingAgreement;
+    }
+
+    public void setSharingAgreement(SharingAgreementEntity sharingAgreement) {
+        this.sharingAgreement = sharingAgreement;
     }
 }

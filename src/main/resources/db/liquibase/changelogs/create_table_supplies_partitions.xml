@@ -13,11 +13,9 @@
                 <constraints foreignKeyName="supplies_partitions_supply_id_fk" referencedTableName="supplies"
                              referencedColumnNames="id" nullable="false"/>
             </column>
-            <column name="start_date" type="DATE">
-                <constraints nullable="false"/>
-            </column>
-            <column name="end_date" type="DATE">
-                <constraints nullable="false"/>
+            <column name="sharing_agreement_id" type="UUID">
+                <constraints foreignKeyName="supplies_partitions_sharing_agreement_id_fk" referencedTableName="sharing_agreements"
+                             referencedColumnNames="id" nullable="false"/>
             </column>
             <column name="coefficient" type="FLOAT">
                 <constraints nullable="false"/>
