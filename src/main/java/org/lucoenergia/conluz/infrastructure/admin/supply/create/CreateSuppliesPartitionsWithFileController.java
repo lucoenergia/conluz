@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionSe
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
+import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileParser;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -63,12 +64,15 @@ public class CreateSuppliesPartitionsWithFileController {
     private static final Logger LOGGER = LoggerFactory.getLogger(CreateSuppliesPartitionsWithFileController.class);
 
     private final CsvFileRequestValidator csvFileRequestValidator;
+    private final CsvFileParser csvFileParser;
     private final MessageSource messageSource;
     private final CreateSupplyPartitionService createSupplyPartitionService;
 
-    public CreateSuppliesPartitionsWithFileController(CsvFileRequestValidator csvFileRequestValidator, MessageSource messageSource,
+    public CreateSuppliesPartitionsWithFileController(CsvFileRequestValidator csvFileRequestValidator,
+                                                      CsvFileParser csvFileParser, MessageSource messageSource,
                                                       CreateSupplyPartitionService createSupplyPartitionService) {
         this.csvFileRequestValidator = csvFileRequestValidator;
+        this.csvFileParser = csvFileParser;
         this.messageSource = messageSource;
         this.createSupplyPartitionService = createSupplyPartitionService;
     }
@@ -115,51 +119,10 @@ public class CreateSuppliesPartitionsWithFileController {
         }
         CreationInBulkResponse<CreateSupplyPartitionDto, SupplyPartition> response = new CreationInBulkResponse<>();
 
-        try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
-
-            // create csv bean reader
-            CsvToBean<CreateSupplyPartitionDto> csvToBean = new CsvToBeanBuilder<CreateSupplyPartitionDto>(reader)
-                    .withType(CreateSupplyPartitionDto.class)
-                    .withIgnoreLeadingWhiteSpace(true)
-                    .build();
-
-            List<CreateSupplyPartitionDto> suppliesPartitions = csvToBean.parse();
-            try {
-                createSupplyPartitionService.validateTotalCoefficient(suppliesPartitions);
-            } catch (IllegalArgumentException e) {
-                LOGGER.error("Invalid total coefficient.", e);
-                response.addError(null,
-                        messageSource.getMessage("error.supply.already.exists",
-                                Collections.emptyList().toArray(),
-                                LocaleContextHolder.getLocale()));
-            }
-
-            suppliesPartitions.forEach(supplyPartition -> {
-                try {
-                    SupplyPartition newSupplyPartition = createSupplyPartitionService.create(SupplyCode.of(supplyPartition.getCode()),
-                            supplyPartition.getCoefficient(),
-                            SharingAgreementId.of(sharingAgreementId)
-                    );
-                    response.addCreated(newSupplyPartition);
-                } catch (SupplyAlreadyExistsException e) {
-                    LOGGER.error("Supply already exists", e);
-                    response.addError(supplyPartition,
-                            messageSource.getMessage("error.supply.already.exists",
-                                    Collections.singletonList(supplyPartition.getCode()).toArray(),
-                                    LocaleContextHolder.getLocale()));
-                } catch (SharingAgreementNotFoundException e) {
-                    LOGGER.error("Sharing agreement not found", e);
-                    response.addError(supplyPartition,
-                            messageSource.getMessage("error.sharing.agreement.not.found",
-                                    Collections.singletonList(sharingAgreementId).toArray(),
-                                    LocaleContextHolder.getLocale()));
-                } catch (Exception e) {
-                    LOGGER.error("Unable to create supply partition", e);
-                    response.addError(supplyPartition,
-                            messageSource.getMessage("error.supply.unable.to.create", new List[]{},
-                                    LocaleContextHolder.getLocale()));
-                }
-            });
+        List<CreateSupplyPartitionDto> suppliesPartitions;
+        try {
+            suppliesPartitions = csvFileParser.parse(file.getInputStream(),
+                    CreateSupplyPartitionDto.class);
         } catch (Exception ex) {
             if (ex.getCause() instanceof CsvRequiredFieldEmptyException) {
                 LOGGER.error("Error parsing file", ex.getCause());
@@ -181,6 +144,43 @@ public class CreateSuppliesPartitionsWithFileController {
                             LocaleContextHolder.getLocale())),
                     HttpStatus.BAD_REQUEST);
         }
+
+        try {
+            createSupplyPartitionService.validateTotalCoefficient(suppliesPartitions);
+        } catch (IllegalArgumentException e) {
+            LOGGER.error("Invalid total coefficient.", e);
+            response.addError(null,
+                    messageSource.getMessage("error.supply.already.exists",
+                            Collections.emptyList().toArray(),
+                            LocaleContextHolder.getLocale()));
+        }
+
+        suppliesPartitions.forEach(supplyPartition -> {
+            try {
+                SupplyPartition newSupplyPartition = createSupplyPartitionService.create(SupplyCode.of(supplyPartition.getCode()),
+                        supplyPartition.getCoefficient(),
+                        SharingAgreementId.of(sharingAgreementId)
+                );
+                response.addCreated(newSupplyPartition);
+            } catch (SupplyAlreadyExistsException e) {
+                LOGGER.error("Supply already exists", e);
+                response.addError(supplyPartition,
+                        messageSource.getMessage("error.supply.already.exists",
+                                Collections.singletonList(supplyPartition.getCode()).toArray(),
+                                LocaleContextHolder.getLocale()));
+            } catch (SharingAgreementNotFoundException e) {
+                LOGGER.error("Sharing agreement not found", e);
+                response.addError(supplyPartition,
+                        messageSource.getMessage("error.sharing.agreement.not.found",
+                                Collections.singletonList(sharingAgreementId).toArray(),
+                                LocaleContextHolder.getLocale()));
+            } catch (Exception e) {
+                LOGGER.error("Unable to create supply partition", e);
+                response.addError(supplyPartition,
+                        messageSource.getMessage("error.supply.unable.to.create", new List[]{},
+                                LocaleContextHolder.getLocale()));
+            }
+        });
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
