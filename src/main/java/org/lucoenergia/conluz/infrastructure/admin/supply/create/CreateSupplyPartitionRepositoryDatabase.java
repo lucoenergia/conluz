@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 import org.lucoenergia.conluz.domain.admin.supply.*;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
-import org.lucoenergia.conluz.domain.shared.SupplyPartitionId;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyPartitionId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.*;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;

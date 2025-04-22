@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.domain.shared;
+package org.lucoenergia.conluz.domain.admin.supply;
 
 import java.util.UUID;
 

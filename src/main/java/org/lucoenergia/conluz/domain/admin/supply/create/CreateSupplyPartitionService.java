@@ -7,13 +7,12 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyPartitionReposito
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.domain.shared.SupplyPartitionId;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyPartitionId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyPartitionDto;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -59,12 +58,7 @@ public class CreateSupplyPartitionService {
             throw new SharingAgreementNotFoundException(sharingAgreementId);
         }
         // Verify if coefficient is valid
-        if (coefficient <= 0 || coefficient >= 1) {
-            throw new IllegalArgumentException("Coefficient must be between 0 and 1 exclusively.");
-        }
-        if (BigDecimal.valueOf(coefficient).scale() != 6) {
-            throw new IllegalArgumentException("Coefficient must have exactly 6 decimal digits.");
-        }
+        validateCoefficient(coefficient);
 
         Optional<SupplyPartition> partition = getSupplyPartitionRepository.findBySupplyAndSharingAgreement(SupplyId.of(supply.get().getId()),
                 sharingAgreementId);
@@ -72,5 +66,14 @@ public class CreateSupplyPartitionService {
             return repository.updateCoefficient(SupplyPartitionId.of(partition.get().getId()), coefficient);
         }
         return repository.create(code, coefficient, sharingAgreementId);
+    }
+
+    private static void validateCoefficient(Double coefficient) {
+        if (coefficient <= 0 || coefficient >= 1) {
+            throw new IllegalArgumentException("Coefficient must be between 0 and 1 exclusively.");
+        }
+        if (BigDecimal.valueOf(coefficient).scale() != 6) {
+            throw new IllegalArgumentException("Coefficient must have exactly 6 decimal digits.");
+        }
     }
 }
