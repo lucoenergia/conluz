@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartitionId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyPartitionDto;
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyPartitionServiceImpl;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ class CreateSupplyPartitionServiceTest {
         getSupplyPartitionRepository = mock(GetSupplyPartitionRepository.class);
         getSupplyRepository = mock(GetSupplyRepository.class);
         getSharingAgreementRepository = mock(GetSharingAgreementRepository.class);
-        service = new CreateSupplyPartitionService(
+        service = new CreateSupplyPartitionServiceImpl(
                 repository,
                 getSupplyPartitionRepository,
                 getSupplyRepository,

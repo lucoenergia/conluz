@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.price.omie.get;
+package org.lucoenergia.conluz.infrastructure.price.get;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.influxdb.InfluxDB;
@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.infrastructure.price.PriceByHourInfluxMapper;
 import org.lucoenergia.conluz.infrastructure.price.PriceByHourPoint;
-import org.lucoenergia.conluz.infrastructure.price.omie.OmieConfig;
+import org.lucoenergia.conluz.infrastructure.price.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;

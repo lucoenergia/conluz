@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyServiceImpl;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -21,7 +22,7 @@ class CreateSupplyServiceTest {
 
     private final GetUserRepository userRepository = mock(GetUserRepository.class);
     private final CreateSupplyRepository supplyRepository = mock(CreateSupplyRepository.class);
-    private final CreateSupplyService createSupplyService = new CreateSupplyService(supplyRepository, userRepository);
+    private final CreateSupplyService createSupplyService = new CreateSupplyServiceImpl(supplyRepository, userRepository);
 
     @Test
     void testCreateSupplyWithUserIdSuccess() {

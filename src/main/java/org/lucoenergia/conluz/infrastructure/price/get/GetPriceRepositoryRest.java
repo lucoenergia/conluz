@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.price.omie.get;
+package org.lucoenergia.conluz.infrastructure.price.get;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;

@@ -1,20 +1,8 @@
 package org.lucoenergia.conluz.domain.production.huawei.config;
 
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
-@Service
-public class SetHuaweiConfigurationService {
+public interface SetHuaweiConfigurationService {
 
-    private final SetHuaweiConfigurationRepository setHuaweiConfigurationRepository;
-
-    public SetHuaweiConfigurationService(SetHuaweiConfigurationRepository setHuaweiConfigurationRepository) {
-        this.setHuaweiConfigurationRepository = setHuaweiConfigurationRepository;
-    }
-
-    public HuaweiConfig setHuaweiConfiguration(HuaweiConfig config) {
-        return setHuaweiConfigurationRepository.setHuaweiConfiguration(config);
-    }
+    HuaweiConfig setHuaweiConfiguration(HuaweiConfig config);
 }

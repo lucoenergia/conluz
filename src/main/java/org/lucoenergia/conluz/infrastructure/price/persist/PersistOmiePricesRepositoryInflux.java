@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.price.omie.persist;
+package org.lucoenergia.conluz.infrastructure.price.persist;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
@@ -6,7 +6,7 @@ import org.influxdb.dto.Point;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.domain.price.persist.PersistOmiePricesRepository;
 import org.lucoenergia.conluz.infrastructure.price.PriceByHourPoint;
-import org.lucoenergia.conluz.infrastructure.price.omie.OmieConfig;
+import org.lucoenergia.conluz.infrastructure.price.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

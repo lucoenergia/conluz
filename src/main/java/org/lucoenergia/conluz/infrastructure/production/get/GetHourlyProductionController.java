@@ -50,7 +50,7 @@ public class GetHourlyProductionController {
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
                                     value = """
-                                            
+
                                             """
                             )
                     )

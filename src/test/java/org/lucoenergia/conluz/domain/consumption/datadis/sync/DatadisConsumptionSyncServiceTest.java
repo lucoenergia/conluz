@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.sync.DatadisConsumptionSyncServiceImpl;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +43,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        service = new DatadisConsumptionSyncService(getDatadisConsumptionRepository,
+        service = new DatadisConsumptionSyncServiceImpl(getDatadisConsumptionRepository,
                 getSupplyRepository, persistDatadisConsumptionRepository);
     }
 

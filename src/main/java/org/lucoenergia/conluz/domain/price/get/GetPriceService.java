@@ -1,24 +1,21 @@
 package org.lucoenergia.conluz.domain.price.get;
 
 import org.lucoenergia.conluz.domain.price.PriceByHour;
-import org.lucoenergia.conluz.infrastructure.price.omie.get.GetPriceRepositoryInflux;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 
-@Transactional(readOnly = true)
-@Service
-public class GetPriceService {
+/**
+ * Service for retrieving price information.
+ */
+public interface GetPriceService {
 
-    private final GetPriceRepositoryInflux getPriceRepository;
-
-    public GetPriceService(GetPriceRepositoryInflux getPriceRepository) {
-        this.getPriceRepository = getPriceRepository;
-    }
-
-    public List<PriceByHour> getPricesByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
-        return getPriceRepository.getPricesByRangeOfDates(startDate, endDate);
-    }
+    /**
+     * Get prices by range of dates.
+     *
+     * @param startDate the start date
+     * @param endDate the end date
+     * @return a list of prices by hour
+     */
+    List<PriceByHour> getPricesByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate);
 }

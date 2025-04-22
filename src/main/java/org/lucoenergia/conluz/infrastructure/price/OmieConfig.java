@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.price.omie;
+package org.lucoenergia.conluz.infrastructure.price;
 
 public class OmieConfig {
 
