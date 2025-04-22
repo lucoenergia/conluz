@@ -2,7 +2,9 @@ package org.lucoenergia.conluz.domain.production.plant.delete;
 
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional
 @Service
 public class DeletePlantService {
 

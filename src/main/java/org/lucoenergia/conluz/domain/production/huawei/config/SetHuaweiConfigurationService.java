@@ -1,9 +1,10 @@
 package org.lucoenergia.conluz.domain.production.huawei.config;
 
-import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional
 @Service
 public class SetHuaweiConfigurationService {
 

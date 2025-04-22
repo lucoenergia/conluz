@@ -4,18 +4,15 @@ package org.lucoenergia.conluz.domain.production.plant.create;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
-import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@Transactional
 @Service
 public class CreatePlantService {
 

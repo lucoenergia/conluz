@@ -3,7 +3,9 @@ package org.lucoenergia.conluz.domain.production.plant.update;
 
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional
 @Service
 public class UpdatePlantService {
 

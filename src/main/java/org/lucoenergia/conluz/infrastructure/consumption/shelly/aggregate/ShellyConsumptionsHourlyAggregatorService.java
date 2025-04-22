@@ -21,19 +21,19 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
-public class ShellyConsumptionsHourlyAggregator {
+public class ShellyConsumptionsHourlyAggregatorService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ShellyConsumptionsHourlyAggregator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShellyConsumptionsHourlyAggregatorService.class);
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
     private final DateConverter dateConverter;
     private final GetSupplyRepository getSupplyRepository;
     private final PersistShellyConsumptionRepository persistShellyConsumptionRepository;
 
-    public ShellyConsumptionsHourlyAggregator(InfluxDbConnectionManager influxDbConnectionManager,
-                                              DateConverter dateConverter,
-                                              GetSupplyRepository getSupplyRepository,
-                                              PersistShellyConsumptionRepository persistShellyConsumptionRepository) {
+    public ShellyConsumptionsHourlyAggregatorService(InfluxDbConnectionManager influxDbConnectionManager,
+                                                     DateConverter dateConverter,
+                                                     GetSupplyRepository getSupplyRepository,
+                                                     PersistShellyConsumptionRepository persistShellyConsumptionRepository) {
         this.influxDbConnectionManager = influxDbConnectionManager;
         this.dateConverter = dateConverter;
         this.getSupplyRepository = getSupplyRepository;

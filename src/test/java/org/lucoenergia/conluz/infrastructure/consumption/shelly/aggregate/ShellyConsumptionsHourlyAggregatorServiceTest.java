@@ -25,7 +25,7 @@ import static org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyIns
 
 
 @Transactional
-class ShellyConsumptionsHourlyAggregatorTest extends BaseIntegrationTest {
+class ShellyConsumptionsHourlyAggregatorServiceTest extends BaseIntegrationTest {
 
     private static final OffsetDateTime START_DATE = OffsetDateTime.parse("2023-10-24T00:00:00.000+00:00");
     private static final OffsetDateTime END_DATE = OffsetDateTime.parse("2023-10-26T00:00:00.000+00:00");
@@ -33,7 +33,7 @@ class ShellyConsumptionsHourlyAggregatorTest extends BaseIntegrationTest {
     @Autowired
     private ShellyInstantConsumptionsInfluxLoader shellyInstantConsumptionsInfluxLoader;
     @Autowired
-    private ShellyConsumptionsHourlyAggregator shellyConsumptionsHourlyAggregator;
+    private ShellyConsumptionsHourlyAggregatorService shellyConsumptionsHourlyAggregatorService;
     @Autowired
     private GetShellyConsumptionRepositoryInflux getShellyConsumptionRepositoryInflux;
     @Autowired
@@ -63,7 +63,7 @@ class ShellyConsumptionsHourlyAggregatorTest extends BaseIntegrationTest {
                 .withShellyMqttPrefix(SUPPLY_B_MQTT_PREFIX).build(), UserId.of(user.getId()));
 
         //When
-        shellyConsumptionsHourlyAggregator.aggregate(START_DATE, END_DATE);
+        shellyConsumptionsHourlyAggregatorService.aggregate(START_DATE, END_DATE);
 
         //Then
         List<ShellyConsumption> result = getShellyConsumptionRepositoryInflux.getAllConsumptions();

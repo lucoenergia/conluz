@@ -7,11 +7,13 @@ import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Transactional(readOnly = true)
 @Service
 public class GetProductionService {
 

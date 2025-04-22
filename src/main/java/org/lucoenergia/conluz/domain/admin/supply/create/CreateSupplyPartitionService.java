@@ -10,11 +10,13 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartitionId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyPartitionDto;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Optional;
 
+@Transactional
 @Service
 public class CreateSupplyPartitionService {
 
