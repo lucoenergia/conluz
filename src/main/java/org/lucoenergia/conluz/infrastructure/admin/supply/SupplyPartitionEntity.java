@@ -2,7 +2,6 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import jakarta.persistence.*;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity

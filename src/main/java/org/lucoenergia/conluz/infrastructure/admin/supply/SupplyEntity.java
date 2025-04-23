@@ -317,13 +317,13 @@ public class SupplyEntity {
         return partitions;
     }
 
-    public void addBeta(SupplyPartitionEntity beta) {
-        partitions.add(beta);
-        beta.setSupply(this);
+    public void addPartition(SupplyPartitionEntity partition) {
+        partitions.add(partition);
+        partition.setSupply(this);
     }
 
-    public void removeBeta(SupplyPartitionEntity beta) {
-        partitions.remove(beta);
-        beta.setSupply(null);
+    public void removePartition(SupplyPartitionEntity partition) {
+        partitions.remove(partition);
+        partition.setSupply(null);
     }
 }

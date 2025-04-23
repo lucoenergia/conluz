@@ -1,7 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
-import com.opencsv.bean.CsvToBean;
-import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvDataTypeMismatchException;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,10 +11,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
-import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionService;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
-import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionService;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileParser;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -40,9 +37,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -92,7 +86,7 @@ public class CreateSuppliesPartitionsWithFileController {
                     In cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.
                     """,
             tags = ApiTag.SUPPLIES,
-            operationId = "createSuppliesPartitionsWithFile"
+            operationId = "importSuppliesPartitionsWithFile"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -106,7 +100,7 @@ public class CreateSuppliesPartitionsWithFileController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    public ResponseEntity createSuppliesWithFile(
+    public ResponseEntity importSuppliesWithFile(
             @Parameter(description = "CSV file format: code(String), coefficient(Float).", required = true)
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "Identifier of the sharing agreement", required = true)
