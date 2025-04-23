@@ -22,6 +22,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import org.lucoenergia.conluz.infrastructure.shared.web.io.CsvParseExceptionHandler;
 import org.lucoenergia.conluz.infrastructure.shared.web.response.CreationInBulkResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +38,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 
 /**
@@ -61,14 +59,16 @@ public class CreateSuppliesPartitionsWithFileController {
     private final CsvFileParser csvFileParser;
     private final MessageSource messageSource;
     private final CreateSupplyPartitionService createSupplyPartitionService;
+    private final CsvParseExceptionHandler csvParseExceptionHandler;
 
     public CreateSuppliesPartitionsWithFileController(CsvFileRequestValidator csvFileRequestValidator,
                                                       CsvFileParser csvFileParser, MessageSource messageSource,
-                                                      CreateSupplyPartitionService createSupplyPartitionService) {
+                                                      CreateSupplyPartitionService createSupplyPartitionService, CsvParseExceptionHandler csvParseExceptionHandler) {
         this.csvFileRequestValidator = csvFileRequestValidator;
         this.csvFileParser = csvFileParser;
         this.messageSource = messageSource;
         this.createSupplyPartitionService = createSupplyPartitionService;
+        this.csvParseExceptionHandler = csvParseExceptionHandler;
     }
 
     @PostMapping
@@ -115,28 +115,9 @@ public class CreateSuppliesPartitionsWithFileController {
 
         List<CreateSupplyPartitionDto> suppliesPartitions;
         try {
-            suppliesPartitions = csvFileParser.parse(file.getInputStream(),
-                    CreateSupplyPartitionDto.class);
+            suppliesPartitions = csvFileParser.parse(file.getInputStream(), CreateSupplyPartitionDto.class);
         } catch (Exception ex) {
-            if (ex.getCause() instanceof CsvRequiredFieldEmptyException) {
-                LOGGER.error("Error parsing file", ex.getCause());
-                return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
-                        messageSource.getMessage("error.fields.number.does.not.match", new List[]{},
-                                LocaleContextHolder.getLocale())),
-                        HttpStatus.BAD_REQUEST);
-            }
-            if (ex.getCause() instanceof CsvDataTypeMismatchException) {
-                LOGGER.error("Error parsing line", ex.getCause());
-                return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
-                        messageSource.getMessage("error.supply.unable.to.parse.file", new List[]{},
-                                LocaleContextHolder.getLocale())),
-                        HttpStatus.BAD_REQUEST);
-            }
-            LOGGER.error("Error processing file", ex);
-            return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
-                    messageSource.getMessage("error.bad.request", new List[]{},
-                            LocaleContextHolder.getLocale())),
-                    HttpStatus.BAD_REQUEST);
+            return csvParseExceptionHandler.handleCsvParsingError(ex);
         }
 
         try {

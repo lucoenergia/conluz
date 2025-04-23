@@ -21,6 +21,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import org.lucoenergia.conluz.infrastructure.shared.web.io.CsvParseExceptionHandler;
 import org.lucoenergia.conluz.infrastructure.shared.web.response.CreationInBulkResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,14 +60,16 @@ public class CreateSuppliesWithFileController {
     private final CsvFileParser csvFileParser;
     private final MessageSource messageSource;
     private final CreateSupplyService createSupplyService;
+    private final CsvParseExceptionHandler csvParseExceptionHandler;
 
     public CreateSuppliesWithFileController(CsvFileRequestValidator csvFileRequestValidator,
                                             CsvFileParser csvFileParser, MessageSource messageSource,
-                                            CreateSupplyService createSupplyService) {
+                                            CreateSupplyService createSupplyService, CsvParseExceptionHandler csvParseExceptionHandler) {
         this.csvFileRequestValidator = csvFileRequestValidator;
         this.csvFileParser = csvFileParser;
         this.messageSource = messageSource;
         this.createSupplyService = createSupplyService;
+        this.csvParseExceptionHandler = csvParseExceptionHandler;
     }
 
     @PostMapping
@@ -112,25 +115,7 @@ public class CreateSuppliesWithFileController {
         try {
             supplies = csvFileParser.parse(file.getInputStream(), CreateSupplyBody.class);
         } catch (Exception ex) {
-            if (ex.getCause() instanceof CsvRequiredFieldEmptyException) {
-                LOGGER.error("Error parsing file", ex.getCause());
-                return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
-                        messageSource.getMessage("error.fields.number.does.not.match", new List[]{},
-                                LocaleContextHolder.getLocale())),
-                        HttpStatus.BAD_REQUEST);
-            }
-            if (ex.getCause() instanceof CsvDataTypeMismatchException) {
-                LOGGER.error("Error parsing line", ex.getCause());
-                return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
-                        messageSource.getMessage("error.supply.unable.to.parse.file", new List[]{},
-                                LocaleContextHolder.getLocale())),
-                        HttpStatus.BAD_REQUEST);
-            }
-            LOGGER.error("Error processing file", ex);
-            return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
-                    messageSource.getMessage("error.bad.request", new List[]{},
-                            LocaleContextHolder.getLocale())),
-                    HttpStatus.BAD_REQUEST);
+            return csvParseExceptionHandler.handleCsvParsingError(ex);
         }
 
         // save supplies in DB
@@ -157,7 +142,6 @@ public class CreateSuppliesWithFileController {
                                 LocaleContextHolder.getLocale()));
             }
         });
-
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
