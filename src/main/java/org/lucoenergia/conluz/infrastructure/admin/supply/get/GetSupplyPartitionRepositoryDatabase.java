@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
+import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyPartitionRepository;
@@ -25,7 +26,8 @@ public class GetSupplyPartitionRepositoryDatabase implements GetSupplyPartitionR
     }
 
     @Override
-    public Optional<SupplyPartition> findBySupplyAndSharingAgreement(SupplyId supplyId, SharingAgreementId agreementId) {
+    public Optional<SupplyPartition> findBySupplyAndSharingAgreement(@NotNull SupplyId supplyId,
+                                                                     @NotNull SharingAgreementId agreementId) {
         Optional<SupplyPartitionEntity> entity = supplyPartitionRepository.findBySupplyIdAndSharingAgreementId(supplyId.getId(),
                 agreementId.getId());
         return entity.map(supplyPartitionEntityMapper::map);
