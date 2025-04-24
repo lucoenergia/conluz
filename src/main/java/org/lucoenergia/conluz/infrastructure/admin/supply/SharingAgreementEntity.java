@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "sharing_agreement")
+@Table(name = "sharing_agreements")
 public class SharingAgreementEntity {
 
     @Id

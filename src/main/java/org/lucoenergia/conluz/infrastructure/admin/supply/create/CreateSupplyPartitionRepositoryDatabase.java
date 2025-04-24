@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Transactional
 @Repository
@@ -55,6 +56,7 @@ public class CreateSupplyPartitionRepositoryDatabase implements CreateSupplyPart
             throw new SharingAgreementNotFoundException(id);
         }
         supplyPartition.setSharingAgreement(sharingAgreementEntity.get());
+        supplyPartition.setId(UUID.randomUUID());
         supplyPartition.setCoefficient(coefficient);
 
         supplyPartition = supplyPartitionRepository.save(supplyPartition);
