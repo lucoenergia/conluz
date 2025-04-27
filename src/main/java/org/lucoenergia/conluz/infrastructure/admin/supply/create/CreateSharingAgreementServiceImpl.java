@@ -23,6 +23,9 @@ public class CreateSharingAgreementServiceImpl implements CreateSharingAgreement
 
     @Override
     public SharingAgreement create(LocalDate startDate, LocalDate endDate) {
+        if (endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("Start date must be before end date");
+        }
         return repository.create(startDate, endDate);
     }
 }

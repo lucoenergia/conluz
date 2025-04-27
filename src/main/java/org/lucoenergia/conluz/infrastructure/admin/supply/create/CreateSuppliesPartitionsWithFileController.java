@@ -20,7 +20,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.io.CsvParseExceptionHandler;
-import org.lucoenergia.conluz.infrastructure.shared.web.response.CreationInBulkResponse;
+import org.lucoenergia.conluz.domain.shared.response.CreationInBulkResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;

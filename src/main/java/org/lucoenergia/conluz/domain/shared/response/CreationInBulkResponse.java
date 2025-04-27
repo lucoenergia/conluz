@@ -1,6 +1,6 @@
-package org.lucoenergia.conluz.infrastructure.shared.web.response;
+package org.lucoenergia.conluz.domain.shared.response;
 
-import org.lucoenergia.conluz.infrastructure.shared.web.error.BulkError;
+import org.lucoenergia.conluz.domain.shared.error.BulkError;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -5,7 +5,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyPartitionDto;
-import org.lucoenergia.conluz.infrastructure.shared.web.response.CreationInBulkResponse;
+import org.lucoenergia.conluz.domain.shared.response.CreationInBulkResponse;
 
 import java.util.Collection;
 import java.util.List;

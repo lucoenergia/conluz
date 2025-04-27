@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.shared.web.error;
+package org.lucoenergia.conluz.domain.shared.error;
 
 public class BulkError<T> {
     private final T item;

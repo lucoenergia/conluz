@@ -11,7 +11,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyPartitionDto;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyPartitionServiceImpl;
-import org.lucoenergia.conluz.infrastructure.shared.web.response.CreationInBulkResponse;
+import org.lucoenergia.conluz.domain.shared.response.CreationInBulkResponse;
 import org.springframework.context.MessageSource;
 
 import java.time.LocalDate;

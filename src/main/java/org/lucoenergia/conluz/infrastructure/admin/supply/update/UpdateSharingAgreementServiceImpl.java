@@ -24,6 +24,9 @@ public class UpdateSharingAgreementServiceImpl implements UpdateSharingAgreement
 
     @Override
     public SharingAgreement update(UUID id, LocalDate startDate, LocalDate endDate) {
+        if (endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("Start date must be before end date");
+        }
         return repository.update(id, startDate, endDate);
     }
 }
