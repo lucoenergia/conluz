@@ -6,9 +6,9 @@ set -e
 #
 
 # Load environment variables from .env file
-set -a # Automatically exports all variables defined after this line into the environment.
-source ../.env # Loads the variables from the .env file.
-set +a # Disables automatic export of variables.
+set -o allexport # Automatically exports all variables defined after this line into the environment.
+source .env # Loads the variables from the .env file.
+set +o allexport # Disables automatic export of variables.
 
 # Configuration
 TMP_RESTORE_DIR="./backups/influxdb_restore"

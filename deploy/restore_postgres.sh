@@ -7,9 +7,9 @@ BACKUP_FILE="$1"  # Path to .sql.gz backup file (passed as argument)
 CONTAINER_TMP_RESTORE_DIR="/tmp/"
 
 # Load environment variables from .env file
-set -a # Automatically exports all variables defined after this line into the environment.
-source ../.env # Loads the variables from the .env file.
-set +a # Disables automatic export of variables.
+set -o allexport # Automatically exports all variables defined after this line into the environment.
+source .env # Loads the variables from the .env file.
+set +o allexport # Disables automatic export of variables.
 
 # === Check if file is provided ===
 if [ -z "$BACKUP_FILE" ]; then

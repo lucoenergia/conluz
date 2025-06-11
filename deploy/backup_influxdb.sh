@@ -6,9 +6,9 @@ CONTAINER_NAME="influxdb"  # Name of InfluxDB container
 CONTAINER_TMP_BACKUP_DIR="/tmp/backup"
 
 # Load environment variables from .env file
-set -a # Automatically exports all variables defined after this line into the environment.
-source ../.env # Loads the variables from the .env file.
-set +a # Disables automatic export of variables.
+set -o allexport # Automatically exports all variables defined after this line into the environment.
+source .env # Loads the variables from the .env file.
+set +o allexport # Disables automatic export of variables.
 
 # Check input parameter
 if [ -z "$1" ]; then
