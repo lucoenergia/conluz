@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.shared.security.auth.ConluzAuthenticationEntryPoint;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 

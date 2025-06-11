@@ -193,4 +193,10 @@ public class BadRequestExceptionHandler {
         );
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<RestError> handleException(IllegalArgumentException e) {
+        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), e.getMessage()),
+                HttpStatus.BAD_REQUEST);
+    }
 }

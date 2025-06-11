@@ -38,7 +38,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
 
-    private final static String URL = "/api/v1/supplies/import";
+    private static final String URL = "/api/v1/supplies/import";
     public static final String SUPPLIES_CSV = "fixtures/supplies/supplies.csv";
     public static final String SUPPLIES_BAD_FORMAT_CSV = "fixtures/supplies/supplies_bad_format.csv";
     public static final String EMPTY_CSV = "fixtures/empty.csv";
@@ -87,7 +87,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.errors").isArray())
                 .andExpect(jsonPath("$.errors").isNotEmpty())
                 .andExpect(jsonPath("$.errors[*].errorMessage", hasItem("El punto de suministro con CUPS 'ES002100823465' ya existe.")))
-                .andExpect(jsonPath("$.errors[*].supply", hasItem("ES007890123456")))
+                .andExpect(jsonPath("$.errors[*].item", hasItem("ES007890123456")))
                 .andExpect(jsonPath("$.errors[*].errorMessage", hasItem("El usuario con identificador '456123789D' no ha sido encontrado. Revise que el identificador sea correcto.")))
                 .andExpect(jsonPath("$.errors[*].errorMessage", not(hasItem("No ha sido posible crear el punto de suministro con los datos proporcionados."))));
     }

@@ -47,7 +47,7 @@ public class GetInstantProductionController {
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
                                     value = """
-                                            
+
                                             """
                             )
                     )

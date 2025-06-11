@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.shared.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.ConluzAccessDeniedHandler;
-import org.lucoenergia.conluz.infrastructure.shared.web.error.ConluzAuthenticationEntryPoint;
+import org.lucoenergia.conluz.infrastructure.shared.security.auth.ConluzAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

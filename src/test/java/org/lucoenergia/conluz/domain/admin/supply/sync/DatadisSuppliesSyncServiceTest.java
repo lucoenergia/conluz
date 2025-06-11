@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sync.DatadisSuppliesSyncServiceImpl;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.mockito.Mockito;
@@ -49,7 +50,7 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
 
     @BeforeEach
     void setup() {
-        service = new DatadisSuppliesSyncService(getSupplyRepository,
+        service = new DatadisSuppliesSyncServiceImpl(getSupplyRepository,
                 updateSupplyRepository, getSupplyRepositoryDatadis, getUserRepository, dateConverter);
     }
 

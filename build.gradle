@@ -43,6 +43,7 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.testcontainers:postgresql:1.18.3'
     testImplementation "org.testcontainers:influxdb:1.19.1"
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
 }
 
 tasks.named('test') {

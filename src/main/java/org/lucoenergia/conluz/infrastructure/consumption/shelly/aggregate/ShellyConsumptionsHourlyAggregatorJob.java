@@ -14,10 +14,10 @@ public class ShellyConsumptionsHourlyAggregatorJob implements Job {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShellyConsumptionsHourlyAggregatorJob.class);
 
-    private final ShellyConsumptionsHourlyAggregator aggregator;
+    private final ShellyConsumptionsHourlyAggregatorService aggregator;
     private final TimeConfiguration timeConfiguration;
 
-    public ShellyConsumptionsHourlyAggregatorJob(ShellyConsumptionsHourlyAggregator aggregator, TimeConfiguration timeConfiguration) {
+    public ShellyConsumptionsHourlyAggregatorJob(ShellyConsumptionsHourlyAggregatorService aggregator, TimeConfiguration timeConfiguration) {
         this.aggregator = aggregator;
         this.timeConfiguration = timeConfiguration;
     }

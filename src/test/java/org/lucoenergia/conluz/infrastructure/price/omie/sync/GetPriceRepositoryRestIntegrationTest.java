@@ -1,9 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.price.omie.sync;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
-import org.lucoenergia.conluz.infrastructure.price.omie.get.GetPriceRepositoryRest;
+import org.lucoenergia.conluz.infrastructure.price.get.GetPriceRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 

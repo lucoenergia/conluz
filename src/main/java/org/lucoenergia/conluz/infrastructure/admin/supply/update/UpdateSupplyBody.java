@@ -142,13 +142,13 @@ public class UpdateSupplyBody {
                 .withName(name)
                 .withAddress(address)
                 .withPartitionCoefficient(partitionCoefficient)
-                .withDatadisValidDateFrom(datadisValidDateFrom != null ?
+                .withValidDateFrom(datadisValidDateFrom != null ?
                         DateConverter.convertStringToLocalDate(datadisValidDateFrom, "yyyy-MM-dd") :
                         null)
-                .withDatadisDistributor(datadisDistributor)
-                .withDatadisDistributorCode(datadisDistributorCode)
-                .withDatadisPointType(datadisPointType)
-                .withDatadisIsThirdParty(datadisIsThirdParty)
+                .withDistributor(datadisDistributor)
+                .withDistributorCode(datadisDistributorCode)
+                .withPointType(datadisPointType)
+                .withThirdParty(datadisIsThirdParty)
                 .withShellyMac(shellyMac)
                 .withShellyId(shellyId)
                 .withShellyMqttPrefix(shellyMqttPrefix);

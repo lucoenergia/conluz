@@ -1,18 +1,8 @@
 package org.lucoenergia.conluz.domain.admin.user.delete;
 
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.springframework.stereotype.Service;
 
-@Service
-public class DeleteUserService {
+public interface DeleteUserService {
 
-    private final DeleteUserRepository repository;
-
-    public DeleteUserService(DeleteUserRepository repository) {
-        this.repository = repository;
-    }
-
-    public void delete(UserId id) {
-        repository.delete(id);
-    }
+    void delete(UserId id);
 }

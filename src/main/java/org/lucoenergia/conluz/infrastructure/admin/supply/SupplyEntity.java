@@ -15,26 +15,38 @@ public class SupplyEntity {
     @Id
     private UUID id;
     private String code;
+
     @ManyToOne(fetch = FetchType.LAZY)
     private UserEntity user;
+
     private String name;
     private String address;
     private Float partitionCoefficient;
     private Boolean enabled;
-    private LocalDate datadisValidDateFrom;
-    private String datadisDistributor;
-    private String datadisDistributorCode;
-    private Integer datadisPointType;
-    private Boolean datadisIsThirdParty;
+    private LocalDate validDateFrom;
+    private String distributor;
+    private String distributorCode;
+    private Integer pointType;
+    private Boolean thirdParty;
     private String shellyMac;
     private String shellyId;
     private String shellyMqttPrefix;
+
     @OneToMany(
             mappedBy = "supply",
+            fetch = FetchType.LAZY,
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
     private List<PlantEntity> plants = new ArrayList<>();
+
+    @OneToMany(
+            mappedBy = "supply",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<SupplyPartitionEntity> partitions;
 
     public SupplyEntity() {
         enabled = true;
@@ -49,11 +61,11 @@ public class SupplyEntity {
         private Float partitionCoefficient;
         private Boolean enabled;
 
-        private LocalDate datadisValidDateFrom;
-        private String datadisDistributor;
-        private String datadisDistributorCode;
-        private Integer datadisPointType;
-        private Boolean datadisIsThirdParty;
+        private LocalDate validDateFrom;
+        private String distributor;
+        private String distributorCode;
+        private Integer pointType;
+        private Boolean thirdParty;
         private String shellyMac;
         private String shellyId;
         private String shellyMqttPrefix;
@@ -93,28 +105,28 @@ public class SupplyEntity {
             return this;
         }
 
-        public Builder withDatadisValidDateFrom(LocalDate validDateFrom) {
-            this.datadisValidDateFrom = validDateFrom;
+        public Builder withValidDateFrom(LocalDate validDateFrom) {
+            this.validDateFrom = validDateFrom;
             return this;
         }
 
-        public Builder withDatadisDistributor(String distributor) {
-            this.datadisDistributor = distributor;
+        public Builder withDistributor(String distributor) {
+            this.distributor = distributor;
             return this;
         }
 
-        public Builder withDatadisDistributorCode(String distributorCode) {
-            this.datadisDistributorCode = distributorCode;
+        public Builder withDistributorCode(String distributorCode) {
+            this.distributorCode = distributorCode;
             return this;
         }
 
-        public Builder withDatadisPointType(Integer pointType) {
-            this.datadisPointType = pointType;
+        public Builder withPointType(Integer pointType) {
+            this.pointType = pointType;
             return this;
         }
 
-        public Builder withDatadisIsThirdParty(Boolean isThirdParty) {
-            this.datadisIsThirdParty = isThirdParty;
+        public Builder withThirdParty(Boolean thirdParty) {
+            this.thirdParty = thirdParty;
             return this;
         }
 
@@ -142,11 +154,11 @@ public class SupplyEntity {
             entity.address = this.address;
             entity.partitionCoefficient = this.partitionCoefficient;
             entity.enabled = this.enabled;
-            entity.datadisValidDateFrom = this.datadisValidDateFrom;
-            entity.datadisDistributor = this.datadisDistributor;
-            entity.datadisDistributorCode = this.datadisDistributorCode;
-            entity.datadisPointType = this.datadisPointType;
-            entity.datadisIsThirdParty = this.datadisIsThirdParty;
+            entity.validDateFrom = this.validDateFrom;
+            entity.distributor = this.distributor;
+            entity.distributorCode = this.distributorCode;
+            entity.pointType = this.pointType;
+            entity.thirdParty = this.thirdParty;
             entity.shellyMac = this.shellyMac;
             entity.shellyId = this.shellyId;
             entity.shellyMqttPrefix = this.shellyMqttPrefix;
@@ -223,44 +235,44 @@ public class SupplyEntity {
         this.user = user;
     }
 
-    public LocalDate getDatadisValidDateFrom() {
-        return datadisValidDateFrom;
+    public LocalDate getValidDateFrom() {
+        return validDateFrom;
     }
 
-    public void setDatadisValidDateFrom(LocalDate validDateFrom) {
-        this.datadisValidDateFrom = validDateFrom;
+    public void setValidDateFrom(LocalDate validDateFrom) {
+        this.validDateFrom = validDateFrom;
     }
 
-    public String getDatadisDistributor() {
-        return datadisDistributor;
+    public String getDistributor() {
+        return distributor;
     }
 
-    public void setDatadisDistributor(String distributor) {
-        this.datadisDistributor = distributor;
+    public void setDistributor(String distributor) {
+        this.distributor = distributor;
     }
 
-    public String getDatadisDistributorCode() {
-        return datadisDistributorCode;
+    public String getDistributorCode() {
+        return distributorCode;
     }
 
-    public void setDatadisDistributorCode(String distributorCode) {
-        this.datadisDistributorCode = distributorCode;
+    public void setDistributorCode(String distributorCode) {
+        this.distributorCode = distributorCode;
     }
 
-    public Integer getDatadisPointType() {
-        return datadisPointType;
+    public Integer getPointType() {
+        return pointType;
     }
 
-    public void setDatadisPointType(Integer pointType) {
-        this.datadisPointType = pointType;
+    public void setPointType(Integer pointType) {
+        this.pointType = pointType;
     }
 
-    public Boolean getDatadisIsThirdParty() {
-        return datadisIsThirdParty;
+    public Boolean getThirdParty() {
+        return thirdParty;
     }
 
-    public void setDatadisIsThirdParty(Boolean datadisIsThirdParty) {
-        this.datadisIsThirdParty = datadisIsThirdParty;
+    public void setThirdParty(Boolean datadisIsThirdParty) {
+        this.thirdParty = datadisIsThirdParty;
     }
 
     public String getShellyMac() {
@@ -299,5 +311,19 @@ public class SupplyEntity {
     public void removePlant(PlantEntity plant) {
         plants.remove(plant);
         plant.setSupply(null);
+    }
+
+    public List<SupplyPartitionEntity> getPartitions() {
+        return partitions;
+    }
+
+    public void addPartition(SupplyPartitionEntity partition) {
+        partitions.add(partition);
+        partition.setSupply(this);
+    }
+
+    public void removePartition(SupplyPartitionEntity partition) {
+        partitions.remove(partition);
+        partition.setSupply(null);
     }
 }

@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.price;
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 import org.influxdb.impl.InfluxDBResultMapper;
-import org.lucoenergia.conluz.infrastructure.price.omie.OmieConfig;
 
 import java.time.Instant;
 

@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.price;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
-import org.lucoenergia.conluz.infrastructure.price.omie.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxLoader;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -35,10 +35,10 @@ class UpdateSupplyBodyTest {
         assertEquals("name", supply.getName());
         assertEquals("address", supply.getAddress());
         assertEquals(0.5f, supply.getPartitionCoefficient());
-        assertEquals("2022-01-01", supply.getDatadisValidDateFrom().toString());
-        assertEquals("distributor", supply.getDatadisDistributor());
-        assertEquals("distributorCode", supply.getDatadisDistributorCode());
-        assertEquals(6, supply.getDatadisPointType());
+        assertEquals("2022-01-01", supply.getValidDateFrom().toString());
+        assertEquals("distributor", supply.getDistributor());
+        assertEquals("distributorCode", supply.getDistributorCode());
+        assertEquals(6, supply.getPointType());
         assertEquals("shellyMac", supply.getShellyMac());
         assertEquals("shellyId", supply.getShellyId());
         assertEquals("shellyMqttPrefix", supply.getShellyMqttPrefix());
