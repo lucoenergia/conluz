@@ -6,8 +6,6 @@ import jakarta.validation.constraints.Positive;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
-import java.util.UUID;
-
 @Schema(requiredProperties = {
         "code", "personalId", "address", "partitionCoefficient"
 })
@@ -21,6 +19,7 @@ public class CreateSupplyBody {
     private String address;
     @Positive
     private Float partitionCoefficient;
+    private String name;
 
     public String getCode() {
         return code;
@@ -54,12 +53,25 @@ public class CreateSupplyBody {
         this.personalId = personalId;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public Supply mapToSupply() {
         Supply.Builder builder = new Supply.Builder();
-        builder.withCode(code)
-                .withAddress(address)
+        builder.withCode(code.trim())
+                .withAddress(address.trim())
                 .withPartitionCoefficient(partitionCoefficient)
-                .withUser(new User.Builder().personalId(personalId).build());
+                .withUser(new User.Builder().personalId(personalId.trim()).build());
+
+        if (name != null && !name.isBlank()) {
+            builder.withName(name.trim());
+        }
+
         return builder.build();
     }
 }

@@ -17,4 +17,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/rename_datadis_supplies_fields.xml" relativeToChangelogFile="true" />
     <include file="changelogs/create_table_sharing_agreements.xml" relativeToChangelogFile="true" />
     <include file="changelogs/create_table_supplies_partitions.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/make_supply_name_not_null.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

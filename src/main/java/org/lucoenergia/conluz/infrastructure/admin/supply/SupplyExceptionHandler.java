@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
+import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Collections;
+import java.util.List;
 
 @RestControllerAdvice
 public class SupplyExceptionHandler {
@@ -28,6 +31,17 @@ public class SupplyExceptionHandler {
         String message = messageSource.getMessage(
                 "error.supply.not.found",
                 Collections.singletonList(supplyId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(SupplyAlreadyExistsException.class)
+    public ResponseEntity<RestError> handleException(SupplyAlreadyExistsException e) {
+
+        String message = messageSource.getMessage(
+                "error.supply.already.exists",
+                List.of(e.getCode().getCode()).toArray(),
                 LocaleContextHolder.getLocale()
         );
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
