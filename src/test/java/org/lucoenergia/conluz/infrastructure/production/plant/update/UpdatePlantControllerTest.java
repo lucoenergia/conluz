@@ -27,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -372,5 +373,35 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        Supply supplyTwo = SupplyMother.random().build();
+
+        UpdatePlantBody plantModified = new UpdatePlantBody();
+        plantModified.setCode("TS-234123");
+        plantModified.setSupplyCode(supplyTwo.getCode());
+        plantModified.setName("Main plant");
+        plantModified.setAddress("Fake Street 666");
+        plantModified.setDescription("The main plant");
+        plantModified.setConnectionDate(LocalDate.of(2023, 5, 23));
+        plantModified.setInverterProvider(InverterProvider.HUAWEI);
+        plantModified.setTotalPower(25.6D);
+
+        String bodyAsString = objectMapper.writeValueAsString(plantModified);
+
+        final String plantId = UUID.randomUUID().toString();
+
+        mockMvc.perform(put(String.format("/api/v1/plants/%s", plantId))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyAsString))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -245,5 +246,28 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        UUID id = UUID.randomUUID();
+
+        String body = """
+                {
+                  "startDate": "2023-02-01",
+                  "endDate": "2023-11-30"
+                }
+                """;
+
+        mockMvc.perform(put(URL + "/" + id)
+                        .content(body)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
@@ -28,6 +29,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -74,18 +76,24 @@ public class CreateSuppliesWithFileController {
     @Operation(
             summary = "Creates supplies in bulk importing a CSV file.",
             description = """
-                    This endpoint facilitates the creation of a set of supplies within the system by importing a CSV file.
+                    This endpoint facilitates the creation of a set of supplies within the system by importing a
+                    CSV file.
                     
-                    This endpoint requires clients to send a request containing a file with essential details for each supply, including code, address, users and any additional relevant information.
+                    This endpoint requires clients to send a request containing a file with essential details for each
+                    supply, including code, address, users and any additional relevant information.
                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
+                    **Required Role: ADMIN**
                     
-                    Upon successful file processing, the server responds with an HTTP status code of 200, along with comprehensive details about the result of the bulk operation, including what users have been created or any potential error.
+                    Upon successful file processing, the server responds with an HTTP status code of 200, along with
+                    comprehensive details about the result of the bulk operation, including what users have been created
+                    or any potential error.
                     
                     In cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.
                     """,
             tags = ApiTag.SUPPLIES,
-            operationId = "createSuppliesWithFile"
+            operationId = "createSuppliesWithFile",
+            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -99,6 +107,7 @@ public class CreateSuppliesWithFileController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity createSuppliesWithFile(
             @Parameter(description = "CSV file format: code(String), address(String), partitionCoefficient(Float), address(String), personalId(String).")
             @RequestParam("file") MultipartFile file) {

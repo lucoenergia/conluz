@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -116,5 +117,21 @@ class DeletePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        final String plantId = UUID.randomUUID().toString();
+
+        // Test users endpoint
+        mockMvc.perform(delete(String.format("/api/v1/plants/%s", plantId))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -107,5 +108,20 @@ class DeleteSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(delete(URL + "/" + id)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

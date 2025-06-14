@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.SetDatadisConfigurationRepository;
-import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
+import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -108,5 +108,24 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        String testUsername = "testUsername";
+        String testPassword = "testPassword";
+        ConfigureDatadisBody body = new ConfigureDatadisBody(testUsername, testPassword);
+        String bodyAsString = objectMapper.writeValueAsString(body);
+
+        mockMvc.perform(put(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyAsString))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSharingAgreementService;
@@ -10,6 +11,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRespon
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,10 +36,26 @@ public class CreateSharingAgreementController {
 
     @PostMapping
     @Operation(
-            summary = "Creates a new sharing agreement",
+            summary = """
+                    This endpoint facilitates the creation of a new sharing agreement within the system.
+                    
+                    To utilize this endpoint, clients send a request containing essential details such as the agreement's
+                    start and end dates.
+                    
+                    Authentication is mandated, utilizing an authentication token, to ensure secure access.
+                    **Required Role: ADMIN**
+                    
+                    Upon successful creation, the server responds with an HTTP status code of 200, providing comprehensive
+                    details about the newly created sharing agreement.
+                    
+                    In cases where the creation process encounters errors, the server responds with an appropriate error
+                    status code, accompanied by a descriptive error message to guide clients in addressing and resolving
+                    the issue.
+                    """,
             description = "This endpoint creates a new sharing agreement with the specified start and end dates.",
             tags = ApiTag.SUPPLIES,
-            operationId = "createSharingAgreement"
+            operationId = "createSharingAgreement",
+            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -50,6 +68,7 @@ public class CreateSharingAgreementController {
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
+    @PreAuthorize("hasRole('ADMIN')")
     public SharingAgreementResponse createSharingAgreement(@Valid @RequestBody CreateSharingAgreementBody body) {
         SharingAgreement sharingAgreement = service.create(body.getStartDate(), body.getEndDate());
         return new SharingAgreementResponse(sharingAgreement);
