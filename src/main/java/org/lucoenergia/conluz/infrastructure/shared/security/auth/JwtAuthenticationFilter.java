@@ -30,17 +30,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final AuthRepository authRepository;
     private final UserDetailsService userDetailsService;
+    private final JwtAccessTokenHandler jwtAccessTokenHandler;
 
-    public JwtAuthenticationFilter(AuthRepository authRepository, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(AuthRepository authRepository, UserDetailsService userDetailsService,
+                                   JwtAccessTokenHandler jwtAccessTokenHandler) {
         this.authRepository = authRepository;
         this.userDetailsService = userDetailsService;
+        this.jwtAccessTokenHandler = jwtAccessTokenHandler;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        final Optional<String> tokenString = getTokenFromRequest(request);
+        final Optional<String> tokenString = jwtAccessTokenHandler.getTokenFromRequest(request);
         final UUID userId;
 
         // If no token is provided, we should continue the filter chain
@@ -71,32 +74,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private Optional<String> getTokenFromRequest(HttpServletRequest request) {
-        Optional<String> result = getTokenFromHeader(request);
-        return result
-                .or(() -> getTokenFromCookie(request));
-    }
-
-    private Optional<String> getTokenFromHeader(HttpServletRequest request) {
-        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-
-        if (StringUtils.hasText(authHeader) && authHeader.startsWith(AUTHORIZATION_HEADER_PREFIX)) {
-            return Optional.of(authHeader.substring(AUTHORIZATION_HEADER_PREFIX.length()));
-        }
-        return Optional.empty();
-    }
-
-    private Optional<String> getTokenFromCookie(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            return Optional.empty();
-        }
-
-        return Arrays.stream(request.getCookies())
-                .filter(cookie -> AuthParameter.ACCESS_TOKEN.getCookieName().equalsIgnoreCase(cookie.getName()))
-                .map(Cookie::getValue)
-                .findFirst();
     }
 }
