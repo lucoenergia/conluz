@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.springdoc.core.converters.models.PageableAsQueryParam;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -61,6 +62,7 @@ public class GetAllUsersController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
+    @PreAuthorize("hasRole('ADMIN')")
     public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) Pageable page) {
             PagedResult<User> users = service.findAll(paginationRequestMapper.mapRequest(page));
 

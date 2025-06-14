@@ -40,21 +40,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        final Optional<String> token = getTokenFromRequest(request);
+        final Optional<String> tokenString = getTokenFromRequest(request);
         final UUID userId;
 
         // If no token is provided, we should continue the filter chain
-        // This is specially important for not authenticated endpoints
-        if (token.isEmpty()) {
+        // This is especially important for not authenticated endpoints
+        if (tokenString.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
-        userId = authRepository.getUserIdFromToken(Token.of(token.get()));
+        Token token = Token.of(tokenString.get());
+        userId = authRepository.getUserIdFromToken(token);
 
         if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             User user = (User) userDetailsService.loadUserByUsername(userId.toString());
 
-            if (authRepository.isTokenValid(Token.of(token.get()), user)) {
+            if (authRepository.isTokenValid(token, user)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         user,
                         null,
@@ -63,10 +64,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             } else {
-                throw new InvalidTokenException(token.get());
+                throw new InvalidTokenException(tokenString.get());
             }
         } else {
-            throw new InvalidTokenException(token.get());
+            throw new InvalidTokenException(tokenString.get());
         }
 
         filterChain.doFilter(request, response);
