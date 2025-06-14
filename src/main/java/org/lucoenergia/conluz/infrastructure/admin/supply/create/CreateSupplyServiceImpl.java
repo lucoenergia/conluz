@@ -26,9 +26,32 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
         this.getUserRepository = getUserRepository;
     }
 
+    @Override
     public Supply create(Supply supply, UserId id) {
         supply.enable();
         supply.initializeUuid();
+
+        // If name is not provided, use the ID as the default name
+        if (supply.getName() == null) {
+            supply = new Supply.Builder()
+                    .withId(supply.getId())
+                    .withCode(supply.getCode())
+                    .withUser(supply.getUser())
+                    .withName(supply.getAddress())
+                    .withAddress(supply.getAddress())
+                    .withPartitionCoefficient(supply.getPartitionCoefficient())
+                    .withEnabled(supply.getEnabled())
+                    .withValidDateFrom(supply.getValidDateFrom())
+                    .withDistributor(supply.getDistributor())
+                    .withDistributorCode(supply.getDistributorCode())
+                    .withPointType(supply.getPointType())
+                    .withThirdParty(supply.isThirdParty())
+                    .withShellyMac(supply.getShellyMac())
+                    .withShellyId(supply.getShellyId())
+                    .withShellyMqttPrefix(supply.getShellyMqttPrefix())
+                    .build();
+        }
+
         return repository.create(supply, id);
     }
 

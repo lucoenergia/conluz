@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class CreateUserControllerTest extends BaseControllerTest {
 
-    private final static String URL = "/api/v1/users";
+    private static final String URL = "/api/v1/users";
 
     @Autowired
     private GetUserRepository getUserRepository;
@@ -278,8 +278,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void
-    testWithoutBody() throws Exception {
+    void testWithoutBody() throws Exception {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(post(URL)
