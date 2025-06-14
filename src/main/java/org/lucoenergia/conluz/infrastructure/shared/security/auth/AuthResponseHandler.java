@@ -9,7 +9,22 @@ import org.springframework.stereotype.Component;
 public class AuthResponseHandler {
 
     public void setAccessCookie(HttpServletResponse response, Token accessToken) {
-        Cookie authCookie = new Cookie(AuthParameter.ACCESS_TOKEN.getCookieName(), accessToken.getToken());
+        Cookie authCookie = createAccessCookie(accessToken.getToken());
+
+        // Add cookie to the response
+        response.addCookie(authCookie);
+    }
+
+    public void unsetAccessCookie(HttpServletResponse response) {
+        Cookie authCookie = createAccessCookie("");
+        authCookie.setMaxAge(0); // Set max age to zero to instruct client to remove the cookie
+
+        // Add cookie to the response
+        response.addCookie(authCookie);
+    }
+
+    private Cookie createAccessCookie(String value) {
+        Cookie authCookie = new Cookie(AuthParameter.ACCESS_TOKEN.getCookieName(), value);
         authCookie.setHttpOnly(true); // Setting a cookie as HttpOnly means that it cannot be accessed by client-side scripts. This measure can help to mitigate certain types of cross-site scripting (XSS) vulnerabilities.
         authCookie.setSecure(true); // If you are working with HTTPS
         authCookie.setPath("/"); // Determines the URLs to which the cookie will be sent by the browser. Setting the path to "/", the cookie will be sent to all URLs within the domain.
@@ -20,7 +35,6 @@ public class AuthResponseHandler {
          */
         authCookie.setAttribute("SameSite", "Lax");
 
-        // Add cookie to the response
-        response.addCookie(authCookie);
+        return authCookie;
     }
 }

@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.auth.*;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,12 +19,14 @@ public class AuthServiceImpl implements AuthService {
     private final GetUserRepository getUserRepository;
     private final AuthRepository authRepository;
 
-    public AuthServiceImpl(Authenticator authenticator, GetUserRepository getUserRepository, AuthRepository authRepository) {
+    public AuthServiceImpl(Authenticator authenticator, GetUserRepository getUserRepository,
+                           AuthRepository authRepository) {
         this.authenticator = authenticator;
         this.getUserRepository = getUserRepository;
         this.authRepository = authRepository;
     }
 
+    @Override
     public Token login(Credentials credentials) {
         authenticator.authenticate(credentials);
         Optional<User> user = getUserRepository.findByPersonalId(UserPersonalId.of(credentials.getUsername()));
@@ -31,5 +34,10 @@ public class AuthServiceImpl implements AuthService {
             throw new UserNotFoundException();
         }
         return authRepository.getToken(user.get());
+    }
+
+    @Override
+    public void logout() {
+        SecurityContextHolder.clearContext();
     }
 }
