@@ -20,8 +20,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.hasItem;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -321,5 +320,29 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        UUID sharingAgreementId = UUID.randomUUID();
+
+        ClassPathResource resource = new ClassPathResource(SUPPLY_PARTITIONS_CSV);
+
+        MockMultipartFile file = new MockMultipartFile(
+                MULTIPART_FILE_NAME,
+                SUPPLY_PARTITIONS_CSV,
+                TEXT_CSV_MEDIA_TYPE,
+                Files.readAllBytes(resource.getFile().toPath()));
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .param("sharingAgreementId", sharingAgreementId.toString()))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

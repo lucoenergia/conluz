@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserService;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
@@ -17,6 +19,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.springdoc.core.converters.models.PageableAsQueryParam;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,9 +48,23 @@ public class GetAllUsersController {
     @GetMapping
     @Operation(
             summary = "Retrieves all registered users in the system with support for pagination, filtering, and sorting.",
-            description = "This endpoint facilitates the retrieval of all users within the system, allowing clients to access a comprehensive list of user details. Users can include optional query parameters, such as page to specify the page number, limit to determine the number of users per page, filter for selective retrieval based on specific criteria, and sort to define the order of the results. Proper authentication, through an authentication token, is required for secure access to this endpoint. A successful request returns an HTTP status code of 200, along with a paginated list of user details, providing valuable information such as unique identifiers, usernames, and creation timestamps. In case of issues, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing any problems encountered during the retrieval process.",
+            description = """
+                    This endpoint facilitates the retrieval of all users within the system, allowing clients to access a
+                    comprehensive list of user details.
+            
+                    **Required Role: ADMIN**
+            
+                    Features:
+                    - Pagination support through page and limit parameters
+                    - Sorting options for customized result ordering
+            
+                    Authentication:
+                    - Requires valid authentication token
+                    - Bearer token authorization
+                    """,
             tags = ApiTag.USERS,
-            operationId = "getAllUsers"
+            operationId = "getAllUsers",
+            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -61,8 +78,9 @@ public class GetAllUsersController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
+    @PreAuthorize("hasRole('ADMIN')")
     public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) Pageable page) {
-            PagedResult<User> users = service.findAll(paginationRequestMapper.mapRequest(page));
+        PagedResult<User> users = service.findAll(paginationRequestMapper.mapRequest(page));
 
         List<UserResponse> responseUsers = users.getItems().stream()
                 .map(UserResponse::new).toList();

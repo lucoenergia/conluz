@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class CreateUsersWithFileControllerTest extends BaseControllerTest {
 
-    private final static String URL = "/api/v1/users/import";
+    private static final String URL = "/api/v1/users/import";
 
     @Test
     void testMinimumBody() throws Exception {
@@ -192,5 +192,26 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        ClassPathResource resource = new ClassPathResource("fixtures/users/users.csv");
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "fixtures/users/users.csv",
+                "text/csv",
+                Files.readAllBytes(resource.getFile().toPath()));
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

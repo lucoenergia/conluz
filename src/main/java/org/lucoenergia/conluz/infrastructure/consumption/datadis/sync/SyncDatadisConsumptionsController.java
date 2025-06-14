@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -11,6 +12,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,9 +30,20 @@ public class SyncDatadisConsumptionsController {
     @PostMapping
     @Operation(
             summary = "Synchronize the consumptions of all active supplies retrieving the information from datadis.es.",
-            description = "This endpoint enables users to synchronize the consumptions of all active supplies retrieving the information from datadis.es. Proper authentication, through an authentication token, is required for secure access to this endpoint. A successful request returns an HTTP status code of 200. In cases of errors, the server responds with an appropriate error status code accompanied by a descriptive message to guide users in resolving any issues.",
+            description = """
+                    This endpoint enables users to synchronize the consumptions of all active supplies retrieving the information from datadis.es.
+                    
+                    Proper authentication, through an authentication token, is required for secure access to this endpoint.
+                    **Required Role: ADMIN**
+                    
+                    A successful request returns an HTTP status code of 200.
+                    
+                    In cases of errors, the server responds with an appropriate error status code accompanied by a
+                    descriptive message to guide users in resolving any issues.",
+                    """,
             tags = ApiTag.CONSUMPTION,
-            operationId = "syncDatadisConsumptions"
+            operationId = "syncDatadisConsumptions",
+            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -45,6 +58,7 @@ public class SyncDatadisConsumptionsController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
+    @PreAuthorize("hasRole('ADMIN')")
     public void syncDatadisConsumptions() {
         datadisConsumptionSyncService.synchronizeConsumptions();
     }

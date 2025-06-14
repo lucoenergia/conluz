@@ -41,6 +41,7 @@ services:
       dockerfile: Dockerfile # The dockerfile key points to the Dockerfile that should be used for building the image.
     ports:
       - "8443:8443"
+      - "5005:5005"
     # Create a .env file in the folder where this file is located and define the environment variables there.
     # When run docker-compose up, Docker will automatically pick up the .env file in the same directory as this docker-compose.yml file, and substitute the values of the environment variables accordingly.
     environment:
@@ -56,9 +57,14 @@ services:
       - CONLUZ_MQTT_SERVER_TOPICS
       - CONLUZ_MQTT_SERVER_URI
       - CONLUZ_MQTT_SERVER_USERNAME
+      # Uncomment this to enable remote debugging
+#      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     restart: always
     networks:
       - conluz_network
+    depends_on:
+      - influxdb
+      - postgres
 
   promtail:
     image: grafana/promtail:3.0.0
@@ -68,7 +74,7 @@ services:
     volumes:
       - ./promtail/config:/etc/promtail
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock  # necesario para que promtail acceda a la Docker API
+      - /var/run/docker.sock:/var/run/docker.sock  # Required to let promtail access Docker API
     command: -config.file=/etc/promtail/local-config.yaml
     networks:
       - conluz_network

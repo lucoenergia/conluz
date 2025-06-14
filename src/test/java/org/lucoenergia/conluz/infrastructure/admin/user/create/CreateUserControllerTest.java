@@ -305,4 +305,29 @@ class CreateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        String body = String.format("""
+                        {
+                          "personalId": "%s",
+                          "fullName": "John Doe",
+                          "number": 1,
+                          "email": "johndoe@email.com",
+                          "password": "a secure password1!",
+                          "role": "PARTNER"
+                        }
+                """, DefaultUserAdminMother.PERSONAL_ID);
+
+        mockMvc.perform(post(URL)
+                        .content(body)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
 }

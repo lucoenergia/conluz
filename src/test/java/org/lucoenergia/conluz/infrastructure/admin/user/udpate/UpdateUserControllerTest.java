@@ -19,14 +19,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
 class UpdateUserControllerTest extends BaseControllerTest {
+
+    private static final String URL = "/api/v1/users";
 
     @Autowired
     private CreateUserRepository createUserRepository;
@@ -62,7 +63,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
 
         String bodyAsString = objectMapper.writeValueAsString(userModified);
 
-        mockMvc.perform(put(String.format("/api/v1/users/%s", user.getId()))
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyAsString))
@@ -107,7 +108,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
 
         String bodyAsString = objectMapper.writeValueAsString(userModified);
 
-        mockMvc.perform(put(String.format("/api/v1/users/%s", user.getId()))
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyAsString))
@@ -140,7 +141,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
                         }
                 """;
 
-        mockMvc.perform(put("/api/v1/users/" + userId)
+        mockMvc.perform(put(URL + "/" + userId)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -167,7 +168,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
 
         final String userId = UUID.randomUUID().toString();
 
-        mockMvc.perform(put("/api/v1/users/" + userId)
+        mockMvc.perform(put(URL + "/" + userId)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -187,7 +188,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
 
         final String userId = UUID.randomUUID().toString();
 
-        mockMvc.perform(put("/api/v1/users/" + userId)
+        mockMvc.perform(put(URL + "/" + userId)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -239,7 +240,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
 
         final String userId = UUID.randomUUID().toString();
 
-        mockMvc.perform(put("/api/v1/users/" + userId)
+        mockMvc.perform(put(URL + "/" + userId)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -285,7 +286,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
 
         final String userId = UUID.randomUUID().toString();
 
-        mockMvc.perform(put("/api/v1/users/" + userId)
+        mockMvc.perform(put(URL + "/" + userId)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -301,7 +302,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     testWithoutIdInPath() throws Exception {
         final String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(put("/api/v1/users")
+        mockMvc.perform(put(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -315,7 +316,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithoutToken() throws Exception {
 
-        mockMvc.perform(put("/api/v1/users")
+        mockMvc.perform(put(URL)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
@@ -323,5 +324,19 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        // Test users endpoint
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

@@ -296,4 +296,17 @@ class GetAllUsersControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, expiredToken)
                         .contentType(MediaType.APPLICATION_JSON)));
     }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
 }

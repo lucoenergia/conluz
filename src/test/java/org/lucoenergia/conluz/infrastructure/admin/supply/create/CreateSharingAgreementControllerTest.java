@@ -153,4 +153,29 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = startDate.plusMonths(6);
+
+        String body = String.format("""
+                {
+                  "startDate": "%s",
+                  "endDate": "%s"
+                }
+                """, startDate, endDate);
+
+        // Test users endpoint
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
 }

@@ -2,10 +2,12 @@ package org.lucoenergia.conluz.infrastructure.shared.web.apidocs;
 
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.stereotype.Component;
@@ -65,11 +67,18 @@ import org.springframework.stereotype.Component;
                         name = "bearerToken",
                         scopes = {
                                 "ADMIN",
-                                "PARTNER",
-                                "OBSERVER"
+                                "PARTNER"
                         }
                 )
         }
+)
+@SecurityScheme(
+        name = "bearerToken",
+        type = SecuritySchemeType.HTTP,
+        scheme = "bearer",
+        bearerFormat = "JWT",
+        description = "JWT token authentication. Some endpoints will require roles ADMIN or PARTNER. Check the description of the endpoint for more details."
+
 )
 @Component
 public class ApiDefinition {

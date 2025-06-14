@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class CreatePlantControllerTest extends BaseControllerTest {
 
-    private final static String URL = "/api/v1/plants";
+    private static final String URL = "/api/v1/plants";
 
 
     @Autowired
@@ -331,5 +331,36 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        String plantCode = "PS-456798";
+        String supplyCode = "123456";
+
+        String body = String.format("""
+                        {
+                          "code": "%s",
+                          "name": "Plant one",
+                          "supplyCode": "%s",
+                          "address": "Fake Street 123",
+                          "description": "Plant number one",
+                          "totalPower": "60.00",
+                          "connectionDate": "2024-05-23",
+                          "inverterProvider": "HUAWEI"
+                        }
+                """, plantCode, supplyCode);
+
+        // Test users endpoint
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

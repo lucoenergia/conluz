@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.user.disable.DisableUserService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -13,6 +14,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +39,7 @@ public class DisableUserController {
                 This endpoint is designed to disable a user within the system by specifying the user's unique identifier in the endpoint path.
                 
                 This operation requires proper authentication, through an authentication token, to ensure secure access.
+                **Required Role: ADMIN**
                 
                 Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been disabled.
                 
@@ -45,7 +48,8 @@ public class DisableUserController {
                 In cases where the disablement encounters errors, the server returns an appropriate error status code along with a descriptive error message to guide clients in addressing and resolving the issue.
             """,
             tags = ApiTag.USERS,
-            operationId = "disableUser"
+            operationId = "disableUser",
+            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -57,6 +61,7 @@ public class DisableUserController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
+    @PreAuthorize("hasRole('ADMIN')")
     public void disableUser(@PathVariable("id") UUID userId) {
         service.disable(UserId.of(userId));
     }
