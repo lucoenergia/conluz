@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Update existing null names to use ID as name -->
+    <changeSet id="update_null_supply_names" author="Víctor Cañizares">
+        <sql>
+            UPDATE supplies
+            SET name = id::text
+            WHERE name IS NULL;
+        </sql>
+    </changeSet>
+
+    <!-- Make name column not nullable -->
+    <changeSet id="make_supply_name_not_null" author="Víctor Cañizares">
+        <addNotNullConstraint
+            tableName="supplies"
+            columnName="name"
+            columnDataType="VARCHAR(250)"/>
+    </changeSet>
+
+</databaseChangeLog>

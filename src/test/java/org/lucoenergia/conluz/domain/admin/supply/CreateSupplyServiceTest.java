@@ -84,4 +84,38 @@ class CreateSupplyServiceTest {
         // act & assert
         assertThrows(UserNotFoundException.class, () -> createSupplyService.create(supply, UserPersonalId.of("123")));
     }
+
+    @Test
+    void testCreateSupplyWhenNameIsNotProvidedThenAddressIsUsedAsName() {
+        // arrange
+        String address = "Test Address 123";
+        Supply supply = new Supply.Builder()
+                .withId(UUID.randomUUID())
+                .withCode("code")
+                .withAddress(address)
+                .withPartitionCoefficient(1.0F)
+                .withEnabled(Boolean.TRUE)
+                .build();
+        UserId userId = UserId.of(UUID.randomUUID());
+
+        Supply expectedSupply = new Supply.Builder()
+                .withId(supply.getId())
+                .withCode(supply.getCode())
+                .withAddress(address)
+                .withName(address)
+                .withPartitionCoefficient(supply.getPartitionCoefficient())
+                .withEnabled(supply.getEnabled())
+                .build();
+
+        when(supplyRepository.create(any(Supply.class), any(UserId.class))).thenReturn(expectedSupply);
+
+        // act
+        Supply actualSupply = createSupplyService.create(supply, userId);
+
+        // assert
+        assertNotNull(actualSupply);
+        assertEquals(address, actualSupply.getName());
+    }
+
+
 }

@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.admin.supply;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 
@@ -18,10 +19,12 @@ public class Supply {
     private String code;
     @NotNull
     private User user;
+    @NotBlank
     private String name;
     @NotBlank
     private String address;
     @NotNull
+    @PositiveOrZero
     private Float partitionCoefficient;
     @NotNull
     private Boolean enabled;

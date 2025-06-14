@@ -60,6 +60,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 .withAddress(RandomStringUtils.random(20, true, true))
                 .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(true)
+                .withName(RandomStringUtils.random(20, true, true))
                 .withUser(user)
                 .build();
         createSupplyRepository.create(supply, UserId.of(user.getId()));
