@@ -15,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
+
 @ExtendWith(MockitoExtension.class)
 class JwtAuthRepositoryTest {
 
@@ -53,6 +55,19 @@ class JwtAuthRepositoryTest {
     }
 
     @Test
+    void testGetJtiFromToken() {
+        User user = UserMother.randomUser();
+
+        mockJwtConfig();
+
+        Token token = repository.getToken(user);
+
+        Optional<String> jti = repository.getJtiFromToken(token);
+        Assertions.assertNotNull(jti);
+        Assertions.assertTrue(jti.isPresent());
+    }
+
+    @Test
     void testGetUserIdByInvalidToken() {
         String invalidToken = "invalid-token";
 
@@ -75,6 +90,8 @@ class JwtAuthRepositoryTest {
         Assertions.assertThrows(SecretKeyNotFoundException.class,
                 () -> repository.getUserIdFromToken(Token.of(invalidToken)));
     }
+    
+    
 
     private void mockJwtConfig() {
         // Mock expiration time and JWT secret key

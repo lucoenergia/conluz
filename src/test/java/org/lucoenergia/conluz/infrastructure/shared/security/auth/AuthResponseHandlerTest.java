@@ -12,10 +12,12 @@ import static org.mockito.Mockito.verify;
 class AuthResponseHandlerTest {
 
     private AuthResponseHandler authResponseHandler;
+    private JwtConfiguration jwtConfiguration;
 
     @BeforeEach
     void setup() {
-        authResponseHandler = new AuthResponseHandler();
+        jwtConfiguration = Mockito.mock(JwtConfiguration.class);
+        authResponseHandler = new AuthResponseHandler(jwtConfiguration);
     }
 
     @Test
@@ -23,6 +25,9 @@ class AuthResponseHandlerTest {
         // Given
         HttpServletResponse mockResponse = Mockito.mock(HttpServletResponse.class);
         Token token = Token.of("mockToken");
+        
+        int expirationTime = 30;
+        Mockito.when(jwtConfiguration.getExpirationTime()).thenReturn(expirationTime);
 
         // When
         authResponseHandler.setAccessCookie(mockResponse, token);
@@ -32,6 +37,26 @@ class AuthResponseHandlerTest {
         expectedCookie.setSecure(true);
         expectedCookie.setPath("/");
         expectedCookie.setAttribute("SameSite", "Lax");
+        expectedCookie.setMaxAge(expirationTime);
+
+        verify(mockResponse).addCookie(expectedCookie);
+    }
+
+    @Test
+    void testUnsetAccessCookie() {
+        // Given
+        HttpServletResponse mockResponse = Mockito.mock(HttpServletResponse.class);
+
+        // When
+        authResponseHandler.unsetAccessCookie(mockResponse);
+
+        // Then
+        Cookie expectedCookie = new Cookie(AuthParameter.ACCESS_TOKEN.getCookieName(), "");
+        expectedCookie.setHttpOnly(true);
+        expectedCookie.setSecure(true);
+        expectedCookie.setPath("/");
+        expectedCookie.setAttribute("SameSite", "Lax");
+        expectedCookie.setMaxAge(0);
 
         verify(mockResponse).addCookie(expectedCookie);
     }

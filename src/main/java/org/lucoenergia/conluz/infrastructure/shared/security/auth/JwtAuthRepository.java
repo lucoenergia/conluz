@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -36,10 +37,12 @@ public class JwtAuthRepository implements AuthRepository {
     public Token getToken(User user) {
 
         Instant now = Instant.now();
+        String jti = UUID.randomUUID().toString();
 
         String token = Jwts.builder()
                 .addClaims(getCustomClaims(user))
                 .setSubject(user.getId().toString())
+                .setId(jti)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plus(getExpirationDuration())))
                 .signWith(getKey(), SignatureAlgorithm.HS256)
@@ -50,8 +53,18 @@ public class JwtAuthRepository implements AuthRepository {
 
     private Map<String, Object> getCustomClaims(User user) {
         Map<String, Object> claims = new HashedMap<>();
-        claims.put("role", user.getRole().name());
+        claims.put(CUSTOM_CLAIM_ROLE, user.getRole().name());
         return claims;
+    }
+
+    @Override
+    public Optional<String> getJtiFromToken(Token token) {
+        try {
+            return Optional.ofNullable(getClaim(token, Claims::getId));
+        } catch (Exception e) {
+            LOGGER.error("Error extracting JTI from token", e);
+            return Optional.empty();
+        }
     }
 
     @Override

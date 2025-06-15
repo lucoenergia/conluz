@@ -427,26 +427,36 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testWithWrongToken() {
+    void testWithWrongToken() throws Exception {
 
         final String wrongToken = JwtAuthenticationFilter.AUTHORIZATION_HEADER_PREFIX +
                 "wrong";
 
-        Assertions.assertThrows(InvalidTokenException.class,
-                () -> mockMvc.perform(get(URL)
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, wrongToken)
-                        .contentType(MediaType.APPLICATION_JSON)));
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
     @Test
-    void testWithExpiredToken() {
+    void testWithExpiredToken() throws Exception {
 
         final String expiredToken = JwtAuthenticationFilter.AUTHORIZATION_HEADER_PREFIX +
                 "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.jO3pgdDj4mg9TnRzL7f8RUL1ytJS7057jAg6zaCcwn0";
 
-        Assertions.assertThrows(InvalidTokenException.class,
-                () -> mockMvc.perform(get(URL)
+        mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, expiredToken)
-                        .contentType(MediaType.APPLICATION_JSON)));
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 }
