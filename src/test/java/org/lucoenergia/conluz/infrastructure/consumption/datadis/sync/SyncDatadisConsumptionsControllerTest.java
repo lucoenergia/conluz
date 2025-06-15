@@ -3,14 +3,13 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,7 +19,7 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
 
     private static final String URL = "/api/v1/consumption/datadis/sync";
 
-    @MockBean
+    @MockitoBean
     private DatadisConsumptionSyncService datadisConsumptionSyncService;
 
     @Test
