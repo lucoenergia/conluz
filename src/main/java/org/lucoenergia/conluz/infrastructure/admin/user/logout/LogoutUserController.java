@@ -30,15 +30,18 @@ public class LogoutUserController {
     @Operation(
             summary = "User de-authentication",
             description = """
-                    This endpoint is dedicated to user authentication, requiring clients to provide a valid username and password in the request body.
+                    This endpoint handles user logout operations, invalidating the current user session.
                     
-                    Upon successful authentication, the server generates and returns an authentication token, utilizing JSON Web Tokens (JWT).
-                    
-                    This token serves as a secure means for subsequent authorized access to protected resources within the system.
-                    
-                    The server responds with an HTTP status code of 200, along with the generated token.
-                    
-                    In case of authentication failure or invalid credentials, the server issues an appropriate error status code, accompanied by a descriptive error message.
+                     Upon successful logout, the server invalidates the existing authentication token (JWT)
+                     and removes the associated authentication cookie from the client.
+    
+                     This ensures that subsequent requests can no longer access protected resources
+                     using the invalidated credentials.
+    
+                     The server responds with an HTTP status code of 200 to indicate successful logout.
+    
+                     In case of any errors during the logout process, the server returns an appropriate
+                     error status code along with a descriptive error message.
                     """,
             tags = ApiTag.AUTHENTICATION,
             operationId = "logout"
