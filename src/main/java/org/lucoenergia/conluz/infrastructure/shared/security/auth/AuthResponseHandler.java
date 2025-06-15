@@ -5,16 +5,18 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.TimeUnit;
-
 @Component
 public class AuthResponseHandler {
 
-    private static final int ACCESS_TOKEN_EXPIRATION_IN_MINUTES = 30;
+    private final JwtConfiguration jwtConfiguration;
+
+    public AuthResponseHandler(JwtConfiguration jwtConfiguration) {
+        this.jwtConfiguration = jwtConfiguration;
+    }
 
     public void setAccessCookie(HttpServletResponse response, Token accessToken) {
         Cookie authCookie = createAccessCookie(accessToken.getToken());
-        authCookie.setMaxAge((int) TimeUnit.MINUTES.toSeconds(ACCESS_TOKEN_EXPIRATION_IN_MINUTES)); // Set explicit expiration
+        authCookie.setMaxAge(jwtConfiguration.getExpirationTime()); // Set explicit expiration
         // Add cookie to the response
         response.addCookie(authCookie);
     }
