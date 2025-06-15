@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.shared.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationExceptionFilter;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.ConluzAccessDeniedHandler;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.ConluzAuthenticationEntryPoint;
@@ -34,12 +35,14 @@ public class WebSecurityConfig {
     private List<String> allowedOrigins;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationExceptionFilter jwtAuthenticationExceptionFilter;
     private final AuthenticationProvider authenticationProvider;
     private final ObjectMapper objectMapper;
 
-    public WebSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+    public WebSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, JwtAuthenticationExceptionFilter jwtAuthenticationExceptionFilter,
                              AuthenticationProvider authenticationProvider, ObjectMapper objectMapper) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.jwtAuthenticationExceptionFilter = jwtAuthenticationExceptionFilter;
         this.authenticationProvider = authenticationProvider;
         this.objectMapper = objectMapper;
     }
@@ -64,6 +67,7 @@ public class WebSecurityConfig {
                 )
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationExceptionFilter, JwtAuthenticationFilter.class)
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> {
                             httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(authenticationEntryPoint());
                             httpSecurityExceptionHandlingConfigurer.accessDeniedHandler(accessDeniedHandler());
