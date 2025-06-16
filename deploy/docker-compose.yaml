@@ -73,7 +73,6 @@ services:
       - "3110:3110"
     volumes:
       - ./promtail/config:/etc/promtail
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock  # Required to let promtail access Docker API
     command: -config.file=/etc/promtail/local-config.yaml
     networks:
