@@ -3,23 +3,20 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
+import org.lucoenergia.conluz.domain.admin.user.auth.BlacklistedTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
-import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,17 +27,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final AuthRepository authRepository;
     private final UserDetailsService userDetailsService;
+    private final JwtAccessTokenHandler jwtAccessTokenHandler;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-    public JwtAuthenticationFilter(AuthRepository authRepository, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(AuthRepository authRepository, UserDetailsService userDetailsService,
+                                   JwtAccessTokenHandler jwtAccessTokenHandler,
+                                   BlacklistedTokenRepository blacklistedTokenRepository) {
         this.authRepository = authRepository;
         this.userDetailsService = userDetailsService;
+        this.jwtAccessTokenHandler = jwtAccessTokenHandler;
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        final Optional<String> tokenString = getTokenFromRequest(request);
+        final Optional<String> tokenString = jwtAccessTokenHandler.getTokenFromRequest(request);
         final UUID userId;
 
         // If no token is provided, we should continue the filter chain
@@ -50,6 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         Token token = Token.of(tokenString.get());
+
+        // Check if token is blacklisted
+        Optional<String> jti = authRepository.getJtiFromToken(token);
+        if (jti.isPresent() && blacklistedTokenRepository.existsByJti(jti.get())) {
+            throw new InvalidTokenException("Token has been revoked");
+        }
+
         userId = authRepository.getUserIdFromToken(token);
 
         if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -71,32 +81,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private Optional<String> getTokenFromRequest(HttpServletRequest request) {
-        Optional<String> result = getTokenFromHeader(request);
-        return result
-                .or(() -> getTokenFromCookie(request));
-    }
-
-    private Optional<String> getTokenFromHeader(HttpServletRequest request) {
-        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-
-        if (StringUtils.hasText(authHeader) && authHeader.startsWith(AUTHORIZATION_HEADER_PREFIX)) {
-            return Optional.of(authHeader.substring(AUTHORIZATION_HEADER_PREFIX.length()));
-        }
-        return Optional.empty();
-    }
-
-    private Optional<String> getTokenFromCookie(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            return Optional.empty();
-        }
-
-        return Arrays.stream(request.getCookies())
-                .filter(cookie -> AuthParameter.ACCESS_TOKEN.getCookieName().equalsIgnoreCase(cookie.getName()))
-                .map(Cookie::getValue)
-                .findFirst();
     }
 }

@@ -1,0 +1,21 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Create the blacklisted_token table -->
+    <changeSet author="Víctor Cañizares" id="create_blacklisted_token_table">
+        <createTable tableName="blacklisted_token">
+            <column name="jti" type="VARCHAR(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="expiration" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revoked_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
