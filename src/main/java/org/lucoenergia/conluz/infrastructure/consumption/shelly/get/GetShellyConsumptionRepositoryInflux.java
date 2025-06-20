@@ -13,9 +13,12 @@ import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantCon
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyMqttPowerMessagePoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Array;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +27,8 @@ import java.util.Optional;
 @Repository
 @Qualifier("getShellyConsumptionRepositoryInflux")
 public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptionRepository {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GetShellyConsumptionRepositoryInflux.class);
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
     private final DateConverter dateConverter;
@@ -37,8 +42,14 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
     @Override
     public List<ShellyInstantConsumption> getHourlyConsumptionsByRangeOfDatesAndSupply(Supply supply, OffsetDateTime startDate,
                                                                                        OffsetDateTime endDate) {
+
+        List<ShellyInstantConsumption> result = new ArrayList<>();
+
         String startDateAsString = dateConverter.convertToString(startDate);
         String endDateAsString = dateConverter.convertToString(endDate);
+
+        LOGGER.info("Getting hourly consumptions from {} to {} for the supply {}", startDateAsString, endDateAsString,
+                supply.getShellyId());
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
@@ -52,11 +63,21 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
                     endDateAsString));
 
             QueryResult queryResult = connection.query(query);
+            if (queryResult.hasError()) {
+                LOGGER.error("Query to get hourly consumptions by range of dates and supply returned an error: {}", queryResult.getError());
+            } else if (queryResult.getResults().isEmpty()) {
+                LOGGER.debug("Query to get hourly consumptions by range of dates and supply returned an empty result.");
+            } else {
+                LOGGER.debug("Query to get hourly consumptions by range of dates and supply resulted in: {}", queryResult.getResults());
+            }
 
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
             List<ShellyInstantConsumptionPoint> consumptionPoints = resultMapper.toPOJO(queryResult, ShellyInstantConsumptionPoint.class);
-            return mapToInstantConsumption(consumptionPoints);
+            result = mapToInstantConsumption(consumptionPoints);
+        } catch (Exception e) {
+            LOGGER.error("Unable to get hourly consumptions by range of dates and supply", e);
         }
+        return result;
     }
 
     @Override
