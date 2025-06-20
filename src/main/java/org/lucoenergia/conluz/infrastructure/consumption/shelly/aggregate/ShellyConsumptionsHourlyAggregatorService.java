@@ -71,12 +71,19 @@ public class ShellyConsumptionsHourlyAggregatorService {
                             endDateAsString));
 
                     QueryResult queryResult = connection.query(query);
+                    if (queryResult.hasError()) {
+                        LOGGER.error("Query to get aggregated Shelly consumption results from supply {} returned an error: {}", supply.getShellyId(), queryResult.getError());
+                    } else if (queryResult.getResults().isEmpty()) {
+                        LOGGER.debug("Aggregated Shelly consumption results from supply {} are empty.", supply.getShellyId());
+                    } else {
+                        LOGGER.debug("Aggregated Shelly consumption results from supply {} are {}", supply.getShellyId(), queryResult.getResults());
+                    }
                     InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
                     List<ShellyAggregateConsumptionPoint> consumptionPoints = resultMapper.toPOJO(queryResult, ShellyAggregateConsumptionPoint.class);
 
                     persistShellyConsumptionRepository.persistConsumptions(mapToConsumption(consumptionPoints, supply));
                 } catch (Exception e) {
-                    LOGGER.error(String.format("Unable to aggregate Shelly instant consumptions for supply with ID %s", supply.getId()), e);
+                    LOGGER.error("Unable to aggregate Shelly instant consumptions for supply with ID {}", supply.getId(), e);
                 }
             }
         }

@@ -57,9 +57,9 @@ class ShellyConsumptionsHourlyAggregatorServiceTest extends BaseIntegrationTest 
         User user = UserMother.randomUser();
         user = createUserRepository.create(user);
 
-        final Supply supplyOne = createSupplyRepository.create(SupplyMother.random(user)
+        createSupplyRepository.create(SupplyMother.random(user)
                 .withShellyMqttPrefix(SUPPLY_A_MQTT_PREFIX).build(), UserId.of(user.getId()));
-        final Supply supplyTwo = createSupplyRepository.create(SupplyMother.random(user)
+        createSupplyRepository.create(SupplyMother.random(user)
                 .withShellyMqttPrefix(SUPPLY_B_MQTT_PREFIX).build(), UserId.of(user.getId()));
 
         //When
