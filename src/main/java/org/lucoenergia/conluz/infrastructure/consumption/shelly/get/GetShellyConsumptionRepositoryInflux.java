@@ -82,34 +82,71 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
 
     @Override
     public List<ShellyInstantConsumption> getAllInstantConsumptions() {
+
+        List<ShellyInstantConsumption> result = new ArrayList<>();
+
+        LOGGER.info("Getting all instant consumptions");
+
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             String query = "SELECT time, " + ShellyInstantConsumptionPoint.PREFIX + ", " + ShellyInstantConsumptionPoint.CHANNEL + ", " +
                     ShellyInstantConsumptionPoint.CONSUMPTION_KW + " FROM " + ShellyInstantConsumptionPoint.MEASUREMENT;
+
             QueryResult queryResult = connection.query(new Query(query));
+            if (queryResult.hasError()) {
+                LOGGER.error("Query to get all instant consumptions returned an error: {}", queryResult.getError());
+            } else if (queryResult.getResults().isEmpty()) {
+                LOGGER.debug("Query to get all instant consumptions returned an empty result.");
+            } else {
+                LOGGER.debug("Query to get all instant consumptions resulted in: {}", queryResult.getResults());
+            }
 
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
             List<ShellyInstantConsumptionPoint> consumptionPoints = resultMapper.toPOJO(queryResult, ShellyInstantConsumptionPoint.class);
             return mapToInstantConsumption(consumptionPoints);
+        } catch (Exception e) {
+            LOGGER.error("Unable to get all instant consumptions", e);
         }
+        return result;
     }
 
     @Override
     public List<ShellyConsumption> getAllConsumptions() {
+
+        List<ShellyConsumption> result = new ArrayList<>();
+
+        LOGGER.info("Getting all consumptions");
+
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             String query = "SELECT time, " + ShellyConsumptionPoint.PREFIX + ", " +
                     ShellyConsumptionPoint.CONSUMPTION_KWH + " FROM " + ShellyConsumptionPoint.MEASUREMENT;
+
             QueryResult queryResult = connection.query(new Query(query));
+            if (queryResult.hasError()) {
+                LOGGER.error("Query to get all consumptions returned an error: {}", queryResult.getError());
+            } else if (queryResult.getResults().isEmpty()) {
+                LOGGER.debug("Query to get all consumptions returned an empty result.");
+            } else {
+                LOGGER.debug("Query to get all consumptions resulted in: {}", queryResult.getResults());
+            }
 
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
             List<ShellyConsumptionPoint> consumptionPoints = resultMapper.toPOJO(queryResult, ShellyConsumptionPoint.class);
-            return mapToConsumption(consumptionPoints);
+            result = mapToConsumption(consumptionPoints);
+        } catch (Exception e) {
+            LOGGER.error("Unable to get all consumptions", e);
         }
+        return result;
     }
 
     @Override
     public List<ShellyInstantConsumption> getShellyMqttPowerMessagesByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
+
+        List<ShellyInstantConsumption> result = new ArrayList<>();
+
         String startDateAsString = dateConverter.convertToString(startDate);
         String endDateAsString = dateConverter.convertToString(endDate);
+
+        LOGGER.info("Getting MQTT power messages from {} to {}.", startDateAsString, endDateAsString);
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
@@ -117,14 +154,25 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
             String query = String.format("SELECT time, %s, %s FROM \"%s\" WHERE time >= '%s' AND time <= '%s'",
                     ShellyMqttPowerMessagePoint.TOPIC, ShellyMqttPowerMessagePoint.VALUE,
                     ShellyMqttPowerMessagePoint.MEASUREMENT, startDateAsString, endDateAsString);
+
             QueryResult queryResult = connection.query(new Query(query));
+            if (queryResult.hasError()) {
+                LOGGER.error("Query to get MQTT power messages by range of dates returned an error: {}", queryResult.getError());
+            } else if (queryResult.getResults().isEmpty()) {
+                LOGGER.debug("Query to get MQTT power messages by range of dates returned an empty result.");
+            } else {
+                LOGGER.debug("Query to get MQTT power messages by range of dates resulted in: {}", queryResult.getResults());
+            }
 
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
             List<ShellyMqttPowerMessagePoint> consumptionPoints =  resultMapper.toPOJO(queryResult, ShellyMqttPowerMessagePoint.class);
 
             // Parse results into instant consumptions
-            return mapShellyMqttPowerMessagesToInstantConsumption(consumptionPoints);
+            result = mapShellyMqttPowerMessagesToInstantConsumption(consumptionPoints);
+        } catch (Exception e) {
+            LOGGER.error("Unable to get MQTT power messages by range of dates", e);
         }
+        return result;
     }
 
     private List<ShellyInstantConsumption> mapToInstantConsumption(List<ShellyInstantConsumptionPoint> consumptionPoints) {
