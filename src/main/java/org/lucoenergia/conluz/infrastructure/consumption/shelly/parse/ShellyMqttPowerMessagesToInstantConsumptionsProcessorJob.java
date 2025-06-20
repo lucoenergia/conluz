@@ -1,13 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.consumption.shelly.parse;
 
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
-import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 
 @Component
 public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements Job {
@@ -15,22 +16,26 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements
     private static final Logger LOGGER = LoggerFactory.getLogger(ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob.class);
 
     private final ShellyMqttPowerMessagesToInstantConsumptionsProcessor processor;
-    private final TimeConfiguration timeConfiguration;
 
-    public ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob(ShellyMqttPowerMessagesToInstantConsumptionsProcessor processor,
-                                                                    TimeConfiguration timeConfiguration) {
+    public ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob(ShellyMqttPowerMessagesToInstantConsumptionsProcessor processor) {
         this.processor = processor;
-        this.timeConfiguration = timeConfiguration;
     }
 
     /**
-     * Aggregate instant Shelly consumptions by hour every hour.
-     * The first field is for seconds. '*\/30' here means that runs every 10 seconds.
-     * The second field is for the minute field. A '*' means "every minute".
-     * The third field is for the hour. A '*' means "every hour".
-     * The fourth field is for the day of the month. A '*' means "every day".
-     * The fifth field is for the month. A '*' means "every month".
-     * The sixth and final field is for the day of the week. A '*' means "every day of the week".
+     * Scheduled job that processes Shelly MQTT power messages and converts them into instant consumption data.
+     *
+     * This method is executed every 30 seconds as specified by the cron expression. It calculates
+     * a time range of the last 5 minutes and delegates the processing of messages within this
+     * range to the associated processor.
+     *
+     * The processing workflow involves fetching power messages from the data repository within the
+     * specified time range and persisting the converted instant consumption data.
+     *
+     * Behavior:
+     * - Logs the start and end of the processing task for debugging purposes.
+     * - Retrieves messages for the time range using the provided processor.
+     * - Executes retry logic indirectly through the frequent job executions, ensuring multiple
+     *   opportunities to process missed messages.
      */
     @Override
     @Scheduled(cron = "*/30 * * * * *")
@@ -39,7 +44,7 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements
 
         // We perform the process every 30 seconds between now and 5 minutes before. This way, could have at least 10 retries
         // just in case the process does not work the first time.
-        OffsetDateTime now = timeConfiguration.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MINUTES);
         OffsetDateTime periodBefore = now.minusMinutes(5);
 
         processor.process(periodBefore, now);
