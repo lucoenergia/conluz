@@ -13,11 +13,6 @@ scrape_configs:
         refresh_interval: 5s
 
     relabel_configs:
-      # Filter only by container "conluz"
-      - source_labels: [ __meta_docker_container_name ]
-        regex: "/conluz"
-        action: keep
-
       # Assign a mandatory label: container_name
       - source_labels: [ __meta_docker_container_name ]
         regex: "/(.*)"
