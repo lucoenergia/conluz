@@ -4,12 +4,13 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.domain.production.huawei.persist.PersistHuaweiProductionRepository;
-import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -18,13 +19,12 @@ import java.util.concurrent.TimeUnit;
 @Repository
 public class PersistHuaweiProductionRepositoryInflux implements PersistHuaweiProductionRepository {
 
-    private final InfluxDbConnectionManager influxDbConnectionManager;
-    private final DateConverter dateConverter;
+    private static final Logger LOGGER = LoggerFactory.getLogger(PersistHuaweiProductionRepositoryInflux.class);
 
-    public PersistHuaweiProductionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
-                                                   DateConverter dateConverter) {
+    private final InfluxDbConnectionManager influxDbConnectionManager;
+
+    public PersistHuaweiProductionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager) {
         this.influxDbConnectionManager = influxDbConnectionManager;
-        this.dateConverter = dateConverter;
     }
 
     @Override
@@ -36,7 +36,7 @@ public class PersistHuaweiProductionRepositoryInflux implements PersistHuaweiPro
 
             for (RealTimeProduction production : productions) {
                 Point point = Point.measurement(HuaweiConfig.HUAWEI_REAL_TIME_PRODUCTION_MEASUREMENT)
-                        .time(dateConverter.convertOffsetDateTimeToMilliseconds(production.getTime()), TimeUnit.MILLISECONDS)
+                        .time(production.getTime().toEpochMilli(), TimeUnit.MILLISECONDS)
                         .tag("station_code", production.getStationCode())
                         .addField("real_health_state", production.getRealHealthState())
                         .addField("day_power", production.getDayPower())
@@ -49,6 +49,8 @@ public class PersistHuaweiProductionRepositoryInflux implements PersistHuaweiPro
                 batchPoints.point(point);
             }
             connection.write(batchPoints);
+        } catch (Exception e) {
+            LOGGER.error("Unable to persist Huawei real time production.", e);
         }
     }
 
@@ -60,7 +62,7 @@ public class PersistHuaweiProductionRepositoryInflux implements PersistHuaweiPro
 
             for (HourlyProduction production : productions) {
                 Point point = Point.measurement(HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT)
-                        .time(dateConverter.convertOffsetDateTimeToMilliseconds(production.getTime()), TimeUnit.MILLISECONDS)
+                        .time(production.getTime().toEpochMilli(), TimeUnit.MILLISECONDS)
                         .tag("station_code", production.getStationCode())
                         .addField(ProductionPoint.INVERTER_POWER, production.getInverterPower())
                         .addField("ongrid_power", production.getOngridPower())
@@ -72,6 +74,8 @@ public class PersistHuaweiProductionRepositoryInflux implements PersistHuaweiPro
                 batchPoints.point(point);
             }
             connection.write(batchPoints);
+        } catch (Exception e) {
+            LOGGER.error("Unable to persist Huawei hourly production.", e);
         }
     }
 }

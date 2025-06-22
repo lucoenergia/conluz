@@ -107,6 +107,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         }
 
         LOGGER.info("Supply processed.");
+        LOGGER.debug("Results. {}", result);
 
         return result;
     }

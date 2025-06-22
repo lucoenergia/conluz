@@ -1,10 +1,10 @@
 package org.lucoenergia.conluz.domain.production.huawei;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 public class HourlyProduction {
 
-    private OffsetDateTime time;
+    private Instant time;
     private String stationCode;
     /**
      * Global irradiation in kWh/m²
@@ -28,7 +28,7 @@ public class HourlyProduction {
      */
     private Double powerProfit;
 
-    public OffsetDateTime getTime() {
+    public Instant getTime() {
         return time;
     }
 
@@ -58,7 +58,7 @@ public class HourlyProduction {
 
 
     public static class Builder {
-        private OffsetDateTime time;
+        private Instant time;
         private Double radiationIntensity;
         private Double theoryPower;
         private Double inverterPower;
@@ -66,7 +66,7 @@ public class HourlyProduction {
         private Double powerProfit;
         private String stationCode;
 
-        public Builder withTime(OffsetDateTime time) {
+        public Builder withTime(Instant time) {
             this.time = time;
             return this;
         }

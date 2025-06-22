@@ -74,4 +74,18 @@ public class DatadisConsumption {
     public void setSelfConsumptionEnergyKWh(Float selfConsumptionEnergyKWh) {
         this.selfConsumptionEnergyKWh = selfConsumptionEnergyKWh;
     }
+
+    @Override
+    public String toString() {
+        return "DatadisConsumption{" +
+                "cups='" + cups + '\'' +
+                ", date='" + date + '\'' +
+                ", time='" + time + '\'' +
+                ", consumptionKWh=" + consumptionKWh +
+                ", obtainMethod='" + obtainMethod + '\'' +
+                ", surplusEnergyKWh=" + surplusEnergyKWh +
+                ", generationEnergyKWh=" + generationEnergyKWh +
+                ", selfConsumptionEnergyKWh=" + selfConsumptionEnergyKWh +
+                '}';
+    }
 }

@@ -46,7 +46,11 @@ public class DateConverter {
     }
 
     public OffsetDateTime convertMillisecondsToOffsetDateTime(long milliseconds) {
-        return Instant.ofEpochMilli(milliseconds).atZone(timeConfiguration.getZoneId()).toOffsetDateTime();
+        return convertMillisecondsToInstant(milliseconds).atZone(ZoneOffset.UTC).toOffsetDateTime();
+    }
+
+    public Instant convertMillisecondsToInstant(long milliseconds) {
+        return Instant.ofEpochMilli(milliseconds);
     }
 
     public OffsetDateTime now() {
@@ -54,13 +58,13 @@ public class DateConverter {
     }
 
     public String convertToString(OffsetDateTime time) {
-
         // Convert to UTC by extracting the Instant
-        Instant instant = time.toInstant();
+        return convertToString(time.toInstant());
+    }
 
+    public String convertToString(Instant instant) {
         // Define a DateTimeFormatter for InfluxDB timestamp format
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'");
-
         // Format the Instant to the desired InfluxDB timestamp format
         return instant.atZone(ZoneOffset.UTC).format(formatter);
     }

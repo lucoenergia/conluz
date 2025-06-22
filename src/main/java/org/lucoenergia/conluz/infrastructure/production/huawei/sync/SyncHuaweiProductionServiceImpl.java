@@ -46,19 +46,20 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
      * It retrieves all energy stations with Huawei inverters, gets the real-time production data
      * for each station, and persists the production data.
      */
+    @Override
     public void syncRealTimeProduction() {
 
         // Get Huawei configuration
         Optional<HuaweiConfig> huaweiConfig = getHuaweiConfigRepository.getHuaweiConfig();
         if (huaweiConfig.isEmpty()) {
-            LOGGER.info("No Huawei config found");
+            LOGGER.info("No Huawei config found.");
             return;
         }
 
         // Get all energy stations with Huawei inverter
         List<Plant> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
         if (huaweiStations.isEmpty()) {
-            LOGGER.info("No Huawei stations found");
+            LOGGER.info("No Huawei stations found.");
             return;
         }
 
@@ -69,19 +70,20 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
         persistHuaweiProductionRepository.persistRealTimeProduction(productions);
     }
 
+    @Override
     public void syncHourlyProduction() {
 
         // Get Huawei configuration
         Optional<HuaweiConfig> huaweiConfig = getHuaweiConfigRepository.getHuaweiConfig();
         if (huaweiConfig.isEmpty()) {
-            LOGGER.info("No Huawei config found");
+            LOGGER.info("No Huawei config found.");
             return;
         }
 
         // Get all energy stations with Huawei inverter
         List<Plant> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
         if (huaweiStations.isEmpty()) {
-            LOGGER.info("No Huawei stations found");
+            LOGGER.info("No Huawei stations found.");
             return;
         }
 

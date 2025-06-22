@@ -39,7 +39,7 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
     private GetHuaweiHourlyProductionRepositoryRest repositoryRest;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
         when(timeConfiguration.getZoneId()).thenReturn(zoneId);
         when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
@@ -110,7 +110,7 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
                    "failCode":0,
                    "params":{
                       "stationCodes":"BA4372D08E014822AB065017416F254C,5D02E8B40AD342159AC8D8A2BCD4FAB5",
-                      "currentTime":1503046597854
+                      "currentTime":1750627686362
                    },
                    "message":null
                 }
@@ -140,7 +140,7 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
         assertEquals(3, realTimeProductions.size());
 
         assertEquals("5D02E8B40AD342159AC8D8A2BCD4FAB5", realTimeProductions.get(0).getStationCode());
-        assertEquals(OffsetDateTime.ofInstant(Instant.ofEpochMilli(1501862400000L), zoneId), realTimeProductions.get(0).getTime());
+        assertEquals(Instant.ofEpochMilli(1501862400000L), realTimeProductions.get(0).getTime());
         assertEquals(0, realTimeProductions.get(0).getInverterPower());
         assertEquals(0.0, realTimeProductions.get(0).getOngridPower());
         assertEquals(0, realTimeProductions.get(0).getPowerProfit());
@@ -148,7 +148,7 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
         assertEquals(0.0, realTimeProductions.get(0).getTheoryPower());
 
         assertEquals("5D02E8B40AD342159AC8D8A2BCD4FAB5", realTimeProductions.get(1).getStationCode());
-        assertEquals(OffsetDateTime.ofInstant(Instant.ofEpochMilli(1501866000000L), zoneId), realTimeProductions.get(1).getTime());
+        assertEquals(Instant.ofEpochMilli(1501866000000L), realTimeProductions.get(1).getTime());
         assertEquals(10, realTimeProductions.get(1).getInverterPower());
         assertEquals(0.0, realTimeProductions.get(1).getOngridPower());
         assertEquals(5, realTimeProductions.get(1).getPowerProfit());
@@ -156,7 +156,7 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
         assertEquals(0.0, realTimeProductions.get(1).getTheoryPower());
 
         assertEquals("BA4372D08E014822AB065017416F254C", realTimeProductions.get(2).getStationCode());
-        assertEquals(OffsetDateTime.ofInstant(Instant.ofEpochMilli(1501873200000L), zoneId), realTimeProductions.get(2).getTime());
+        assertEquals(Instant.ofEpochMilli(1501873200000L), realTimeProductions.get(2).getTime());
         assertEquals(10, realTimeProductions.get(2).getInverterPower());
         assertEquals(20, realTimeProductions.get(2).getOngridPower());
         assertEquals(5, realTimeProductions.get(2).getPowerProfit());

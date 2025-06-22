@@ -57,7 +57,7 @@ public class GetHuaweiHourlyProductionRepositoryRest {
         List<HourlyProduction> result = new ArrayList<>();
 
         if (stations == null || stations.isEmpty()) {
-            LOGGER.debug("No Huawei stations provided");
+            LOGGER.debug("No Huawei stations provided.");
             return result;
         }
 
@@ -108,7 +108,7 @@ public class GetHuaweiHourlyProductionRepositoryRest {
                         response.body() != null ? response.body().string() : response.message());
             }
         } catch (IOException e) {
-            LOGGER.error(String.format("Unable to get hourly production from stations %s", stations), e);
+            LOGGER.error("Unable to get hourly production from stations {}", stations, e);
         }
 
         LOGGER.info("Stations processed.");
@@ -122,25 +122,27 @@ public class GetHuaweiHourlyProductionRepositoryRest {
 
         List<HourlyProduction> dataList = new ArrayList<>();
 
-        if (dataNode.isArray()) {
-            for (JsonNode node : dataNode) {
+        if (!dataNode.isArray()) {
+            return dataList;
+        }
 
-                JsonNode dataItemMap = node.get("dataItemMap");
+        for (JsonNode node : dataNode) {
 
-                long currentTime = node.get("collectTime").asLong();
+            JsonNode dataItemMap = node.get("dataItemMap");
 
-                HourlyProduction item = new HourlyProduction.Builder()
-                        .withTime(dateConverter.convertMillisecondsToOffsetDateTime(currentTime))
-                        .withStationCode(node.get("stationCode").asText())
-                        .withInverterPower(dataItemMap.get(ProductionPoint.INVERTER_POWER) != null ? dataItemMap.get(ProductionPoint.INVERTER_POWER).asDouble() : null)
-                        .withOngridPower(dataItemMap.get("ongrid_power") != null ? dataItemMap.get("ongrid_power").asDouble() : null)
-                        .withPowerProfit(dataItemMap.get("power_profit") != null ? dataItemMap.get("power_profit").asDouble() : null)
-                        .withTheoryPower(dataItemMap.get("theory_power") != null ? dataItemMap.get("theory_power").asDouble() : null)
-                        .withRadiationIntensity(dataItemMap.get("radiation_intensity") != null ? dataItemMap.get("radiation_intensity").asDouble() : null)
-                        .build();
+            long currentTime = node.get(PARAM_COLLECT_TIME).asLong();
 
-                dataList.add(item);
-            }
+            HourlyProduction item = new HourlyProduction.Builder()
+                    .withTime(dateConverter.convertMillisecondsToInstant(currentTime))
+                    .withStationCode(node.get("stationCode").asText())
+                    .withInverterPower(dataItemMap.get(ProductionPoint.INVERTER_POWER) != null ? dataItemMap.get(ProductionPoint.INVERTER_POWER).asDouble() : null)
+                    .withOngridPower(dataItemMap.get("ongrid_power") != null ? dataItemMap.get("ongrid_power").asDouble() : null)
+                    .withPowerProfit(dataItemMap.get("power_profit") != null ? dataItemMap.get("power_profit").asDouble() : null)
+                    .withTheoryPower(dataItemMap.get("theory_power") != null ? dataItemMap.get("theory_power").asDouble() : null)
+                    .withRadiationIntensity(dataItemMap.get("radiation_intensity") != null ? dataItemMap.get("radiation_intensity").asDouble() : null)
+                    .build();
+
+            dataList.add(item);
         }
 
         return dataList;

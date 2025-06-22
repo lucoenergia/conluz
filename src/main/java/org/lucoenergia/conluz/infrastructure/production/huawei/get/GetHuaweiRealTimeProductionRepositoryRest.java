@@ -55,7 +55,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
         List<RealTimeProduction> result = new ArrayList<>();
 
         if (stations == null || stations.isEmpty()) {
-            LOGGER.info("No Huawei stations provided");
+            LOGGER.info("No Huawei stations provided.");
             return result;
         }
 
@@ -67,7 +67,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
-        LOGGER.info("Getting real time production from stations {} .", stationCodes);
+        LOGGER.info("Getting real time production from stations {}", stationCodes);
 
         // Create the complete URL
         final String url = UriComponentsBuilder.fromUriString(URL)
@@ -99,7 +99,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
                     String jsonData = response.body().string();
                     result.addAll(processBody(jsonData));
                 } else {
-                    LOGGER.error("Response body is empty");
+                    LOGGER.error("Response body is empty.");
                 }
             } else {
                 LOGGER.error("Unable to get real-time production from stations {}. Code {}, message: {}",
@@ -107,10 +107,11 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
                         response.body() != null ? response.body().string() : response.message());
             }
         } catch (IOException e) {
-            LOGGER.error(String.format("Unable to get real-time production from stations %s", stations), e);
+            LOGGER.error("Unable to get real-time production from stations {}", stations, e);
         }
 
         LOGGER.info("Stations processed.");
+        LOGGER.debug("Results: {}", result);
 
         return result;
     }
@@ -132,7 +133,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
                 JsonNode dataItemMap = node.get("dataItemMap");
 
                 RealTimeProduction item = new RealTimeProduction.Builder()
-                        .setTime(dateConverter.convertMillisecondsToOffsetDateTime(currentTime))
+                        .setTime(dateConverter.convertMillisecondsToInstant(currentTime))
                         .setStationCode(node.get("stationCode").asText())
                         .setDayIncome(dataItemMap.get("day_income").asDouble())
                         .setDayPower(dataItemMap.get("day_power").asDouble())

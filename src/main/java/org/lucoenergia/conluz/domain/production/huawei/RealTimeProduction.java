@@ -1,13 +1,13 @@
 package org.lucoenergia.conluz.domain.production.huawei;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 public class RealTimeProduction {
 
     /**
      * Current system time, in milliseconds
      */
-    private OffsetDateTime time;
+    private Instant time;
     /**
      * Plant ID
      */
@@ -41,7 +41,7 @@ public class RealTimeProduction {
      */
     private double totalIncome;
 
-    public OffsetDateTime getTime() {
+    public Instant getTime() {
         return time;
     }
 
@@ -73,9 +73,22 @@ public class RealTimeProduction {
         return totalIncome;
     }
 
+    @Override
+    public String toString() {
+        return "RealTimeProduction{" +
+                "time=" + time +
+                ", stationCode='" + stationCode + '\'' +
+                ", realHealthState=" + realHealthState +
+                ", dayPower=" + dayPower +
+                ", totalPower=" + totalPower +
+                ", dayIncome=" + dayIncome +
+                ", monthPower=" + monthPower +
+                ", totalIncome=" + totalIncome +
+                '}';
+    }
 
     public static class Builder {
-        private OffsetDateTime time;
+        private Instant time;
         private String stationCode;
         private int realHealthState;
         private double dayPower;
@@ -84,7 +97,7 @@ public class RealTimeProduction {
         private double monthPower;
         private double totalIncome;
 
-        public Builder setTime(OffsetDateTime time) {
+        public Builder setTime(Instant time) {
             this.time = time;
             return this;
         }

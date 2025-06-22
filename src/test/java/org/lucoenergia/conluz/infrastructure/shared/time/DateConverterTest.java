@@ -169,4 +169,23 @@ class DateConverterTest {
         // then
         Assertions.assertEquals("2024-02-01T00:00:00.000000000Z", actual);
     }
+
+    @Test
+    void testConvertMillisecondsToOffsetDateTime() {
+        // Given
+        long millis = 1679581800000L; // represents "2023-03-23T14:30:00Z"
+        ZoneOffset offset = ZoneOffset.ofHours(0);
+
+        // When
+        OffsetDateTime result = converter.convertMillisecondsToOffsetDateTime(millis);
+
+        // Then
+        Assertions.assertEquals(2023, result.getYear());
+        Assertions.assertEquals(Month.MARCH, result.getMonth());
+        Assertions.assertEquals(23, result.getDayOfMonth());
+        Assertions.assertEquals(14, result.getHour());
+        Assertions.assertEquals(30, result.getMinute());
+        Assertions.assertEquals(0, result.getSecond());
+        Assertions.assertEquals(offset, result.getOffset());
+    }
 }
