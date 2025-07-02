@@ -81,6 +81,15 @@ All commits must follow this format:
 
 ---
 
+## Coding
+
+- The code must follow Clean Code standards.
+- The code must be self explanatory adding comments when further explanation is required.
+- The code must be in English.
+- The code must be tested through automated tests to validate it works as expected.
+
+---
+
 ## Code of Conduct
 
 Please follow our [Code of Conduct](CODE_OF_CONDUCT.md) to help create a welcoming and respectful community.
