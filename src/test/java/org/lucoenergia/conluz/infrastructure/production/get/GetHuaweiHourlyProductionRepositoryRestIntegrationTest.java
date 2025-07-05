@@ -2,8 +2,8 @@ package org.lucoenergia.conluz.infrastructure.production.get;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigEntity;
 import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigRepository;
 import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiHourlyProductionRepositoryRest;
@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,7 +27,7 @@ class GetHuaweiHourlyProductionRepositoryRestIntegrationTest extends BaseIntegra
     private HuaweiConfigRepository huaweiConfigRepository;
 
     @Test
-    void getHourlyProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() {
+    void getHourlyProduction_shouldReturnProductionByDateIntervalWhenStationCodesIsNotEmpty() {
         // Given
         String stationCode = "code";
         List<Plant> stationCodes = List.of(new Plant.Builder().withCode(stationCode).build());
@@ -40,8 +41,13 @@ class GetHuaweiHourlyProductionRepositoryRestIntegrationTest extends BaseIntegra
         huaweiConfigEntity.setPassword(password);
         huaweiConfigRepository.save(huaweiConfigEntity);
 
+        // Calculate date interval to get data
+        OffsetDateTime today = OffsetDateTime.now();
+        OffsetDateTime todayMinusOneWeek = today.minusWeeks(1);
+
         // When
-        List<HourlyProduction> realTimeProductions = repository.getHourlyProduction(stationCodes);
+        List<HourlyProduction> realTimeProductions = repository.getHourlyProductionByDateInterval(stationCodes, today,
+                todayMinusOneWeek);
 
         // Then
         assertEquals(1, realTimeProductions.size());

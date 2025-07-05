@@ -38,38 +38,12 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
 
     private GetHuaweiHourlyProductionRepositoryRest repositoryRest;
 
-    @BeforeEach
-    void setUp() {
-        TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
-        when(timeConfiguration.getZoneId()).thenReturn(zoneId);
-        when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
-        DateConverter dateConverter = new DateConverter(timeConfiguration);
+    private static final List<Plant> STATION_CODES = Arrays.asList(
+            new Plant.Builder().withCode("BA4372D08E014822AB065017416F254C").build(),
+            new Plant.Builder().withCode("5D02E8B40AD342159AC8D8A2BCD4FAB5").build()
+    );
 
-        repositoryRest = new GetHuaweiHourlyProductionRepositoryRest(new ObjectMapper(), huaweiAuthorizer,
-                conluzRestClientBuilder, dateConverter);
-    }
-
-    @Test
-    void getHourlyProduction_shouldReturnEmptyListWhenStationCodesIsEmpty() {
-        // Given
-        List<Plant> stationCodes = List.of();
-
-        // When
-        List<HourlyProduction> realTimeProductions = repositoryRest.getHourlyProduction(stationCodes);
-
-        // Then
-        assertTrue(realTimeProductions.isEmpty());
-    }
-
-    @Test
-    void getHourlyProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() throws IOException {
-        // Given
-        List<Plant> stationCodes = Arrays.asList(
-                new Plant.Builder().withCode("BA4372D08E014822AB065017416F254C").build(),
-                new Plant.Builder().withCode("5D02E8B40AD342159AC8D8A2BCD4FAB5").build()
-        );
-
-        String responseBodyString = """
+    private static final String RESPONSE_BODY_SUCCESSFULL = """
                 {
                    "success":true,
                    "data":[
@@ -116,7 +90,22 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
                 }
                 """;
 
+    @BeforeEach
+    void setUp() {
+        TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
+        when(timeConfiguration.getZoneId()).thenReturn(zoneId);
+        when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
+        DateConverter dateConverter = new DateConverter(timeConfiguration);
 
+        repositoryRest = new GetHuaweiHourlyProductionRepositoryRest(new ObjectMapper(), huaweiAuthorizer,
+                conluzRestClientBuilder, dateConverter);
+    }
+    
+    
+    
+    @Test
+    void getHourlyProduction_ByDateInterval_shouldCallServiceSevenTimesWhenDateRangeIsOneWeek() throws IOException {
+        // Given
         when(huaweiAuthorizer.getAuthToken()).thenReturn("TOKEN");
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
@@ -131,10 +120,64 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
         ResponseBody responseBody = Mockito.mock(ResponseBody.class);
         when(response.isSuccessful()).thenReturn(true);
         when(response.body()).thenReturn(responseBody);
-        when(responseBody.string()).thenReturn(responseBodyString);
+        when(responseBody.string()).thenReturn(RESPONSE_BODY_SUCCESSFULL);
+
+        // Calculate date interval to get data
+        OffsetDateTime endDate = OffsetDateTime.now();
+        OffsetDateTime startDate = endDate.minusWeeks(1);
 
         // When
-        List<HourlyProduction> realTimeProductions = repositoryRest.getHourlyProduction(stationCodes);
+        repositoryRest.getHourlyProductionByDateInterval(STATION_CODES, startDate, endDate);
+
+        // Then
+        Mockito.verify(client, Mockito.times(8)).newCall(any());
+    }
+
+    @Test
+    void getHourlyProduction_ByDateInterval_shouldReturnEmptyListWhenStartDateIsAfterEndDate() throws IOException {
+        // Given
+        prepareSuccessfulResponse(RESPONSE_BODY_SUCCESSFULL);
+
+        // Calculate date interval to get data
+        OffsetDateTime today = OffsetDateTime.now();
+        OffsetDateTime todayPlusOneWeek = today.plusWeeks(1);
+
+        // When
+        List<HourlyProduction> realTimeProductions = repositoryRest.getHourlyProductionByDateInterval(STATION_CODES,
+                todayPlusOneWeek, today);
+
+        // Then
+        assertTrue(realTimeProductions.isEmpty());
+    }
+
+    @Test
+    void getHourlyProduction_ByDateInterval_shouldReturnEmptyListWhenStationCodesIsEmpty() {
+        // Given
+        List<Plant> stationCodes = List.of();
+
+        // Calculate date interval to get data
+        OffsetDateTime today = OffsetDateTime.now();
+        OffsetDateTime todayMinusOneWeek = today.minusWeeks(1);
+
+        // When
+        List<HourlyProduction> realTimeProductions = repositoryRest.getHourlyProductionByDateInterval(stationCodes,
+                today, todayMinusOneWeek);
+
+        // Then
+        assertTrue(realTimeProductions.isEmpty());
+    }
+
+    @Test
+    void getHourlyProduction_shouldReturnProductionByDateIntervalWhenStationCodesIsNotEmpty() throws IOException {
+        // Given
+        prepareSuccessfulResponse(RESPONSE_BODY_SUCCESSFULL);
+
+        // Calculate date interval to get data
+        OffsetDateTime today = OffsetDateTime.now();
+
+        // When
+        List<HourlyProduction> realTimeProductions = repositoryRest.getHourlyProductionByDateInterval(STATION_CODES,
+                today, today);
 
         // Then
         assertEquals(3, realTimeProductions.size());
@@ -162,5 +205,24 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
         assertEquals(5, realTimeProductions.get(2).getPowerProfit());
         assertEquals(500, realTimeProductions.get(2).getRadiationIntensity());
         assertEquals(12.5, realTimeProductions.get(2).getTheoryPower());
+    }
+
+    private void prepareSuccessfulResponse(String responseBodyString) throws IOException {
+
+        when(huaweiAuthorizer.getAuthToken()).thenReturn("TOKEN");
+
+        OkHttpClient client = Mockito.mock(OkHttpClient.class);
+        when(conluzRestClientBuilder.build()).thenReturn(client);
+
+        Call call = Mockito.mock(Call.class);
+        when(client.newCall(any())).thenReturn(call);
+
+        Response response = Mockito.mock(Response.class);
+        when(call.execute()).thenReturn(response);
+
+        ResponseBody responseBody = Mockito.mock(ResponseBody.class);
+        when(response.isSuccessful()).thenReturn(true);
+        when(response.body()).thenReturn(responseBody);
+        when(responseBody.string()).thenReturn(responseBodyString);
     }
 }

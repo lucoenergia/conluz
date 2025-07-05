@@ -7,9 +7,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiException;
@@ -23,6 +23,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +35,8 @@ public class GetHuaweiHourlyProductionRepositoryRest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GetHuaweiHourlyProductionRepositoryRest.class);
 
-    private static final String URL = HuaweiConfig.BASE_URL + "/getKpiStationHour";
+    private static final String PATH = HuaweiConfig.BASE_URL + "/getKpiStationHour";
+    private static final String URL = UriComponentsBuilder.fromUriString(PATH).build().toUriString();
     private static final String PARAM_STATION_CODES = "stationCodes";
     private static final String PARAM_COLLECT_TIME = "collectTime";
 
@@ -52,7 +54,13 @@ public class GetHuaweiHourlyProductionRepositoryRest {
         this.dateConverter = dateConverter;
     }
 
-    public List<HourlyProduction> getHourlyProduction(List<Plant> stations) {
+    public List<HourlyProduction> getHourlyProductionByDateInterval(List<Plant> stations, OffsetDateTime startDate,
+                                                                    OffsetDateTime endDate) {
+
+        if (startDate.isAfter(endDate)) {
+            LOGGER.error("Start date is after end date. Start date: {}, end date: {}", startDate, endDate);
+            return new ArrayList<>();
+        }
 
         List<HourlyProduction> result = new ArrayList<>();
 
@@ -71,14 +79,26 @@ public class GetHuaweiHourlyProductionRepositoryRest {
 
         LOGGER.info("Getting hourly production from stations {} .", stations);
 
-        // Create the complete URL
-        final String url = UriComponentsBuilder.fromUriString(URL)
-                .build()
-                .toUriString();
+        OffsetDateTime currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            LOGGER.info("Processing day {} .", currentDate);
+            result.addAll(getHourlyProductionByDay(stationCodes, currentDate, authToken, client));
+            currentDate = currentDate.plusDays(1);
+        }
+
+        LOGGER.info("All stations and days processed.");
+
+        return result;
+    }
+
+    private List<HourlyProduction> getHourlyProductionByDay(final String stationCodes, final OffsetDateTime day,
+                                                            final String authToken, final OkHttpClient client) {
+
+        List<HourlyProduction> result = new ArrayList<>();
 
         Map<String, Object> map = new HashMap<>();
         map.put(PARAM_STATION_CODES, stationCodes);
-        map.put(PARAM_COLLECT_TIME, dateConverter.now().toInstant().toEpochMilli());
+        map.put(PARAM_COLLECT_TIME, day.toInstant().toEpochMilli());
         RequestBody requestBody;
         try {
             requestBody = RequestBody.create(
@@ -90,7 +110,7 @@ public class GetHuaweiHourlyProductionRepositoryRest {
         }
 
         final Request request = new Request.Builder()
-                .url(url)
+                .url(URL)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .header(HuaweiAuthorizer.TOKEN_HEADER, authToken)
                 .post(requestBody)
@@ -104,14 +124,12 @@ public class GetHuaweiHourlyProductionRepositoryRest {
                 }
             } else {
                 LOGGER.error("Unable to get hourly production from stations {}. Code {}, message: {}",
-                        stations, response.code(),
+                        stationCodes, response.code(),
                         response.body() != null ? response.body().string() : response.message());
             }
         } catch (IOException e) {
-            LOGGER.error("Unable to get hourly production from stations {}", stations, e);
+            LOGGER.error("Unable to get hourly production from stations {}", stationCodes, e);
         }
-
-        LOGGER.info("Stations processed.");
 
         return result;
     }
