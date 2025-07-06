@@ -97,7 +97,7 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
 
         // Get the productions for every station
         List<HourlyProduction> productions = getHuaweiHourlyProductionRepositoryRest.getHourlyProductionByDateInterval(huaweiStations,
-                today, todayMinusOneWeek);
+                todayMinusOneWeek, today);
 
         // Persist the production data
         persistHuaweiProductionRepository.persistHourlyProduction(productions);
