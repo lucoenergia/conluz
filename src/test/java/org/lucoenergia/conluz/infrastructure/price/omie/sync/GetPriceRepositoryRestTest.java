@@ -12,7 +12,6 @@ import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,8 +32,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
 
     public static final String OMIE_PRICES = "src/test/resources/fixtures/price/omie_prices.txt";
 
-    @Autowired
-    private TimeConfiguration timeConfiguration;
+    private final TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
 
     private final GetPriceRepositoryRest repository = new GetPriceRepositoryRest(conluzRestClientBuilder, timeConfiguration);
@@ -55,6 +53,8 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
 
         String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_PRICES)));
 
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneOffset.UTC);
+        when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
         when(conluzRestClientBuilder.build(eq(false), ArgumentMatchers.any(Duration.class))).thenReturn(okHttpClient);
         when(okHttpClient.newCall(argThat(argument ->
                 argument != null &&
