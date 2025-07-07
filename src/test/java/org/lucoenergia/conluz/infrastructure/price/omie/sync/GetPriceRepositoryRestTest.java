@@ -4,7 +4,6 @@ import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.infrastructure.price.get.GetPriceRepositoryRest;
@@ -34,47 +33,53 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
 
     public static final String OMIE_PRICES = "src/test/resources/fixtures/price/omie_prices.txt";
 
-    private GetPriceRepositoryRest repository;
     @Autowired
     private TimeConfiguration timeConfiguration;
-
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
+
+    private final GetPriceRepositoryRest repository = new GetPriceRepositoryRest(conluzRestClientBuilder, timeConfiguration);
+
     private final OkHttpClient okHttpClient = Mockito.mock(OkHttpClient.class);
     private final Call call = Mockito.mock(Call.class);
     private final Response response = Mockito.mock(Response.class);
     private final ResponseBody responseBody = Mockito.mock(ResponseBody.class);
-
-    @BeforeEach
-    void setup() {
-        repository = new GetPriceRepositoryRest(conluzRestClientBuilder, timeConfiguration);
-    }
 
     @Test
     void syncDailyPrices_successfulResponseWithNumberOne() throws IOException {
 
         // Assemble
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-        LocalDate date = LocalDate.parse("20230528", formatter);
-        OffsetDateTime dateTime = date.atStartOfDay().atOffset(ZoneOffset.UTC);
+
+        OffsetDateTime startDate = LocalDate.parse("20230528", formatter).atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime endDate = LocalDate.parse("20230602", formatter).atStartOfDay().atOffset(ZoneOffset.UTC);
 
         String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_PRICES)));
 
         when(conluzRestClientBuilder.build(eq(false), ArgumentMatchers.any(Duration.class))).thenReturn(okHttpClient);
         when(okHttpClient.newCall(argThat(argument ->
                 argument != null &&
-                argument.url() != null &&
-                argument.url().toString()
-                        .equals("https://www.omie.es/es/file-download?parents[0]=marginalpdbc&filename=marginalpdbc_20230528.1")))).thenReturn(call);
+                        argument.url() != null &&
+                        argument.url().toString()
+                                .startsWith("https://www.omie.es/es/file-download?parents[0]=marginalpdbc&filename=marginalpdbc_") &&
+                        (
+                                argument.url().toString().contains("20230528.1") ||
+                                argument.url().toString().contains("20230529.1") ||
+                                argument.url().toString().contains("20230530.1") ||
+                                argument.url().toString().contains("20230531.1") ||
+                                argument.url().toString().contains("20230601.1") ||
+                                argument.url().toString().contains("20230602.1")
+                        )
+        ))).thenReturn(call);
         when(call.execute()).thenReturn(response);
         when(response.isSuccessful()).thenReturn(true);
         when(response.body()).thenReturn(responseBody);
         when(responseBody.string()).thenReturn(bodyString);
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByDay(dateTime);
+        List<PriceByHour> prices = repository.getPricesByRangeOfDates(startDate, endDate);
 
         // Assert
-        assertEquals(24, prices.size());
+        assertEquals(144, prices.size());
 
         assertEquals(0.105420, prices.get(0).getPrice());
         assertEquals(0.100000, prices.get(1).getPrice());
