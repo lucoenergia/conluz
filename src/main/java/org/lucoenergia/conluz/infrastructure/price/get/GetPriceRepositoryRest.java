@@ -39,25 +39,33 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
 
     @Override
     public List<PriceByHour> getPricesByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
-        throw new NotImplementedException();
-    }
 
-    @Override
-    public List<PriceByHour> getPricesByDay(OffsetDateTime day) {
+        LOGGER.info("Getting OMIE prices for intervale of {} and {}.", startDate, endDate);
 
-        final String dayFormatted = formatDay(day);
-
+        final List<PriceByHour> prices = new ArrayList<>();
         final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(30));
 
-        LOGGER.info("Synchronizing OMIE prices for day {}.", dayFormatted);
+        OffsetDateTime currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            LOGGER.info("Getting OMIE prices for day {}.", currentDate);
 
-        final List<PriceByHour> prices = getPrices(client, "1", dayFormatted);
-        if (!prices.isEmpty()) {
-            return prices;
+            final String dayFormatted = formatDay(currentDate);
+            LOGGER.info("Synchronizing OMIE prices for day {}.", dayFormatted);
+
+            final List<PriceByHour> pricesPerDay = getPrices(client, "1", dayFormatted);
+            if (!pricesPerDay.isEmpty()) {
+                prices.addAll(pricesPerDay);
+                LOGGER.debug("Prices for day {}: {}", currentDate, prices);
+            } else {
+                // If the result using number 1 is empty, we try with 2
+                prices.addAll(getPrices(client, "2", dayFormatted));
+                LOGGER.debug("Prices for day {}: {}", currentDate, prices);
+            }
+
+            currentDate = currentDate.plusDays(1);
         }
 
-        // If the result using number 1 is empty, we try with 2
-        return getPrices(client, "2", dayFormatted);
+        return prices;
     }
 
     private String formatDay(OffsetDateTime day) {

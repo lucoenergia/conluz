@@ -19,4 +19,12 @@ public class PriceByHour {
     public OffsetDateTime getHour() {
         return hour;
     }
+
+    @Override
+    public String toString() {
+        return "PriceByHour{" +
+                "price=" + price +
+                ", hour=" + hour +
+                '}';
+    }
 }

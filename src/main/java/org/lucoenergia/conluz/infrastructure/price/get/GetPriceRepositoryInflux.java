@@ -1,15 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.price.get;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
+import org.lucoenergia.conluz.infrastructure.price.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.price.PriceByHourInfluxMapper;
 import org.lucoenergia.conluz.infrastructure.price.PriceByHourPoint;
-import org.lucoenergia.conluz.infrastructure.price.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -52,10 +51,5 @@ public class GetPriceRepositoryInflux implements GetPriceRepository {
 
             return priceByHourInfluxMapper.mapList(measurementPoints);
         }
-    }
-
-    @Override
-    public List<PriceByHour> getPricesByDay(OffsetDateTime startDate) {
-        throw new NotImplementedException();
     }
 }

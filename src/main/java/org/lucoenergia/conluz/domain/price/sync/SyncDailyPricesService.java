@@ -4,5 +4,5 @@ import java.time.OffsetDateTime;
 
 public interface SyncDailyPricesService {
 
-    void syncDailyPrices(OffsetDateTime day);
+    void syncDailyPricesByDateInterval(OffsetDateTime startDate, OffsetDateTime endDate);
 }

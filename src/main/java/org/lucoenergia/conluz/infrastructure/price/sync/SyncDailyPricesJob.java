@@ -33,8 +33,9 @@ public class SyncDailyPricesJob implements Job {
         LOGGER.info("OMIE prices daily retrieval started...");
 
         OffsetDateTime today = timeConfiguration.now();
+        OffsetDateTime todayMinusOneWeek = today.minusWeeks(1);
 
-        syncDailyPricesService.syncDailyPrices(today);
+        syncDailyPricesService.syncDailyPricesByDateInterval(todayMinusOneWeek, today);
 
         LOGGER.info("...finished OMIE prices daily retrieval.");
     }

@@ -8,6 +8,4 @@ import java.util.List;
 public interface GetPriceRepository {
 
     List<PriceByHour> getPricesByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate);
-
-    List<PriceByHour> getPricesByDay(OffsetDateTime startDate);
 }
