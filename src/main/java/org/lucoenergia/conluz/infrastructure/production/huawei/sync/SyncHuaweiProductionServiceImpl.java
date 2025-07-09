@@ -11,7 +11,6 @@ import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProduction
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiHourlyProductionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiRealTimeProductionRepositoryRest;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,19 +29,17 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
     private final GetHuaweiHourlyProductionRepositoryRest getHuaweiHourlyProductionRepositoryRest;
     private final GetEnergyStationRepository getEnergyStationRepository;
     private final GetHuaweiConfigRepository getHuaweiConfigRepository;
-    private final DateConverter dateConverter;
 
     public SyncHuaweiProductionServiceImpl(PersistHuaweiProductionRepository persistHuaweiProductionRepository,
                                            GetHuaweiRealTimeProductionRepositoryRest getHuaweiRealTimeProductionRepositoryRest,
                                            GetHuaweiHourlyProductionRepositoryRest getHuaweiHourlyProductionRepositoryRest,
                                            GetEnergyStationRepository getEnergyStationRepository,
-                                           GetHuaweiConfigRepository getHuaweiConfigRepository, DateConverter dateConverter) {
+                                           GetHuaweiConfigRepository getHuaweiConfigRepository) {
         this.persistHuaweiProductionRepository = persistHuaweiProductionRepository;
         this.getHuaweiRealTimeProductionRepositoryRest = getHuaweiRealTimeProductionRepositoryRest;
         this.getHuaweiHourlyProductionRepositoryRest = getHuaweiHourlyProductionRepositoryRest;
         this.getEnergyStationRepository = getEnergyStationRepository;
         this.getHuaweiConfigRepository = getHuaweiConfigRepository;
-        this.dateConverter = dateConverter;
     }
 
     /**
@@ -75,7 +72,12 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
     }
 
     @Override
-    public void syncHourlyProduction() {
+    public void syncHourlyProduction(OffsetDateTime startDate, OffsetDateTime endDate) {
+
+        if (startDate.isAfter(endDate)) {
+            LOGGER.error("Start date is after end date. Start date: {}, end date: {}", startDate, endDate);
+            return;
+        }
 
         // Get Huawei configuration
         Optional<HuaweiConfig> huaweiConfig = getHuaweiConfigRepository.getHuaweiConfig();
@@ -91,13 +93,9 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
             return;
         }
 
-        // Calculate date interval to get data
-        OffsetDateTime today = dateConverter.now();
-        OffsetDateTime todayMinusOneWeek = today.minusWeeks(1);
-
         // Get the productions for every station
         List<HourlyProduction> productions = getHuaweiHourlyProductionRepositoryRest.getHourlyProductionByDateInterval(huaweiStations,
-                todayMinusOneWeek, today);
+                startDate, endDate);
 
         // Persist the production data
         persistHuaweiProductionRepository.persistHourlyProduction(productions);

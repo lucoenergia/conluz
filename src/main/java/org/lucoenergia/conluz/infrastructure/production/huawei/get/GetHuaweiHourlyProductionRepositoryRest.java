@@ -57,11 +57,6 @@ public class GetHuaweiHourlyProductionRepositoryRest {
     public List<HourlyProduction> getHourlyProductionByDateInterval(List<Plant> stations, OffsetDateTime startDate,
                                                                     OffsetDateTime endDate) {
 
-        if (startDate.isAfter(endDate)) {
-            LOGGER.error("Start date is after end date. Start date: {}, end date: {}", startDate, endDate);
-            return new ArrayList<>();
-        }
-
         List<HourlyProduction> result = new ArrayList<>();
 
         if (stations == null || stations.isEmpty()) {
@@ -139,6 +134,14 @@ public class GetHuaweiHourlyProductionRepositoryRest {
         JsonNode dataNode = root.get("data");
 
         List<HourlyProduction> dataList = new ArrayList<>();
+
+        JsonNode failCode = root.get("failCode");
+        JsonNode success = root.get("success");
+        if (failCode != null && failCode.asInt() == 407) {
+            throw new HuaweiException("Request frequency is too high");
+        } else if (!success.asBoolean()) {
+            throw new HuaweiException("Calling Huawei API failed. Fail code: " + failCode + ", message: " + dataNode.asText());
+        }
 
         if (!dataNode.isArray()) {
             return dataList;

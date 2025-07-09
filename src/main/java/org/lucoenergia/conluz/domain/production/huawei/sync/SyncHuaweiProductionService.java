@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.production.huawei.sync;
 
+import java.time.OffsetDateTime;
+
 public interface SyncHuaweiProductionService {
 
     /**
@@ -9,5 +11,5 @@ public interface SyncHuaweiProductionService {
      */
     void syncRealTimeProduction();
 
-    void syncHourlyProduction();
+    void syncHourlyProduction(OffsetDateTime startDate, OffsetDateTime endDate);
 }

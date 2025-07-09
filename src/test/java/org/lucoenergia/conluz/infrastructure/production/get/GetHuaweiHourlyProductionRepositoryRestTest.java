@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
+import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiException;
 import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiHourlyProductionRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
@@ -24,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -43,52 +45,70 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
             new Plant.Builder().withCode("5D02E8B40AD342159AC8D8A2BCD4FAB5").build()
     );
 
+    private static final String RESPONSE_BODY_ACCESS_FREQUENCY_IS_TOO_HIGH = """
+            {
+                "data": "ACCESS_FREQUENCY_IS_TOO_HIGH",
+                "failCode": 407,
+                "params": null,
+                "success": false
+            }
+            """;
+
+    private static final String RESPONSE_BODY_UNSUCCESSFUL = """
+            {
+                "data": "THERE_WAS_AN_ERROR",
+                "failCode": 11,
+                "params": null,
+                "success": false
+            }
+            """;
+
     private static final String RESPONSE_BODY_SUCCESSFULL = """
-                {
-                   "success":true,
-                   "data":[
-                      {
-                          "dataItemMap":{
-                             "radiation_intensity":null,
-                             "theory_power":null,
-                             "inverter_power":0,
-                             "ongrid_power":null,
-                             "power_profit":0
-                          },
-                          "stationCode":"5D02E8B40AD342159AC8D8A2BCD4FAB5",
-                          "collectTime":1501862400000
-                       },
-                       {
-                          "dataItemMap":{
-                             "radiation_intensity":null,
-                             "theory_power":null,
-                             "inverter_power":10,
-                             "ongrid_power":null,
-                             "power_profit":5
-                          },
-                          "stationCode":"5D02E8B40AD342159AC8D8A2BCD4FAB5",
-                          "collectTime":1501866000000
-                       },
-                       {
-                          "dataItemMap":{
-                             "radiation_intensity":500,
-                             "theory_power":12.5,
-                             "inverter_power":10,
-                             "ongrid_power":20,
-                             "power_profit":5
-                          },
-                          "stationCode":"BA4372D08E014822AB065017416F254C",
-                          "collectTime":1501873200000
-                       }
-                   ],
-                   "failCode":0,
-                   "params":{
-                      "stationCodes":"BA4372D08E014822AB065017416F254C,5D02E8B40AD342159AC8D8A2BCD4FAB5",
-                      "currentTime":1750627686362
+            {
+               "success":true,
+               "data":[
+                  {
+                      "dataItemMap":{
+                         "radiation_intensity":null,
+                         "theory_power":null,
+                         "inverter_power":0,
+                         "ongrid_power":null,
+                         "power_profit":0
+                      },
+                      "stationCode":"5D02E8B40AD342159AC8D8A2BCD4FAB5",
+                      "collectTime":1501862400000
                    },
-                   "message":null
-                }
-                """;
+                   {
+                      "dataItemMap":{
+                         "radiation_intensity":null,
+                         "theory_power":null,
+                         "inverter_power":10,
+                         "ongrid_power":null,
+                         "power_profit":5
+                      },
+                      "stationCode":"5D02E8B40AD342159AC8D8A2BCD4FAB5",
+                      "collectTime":1501866000000
+                   },
+                   {
+                      "dataItemMap":{
+                         "radiation_intensity":500,
+                         "theory_power":12.5,
+                         "inverter_power":10,
+                         "ongrid_power":20,
+                         "power_profit":5
+                      },
+                      "stationCode":"BA4372D08E014822AB065017416F254C",
+                      "collectTime":1501873200000
+                   }
+               ],
+               "failCode":0,
+               "params":{
+                  "stationCodes":"BA4372D08E014822AB065017416F254C,5D02E8B40AD342159AC8D8A2BCD4FAB5",
+                  "currentTime":1750627686362
+               },
+               "message":null
+            }
+            """;
 
     @BeforeEach
     void setUp() {
@@ -100,9 +120,8 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
         repositoryRest = new GetHuaweiHourlyProductionRepositoryRest(new ObjectMapper(), huaweiAuthorizer,
                 conluzRestClientBuilder, dateConverter);
     }
-    
-    
-    
+
+
     @Test
     void getHourlyProduction_ByDateInterval_shouldCallServiceSevenTimesWhenDateRangeIsOneWeek() throws IOException {
         // Given
@@ -131,6 +150,40 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
 
         // Then
         Mockito.verify(client, Mockito.times(8)).newCall(any());
+    }
+
+    @Test
+    void getHourlyProduction_ByDateInterval_shouldReturnExceptionWhenCallFailedDueToTooHighFrequencyAccess() throws IOException {
+        // Given
+        prepareSuccessfulResponse(RESPONSE_BODY_ACCESS_FREQUENCY_IS_TOO_HIGH);
+
+        // Calculate date interval to get data
+        OffsetDateTime today = OffsetDateTime.now();
+        OffsetDateTime todayMinusOneWeek = today.minusWeeks(1);
+
+        // When/Then
+        HuaweiException exception = assertThrows(HuaweiException.class, () ->
+                repositoryRest.getHourlyProductionByDateInterval(STATION_CODES, todayMinusOneWeek, today)
+        );
+        assertEquals("Request frequency is too high", exception.getMessage());
+
+    }
+
+    @Test
+    void getHourlyProduction_ByDateInterval_shouldReturnExceptionWhenCallFailed() throws IOException {
+        // Given
+        prepareSuccessfulResponse(RESPONSE_BODY_UNSUCCESSFUL);
+
+        // Calculate date interval to get data
+        OffsetDateTime today = OffsetDateTime.now();
+        OffsetDateTime todayMinusOneWeek = today.minusWeeks(1);
+
+        // When/Then
+        HuaweiException exception = assertThrows(HuaweiException.class, () ->
+                repositoryRest.getHourlyProductionByDateInterval(STATION_CODES, todayMinusOneWeek, today)
+        );
+        assertEquals("Calling Huawei API failed. Fail code: 11, message: THERE_WAS_AN_ERROR", exception.getMessage());
+
     }
 
     @Test
