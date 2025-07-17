@@ -1,11 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.get;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -15,7 +13,6 @@ import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantReposito
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
-import org.lucoenergia.conluz.infrastructure.shared.security.auth.InvalidTokenException;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -65,8 +62,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(get(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value("20"))
@@ -112,8 +108,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(get(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value("20"))
@@ -146,7 +141,6 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("page", "1")
                         .queryParam("size", "1"))
                 .andDo(print())
@@ -174,7 +168,6 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("unkwnon", "foo"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -195,11 +188,11 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.TEXT_PLAIN))
                 .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
-                .andExpect(jsonPath("$.message").isNotEmpty())
-                .andExpect(jsonPath("$.traceId").isNotEmpty());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value("20"))
+                .andExpect(jsonPath("$.totalElements").value("0"))
+                .andExpect(jsonPath("$.totalPages").value("0"))
+                .andExpect(jsonPath("$.number").value("0"));
     }
 
     @Test
@@ -225,7 +218,6 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "unknown,asc"))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -258,7 +250,6 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "fullName,unknown"))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -300,7 +291,6 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "name,asc"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -349,7 +339,6 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "totalPower,asc")
                         .queryParam("sort", "code,asc"))
                 .andDo(print())
@@ -399,7 +388,6 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("sort", "name,desc")
                         .queryParam("page", "1")
                         .queryParam("size", "1"))
@@ -416,8 +404,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithMissingToken() throws Exception {
 
-        mockMvc.perform(get(URL)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get(URL))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
@@ -433,8 +420,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 "wrong";
 
         mockMvc.perform(get(URL)
-                        .header(HttpHeaders.AUTHORIZATION, wrongToken)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header(HttpHeaders.AUTHORIZATION, wrongToken))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
@@ -450,8 +436,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.jO3pgdDj4mg9TnRzL7f8RUL1ytJS7057jAg6zaCcwn0";
 
         mockMvc.perform(get(URL)
-                        .header(HttpHeaders.AUTHORIZATION, expiredToken)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header(HttpHeaders.AUTHORIZATION, expiredToken))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())

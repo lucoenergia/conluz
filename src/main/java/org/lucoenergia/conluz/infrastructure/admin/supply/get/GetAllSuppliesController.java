@@ -2,13 +2,10 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationRequestMapper;
@@ -19,7 +16,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springdoc.core.converters.models.PageableAsQueryParam;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,11 +26,7 @@ import java.util.List;
  * Get all supplies registered in the energy community
  */
 @RestController
-@RequestMapping(
-        value = "/api/v1/supplies",
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE
-)
+@RequestMapping(value = "/api/v1/supplies")
 public class GetAllSuppliesController {
 
     private final GetSupplyService service;
