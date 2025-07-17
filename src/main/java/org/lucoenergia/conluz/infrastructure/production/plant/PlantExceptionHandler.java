@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -14,6 +16,8 @@ import java.util.Collections;
 
 @RestControllerAdvice
 public class PlantExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PlantExceptionHandler.class);
 
     private final MessageSource messageSource;
 
@@ -31,6 +35,7 @@ public class PlantExceptionHandler {
                 Collections.singletonList(plantCode).toArray(),
                 LocaleContextHolder.getLocale()
         );
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -44,6 +49,7 @@ public class PlantExceptionHandler {
                 Collections.singletonList(plantId).toArray(),
                 LocaleContextHolder.getLocale()
         );
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 }

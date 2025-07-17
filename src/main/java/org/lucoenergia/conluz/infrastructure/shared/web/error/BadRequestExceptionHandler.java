@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.shared.web.error;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.mapping.PropertyReferenceException;
@@ -26,6 +28,8 @@ import java.util.*;
 @RestControllerAdvice
 public class BadRequestExceptionHandler {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(BadRequestExceptionHandler.class);
+
     private final MessageSource messageSource;
 
     public BadRequestExceptionHandler(MessageSource messageSource) {
@@ -42,6 +46,7 @@ public class BadRequestExceptionHandler {
                 List.of(parameterName).toArray(),
                 LocaleContextHolder.getLocale()
         );
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -53,6 +58,7 @@ public class BadRequestExceptionHandler {
                 List.of().toArray(),
                 LocaleContextHolder.getLocale()
         );
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -73,6 +79,7 @@ public class BadRequestExceptionHandler {
                 Arrays.asList(argumentName, currentValue, expectedFormat).toArray(),
                 LocaleContextHolder.getLocale()
         );
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -94,6 +101,7 @@ public class BadRequestExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
 
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -104,6 +112,7 @@ public class BadRequestExceptionHandler {
                 Collections.singletonList(e.getContentType()).toArray(),
                 LocaleContextHolder.getLocale()
         );
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -115,6 +124,7 @@ public class BadRequestExceptionHandler {
                 List.of().toArray(),
                 LocaleContextHolder.getLocale()
         );
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -126,6 +136,7 @@ public class BadRequestExceptionHandler {
                 List.of(e.getPropertyName()).toArray(),
                 LocaleContextHolder.getLocale()
         );
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -145,6 +156,7 @@ public class BadRequestExceptionHandler {
                         LocaleContextHolder.getLocale()
                 ), String::concat);
 
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -180,6 +192,7 @@ public class BadRequestExceptionHandler {
             );
         }
 
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
@@ -191,11 +204,13 @@ public class BadRequestExceptionHandler {
                 List.of(e.getMethod()).toArray(),
                 LocaleContextHolder.getLocale()
         );
+        LOGGER.error(message);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<RestError> handleException(IllegalArgumentException e) {
+        LOGGER.error(e.getMessage(), e);
         return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), e.getMessage()),
                 HttpStatus.BAD_REQUEST);
     }
