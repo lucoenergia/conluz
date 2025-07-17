@@ -7,7 +7,6 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -38,8 +37,7 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
         sharingAgreementRepository.save(entity);
 
         mockMvc.perform(get(URL + "/" + entity.getId())
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(entity.getId().toString()))
@@ -54,8 +52,7 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
         UUID nonExistentId = UUID.randomUUID();
 
         mockMvc.perform(get(URL + "/" + nonExistentId)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
@@ -69,8 +66,7 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(get(URL + "/invalid-id")
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
@@ -84,8 +80,7 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(get(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
@@ -98,8 +93,7 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
     void testWithoutToken() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(get(URL + "/" + id)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get(URL + "/" + id))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())

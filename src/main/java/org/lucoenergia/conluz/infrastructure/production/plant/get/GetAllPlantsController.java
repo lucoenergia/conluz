@@ -29,11 +29,7 @@ import java.util.List;
  * Get all plants registered in the energy community
  */
 @RestController
-@RequestMapping(
-        value = "/api/v1/plants",
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE
-)
+@RequestMapping(value = "/api/v1/plants")
 public class GetAllPlantsController {
 
     private final GetPlantService service;

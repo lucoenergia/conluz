@@ -20,10 +20,7 @@ import java.util.UUID;
  * Controller for retrieving sharing agreements
  */
 @RestController
-@RequestMapping(
-        value = "/api/v1/sharing-agreements",
-        produces = MediaType.APPLICATION_JSON_VALUE
-)
+@RequestMapping(value = "/api/v1/sharing-agreements")
 public class GetSharingAgreementController {
 
     private final GetSharingAgreementService service;
