@@ -1,26 +1,35 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.auth;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.*;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.mockito.Mockito;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class AuthServiceImplTest {
+class AuthServiceTest {
 
     private final Authenticator authenticator = Mockito.mock(Authenticator.class);
     private final GetUserRepository getUserRepository = Mockito.mock(GetUserRepository.class);
     private final AuthRepository authRepository = Mockito.mock(AuthRepository.class);
     private final BlacklistedTokenRepository blacklistedTokenRepository = Mockito.mock(BlacklistedTokenRepository.class);
 
-    private final AuthServiceImpl authService = new AuthServiceImpl(authenticator, getUserRepository, authRepository, blacklistedTokenRepository);
+    private final AuthService authService = new AuthServiceImpl(authenticator, getUserRepository, authRepository,
+            blacklistedTokenRepository);
+
+    @AfterEach
+    void cleanup() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void blacklistToken_shouldSaveTokenToBlacklist() {
@@ -72,5 +81,34 @@ class AuthServiceImplTest {
         // Then
         verify(blacklistedTokenRepository, never()).save(any(BlacklistedToken.class));
         assertFalse(result);
+    }
+
+    @Test
+    void getCurrentUser_shouldReturnAuthenticatedUser() {
+        // Given
+        User user = mock(User.class);
+        Authentication authentication = mock(Authentication.class);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        when(authentication.getPrincipal()).thenReturn(user);
+
+        // When
+        User result = authService.getCurrentUser();
+
+        // Then
+        assertTrue(result == user);
+    }
+
+    @Test
+    void getCurrentUser_shouldThrowClassCastExceptionWhenPrincipalIsNotUser() {
+        // Given
+        String principal = "Not a User instance";
+        Authentication authentication = mock(Authentication.class);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        when(authentication.getPrincipal()).thenReturn(principal);
+
+        // When / Then
+        assertThrows(ClassCastException.class, authService::getCurrentUser);
     }
 }

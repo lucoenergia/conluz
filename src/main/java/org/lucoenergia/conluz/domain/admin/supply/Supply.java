@@ -268,4 +268,25 @@ public class Supply {
     public int hashCode() {
         return Objects.hash(getId(), getCode(), getUser());
     }
+
+    @Override
+    public String toString() {
+        return "Supply{" +
+                "id=" + id +
+                ", code='" + code + '\'' +
+                ", user=" + user +
+                ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                ", partitionCoefficient=" + partitionCoefficient +
+                ", enabled=" + enabled +
+                ", validDateFrom=" + validDateFrom +
+                ", distributor='" + distributor + '\'' +
+                ", distributorCode='" + distributorCode + '\'' +
+                ", pointType=" + pointType +
+                ", thirdParty=" + thirdParty +
+                ", shellyMac='" + shellyMac + '\'' +
+                ", shellyId='" + shellyId + '\'' +
+                ", shellyMqttPrefix='" + shellyMqttPrefix + '\'' +
+                '}';
+    }
 }

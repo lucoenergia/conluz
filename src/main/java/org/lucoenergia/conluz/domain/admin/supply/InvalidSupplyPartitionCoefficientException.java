@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply;
+package org.lucoenergia.conluz.domain.admin.supply;
 
 public class InvalidSupplyPartitionCoefficientException extends RuntimeException {
 

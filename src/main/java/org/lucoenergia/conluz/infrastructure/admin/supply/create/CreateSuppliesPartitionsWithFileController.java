@@ -11,7 +11,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionService;
-import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
+import org.lucoenergia.conluz.domain.admin.supply.InvalidSupplyPartitionCoefficientException;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileParser;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;

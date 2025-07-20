@@ -4,6 +4,8 @@ import org.lucoenergia.conluz.domain.admin.user.auth.Authenticator;
 import org.lucoenergia.conluz.domain.admin.user.auth.Credentials;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,7 +19,9 @@ public class AuthenticatorImpl implements Authenticator {
 
     @Override
     public void authenticate(Credentials credentials) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(credentials.getUsername(),
+        Authentication authentication =
+                authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(credentials.getUsername(),
                 credentials.getPassword()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

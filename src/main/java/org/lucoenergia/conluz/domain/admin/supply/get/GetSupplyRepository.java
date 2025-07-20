@@ -14,10 +14,12 @@ public interface GetSupplyRepository {
     long count();
 
     Optional<Supply> findById(SupplyId id);
+
     Optional<Supply> findByCode(SupplyCode code);
 
     boolean existsById(SupplyId id);
 
     PagedResult<Supply> findAll(PagedRequest pagedRequest);
+
     List<Supply> findAll();
 }

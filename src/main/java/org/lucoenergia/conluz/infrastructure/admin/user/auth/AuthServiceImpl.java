@@ -61,4 +61,11 @@ public class AuthServiceImpl implements AuthService {
 
         return false;
     }
+
+    @Override
+    public User getCurrentUser() {
+        return (User) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+    }
 }

@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyPartitionReposito
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
+import org.lucoenergia.conluz.domain.admin.supply.InvalidSupplyPartitionCoefficientException;
 import org.lucoenergia.conluz.domain.shared.response.CreationInBulkResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
