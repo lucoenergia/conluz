@@ -61,4 +61,17 @@ public class AuthServiceImpl implements AuthService {
 
         return false;
     }
+
+    @Override
+    public Optional<User> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return Optional.empty();
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User user) {
+            return Optional.of(user);
+        }
+        return Optional.empty();
+    }
 }
