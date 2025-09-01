@@ -86,10 +86,10 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
         mockMvc.perform(get("/api/v1/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("supplyId", supplyId.toString()))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(content().string(containsString("\"traceId\":")))
                 .andExpect(content().string(containsString("\"timestamp\":")))
-                .andExpect(content().string(containsString("\"status\":400")))
+                .andExpect(content().string(containsString("\"status\":404")))
                 .andExpect(content().string(containsString(String.format("\"message\":\"El punto de suministro con identificador '%s' no ha sido encontrado. Revise que el identificador sea correcto.\"", supplyId))));
     }
 

@@ -38,7 +38,7 @@ public class SupplyExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new RestError(HttpStatus.NOT_FOUND.value(), message), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(SupplyAlreadyExistsException.class)
