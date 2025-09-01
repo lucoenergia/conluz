@@ -110,10 +110,10 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
                         .queryParam("supplyId", supplyId.toString())
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(content().string(containsString("\"traceId\":")))
                 .andExpect(content().string(containsString("\"timestamp\":")))
-                .andExpect(content().string(containsString("\"status\":400")))
+                .andExpect(content().string(containsString("\"status\":404")))
                 .andExpect(content().string(containsString(String.format("\"message\":\"El punto de suministro con identificador '%s' no ha sido encontrado. Revise que el identificador sea correcto.\"", supplyId))));
     }
 
