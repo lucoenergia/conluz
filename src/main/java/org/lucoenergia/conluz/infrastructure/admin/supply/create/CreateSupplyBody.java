@@ -17,6 +17,8 @@ public class CreateSupplyBody {
     private String personalId;
     @NotEmpty
     private String address;
+    @NotEmpty
+    private String addressRef;
     @Positive
     private Float partitionCoefficient;
     private String name;
@@ -35,6 +37,14 @@ public class CreateSupplyBody {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getAddressRef() {
+        return addressRef;
+    }
+
+    public void setAddressRef(String addressRef) {
+        this.addressRef = addressRef;
     }
 
     public Float getPartitionCoefficient() {
@@ -65,11 +75,15 @@ public class CreateSupplyBody {
         Supply.Builder builder = new Supply.Builder();
         builder.withCode(code.trim())
                 .withAddress(address.trim())
+                .withAddressRef(addressRef.trim())
                 .withPartitionCoefficient(partitionCoefficient)
                 .withUser(new User.Builder().personalId(personalId.trim()).build());
 
         if (name != null && !name.isBlank()) {
             builder.withName(name.trim());
+        }
+        if (addressRef != null && !addressRef.isBlank()) {
+            builder.withAddressRef(addressRef.trim());
         }
 
         return builder.build();

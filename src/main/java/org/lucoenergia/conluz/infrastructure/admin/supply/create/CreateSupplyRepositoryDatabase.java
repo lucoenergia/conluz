@@ -52,6 +52,7 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                 .withCode(supply.getCode())
                 .withName(supply.getName())
                 .withAddress(supply.getAddress())
+                .withAddressRef(supply.getAddressRef())
                 .withPartitionCoefficient(supply.getPartitionCoefficient())
                 .withEnabled(supply.getEnabled())
 

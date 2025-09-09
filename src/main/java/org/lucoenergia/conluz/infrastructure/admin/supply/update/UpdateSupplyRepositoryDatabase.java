@@ -36,6 +36,7 @@ public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
         currentSupply.setCode(supply.getCode());
         currentSupply.setName(supply.getName());
         currentSupply.setAddress(supply.getAddress());
+        currentSupply.setAddressRef(supply.getAddressRef());
         currentSupply.setPartitionCoefficient(supply.getPartitionCoefficient());
 
         currentSupply.setValidDateFrom(supply.getValidDateFrom());
