@@ -15,7 +15,7 @@ public class UpdateSupplyBody {
 
     @NotEmpty
     private String code;
-    @NotEmpty
+//    @NotEmpty
     private String name;
     @NotEmpty
     private String address;

@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.shared.web.io;
 
 import com.opencsv.exceptions.CsvDataTypeMismatchException;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +20,11 @@ public class CsvParseExceptionHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(CsvParseExceptionHandler.class);
 
     private final MessageSource messageSource;
+    private final ErrorBuilder errorBuilder;
 
-    public CsvParseExceptionHandler(MessageSource messageSource) {
+    public CsvParseExceptionHandler(MessageSource messageSource, ErrorBuilder errorBuilder) {
         this.messageSource = messageSource;
+        this.errorBuilder = errorBuilder;
     }
 
     public ResponseEntity<RestError> handleCsvParsingError(Exception ex) {
@@ -44,9 +47,6 @@ public class CsvParseExceptionHandler {
         String message = messageSource.getMessage(messageKey,
                 Collections.emptyList().toArray(),
                 LocaleContextHolder.getLocale());
-        return new ResponseEntity<>(
-                new RestError(status.value(), message),
-                status
-        );
+        return errorBuilder.build(message, status);
     }
 }

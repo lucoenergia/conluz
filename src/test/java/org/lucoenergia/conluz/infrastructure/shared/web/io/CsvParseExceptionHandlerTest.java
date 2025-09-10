@@ -4,6 +4,7 @@ import com.opencsv.exceptions.CsvDataTypeMismatchException;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.mockito.Mockito;
 import org.springframework.context.MessageSource;
@@ -18,14 +19,12 @@ import static org.mockito.ArgumentMatchers.eq;
 
 class CsvParseExceptionHandlerTest {
 
-    private CsvParseExceptionHandler exceptionHandler;
-    private MessageSource messageSource;
+    private final MessageSource messageSource = Mockito.mock(MessageSource.class);
+    private final ErrorBuilder errorBuilder = new ErrorBuilder(messageSource);
+    private final CsvParseExceptionHandler exceptionHandler = new CsvParseExceptionHandler(messageSource, errorBuilder);
 
     @BeforeEach
     void setup() {
-        messageSource = Mockito.mock(MessageSource.class);
-        exceptionHandler = new CsvParseExceptionHandler(messageSource);
-        
         // Setup default message source behavior
         Mockito.when(messageSource.getMessage(
                 eq("error.fields.number.does.not.match"),

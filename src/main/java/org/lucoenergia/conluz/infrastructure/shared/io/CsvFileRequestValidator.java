@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.io;
 
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -18,9 +19,11 @@ public class CsvFileRequestValidator {
     public static final String CSV_CONTENT_TYPE = "text/csv";
 
     private final MessageSource messageSource;
+    private final ErrorBuilder errorBuilder;
 
-    public CsvFileRequestValidator(MessageSource messageSource) {
+    public CsvFileRequestValidator(MessageSource messageSource, ErrorBuilder errorBuilder) {
         this.messageSource = messageSource;
+        this.errorBuilder = errorBuilder;
     }
 
     public Optional<ResponseEntity<RestError>> validate(MultipartFile file) {
@@ -41,7 +44,7 @@ public class CsvFileRequestValidator {
                 Collections.singletonList(contentType).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     private ResponseEntity<RestError> buildUnsupportedExtensionErrorResponse() {
@@ -50,6 +53,6 @@ public class CsvFileRequestValidator {
                 new List[]{},
                 LocaleContextHolder.getLocale()
         );
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 }

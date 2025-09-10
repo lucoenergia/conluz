@@ -12,6 +12,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundExcept
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionService;
 import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileParser;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -62,15 +63,17 @@ public class CreateSuppliesPartitionsWithFileController {
     private final MessageSource messageSource;
     private final CreateSupplyPartitionService createSupplyPartitionService;
     private final CsvParseExceptionHandler csvParseExceptionHandler;
+    private final ErrorBuilder errorBuilder;
 
     public CreateSuppliesPartitionsWithFileController(CsvFileRequestValidator csvFileRequestValidator,
                                                       CsvFileParser csvFileParser, MessageSource messageSource,
-                                                      CreateSupplyPartitionService createSupplyPartitionService, CsvParseExceptionHandler csvParseExceptionHandler) {
+                                                      CreateSupplyPartitionService createSupplyPartitionService, CsvParseExceptionHandler csvParseExceptionHandler, ErrorBuilder errorBuilder) {
         this.csvFileRequestValidator = csvFileRequestValidator;
         this.csvFileParser = csvFileParser;
         this.messageSource = messageSource;
         this.createSupplyPartitionService = createSupplyPartitionService;
         this.csvParseExceptionHandler = csvParseExceptionHandler;
+        this.errorBuilder = errorBuilder;
     }
 
     @PostMapping
@@ -127,14 +130,10 @@ public class CreateSuppliesPartitionsWithFileController {
         try {
             suppliesPartitions = csvFileParser.parse(file.getInputStream(), CreateSupplyPartitionDto.class, ';');
         } catch (NumberFormatException ex) {
-            LOGGER.error("Invalid number format.", ex);
             String message = messageSource.getMessage("error.supply.partitions.invalid.number.format",
                     Collections.emptyList().toArray(),
                     LocaleContextHolder.getLocale());
-            return new ResponseEntity<>(
-                    new RestError(HttpStatus.BAD_REQUEST.value(), message),
-                    HttpStatus.BAD_REQUEST
-            );
+            return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
         } catch (Exception ex) {
             return csvParseExceptionHandler.handleCsvParsingError(ex);
         }
@@ -143,19 +142,12 @@ public class CreateSuppliesPartitionsWithFileController {
         try {
             response = createSupplyPartitionService.createInBulk(suppliesPartitions, SharingAgreementId.of(sharingAgreementId));
         } catch (InvalidSupplyPartitionCoefficientException e) {
-            return new ResponseEntity<>(
-                    new RestError(HttpStatus.BAD_REQUEST.value(), e.getMessage()),
-                    HttpStatus.BAD_REQUEST
-            );
+            return errorBuilder.build(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (SharingAgreementNotFoundException e) {
-            LOGGER.error("Sharing agreement with id {} not found", sharingAgreementId, e);
             String message = messageSource.getMessage("error.sharing.agreement.not.found",
                             Collections.singletonList(sharingAgreementId).toArray(),
                             LocaleContextHolder.getLocale());
-            return new ResponseEntity<>(
-                    new RestError(HttpStatus.BAD_REQUEST.value(), message),
-                    HttpStatus.BAD_REQUEST
-            );
+            return errorBuilder.build(message, HttpStatus.NOT_FOUND);
         }
 
         return new ResponseEntity<>(response, HttpStatus.OK);

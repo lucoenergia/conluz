@@ -3,26 +3,28 @@ package org.lucoenergia.conluz.infrastructure.shared.web.error;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.ConluzAuthenticationEntryPoint;
 import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import static org.mockito.ArgumentMatchers.anyString;
+
 class ConluzAuthenticationEntryPointTest {
 
-    private ConluzAuthenticationEntryPoint entryPoint;
 
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = Mockito.mock(ObjectMapper.class);
+    private final ErrorBuilder errorBuilder = Mockito.mock(ErrorBuilder.class);
 
-    @BeforeEach
-    void setup() {
-        objectMapper = Mockito.mock(ObjectMapper.class);
-        entryPoint = new ConluzAuthenticationEntryPoint(objectMapper);
-    }
+    private final ConluzAuthenticationEntryPoint entryPoint = new ConluzAuthenticationEntryPoint(objectMapper,
+            errorBuilder);
+
 
     @Test
     void testCommenceWithInsufficientAuthenticationException() throws IOException {
@@ -31,6 +33,9 @@ class ConluzAuthenticationEntryPointTest {
         final HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
         final PrintWriter writer = Mockito.mock(PrintWriter.class);
         Mockito.when(response.getWriter()).thenReturn(writer);
+
+        final ResponseEntity responseEntity = new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        Mockito.when(errorBuilder.build(anyString(), Mockito.eq(HttpStatus.UNAUTHORIZED))).thenReturn(responseEntity);
 
         String errorBody = """
                 {

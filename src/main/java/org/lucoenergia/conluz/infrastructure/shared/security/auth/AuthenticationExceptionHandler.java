@@ -2,11 +2,8 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 
 import io.jsonwebtoken.JwtException;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
@@ -18,39 +15,28 @@ import java.util.List;
 @RestControllerAdvice
 public class AuthenticationExceptionHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationExceptionHandler.class);
+    private final ErrorBuilder errorBuilder;
 
-    private final MessageSource messageSource;
-
-    public AuthenticationExceptionHandler(MessageSource messageSource) {
-        this.messageSource = messageSource;
+    public AuthenticationExceptionHandler(ErrorBuilder errorBuilder) {
+        this.errorBuilder = errorBuilder;
     }
 
     @ExceptionHandler(JwtException.class)
     public ResponseEntity<RestError> handleJwtException(JwtException e) {
-        LOGGER.error(e.getMessage(), e);
-        return buildResponse();
+        return buildResponse(e);
     }
 
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<RestError> handleInvalidTokenException(InvalidTokenException e) {
-        LOGGER.error(e.getMessage(), e);
-        return buildResponse();
+        return buildResponse(e);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<RestError> handleAuthenticationException(AuthenticationException e) {
-        LOGGER.error(e.getMessage(), e);
-        return buildResponse();
+        return buildResponse(e);
     }
 
-    private ResponseEntity<RestError> buildResponse() {
-        String message = messageSource.getMessage(
-                "error.unauthorized",
-                List.of().toArray(),
-                LocaleContextHolder.getLocale()
-        );
-
-        return new ResponseEntity<>(new RestError(HttpStatus.UNAUTHORIZED.value(), message), HttpStatus.UNAUTHORIZED);
+    private ResponseEntity<RestError> buildResponse(Exception e) {
+        return errorBuilder.build(e, "error.unauthorized", List.of().toArray(), HttpStatus.UNAUTHORIZED);
     }
 }

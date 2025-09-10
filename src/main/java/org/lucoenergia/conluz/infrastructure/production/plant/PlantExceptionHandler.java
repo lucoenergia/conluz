@@ -2,9 +2,8 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -17,12 +16,12 @@ import java.util.Collections;
 @RestControllerAdvice
 public class PlantExceptionHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PlantExceptionHandler.class);
-
     private final MessageSource messageSource;
+    private final ErrorBuilder errorBuilder;
 
-    public PlantExceptionHandler(MessageSource messageSource) {
+    public PlantExceptionHandler(MessageSource messageSource, ErrorBuilder errorBuilder) {
         this.messageSource = messageSource;
+        this.errorBuilder = errorBuilder;
     }
 
     @ExceptionHandler(PlantAlreadyExistsException.class)
@@ -35,8 +34,7 @@ public class PlantExceptionHandler {
                 Collections.singletonList(plantCode).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(PlantNotFoundException.class)
@@ -49,7 +47,6 @@ public class PlantExceptionHandler {
                 Collections.singletonList(plantId).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.NOT_FOUND);
     }
 }
