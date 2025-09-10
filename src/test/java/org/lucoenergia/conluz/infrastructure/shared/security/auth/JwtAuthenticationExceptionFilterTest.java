@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 
@@ -41,7 +42,8 @@ class JwtAuthenticationExceptionFilterTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain filterChain = mock(FilterChain.class);
         InvalidTokenException invalidTokenException = new InvalidTokenException("Invalid token");
-        RestError restError = new RestError(HttpStatus.UNAUTHORIZED.value(), "Invalid token error");
+        RestError restError = new RestError(HttpStatus.UNAUTHORIZED.value(), "Invalid token error",
+                UUID.randomUUID().toString());
         ResponseEntity<RestError> errorResponse = new ResponseEntity<>(restError, HttpStatus.UNAUTHORIZED);
 
         when(authenticationExceptionHandler.handleInvalidTokenException(invalidTokenException)).thenReturn(errorResponse);

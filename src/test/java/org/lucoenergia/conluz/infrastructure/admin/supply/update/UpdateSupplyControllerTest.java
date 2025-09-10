@@ -53,6 +53,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
         supplyModified.setCode("code");
         supplyModified.setName("name");
         supplyModified.setAddress("address");
+        supplyModified.setAddressRef("4ASDF654ASDF89ASD");
         supplyModified.setPartitionCoefficient(1.2f);
         supplyModified.setEnabled(false);
         supplyModified.setDatadisValidDateFrom("2023-04-26");
@@ -74,6 +75,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.code").value(supplyModified.getCode()))
                 .andExpect(jsonPath("$.name").value(supplyModified.getName()))
                 .andExpect(jsonPath("$.address").value(supplyModified.getAddress()))
+                .andExpect(jsonPath("$.addressRef").value(supplyModified.getAddressRef()))
                 .andExpect(jsonPath("$.partitionCoefficient").value(supplyModified.getPartitionCoefficient()))
                 .andExpect(jsonPath("$.enabled").value(supply.getEnabled()))
                 .andExpect(jsonPath("$.datadisValidDateFrom").value(supplyModified.getDatadisValidDateFrom()))
@@ -103,7 +105,9 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
         // Modify data of the supply
         UpdateSupplyBody supplyModified = new UpdateSupplyBody();
         supplyModified.setCode("code");
+        supplyModified.setName("my home");
         supplyModified.setAddress("address");
+        supplyModified.setAddressRef("4ASDF654ASDF89ASD");
         supplyModified.setPartitionCoefficient(1.2f);
 
         String bodyAsString = objectMapper.writeValueAsString(supplyModified);
@@ -115,8 +119,9 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(supplyModified.getCode()))
-                .andExpect(jsonPath("$.name").isEmpty())
+                .andExpect(jsonPath("$.name").value(supplyModified.getName()))
                 .andExpect(jsonPath("$.address").value(supplyModified.getAddress()))
+                .andExpect(jsonPath("$.addressRef").value(supplyModified.getAddressRef()))
                 .andExpect(jsonPath("$.partitionCoefficient").value(supplyModified.getPartitionCoefficient()))
                 .andExpect(jsonPath("$.enabled").value(supply.getEnabled()))
                 .andExpect(jsonPath("$.datadisValidDateFrom").isEmpty())
@@ -140,7 +145,9 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
         String body = """
                         {
                           "code": "code",
-                          "address": "Fake Street 123,
+                          "name": "my home",
+                          "address": "Fake Street 123",
+                          "addressRef": "4ASDF654ASDF89ASD",
                           "partitionCoefficient": 1.2
                         }
                 """;
@@ -150,9 +157,9 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andDo(print())
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
@@ -164,7 +171,8 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                         {
                           "unknown": 1,
                           "code": "code",
-                          "address": "Fake Street 123,
+                          "address": "Fake Street 123",
+                          "addressRef": "4ASDF654ASDF89ASD",
                           "partitionCoefficient": 1.2
                         }
                 """;
@@ -209,20 +217,30 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
         return List.of(
                 """
                                 {
-                                  "address": "Fake Street 123,
+                                  "address": "Fake Street 123",
+                                  "addressRef": "4ASDF654ASDF89ASD",
                                   "partitionCoefficient": 1.2
                                 }
                         """,
                 """
                                 {
                                   "code": "code",
+                                  "addressRef": "4ASDF654ASDF89ASD",
                                   "partitionCoefficient": 1.2
                                 }
                         """,
                 """
                                 {
                                   "code": "code",
-                                  "address": "Fake Street 123,
+                                  "addressRef": "4ASDF654ASDF89ASD",
+                                  "address": "Fake Street 123",
+                                }
+                        """,
+                """
+                                {
+                                  "code": "code",
+                                  "address": "Fake Street 123",
+                                  "partitionCoefficient": 1.2
                                 }
                         """);
     }
@@ -252,6 +270,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                             {
                                  "code": "ES0031300326337001WS0F",
                                  "address": "MAYOR 1",
+                                 "addressRef": "4ASDF654ASDF89ASD",
                                  "partitionCoefficient": 0.021255,
                                  "personalId": "personalId",
                                  "enabled": true,
@@ -262,6 +281,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                             {
                                  "code": "ES0031300326337001WS0F",
                                  "address": "MAYOR 1",
+                                 "addressRef": "4ASDF654ASDF89ASD",
                                  "partitionCoefficient": 0.021255,
                                  "personalId": "personalId",
                                  "enabled": true,
@@ -272,6 +292,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                             {
                                  "code": "ES0031300326337001WS0F",
                                  "address": "MAYOR 1",
+                                 "addressRef": "4ASDF654ASDF89ASD",
                                  "partitionCoefficient": 0.021255,
                                  "personalId": "personalId",
                                  "enabled": "foo"

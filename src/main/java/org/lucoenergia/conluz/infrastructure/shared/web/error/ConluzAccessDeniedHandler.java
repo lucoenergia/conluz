@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.shared.web.error;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +28,11 @@ import java.io.IOException;
 public class ConluzAccessDeniedHandler implements AccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
+    private final ErrorBuilder errorBuilder;
 
-    public ConluzAccessDeniedHandler(ObjectMapper objectMapper) {
+    public ConluzAccessDeniedHandler(ObjectMapper objectMapper, ErrorBuilder errorBuilder) {
         this.objectMapper = objectMapper;
+        this.errorBuilder = errorBuilder;
     }
 
     /**
@@ -47,8 +50,7 @@ public class ConluzAccessDeniedHandler implements AccessDeniedHandler {
         // Customize the response when authentication fails
         String errorMessage = "Access denied: " + accessDeniedException.getMessage();
 
-        ResponseEntity<RestError> entity = new ResponseEntity<>(new RestError(HttpStatus.FORBIDDEN.value(),
-                errorMessage), HttpStatus.FORBIDDEN);
+        ResponseEntity<RestError> entity = errorBuilder.build(errorMessage, HttpStatus.FORBIDDEN);
 
         response.setStatus(entity.getStatusCode().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

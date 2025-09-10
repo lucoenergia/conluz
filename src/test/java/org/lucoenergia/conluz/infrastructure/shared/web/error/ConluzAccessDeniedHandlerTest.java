@@ -3,25 +3,24 @@ package org.lucoenergia.conluz.infrastructure.shared.web.error;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import static org.mockito.ArgumentMatchers.anyString;
+
 class ConluzAccessDeniedHandlerTest {
 
-    private ConluzAccessDeniedHandler handler;
+    private final ObjectMapper objectMapper = Mockito.mock(ObjectMapper.class);
+    private final ErrorBuilder errorBuilder = Mockito.mock(ErrorBuilder.class);
+    private final ConluzAccessDeniedHandler handler = new ConluzAccessDeniedHandler(objectMapper, errorBuilder);
 
-    private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setup() {
-        objectMapper = Mockito.mock(ObjectMapper.class);
-        handler = new ConluzAccessDeniedHandler(objectMapper);
-    }
 
     @Test
     void testHandleWithAccessDeniedException() throws IOException {
@@ -30,6 +29,9 @@ class ConluzAccessDeniedHandlerTest {
         final HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
         final PrintWriter writer = Mockito.mock(PrintWriter.class);
         Mockito.when(response.getWriter()).thenReturn(writer);
+
+        final ResponseEntity responseEntity = new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        Mockito.when(errorBuilder.build(anyString(), Mockito.eq(HttpStatus.FORBIDDEN))).thenReturn(responseEntity);
 
         String errorBody = """
                 {

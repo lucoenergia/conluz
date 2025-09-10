@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +23,11 @@ public class SupplyExceptionHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(SupplyExceptionHandler.class);
 
     private final MessageSource messageSource;
+    private final ErrorBuilder errorBuilder;
 
-    public SupplyExceptionHandler(MessageSource messageSource) {
+    public SupplyExceptionHandler(MessageSource messageSource, ErrorBuilder errorBuilder) {
         this.messageSource = messageSource;
+        this.errorBuilder = errorBuilder;
     }
 
     @ExceptionHandler(SupplyNotFoundException.class)
@@ -37,8 +40,7 @@ public class SupplyExceptionHandler {
                 Collections.singletonList(supplyId).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.NOT_FOUND.value(), message), HttpStatus.NOT_FOUND);
+        return errorBuilder.build(message, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(SupplyAlreadyExistsException.class)
@@ -49,7 +51,6 @@ public class SupplyExceptionHandler {
                 List.of(e.getCode().getCode()).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 }

@@ -23,6 +23,7 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
                 .withCode(entity.getCode())
                 .withName(entity.getName())
                 .withAddress(entity.getAddress())
+                .withAddressRef(entity.getAddressRef())
                 .withPartitionCoefficient(entity.getPartitionCoefficient())
                 .withEnabled(entity.getEnabled())
                 .withUser(userEntityMapper.map(entity.getUser()))

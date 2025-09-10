@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserService;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -57,12 +58,14 @@ public class CreateUsersWithFileController {
     private final CsvFileRequestValidator csvFileRequestValidator;
     private final MessageSource messageSource;
     private final CreateUserService createUserService;
+    private final ErrorBuilder errorBuilder;
 
     public CreateUsersWithFileController(CsvFileRequestValidator csvFileRequestValidator, MessageSource messageSource,
-                                         CreateUserService createUserService) {
+                                         CreateUserService createUserService, ErrorBuilder errorBuilder) {
         this.csvFileRequestValidator = csvFileRequestValidator;
         this.messageSource = messageSource;
         this.createUserService = createUserService;
+        this.errorBuilder = errorBuilder;
     }
 
     @PostMapping
@@ -136,35 +139,13 @@ public class CreateUsersWithFileController {
             });
         } catch (Exception ex) {
             if (ex.getCause() instanceof CsvRequiredFieldEmptyException) {
-                return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
-                        messageSource.getMessage("error.fields.number.does.not.match", new List[]{},
-                                LocaleContextHolder.getLocale())),
+                return errorBuilder.build(ex.getCause(), "error.fields.number.does.not.match", new List[]{},
                         HttpStatus.BAD_REQUEST);
             }
-            return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(),
-                    messageSource.getMessage("error.bad.request", new List[]{},
-                    LocaleContextHolder.getLocale())),
+            return errorBuilder.build(ex, "error.bad.request", new List[]{},
                     HttpStatus.BAD_REQUEST);
         }
 
         return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-    private ResponseEntity<RestError> buildUnsupportedMediaTypeErrorResponse(String contentType) {
-        String message = messageSource.getMessage(
-                "error.http.media.type.not.supported",
-                Collections.singletonList(contentType).toArray(),
-                LocaleContextHolder.getLocale()
-        );
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
-    }
-
-    private ResponseEntity<RestError> buildUnsupportedExtensionErrorResponse() {
-        String message = messageSource.getMessage(
-                "error.http.extension.not.supported",
-                new List[]{},
-                LocaleContextHolder.getLocale()
-        );
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
     }
 }

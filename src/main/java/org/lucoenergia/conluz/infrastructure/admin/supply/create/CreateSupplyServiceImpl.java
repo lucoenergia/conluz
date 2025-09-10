@@ -39,6 +39,7 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
                     .withUser(supply.getUser())
                     .withName(supply.getAddress())
                     .withAddress(supply.getAddress())
+                    .withAddressRef(supply.getAddressRef())
                     .withPartitionCoefficient(supply.getPartitionCoefficient())
                     .withEnabled(supply.getEnabled())
                     .withValidDateFrom(supply.getValidDateFrom())

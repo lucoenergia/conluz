@@ -21,6 +21,7 @@ public class SupplyEntity {
 
     private String name;
     private String address;
+    private String addressRef;
     private Float partitionCoefficient;
     private Boolean enabled;
     private LocalDate validDateFrom;
@@ -58,6 +59,7 @@ public class SupplyEntity {
         private UserEntity user;
         private String name;
         private String address;
+        private String addressRef;
         private Float partitionCoefficient;
         private Boolean enabled;
 
@@ -92,6 +94,11 @@ public class SupplyEntity {
 
         public Builder withAddress(String address) {
             this.address = address;
+            return this;
+        }
+
+        public Builder withAddressRef(String addressRef) {
+            this.addressRef = addressRef;
             return this;
         }
 
@@ -152,6 +159,7 @@ public class SupplyEntity {
             entity.user = this.user;
             entity.name = this.name;
             entity.address = this.address;
+            entity.addressRef = this.addressRef;
             entity.partitionCoefficient = this.partitionCoefficient;
             entity.enabled = this.enabled;
             entity.validDateFrom = this.validDateFrom;
@@ -206,9 +214,16 @@ public class SupplyEntity {
         return address;
     }
 
+    public String getAddressRef() {
+        return addressRef;
+    }
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public void setAddressRef(String addressRef) {
+        this.addressRef = addressRef;
     }
 
     public Float getPartitionCoefficient() {

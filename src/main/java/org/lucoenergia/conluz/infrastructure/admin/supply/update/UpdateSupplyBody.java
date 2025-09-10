@@ -15,9 +15,12 @@ public class UpdateSupplyBody {
 
     @NotEmpty
     private String code;
+//    @NotEmpty
     private String name;
     @NotEmpty
     private String address;
+    @NotEmpty
+    private String addressRef;
     @Positive
     private Float partitionCoefficient;
     private Boolean enabled;
@@ -53,6 +56,14 @@ public class UpdateSupplyBody {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getAddressRef() {
+        return addressRef;
+    }
+
+    public void setAddressRef(String addressRef) {
+        this.addressRef = addressRef;
     }
 
     public Float getPartitionCoefficient() {
@@ -141,6 +152,7 @@ public class UpdateSupplyBody {
                 .withCode(code)
                 .withName(name)
                 .withAddress(address)
+                .withAddressRef(addressRef)
                 .withPartitionCoefficient(partitionCoefficient)
                 .withValidDateFrom(datadisValidDateFrom != null ?
                         DateConverter.convertStringToLocalDate(datadisValidDateFrom, "yyyy-MM-dd") :

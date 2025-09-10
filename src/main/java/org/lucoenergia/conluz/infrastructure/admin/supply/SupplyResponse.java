@@ -19,6 +19,8 @@ public class SupplyResponse {
     private final String name;
     @Schema(description = "Address of the supply", example = "Fake Street 123")
     private final String address;
+    @Schema(description = "Reference ID of the address", example = "4ASDF654ASDF89ASD")
+    private final String addressRef;
     @Schema(description = "Address of the supply", example = "2.403561")
     private final Float partitionCoefficient;
     @Schema(description = "Whether the supply is enabled or disabled", example = "true")
@@ -46,6 +48,7 @@ public class SupplyResponse {
         this.code = supply.getCode();
         this.name = supply.getName();
         this.address = supply.getAddress();
+        this.addressRef = supply.getAddressRef();
         this.partitionCoefficient = supply.getPartitionCoefficient();
         this.enabled = supply.getEnabled();
         this.user = supply.getUser() != null ? new UserResponse(supply.getUser()) : null;
@@ -76,6 +79,10 @@ public class SupplyResponse {
 
     public String getAddress() {
         return address;
+    }
+
+    public String getAddressRef() {
+        return addressRef;
     }
 
     public Float getPartitionCoefficient() {

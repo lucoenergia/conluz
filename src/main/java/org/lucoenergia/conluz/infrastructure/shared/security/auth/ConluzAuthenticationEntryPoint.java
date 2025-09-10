@@ -3,9 +3,8 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -41,12 +40,12 @@ import java.io.IOException;
  */
 public class ConluzAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConluzAuthenticationEntryPoint.class);
-
     private final ObjectMapper objectMapper;
+    private final ErrorBuilder errorBuilder;
 
-    public ConluzAuthenticationEntryPoint(ObjectMapper objectMapper) {
+    public ConluzAuthenticationEntryPoint(ObjectMapper objectMapper, ErrorBuilder errorBuilder) {
         this.objectMapper = objectMapper;
+        this.errorBuilder = errorBuilder;
     }
 
     /**
@@ -62,13 +61,10 @@ public class ConluzAuthenticationEntryPoint implements AuthenticationEntryPoint 
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException exception) throws IOException {
 
-        LOGGER.error("Unable to authorize the request.", exception);
-
         // Customize the response when authentication fails
         String errorMessage = "Authentication Failed: " + exception.getMessage();
 
-        ResponseEntity<RestError> entity = new ResponseEntity<>(new RestError(HttpStatus.UNAUTHORIZED.value(),
-                errorMessage), HttpStatus.UNAUTHORIZED);
+        ResponseEntity<RestError> entity = errorBuilder.build(errorMessage, HttpStatus.UNAUTHORIZED);
 
         response.setStatus(entity.getStatusCode().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

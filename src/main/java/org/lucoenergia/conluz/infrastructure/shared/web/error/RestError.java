@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.web.error;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 public class RestError {
 
@@ -10,9 +9,9 @@ public class RestError {
     private final String message;
     private final String traceId;
 
-    public RestError(int status, String message) {
+    public RestError(int status, String message, String traceId) {
         this.timestamp = OffsetDateTime.now();
-        this.traceId = UUID.randomUUID().toString();
+        this.traceId = traceId;
 
         this.status = status;
         this.message = message;

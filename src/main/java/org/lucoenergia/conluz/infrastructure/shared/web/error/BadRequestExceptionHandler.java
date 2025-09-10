@@ -3,8 +3,7 @@ package org.lucoenergia.conluz.infrastructure.shared.web.error;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import jakarta.validation.ConstraintViolationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.mapping.PropertyReferenceException;
@@ -28,12 +27,12 @@ import java.util.*;
 @RestControllerAdvice
 public class BadRequestExceptionHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BadRequestExceptionHandler.class);
-
     private final MessageSource messageSource;
+    private final ErrorBuilder errorBuilder;
 
-    public BadRequestExceptionHandler(MessageSource messageSource) {
+    public BadRequestExceptionHandler(MessageSource messageSource, ErrorBuilder errorBuilder) {
         this.messageSource = messageSource;
+        this.errorBuilder = errorBuilder;
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -46,8 +45,7 @@ public class BadRequestExceptionHandler {
                 List.of(parameterName).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MissingPathVariableException.class)
@@ -58,8 +56,7 @@ public class BadRequestExceptionHandler {
                 List.of().toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -79,8 +76,7 @@ public class BadRequestExceptionHandler {
                 Arrays.asList(argumentName, currentValue, expectedFormat).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -101,8 +97,7 @@ public class BadRequestExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
 
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
@@ -112,8 +107,7 @@ public class BadRequestExceptionHandler {
                 Collections.singletonList(e.getContentType()).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
@@ -124,8 +118,7 @@ public class BadRequestExceptionHandler {
                 List.of().toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(PropertyReferenceException.class)
@@ -136,8 +129,7 @@ public class BadRequestExceptionHandler {
                 List.of(e.getPropertyName()).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -156,8 +148,7 @@ public class BadRequestExceptionHandler {
                         LocaleContextHolder.getLocale()
                 ), String::concat);
 
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -192,8 +183,7 @@ public class BadRequestExceptionHandler {
             );
         }
 
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
@@ -204,14 +194,11 @@ public class BadRequestExceptionHandler {
                 List.of(e.getMethod()).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        LOGGER.error(message);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), message), HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<RestError> handleException(IllegalArgumentException e) {
-        LOGGER.error(e.getMessage(), e);
-        return new ResponseEntity<>(new RestError(HttpStatus.BAD_REQUEST.value(), e.getMessage()),
-                HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(e, "error.invalid.arguments", List.of().toArray(), HttpStatus.BAD_REQUEST);
     }
 }

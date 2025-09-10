@@ -53,6 +53,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "code": "ES0033333333333333AA0A",
                   "personalId": "%s",
                   "address": "Fake Street 123",
+                  "addressRef": "4ASDF654ASDF89ASD",
                   "partitionCoefficient": "3.0763"
                 }
         """, userPersonalId);
@@ -66,6 +67,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.code").value("ES0033333333333333AA0A"))
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
+                .andExpect(jsonPath("$.addressRef").value("4ASDF654ASDF89ASD"))
                 .andExpect(jsonPath("$.partitionCoefficient").value("3.0763"))
                 .andExpect(jsonPath("$.name").value("Fake Street 123")) // Name is set to address by default
                 .andExpect(jsonPath("$.enabled").value(true))
@@ -96,6 +98,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "code": "ES0033333333333333BB0B",
                   "personalId": "%s",
                   "address": "Fake Street 456",
+                  "addressRef": "4ASDF654ASDF89ASD",
                   "partitionCoefficient": "2.5432",
                   "name": "Test Supply Name"
                 }
@@ -110,6 +113,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.code").value("ES0033333333333333BB0B"))
                 .andExpect(jsonPath("$.address").value("Fake Street 456"))
+                .andExpect(jsonPath("$.addressRef").value("4ASDF654ASDF89ASD"))
                 .andExpect(jsonPath("$.partitionCoefficient").value("2.5432"))
                 .andExpect(jsonPath("$.name").value("Test Supply Name")) // Name is explicitly provided
                 .andExpect(jsonPath("$.enabled").value(true))
@@ -140,9 +144,11 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "code": "%s",
                   "personalId": "%s",
                   "address": "%s",
+                  "addressRef": "%s",
                   "partitionCoefficient": "%s"
                 }
-        """, supply.getCode(), user.getPersonalId(), supply.getAddress(), supply.getPartitionCoefficient());
+        """, supply.getCode(), user.getPersonalId(), supply.getAddress(), supply.getAddressRef(),
+                supply.getPartitionCoefficient());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -179,6 +185,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                         {
                           "personalId": "54889216G",
                           "address": "Fake Street 456",
+                          "addressRef": "4ASDF654ASDF89ASD",
                           "partitionCoefficient": "2.5432"
                         }
                 """,
@@ -186,6 +193,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                         {
                           "code": "ES0033333333333333BB0B",
                           "address": "Fake Street 456",
+                          "addressRef": "4ASDF654ASDF89ASD",
                           "partitionCoefficient": "2.5432"
                         }
                 """,
@@ -193,6 +201,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                         {
                           "code": "ES0033333333333333BB0B",
                           "personalId": "54889216G",
+                          "addressRef": "4ASDF654ASDF89ASD",
                           "partitionCoefficient": "2.5432"
                         }
                 """,
@@ -200,9 +209,19 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                         {
                           "code": "ES0033333333333333BB0B",
                           "personalId": "54889216G",
+                          "addressRef": "4ASDF654ASDF89ASD",
                           "address": "Fake Street 456"
                         }
-                """);
+                """,
+                """
+                        {
+                          "code": "ES0033333333333333BB0B",
+                          "personalId": "54889216G",
+                          "partitionCoefficient": "2.5432",
+                          "address": "Fake Street 456"
+                        }
+                """
+                );
     }
 
     @ParameterizedTest
@@ -229,6 +248,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                       "code": "ES0033333333333333AA0A",
                       "personalId": "54889216G",
                       "address": "Fake Street 123",
+                      "addressRef": "4ASDF654ASDF89ASD",
                       "partitionCoefficient": "-3.0763"
                     }
                 """,
@@ -237,6 +257,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                       "code": "ES0033333333333333AA0A",
                       "personalId": "54889216G",
                       "address": "Fake Street 123",
+                      "addressRef": "4ASDF654ASDF89ASD",
                       "partitionCoefficient": "3,0763"
                     }
                 """,
@@ -245,6 +266,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                       "code": "ES0033333333333333AA0A",
                       "personalId": "54889216G",
                       "address": "Fake Street 123",
+                      "addressRef": "4ASDF654ASDF89ASD",
                       "partitionCoefficient": "foo"
                     }
                 """);
@@ -289,6 +311,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "code": "ES0033333333333333AA0A",
                   "personalId": "%s",
                   "address": "Fake Street 123",
+                  "addressRef": "4ASDF654ASDF89ASD",
                   "partitionCoefficient": "3.0763"
                 }
         """, userPersonalId);

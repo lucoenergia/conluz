@@ -23,6 +23,7 @@ public class Supply {
     private String name;
     @NotBlank
     private String address;
+    private String addressRef;
     @NotNull
     @PositiveOrZero
     private Float partitionCoefficient;
@@ -44,6 +45,7 @@ public class Supply {
         this.user = builder.user;
         this.name = builder.name;
         this.address = builder.address;
+        this.addressRef = builder.addressRef;
         this.partitionCoefficient = builder.partitionCoefficient;
         this.enabled = builder.enabled;
         this.validDateFrom = builder.validDateFrom;
@@ -70,6 +72,7 @@ public class Supply {
         private User user;
         private String name;
         private String address;
+        private String addressRef;
         private Float partitionCoefficient;
         private Boolean enabled;
         private LocalDate validDateFrom;
@@ -103,6 +106,11 @@ public class Supply {
 
         public Builder withAddress(String address) {
             this.address = address;
+            return this;
+        }
+
+        public Builder withAddressRef(String addressRef) {
+            this.addressRef = addressRef;
             return this;
         }
 
@@ -185,6 +193,10 @@ public class Supply {
         return address;
     }
 
+    public String getAddressRef() {
+        return addressRef;
+    }
+
     public Float getPartitionCoefficient() {
         return partitionCoefficient;
     }
@@ -215,6 +227,10 @@ public class Supply {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public void setAddressRef(String addressRef) {
+        this.addressRef = addressRef;
     }
 
     public void setValidDateFrom(LocalDate validDateFrom) {

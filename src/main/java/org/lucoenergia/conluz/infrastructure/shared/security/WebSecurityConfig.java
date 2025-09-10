@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.shared.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
+import org.lucoenergia.conluz.infrastructure.shared.error.GlobalExceptionFilter;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationExceptionFilter;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.ConluzAccessDeniedHandler;
@@ -37,14 +39,20 @@ public class WebSecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationExceptionFilter jwtAuthenticationExceptionFilter;
     private final AuthenticationProvider authenticationProvider;
+    private final GlobalExceptionFilter globalExceptionFilter;
     private final ObjectMapper objectMapper;
+    private final ErrorBuilder errorBuilder;
 
-    public WebSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, JwtAuthenticationExceptionFilter jwtAuthenticationExceptionFilter,
-                             AuthenticationProvider authenticationProvider, ObjectMapper objectMapper) {
+    public WebSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                             JwtAuthenticationExceptionFilter jwtAuthenticationExceptionFilter,
+                             AuthenticationProvider authenticationProvider,
+                             GlobalExceptionFilter globalExceptionFilter, ObjectMapper objectMapper, ErrorBuilder errorBuilder) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.jwtAuthenticationExceptionFilter = jwtAuthenticationExceptionFilter;
         this.authenticationProvider = authenticationProvider;
+        this.globalExceptionFilter = globalExceptionFilter;
         this.objectMapper = objectMapper;
+        this.errorBuilder = errorBuilder;
     }
 
     @Bean
@@ -68,6 +76,7 @@ public class WebSecurityConfig {
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationExceptionFilter, JwtAuthenticationFilter.class)
+                .addFilterBefore(globalExceptionFilter, JwtAuthenticationExceptionFilter.class)
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> {
                             httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(authenticationEntryPoint());
                             httpSecurityExceptionHandlingConfigurer.accessDeniedHandler(accessDeniedHandler());
@@ -91,11 +100,11 @@ public class WebSecurityConfig {
 
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
-        return new ConluzAccessDeniedHandler(objectMapper);
+        return new ConluzAccessDeniedHandler(objectMapper, errorBuilder);
     }
 
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
-        return new ConluzAuthenticationEntryPoint(objectMapper);
+        return new ConluzAuthenticationEntryPoint(objectMapper, errorBuilder);
     }
 }
