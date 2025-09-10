@@ -71,9 +71,9 @@ public class WebSecurityConfig {
                         sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authenticationProvider(authenticationProvider)
-                .addFilterBefore(globalExceptionFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationExceptionFilter, JwtAuthenticationFilter.class)
+                .addFilterBefore(globalExceptionFilter, JwtAuthenticationExceptionFilter.class)
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> {
                             httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(authenticationEntryPoint());
                             httpSecurityExceptionHandlingConfigurer.accessDeniedHandler(accessDeniedHandler());

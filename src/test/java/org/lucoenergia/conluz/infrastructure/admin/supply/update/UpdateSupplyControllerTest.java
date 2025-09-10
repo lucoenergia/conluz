@@ -105,6 +105,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
         // Modify data of the supply
         UpdateSupplyBody supplyModified = new UpdateSupplyBody();
         supplyModified.setCode("code");
+        supplyModified.setName("my home");
         supplyModified.setAddress("address");
         supplyModified.setAddressRef("4ASDF654ASDF89ASD");
         supplyModified.setPartitionCoefficient(1.2f);
@@ -118,7 +119,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(supplyModified.getCode()))
-                .andExpect(jsonPath("$.name").isEmpty())
+                .andExpect(jsonPath("$.name").value(supplyModified.getName()))
                 .andExpect(jsonPath("$.address").value(supplyModified.getAddress()))
                 .andExpect(jsonPath("$.addressRef").value(supplyModified.getAddressRef()))
                 .andExpect(jsonPath("$.partitionCoefficient").value(supplyModified.getPartitionCoefficient()))
@@ -144,6 +145,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
         String body = """
                         {
                           "code": "code",
+                          "name": "my home",
                           "address": "Fake Street 123",
                           "addressRef": "4ASDF654ASDF89ASD",
                           "partitionCoefficient": 1.2
