@@ -46,14 +46,7 @@ public class GetMonthlyProductionController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Query executed successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    value = """
-
-                                            """
-                            )
-                    )
+                    useReturnTypeSchema = true
             )
     })
     @ForbiddenErrorResponse
