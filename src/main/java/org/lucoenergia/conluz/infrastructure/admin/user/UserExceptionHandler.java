@@ -55,6 +55,6 @@ public class UserExceptionHandler {
                 List.of(e.getId()).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.NOT_FOUND);
     }
 }
