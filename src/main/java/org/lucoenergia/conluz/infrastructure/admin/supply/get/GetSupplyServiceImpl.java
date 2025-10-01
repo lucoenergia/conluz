@@ -8,12 +8,14 @@ import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Transactional(readOnly = true)
@@ -51,5 +53,20 @@ public class GetSupplyServiceImpl implements GetSupplyService {
         }
 
         throw new AccessDeniedException("You do not have permission to access this supply");
+    }
+
+    @Override
+    public List<Supply> getByUserId(UserId userId, UserId requestingUserId, boolean isAdmin) {
+        // If user is ADMIN, return all supplies for the requested user
+        if (isAdmin) {
+            return repository.findByUserId(userId);
+        }
+
+        // Otherwise, only if the requesting user is the same as the requested user
+        if (userId.getId().equals(requestingUserId.getId())) {
+            return repository.findByUserId(userId);
+        }
+
+        throw new AccessDeniedException("You do not have permission to access supplies for this user");
     }
 }

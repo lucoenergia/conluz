@@ -118,3 +118,5 @@ With the app running:
 - Code should be self-explanatory with comments when additional explanation is needed
 - All new code must have automated tests
 - Architecture tests are enforced via ArchUnit (see `src/test/java/org/lucoenergia/conluz/architecture/`)
+- when injecting beans, always use the interface. This also applies to integration tests
+- when creating tests over services that has an interface, always use the name of the interface + "Test" for naming them

@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
@@ -78,5 +79,11 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
         PagedResult<Supply> allSupplies = findAll(PagedRequest.of(0, Long.valueOf(total > 0 ? total : 1).intValue()));
 
         return allSupplies.getItems();
+    }
+
+    @Override
+    public List<Supply> findByUserId(UserId userId) {
+        List<SupplyEntity> supplyEntities = supplyRepository.findByUserId(userId.getId());
+        return supplyEntityMapper.mapList(supplyEntities);
     }
 }
