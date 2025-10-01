@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -19,6 +20,7 @@ public class CreateSupplyBody {
     private String address;
     @NotEmpty
     private String addressRef;
+    @NotNull
     @Positive
     private Float partitionCoefficient;
     private String name;

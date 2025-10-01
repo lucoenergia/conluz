@@ -1,12 +1,9 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.enable;
+package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
-import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -17,45 +14,50 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
-class EnableUserControllerTest extends BaseControllerTest {
+class GetUserByIdControllerTest extends BaseControllerTest {
 
     @Autowired
     private CreateUserRepository createUserRepository;
-    @Autowired
-    private GetUserRepository getUserRepository;
 
     @Test
-    void testEnableUser() throws Exception {
+    void testGetUserById_shouldReturnUser() throws Exception {
 
         // Create a user
         User user = UserMother.randomUser();
-        user.setEnabled(false);
         createUserRepository.create(user);
-        Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
 
+        // Login as default admin
         String authHeader = loginAsDefaultAdmin();
 
-        mockMvc.perform(post(String.format("/api/v1/users/%s/enable", user.getId()))
+        mockMvc.perform(get(String.format("/api/v1/users/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-        Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).get().isEnabled());
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(user.getId().toString()))
+                .andExpect(jsonPath("$.personalId").value(user.getPersonalId()))
+                .andExpect(jsonPath("$.number").value(user.getNumber()))
+                .andExpect(jsonPath("$.fullName").value(user.getFullName()))
+                .andExpect(jsonPath("$.address").value(user.getAddress()))
+                .andExpect(jsonPath("$.email").value(user.getEmail()))
+                .andExpect(jsonPath("$.phoneNumber").value(user.getPhoneNumber()))
+                .andExpect(jsonPath("$.enabled").value(user.isEnabled()))
+                .andExpect(jsonPath("$.role").value(user.getRole().toString()));
     }
 
     @Test
-    void testWithUnknownUser() throws Exception {
+    void testGetUserById_shouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
-        mockMvc.perform(post("/api/v1/users/" + userId + "/enable")
+        mockMvc.perform(get("/api/v1/users/" + userId)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -67,11 +69,24 @@ class EnableUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testWithoutToken() throws Exception {
+    void testGetUserById_shouldReturnBadRequestWhenIdIsInvalid() throws Exception {
+        String authHeader = loginAsDefaultAdmin();
 
-        final String userId = UUID.randomUUID().toString();
+        mockMvc.perform(get("/api/v1/users/invalid-uuid")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
 
-        mockMvc.perform(post("/api/v1/users/" + userId + "/enable")
+    @Test
+    void testGetUserById_shouldReturnUnauthorizedWhenNoToken() throws Exception {
+
+        mockMvc.perform(get("/api/v1/users/" + UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
@@ -82,14 +97,14 @@ class EnableUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+    void testGetUserById_shouldReturnForbiddenWhenUserIsNotAdmin() throws Exception {
 
-        final String userId = UUID.randomUUID().toString();
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
 
         String authHeader = loginAsPartner();
 
-        // Test users endpoint
-        mockMvc.perform(post("/api/v1/users/" + userId + "/enable")
+        mockMvc.perform(get(String.format("/api/v1/users/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())

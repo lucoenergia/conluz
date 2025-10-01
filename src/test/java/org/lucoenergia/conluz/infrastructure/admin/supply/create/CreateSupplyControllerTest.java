@@ -166,6 +166,10 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
 
+        User user = UserMother.randomUser();
+        user.setPersonalId("54889216G");
+        createUserRepository.create(user);
+
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(post(URL)
