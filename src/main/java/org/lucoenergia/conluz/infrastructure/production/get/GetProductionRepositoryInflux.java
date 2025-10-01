@@ -132,8 +132,8 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
             Query query = new Query(String.format(
                     "SELECT SUM(\"%s\")*%s AS \"%s\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s' GROUP BY time(%s)",
                     ProductionPoint.INVERTER_POWER,
-                    ProductionPoint.INVERTER_POWER,
                     partitionCoefficient,
+                    ProductionPoint.INVERTER_POWER,
                     HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
                     dateConverter.convertToString(startDate),
                     dateConverter.convertToString(endDate),
