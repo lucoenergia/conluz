@@ -1,0 +1,140 @@
+# InfluxDB 1.8 Schema for database: conluz_db
+Generated on: Wed Oct  1 20:18:45 UTC 2025
+
+## Measurements:
+name: measurements
+name
+----
+datadis_consumption_kwh
+huawei_production_hourly
+huawei_production_realtime
+omie_prices_kwh
+shelly_consumption_kw
+shelly_mqtt_power_messages
+
+## Field Keys and Types:
+name: datadis_consumption_kwh
+fieldKey                    fieldType
+--------                    ---------
+consumption_kwh             float
+generation_energy_kwh       float
+obtain_method               string
+self_consumption_energy_kwh float
+surplus_energy_kwh          float
+
+name: huawei_production_hourly
+fieldKey            fieldType
+--------            ---------
+inverter_power      float
+ongrid_power        float
+power_profit        float
+radiation_intensity float
+theory_power        float
+
+name: huawei_production_realtime
+fieldKey          fieldType
+--------          ---------
+day_income        float
+day_power         float
+month_power       float
+real_health_state integer
+total_income      float
+total_power       float
+
+name: omie_prices_kwh
+fieldKey fieldType
+-------- ---------
+price1   float
+
+name: shelly_consumption_kw
+fieldKey       fieldType
+--------       ---------
+consumption_kw float
+
+name: shelly_mqtt_power_messages
+fieldKey fieldType
+-------- ---------
+value    float
+
+## Tag Keys:
+name: datadis_consumption_kwh
+tagKey
+------
+cups
+
+name: huawei_production_hourly
+tagKey
+------
+station_code
+
+name: huawei_production_realtime
+tagKey
+------
+station_code
+
+name: shelly_consumption_kw
+tagKey
+------
+channel
+prefix
+
+name: shelly_mqtt_power_messages
+tagKey
+------
+host
+topic
+
+## Sample Data (last 5 points):
+name: datadis_consumption_kwh
+time                channel consumption_kw consumption_kwh     cups                   day_income day_power generation_energy_kwh host inverter_power month_power obtain_method ongrid_power power_profit prefix price1 radiation_intensity real_health_state self_consumption_energy_kwh station_code surplus_energy_kwh theory_power topic total_income total_power value
+----                ------- -------------- ---------------     ----                   ---------- --------- --------------------- ---- -------------- ----------- ------------- ------------ ------------ ------ ------ ------------------- ----------------- --------------------------- ------------ ------------------ ------------ ----- ------------ ----------- -----
+1682895600000000000                        0.07900000363588333 FOO0AAA00297635001HG0F                                                                            Real                                                                                                                                 0                                                              
+1682895600000000000                        0.21400000154972076 FOO0AAA00806635001KE0F                                                                            Real                                                                                                                                 0                                                              
+1682895600000000000                        0.04699999839067459 FOO0AAA00329635001AQ0F                                                                            Real                                                                                                                                 0                                                              
+1682895600000000000                        0.35899999737739563 FOO0AAA00327635001DT0F                                                                            Real                                                                                                                                 0                                                              
+1682895600000000000                        0.04699999839067459 FOO0AAA00327635001PQ0F                                                                            Real                                                                                                                                 0                                                              
+
+name: huawei_production_hourly
+time                channel consumption_kw consumption_kwh cups day_income day_power generation_energy_kwh host inverter_power month_power obtain_method ongrid_power power_profit prefix price1 radiation_intensity real_health_state self_consumption_energy_kwh station_code surplus_energy_kwh theory_power topic total_income total_power value
+----                ------- -------------- --------------- ---- ---------- --------- --------------------- ---- -------------- ----------- ------------- ------------ ------------ ------ ------ ------------------- ----------------- --------------------------- ------------ ------------------ ------------ ----- ------------ ----------- -----
+1713304800000000000                                                                                             0                                        0            0                          0                                                                 NE=12345678                     0                                           
+1713308400000000000                                                                                             0                                        0            0                          0                                                                 NE=12345678                     0                                           
+1713312000000000000                                                                                             0                                        0            0                          0                                                                 NE=12345678                     0                                           
+1713315600000000000                                                                                             0                                        0            0                          0                                                                 NE=12345678                     0                                           
+1713319200000000000                                                                                             0                                        0            0                          0                                                                 NE=12345678                     0                                           
+
+name: huawei_production_realtime
+time                channel consumption_kw consumption_kwh cups day_income         day_power generation_energy_kwh host inverter_power month_power obtain_method ongrid_power power_profit prefix price1 radiation_intensity real_health_state self_consumption_energy_kwh station_code surplus_energy_kwh theory_power topic total_income total_power value
+----                ------- -------------- --------------- ---- ----------         --------- --------------------- ---- -------------- ----------- ------------- ------------ ------------ ------ ------ ------------------- ----------------- --------------------------- ------------ ------------------ ------------ ----- ------------ ----------- -----
+0                                                               26.334999999999855 263.35                                              263.35                                                                                3                                             NE=12345678                                        0            84963.11    
+1714599602443000000                                             26.334999999999855 263.35                                              263.35                                                                                3                                             NE=12345678                                        0            84963.11    
+1714599900804000000                                             26.334999999999855 263.35                                              263.35                                                                                3                                             NE=12345678                                        0            84963.11    
+1714600200796000000                                             26.334999999999855 263.35                                              263.35                                                                                3                                             NE=12345678                                        0            84963.11    
+1714600500717000000                                             26.334999999999855 263.35                                              263.35                                                                                3                                             NE=12345678                                        0            84963.11    
+
+name: omie_prices_kwh
+time                channel consumption_kw consumption_kwh cups day_income day_power generation_energy_kwh host inverter_power month_power obtain_method ongrid_power power_profit prefix price1  radiation_intensity real_health_state self_consumption_energy_kwh station_code surplus_energy_kwh theory_power topic total_income total_power value
+----                ------- -------------- --------------- ---- ---------- --------- --------------------- ---- -------------- ----------- ------------- ------------ ------------ ------ ------  ------------------- ----------------- --------------------------- ------------ ------------------ ------------ ----- ------------ ----------- -----
+1713391200000000000                                                                                                                                                                       0.00325                                                                                                                                               
+1713394800000000000                                                                                                                                                                       0.0029                                                                                                                                                
+1713398400000000000                                                                                                                                                                       0.0022                                                                                                                                                
+1713402000000000000                                                                                                                                                                       0.002                                                                                                                                                 
+1713405600000000000                                                                                                                                                                       0.00177                                                                                                                                               
+
+name: shelly_consumption_kw
+time                channel consumption_kw       consumption_kwh cups day_income day_power generation_energy_kwh host inverter_power month_power obtain_method ongrid_power power_profit prefix                   price1 radiation_intensity real_health_state self_consumption_energy_kwh station_code surplus_energy_kwh theory_power topic total_income total_power value
+----                ------- --------------       --------------- ---- ---------- --------- --------------------- ---- -------------- ----------- ------------- ------------ ------------ ------                   ------ ------------------- ----------------- --------------------------- ------------ ------------------ ------------ ----- ------------ ----------- -----
+1714162606085000000 0       0.025070000000000002                                                                                                                                         66c590f9f123ffoo/paquita                                                                                                                                                      
+1714162606792000000 0       5.25887                                                                                                                                                      66c590f9f123ffoo/bar                                                                                                                                                          
+1714162606804000000 1       5.29232                                                                                                                                                      66c590f9f123ffoo/bar                                                                                                                                                          
+1714162616378000000 0       0.10482                                                                                                                                                      66c590f9f123ffoo/bea                                                                                                                                                          
+1714162616408000000 1       0.08807999999999999                                                                                                                                          66c590f9f123ffoo/bea                                                                                                                                                          
+
+name: shelly_mqtt_power_messages
+time                channel consumption_kw consumption_kwh cups day_income day_power generation_energy_kwh host         inverter_power month_power obtain_method ongrid_power power_profit prefix price1 radiation_intensity real_health_state self_consumption_energy_kwh station_code surplus_energy_kwh theory_power topic                                                total_income total_power value
+----                ------- -------------- --------------- ---- ---------- --------- --------------------- ----         -------------- ----------- ------------- ------------ ------------ ------ ------ ------------------- ----------------- --------------------------- ------------ ------------------ ------------ -----                                                ------------ ----------- -----
+1729721538734274517                                                                                        b630368c3a82                                                                                                                                                                                                 shellies/66c590f9f123ffoo/consultorio/emeter/0/power                          12.23
+1729721538768685672                                                                                        b630368c3a82                                                                                                                                                                                                 shellies/66c590f9f123ffoo/consultorio/emeter/1/power                          0
+1729721538768721985                                                                                        b630368c3a82                                                                                                                                                                                                 shellies/66c590f9f123ffoo/vcm/emeter/0/power                                  120.24
+1729721538768737847                                                                                        b630368c3a82                                                                                                                                                                                                 shellies/66c590f9f123ffoo/vcm/emeter/1/power                                  0
+1729721543755876737                                                                                        b630368c3a82                                                                                                                                                                                                 shellies/66c590f9f123ffoo/vcm/emeter/0/power                                  120.96

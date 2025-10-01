@@ -1,0 +1,10 @@
+I have an InfluxDB 1.8 database with the following schema:
+
+Database: production_metrics
+
+Measurements:
+- cpu_usage: Fields(usage_idle:float, usage_user:float) Tags(host, region, datacenter)
+- memory_stats: Fields(used:int, free:int, percent:float) Tags(host, region)
+- network_io: Fields(bytes_sent:int, bytes_recv:int) Tags(host, interface)
+
+Please generate InfluxQL queries for [your specific requirements].
