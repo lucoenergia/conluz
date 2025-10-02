@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.time;
 
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.time.*;
@@ -7,6 +8,9 @@ import java.time.format.DateTimeFormatter;
 
 @Component
 public class DateConverter {
+
+    public static final String DATE_FORMAT = "yyyy/MM/dd";
+    public static final String TIME_FORMAT = "HH:mm";
 
     private final TimeConfiguration timeConfiguration;
 
@@ -21,10 +25,6 @@ public class DateConverter {
 
         LocalDateTime dateTime = LocalDateTime.parse(dateString, formatter);
         return dateTime.atZone(zoneId).toInstant().toEpochMilli();
-    }
-
-    public long convertOffsetDateTimeToMilliseconds(OffsetDateTime time) {
-        return time.toInstant().toEpochMilli();
     }
 
     public OffsetDateTime convertInstantToOffsetDateTime(Instant instant) {
@@ -77,5 +77,23 @@ public class DateConverter {
 
     public String convertToFirstDayOfTheMonthAsString(Month month, int year) {
         return String.format("%s-%02d-01T00:00:00.000000000Z", year, month.getValue());
+    }
+
+    public String convertFromInstantToStringDate(@NotNull Instant instant) {
+
+        ZonedDateTime zonedDateTime = instant.atZone(timeConfiguration.getZoneId());
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
+
+        return formatter.format(zonedDateTime);
+    }
+
+    public String convertFromInstantToStringTime(@NotNull Instant instant) {
+
+        ZonedDateTime zonedDateTime = instant.atZone(timeConfiguration.getZoneId());
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(TIME_FORMAT);
+
+        return formatter.format(zonedDateTime);
     }
 }

@@ -72,13 +72,18 @@ public class BaseControllerTest extends BaseIntegrationTest {
     protected String loginAsPartner() throws Exception {
 
         // Create a user with PARTNER role
-        User partnerUser = UserMother.randomUser();
-        partnerUser.setRole(Role.PARTNER);
-        partnerUser.enable();
-        User createdPartnerUser = createUserRepository.create(partnerUser);
+        User defaultPartnerUser = UserMother.randomUser();
+        defaultPartnerUser.setRole(Role.PARTNER);
+        defaultPartnerUser.enable();
+        createUserRepository.create(defaultPartnerUser);
+
+        return loginUser(defaultPartnerUser);
+    }
+
+    protected String loginUser(User user) throws Exception {
 
         // Login as the partner user
-        String loginBody = "{\"username\": \"" + createdPartnerUser.getPersonalId() + "\",\"password\": \"" + partnerUser.getPassword() + "\"}";
+        String loginBody = "{\"username\": \"" + user.getPersonalId() + "\",\"password\": \"" + user.getPassword() + "\"}";
         String partnerToken = mockMvc.perform(post("/api/v1/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginBody))

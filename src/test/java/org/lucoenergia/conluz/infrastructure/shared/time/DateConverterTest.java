@@ -188,4 +188,112 @@ class DateConverterTest {
         Assertions.assertEquals(0, result.getSecond());
         Assertions.assertEquals(offset, result.getOffset());
     }
+
+    @Test
+    void testConvertFromInstantToStringDateWithUTC() {
+        // Given
+        Instant instant = Instant.parse("2023-04-15T14:30:45Z");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("UTC"));
+
+        // When
+        String result = converter.convertFromInstantToStringDate(instant);
+
+        // Then
+        assertEquals("2023/04/15", result);
+    }
+
+    @Test
+    void testConvertFromInstantToStringDateWithEuropeMadrid() {
+        // Given - UTC time 14:30:45
+        Instant instant = Instant.parse("2023-04-15T14:30:45Z");
+        // Europe/Madrid is UTC+2 in summer (CEST)
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
+
+        // When
+        String result = converter.convertFromInstantToStringDate(instant);
+
+        // Then - Should still be same date (2023/04/15) as 14:30 UTC -> 16:30 Madrid
+        assertEquals("2023/04/15", result);
+    }
+
+    @Test
+    void testConvertFromInstantToStringDateCrossingMidnight() {
+        // Given - UTC time 23:30:00
+        Instant instant = Instant.parse("2023-04-15T23:30:00Z");
+        // Asia/Tokyo is UTC+9
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Asia/Tokyo"));
+
+        // When
+        String result = converter.convertFromInstantToStringDate(instant);
+
+        // Then - Should be next day (2023/04/16) as 23:30 UTC + 9 hours -> 08:30 next day
+        assertEquals("2023/04/16", result);
+    }
+
+    @Test
+    void testConvertFromInstantToStringTimeWithUTC() {
+        // Given
+        Instant instant = Instant.parse("2023-04-15T14:30:45Z");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("UTC"));
+
+        // When
+        String result = converter.convertFromInstantToStringTime(instant);
+
+        // Then
+        assertEquals("14:30", result);
+    }
+
+    @Test
+    void testConvertFromInstantToStringTimeWithEuropeMadrid() {
+        // Given - UTC time 14:30:45
+        Instant instant = Instant.parse("2023-04-15T14:30:45Z");
+        // Europe/Madrid is UTC+2 in summer (CEST) during April
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
+
+        // When
+        String result = converter.convertFromInstantToStringTime(instant);
+
+        // Then - Should be 16:30 (14:30 UTC + 2 hours)
+        assertEquals("16:30", result);
+    }
+
+    @Test
+    void testConvertFromInstantToStringTimeWithNegativeOffset() {
+        // Given - UTC time 10:45:30
+        Instant instant = Instant.parse("2023-04-15T10:45:30Z");
+        // America/New_York is UTC-4 in summer (EDT) during April
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("America/New_York"));
+
+        // When
+        String result = converter.convertFromInstantToStringTime(instant);
+
+        // Then - Should be 06:45 (10:45 UTC - 4 hours)
+        assertEquals("06:45", result);
+    }
+
+    @Test
+    void testConvertFromInstantToStringTimeMidnight() {
+        // Given - UTC midnight
+        Instant instant = Instant.parse("2023-04-15T00:00:00Z");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("UTC"));
+
+        // When
+        String result = converter.convertFromInstantToStringTime(instant);
+
+        // Then
+        assertEquals("00:00", result);
+    }
+
+    @Test
+    void testConvertFromInstantToStringTimeEndOfDay() {
+        // Given - UTC time 23:59:59
+        Instant instant = Instant.parse("2023-04-15T23:59:59Z");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("UTC"));
+
+        // When
+        String result = converter.convertFromInstantToStringTime(instant);
+
+        // Then
+        assertEquals("23:59", result);
+    }
 }

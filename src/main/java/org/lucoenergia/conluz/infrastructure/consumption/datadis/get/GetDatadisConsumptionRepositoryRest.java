@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.commons.lang3.NotImplementedException;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
@@ -27,6 +28,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Month;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -110,6 +112,11 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         LOGGER.debug("Results. {}", result);
 
         return result;
+    }
+
+    @Override
+    public List<DatadisConsumption> getDailyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
+        throw new NotImplementedException("Not yet implemented.");
     }
 
     private void validateSupply(Supply supply) {
