@@ -123,5 +123,70 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         assertEquals(0.0f, day2.getSurplusEnergyKWh(), 0.01f, "Day 2 should have no surplus energy");
         assertEquals(0.0f, day2.getSelfConsumptionEnergyKWh(), 0.01f, "Day 2 should have no self-consumption energy");
     }
+
+    @Test
+    void testGetHourlyConsumptionsByRangeOfDates() {
+        User user = UserMother.randomUser();
+        Supply supply = SupplyMother.random(user)
+                .withCode("ES0031406912345678JN0F")
+                .build();
+
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-04-01T00:00:00Z");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-04-30T23:59:59Z");
+
+        List<DatadisConsumption> result = repository.getHourlyConsumptionsByRangeOfDates(supply, startDate, endDate);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        // The loader loads 30 hourly data points (24 hours for April 1 + 6 hours for April 2)
+        // When grouped by hour, InfluxDB fills all hours in the range (30 days * 24 hours = 720)
+        assertEquals(720, result.size());
+
+        // Verify first hour (April 1, 2023 00:00:00 UTC)
+        DatadisConsumption hour1 = result.get(0);
+        assertNotNull(hour1);
+        assertEquals("ES0031406912345678JN0F", hour1.getCups());
+
+        // Verify date and time
+        // First timestamp: 1680307200000000000L = 2023-04-01T00:00:00Z
+        // In Europe/Madrid timezone (UTC+2 in April - CEST), this becomes 2023-04-01T02:00:00
+        assertNotNull(hour1.getDate());
+        assertEquals("2023/04/01", hour1.getDate(), "Date should be April 1, 2023 in Europe/Madrid timezone");
+        assertNotNull(hour1.getTime());
+        assertEquals("02:00", hour1.getTime(), "Time should be 02:00 in Europe/Madrid timezone (UTC+2)");
+
+        assertNotNull(hour1.getConsumptionKWh());
+        assertEquals(0.45f, hour1.getConsumptionKWh(), 0.01f, "First hour consumption should be 0.45 kWh");
+
+        // Verify surplus and self-consumption energy
+        assertNotNull(hour1.getSurplusEnergyKWh());
+        assertEquals(0.0f, hour1.getSurplusEnergyKWh(), 0.01f, "First hour should have no surplus energy");
+        assertNotNull(hour1.getSelfConsumptionEnergyKWh());
+        assertEquals(0.0f, hour1.getSelfConsumptionEnergyKWh(), 0.01f, "First hour should have no self-consumption energy");
+
+        // Verify an hour with solar production (9th hour = 08:00 UTC = 10:00 CEST)
+        DatadisConsumption hour9 = result.get(8);
+        assertNotNull(hour9);
+        assertEquals("ES0031406912345678JN0F", hour9.getCups());
+        assertEquals(0.68f, hour9.getConsumptionKWh(), 0.01f, "9th hour consumption should be 0.68 kWh");
+        assertEquals(0.10f, hour9.getSurplusEnergyKWh(), 0.01f, "9th hour should have 0.10 kWh surplus energy");
+        assertEquals(0.15f, hour9.getSelfConsumptionEnergyKWh(), 0.01f, "9th hour should have 0.15 kWh self-consumption energy");
+
+        // Verify last hour of April 1 (24th hour)
+        DatadisConsumption hour24 = result.get(23);
+        assertNotNull(hour24);
+        assertEquals("ES0031406912345678JN0F", hour24.getCups());
+        assertEquals(0.46f, hour24.getConsumptionKWh(), 0.01f, "24th hour consumption should be 0.46 kWh");
+        assertEquals(0.0f, hour24.getSurplusEnergyKWh(), 0.01f, "24th hour should have no surplus energy");
+        assertEquals(0.0f, hour24.getSelfConsumptionEnergyKWh(), 0.01f, "24th hour should have no self-consumption energy");
+
+        // Verify first hour of April 2
+        DatadisConsumption day2Hour1 = result.get(24);
+        assertNotNull(day2Hour1);
+        assertEquals("ES0031406912345678JN0F", day2Hour1.getCups());
+        assertEquals("2023/04/02", day2Hour1.getDate(), "Date should be April 2, 2023");
+        assertEquals(0.44f, day2Hour1.getConsumptionKWh(), 0.01f, "First hour of April 2 consumption should be 0.44 kWh");
+    }
 }
 

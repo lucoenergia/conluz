@@ -86,6 +86,37 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
         }
     }
 
+    @Override
+    public List<DatadisConsumption> getHourlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            Query query = new Query(String.format(
+                    """
+                            SELECT
+                                SUM("consumption_kwh") AS "consumption_kwh",
+                                SUM("surplus_energy_kwh") AS "surplus_energy_kwh",
+                                SUM("self_consumption_energy_kwh") AS "self_consumption_energy_kwh",
+                                LAST("obtain_method") AS "obtain_method"
+                            FROM "%s"
+                            WHERE cups = '%s'
+                                AND time >= '%s'
+                                AND time <= '%s'
+                            GROUP BY time(%s), cups
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    supply.getCode(),
+                    dateConverter.convertToString(startDate),
+                    dateConverter.convertToString(endDate),
+                    InfluxDuration.HOURLY));
+
+            QueryResult queryResult = connection.query(query);
+
+            InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
+            List<DatadisConsumptionPoint> consumptionPoints = resultMapper.toPOJO(queryResult, DatadisConsumptionPoint.class);
+            return mapToConsumption(consumptionPoints);
+        }
+    }
+
     private List<DatadisConsumption> mapToConsumption(List<DatadisConsumptionPoint> consumptionPoints) {
         // Map fields from datadisConsumptionPoint to consumption here
         return consumptionPoints.stream()
