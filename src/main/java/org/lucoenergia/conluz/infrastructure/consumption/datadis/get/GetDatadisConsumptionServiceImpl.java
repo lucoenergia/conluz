@@ -89,4 +89,58 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
         // Retrieve consumption data
         return getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(supply, startDate, endDate);
     }
+
+    @Override
+    public List<DatadisConsumption> getMonthlyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
+                                                                   OffsetDateTime endDate) {
+        // Get current authenticated user
+        User currentUser = authService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
+
+        // Get the supply
+        Optional<Supply> supplyOptional = getSupplyRepository.findById(supplyId);
+        if (supplyOptional.isEmpty()) {
+            throw new SupplyNotFoundException(supplyId);
+        }
+
+        Supply supply = supplyOptional.get();
+
+        // Authorization: ADMIN can access any supply, non-ADMIN can only access their own supplies
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+        boolean isOwner = supply.getUser().getId().equals(currentUser.getId());
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException("User does not have permission to access this supply's consumption data");
+        }
+
+        // Retrieve consumption data
+        return getDatadisConsumptionRepository.getMonthlyConsumptionsByRangeOfDates(supply, startDate, endDate);
+    }
+
+    @Override
+    public List<DatadisConsumption> getYearlyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
+                                                                  OffsetDateTime endDate) {
+        // Get current authenticated user
+        User currentUser = authService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
+
+        // Get the supply
+        Optional<Supply> supplyOptional = getSupplyRepository.findById(supplyId);
+        if (supplyOptional.isEmpty()) {
+            throw new SupplyNotFoundException(supplyId);
+        }
+
+        Supply supply = supplyOptional.get();
+
+        // Authorization: ADMIN can access any supply, non-ADMIN can only access their own supplies
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+        boolean isOwner = supply.getUser().getId().equals(currentUser.getId());
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException("User does not have permission to access this supply's consumption data");
+        }
+
+        // Retrieve consumption data
+        return getDatadisConsumptionRepository.getYearlyConsumptionsByRangeOfDates(supply, startDate, endDate);
+    }
 }

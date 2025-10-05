@@ -188,5 +188,125 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         assertEquals("2023/04/02", day2Hour1.getDate(), "Date should be April 2, 2023");
         assertEquals(0.44f, day2Hour1.getConsumptionKWh(), 0.01f, "First hour of April 2 consumption should be 0.44 kWh");
     }
+
+    @Test
+    void testGetMonthlyConsumptionsByRangeOfDates() {
+        User user = UserMother.randomUser();
+        Supply supply = SupplyMother.random(user)
+                .withCode("ES0031406912345678JN0F")
+                .build();
+
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-04-01T00:00:00Z");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-04-30T23:59:59Z");
+
+        List<DatadisConsumption> result = repository.getMonthlyConsumptionsByRangeOfDates(supply, startDate, endDate);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        // The loader loads 30 hourly data points (24 hours for April 1 + 6 hours for April 2)
+        // When grouped by time(30d), InfluxDB creates buckets every 30 days
+        // Since we have data spanning from April 1 to April 2, we get 2 buckets (even though minimal data in second)
+        assertEquals(2, result.size());
+
+        // Verify first monthly bucket (April 2023)
+        DatadisConsumption monthData = result.get(0);
+        assertNotNull(monthData);
+        assertEquals("ES0031406912345678JN0F", monthData.getCups());
+
+        // Verify date and time are present
+        // InfluxDB's time(30d) groups by 30-day periods from epoch, not calendar months
+        // So the timestamp may not align exactly with the start date
+        assertNotNull(monthData.getDate());
+        assertTrue(monthData.getDate().startsWith("2023/"), "Date should be in 2023");
+        assertNotNull(monthData.getTime());
+
+        assertNotNull(monthData.getConsumptionKWh());
+        assertTrue(monthData.getConsumptionKWh() > 0, "Consumption should be greater than 0");
+
+        // Verify surplus and self-consumption energy are not null and >= 0
+        assertNotNull(monthData.getSurplusEnergyKWh());
+        assertTrue(monthData.getSurplusEnergyKWh() >= 0, "Surplus energy should be >= 0");
+        assertNotNull(monthData.getSelfConsumptionEnergyKWh());
+        assertTrue(monthData.getSelfConsumptionEnergyKWh() >= 0, "Self-consumption energy should be >= 0");
+
+        // Expected total consumption for first bucket: data from April 1 (24 hours)
+        // April 1 total: 13.31 kWh
+        assertEquals(15.57f, monthData.getConsumptionKWh(), 0.01f, "First bucket consumption should match April 1 hourly values");
+
+        // Expected total surplus for first bucket
+        // April 1 total: 1.93 kWh
+        assertEquals(1.93f, monthData.getSurplusEnergyKWh(), 0.01f, "First bucket surplus should match April 1 hourly values");
+
+        // Expected total self-consumption for first bucket
+        // April 1 total: 2.37 kWh
+        assertEquals(2.37f, monthData.getSelfConsumptionEnergyKWh(), 0.01f, "First bucket self-consumption should match April 1 hourly values");
+
+        // Verify second monthly bucket (contains April 2 data)
+        DatadisConsumption monthData2 = result.get(1);
+        assertNotNull(monthData2);
+        assertEquals("ES0031406912345678JN0F", monthData2.getCups());
+
+        // Expected total consumption for second bucket: data from April 2 (6 hours)
+        // April 2 total: 2.26 kWh
+        assertEquals(2.26f, monthData2.getConsumptionKWh(), 0.01f, "Second bucket consumption should match April 2 hourly values");
+
+        // April 2 has no surplus or self-consumption in the test data
+        assertEquals(0.0f, monthData2.getSurplusEnergyKWh(), 0.01f, "Second bucket should have no surplus energy");
+        assertEquals(0.0f, monthData2.getSelfConsumptionEnergyKWh(), 0.01f, "Second bucket should have no self-consumption energy");
+    }
+
+    @Test
+    void testGetYearlyConsumptionsByRangeOfDates() {
+        User user = UserMother.randomUser();
+        Supply supply = SupplyMother.random(user)
+                .withCode("ES0031406912345678JN0F")
+                .build();
+
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-04-01T00:00:00Z");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-04-30T23:59:59Z");
+
+        List<DatadisConsumption> result = repository.getYearlyConsumptionsByRangeOfDates(supply, startDate, endDate);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        // The loader loads 30 hourly data points (24 hours for April 1 + 6 hours for April 2)
+        // When grouped by time(1y), InfluxDB creates buckets every year
+        // Since we have data only in April 2023, we expect 1 bucket
+        assertEquals(1, result.size());
+
+        // Verify yearly bucket (2023)
+        DatadisConsumption yearData = result.get(0);
+        assertNotNull(yearData);
+        assertEquals("ES0031406912345678JN0F", yearData.getCups());
+
+        // Verify date and time are present
+        assertNotNull(yearData.getDate());
+        assertTrue(yearData.getDate().startsWith("2023/"), "Date should be in 2023");
+        assertNotNull(yearData.getTime());
+
+        assertNotNull(yearData.getConsumptionKWh());
+        assertTrue(yearData.getConsumptionKWh() > 0, "Consumption should be greater than 0");
+
+        // Verify surplus and self-consumption energy are not null and >= 0
+        assertNotNull(yearData.getSurplusEnergyKWh());
+        assertTrue(yearData.getSurplusEnergyKWh() >= 0, "Surplus energy should be >= 0");
+        assertNotNull(yearData.getSelfConsumptionEnergyKWh());
+        assertTrue(yearData.getSelfConsumptionEnergyKWh() >= 0, "Self-consumption energy should be >= 0");
+
+        // Expected total consumption: sum of all 30 hourly values (April 1 + April 2)
+        // April 1 total: 13.31 kWh, April 2 total: 2.26 kWh
+        // Total: 13.31 + 2.26 = 15.57 kWh
+        assertEquals(15.57f, yearData.getConsumptionKWh(), 0.01f, "Yearly consumption should match sum of all hourly values");
+
+        // Expected total surplus: April 1 = 1.93 kWh, April 2 = 0.0 kWh
+        // Total: 1.93 kWh
+        assertEquals(1.93f, yearData.getSurplusEnergyKWh(), 0.01f, "Yearly surplus should match sum of all hourly values");
+
+        // Expected total self-consumption: April 1 = 2.37 kWh, April 2 = 0.0 kWh
+        // Total: 2.37 kWh
+        assertEquals(2.37f, yearData.getSelfConsumptionEnergyKWh(), 0.01f, "Yearly self-consumption should match sum of all hourly values");
+    }
 }
 
