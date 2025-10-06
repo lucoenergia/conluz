@@ -1,8 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.get;
 
 import com.influxdb.v3.client.InfluxDBClient;
-import org.apache.arrow.flight.FlightStream;
-import org.apache.arrow.vector.VectorSchemaRoot;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
@@ -12,10 +10,12 @@ import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.Month;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Repository
 @Qualifier("getDatadisConsumptionRepositoryInflux3")
@@ -107,16 +107,40 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
     private List<DatadisConsumption> executeQuery(InfluxDBClient client, String query) {
         List<DatadisConsumption> results = new ArrayList<>();
 
-        try (FlightStream stream = client.query(query)) {
-            while (stream.next()) {
-                VectorSchemaRoot root = stream.getRoot();
-                // TODO: Implement proper mapping from Arrow vectors to DatadisConsumption
-                // This requires extracting values from the Arrow vector schema
-            }
+        try (Stream<Object[]> stream = client.query(query)) {
+            stream.forEach(row -> {
+                DatadisConsumption consumption = new DatadisConsumption();
+
+                // Row columns depend on the SELECT statement
+                // Expected columns: time, cups, consumption_kwh, surplus_energy_kwh, self_consumption_energy_kwh, obtain_method
+                if (row.length > 0 && row[0] != null) {
+                    Instant time = (Instant) row[0];
+                    consumption.setDate(dateConverter.convertFromInstantToStringDate(time));
+                    consumption.setTime(dateConverter.convertFromInstantToStringTime(time));
+                }
+
+                if (row.length > 1) consumption.setCups(row[1] != null ? row[1].toString() : null);
+                if (row.length > 2) consumption.setConsumptionKWh(parseToFloat(row[2]));
+                if (row.length > 3) consumption.setSurplusEnergyKWh(parseToFloat(row[3]));
+                if (row.length > 4) consumption.setSelfConsumptionEnergyKWh(parseToFloat(row[4]));
+                if (row.length > 5) consumption.setObtainMethod(row[5] != null ? row[5].toString() : null);
+
+                results.add(consumption);
+            });
         } catch (Exception e) {
             throw new RuntimeException("Error querying Datadis consumption data", e);
         }
 
         return results;
+    }
+
+    private Float parseToFloat(Object value) {
+        if (value == null) {
+            return 0.0f;
+        }
+        if (value instanceof Number number) {
+            return number.floatValue();
+        }
+        return 0.0f;
     }
 }

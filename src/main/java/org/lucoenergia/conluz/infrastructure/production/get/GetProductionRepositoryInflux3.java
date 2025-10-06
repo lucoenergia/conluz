@@ -1,20 +1,21 @@
 package org.lucoenergia.conluz.infrastructure.production.get;
 
 import com.influxdb.v3.client.InfluxDBClient;
-import org.apache.arrow.flight.FlightStream;
-import org.apache.arrow.vector.VectorSchemaRoot;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb3.InfluxDb3ConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Repository
 @Qualifier("getProductionRepositoryInflux3")
@@ -22,16 +23,13 @@ public class GetProductionRepositoryInflux3 implements GetProductionRepository {
 
     private final InfluxDb3ConnectionManager connectionManager;
     private final DateConverter dateConverter;
-    private final InstantProductionInfluxMapper instantProductionInfluxMapper;
     private final ProductionByHourInfluxMapper productionByHourInfluxMapper;
 
     public GetProductionRepositoryInflux3(InfluxDb3ConnectionManager connectionManager,
                                           DateConverter dateConverter,
-                                          InstantProductionInfluxMapper instantProductionInfluxMapper,
                                           ProductionByHourInfluxMapper productionByHourInfluxMapper) {
         this.connectionManager = connectionManager;
         this.dateConverter = dateConverter;
-        this.instantProductionInfluxMapper = instantProductionInfluxMapper;
         this.productionByHourInfluxMapper = productionByHourInfluxMapper;
     }
 
@@ -40,24 +38,23 @@ public class GetProductionRepositoryInflux3 implements GetProductionRepository {
         InfluxDBClient client = connectionManager.getClient();
 
         String query = String.format(
-                "SELECT * FROM \"%s\" LIMIT 1",
+                "SELECT inverter_power FROM \"%s\" ORDER BY time DESC LIMIT 1",
                 HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT
         );
 
-        try (FlightStream stream = client.query(query)) {
-            while (stream.next()) {
-                VectorSchemaRoot root = stream.getRoot();
-                if (root.getRowCount() > 0) {
-                    // Map first row to InstantProduction
-                    // TODO: Implement proper mapping from Arrow vectors
-                    return new InstantProduction(0.0d);
-                }
-            }
+        try (Stream<Object[]> stream = client.query(query)) {
+            return stream.findFirst()
+                    .map(row -> {
+                        if (row.length > 0 && row[0] != null) {
+                            Double power = ((Number) row[0]).doubleValue();
+                            return new InstantProduction(power);
+                        }
+                        return new InstantProduction(0.0d);
+                    })
+                    .orElse(new InstantProduction(0.0d));
         } catch (Exception e) {
             throw new RuntimeException("Error querying instant production", e);
         }
-
-        return new InstantProduction(0.0d);
     }
 
     @Override
@@ -139,12 +136,17 @@ public class GetProductionRepositoryInflux3 implements GetProductionRepository {
     private List<ProductionByTime> executeQuery(InfluxDBClient client, String query) {
         List<ProductionByTime> results = new ArrayList<>();
 
-        try (FlightStream stream = client.query(query)) {
-            while (stream.next()) {
-                VectorSchemaRoot root = stream.getRoot();
-                // TODO: Implement proper mapping from Arrow vectors to ProductionByTime
-                // This requires mapping the Arrow vector data to ProductionPoint objects
-            }
+        try (Stream<Object[]> stream = client.query(query)) {
+            stream.forEach(row -> {
+                // Expected columns: time, inverter_power
+                if (row.length >= 2 && row[0] != null && row[1] != null) {
+                    Instant time = (Instant) row[0];
+                    Double inverterPower = ((Number) row[1]).doubleValue();
+
+                    ProductionPoint point = new ProductionPoint(time, inverterPower);
+                    results.add(productionByHourInfluxMapper.map(point));
+                }
+            });
         } catch (Exception e) {
             throw new RuntimeException("Error querying production data", e);
         }
