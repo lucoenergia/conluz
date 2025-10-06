@@ -2,10 +2,14 @@ package org.lucoenergia.conluz.infrastructure.shared.db.influxdb3;
 
 import com.influxdb.v3.client.InfluxDBClient;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InfluxDb3ConnectionManagerImpl implements InfluxDb3ConnectionManager {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(InfluxDb3ConnectionManagerImpl.class);
 
     private final InfluxDb3Configuration config;
     private InfluxDBClient client;
@@ -22,15 +26,13 @@ public class InfluxDb3ConnectionManagerImpl implements InfluxDb3ConnectionManage
                 client = InfluxDBClient.getInstance(
                         config.getDatabaseURL(),
                         null,
-                        config.getBucket(),
-                        config.getOrganization()
+                        config.getBucket()
                 );
             } else {
                 client = InfluxDBClient.getInstance(
                         config.getDatabaseURL(),
                         token.toCharArray(),
-                        config.getBucket(),
-                        config.getOrganization()
+                        config.getBucket()
                 );
             }
         }
@@ -44,7 +46,7 @@ public class InfluxDb3ConnectionManagerImpl implements InfluxDb3ConnectionManage
                 client.close();
                 client = null;
             } catch (Exception e) {
-                // Log error if needed
+                LOGGER.error("Error closing InfluxDB client", e);
             }
         }
     }
