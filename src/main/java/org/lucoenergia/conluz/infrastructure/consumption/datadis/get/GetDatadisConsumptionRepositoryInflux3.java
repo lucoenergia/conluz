@@ -114,7 +114,16 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
                 // Row columns depend on the SELECT statement
                 // Expected columns: time, cups, consumption_kwh, surplus_energy_kwh, self_consumption_energy_kwh, obtain_method
                 if (row.length > 0 && row[0] != null) {
-                    Instant time = (Instant) row[0];
+                    // InfluxDB 3 returns timestamps as Instant or sometimes as BigInteger (nanoseconds)
+                    Instant time;
+                    if (row[0] instanceof Instant) {
+                        time = (Instant) row[0];
+                    } else if (row[0] instanceof Number) {
+                        long nanos = ((Number) row[0]).longValue();
+                        time = Instant.ofEpochSecond(0, nanos);
+                    } else {
+                        throw new IllegalArgumentException("Unexpected timestamp type: " + row[0].getClass());
+                    }
                     consumption.setDate(dateConverter.convertFromInstantToStringDate(time));
                     consumption.setTime(dateConverter.convertFromInstantToStringTime(time));
                 }

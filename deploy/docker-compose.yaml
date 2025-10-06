@@ -34,21 +34,24 @@ services:
       - conluz_network
 
   influxdb3:
-    image: influxdb:3.0
+    image: influxdb:3-core
     container_name: influxdb3
     ports:
-      - "8087:8086"
+      - "8181:8181"
     environment:
-      - INFLUXD_LOG_LEVEL # Controls logging verbosity
-      - INFLUXD_HTTP_BIND_ADDRESS # HTTP API bind address
-      - INFLUX_SETUP_USERNAME # Admin username for initial setup
-      - INFLUX_SETUP_PASSWORD # Admin password for initial setup
-      - INFLUX_SETUP_ORG # Organization name (InfluxDB 3 uses orgs instead of databases)
-      - INFLUX_SETUP_BUCKET # Initial bucket name (InfluxDB 3 uses buckets instead of databases)
-      - INFLUX_SETUP_RETENTION # Retention policy for the bucket
-      - INFLUX_SETUP_TOKEN # API token for authentication (InfluxDB 3 uses token-based auth)
+      - INFLUXDB3_AUTH_TOKEN # API token for authentication (InfluxDB 3 uses token-based auth)
+      - INFLUXDB3_HTTP_BIND_ADDR=0.0.0.0:8181 # HTTP API bind address
+      - LOG_FILTER=info # Controls logging verbosity (info, debug, etc.)
     volumes:
-      - ${PATH_TO_INFLUXDB3_DATA}:/var/lib/influxdb3
+      - ${PATH_TO_INFLUXDB3_DATA}:/var/lib/influxdb3/data
+      - ./conluz-influxdb3-init.sh:/docker-entrypoint-initdb.d/conluz-influxdb3-init.sh
+    command: >
+      sh -c "influxdb3 serve --node-id conluz_node --object-store file --data-dir /var/lib/influxdb3/data &
+      sleep 5 &&
+      if [ -f /docker-entrypoint-initdb.d/conluz-influxdb3-init.sh ]; then
+        sh /docker-entrypoint-initdb.d/conluz-influxdb3-init.sh
+      fi &&
+      wait"
     restart: always
     networks:
       - conluz_network

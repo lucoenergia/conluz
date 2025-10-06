@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.ConsumptionMother;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.get.GetDatadisConsumptionRepositoryInflux;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.get.GetDatadisConsumptionRepositoryInflux3;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +19,9 @@ import java.util.List;
 class PersistDatadisConsumptionRepositoryInfluxIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
-    private PersistDatadisConsumptionRepositoryInflux repository;
+    private PersistDatadisConsumptionRepositoryInflux3 repository;
     @Autowired
-    private GetDatadisConsumptionRepositoryInflux getDatadisConsumptionRepositoryInflux;
+    private GetDatadisConsumptionRepositoryInflux3 getDatadisConsumptionRepositoryInflux;
 
     @Disabled
     @Test

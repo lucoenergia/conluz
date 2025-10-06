@@ -5,9 +5,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
-import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInflux3Loader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.OffsetDateTime;
@@ -19,22 +20,23 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
+class GetProductionRepositoryInflux3Test extends BaseIntegrationTest {
 
     @Autowired
-    private GetProductionRepositoryInflux repository;
+    @Qualifier("getProductionRepositoryInflux3")
+    private GetProductionRepositoryInflux3 repository;
 
     @Autowired
-    private EnergyProductionInfluxLoader energyProductionInfluxLoader;
+    private EnergyProductionInflux3Loader energyProductionInflux3Loader;
 
     @BeforeEach
     void beforeEach() {
-        energyProductionInfluxLoader.loadData();
+        energyProductionInflux3Loader.loadData();
     }
 
     @AfterEach
     void afterEach() {
-        energyProductionInfluxLoader.clearData();
+        energyProductionInflux3Loader.clearData();
     }
 
     @Test
@@ -116,5 +118,47 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
                 .mapToDouble(ProductionByTime::getPower)
                 .sum();
         assertEquals(236.15d * 0.5d, totalProduction, 0.01d, "Total production should be halved with 0.5 partition coefficient");
+    }
+
+    @Test
+    void testGetDailyProductionByRangeOfDates() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-03T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        // Should return daily aggregated data
+        assertTrue(result.size() <= 3, "Should have at most 3 days of data");
+    }
+
+    @Test
+    void testGetMonthlyProductionByRangeOfDates() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-30T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        // Should return monthly aggregated data (1 month)
+        assertEquals(1, result.size(), "Should have 1 month of data");
+    }
+
+    @Test
+    void testGetYearlyProductionByRangeOfDates() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        // Should return yearly aggregated data (1 year)
+        assertEquals(1, result.size(), "Should have 1 year of data");
     }
 }

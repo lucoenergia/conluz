@@ -53,6 +53,11 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Add JVM arguments for Apache Arrow (required by InfluxDB 3 client)
+    jvmArgs = [
+            '--add-opens=java.base/java.nio=ALL-UNNAMED',
+            '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED'
+    ]
 }
 
 jar {

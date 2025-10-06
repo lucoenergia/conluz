@@ -140,7 +140,18 @@ public class GetProductionRepositoryInflux3 implements GetProductionRepository {
             stream.forEach(row -> {
                 // Expected columns: time, inverter_power
                 if (row.length >= 2 && row[0] != null && row[1] != null) {
-                    Instant time = (Instant) row[0];
+                    // InfluxDB 3 returns timestamps as Instant objects
+                    Instant time;
+                    if (row[0] instanceof Instant) {
+                        time = (Instant) row[0];
+                    } else if (row[0] instanceof Number) {
+                        // Sometimes timestamps come as BigInteger (nanoseconds since epoch)
+                        long nanos = ((Number) row[0]).longValue();
+                        time = Instant.ofEpochSecond(0, nanos);
+                    } else {
+                        throw new IllegalArgumentException("Unexpected timestamp type: " + row[0].getClass());
+                    }
+
                     Double inverterPower = ((Number) row[1]).doubleValue();
 
                     ProductionPoint point = new ProductionPoint(time, inverterPower);
