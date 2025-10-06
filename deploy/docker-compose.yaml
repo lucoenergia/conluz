@@ -87,7 +87,7 @@ services:
       - postgres
 
   promtail:
-    image: grafana/promtail:3.0.01
+    image: grafana/promtail:3.0.0
     container_name: promtail
     ports:
       - "3110:3110"
