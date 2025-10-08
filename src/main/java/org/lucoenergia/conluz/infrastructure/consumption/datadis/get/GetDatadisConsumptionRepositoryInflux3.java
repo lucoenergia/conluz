@@ -37,8 +37,21 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
 
         InfluxDBClient client = connectionManager.getClient();
 
-        String query = String.format(
-                "SELECT * FROM \"%s\" WHERE cups = '%s' AND time >= '%s' AND time <= '%s'",
+        String query = String.format("""
+                        SELECT
+                            DATE_TRUNC('hour', time) as time,
+                            SUM(consumption_kwh) AS consumption_kwh,
+                            SUM(surplus_energy_kwh) AS surplus_energy_kwh,
+                            SUM(self_consumption_energy_kwh) AS self_consumption_energy_kwh,
+                            FIRST_VALUE(obtain_method) AS obtain_method,
+                            cups
+                        FROM "%s"
+                        WHERE cups = '%s'
+                            AND time >= '%s'
+                            AND time <= '%s'
+                        GROUP BY DATE_TRUNC('hour', time), cups
+                        ORDER BY time
+                        """,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                 supply.getCode(),
                 startDate,
@@ -59,13 +72,14 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
                     SUM(consumption_kwh) AS consumption_kwh,
                     SUM(surplus_energy_kwh) AS surplus_energy_kwh,
                     SUM(self_consumption_energy_kwh) AS self_consumption_energy_kwh,
-                    LAST(obtain_method) AS obtain_method,
+                    FIRST_VALUE(obtain_method) AS obtain_method,
                     cups
                 FROM "%s"
                 WHERE cups = '%s'
                     AND time >= '%s'
                     AND time <= '%s'
                 GROUP BY DATE_TRUNC('day', time), cups
+                ORDER BY time
                 """,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                 supply.getCode(),
@@ -87,13 +101,14 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
                     SUM(consumption_kwh) AS consumption_kwh,
                     SUM(surplus_energy_kwh) AS surplus_energy_kwh,
                     SUM(self_consumption_energy_kwh) AS self_consumption_energy_kwh,
-                    LAST(obtain_method) AS obtain_method,
+                    FIRST_VALUE(obtain_method) AS obtain_method,
                     cups
                 FROM "%s"
                 WHERE cups = '%s'
                     AND time >= '%s'
                     AND time <= '%s'
                 GROUP BY DATE_TRUNC('hour', time), cups
+                ORDER BY time
                 """,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                 supply.getCode(),
@@ -128,11 +143,11 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
                     consumption.setTime(dateConverter.convertFromInstantToStringTime(time));
                 }
 
-                if (row.length > 1) consumption.setCups(row[1] != null ? row[1].toString() : null);
-                if (row.length > 2) consumption.setConsumptionKWh(parseToFloat(row[2]));
-                if (row.length > 3) consumption.setSurplusEnergyKWh(parseToFloat(row[3]));
-                if (row.length > 4) consumption.setSelfConsumptionEnergyKWh(parseToFloat(row[4]));
-                if (row.length > 5) consumption.setObtainMethod(row[5] != null ? row[5].toString() : null);
+                if (row.length > 1) consumption.setConsumptionKWh(parseToFloat(row[1]));
+                if (row.length > 2) consumption.setSurplusEnergyKWh(parseToFloat(row[2]));
+                if (row.length > 3) consumption.setSelfConsumptionEnergyKWh(parseToFloat(row[3]));
+                if (row.length > 4) consumption.setObtainMethod(row[4] != null ? row[4].toString() : null);
+                if (row.length > 5) consumption.setCups(row[5] != null ? row[5].toString() : null);
 
                 results.add(consumption);
             });

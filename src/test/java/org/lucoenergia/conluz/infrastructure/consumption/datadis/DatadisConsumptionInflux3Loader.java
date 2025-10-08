@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -76,6 +77,8 @@ public class DatadisConsumptionInflux3Loader implements InfluxLoader {
     public void loadData() {
         InfluxDBClient client = connectionManager.getClient();
 
+        List<Point> points = new ArrayList<>();
+
         CONSUMPTION_BY_HOUR.forEach(dataPoint -> {
             Long timestampNanos = (Long) dataPoint.get(0);
             Double consumptionKwh = (Double) dataPoint.get(1);
@@ -94,8 +97,10 @@ public class DatadisConsumptionInflux3Loader implements InfluxLoader {
                     .setField(FIELD_OBTAIN_METHOD, obtainMethod)
                     .setTimestamp(timestamp);
 
-            client.writePoint(point);
+            points.add(point);
         });
+
+        client.writePoints(points);
     }
 
     @Override

@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,9 +23,11 @@ public class EnergyProductionInflux3Loader implements InfluxLoader {
     private static final String TAG_STATION_CODE = "station_code";
     private static final String STATION_CODE = "NE=12345678";
     /**
-     * Time interval is time >= '2023-09-01T00:00:00.000+02:00' and time <= '2023-09-01T23:00:00.000+02:00'
+     * Time interval is time >= '2023-08-31T22:00:00.000Z' and time <= '2023-09-01T21:00:00.000Z'
      */
     private static final List<List<Object>> PRODUCTION_BY_HOUR = Arrays.asList(
+            Arrays.asList(1693512000000000000L, 0d),
+            Arrays.asList(1693515600000000000L, 0d),
             Arrays.asList(1693519200000000000L, 0d),
             Arrays.asList(1693522800000000000L, 0d),
             Arrays.asList(1693526400000000000L, 0d),
@@ -62,6 +65,7 @@ public class EnergyProductionInflux3Loader implements InfluxLoader {
     public void loadData() {
         InfluxDBClient client = connectionManager.getClient();
 
+        List<Point> points = new ArrayList<>();
         PRODUCTION_BY_HOUR.forEach(dataPoint -> {
             Long timestampNanos = (Long) dataPoint.get(0);
             Double power = (Double) dataPoint.get(1);
@@ -74,8 +78,11 @@ public class EnergyProductionInflux3Loader implements InfluxLoader {
                     .setField(FIELD_INVERTER_POWER, power)
                     .setTimestamp(timestamp);
 
-            client.writePoint(point);
+            points.add(point);
         });
+
+        // Write all points in a single batch operation
+        client.writePoints(points);
     }
 
     @Override

@@ -136,8 +136,8 @@ class GetProductionRepositoryInflux3Test extends BaseIntegrationTest {
 
     @Test
     void testGetMonthlyProductionByRangeOfDates() {
-        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
-        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-30T23:00:00.000+02:00");
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+00:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-30T23:00:00.000+00:00");
 
         List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate);
 

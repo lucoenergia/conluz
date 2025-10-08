@@ -68,7 +68,7 @@ public class GetProductionRepositoryInflux3 implements GetProductionRepository {
         InfluxDBClient client = connectionManager.getClient();
 
         String query = String.format(
-                "SELECT time, inverter_power * %s as inverter_power FROM \"%s\" WHERE time >= '%s' AND time <= '%s'",
+                "SELECT time, inverter_power * %s as inverter_power FROM \"%s\" WHERE time >= '%s' AND time <= '%s' ORDER BY time",
                 partitionCoefficient,
                 HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
                 dateConverter.convertToString(startDate),
@@ -117,11 +117,13 @@ public class GetProductionRepositoryInflux3 implements GetProductionRepository {
                                                                                 String precision) {
         InfluxDBClient client = connectionManager.getClient();
 
-        String query = String.format(
-                "SELECT DATE_TRUNC('%s', time) as time, SUM(inverter_power) * %s as inverter_power " +
-                "FROM \"%s\" " +
-                "WHERE time >= '%s' AND time <= '%s' " +
-                "GROUP BY DATE_TRUNC('%s', time)",
+        String query = String.format("""
+                SELECT DATE_TRUNC('%s', time) as time, SUM(inverter_power) * %s as inverter_power
+                FROM "%s"
+                WHERE time >= '%s' AND time <= '%s'
+                GROUP BY DATE_TRUNC('%s', time)
+                ORDER BY time
+                """,
                 precision,
                 partitionCoefficient,
                 HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
