@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Repository
@@ -31,6 +32,7 @@ public class PersistDatadisConsumptionRepositoryInflux3 implements PersistDatadi
         InfluxDBClient client = connectionManager.getClient();
 
         try {
+            List<Point> points = new ArrayList<>();
             for (DatadisConsumption consumption : consumptions) {
                 long timestampMillis = dateConverter.convertStringDateToMilliseconds(mergeDateAndTime(consumption));
                 Instant timestamp = Instant.ofEpochMilli(timestampMillis);
@@ -44,7 +46,10 @@ public class PersistDatadisConsumptionRepositoryInflux3 implements PersistDatadi
                         .setField("self_consumption_energy_kwh", consumption.getSelfConsumptionEnergyKWh())
                         .setTimestamp(timestamp);
 
-                client.writePoint(point);
+                points.add(point);
+            }
+            if (!points.isEmpty()) {
+                client.writePoints(points);
             }
         } catch (Exception e) {
             throw new RuntimeException("Error persisting Datadis consumptions", e);

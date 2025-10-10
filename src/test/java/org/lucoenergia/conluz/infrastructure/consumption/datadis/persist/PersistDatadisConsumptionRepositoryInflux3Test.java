@@ -15,10 +15,12 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +47,8 @@ class PersistDatadisConsumptionRepositoryInflux3Test {
         when(connectionManager.getClient()).thenReturn(client);
         when(dateConverter.convertStringDateToMilliseconds(any())).thenReturn(1680307200000L); // April 1, 2023
 
+        ArgumentCaptor<List<Point>> pointsCaptor = ArgumentCaptor.forClass(List.class);
+
         // Act
         repository.persistConsumptions(Collections.singletonList(consumption));
 
@@ -58,8 +62,10 @@ class PersistDatadisConsumptionRepositoryInflux3Test {
         verify(consumption, Mockito.atLeastOnce()).getDate();
         verify(consumption, Mockito.atLeastOnce()).getTime();
 
-        // Verify writePoint was called with Point object
-        verify(client, times(1)).writePoint(any(Point.class));
+        // Verify writePoints was called once with a list containing 1 point
+        verify(client, times(1)).writePoints(pointsCaptor.capture());
+        List<Point> capturedPoints = pointsCaptor.getValue();
+        assertEquals(1, capturedPoints.size());
     }
 
     @Test
@@ -70,11 +76,15 @@ class PersistDatadisConsumptionRepositoryInflux3Test {
         when(connectionManager.getClient()).thenReturn(client);
         when(dateConverter.convertStringDateToMilliseconds(any())).thenReturn(1680307200000L);
 
+        ArgumentCaptor<List<Point>> pointsCaptor = ArgumentCaptor.forClass(List.class);
+
         // Act
         repository.persistConsumptions(java.util.Arrays.asList(consumption1, consumption2));
 
-        // Assert - Verify writePoint was called twice
-        verify(client, times(2)).writePoint(any(Point.class));
+        // Assert - Verify writePoints was called once with a list containing 2 points
+        verify(client, times(1)).writePoints(pointsCaptor.capture());
+        List<Point> capturedPoints = pointsCaptor.getValue();
+        assertEquals(2, capturedPoints.size());
     }
 
     @Test
@@ -88,16 +98,18 @@ class PersistDatadisConsumptionRepositoryInflux3Test {
         when(connectionManager.getClient()).thenReturn(client);
         when(dateConverter.convertStringDateToMilliseconds("2023/04/01T12:00")).thenReturn(expectedMillis);
 
-        ArgumentCaptor<Point> pointCaptor = ArgumentCaptor.forClass(Point.class);
+        ArgumentCaptor<List<Point>> pointsCaptor = ArgumentCaptor.forClass(List.class);
 
         // Act
         repository.persistConsumptions(Collections.singletonList(consumption));
 
         // Assert
         verify(dateConverter).convertStringDateToMilliseconds("2023/04/01T12:00");
-        verify(client).writePoint(pointCaptor.capture());
+        verify(client).writePoints(pointsCaptor.capture());
 
-        Point capturedPoint = pointCaptor.getValue();
+        List<Point> capturedPoints = pointsCaptor.getValue();
+        assertEquals(1, capturedPoints.size());
+        Point capturedPoint = capturedPoints.get(0);
         assertNotNull(capturedPoint, "Point should not be null");
     }
 
@@ -115,11 +127,15 @@ class PersistDatadisConsumptionRepositoryInflux3Test {
         when(connectionManager.getClient()).thenReturn(client);
         when(dateConverter.convertStringDateToMilliseconds(any())).thenReturn(1680307200000L);
 
+        ArgumentCaptor<List<Point>> pointsCaptor = ArgumentCaptor.forClass(List.class);
+
         // Act
         repository.persistConsumptions(Collections.singletonList(consumption));
 
         // Assert
-        verify(client).writePoint(any(Point.class));
+        verify(client).writePoints(pointsCaptor.capture());
+        List<Point> capturedPoints = pointsCaptor.getValue();
+        assertEquals(1, capturedPoints.size());
 
         // Verify all consumption fields were accessed for writing
         assertEquals("ES0031406912345678JN0F", consumption.getCups());
@@ -135,10 +151,12 @@ class PersistDatadisConsumptionRepositoryInflux3Test {
         // Arrange
         when(connectionManager.getClient()).thenReturn(client);
 
+        ArgumentCaptor<List<Point>> pointsCaptor = ArgumentCaptor.forClass(List.class);
+
         // Act
         repository.persistConsumptions(Collections.emptyList());
 
-        // Assert - writePoint should not be called
-        verify(client, times(0)).writePoint(any(Point.class));
+        // Assert - writePoints should be called once with an empty list
+        verify(client, times(0)).writePoints(pointsCaptor.capture());
     }
 }

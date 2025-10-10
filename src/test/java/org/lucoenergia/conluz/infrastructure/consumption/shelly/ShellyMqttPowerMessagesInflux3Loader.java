@@ -1,28 +1,27 @@
 package org.lucoenergia.conluz.infrastructure.consumption.shelly;
 
-import org.influxdb.InfluxDB;
-import org.influxdb.dto.BatchPoints;
-import org.influxdb.dto.Point;
-import org.influxdb.dto.Query;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
+import com.influxdb.v3.client.InfluxDBClient;
+import com.influxdb.v3.client.Point;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxLoader;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb3.InfluxDb3ConnectionManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Profile("test")
 @Component
-public class ShellyMqttPowerMessagesInfluxLoader implements InfluxLoader {
+public class ShellyMqttPowerMessagesInflux3Loader implements InfluxLoader {
 
     /**
      * Time interval is time >= '2023-10-25T00:00:00.000+02:00' and time <= '2023-10-25T23:00:00.000+02:00'
      */
-    private static final List MQTT_POWER_MESSAGES = Arrays.asList(
+    private static final List<List<Object>> MQTT_POWER_MESSAGES = Arrays.asList(
             Arrays.asList(toMilliseconds("2023-10-25T00:01:00.000+00:00"), 114.1d, "shellies/70c590f9f395fbae/vcm/emeter/0/power"),
             Arrays.asList(toMilliseconds("2023-10-25T00:03:00.000+00:00"), 0d, "shellies/70c590f9f395fbae/vcm/emeter/1/power"),
             Arrays.asList(toMilliseconds("2023-10-25T00:05:00.000+00:00"), 98.37d, "shellies/70c590f9f395fbae/mariajesus/emeter/0/power"),
@@ -73,35 +72,42 @@ public class ShellyMqttPowerMessagesInfluxLoader implements InfluxLoader {
     }
 
     @Autowired
-    private final InfluxDbConnectionManager influxDbConnectionManager;
+    private final InfluxDb3ConnectionManager connectionManager;
 
-    public ShellyMqttPowerMessagesInfluxLoader(InfluxDbConnectionManager influxDbConnectionManager) {
-        this.influxDbConnectionManager = influxDbConnectionManager;
+    public ShellyMqttPowerMessagesInflux3Loader(InfluxDb3ConnectionManager connectionManager) {
+        this.connectionManager = connectionManager;
     }
 
     @Override
     public void loadData() {
+        InfluxDBClient client = connectionManager.getClient();
 
-        try (InfluxDB influxDBConnection = influxDbConnectionManager.getConnection()) {
+        List<Point> points = new ArrayList<>();
+        MQTT_POWER_MESSAGES.forEach(dataPoint -> {
+            Long timestampMillis = (Long) dataPoint.get(0);
+            Double value = (Double) dataPoint.get(1);
+            String topic = (String) dataPoint.get(2);
 
-            BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
+            // Convert milliseconds to Instant
+            Instant timestamp = Instant.ofEpochMilli(timestampMillis);
 
-            MQTT_POWER_MESSAGES.stream().forEach(point -> batchPoints.point(Point.measurement(ShellyMqttPowerMessagePoint.MEASUREMENT)
-                    .time(((Long) ((List) point).get(0)), TimeUnit.MILLISECONDS)
-                    .addField(ShellyMqttPowerMessagePoint.VALUE, ((Double) ((List) point).get(1)))
-                    .addField(ShellyMqttPowerMessagePoint.TOPIC, (String) ((List) point).get(2))
-                    .addField("host", "62975a4472fd")
-                    .build()
-            ));
-            influxDBConnection.write(batchPoints);
-        }
+            Point point = Point.measurement(ShellyMqttPowerMessagePoint.MEASUREMENT)
+                    .setField(ShellyMqttPowerMessagePoint.VALUE, value)
+                    .setField(ShellyMqttPowerMessagePoint.TOPIC, topic)
+                    .setField("host", "62975a4472fd")
+                    .setTimestamp(timestamp);
+
+            points.add(point);
+        });
+
+        // Write all points in a single batch operation
+        client.writePoints(points);
     }
 
     @Override
     public void clearData() {
-        try (InfluxDB influxDBConnection = influxDbConnectionManager.getConnection()) {
-            String query = String.format("DROP SERIES FROM \"%s\"", ShellyMqttPowerMessagePoint.MEASUREMENT);
-            influxDBConnection.query(new Query(query));
-        }
+        // InfluxDB 3 doesn't support DELETE queries in the same way as 1.8
+        // For test cleanup, we could drop and recreate the bucket, but for now
+        // we'll leave this empty as tests should use isolated buckets or time ranges
     }
 }

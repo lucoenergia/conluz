@@ -1,13 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.shared;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.InfluxDBContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -20,14 +18,6 @@ public abstract class BaseIntegrationTest {
             .withDatabaseName("test_db")
             .withUsername("luz")
             .withPassword("blank");
-
-    static final InfluxDBContainer<?> INFLUX_DB_CONTAINER = new InfluxDBContainer<>(
-            DockerImageName.parse("influxdb:1.8")
-    )
-            .withDatabase(MockInfluxDbConfiguration.INFLUX_DB_NAME)
-            .withUsername("luz")
-            .withPassword("blank")
-            .waitingFor(Wait.forHttp("/ping").forStatusCode(204));
 
     /**
      * Uses GenericContainer since there's no specific Testcontainers support for InfluxDB 3 yet
@@ -52,9 +42,6 @@ public abstract class BaseIntegrationTest {
     static void setupOnce() {
         if (!POSTGRES_CONTAINER.isRunning()) {
             POSTGRES_CONTAINER.start();
-        }
-        if (!INFLUX_DB_CONTAINER.isRunning()) {
-            INFLUX_DB_CONTAINER.start();
         }
         if (!INFLUX_DB3_CONTAINER.isRunning()) {
             INFLUX_DB3_CONTAINER.start();
@@ -92,12 +79,6 @@ public abstract class BaseIntegrationTest {
         registry.add("spring.datasource.url", POSTGRES_CONTAINER::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES_CONTAINER::getUsername);
         registry.add("spring.datasource.password", POSTGRES_CONTAINER::getPassword);
-
-        // InfluxDB 1.8 configuration
-        registry.add("spring.influxdb.url", INFLUX_DB_CONTAINER::getUrl);
-        registry.add("spring.influxdb.username", INFLUX_DB_CONTAINER::getUsername);
-        registry.add("spring.influxdb.password", INFLUX_DB_CONTAINER::getPassword);
-        registry.add("spring.influxdb.database", INFLUX_DB_CONTAINER::getDatabase);
 
         // InfluxDB 3 configuration
         registry.add("spring.influxdb3.url", () ->
