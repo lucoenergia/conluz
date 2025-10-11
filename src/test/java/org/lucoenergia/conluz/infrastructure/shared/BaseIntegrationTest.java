@@ -29,10 +29,10 @@ public abstract class BaseIntegrationTest {
     )
             .withExposedPorts(8181)
             .withEnv("INFLUXDB3_HTTP_BIND_ADDR", "0.0.0.0:8181")
-            .withEnv("LOG_FILTER", "info")
+            .withEnv("LOG_FILTER", "debug")
             .withCommand(
                     "influxdb3", "serve",
-                    "--node-id", "test_node",
+                    "--node-id", "conluz_test_node",
                     "--object-store", "memory",
                     "--data-dir", "/var/lib/influxdb3/data"
             )
