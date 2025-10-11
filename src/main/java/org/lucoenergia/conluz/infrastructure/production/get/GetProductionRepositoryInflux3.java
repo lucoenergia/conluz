@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb3.InfluxDb3ConnectionManager;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb3.InfluxDb3Duration;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
@@ -86,7 +87,7 @@ public class GetProductionRepositoryInflux3 implements GetProductionRepository {
     @Override
     public List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                    Float partitionCoefficient) {
-        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate, partitionCoefficient, "day");
+        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate, partitionCoefficient, InfluxDb3Duration.DAILY);
     }
 
     @Override
@@ -97,7 +98,7 @@ public class GetProductionRepositoryInflux3 implements GetProductionRepository {
     @Override
     public List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                      Float partitionCoefficient) {
-        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate, partitionCoefficient, "month");
+        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate, partitionCoefficient, InfluxDb3Duration.MONTHLY);
     }
 
     @Override
@@ -108,7 +109,7 @@ public class GetProductionRepositoryInflux3 implements GetProductionRepository {
     @Override
     public List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                     Float partitionCoefficient) {
-        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate, partitionCoefficient, "year");
+        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate, partitionCoefficient, InfluxDb3Duration.YEARLY);
     }
 
     private List<ProductionByTime> getProductionByRangeOfDatesGroupedByDuration(OffsetDateTime startDate,

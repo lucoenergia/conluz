@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.consumption.shelly.ShellyConsumption;
 import org.lucoenergia.conluz.domain.consumption.shelly.persist.PersistShellyConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb3.InfluxDb3ConnectionManager;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb3.InfluxDb3Duration;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,19 +68,21 @@ public class ShellyConsumptionsHourlyAggregatorInflux3Service {
                 String query = String.format(
                         """
                         SELECT
-                            DATE_TRUNC('hour', time) as time,
+                            DATE_TRUNC('%s', time) as time,
                             AVG(consumption_kw) AS consumption_kw
                         FROM "%s"
                         WHERE prefix = '%s'
                             AND time >= '%s'
                             AND time <= '%s'
-                        GROUP BY DATE_TRUNC('hour', time)
+                        GROUP BY DATE_TRUNC('%s', time)
                         ORDER BY time
                         """,
+                        InfluxDb3Duration.HOURLY,
                         ShellyInstantConsumptionPoint.MEASUREMENT,
                         supply.getShellyMqttPrefix(),
                         startDateAsString,
-                        endDateAsString
+                        endDateAsString,
+                        InfluxDb3Duration.HOURLY
                 );
 
                 List<ShellyConsumption> consumptions = executeAggregationQuery(client, query, supply);

@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb3.InfluxDb3ConnectionManager;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb3.InfluxDb3Duration;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
@@ -39,7 +40,7 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
 
         String query = String.format("""
                         SELECT
-                            DATE_TRUNC('hour', time) as time,
+                            DATE_TRUNC('%s', time) as time,
                             SUM(consumption_kwh) AS consumption_kwh,
                             SUM(surplus_energy_kwh) AS surplus_energy_kwh,
                             SUM(self_consumption_energy_kwh) AS self_consumption_energy_kwh,
@@ -49,13 +50,15 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
                         WHERE cups = '%s'
                             AND time >= '%s'
                             AND time <= '%s'
-                        GROUP BY DATE_TRUNC('hour', time), cups
+                        GROUP BY DATE_TRUNC('%s', time), cups
                         ORDER BY time
                         """,
+                InfluxDb3Duration.HOURLY,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                 supply.getCode(),
                 startDate,
-                endDate
+                endDate,
+                InfluxDb3Duration.HOURLY
         );
 
         return executeQuery(client, query);
@@ -68,7 +71,7 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
         String query = String.format(
                 """
                 SELECT
-                    DATE_TRUNC('day', time) as time,
+                    DATE_TRUNC('%s', time) as time,
                     SUM(consumption_kwh) AS consumption_kwh,
                     SUM(surplus_energy_kwh) AS surplus_energy_kwh,
                     SUM(self_consumption_energy_kwh) AS self_consumption_energy_kwh,
@@ -78,13 +81,15 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
                 WHERE cups = '%s'
                     AND time >= '%s'
                     AND time <= '%s'
-                GROUP BY DATE_TRUNC('day', time), cups
+                GROUP BY DATE_TRUNC('%s', time), cups
                 ORDER BY time
                 """,
+                InfluxDb3Duration.DAILY,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                 supply.getCode(),
                 dateConverter.convertToString(startDate),
-                dateConverter.convertToString(endDate)
+                dateConverter.convertToString(endDate),
+                InfluxDb3Duration.DAILY
         );
 
         return executeQuery(client, query);
@@ -97,7 +102,7 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
         String query = String.format(
                 """
                 SELECT
-                    DATE_TRUNC('hour', time) as time,
+                    DATE_TRUNC('%s', time) as time,
                     SUM(consumption_kwh) AS consumption_kwh,
                     SUM(surplus_energy_kwh) AS surplus_energy_kwh,
                     SUM(self_consumption_energy_kwh) AS self_consumption_energy_kwh,
@@ -107,13 +112,15 @@ public class GetDatadisConsumptionRepositoryInflux3 implements GetDatadisConsump
                 WHERE cups = '%s'
                     AND time >= '%s'
                     AND time <= '%s'
-                GROUP BY DATE_TRUNC('hour', time), cups
+                GROUP BY DATE_TRUNC('%s', time), cups
                 ORDER BY time
                 """,
+                InfluxDb3Duration.HOURLY,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                 supply.getCode(),
                 dateConverter.convertToString(startDate),
-                dateConverter.convertToString(endDate)
+                dateConverter.convertToString(endDate),
+                InfluxDb3Duration.HOURLY
         );
 
         return executeQuery(client, query);
