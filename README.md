@@ -54,9 +54,9 @@ You don't need to do an extra effort of creating all the table manually, because
 > To have a PostgreSQL database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
 > You just need to navigate to the `deploy` folder and execute the command `docker compose up -d`
 
-2. **InfluxDB database**
+2. **InfluxDB 3 Core database**
 
-Conluz uses InfluxDB as a time series database to store consumption, production and energy prices data gathered from different sources like datadis.es, Shelly meters or Huawei inverters.
+Conluz uses InfluxDB 3 Core as a time series database to store consumption, production and energy prices data gathered from different sources like datadis.es, Shelly meters or Huawei inverters.
 
 #### Monitoring
 
@@ -108,39 +108,43 @@ SPRING_DATASOURCE_URL="jdbc:postgresql://postgres_ip:5432/conluz_db"
 
 If you are running Postgres locally on `localhost:5432` you don't need to provide this environment variable because that is the default configuration.
 
-4. Configure InfluxDB database
+4. Configure InfluxDB 3 Core database
 
-#### New InfluxDB installation
+#### New InfluxDB 3 Core installation
 
-To have an InfluxDB database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
-You just need to execute the command `docker compose up -d influxdb`
+To set up InfluxDB 3 Core, follow these steps:
 
-#### Already existing InfluxDB installation
-If you already have an InfluxDB database up and running, you need to execute these commands:
-
-```sql
-CREATE DATABASE conluz_db
-CREATE USER luz WITH PASSWORD 'blank'
-GRANT ALL ON conluz_db TO luz
-CREATE RETENTION POLICY one_month ON conluz_db DURATION 30d REPLICATION 1
-CREATE RETENTION POLICY one_year ON conluz_db DURATION 365d REPLICATION 1
-CREATE RETENTION POLICY forever ON conluz_db DURATION INF REPLICATION 1 DEFAULT
-```
-These commands will:
-- Create a database called "conluz_db".
-- Create a user called "luz".
-- Grant privileges to the user "luz" over the database "conluz_db".
-- Create a set of policies required by the app.
-
-By default, the InfluxDB settings are:
-```
-url=http://localhost:8086
-username=luz
-password=blank
-database=conluz_db
+**Start the container:**
+```bash
+docker compose up -d influxdb3-core
 ```
 
-If you have your InfluxDB running with a different server, port, user credentials or database name, you would need to update the file `src/main/resources/application.properties` with your values.  
+**Create an admin token:**
+```bash
+docker compose exec influxdb3-core influxdb3 create token --admin
+```
+
+**Configure the token:**
+Open the `.env` file in the `deploy` folder and paste the token string for the `INFLUXDB_TOKEN` environment variable.
+
+**Restart the container:**
+Down and up the container again to make the healthcheck read the previously created token:
+```bash
+docker compose down influxdb3-core && docker compose up -d influxdb3-core
+```
+
+**Verify the installation:**
+Verify that influxdb3-core is up and running by executing a query (replace with your actual token):
+```bash
+docker exec influxdb3-core influxdb3 show databases --token <your_token_here>
+```
+
+#### Already existing InfluxDB 3 Core installation
+
+If you already have an InfluxDB 3 Core database up and running, you need to:
+- Create a database called `conluz_db`
+- Generate an admin token
+- Configure your application with the appropriate connection settings in `src/main/resources/application.properties`  
 
 5. Run the application
    
