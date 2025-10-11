@@ -84,12 +84,10 @@ services:
     environment:
       - CONLUZ_JWT_SECRET_KEY
       - SPRING_DATASOURCE_URL
-      - SPRING_INFLUXDB_URL
-      - SPRING_INFLUXDB_USERNAME
-      - SPRING_INFLUXDB_PASSWORD
-      - INFLUXDB_ADMIN_USER
-      - INFLUXDB_ADMIN_PASSWORD
-      - SPRING_INFLUXDB_DATABASE
+      - SPRING_INFLUXDB3_URL
+      - SPRING_INFLUXDB3_TOKEN
+      - SPRING_INFLUXDB3_ORG
+      - SPRING_INFLUXDB3_BUCKET
       - CONLUZ_MQTT_SERVER_PASSWORD
       - CONLUZ_MQTT_SERVER_TOPICS
       - CONLUZ_MQTT_SERVER_URI
@@ -100,7 +98,7 @@ services:
     networks:
       - conluz_network
     depends_on:
-      - influxdb
+      - influxdb3-core
       - postgres
 
   promtail:
