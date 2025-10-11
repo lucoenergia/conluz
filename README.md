@@ -139,6 +139,38 @@ Verify that influxdb3-core is up and running by executing a query (replace with 
 docker exec influxdb3-core influxdb3 show databases --token <your_token_here>
 ```
 
+** Locate volume locally **
+If you want to know where exactly is influxdb3-core service storing the data through the volumne influxdb_data you can run this command to list all the volumes: 
+```bash
+docker volume ls
+```
+
+Locate the volume and copy the id of the volume. Then you can run this command to inspect the volume:
+```bash
+docker volume inspect {volume_id_here}
+```
+
+You will get an output like this:
+```json
+[
+    {
+        "CreatedAt": "2025-10-11T16:45:51+02:00",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "7c3d78d48af75c186f2c3dd11aa2637b1128e3b90aebad1780aa0811da74cb50",
+            "com.docker.compose.project": "deploy",
+            "com.docker.compose.version": "2.35.1",
+            "com.docker.compose.volume": "influxdb_data"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/deploy_influxdb_data/_data",
+        "Name": "deploy_influxdb_data",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+```
+The `Mountpoint` field contains the path where the volume is mounted.
+
 #### Already existing InfluxDB 3 Core installation
 
 If you already have an InfluxDB 3 Core database up and running, you need to:
@@ -158,6 +190,58 @@ If you already have an InfluxDB 3 Core database up and running, you need to:
 
     The application will be accessible at https://localhost:8443.
 
+**InfluxDB Explorer (UI)**
+
+InfluxDB Explorer is a web-based user interface for querying and visualizing data stored in InfluxDB 3 Core. To run the Explorer and connect it to your influxdb3-core service:
+
+> **Note:**
+>
+> You can find official documentation [here](https://docs.influxdata.com/influxdb3/explorer/install/?t=Docker+Compose).
+
+**Pre-configure the connection:**
+
+Create a `config.json` file in the `deploy/config` directory with the following content:
+
+```json
+{
+  "connections": [
+    {
+      "name": "conluz_db",
+      "url": "http://influxdb3-core:8181",
+      "token": "your_admin_token_here",
+      "database": "conluz_db"
+    }
+  ]
+}
+```
+
+Replace `your_admin_token_here` with the admin token you created earlier (the same token from `INFLUXDB_TOKEN` in the `.env` file).
+
+**Start InfluxDB Explorer:**
+```bash
+docker compose up -d influxdb3-explorer
+```
+
+**Access the Explorer:**
+Open your browser and navigate to http://localhost:8888
+
+The connection to influxdb3-core will be pre-configured and ready to use. You can now:
+- Run SQL queries against your time-series data
+- Browse databases and tables
+- Visualize data with charts and graphs
+- Explore the schema of your measurements
+
+> **Note:**
+>
+> The Explorer container is configured to communicate with influxdb3-core through Docker's internal network using `http://influxdb3-core:8181`. If you need to access InfluxDB from outside the Docker network, use `http://localhost:8181` instead.
+
+** Create a new database **
+
+Once you have InfluxDB Explorer up and running, you can create a new database by following these steps:
+
+- Go to the `Manage Databases` tab and click on the `Create New` button. Craete a databse with the same name as the one you configured in the `config.json` file.
+
+![img.png](docs/db/timeseries/influxdb/images/create_database.png)
 
 ## Usage
 

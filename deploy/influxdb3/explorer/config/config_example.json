@@ -1,0 +1,6 @@
+{
+  "DEFAULT_INFLUX_SERVER": "http://influxdb3-core:8181",
+  "DEFAULT_INFLUX_DATABASE": "conluz_db",
+  "DEFAULT_API_TOKEN": "your_admin_token_here",
+  "DEFAULT_SERVER_NAME": "Conluz Local InfluxDB 3"
+}
