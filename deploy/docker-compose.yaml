@@ -33,26 +33,25 @@ services:
     networks:
       - conluz_network
 
-  influxdb3:
+  influxdb3-core:
     image: influxdb:3-core
-    container_name: influxdb3
+    container_name: influxdb3-core
     ports:
       - "8181:8181"
-    environment:
-      - INFLUXDB3_AUTH_TOKEN # API token for authentication (InfluxDB 3 uses token-based auth)
-      - INFLUXDB3_HTTP_BIND_ADDR=0.0.0.0:8181 # HTTP API bind address
-      - LOG_FILTER=info # Controls logging verbosity (info, debug, etc.)
     volumes:
-      - ${PATH_TO_INFLUXDB3_DATA}:/var/lib/influxdb3/data
-      - ./conluz-influxdb3-init.sh:/docker-entrypoint-initdb.d/conluz-influxdb3-init.sh
-    command: >
-      sh -c "influxdb3 serve --node-id conluz_node --object-store file --data-dir /var/lib/influxdb3/data &
-      sleep 5 &&
-      if [ -f /docker-entrypoint-initdb.d/conluz-influxdb3-init.sh ]; then
-        sh /docker-entrypoint-initdb.d/conluz-influxdb3-init.sh
-      fi &&
-      wait"
-    restart: always
+      - influxdb_data:/var/lib/influxdb3
+    command:
+      - influxdb3
+      - serve
+      - --node-id=${INFLUXDB_NODE_ID}
+      - --object-store=file
+      - --data-dir=/var/lib/influxdb3/data
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -H 'Authorization: Bearer ${INFLUXDB_TOKEN}' http://localhost:8181/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
     networks:
       - conluz_network
 
@@ -162,6 +161,7 @@ services:
 
 volumes:
   conluz-logs:
+  influxdb_data:
 
 networks:
   conluz_network:
