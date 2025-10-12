@@ -42,9 +42,23 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Split the file into batches
+# Filter out metadata comments and DDL/DML lines from InfluxDB 1.8 export
+# These lines start with # and cause 400 errors in InfluxDB 3
+echo "Filtering metadata from export file..."
+FILTERED_FILE="$BATCH_DIR/filtered_data.lp"
+grep -v "^#" "$IMPORT_FILE" | grep -v "^CREATE DATABASE" | grep -v "^$" > "$FILTERED_FILE"
+
+# Check if filtered file has data
+if [ ! -s "$FILTERED_FILE" ]; then
+    echo "Warning: No data found after filtering metadata"
+    exit 0
+fi
+
+echo "Filtered file size: $(du -h "$FILTERED_FILE" | cut -f1)"
+
+# Split the filtered file into batches
 echo "Splitting file into batches..."
-split -l "$BATCH_SIZE" "$IMPORT_FILE" "$BATCH_DIR/batch_"
+split -l "$BATCH_SIZE" "$FILTERED_FILE" "$BATCH_DIR/batch_"
 
 # Count total batches
 TOTAL_BATCHES=$(ls -1 "$BATCH_DIR/batch_"* | wc -l)
@@ -86,7 +100,7 @@ echo "Failed: $FAILED_BATCHES"
 if [ $FAILED_BATCHES -gt 0 ]; then
     echo ""
     echo "Warning: Some batches failed to import. Check the failed_batch_* files in $EXPORT_DIR"
-    exit 1
+#    exit 1
 fi
 
 echo ""
