@@ -28,7 +28,7 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     private final AuthService authService;
 
     public GetDatadisConsumptionServiceImpl(
-            @Qualifier("getDatadisConsumptionRepositoryInflux") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
+            @Qualifier("getDatadisConsumptionRepositoryInflux3") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
             GetSupplyRepository getSupplyRepository,
             AuthService authService) {
         this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;

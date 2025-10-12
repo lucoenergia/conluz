@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
-import org.lucoenergia.conluz.infrastructure.consumption.shelly.aggregate.ShellyConsumptionsHourlyAggregatorService;
+import org.lucoenergia.conluz.infrastructure.consumption.shelly.aggregate.ShellyConsumptionsHourlyAggregatorInflux3Service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,7 +58,7 @@ public class ServiceTransactionalArchTest {
         addException(DatadisConsumptionSyncService.class.getSimpleName());
         addException(SyncDailyPricesService.class.getSimpleName());
         addException(SyncHuaweiProductionService.class.getSimpleName());
-        addException(ShellyConsumptionsHourlyAggregatorService.class.getSimpleName());
+        addException(ShellyConsumptionsHourlyAggregatorInflux3Service.class.getSimpleName());
         // Add more exceptions as needed
     }
 

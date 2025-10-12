@@ -14,7 +14,7 @@ import static org.mockito.Mockito.*;
 class ShellyConsumptionsHourlyAggregatorJobTest {
 
     @Mock
-    private ShellyConsumptionsHourlyAggregatorService aggregator;
+    private ShellyConsumptionsHourlyAggregatorInflux3Service aggregator;
 
     @InjectMocks
     private ShellyConsumptionsHourlyAggregatorJob job;
