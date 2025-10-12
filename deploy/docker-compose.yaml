@@ -33,6 +33,43 @@ services:
     networks:
       - conluz_network
 
+  influxdb3-core:
+    image: influxdb:3-core
+    container_name: influxdb3-core
+    ports:
+      - "8181:8181"
+    volumes:
+      - influxdb_data:/var/lib/influxdb3
+    command:
+      - influxdb3
+      - serve
+      - --node-id=${INFLUXDB_NODE_ID}
+      - --object-store=file
+      - --data-dir=/var/lib/influxdb3/data
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f -H 'Authorization: Bearer ${INFLUXDB_TOKEN}' http://localhost:8181/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - conluz_network
+
+  # Official docs here -> https://docs.influxdata.com/influxdb3/explorer/install/?t=Docker+Compose
+  influxdb3-explorer:
+    image: influxdata/influxdb3-ui:1.3.0
+    container_name: influxdb3-explorer
+    pull_policy: always
+    command: [ "--mode=admin" ]
+    ports:
+      - "8888:80"
+    volumes:
+      - ./influxdb3/explorer/db:/db:rw
+      - ./influxdb3/explorer/config:/app-root/config:ro
+    restart: unless-stopped
+    networks:
+      - conluz_network
+
   conluz:
     container_name: conluz
 #    image: conluz:latest
@@ -47,12 +84,10 @@ services:
     environment:
       - CONLUZ_JWT_SECRET_KEY
       - SPRING_DATASOURCE_URL
-      - SPRING_INFLUXDB_URL
-      - SPRING_INFLUXDB_USERNAME
-      - SPRING_INFLUXDB_PASSWORD
-      - INFLUXDB_ADMIN_USER
-      - INFLUXDB_ADMIN_PASSWORD
-      - SPRING_INFLUXDB_DATABASE
+      - SPRING_INFLUXDB3_URL
+      - SPRING_INFLUXDB3_TOKEN
+      - SPRING_INFLUXDB3_ORG
+      - SPRING_INFLUXDB3_BUCKET
       - CONLUZ_MQTT_SERVER_PASSWORD
       - CONLUZ_MQTT_SERVER_TOPICS
       - CONLUZ_MQTT_SERVER_URI
@@ -63,7 +98,7 @@ services:
     networks:
       - conluz_network
     depends_on:
-      - influxdb
+      - influxdb3-core
       - postgres
 
   promtail:
@@ -119,12 +154,10 @@ services:
     image: telegraf:latest
     container_name: telegraf
     environment:
-      - SPRING_INFLUXDB_URL
-      - SPRING_INFLUXDB_USERNAME
-      - SPRING_INFLUXDB_PASSWORD
-      - SPRING_INFLUXDB_DATABASE
-      - INFLUXDB_ADMIN_USER
-      - INFLUXDB_ADMIN_PASSWORD
+      - SPRING_INFLUXDB3_URL
+      - SPRING_INFLUXDB3_TOKEN
+      - SPRING_INFLUXDB3_ORG
+      - SPRING_INFLUXDB3_BUCKET
       - CONLUZ_MQTT_SERVER_TOPIC_PREFIX
       - CONLUZ_MQTT_SERVER_URI
       - CONLUZ_MQTT_SERVER_USERNAME
@@ -139,6 +172,7 @@ services:
 
 volumes:
   conluz-logs:
+  influxdb_data:
 
 networks:
   conluz_network:

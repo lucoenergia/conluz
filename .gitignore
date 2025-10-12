@@ -38,3 +38,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+## InfluxDB
+/deploy/influxdb3/explorer/config/config.json
+/deploy/influxdb3/explorer/db/sqlite.db

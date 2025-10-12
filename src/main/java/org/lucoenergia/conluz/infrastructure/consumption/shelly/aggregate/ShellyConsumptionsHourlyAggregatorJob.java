@@ -15,9 +15,9 @@ public class ShellyConsumptionsHourlyAggregatorJob implements Job {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShellyConsumptionsHourlyAggregatorJob.class);
 
-    private final ShellyConsumptionsHourlyAggregatorService aggregator;
+    private final ShellyConsumptionsHourlyAggregatorInflux3Service aggregator;
 
-    public ShellyConsumptionsHourlyAggregatorJob(ShellyConsumptionsHourlyAggregatorService aggregator) {
+    public ShellyConsumptionsHourlyAggregatorJob(ShellyConsumptionsHourlyAggregatorInflux3Service aggregator) {
         this.aggregator = aggregator;
     }
 

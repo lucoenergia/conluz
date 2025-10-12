@@ -8,7 +8,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
-import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInflux3Loader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -30,7 +30,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     @Autowired
     private SupplyRepository supplyRepository;
     @Autowired
-    private EnergyProductionInfluxLoader energyProductionInfluxLoader;
+    private EnergyProductionInflux3Loader energyProductionInfluxLoader;
 
     @BeforeEach
     void beforeEach() {

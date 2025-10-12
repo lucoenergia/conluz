@@ -1,27 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.price;
 
-import org.influxdb.annotation.Column;
-import org.influxdb.annotation.Measurement;
-import org.influxdb.impl.InfluxDBResultMapper;
 
 import java.time.Instant;
 
-@Measurement(name = OmieConfig.PRICES_KWH_MEASUREMENT)
 public class PriceByHourPoint {
 
     public static final String PRICE = "price1";
 
-    @Column(name = "time")
-    private Instant time;
-
-    @Column(name = PRICE)
-    private Double price;
-
-    /**
-     * Required by {@link InfluxDBResultMapper}
-     */
-    public PriceByHourPoint() {
-    }
+    private final Instant time;
+    private final Double price;
 
     public PriceByHourPoint(Instant time, Double price) {
         this.time = time;

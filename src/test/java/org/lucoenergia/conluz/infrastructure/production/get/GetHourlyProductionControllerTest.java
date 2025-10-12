@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInflux3Loader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -35,7 +35,7 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private EnergyProductionInfluxLoader energyProductionInfluxLoader;
+    private EnergyProductionInflux3Loader energyProductionInfluxLoader;
 
     @BeforeEach
     void beforeEach() {

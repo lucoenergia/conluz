@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInflux3Loader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +24,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @Transactional
 class GetSupplyMonthlyProductionControllerTest extends BaseControllerTest {
@@ -40,7 +38,7 @@ class GetSupplyMonthlyProductionControllerTest extends BaseControllerTest {
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
-    private EnergyProductionInfluxLoader energyProductionInfluxLoader;
+    private EnergyProductionInflux3Loader energyProductionInfluxLoader;
 
     @BeforeEach
     void beforeEach() {

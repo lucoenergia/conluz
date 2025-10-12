@@ -15,7 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GetPriceByHourControllerTest extends BaseControllerTest {
 
     @Autowired
-    private EnergyPricesInfluxLoader energyPricesInfluxLoader;
+    private EnergyPricesInflux3Loader energyPricesInfluxLoader;
 
     @BeforeEach
     void beforeEach() {
