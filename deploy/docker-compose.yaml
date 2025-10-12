@@ -92,8 +92,9 @@ services:
       - CONLUZ_MQTT_SERVER_TOPICS
       - CONLUZ_MQTT_SERVER_URI
       - CONLUZ_MQTT_SERVER_USERNAME
-      # Uncomment this to enable remote debugging
-#      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      # Add this to JAVA_TOOL_OPTIONS for enabling remote debugging.
+#      - -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      - JAVA_TOOL_OPTIONS=--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED
     restart: always
     networks:
       - conluz_network

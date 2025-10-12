@@ -10,4 +10,5 @@ COPY ${JAR_FILE} conluz.jar
 # Command that will be executed when a container is started from this image.
 # Run the application using the java -jar command.
 # This sets conluz as default application, which Docker will execute when a container is launched from the image.
-ENTRYPOINT ["java", "-jar", "/conluz.jar"]
+# Add JVM arguments for Apache Arrow (required by InfluxDB 3 client)
+ENTRYPOINT ["java", "--add-opens=java.base/java.nio=ALL-UNNAMED", "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED", "-jar", "/conluz.jar"]
