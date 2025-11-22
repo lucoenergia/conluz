@@ -2,7 +2,9 @@ package org.lucoenergia.conluz.infrastructure.production.plant.get;
 
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantService;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.pagination.Direction;
 import org.lucoenergia.conluz.domain.shared.pagination.Order;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
@@ -30,5 +32,11 @@ public class GetPlantServiceImpl implements GetPlantService {
         }
 
         return repository.findAll(pagedRequest);
+    }
+
+    @Override
+    public Plant findById(PlantId id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new PlantNotFoundException(id));
     }
 }
