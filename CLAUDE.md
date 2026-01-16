@@ -150,3 +150,6 @@ With the app running:
 - Architecture tests are enforced via ArchUnit (see `src/test/java/org/lucoenergia/conluz/architecture/`)
 - when injecting beans, always use the interface. This also applies to integration tests
 - when creating tests over services that has an interface, always use the name of the interface + "Test" for naming them
+
+## General Notes
+- Automatically use context7 for code generation and library documentation.
