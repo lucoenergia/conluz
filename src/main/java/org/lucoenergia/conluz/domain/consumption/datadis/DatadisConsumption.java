@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.consumption.datadis;
 
+import java.util.Objects;
+
 public class DatadisConsumption {
 
     private String cups;
@@ -73,6 +75,13 @@ public class DatadisConsumption {
 
     public void setSelfConsumptionEnergyKWh(Float selfConsumptionEnergyKWh) {
         this.selfConsumptionEnergyKWh = selfConsumptionEnergyKWh;
+    }
+
+    public boolean isEmpty() {
+        return (Objects.isNull(consumptionKWh) || consumptionKWh == 0) &&
+                (Objects.isNull(surplusEnergyKWh) || surplusEnergyKWh == 0) &&
+                (Objects.isNull(generationEnergyKWh) || generationEnergyKWh == 0) &&
+                (Objects.isNull(selfConsumptionEnergyKWh) || selfConsumptionEnergyKWh == 0);
     }
 
     @Override

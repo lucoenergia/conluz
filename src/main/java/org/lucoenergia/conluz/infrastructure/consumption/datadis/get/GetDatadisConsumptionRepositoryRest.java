@@ -124,6 +124,16 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         throw new NotImplementedException("Not yet implemented.");
     }
 
+    @Override
+    public List<DatadisConsumption> getMonthlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
+        throw new NotImplementedException("Not yet implemented.");
+    }
+
+    @Override
+    public List<DatadisConsumption> getYearlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
+        throw new NotImplementedException("Not yet implemented.");
+    }
+
     private void validateSupply(Supply supply) {
         if (supply.getDistributorCode() == null || supply.getDistributorCode().isEmpty()) {
             throw new DatadisSupplyConfigurationException("Distributor code is mandatory to get monthly consumption.");

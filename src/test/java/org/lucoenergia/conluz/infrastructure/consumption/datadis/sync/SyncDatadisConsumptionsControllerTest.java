@@ -1,13 +1,18 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.LocalDate;
+
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -22,25 +27,38 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @MockitoBean
     private DatadisConsumptionSyncService datadisConsumptionSyncService;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     void testSyncDatadisConsumptions() throws Exception {
 
         String authHeader = loginAsDefaultAdmin();
 
+        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024);
+
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        verify(datadisConsumptionSyncService, times(1)).synchronizeConsumptions();
+        verify(datadisConsumptionSyncService, times(1))
+                .synchronizeConsumptions(
+                        eq(LocalDate.of(2024, 1, 1)),
+                        eq(LocalDate.of(2024, 12, 31))
+                );
     }
 
     @Test
     void testWithoutToken() throws Exception {
 
+        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024);
+
         mockMvc.perform(post(URL)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
@@ -54,11 +72,78 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsPartner();
 
+        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024);
+
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
+
+    @Test
+    void testWithInvalidYearTooLow() throws Exception {
+
+        String authHeader = loginAsDefaultAdmin();
+
+        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(1999);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+    }
+
+    @Test
+    void testWithInvalidYearTooHigh() throws Exception {
+
+        String authHeader = loginAsDefaultAdmin();
+
+        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2101);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+    }
+
+    @Test
+    void testWithNullYear() throws Exception {
+
+        String authHeader = loginAsDefaultAdmin();
+
+        String jsonBody = "{\"year\": null}";
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+    }
+
+    @Test
+    void testWithMissingYear() throws Exception {
+
+        String authHeader = loginAsDefaultAdmin();
+
+        String jsonBody = "{}";
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
     }
 }

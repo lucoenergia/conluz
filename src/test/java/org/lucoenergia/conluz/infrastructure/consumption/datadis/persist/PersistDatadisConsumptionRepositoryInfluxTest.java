@@ -40,7 +40,7 @@ class PersistDatadisConsumptionRepositoryInfluxTest {
         Mockito.when(influxDbConnectionManager.createBatchPoints()).thenReturn(batchPoints);
 
         // Act
-        repository.persistConsumptions(Collections.singletonList(consumption));
+        repository.persistHourlyConsumptions(Collections.singletonList(consumption));
 
         // Assert
         Mockito.verify(consumption, Mockito.atLeastOnce()).getCups();

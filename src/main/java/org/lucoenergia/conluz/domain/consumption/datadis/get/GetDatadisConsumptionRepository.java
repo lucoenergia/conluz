@@ -33,4 +33,26 @@ public interface GetDatadisConsumptionRepository {
      */
     List<DatadisConsumption> getHourlyConsumptionsByRangeOfDates(@NotNull Supply supply,
                                                                  @NotNull OffsetDateTime startDate, @NotNull OffsetDateTime endDate);
+
+    /**
+     * Retrieves a list of monthly consumption data within a specified date range for the given supply.
+     *
+     * @param supply the supply for which the consumption data is retrieved, must not be null
+     * @param startDate the start date of the range, inclusive, must not be null
+     * @param endDate the end date of the range, inclusive, must not be null
+     * @return a list of {@code DatadisConsumption} objects representing monthly consumption data within the specified date range
+     */
+    List<DatadisConsumption> getMonthlyConsumptionsByRangeOfDates(@NotNull Supply supply,
+                                                                   @NotNull OffsetDateTime startDate, @NotNull OffsetDateTime endDate);
+
+    /**
+     * Retrieves a list of yearly consumption data within a specified date range for the given supply.
+     *
+     * @param supply the supply for which the consumption data is retrieved, must not be null
+     * @param startDate the start date of the range, inclusive, must not be null
+     * @param endDate the end date of the range, inclusive, must not be null
+     * @return a list of {@code DatadisConsumption} objects representing yearly consumption data within the specified date range
+     */
+    List<DatadisConsumption> getYearlyConsumptionsByRangeOfDates(@NotNull Supply supply,
+                                                                  @NotNull OffsetDateTime startDate, @NotNull OffsetDateTime endDate);
 }

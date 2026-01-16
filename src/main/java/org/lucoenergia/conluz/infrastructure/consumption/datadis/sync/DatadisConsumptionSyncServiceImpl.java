@@ -15,7 +15,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSyncService {
@@ -34,19 +36,11 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
         this.persistDatadisConsumptionRepository = persistDatadisConsumptionRepository;
     }
 
-    /**
-     * Synchronizes the consumptions for all supplies.
-     * It retrieves all supplies from the repository, and for each supply it retrieves the monthly consumptions
-     * based on the validity date of the supply. The method iterates through the validity dates until it reaches
-     * the current date, retrieving the monthly consumptions for each month and year.
-     */
-    public void synchronizeConsumptions() {
+    @Override
+    public void synchronizeConsumptions(LocalDate startDate, LocalDate endDate) {
 
         // Get all supplies
         List<Supply> allSupplies = getSupplyRepository.findAll();
-
-        LocalDate today = LocalDate.now();
-        LocalDate oneYearAgo = today.minusYears(1).withDayOfMonth(1);
 
         for (Supply supply : allSupplies) {
 
@@ -57,9 +51,10 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
 
             LOGGER.info("Processing supply with ID: {}", supply.getId());
 
-            LocalDate validDateFrom = oneYearAgo;
+            LocalDate validDateFrom = startDate;
+            List<DatadisConsumption> aggregatedMonthlyConsumptions = new ArrayList<>();
 
-            while (validDateFrom.isBefore(today) || validDateFrom.isEqual(today)) {
+            while (validDateFrom.isBefore(endDate) || validDateFrom.isEqual(endDate)) {
 
                 Month month = validDateFrom.getMonth();
                 int year = validDateFrom.getYear();
@@ -68,19 +63,76 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
 
                 try {
                     List<DatadisConsumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
+
                     if (!consumptions.isEmpty()) {
-                        persistDatadisConsumptionRepository.persistConsumptions(consumptions);
-                        LOGGER.info("Consumptions persisted");
+                        persistDatadisConsumptionRepository.persistHourlyConsumptions(consumptions);
+                        LOGGER.info("Hourly consumptions persisted");
+                        // Calculate aggregated monthly consumption
+                        DatadisConsumption aggregatedMonthlyConsumption = calculateMonthlyAggregatedConsumption(consumptions);
+                        aggregatedMonthlyConsumptions.add(aggregatedMonthlyConsumption);
                     } else {
-                        LOGGER.warn("Consumptions are empty");
+                        LOGGER.warn("Hourly consumptions are empty");
                     }
                 } catch (DatadisSupplyConfigurationException e) {
-                    LOGGER.error("Unable to retrieve consumptions of supply with ID {} for month {}/{}. Error: {}", supply.getId(),
+                    LOGGER.error("Unable to retrieve hourly consumptions of supply with ID {} for month {}/{}. Error: {}", supply.getId(),
                             month.getValue(), year, e.getMessage());
                 }
 
                 validDateFrom = validDateFrom.plusMonths(1);
             }
+
+            // Persist monthly consumption
+            if (!aggregatedMonthlyConsumptions.isEmpty()) {
+                persistDatadisConsumptionRepository.persistMonthlyConsumptions(aggregatedMonthlyConsumptions);
+                LOGGER.info("Monthly consumptions persisted");
+            } else {
+                LOGGER.warn("Monthly consumptions are empty");
+            }
+
+            // Calculate and persist yearly consumption
+            DatadisConsumption aggregatedYearlyConsumption = calculateMonthlyAggregatedConsumption(aggregatedMonthlyConsumptions);
+            if (!aggregatedYearlyConsumption.isEmpty()) {
+                persistDatadisConsumptionRepository.persistYearlyConsumptions(List.of(aggregatedYearlyConsumption));
+                LOGGER.info("Yearly consumptions persisted");
+            } else {
+                LOGGER.warn("Yearly consumptions are empty");
+            }
         }
+    }
+
+    private DatadisConsumption calculateMonthlyAggregatedConsumption(List<DatadisConsumption> consumptions) {
+        DatadisConsumption aggregated = new DatadisConsumption();
+
+        Float totalConsumption = consumptions.stream()
+                .map(DatadisConsumption::getConsumptionKWh)
+                .filter(Objects::nonNull)
+                .reduce(0f, Float::sum);
+
+        Float totalSurplus = consumptions.stream()
+                .map(DatadisConsumption::getSurplusEnergyKWh)
+                .filter(Objects::nonNull)
+                .reduce(0f, Float::sum);
+
+        Float totalGeneration = consumptions.stream()
+                .map(DatadisConsumption::getGenerationEnergyKWh)
+                .filter(Objects::nonNull)
+                .reduce(0f, Float::sum);
+
+        Float totalSelfConsumption = consumptions.stream()
+                .map(DatadisConsumption::getSelfConsumptionEnergyKWh)
+                .filter(Objects::nonNull)
+                .reduce(0f, Float::sum);
+
+        DatadisConsumption firstConsumption = consumptions.get(0);
+        aggregated.setCups(firstConsumption.getCups());
+        aggregated.setDate(firstConsumption.getDate());
+        aggregated.setTime(firstConsumption.getTime());
+        aggregated.setObtainMethod(firstConsumption.getObtainMethod());
+        aggregated.setConsumptionKWh(totalConsumption);
+        aggregated.setSurplusEnergyKWh(totalSurplus);
+        aggregated.setGenerationEnergyKWh(totalGeneration);
+        aggregated.setSelfConsumptionEnergyKWh(totalSelfConsumption);
+
+        return aggregated;
     }
 }

@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -14,6 +15,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,17 +31,20 @@ public class SyncDatadisConsumptionsController {
 
     @PostMapping
     @Operation(
-            summary = "Synchronize the consumptions of all active supplies retrieving the information from datadis.es.",
+            summary = "Synchronize the consumptions of all active supplies for a specific year retrieving the information from datadis.es.",
             description = """
-                    This endpoint enables users to synchronize the consumptions of all active supplies retrieving the information from datadis.es.
-                    
+                    This endpoint enables users to synchronize the consumptions of all active supplies for a specific year retrieving the information from datadis.es.
+
+                    The request body must contain a year (integer) for which to synchronize consumption data.
+                    The synchronization will retrieve data from January 1st to December 31st of the specified year.
+
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
                     **Required Role: ADMIN**
-                    
+
                     A successful request returns an HTTP status code of 200.
-                    
+
                     In cases of errors, the server responds with an appropriate error status code accompanied by a
-                    descriptive message to guide users in resolving any issues.",
+                    descriptive message to guide users in resolving any issues.
                     """,
             tags = ApiTag.CONSUMPTION,
             operationId = "syncDatadisConsumptions",
@@ -59,7 +64,7 @@ public class SyncDatadisConsumptionsController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("hasRole('ADMIN')")
-    public void syncDatadisConsumptions() {
-        datadisConsumptionSyncService.synchronizeConsumptions();
+    public void syncDatadisConsumptions(@Valid @RequestBody SyncDatadisConsumptionsBody body) {
+        datadisConsumptionSyncService.synchronizeConsumptions(body.getStartDate(), body.getEndDate());
     }
 }
