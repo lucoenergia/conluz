@@ -34,7 +34,7 @@ class PersistDatadisConsumptionRepositoryInfluxIntegrationTest extends BaseInteg
         Supply supply = new Supply.Builder().withCode(consumption.getCups()).build();
 
         // Act
-        repository.persistConsumptions(Collections.singletonList(consumption));
+        repository.persistHourlyConsumptions(Collections.singletonList(consumption));
 
         // Assert
         Thread.sleep(10_000L);

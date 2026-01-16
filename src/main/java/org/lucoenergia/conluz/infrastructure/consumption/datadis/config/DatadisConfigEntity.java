@@ -10,6 +10,8 @@ public class DatadisConfigEntity {
 
     public static final String BASE_URL = "https://datadis.es/api-private/api";
     public static final String CONSUMPTION_KWH_MEASUREMENT = "datadis_consumption_kwh";
+    public static final String CONSUMPTION_KWH_MONTH_MEASUREMENT = "datadis_consumption_kwh_month";
+    public static final String CONSUMPTION_KWH_YEAR_MEASUREMENT = "datadis_consumption_kwh_year";
 
     @Id
     private UUID id;

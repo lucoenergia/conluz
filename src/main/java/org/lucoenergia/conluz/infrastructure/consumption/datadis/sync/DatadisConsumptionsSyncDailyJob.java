@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+
 @Component
 public class DatadisConsumptionsSyncDailyJob implements Job {
 
@@ -20,6 +22,10 @@ public class DatadisConsumptionsSyncDailyJob implements Job {
 
     /**
      * Synchronize consumptions from datadis.es at 4:00 AM every day.
+     * This job retrieves all supplies from the repository and synchronizes the consumption data
+     * from datadis.es for a date range between 1 year ago and today.
+     * <p>
+     * Cron expression breakdown:
      * 0 seconds (at the start of the minute)
      * 0 minutes (at the start of the hour)
      * 4 (at 4 AM)
@@ -31,7 +37,12 @@ public class DatadisConsumptionsSyncDailyJob implements Job {
     @Scheduled(cron = "0 0 4 * * ?")
     public void run() {
         LOGGER.info("Datadis consumption daily sync started...");
-        datadisConsumptionSyncService.synchronizeConsumptions();
+
+        LocalDate today = LocalDate.now();
+        LocalDate oneYearAgo = today.minusYears(1).withDayOfMonth(1);
+
+        datadisConsumptionSyncService.synchronizeConsumptions(oneYearAgo, today);
+
         LOGGER.info("...finished Datadis consumption daily sync.");
     }
 }
