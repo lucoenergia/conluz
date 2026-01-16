@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
 
     private static final String URL = "/api/v1/supplies";
-    private static final String START_DATE = "2023-04-01T00:00:00Z";
+    private static final String START_DATE = "2023-01-01T00:00:00Z";
     private static final String END_DATE = "2023-04-30T23:59:59Z";
     private static final String CUPS_CODE = "ES0031406912345678JN0F";
 

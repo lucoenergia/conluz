@@ -204,22 +204,22 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         assertNotNull(result);
         assertFalse(result.isEmpty());
 
-        // The loader loads 30 hourly data points (24 hours for April 1 + 6 hours for April 2)
-        // When grouped by time(30d), InfluxDB creates buckets every 30 days
-        // Since we have data spanning from April 1 to April 2, we get 2 buckets (even though minimal data in second)
-        assertEquals(2, result.size());
+        // The loader now populates monthly aggregated data
+        // Query for April 2023 returns 1 monthly aggregated result
+        assertEquals(1, result.size());
 
-        // Verify first monthly bucket (April 2023)
+        // Verify April 2023 monthly data
         DatadisConsumption monthData = result.get(0);
         assertNotNull(monthData);
         assertEquals("ES0031406912345678JN0F", monthData.getCups());
 
         // Verify date and time are present
-        // InfluxDB's time(30d) groups by 30-day periods from epoch, not calendar months
-        // So the timestamp may not align exactly with the start date
+        // April 2023 monthly data timestamp is April 1, 2023 00:00:00 UTC
+        // In Europe/Madrid timezone (UTC+2 in April), this becomes 2023-04-01T02:00:00
         assertNotNull(monthData.getDate());
-        assertTrue(monthData.getDate().startsWith("2023/"), "Date should be in 2023");
+        assertEquals("2023/04/01", monthData.getDate(), "Date should be April 1, 2023 in Europe/Madrid timezone");
         assertNotNull(monthData.getTime());
+        assertEquals("02:00", monthData.getTime(), "Time should be 02:00 in Europe/Madrid timezone (UTC+2)");
 
         assertNotNull(monthData.getConsumptionKWh());
         assertTrue(monthData.getConsumptionKWh() > 0, "Consumption should be greater than 0");
@@ -230,30 +230,11 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         assertNotNull(monthData.getSelfConsumptionEnergyKWh());
         assertTrue(monthData.getSelfConsumptionEnergyKWh() >= 0, "Self-consumption energy should be >= 0");
 
-        // Expected total consumption for first bucket: data from April 1 (24 hours)
-        // April 1 total: 13.31 kWh
-        assertEquals(15.57f, monthData.getConsumptionKWh(), 0.01f, "First bucket consumption should match April 1 hourly values");
-
-        // Expected total surplus for first bucket
-        // April 1 total: 1.93 kWh
-        assertEquals(1.93f, monthData.getSurplusEnergyKWh(), 0.01f, "First bucket surplus should match April 1 hourly values");
-
-        // Expected total self-consumption for first bucket
-        // April 1 total: 2.37 kWh
-        assertEquals(2.37f, monthData.getSelfConsumptionEnergyKWh(), 0.01f, "First bucket self-consumption should match April 1 hourly values");
-
-        // Verify second monthly bucket (contains April 2 data)
-        DatadisConsumption monthData2 = result.get(1);
-        assertNotNull(monthData2);
-        assertEquals("ES0031406912345678JN0F", monthData2.getCups());
-
-        // Expected total consumption for second bucket: data from April 2 (6 hours)
-        // April 2 total: 2.26 kWh
-        assertEquals(2.26f, monthData2.getConsumptionKWh(), 0.01f, "Second bucket consumption should match April 2 hourly values");
-
-        // April 2 has no surplus or self-consumption in the test data
-        assertEquals(0.0f, monthData2.getSurplusEnergyKWh(), 0.01f, "Second bucket should have no surplus energy");
-        assertEquals(0.0f, monthData2.getSelfConsumptionEnergyKWh(), 0.01f, "Second bucket should have no self-consumption energy");
+        // Expected values for April 2023 from CONSUMPTION_BY_MONTH:
+        // April 2023: 330.2 kWh consumption, 65.0 kWh surplus, 135.0 kWh self-consumption
+        assertEquals(330.2f, monthData.getConsumptionKWh(), 0.01f, "April 2023 consumption should match monthly aggregated value");
+        assertEquals(65.0f, monthData.getSurplusEnergyKWh(), 0.01f, "April 2023 surplus should match monthly aggregated value");
+        assertEquals(135.0f, monthData.getSelfConsumptionEnergyKWh(), 0.01f, "April 2023 self-consumption should match monthly aggregated value");
     }
 
     @Test
@@ -263,28 +244,30 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
                 .withCode("ES0031406912345678JN0F")
                 .build();
 
-        OffsetDateTime startDate = OffsetDateTime.parse("2023-04-01T00:00:00Z");
-        OffsetDateTime endDate = OffsetDateTime.parse("2023-04-30T23:59:59Z");
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00Z");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:59:59Z");
 
         List<DatadisConsumption> result = repository.getYearlyConsumptionsByRangeOfDates(supply, startDate, endDate);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
 
-        // The loader loads 30 hourly data points (24 hours for April 1 + 6 hours for April 2)
-        // When grouped by time(1y), InfluxDB creates buckets every year
-        // Since we have data only in April 2023, we expect 1 bucket
+        // The loader now populates yearly aggregated data
+        // Query for 2023 returns 1 yearly aggregated result
         assertEquals(1, result.size());
 
-        // Verify yearly bucket (2023)
+        // Verify 2023 yearly data
         DatadisConsumption yearData = result.get(0);
         assertNotNull(yearData);
         assertEquals("ES0031406912345678JN0F", yearData.getCups());
 
         // Verify date and time are present
+        // 2023 yearly data timestamp is January 1, 2023 00:00:00 UTC
+        // In Europe/Madrid timezone (UTC+1 in January - CET), this becomes 2023-01-01T01:00:00
         assertNotNull(yearData.getDate());
-        assertTrue(yearData.getDate().startsWith("2023/"), "Date should be in 2023");
+        assertEquals("2023/01/01", yearData.getDate(), "Date should be January 1, 2023 in Europe/Madrid timezone");
         assertNotNull(yearData.getTime());
+        assertEquals("01:00", yearData.getTime(), "Time should be 01:00 in Europe/Madrid timezone (UTC+1)");
 
         assertNotNull(yearData.getConsumptionKWh());
         assertTrue(yearData.getConsumptionKWh() > 0, "Consumption should be greater than 0");
@@ -295,18 +278,11 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         assertNotNull(yearData.getSelfConsumptionEnergyKWh());
         assertTrue(yearData.getSelfConsumptionEnergyKWh() >= 0, "Self-consumption energy should be >= 0");
 
-        // Expected total consumption: sum of all 30 hourly values (April 1 + April 2)
-        // April 1 total: 13.31 kWh, April 2 total: 2.26 kWh
-        // Total: 13.31 + 2.26 = 15.57 kWh
-        assertEquals(15.57f, yearData.getConsumptionKWh(), 0.01f, "Yearly consumption should match sum of all hourly values");
-
-        // Expected total surplus: April 1 = 1.93 kWh, April 2 = 0.0 kWh
-        // Total: 1.93 kWh
-        assertEquals(1.93f, yearData.getSurplusEnergyKWh(), 0.01f, "Yearly surplus should match sum of all hourly values");
-
-        // Expected total self-consumption: April 1 = 2.37 kWh, April 2 = 0.0 kWh
-        // Total: 2.37 kWh
-        assertEquals(2.37f, yearData.getSelfConsumptionEnergyKWh(), 0.01f, "Yearly self-consumption should match sum of all hourly values");
+        // Expected values for 2023 from CONSUMPTION_BY_YEAR:
+        // 2023: 4205.3 kWh consumption, 726.0 kWh surplus, 1453.0 kWh self-consumption
+        assertEquals(4205.3f, yearData.getConsumptionKWh(), 0.01f, "2023 consumption should match yearly aggregated value");
+        assertEquals(726.0f, yearData.getSurplusEnergyKWh(), 0.01f, "2023 surplus should match yearly aggregated value");
+        assertEquals(1453.0f, yearData.getSelfConsumptionEnergyKWh(), 0.01f, "2023 self-consumption should match yearly aggregated value");
     }
 }
 
