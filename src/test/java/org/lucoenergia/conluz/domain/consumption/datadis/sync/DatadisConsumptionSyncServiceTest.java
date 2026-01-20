@@ -610,4 +610,32 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         verify(persistDatadisConsumptionRepository, times(1)).persistMonthlyConsumptions(anyList());
         verify(persistDatadisConsumptionRepository, times(1)).persistYearlyConsumptions(anyList());
     }
+
+    @Test
+    void testSynchronizeConsumptionsWithEmptyConsumptions() {
+        // Given
+        User user = UserMother.randomUser();
+        user = createUserRepository.create(user);
+
+        Supply supply = SupplyMother.random()
+                .withDistributorCode("SINGLE")
+                .build();
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+
+        List<DatadisConsumption> consumptions = List.of();
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
+                .thenReturn(consumptions);
+
+        // When
+        LocalDate startDate = LocalDate.of(2024, 1, 15);
+        LocalDate endDate = LocalDate.of(2024, 1, 15);
+        service.synchronizeConsumptions(startDate, endDate);
+
+        // Then
+        verify(getDatadisConsumptionRepository, times(1))
+                .getHourlyConsumptionsByMonth(eq(supply), eq(Month.JANUARY), eq(2024));
+        verify(persistDatadisConsumptionRepository, times(0)).persistHourlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, times(0)).persistMonthlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, times(0)).persistYearlyConsumptions(anyList());
+    }
 }

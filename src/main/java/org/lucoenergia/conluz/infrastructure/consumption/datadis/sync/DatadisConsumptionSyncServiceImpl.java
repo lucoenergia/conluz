@@ -85,17 +85,18 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
             if (!aggregatedMonthlyConsumptions.isEmpty()) {
                 persistDatadisConsumptionRepository.persistMonthlyConsumptions(aggregatedMonthlyConsumptions);
                 LOGGER.info("Monthly consumptions persisted");
+
+                // Calculate and persist yearly consumption
+                DatadisConsumption aggregatedYearlyConsumption = calculateMonthlyAggregatedConsumption(aggregatedMonthlyConsumptions);
+                if (!aggregatedYearlyConsumption.isEmpty()) {
+                    persistDatadisConsumptionRepository.persistYearlyConsumptions(List.of(aggregatedYearlyConsumption));
+                    LOGGER.info("Yearly consumptions persisted");
+                } else {
+                    LOGGER.warn("Yearly consumptions are empty");
+                }
+
             } else {
                 LOGGER.warn("Monthly consumptions are empty");
-            }
-
-            // Calculate and persist yearly consumption
-            DatadisConsumption aggregatedYearlyConsumption = calculateMonthlyAggregatedConsumption(aggregatedMonthlyConsumptions);
-            if (!aggregatedYearlyConsumption.isEmpty()) {
-                persistDatadisConsumptionRepository.persistYearlyConsumptions(List.of(aggregatedYearlyConsumption));
-                LOGGER.info("Yearly consumptions persisted");
-            } else {
-                LOGGER.warn("Yearly consumptions are empty");
             }
         }
     }
