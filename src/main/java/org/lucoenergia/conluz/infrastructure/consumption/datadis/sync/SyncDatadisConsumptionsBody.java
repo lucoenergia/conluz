@@ -48,6 +48,11 @@ public class SyncDatadisConsumptionsBody {
      */
     @JsonIgnore
     public LocalDate getEndDate() {
-        return LocalDate.of(year, 12, 31);
+        LocalDate lastDayOfYear = LocalDate.of(year, 12, 31);
+        LocalDate today = LocalDate.now();
+        if (lastDayOfYear.isAfter(today)) {
+            return today;
+        }
+        return lastDayOfYear;
     }
 }
