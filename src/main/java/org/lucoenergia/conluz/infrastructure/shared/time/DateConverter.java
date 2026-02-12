@@ -18,6 +18,11 @@ public class DateConverter {
         this.timeConfiguration = timeConfiguration;
     }
 
+    public int getYearFromStringDate(String dateString) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM");
+        return YearMonth.parse(dateString, formatter).getYear();
+    }
+
     public long convertStringDateToMilliseconds(String dateString) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd'T'HH:mm");
 
@@ -37,7 +42,7 @@ public class DateConverter {
     }
 
     public static LocalDate convertStringToLocalDate(String dateString) {
-        return convertStringToLocalDate(dateString, "yyyy/MM/dd");
+        return convertStringToLocalDate(dateString, DATE_FORMAT);
     }
 
     public static LocalDate convertStringToLocalDate(String dateString, String pattern) {

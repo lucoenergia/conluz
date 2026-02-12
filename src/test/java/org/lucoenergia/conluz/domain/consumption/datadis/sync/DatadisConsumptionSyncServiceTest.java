@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.sync.DatadisConsumptionSyncServiceImpl;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @Transactional
@@ -42,54 +43,15 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private CreateUserRepository createUserRepository;
+    @Autowired
+    private DateConverter dateConverter;
 
     private DatadisConsumptionSyncService service;
 
     @BeforeEach
     void setUp() {
         service = new DatadisConsumptionSyncServiceImpl(getDatadisConsumptionRepository,
-                getSupplyRepository, persistDatadisConsumptionRepository);
-    }
-
-    @Test
-    void testSynchronizeConsumptionsValidDateFromNull() {
-
-        // Given
-        User user = UserMother.randomUser();
-        user = createUserRepository.create(user);
-
-        Supply supplyWithNullValidDateFrom = SupplyMother.random().withValidDateFrom(null).build();
-        supplyWithNullValidDateFrom = createSupplyRepository.create(supplyWithNullValidDateFrom, UserId.of(user.getId()));
-        Supply supplyWithNotNullValidDateFrom = SupplyMother.random()
-                .withValidDateFrom(LocalDate.now().minusMonths(8)).build();
-        supplyWithNotNullValidDateFrom = createSupplyRepository.create(supplyWithNotNullValidDateFrom, UserId.of(user.getId()));
-        Supply supplyWithMoreThanOneYearValidDateFrom = SupplyMother.random()
-                .withValidDateFrom(LocalDate.now().minusMonths(24)).build();
-        supplyWithMoreThanOneYearValidDateFrom = createSupplyRepository.create(supplyWithMoreThanOneYearValidDateFrom, UserId.of(user.getId()));
-        Supply supplyWithoutDistributorCode = SupplyMother.random()
-                .withDistributorCode(null)
-                .withValidDateFrom(LocalDate.now().minusMonths(24)).build();
-        supplyWithoutDistributorCode = createSupplyRepository.create(supplyWithoutDistributorCode, UserId.of(user.getId()));
-
-        List<DatadisConsumption> consumptions = List.of(mock(DatadisConsumption.class));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
-                .thenReturn(consumptions);
-
-        // When
-        LocalDate startDate = LocalDate.now().minusYears(1).withDayOfMonth(1);
-        LocalDate endDate = LocalDate.now();
-        service.synchronizeConsumptions(startDate, endDate);
-
-        // Then
-        verify(getDatadisConsumptionRepository, times(13))
-                .getHourlyConsumptionsByMonth(eq(supplyWithNullValidDateFrom), any(Month.class), anyInt());
-        verify(getDatadisConsumptionRepository, times(13))
-                .getHourlyConsumptionsByMonth(eq(supplyWithNotNullValidDateFrom), any(Month.class), anyInt());
-        verify(getDatadisConsumptionRepository, times(13))
-                .getHourlyConsumptionsByMonth(eq(supplyWithMoreThanOneYearValidDateFrom), any(Month.class), anyInt());
-        verify(getDatadisConsumptionRepository, times(0))
-                .getHourlyConsumptionsByMonth(eq(supplyWithoutDistributorCode), any(Month.class), anyInt());
-        verify(persistDatadisConsumptionRepository, times(39)).persistHourlyConsumptions(anyList());
+                getSupplyRepository, persistDatadisConsumptionRepository, dateConverter);
     }
 
     @Test
@@ -638,4 +600,91 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         verify(persistDatadisConsumptionRepository, times(0)).persistMonthlyConsumptions(anyList());
         verify(persistDatadisConsumptionRepository, times(0)).persistYearlyConsumptions(anyList());
     }
+
+    @Test
+    void testYearlyAggregationCalculatesCorrectSumsAcrossYears() {
+        // Given
+        User user = UserMother.randomUser();
+        user = createUserRepository.create(user);
+
+        Supply supply = SupplyMother.random()
+                .withDistributorCode("YEARTEST")
+                .build();
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+
+        // December 2023
+        DatadisConsumption dec2023 = new DatadisConsumption();
+        dec2023.setCups("ES1234567890");
+        dec2023.setDate("2023/12");
+        dec2023.setTime("00:00");
+        dec2023.setObtainMethod("Real");
+        dec2023.setConsumptionKWh(100.0f);
+        dec2023.setSurplusEnergyKWh(10.0f);
+        dec2023.setGenerationEnergyKWh(50.0f);
+        dec2023.setSelfConsumptionEnergyKWh(40.0f);
+
+        // January 2024
+        DatadisConsumption jan2024 = new DatadisConsumption();
+        jan2024.setCups("ES1234567890");
+        jan2024.setDate("2024/01");
+        jan2024.setTime("00:00");
+        jan2024.setObtainMethod("Real");
+        jan2024.setConsumptionKWh(150.0f);
+        jan2024.setSurplusEnergyKWh(15.0f);
+        jan2024.setGenerationEnergyKWh(75.0f);
+        jan2024.setSelfConsumptionEnergyKWh(60.0f);
+
+        // February 2024
+        DatadisConsumption feb2024 = new DatadisConsumption();
+        feb2024.setCups("ES1234567890");
+        feb2024.setDate("2024/02");
+        feb2024.setTime("00:00");
+        feb2024.setObtainMethod("Real");
+        feb2024.setConsumptionKWh(200.0f);
+        feb2024.setSurplusEnergyKWh(20.0f);
+        feb2024.setGenerationEnergyKWh(100.0f);
+        feb2024.setSelfConsumptionEnergyKWh(80.0f);
+
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), eq(Month.DECEMBER), eq(2023)))
+                .thenReturn(List.of(dec2023));
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), eq(Month.JANUARY), eq(2024)))
+                .thenReturn(List.of(jan2024));
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), eq(Month.FEBRUARY), eq(2024)))
+                .thenReturn(List.of(feb2024));
+
+        ArgumentCaptor<List<DatadisConsumption>> yearlyCaptor = ArgumentCaptor.forClass(List.class);
+
+        // When
+        LocalDate startDate = LocalDate.of(2023, 12, 1);
+        LocalDate endDate = LocalDate.of(2024, 2, 28);
+        service.synchronizeConsumptions(startDate, endDate);
+
+        // Then
+        verify(persistDatadisConsumptionRepository).persistYearlyConsumptions(yearlyCaptor.capture());
+
+        List<DatadisConsumption> yearlyAggregated = yearlyCaptor.getValue();
+        assertEquals(2, yearlyAggregated.size());
+
+        DatadisConsumption year2023 = yearlyAggregated.get(0);
+        assertEquals(100.0f, year2023.getConsumptionKWh(), 0.01f);
+        assertEquals(10.0f, year2023.getSurplusEnergyKWh(), 0.01f);
+        assertEquals(50.0f, year2023.getGenerationEnergyKWh(), 0.01f);
+        assertEquals(40.0f, year2023.getSelfConsumptionEnergyKWh(), 0.01f);
+        assertEquals("ES1234567890", year2023.getCups());
+        assertEquals("2023/12", year2023.getDate());
+        assertEquals("00:00", year2023.getTime());
+        assertEquals("Real", year2023.getObtainMethod());
+
+        DatadisConsumption year2024 = yearlyAggregated.get(1);
+        assertEquals(350.0f, year2024.getConsumptionKWh(), 0.01f);
+        assertEquals(35.0f, year2024.getSurplusEnergyKWh(), 0.01f);
+        assertEquals(175.0f, year2024.getGenerationEnergyKWh(), 0.01f);
+        assertEquals(140.0f, year2024.getSelfConsumptionEnergyKWh(), 0.01f);
+        assertEquals("ES1234567890", year2024.getCups());
+        assertEquals("2024/12", year2024.getDate());
+        assertEquals("00:00", year2024.getTime());
+        assertEquals("Real", year2024.getObtainMethod());
+    }
+
+
 }

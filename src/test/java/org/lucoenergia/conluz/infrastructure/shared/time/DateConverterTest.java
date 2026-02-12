@@ -96,6 +96,14 @@ class DateConverterTest {
     }
 
     @Test
+    void testGetYearFromStringDate() {
+        String dateString = "2023/11";
+        int expected = 2023;
+        int actual = converter.getYearFromStringDate(dateString);
+        assertEquals(expected, actual);
+    }
+
+    @Test
     void testConvertStringToLocalDateValidDateString() {
         String dateString = "2023/11/25";
         LocalDate expected = LocalDate.of(2023, 11, 25);
