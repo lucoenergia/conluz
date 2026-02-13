@@ -16,11 +16,18 @@ public class SyncDatadisConsumptionsBody {
     @Max(value = 2100)
     private Integer year;
 
+    private String supplyCode;
+
     public SyncDatadisConsumptionsBody() {
     }
 
     public SyncDatadisConsumptionsBody(Integer year) {
         this.year = year;
+    }
+
+    public SyncDatadisConsumptionsBody(Integer year, String supplyCode) {
+        this.year = year;
+        this.supplyCode = supplyCode;
     }
 
     public Integer getYear() {
@@ -29,6 +36,14 @@ public class SyncDatadisConsumptionsBody {
 
     public void setYear(Integer year) {
         this.year = year;
+    }
+
+    public String getSupplyCode() {
+        return supplyCode;
+    }
+
+    public void setSupplyCode(String supplyCode) {
+        this.supplyCode = supplyCode;
     }
 
     /**

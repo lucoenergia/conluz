@@ -2,11 +2,13 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
 import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.slf4j.Logger;
@@ -41,66 +43,75 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
 
     @Override
     public void synchronizeConsumptions(LocalDate startDate, LocalDate endDate) {
-
-        // Get all supplies
         List<Supply> allSupplies = getSupplyRepository.findAll();
-
         for (Supply supply : allSupplies) {
+            processSingleSupply(supply, startDate, endDate);
+        }
+    }
 
-            if (StringUtils.isBlank(supply.getDistributorCode())) {
-                LOGGER.warn("Skipping supply with ID: {} because does not have distributor code", supply.getId());
-                continue;
-            }
+    @Override
+    public void synchronizeConsumptions(LocalDate startDate, LocalDate endDate, SupplyCode supplyCode) {
+        Optional<Supply> supplyOptional = getSupplyRepository.findByCode(supplyCode);
+        if (supplyOptional.isEmpty()) {
+            throw new SupplyNotFoundException(supplyCode);
+        }
+        processSingleSupply(supplyOptional.get(), startDate, endDate);
+    }
 
-            LOGGER.info("Processing supply with ID: {}", supply.getId());
+    private void processSingleSupply(Supply supply, LocalDate startDate, LocalDate endDate) {
+        if (StringUtils.isBlank(supply.getDistributorCode())) {
+            LOGGER.warn("Skipping supply with ID: {} because does not have distributor code", supply.getId());
+            return;
+        }
 
-            LocalDate validDateFrom = startDate;
-            List<DatadisConsumption> aggregatedMonthlyConsumptions = new ArrayList<>();
+        LOGGER.info("Processing supply with ID: {}", supply.getId());
 
-            while (validDateFrom.isBefore(endDate) || validDateFrom.isEqual(endDate)) {
+        LocalDate validDateFrom = startDate;
+        List<DatadisConsumption> aggregatedMonthlyConsumptions = new ArrayList<>();
 
-                Month month = validDateFrom.getMonth();
-                int year = validDateFrom.getYear();
+        while (validDateFrom.isBefore(endDate) || validDateFrom.isEqual(endDate)) {
 
-                LOGGER.info("Processing month: {}/{}", month.getValue(), year);
+            Month month = validDateFrom.getMonth();
+            int year = validDateFrom.getYear();
 
-                try {
-                    List<DatadisConsumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
+            LOGGER.info("Processing month: {}/{}", month.getValue(), year);
 
-                    if (!consumptions.isEmpty()) {
-                        persistDatadisConsumptionRepository.persistHourlyConsumptions(consumptions);
-                        LOGGER.info("Hourly consumptions persisted");
-                        // Calculate aggregated monthly consumption
-                        DatadisConsumption aggregatedMonthlyConsumption = calculateMonthlyAggregatedConsumption(consumptions);
-                        aggregatedMonthlyConsumptions.add(aggregatedMonthlyConsumption);
-                    } else {
-                        LOGGER.warn("Hourly consumptions are empty");
-                    }
-                } catch (DatadisSupplyConfigurationException e) {
-                    LOGGER.error("Unable to retrieve hourly consumptions of supply with ID {} for month {}/{}. Error: {}", supply.getId(),
-                            month.getValue(), year, e.getMessage());
-                }
+            try {
+                List<DatadisConsumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
 
-                validDateFrom = validDateFrom.plusMonths(1);
-            }
-
-            // Persist monthly consumption
-            if (!aggregatedMonthlyConsumptions.isEmpty()) {
-                persistDatadisConsumptionRepository.persistMonthlyConsumptions(aggregatedMonthlyConsumptions);
-                LOGGER.info("Monthly consumptions persisted");
-
-                // Calculate and persist yearly consumption
-                List<DatadisConsumption> aggregatedYearlyConsumption = calculateYearlyAggregatedConsumption(aggregatedMonthlyConsumptions);
-                if (!aggregatedYearlyConsumption.isEmpty()) {
-                    persistDatadisConsumptionRepository.persistYearlyConsumptions(aggregatedYearlyConsumption);
-                    LOGGER.info("Yearly consumptions persisted");
+                if (!consumptions.isEmpty()) {
+                    persistDatadisConsumptionRepository.persistHourlyConsumptions(consumptions);
+                    LOGGER.info("Hourly consumptions persisted");
+                    // Calculate aggregated monthly consumption
+                    DatadisConsumption aggregatedMonthlyConsumption = calculateMonthlyAggregatedConsumption(consumptions);
+                    aggregatedMonthlyConsumptions.add(aggregatedMonthlyConsumption);
                 } else {
-                    LOGGER.warn("Yearly consumptions are empty");
+                    LOGGER.warn("Hourly consumptions are empty");
                 }
-
-            } else {
-                LOGGER.warn("Monthly consumptions are empty");
+            } catch (DatadisSupplyConfigurationException e) {
+                LOGGER.error("Unable to retrieve hourly consumptions of supply with ID {} for month {}/{}. Error: {}", supply.getId(),
+                        month.getValue(), year, e.getMessage());
             }
+
+            validDateFrom = validDateFrom.plusMonths(1);
+        }
+
+        // Persist monthly consumption
+        if (!aggregatedMonthlyConsumptions.isEmpty()) {
+            persistDatadisConsumptionRepository.persistMonthlyConsumptions(aggregatedMonthlyConsumptions);
+            LOGGER.info("Monthly consumptions persisted");
+
+            // Calculate and persist yearly consumption
+            List<DatadisConsumption> aggregatedYearlyConsumption = calculateYearlyAggregatedConsumption(aggregatedMonthlyConsumptions);
+            if (!aggregatedYearlyConsumption.isEmpty()) {
+                persistDatadisConsumptionRepository.persistYearlyConsumptions(aggregatedYearlyConsumption);
+                LOGGER.info("Yearly consumptions persisted");
+            } else {
+                LOGGER.warn("Yearly consumptions are empty");
+            }
+
+        } else {
+            LOGGER.warn("Monthly consumptions are empty");
         }
     }
 

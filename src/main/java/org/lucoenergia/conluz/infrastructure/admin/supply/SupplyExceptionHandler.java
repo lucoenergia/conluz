@@ -33,11 +33,16 @@ public class SupplyExceptionHandler {
     @ExceptionHandler(SupplyNotFoundException.class)
     public ResponseEntity<RestError> handleException(SupplyNotFoundException e) {
 
-        String supplyId = e.getId().getId().toString();
+        String identifier;
+        if (e.getId() != null) {
+            identifier = e.getId().getId().toString();
+        } else {
+            identifier = e.getCode().getCode();
+        }
 
         String message = messageSource.getMessage(
                 "error.supply.not.found",
-                Collections.singletonList(supplyId).toArray(),
+                Collections.singletonList(identifier).toArray(),
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);

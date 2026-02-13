@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -13,6 +14,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.ConsumptionMother;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.sync.DatadisConsumptionSyncServiceImpl;
@@ -28,6 +30,7 @@ import java.time.Month;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @Transactional
@@ -686,5 +689,122 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         assertEquals("Real", year2024.getObtainMethod());
     }
 
+    @Test
+    void testSynchronizeConsumptionsForSingleSupplyWithValidCode() {
 
+        // Given
+        User user = UserMother.randomUser();
+        user = createUserRepository.create(user);
+
+        Supply supply1 = SupplyMother.random()
+                .withCode("SUPPLY001")
+                .withDistributorCode("DIST001")
+                .build();
+        supply1 = createSupplyRepository.create(supply1, UserId.of(user.getId()));
+
+        Supply supply2 = SupplyMother.random()
+                .withCode("SUPPLY002")
+                .withDistributorCode("DIST002")
+                .build();
+        supply2 = createSupplyRepository.create(supply2, UserId.of(user.getId()));
+
+        List<DatadisConsumption> consumptions = List.of(ConsumptionMother.random());
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
+                .thenReturn(consumptions);
+
+        // When
+        LocalDate startDate = LocalDate.of(2024, 1, 1);
+        LocalDate endDate = LocalDate.of(2024, 1, 31);
+        service.synchronizeConsumptions(startDate, endDate, SupplyCode.of("SUPPLY001"));
+
+        // Then - only supply1 should be processed
+        verify(getDatadisConsumptionRepository, times(1))
+                .getHourlyConsumptionsByMonth(eq(supply1), eq(Month.JANUARY), eq(2024));
+        verify(getDatadisConsumptionRepository, never())
+                .getHourlyConsumptionsByMonth(eq(supply2), any(Month.class), anyInt());
+        verify(persistDatadisConsumptionRepository, times(1)).persistHourlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, times(1)).persistMonthlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, times(1)).persistYearlyConsumptions(anyList());
+    }
+
+    @Test
+    void testSynchronizeConsumptionsForSingleSupplyWithInvalidCode() {
+
+        // Given - no supply created with code "INVALID"
+
+        // When/Then
+        LocalDate startDate = LocalDate.of(2024, 1, 1);
+        LocalDate endDate = LocalDate.of(2024, 1, 31);
+        assertThrows(SupplyNotFoundException.class, () ->
+                service.synchronizeConsumptions(startDate, endDate, SupplyCode.of("INVALID"))
+        );
+
+        verify(getDatadisConsumptionRepository, never())
+                .getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt());
+        verify(persistDatadisConsumptionRepository, never()).persistHourlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, never()).persistMonthlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, never()).persistYearlyConsumptions(anyList());
+    }
+
+    @Test
+    void testSynchronizeConsumptionsForSingleSupplyWithoutDistributorCode() {
+
+        // Given
+        User user = UserMother.randomUser();
+        user = createUserRepository.create(user);
+
+        Supply supply = SupplyMother.random()
+                .withCode("SUPPLY003")
+                .withDistributorCode(null)
+                .build();
+        createSupplyRepository.create(supply, UserId.of(user.getId()));
+
+        // When
+        LocalDate startDate = LocalDate.of(2024, 1, 1);
+        LocalDate endDate = LocalDate.of(2024, 1, 31);
+        service.synchronizeConsumptions(startDate, endDate, SupplyCode.of("SUPPLY003"));
+
+        // Then - supply should be skipped
+        verify(getDatadisConsumptionRepository, never())
+                .getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt());
+        verify(persistDatadisConsumptionRepository, never()).persistHourlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, never()).persistMonthlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, never()).persistYearlyConsumptions(anyList());
+    }
+
+    @Test
+    void testSynchronizeConsumptionsForSingleSupplyAcrossMultipleMonths() {
+
+        // Given
+        User user = UserMother.randomUser();
+        user = createUserRepository.create(user);
+
+        Supply supply = SupplyMother.random()
+                .withCode("SUPPLY004")
+                .withDistributorCode("DIST004")
+                .build();
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+
+        List<DatadisConsumption> consumptions = List.of(ConsumptionMother.random());
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
+                .thenReturn(consumptions);
+
+        // When
+        LocalDate startDate = LocalDate.of(2024, 3, 1);
+        LocalDate endDate = LocalDate.of(2024, 5, 31);
+        service.synchronizeConsumptions(startDate, endDate, SupplyCode.of("SUPPLY004"));
+
+        // Then
+        verify(getDatadisConsumptionRepository, times(3))
+                .getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt());
+        verify(getDatadisConsumptionRepository, times(1))
+                .getHourlyConsumptionsByMonth(eq(supply), eq(Month.MARCH), eq(2024));
+        verify(getDatadisConsumptionRepository, times(1))
+                .getHourlyConsumptionsByMonth(eq(supply), eq(Month.APRIL), eq(2024));
+        verify(getDatadisConsumptionRepository, times(1))
+                .getHourlyConsumptionsByMonth(eq(supply), eq(Month.MAY), eq(2024));
+        verify(persistDatadisConsumptionRepository, times(3)).persistHourlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, times(1)).persistMonthlyConsumptions(anyList());
+        verify(persistDatadisConsumptionRepository, times(1)).persistYearlyConsumptions(anyList());
+    }
 }
