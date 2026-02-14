@@ -27,20 +27,20 @@ public class PersistDatadisConsumptionRepositoryInflux implements PersistDatadis
 
     @Override
     public void persistHourlyConsumptions(List<DatadisConsumption> consumptions) {
-        persistHourlyConsumptions(consumptions, DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT);
+        persistConsumptions(consumptions, DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT);
     }
 
     @Override
     public void persistMonthlyConsumptions(List<DatadisConsumption> consumptions) {
-        persistHourlyConsumptions(consumptions, DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT);
+        persistConsumptions(consumptions, DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT);
     }
 
     @Override
     public void persistYearlyConsumptions(List<DatadisConsumption> consumptions) {
-        persistHourlyConsumptions(consumptions, DatadisConfigEntity.CONSUMPTION_KWH_YEAR_MEASUREMENT);
+        persistConsumptions(consumptions, DatadisConfigEntity.CONSUMPTION_KWH_YEAR_MEASUREMENT);
     }
 
-    private void persistHourlyConsumptions(List<DatadisConsumption> consumptions, String measurementName) {
+    private void persistConsumptions(List<DatadisConsumption> consumptions, String measurementName) {
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 

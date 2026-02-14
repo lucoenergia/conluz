@@ -674,7 +674,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         assertEquals(50.0f, year2023.getGenerationEnergyKWh(), 0.01f);
         assertEquals(40.0f, year2023.getSelfConsumptionEnergyKWh(), 0.01f);
         assertEquals("ES1234567890", year2023.getCups());
-        assertEquals("2023/12", year2023.getDate());
+        assertEquals("2023/12/31", year2023.getDate());
         assertEquals("00:00", year2023.getTime());
         assertEquals("Real", year2023.getObtainMethod());
 
@@ -684,7 +684,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         assertEquals(175.0f, year2024.getGenerationEnergyKWh(), 0.01f);
         assertEquals(140.0f, year2024.getSelfConsumptionEnergyKWh(), 0.01f);
         assertEquals("ES1234567890", year2024.getCups());
-        assertEquals("2024/12", year2024.getDate());
+        assertEquals("2024/12/31", year2024.getDate());
         assertEquals("00:00", year2024.getTime());
         assertEquals("Real", year2024.getObtainMethod());
     }

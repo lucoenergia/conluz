@@ -183,7 +183,7 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
 
             DatadisConsumption yearConsumption = new DatadisConsumption();
             yearConsumption.setCups(cups);
-            yearConsumption.setDate(year + "/12");
+            yearConsumption.setDate(year + "/12/31");
             yearConsumption.setTime("00:00");
             yearConsumption.setObtainMethod(obtainMethod);
             yearConsumption.setConsumptionKWh(consumptionByYear.getOrDefault(year, 0.0f));
