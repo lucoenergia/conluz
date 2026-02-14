@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 @Component
 public class DateConverter {
@@ -19,8 +20,21 @@ public class DateConverter {
     }
 
     public int getYearFromStringDate(String dateString) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM");
-        return YearMonth.parse(dateString, formatter).getYear();
+        // Try full date format first (most common case from hourly consumptions)
+        try {
+            DateTimeFormatter fullDateFormatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
+            return LocalDate.parse(dateString, fullDateFormatter).getYear();
+        } catch (DateTimeParseException e) {
+            // Fall back to year-month format for backward compatibility
+            try {
+                DateTimeFormatter yearMonthFormatter = DateTimeFormatter.ofPattern("yyyy/MM");
+                return YearMonth.parse(dateString, yearMonthFormatter).getYear();
+            } catch (DateTimeParseException ex) {
+                throw new IllegalArgumentException(
+                    String.format("Unable to extract year from date string '%s'. Expected format 'yyyy/MM/dd' or 'yyyy/MM'",
+                        dateString), ex);
+            }
+        }
     }
 
     public long convertStringDateToMilliseconds(String dateString) {

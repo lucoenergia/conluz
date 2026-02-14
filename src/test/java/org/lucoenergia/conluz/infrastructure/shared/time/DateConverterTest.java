@@ -104,6 +104,65 @@ class DateConverterTest {
     }
 
     @Test
+    void testGetYearFromStringDateWithFullDate() {
+        // Test with full date format (yyyy/MM/dd) - the actual format from hourly consumptions
+        String dateString = "2023/11/15";
+        int expected = 2023;
+        int actual = converter.getYearFromStringDate(dateString);
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testGetYearFromStringDateWithFirstDayOfMonth() {
+        // Test edge case with first day of month - the exact error case from production
+        String dateString = "2025/01/01";
+        int expected = 2025;
+        int actual = converter.getYearFromStringDate(dateString);
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testGetYearFromStringDateWithLastDayOfMonth() {
+        // Test edge case with last day of month
+        String dateString = "2024/12/31";
+        int expected = 2024;
+        int actual = converter.getYearFromStringDate(dateString);
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testGetYearFromStringDateWithLeapYearDate() {
+        // Test leap year date
+        String dateString = "2024/02/29";
+        int expected = 2024;
+        int actual = converter.getYearFromStringDate(dateString);
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testGetYearFromStringDateBackwardCompatibility() {
+        // Ensure existing format (yyyy/MM) still works - validates backward compatibility
+        String dateString = "2023/11";
+        int expected = 2023;
+        int actual = converter.getYearFromStringDate(dateString);
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void testGetYearFromStringDateWithInvalidFormat() {
+        // Test with invalid format (dashes instead of slashes)
+        String invalidDateString = "2023-11-15";
+        assertThrows(IllegalArgumentException.class, () -> converter.getYearFromStringDate(invalidDateString));
+    }
+
+    @Test
+    void testGetYearFromStringDateWithInvalidDate() {
+        // Test with invalid date (month > 12)
+        String invalidDateString = "2023/13/01";
+        assertThrows(IllegalArgumentException.class, () -> converter.getYearFromStringDate(invalidDateString));
+    }
+
+    @Test
     void testConvertStringToLocalDateValidDateString() {
         String dateString = "2023/11/25";
         LocalDate expected = LocalDate.of(2023, 11, 25);
