@@ -11,12 +11,14 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,6 +36,8 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private DateConverter dateConverter;
 
     @Test
     void testUpdateSupplyModifyingAll() throws Exception {
@@ -55,14 +59,6 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
         supplyModified.setAddress("address");
         supplyModified.setAddressRef("4ASDF654ASDF89ASD");
         supplyModified.setPartitionCoefficient(1.2f);
-        supplyModified.setEnabled(false);
-        supplyModified.setDatadisValidDateFrom("2023-04-26");
-        supplyModified.setDatadisDistributor("2");
-        supplyModified.setDatadisDistributorCode("EDISTRIBUCION");
-        supplyModified.setDatadisPointType(5);
-        supplyModified.setShellyId("shelly-id");
-        supplyModified.setShellyMac("shelly-mac");
-        supplyModified.setShellyMqttPrefix("shelly-mqtt-prefix");
 
         String bodyAsString = objectMapper.writeValueAsString(supplyModified);
 
@@ -78,61 +74,15 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.addressRef").value(supplyModified.getAddressRef()))
                 .andExpect(jsonPath("$.partitionCoefficient").value(supplyModified.getPartitionCoefficient()))
                 .andExpect(jsonPath("$.enabled").value(supply.getEnabled()))
-                .andExpect(jsonPath("$.datadisValidDateFrom").value(supplyModified.getDatadisValidDateFrom()))
-                .andExpect(jsonPath("$.datadisDistributor").value(supplyModified.getDatadisDistributor()))
-                .andExpect(jsonPath("$.datadisDistributorCode").value(supplyModified.getDatadisDistributorCode()))
-                .andExpect(jsonPath("$.datadisPointType").value(supplyModified.getDatadisPointType()))
-                .andExpect(jsonPath("$.datadisIsThirdParty").value(supplyModified.getDatadisIsThirdParty()))
-                .andExpect(jsonPath("$.shellyMac").value(supplyModified.getShellyMac()))
-                .andExpect(jsonPath("$.shellyId").value(supplyModified.getShellyId()))
-                .andExpect(jsonPath("$.shellyMqttPrefix").value(supplyModified.getShellyMqttPrefix()))
+                .andExpect(jsonPath("$.datadisValidDateFrom").value(supply.getValidDateFrom().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
+                .andExpect(jsonPath("$.datadisDistributor").value(supply.getDistributor()))
+                .andExpect(jsonPath("$.datadisDistributorCode").value(supply.getDistributorCode()))
+                .andExpect(jsonPath("$.datadisPointType").value(supply.getPointType()))
+                .andExpect(jsonPath("$.datadisIsThirdParty").value(supply.isThirdParty()))
+                .andExpect(jsonPath("$.shellyMac").value(supply.getShellyMac()))
+                .andExpect(jsonPath("$.shellyId").value(supply.getShellyId()))
+                .andExpect(jsonPath("$.shellyMqttPrefix").value(supply.getShellyMqttPrefix()))
                 .andExpect(jsonPath("$.user.personalId").value(userOne.getPersonalId()));
-    }
-
-    @Test
-    void testWithMissingNotRequiredFields() throws Exception {
-
-        String authHeader = loginAsDefaultAdmin();
-
-        // Creates two users
-        User userOne = UserMother.randomUser();
-        userOne = createUserRepository.create(userOne);
-
-        // Creates one supply
-        Supply supply = SupplyMother.random().build();
-        supply = createSupplyRepository.create(supply, UserId.of(userOne.getId()));
-
-        // Modify data of the supply
-        UpdateSupplyBody supplyModified = new UpdateSupplyBody();
-        supplyModified.setCode("code");
-        supplyModified.setName("my home");
-        supplyModified.setAddress("address");
-        supplyModified.setAddressRef("4ASDF654ASDF89ASD");
-        supplyModified.setPartitionCoefficient(1.2f);
-
-        String bodyAsString = objectMapper.writeValueAsString(supplyModified);
-
-        mockMvc.perform(put(String.format("%s/%s", PATH, supply.getId()))
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(bodyAsString))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(supplyModified.getCode()))
-                .andExpect(jsonPath("$.name").value(supplyModified.getName()))
-                .andExpect(jsonPath("$.address").value(supplyModified.getAddress()))
-                .andExpect(jsonPath("$.addressRef").value(supplyModified.getAddressRef()))
-                .andExpect(jsonPath("$.partitionCoefficient").value(supplyModified.getPartitionCoefficient()))
-                .andExpect(jsonPath("$.enabled").value(supply.getEnabled()))
-                .andExpect(jsonPath("$.datadisValidDateFrom").isEmpty())
-                .andExpect(jsonPath("$.datadisDistributor").isEmpty())
-                .andExpect(jsonPath("$.datadisDistributorCode").isEmpty())
-                .andExpect(jsonPath("$.datadisPointType").isEmpty())
-                .andExpect(jsonPath("$.datadisIsThirdParty").isEmpty())
-                .andExpect(jsonPath("$.shellyMac").isEmpty())
-                .andExpect(jsonPath("$.shellyId").isEmpty())
-                .andExpect(jsonPath("$.shellyMqttPrefix").isEmpty())
-                .andExpect(jsonPath("$.user.personalId").value(supply.getUser().getPersonalId()));
     }
 
     @Test

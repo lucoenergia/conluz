@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyService;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
@@ -54,6 +55,6 @@ public class UpdateSupplyController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     public SupplyResponse updateSupply(@PathVariable("id") UUID supplyId, @Valid @RequestBody UpdateSupplyBody body) {
-        return new SupplyResponse(service.update(body.mapToSupply(supplyId)));
+        return new SupplyResponse(service.update(SupplyId.of(supplyId), body.mapToSupply()));
     }
 }

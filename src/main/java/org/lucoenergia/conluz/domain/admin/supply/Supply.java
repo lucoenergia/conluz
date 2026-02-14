@@ -284,4 +284,24 @@ public class Supply {
     public int hashCode() {
         return Objects.hash(getId(), getCode(), getUser());
     }
+
+    public Builder copy() {
+        return new Builder()
+                .withId(this.id)
+                .withCode(this.code)
+                .withUser(this.user)
+                .withName(this.name)
+                .withAddress(this.address)
+                .withAddressRef(this.addressRef)
+                .withPartitionCoefficient(this.partitionCoefficient)
+                .withEnabled(this.enabled)
+                .withValidDateFrom(this.validDateFrom)
+                .withDistributor(this.distributor)
+                .withDistributorCode(this.distributorCode)
+                .withPointType(this.pointType)
+                .withThirdParty(this.thirdParty)
+                .withShellyId(this.shellyId)
+                .withShellyMac(this.shellyMac)
+                .withShellyMqttPrefix(this.shellyMqttPrefix);
+    }
 }

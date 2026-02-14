@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Positive;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyDto;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 
 import java.util.UUID;
@@ -15,7 +16,6 @@ public class UpdateSupplyBody {
 
     @NotEmpty
     private String code;
-//    @NotEmpty
     private String name;
     @NotEmpty
     private String address;
@@ -23,15 +23,6 @@ public class UpdateSupplyBody {
     private String addressRef;
     @Positive
     private Float partitionCoefficient;
-    private Boolean enabled;
-    private String datadisValidDateFrom;
-    private String datadisDistributor;
-    private String datadisDistributorCode;
-    private Integer datadisPointType;
-    private Boolean datadisIsThirdParty;
-    private String shellyMac;
-    private String shellyId;
-    private String shellyMqttPrefix;
 
 
     public String getCode() {
@@ -74,96 +65,13 @@ public class UpdateSupplyBody {
         this.partitionCoefficient = partitionCoefficient;
     }
 
-    public Boolean getEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(Boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public String getDatadisValidDateFrom() {
-        return datadisValidDateFrom;
-    }
-
-    public void setDatadisValidDateFrom(String datadisValidDateFrom) {
-        this.datadisValidDateFrom = datadisValidDateFrom;
-    }
-
-    public String getDatadisDistributor() {
-        return datadisDistributor;
-    }
-
-    public void setDatadisDistributor(String datadisDistributor) {
-        this.datadisDistributor = datadisDistributor;
-    }
-
-    public String getDatadisDistributorCode() {
-        return datadisDistributorCode;
-    }
-
-    public void setDatadisDistributorCode(String datadisDistributorCode) {
-        this.datadisDistributorCode = datadisDistributorCode;
-    }
-
-    public Integer getDatadisPointType() {
-        return datadisPointType;
-    }
-
-    public void setDatadisPointType(Integer datadisPointType) {
-        this.datadisPointType = datadisPointType;
-    }
-
-    public Boolean getDatadisIsThirdParty() {
-        return datadisIsThirdParty;
-    }
-
-    public void setDatadisIsThirdParty(Boolean datadisIsThirdParty) {
-        this.datadisIsThirdParty = datadisIsThirdParty;
-    }
-
-    public String getShellyMac() {
-        return shellyMac;
-    }
-
-    public void setShellyMac(String shellyMac) {
-        this.shellyMac = shellyMac;
-    }
-
-    public String getShellyId() {
-        return shellyId;
-    }
-
-    public void setShellyId(String shellyId) {
-        this.shellyId = shellyId;
-    }
-
-    public String getShellyMqttPrefix() {
-        return shellyMqttPrefix;
-    }
-
-    public void setShellyMqttPrefix(String shellyMqttPrefix) {
-        this.shellyMqttPrefix = shellyMqttPrefix;
-    }
-
-    public Supply mapToSupply(UUID supplyId) {
-        Supply.Builder builder = new Supply.Builder();
-        builder.withId(supplyId)
-                .withCode(code)
-                .withName(name)
-                .withAddress(address)
-                .withAddressRef(addressRef)
-                .withPartitionCoefficient(partitionCoefficient)
-                .withValidDateFrom(datadisValidDateFrom != null ?
-                        DateConverter.convertStringToLocalDate(datadisValidDateFrom, "yyyy-MM-dd") :
-                        null)
-                .withDistributor(datadisDistributor)
-                .withDistributorCode(datadisDistributorCode)
-                .withPointType(datadisPointType)
-                .withThirdParty(datadisIsThirdParty)
-                .withShellyMac(shellyMac)
-                .withShellyId(shellyId)
-                .withShellyMqttPrefix(shellyMqttPrefix);
+    public UpdateSupplyDto mapToSupply() {
+        UpdateSupplyDto.Builder builder = new UpdateSupplyDto.Builder();
+        builder.code(code)
+                .name(name)
+                .address(address)
+                .addressRef(addressRef)
+                .partitionCoefficient(partitionCoefficient);
         return builder.build();
     }
 }
