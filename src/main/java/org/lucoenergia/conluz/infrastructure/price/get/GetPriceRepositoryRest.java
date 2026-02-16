@@ -4,9 +4,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.apache.commons.lang3.NotImplementedException;
-import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
+import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
@@ -125,17 +124,20 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
         final List<PriceByHour> resultList = new ArrayList<>();
         final String[] lines = body.split("\n");
 
+        LocalDateTime dateTime = null;
+
         for (String line : lines) {
             if (!line.trim().isEmpty() && !line.startsWith("*") && !line.startsWith("MARGINALPDBC")) {
                 final String[] fields = line.split(";");
 
-                int year = Integer.parseInt(fields[0]);
-                int month = Integer.parseInt(fields[1]);
-                int day = Integer.parseInt(fields[2]);
-                // We substract one hour because the format comes with hourly values from 1 to 24
-                int hour = Integer.parseInt(fields[3]) - 1;
-
-                final LocalDateTime dateTime = LocalDateTime.of(year, month, day, hour, 0);
+                if (lines.length == 26) {
+                    dateTime = getDateTimeHourly(fields);
+                } else if (lines.length == 98) {
+                    dateTime = getDateTimeEvery15Minutes(dateTime, fields);
+                } else {
+                    LOGGER.error("Unexpected number of lines in OMIE response: {}", lines.length);
+                    throw new IllegalArgumentException("Unexpected number of lines in OMIE response");
+                }
 
                 // Convert LocalDateTime to OffsetDateTime
                 final OffsetDateTime offsetDateTime = convertToOffsetDateTime(dateTime, timeConfiguration.getZoneId());
@@ -149,6 +151,30 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
             }
         }
         return resultList;
+    }
+
+    private static LocalDateTime getDateTimeEvery15Minutes(LocalDateTime dateTime, String[] fields) {
+        if (dateTime == null) {
+            final int year = Integer.parseInt(fields[0]);
+            final int month = Integer.parseInt(fields[1]);
+            final int day = Integer.parseInt(fields[2]);
+            dateTime = LocalDateTime.of(year, month, day, 0, 0);
+        } else {
+            dateTime = dateTime.plusMinutes(15);
+        }
+        return dateTime;
+    }
+
+    private static LocalDateTime getDateTimeHourly(String[] fields) {
+        LocalDateTime dateTime;
+        int year = Integer.parseInt(fields[0]);
+        int month = Integer.parseInt(fields[1]);
+        int day = Integer.parseInt(fields[2]);
+        // We substract one hour because the format comes with hourly values from 1 to 24
+        int hour = Integer.parseInt(fields[3]) - 1;
+
+        dateTime = LocalDateTime.of(year, month, day, hour, 0);
+        return dateTime;
     }
 
     public OffsetDateTime convertToOffsetDateTime(LocalDateTime localDateTime, ZoneId zoneId) {

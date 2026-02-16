@@ -30,7 +30,8 @@ import static org.mockito.Mockito.when;
 
 class GetPriceRepositoryRestTest extends BaseIntegrationTest {
 
-    public static final String OMIE_PRICES = "src/test/resources/fixtures/price/omie_prices.txt";
+    public static final String OMIE_HOUR_PRICES = "src/test/resources/fixtures/price/omie_hour_prices.txt";
+    public static final String OMIE_QUARTER_PRICES = "src/test/resources/fixtures/price/omie_quarter_prices.txt";
 
     private final TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
@@ -43,7 +44,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
     private final ResponseBody responseBody = Mockito.mock(ResponseBody.class);
 
     @Test
-    void syncDailyPrices_successfulResponseWithNumberOne() throws IOException {
+    void syncDailyPrices_successfulResponseWithNumberOneAndHourlyPrices() throws IOException {
 
         // Assemble
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -51,7 +52,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         OffsetDateTime startDate = LocalDate.parse("20230528", formatter).atStartOfDay().atOffset(ZoneOffset.UTC);
         OffsetDateTime endDate = LocalDate.parse("20230602", formatter).atStartOfDay().atOffset(ZoneOffset.UTC);
 
-        String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_PRICES)));
+        String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_HOUR_PRICES)));
 
         when(timeConfiguration.getZoneId()).thenReturn(ZoneOffset.UTC);
         when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
@@ -132,6 +133,50 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         assertEquals("2023:05:28T23:00", getDate(prices.get(23).getHour()));
     }
 
+    @Test
+    void syncDailyPrices_successfulResponseWithPricesEvery15Minutes() throws IOException {
+
+        // Assemble
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+        OffsetDateTime startDate = LocalDate.parse("20251212", formatter).atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime endDate = LocalDate.parse("20251212", formatter).atStartOfDay().atOffset(ZoneOffset.UTC);
+
+        String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_QUARTER_PRICES)));
+
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneOffset.UTC);
+        when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
+        when(conluzRestClientBuilder.build(eq(false), ArgumentMatchers.any(Duration.class))).thenReturn(okHttpClient);
+        when(okHttpClient.newCall(argThat(argument ->
+                argument != null &&
+                        argument.url() != null &&
+                        argument.url().toString()
+                                .startsWith("https://www.omie.es/es/file-download?parents[0]=marginalpdbc&filename=marginalpdbc_") &&
+                        (
+                                argument.url().toString().contains("20251212.1")
+                        )
+        ))).thenReturn(call);
+        when(call.execute()).thenReturn(response);
+        when(response.isSuccessful()).thenReturn(true);
+        when(response.body()).thenReturn(responseBody);
+        when(responseBody.string()).thenReturn(bodyString);
+
+        // Act
+        List<PriceByHour> prices = repository.getPricesByRangeOfDates(startDate, endDate);
+
+        // Assert
+        assertEquals(96, prices.size());
+
+        assertEquals(0.09901, prices.get(0).getPrice());
+        assertEquals(0.0775, prices.get(95).getPrice());
+
+        assertEquals("2025:12:12T00:00", getDate(prices.get(0).getHour()));
+        assertEquals("2025:12:12T00:15", getDate(prices.get(1).getHour()));
+        assertEquals("2025:12:12T00:30", getDate(prices.get(2).getHour()));
+        assertEquals("2025:12:12T00:45", getDate(prices.get(3).getHour()));
+
+        assertEquals("2025:12:12T23:45", getDate(prices.get(95).getHour()));
+    }
 
     private String getDate(OffsetDateTime date) {
         return date.format(DateTimeFormatter.ofPattern("yyyy:MM:dd'T'HH:mm"));
