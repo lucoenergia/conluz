@@ -1,7 +1,14 @@
 package org.lucoenergia.conluz.domain.consumption.datadis;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.Objects;
 
+/**
+ * Represents consumption data from the external Datadis API.
+ * The annotation ignores unknown properties to ensure resilience when the API adds new fields.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DatadisConsumption {
 
     private String cups;

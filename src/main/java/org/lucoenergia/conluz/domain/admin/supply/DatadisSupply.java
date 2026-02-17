@@ -1,5 +1,12 @@
 package org.lucoenergia.conluz.domain.admin.supply;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+/**
+ * Represents supply information from the external Datadis API.
+ * The annotation ignores unknown properties to ensure resilience when the API adds new fields.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DatadisSupply {
 
     private String address;
