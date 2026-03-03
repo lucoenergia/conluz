@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
+import org.influxdb.dto.Query;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxLoader;
@@ -179,6 +180,15 @@ public class DatadisConsumptionInfluxLoader implements InfluxLoader {
 
     @Override
     public void clearData() {
-        // InfluxDB test container is recreated for each test, so no need to clear data
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            for (String measurement : List.of(
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT,
+                    DatadisConfigEntity.CONSUMPTION_KWH_YEAR_MEASUREMENT)) {
+                connection.query(new Query(String.format(
+                        "DROP SERIES FROM \"%s\" WHERE \"cups\" = '%s'",
+                        measurement, CUPS_CODE)));
+            }
+        }
     }
 }

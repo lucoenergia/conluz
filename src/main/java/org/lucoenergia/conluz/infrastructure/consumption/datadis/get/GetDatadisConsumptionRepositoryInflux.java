@@ -149,6 +149,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                     consumption.setConsumptionKWh(parseToFloat(consumptionPoint.getConsumptionKWh()));
                     consumption.setSelfConsumptionEnergyKWh(parseToFloat(consumptionPoint.getSelfConsumptionEnergyKWh()));
                     consumption.setSurplusEnergyKWh(parseToFloat(consumptionPoint.getSurplusEnergyKWh()));
+                    consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
                     consumption.setObtainMethod(consumptionPoint.getObtainMethod());
                     return consumption;
                 })
@@ -165,6 +166,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                     consumption.setConsumptionKWh(parseToFloat(consumptionPoint.getConsumptionKWh()));
                     consumption.setSelfConsumptionEnergyKWh(parseToFloat(consumptionPoint.getSelfConsumptionEnergyKWh()));
                     consumption.setSurplusEnergyKWh(parseToFloat(consumptionPoint.getSurplusEnergyKWh()));
+                    consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
                     consumption.setObtainMethod(consumptionPoint.getObtainMethod());
                     return consumption;
                 })
@@ -181,6 +183,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                     consumption.setConsumptionKWh(parseToFloat(consumptionPoint.getConsumptionKWh()));
                     consumption.setSelfConsumptionEnergyKWh(parseToFloat(consumptionPoint.getSelfConsumptionEnergyKWh()));
                     consumption.setSurplusEnergyKWh(parseToFloat(consumptionPoint.getSurplusEnergyKWh()));
+                    consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
                     consumption.setObtainMethod(consumptionPoint.getObtainMethod());
                     return consumption;
                 })

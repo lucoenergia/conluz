@@ -8,6 +8,8 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
@@ -59,6 +61,8 @@ public class ServiceTransactionalArchTest {
         addException(SyncDailyPricesService.class.getSimpleName());
         addException(SyncHuaweiProductionService.class.getSimpleName());
         addException(ShellyConsumptionsHourlyAggregatorService.class.getSimpleName());
+        addException(DatadisMonthlyAggregationService.class.getSimpleName());
+        addException(DatadisYearlyAggregationService.class.getSimpleName());
         // Add more exceptions as needed
     }
 
