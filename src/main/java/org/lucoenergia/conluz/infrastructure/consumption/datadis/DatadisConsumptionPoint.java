@@ -19,6 +19,8 @@ public class DatadisConsumptionPoint {
     private String obtainMethod;
     @Column(name = "surplus_energy_kwh")
     private Double surplusEnergyKWh;
+    @Column(name = "generation_energy_kwh")
+    private Double generationEnergyKWh;
     @Column(name = "self_consumption_energy_kwh")
     private Double selfConsumptionEnergyKWh;
 
@@ -40,6 +42,10 @@ public class DatadisConsumptionPoint {
 
     public Double getSurplusEnergyKWh() {
         return surplusEnergyKWh;
+    }
+
+    public Double getGenerationEnergyKWh() {
+        return generationEnergyKWh;
     }
 
     public Double getSelfConsumptionEnergyKWh() {
