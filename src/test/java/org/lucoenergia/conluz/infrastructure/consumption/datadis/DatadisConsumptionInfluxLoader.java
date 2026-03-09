@@ -63,7 +63,16 @@ public class DatadisConsumptionInfluxLoader implements InfluxLoader {
             Arrays.asList(1680400800000000000L, 0.37d, 0.0d, 0.0d, "Real"),
             Arrays.asList(1680404400000000000L, 0.36d, 0.0d, 0.0d, "Real"),
             Arrays.asList(1680408000000000000L, 0.34d, 0.0d, 0.0d, "Real"),
-            Arrays.asList(1680411600000000000L, 0.35d, 0.0d, 0.0d, "Real")
+            Arrays.asList(1680411600000000000L, 0.35d, 0.0d, 0.0d, "Real"),
+            // April 30 / May 1 boundary data (UTC) for timezone regression testing
+            // UTC 2023-04-30T20:00:00Z = local Europe/Madrid 2023-04-30T22:00+02:00 → should appear in April report
+            Arrays.asList(1682892000000000000L, 0.41d, 0.0d, 0.0d, "Real"),
+            // UTC 2023-04-30T21:00:00Z = local Europe/Madrid 2023-04-30T23:00+02:00 → should appear in April report
+            Arrays.asList(1682895600000000000L, 0.43d, 0.0d, 0.0d, "Real"),
+            // UTC 2023-04-30T22:00:00Z = local Europe/Madrid 2023-05-01T00:00+02:00 → must NOT appear in April report
+            Arrays.asList(1682899200000000000L, 0.47d, 0.0d, 0.0d, "Real"),
+            // UTC 2023-04-30T23:00:00Z = local Europe/Madrid 2023-05-01T01:00+02:00 → must NOT appear in April report
+            Arrays.asList(1682902800000000000L, 0.49d, 0.0d, 0.0d, "Real")
     );
 
     /**

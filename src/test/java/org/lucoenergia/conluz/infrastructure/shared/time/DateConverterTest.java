@@ -339,6 +339,100 @@ class DateConverterTest {
     }
 
     @Test
+    void toLocalDayInstant_utcInput_returnsSameInstant() {
+        // Given
+        OffsetDateTime input = OffsetDateTime.parse("2023-04-15T10:30:00Z");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("UTC"));
+
+        // When
+        Instant result = converter.toLocalDayInstant(input);
+
+        // Then - same point in time as the input
+        assertEquals(input.toInstant(), result);
+    }
+
+    @Test
+    void toLocalDayInstant_positivOffsetInput_returnsSameInstant() {
+        // Given - +02:00 means 2 hours ahead of UTC, so UTC moment is 10:00 - 2h = 08:00
+        OffsetDateTime input = OffsetDateTime.parse("2023-04-15T10:00:00+02:00");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
+
+        // When
+        Instant result = converter.toLocalDayInstant(input);
+
+        // Then - result equals UTC 08:00
+        assertEquals(Instant.parse("2023-04-15T08:00:00Z"), result);
+    }
+
+    @Test
+    void toLocalDayInstant_negativeOffsetInput_returnsSameInstant() {
+        // Given - -05:00 means 5 hours behind UTC, so UTC moment is 10:00 + 5h = 15:00
+        OffsetDateTime input = OffsetDateTime.parse("2023-04-15T10:00:00-05:00");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("America/New_York"));
+
+        // When
+        Instant result = converter.toLocalDayInstant(input);
+
+        // Then - result equals UTC 15:00
+        assertEquals(Instant.parse("2023-04-15T15:00:00Z"), result);
+    }
+
+    @Test
+    void toLocalDayInstant_europeMadridSummerTime_returnsCorrectInstant() {
+        // Given - Europe/Madrid is UTC+2 in summer (CEST), midnight local = UTC 22:00 previous day
+        // Input: UTC midnight May 1 (which corresponds to local 02:00 May 1)
+        OffsetDateTime input = OffsetDateTime.parse("2025-05-01T00:00:00Z");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
+
+        // When
+        Instant result = converter.toLocalDayInstant(input);
+
+        // Then - the UTC instant is preserved
+        assertEquals(input.toInstant(), result);
+    }
+
+    @Test
+    void toLocalDayInstant_europeMadridWinterTime_returnsCorrectInstant() {
+        // Given - Europe/Madrid is UTC+1 in winter (CET)
+        OffsetDateTime input = OffsetDateTime.parse("2023-01-15T12:00:00+01:00");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
+
+        // When
+        Instant result = converter.toLocalDayInstant(input);
+
+        // Then - result equals UTC 11:00
+        assertEquals(Instant.parse("2023-01-15T11:00:00Z"), result);
+    }
+
+    @Test
+    void toLocalDayInstant_configuredZoneDoesNotChangeResultInstant() {
+        // Given - the same point in time expressed with a UTC offset
+        OffsetDateTime input = OffsetDateTime.parse("2023-04-30T22:00:00+02:00");
+
+        // Regardless of the configured zone, the returned Instant must equal input.toInstant()
+        for (String zone : new String[]{"UTC", "Europe/Madrid", "America/New_York", "Asia/Tokyo"}) {
+            when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of(zone));
+
+            Instant result = converter.toLocalDayInstant(input);
+
+            assertEquals(input.toInstant(), result, "Expected same instant for zone " + zone);
+        }
+    }
+
+    @Test
+    void toLocalDayInstant_midnightUtcInput_returnsCorrectInstant() {
+        // Given - UTC midnight is itself; any configured zone must still return this same instant
+        OffsetDateTime input = OffsetDateTime.parse("2023-04-30T00:00:00Z");
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
+
+        // When
+        Instant result = converter.toLocalDayInstant(input);
+
+        // Then
+        assertEquals(Instant.parse("2023-04-30T00:00:00Z"), result);
+    }
+
+    @Test
     void testConvertFromInstantToStringTimeMidnight() {
         // Given - UTC midnight
         Instant instant = Instant.parse("2023-04-15T00:00:00Z");

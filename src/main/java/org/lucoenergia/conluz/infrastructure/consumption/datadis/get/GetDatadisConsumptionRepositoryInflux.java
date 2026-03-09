@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.Month;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -111,6 +112,12 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                                                                          OffsetDateTime endDate, String measurementName, String duration) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
+            // Snap to local day boundaries so the query aligns with the displayed (local) timezone.
+            // Start: inclusive start of the local day containing startDate.
+            // End:   exclusive start of the local day containing endDate (day-level half-open interval).
+            Instant queryStart = dateConverter.toLocalDayInstant(startDate);
+            Instant queryEnd = dateConverter.toLocalDayInstant(endDate);
+
             Query query = new Query(String.format(
                     """
                             SELECT
@@ -126,8 +133,8 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                             """,
                     measurementName,
                     supply.getCode(),
-                    dateConverter.convertToString(startDate),
-                    dateConverter.convertToString(endDate),
+                    dateConverter.convertToString(queryStart),
+                    dateConverter.convertToString(queryEnd),
                     duration));
 
             QueryResult queryResult = connection.query(query);

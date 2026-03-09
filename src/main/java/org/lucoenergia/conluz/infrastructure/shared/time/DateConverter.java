@@ -98,6 +98,16 @@ public class DateConverter {
         return String.format("%s-%02d-01T00:00:00.000000000Z", year, month.getValue());
     }
 
+    /**
+     * Returns the UTC Instant representing the local calendar day
+     * that contains the given OffsetDateTime (e.g., Europe/Madrid midnight → UTC 22:00 prev day in summer).
+     */
+    public Instant toLocalDayInstant(OffsetDateTime dateTime) {
+        return dateTime
+                .atZoneSameInstant(timeConfiguration.getZoneId())
+                .toInstant();
+    }
+
     public String convertFromInstantToStringDate(@NotNull Instant instant) {
 
         ZonedDateTime zonedDateTime = instant.atZone(timeConfiguration.getZoneId());

@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -142,6 +143,25 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testTimezoneFilteringIncludesMayData() throws Exception {
+        String authHeader = loginAsDefaultAdmin();
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        createSupplyRepository.create(
+                SupplyMother.random(user).withCode(CUPS_CODE).build(),
+                UserId.of(user.getId()));
+
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2023-04-01T00:00:00Z")
+                        .queryParam("endDate", "2023-05-01T00:00:00Z"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(content().string(containsString("2023/05/01")))
+                .andExpect(content().string(containsString("2023/04/30")));
     }
 
     @Test
