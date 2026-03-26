@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATABASE="conluz_db"
-HOST="100.64.130.69"
+HOST="localhost"
 PORT="8086"
 OUTPUT_FILE="influxdb_schema.txt"
 USERNAME="luzflux"
