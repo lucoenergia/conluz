@@ -59,9 +59,7 @@ public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggrega
 
     private void aggregateForSupplyYear(Supply supply, int year) {
         try {
-            LOGGER.info("Aggregating yearly consumption for supply ID: {}, year: {}", supply.getId(), year);
             aggregationRepository.aggregateYearlyConsumption(supply, year);
-            LOGGER.info("Successfully aggregated yearly consumption for supply ID: {}, year: {}", supply.getId(), year);
         } catch (Exception e) {
             LOGGER.error("Failed to aggregate yearly consumption for supply ID: {}, year: {}",
                     supply.getId(), year, e);

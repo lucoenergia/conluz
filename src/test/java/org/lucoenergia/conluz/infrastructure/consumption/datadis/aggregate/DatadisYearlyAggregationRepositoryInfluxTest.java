@@ -77,10 +77,9 @@ class DatadisYearlyAggregationRepositoryInfluxTest extends BaseIntegrationTest {
         // When
         repository.aggregateYearlyConsumption(supply, 2023);
 
-        // Then - query using a window wide enough to capture Dec 31 midnight in any timezone
-        // Dec 31, 2023 00:00:00 Europe/Madrid (UTC+1) = 2023-12-30T23:00:00Z
+        // Then - query using a window wide enough to capture January 1 midnight in any timezone
         List<DatadisConsumptionYearlyPoint> result = queryYearlyData(
-                "2023-12-30T20:00:00Z", "2023-12-31T04:00:00Z");
+                "2022-12-31T20:00:00Z", "2023-01-01T04:00:00Z");
 
         assertFalse(result.isEmpty(), "Expected aggregated yearly data to be written for 2023");
         assertEquals(1, result.size());
@@ -113,20 +112,19 @@ class DatadisYearlyAggregationRepositoryInfluxTest extends BaseIntegrationTest {
         // When
         repository.aggregateYearlyConsumption(supply, 2023);
 
-        // Then - the aggregated point must exist at December 31 midnight (local timezone)
-        // Dec 31, 2023 00:00:00 Europe/Madrid (UTC+1) = 2023-12-30T23:00:00Z
+        // Then - the aggregated point must exist at January 1 midnight (local timezone)
         List<DatadisConsumptionYearlyPoint> inWindow = queryYearlyData(
-                "2023-12-30T20:00:00Z", "2023-12-31T04:00:00Z");
+                "2022-12-30T20:00:00Z", "2023-01-01T04:00:00Z");
 
         assertFalse(inWindow.isEmpty(),
-                "Aggregated point should be stored at December 31st at midnight (local time)");
+                "Aggregated point should be stored at January 1st at midnight (local time)");
 
-        // Verify it does NOT appear earlier in the year
-        List<DatadisConsumptionYearlyPoint> beforeDecember = queryYearlyData(
-                "2023-01-01T00:00:00Z", "2023-12-30T19:59:59Z");
+        // Verify it does NOT appear later in the year
+        List<DatadisConsumptionYearlyPoint> afterJanuary = queryYearlyData(
+                "2023-01-01T04:00:00Z", "2023-12-31T23:59:59Z");
 
-        assertTrue(beforeDecember.isEmpty(),
-                "Aggregated point must not appear before December 31st");
+        assertTrue(afterJanuary.isEmpty(),
+                "Aggregated point must not appear after January 1st");
     }
 
     @Test

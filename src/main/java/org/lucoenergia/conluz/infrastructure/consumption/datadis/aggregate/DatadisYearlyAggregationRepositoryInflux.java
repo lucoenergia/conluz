@@ -38,6 +38,8 @@ public class DatadisYearlyAggregationRepositoryInflux implements DatadisYearlyAg
     @Override
     public void aggregateYearlyConsumption(Supply supply, int year) {
 
+        LOGGER.info("Aggregating yearly consumption for supply ID: {}, year: {}", supply.getId(), year);
+
         String startDate = String.format("%d-01-01T00:00:00Z", year);
         String endDate = String.format("%d-12-31T23:59:59Z", year);
 
@@ -81,9 +83,9 @@ public class DatadisYearlyAggregationRepositoryInflux implements DatadisYearlyAg
             // Persist the aggregated yearly data
             DatadisConsumptionMonthlyPoint aggregated = aggregatedData.get(0);
 
-            // Calculate timestamp for December 31st of the year at midnight (local timezone)
-            LocalDate lastDayOfYear = LocalDate.of(year, 12, 31);
-            String formattedDate = lastDayOfYear.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+            // Calculate timestamp for January 1st of the year at midnight (local timezone)
+            LocalDate firstDayOfYear = LocalDate.of(year, 1, 1);
+            String formattedDate = firstDayOfYear.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
             long timestamp = dateConverter.convertStringDateToMilliseconds(formattedDate + "T00:00");
 
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
@@ -101,7 +103,7 @@ public class DatadisYearlyAggregationRepositoryInflux implements DatadisYearlyAg
             batchPoints.point(point);
             connection.write(batchPoints);
 
-            LOGGER.debug("Persisted yearly aggregation for supply: {}, year: {}", supply.getCode(), year);
+            LOGGER.info("Successfully aggregated yearly consumption for supply ID: {}, year: {}", supply.getId(), year);
         }
     }
 }
