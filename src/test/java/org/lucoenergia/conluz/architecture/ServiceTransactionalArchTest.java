@@ -12,6 +12,8 @@ import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthl
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
+import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.aggregate.ShellyConsumptionsHourlyAggregatorService;
 import org.springframework.stereotype.Service;
@@ -63,6 +65,8 @@ public class ServiceTransactionalArchTest {
         addException(ShellyConsumptionsHourlyAggregatorService.class.getSimpleName());
         addException(DatadisMonthlyAggregationService.class.getSimpleName());
         addException(DatadisYearlyAggregationService.class.getSimpleName());
+        addException(HuaweiProductionMonthlyAggregationService.class.getSimpleName());
+        addException(HuaweiProductionYearlyAggregationService.class.getSimpleName());
         // Add more exceptions as needed
     }
 

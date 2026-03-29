@@ -40,11 +40,11 @@ public class PlantExceptionHandler {
     @ExceptionHandler(PlantNotFoundException.class)
     public ResponseEntity<RestError> handleException(PlantNotFoundException e) {
 
-        String plantId = e.getId().toString();
+        String plantIdentifier = e.getId() != null ? e.getId().toString() : e.getCode();
 
         String message = messageSource.getMessage(
                 "error.plant.not.found",
-                Collections.singletonList(plantId).toArray(),
+                Collections.singletonList(plantIdentifier).toArray(),
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);

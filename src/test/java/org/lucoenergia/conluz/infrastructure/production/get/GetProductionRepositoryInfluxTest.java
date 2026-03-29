@@ -120,6 +120,7 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
 
     @Test
     void testGetMonthlyProductionByRangeOfDates() {
+        // Date range covers 2023-09-01T00:00:00Z which is where the pre-aggregated monthly record is stored
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
         Float partitionCoefficient = 1.0f;
@@ -128,33 +129,64 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
 
-        // Verify total production matches the sum of hourly values for the day
         ProductionByTime monthData = result.get(0);
         assertNotNull(monthData);
         assertNotNull(monthData.getPower());
         assertNotNull(monthData.getTime());
-
-        // The monthly aggregation should sum all hourly values for September
-        // Expected total: sum of all 24 hourly values for Sept 1
-        // 0+0+0+0+0+0+0+0.13+1.32+5.45+15.97+25.76+27.79+25.29+31.1+26.87+30.95+28.86+10.48+5.37+0.81+0+0+0 = 236.15
-        assertEquals(236.15d, monthData.getPower(), 0.01d, "Monthly production should match sum of hourly values");
+        assertEquals(236.15d, monthData.getPower(), 0.01d, "Monthly production should match pre-aggregated value");
     }
 
     @Test
     void testGetMonthlyProductionByRangeOfDatesWithPartitionCoefficient() {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
-        Float partitionCoefficient = 0.5f; // 50% partition
+        Float partitionCoefficient = 0.5f;
 
         List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
 
-        // Verify production is multiplied by partition coefficient
         ProductionByTime monthData = result.get(0);
         assertNotNull(monthData);
         assertEquals(236.15d * 0.5d, monthData.getPower(), 0.01d, "Monthly production should be multiplied by partition coefficient");
+    }
+
+    @Test
+    void testGetYearlyProductionByRangeOfDates() {
+        // Date range covers 2023-01-01T00:00:00Z where the pre-aggregated yearly record is stored
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00.000+00:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:59:59.000+00:00");
+        Float partitionCoefficient = 1.0f;
+
+        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
+
+        ProductionByTime yearData = result.get(0);
+        assertNotNull(yearData);
+        assertNotNull(yearData.getPower());
+        assertNotNull(yearData.getTime());
+        assertEquals(1000.0d, yearData.getPower(), 0.01d, "Yearly production should match pre-aggregated value");
+    }
+
+    @Test
+    void testGetYearlyProductionByRangeOfDatesWithPartitionCoefficient() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00.000+00:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:59:59.000+00:00");
+        Float partitionCoefficient = 0.5f;
+
+        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        ProductionByTime yearData = result.get(0);
+        assertNotNull(yearData);
+        assertEquals(1000.0d * 0.5d, yearData.getPower(), 0.01d, "Yearly production should be multiplied by partition coefficient");
     }
 }

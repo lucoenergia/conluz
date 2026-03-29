@@ -2,8 +2,8 @@ package org.lucoenergia.conluz.domain.consumption.datadis.config;
 
 public class DatadisConfig {
 
-    private String username;
-    private String password;
+    private final String username;
+    private final String password;
 
     public DatadisConfig(String username, String password) {
         this.username = username;

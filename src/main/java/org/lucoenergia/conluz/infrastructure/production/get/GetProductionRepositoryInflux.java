@@ -8,15 +8,21 @@ import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.infrastructure.production.HuaweiHourlyProductionMonthlyPoint;
+import org.lucoenergia.conluz.infrastructure.production.HuaweiHourlyProductionYearlyPoint;
 import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDuration;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 
 @Repository
 public class GetProductionRepositoryInflux implements GetProductionRepository {
@@ -108,8 +114,21 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     @Override
     public List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                      Float partitionCoefficient) {
-        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
-                partitionCoefficient, InfluxDuration.MONTHLY);
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            Query query = new Query(String.format(
+                    "SELECT \"inverter_power\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s'",
+                    HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT,
+                    dateConverter.convertToString(startDate),
+                    dateConverter.convertToString(endDate)));
+
+            QueryResult queryResult = connection.query(query);
+
+            InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
+            List<HuaweiHourlyProductionMonthlyPoint> points = resultMapper
+                    .toPOJO(queryResult, HuaweiHourlyProductionMonthlyPoint.class);
+
+            return groupByTimeAndApplyCoefficient(points, partitionCoefficient);
+        }
     }
 
     @Override
@@ -120,8 +139,47 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     @Override
     public List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                     Float partitionCoefficient) {
-        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
-                partitionCoefficient, InfluxDuration.YEARLY);
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            Query query = new Query(String.format(
+                    "SELECT \"inverter_power\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s'",
+                    HuaweiConfig.HUAWEI_YEARLY_PRODUCTION_MEASUREMENT,
+                    dateConverter.convertToString(startDate),
+                    dateConverter.convertToString(endDate)));
+
+            QueryResult queryResult = connection.query(query);
+
+            InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
+            List<HuaweiHourlyProductionYearlyPoint> points = resultMapper
+                    .toPOJO(queryResult, HuaweiHourlyProductionYearlyPoint.class);
+
+            return groupByTimeAndApplyCoefficient(points, partitionCoefficient);
+        }
+    }
+
+    private <T> List<ProductionByTime> groupByTimeAndApplyCoefficient(List<T> points, Float partitionCoefficient) {
+        TreeMap<Instant, Double> grouped = new TreeMap<>();
+        for (T point : points) {
+            Instant time;
+            Double inverterPower;
+            if (point instanceof HuaweiHourlyProductionMonthlyPoint monthlyPoint) {
+                time = monthlyPoint.getTime();
+                inverterPower = monthlyPoint.getInverterPower();
+            } else if (point instanceof HuaweiHourlyProductionYearlyPoint yearlyPoint) {
+                time = yearlyPoint.getTime();
+                inverterPower = yearlyPoint.getInverterPower();
+            } else {
+                continue;
+            }
+            grouped.merge(time, inverterPower != null ? inverterPower : 0.0, Double::sum);
+        }
+
+        List<ProductionByTime> result = new ArrayList<>();
+        for (Map.Entry<Instant, Double> entry : grouped.entrySet()) {
+            result.add(new ProductionByTime(
+                    dateConverter.convertInstantToOffsetDateTime(entry.getKey()),
+                    entry.getValue() * partitionCoefficient));
+        }
+        return result;
     }
 
     private List<ProductionByTime> getProductionByRangeOfDatesGroupedByDuration(OffsetDateTime startDate,

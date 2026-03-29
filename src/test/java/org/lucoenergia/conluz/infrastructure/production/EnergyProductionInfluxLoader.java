@@ -69,6 +69,21 @@ public class EnergyProductionInfluxLoader implements InfluxLoader {
                     .addField(FIELD_INVERTER_POWER, ((Double) ((List) point).get(1)))
                     .build()
             ));
+
+            // Seed monthly pre-aggregated measurement: 2023-09-01T00:00:00Z
+            batchPoints.point(Point.measurement(HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT)
+                    .time(1693526400000000000L, TimeUnit.NANOSECONDS)
+                    .tag("station_code", "PLANT001")
+                    .addField(FIELD_INVERTER_POWER, 236.15d)
+                    .build());
+
+            // Seed yearly pre-aggregated measurement: 2023-01-01T00:00:00Z
+            batchPoints.point(Point.measurement(HuaweiConfig.HUAWEI_YEARLY_PRODUCTION_MEASUREMENT)
+                    .time(1672531200000000000L, TimeUnit.NANOSECONDS)
+                    .tag("station_code", "PLANT001")
+                    .addField(FIELD_INVERTER_POWER, 1000.0d)
+                    .build());
+
             influxDBConnection.write(batchPoints);
         }
     }

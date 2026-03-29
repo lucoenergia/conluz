@@ -6,6 +6,8 @@ public class HuaweiConfig {
 
     public static final String HUAWEI_REAL_TIME_PRODUCTION_MEASUREMENT = "huawei_production_realtime";
     public static final String HUAWEI_HOURLY_PRODUCTION_MEASUREMENT = "huawei_production_hourly";
+    public static final String HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT = "huawei_production_kwh_month";
+    public static final String HUAWEI_YEARLY_PRODUCTION_MEASUREMENT = "huawei_production_kwh_year";
 
     public static final String BASE_URL = "https://eu5.fusionsolar.huawei.com/thirdData";
 

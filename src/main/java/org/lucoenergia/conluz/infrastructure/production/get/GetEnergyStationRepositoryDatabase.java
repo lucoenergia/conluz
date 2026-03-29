@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Transactional
 @Repository
@@ -35,6 +35,11 @@ public class GetEnergyStationRepositoryDatabase implements GetEnergyStationRepos
         return entities.stream()
                 .map(this::mapEntityToDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<Plant> findByCode(String code) {
+        return plantRepository.findByCode(code).map(this::mapEntityToDomain);
     }
 
     private Plant mapEntityToDomain(PlantEntity entity) {
