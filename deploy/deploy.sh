@@ -21,6 +21,10 @@ for IMAGE in $PREVIOUS_IMAGES; do
   docker rmi -f "$IMAGE"
 done
 
+# Remove build cache
+echo "Removing dangling build cache..."
+docker builder prune -f
+
 # Update the code
 echo "Updating code from Git..."
 cd .. && git pull
