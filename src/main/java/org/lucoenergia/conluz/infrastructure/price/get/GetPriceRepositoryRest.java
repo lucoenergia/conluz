@@ -28,6 +28,10 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(GetPriceRepositoryRest.class);
     private static final String OMIE_URL = "https://www.omie.es/es/file-download";
 
+    public static final int NUM_ROWS_HOUR = 26;
+    public static final int NUM_ROWS_QUARTER = 98;
+    public static final int NUM_ROWS_QUARTER_DST = 94;
+
     private final ConluzRestClientBuilder conluzRestClientBuilder;
     private final TimeConfiguration timeConfiguration;
 
@@ -130,9 +134,9 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
             if (!line.trim().isEmpty() && !line.startsWith("*") && !line.startsWith("MARGINALPDBC")) {
                 final String[] fields = line.split(";");
 
-                if (lines.length == 26) {
+                if (lines.length == NUM_ROWS_HOUR) {
                     dateTime = getDateTimeHourly(fields);
-                } else if (lines.length == 98) {
+                } else if (lines.length == NUM_ROWS_QUARTER || lines.length == NUM_ROWS_QUARTER_DST) {
                     dateTime = getDateTimeEvery15Minutes(dateTime, fields);
                 } else {
                     LOGGER.error("Unexpected number of lines in OMIE response: {}", lines.length);

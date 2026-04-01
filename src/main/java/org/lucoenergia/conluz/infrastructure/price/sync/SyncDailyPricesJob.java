@@ -28,7 +28,7 @@ public class SyncDailyPricesJob implements Job {
      * It retrieves the current date and time and passes it to synchronize the daily prices.
      */
     @Override
-    @Scheduled(cron = "0 0 6 * * * ")
+    @Scheduled(cron = "0 0 6 * * *")
     public void run() {
         LOGGER.info("OMIE prices daily retrieval started...");
 

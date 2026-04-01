@@ -32,6 +32,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
 
     public static final String OMIE_HOUR_PRICES = "src/test/resources/fixtures/price/omie_hour_prices.txt";
     public static final String OMIE_QUARTER_PRICES = "src/test/resources/fixtures/price/omie_quarter_prices.txt";
+    public static final String OMIE_QUARTER_PRICES_DST = "src/test/resources/fixtures/price/omie_quarter_prices_DST.txt";
 
     private final TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
@@ -178,8 +179,52 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         assertEquals("2025:12:12T23:45", getDate(prices.get(95).getHour()));
     }
 
+    @Test
+    void syncDailyPrices_successfulResponseWithPricesEvery15MinutesWithDaylightSavingTime() throws IOException {
+
+        // Assemble
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+        OffsetDateTime startDate = LocalDate.parse("20260329", formatter).atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime endDate = LocalDate.parse("20260329", formatter).atStartOfDay().atOffset(ZoneOffset.UTC);
+
+        String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_QUARTER_PRICES_DST)));
+
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneOffset.UTC);
+        when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
+        when(conluzRestClientBuilder.build(eq(false), ArgumentMatchers.any(Duration.class))).thenReturn(okHttpClient);
+        when(okHttpClient.newCall(argThat(argument ->
+                argument != null &&
+                        argument.url() != null &&
+                        argument.url().toString()
+                                .startsWith("https://www.omie.es/es/file-download?parents[0]=marginalpdbc&filename=marginalpdbc_") &&
+                        (
+                                argument.url().toString().contains("20260329.1")
+                        )
+        ))).thenReturn(call);
+        when(call.execute()).thenReturn(response);
+        when(response.isSuccessful()).thenReturn(true);
+        when(response.body()).thenReturn(responseBody);
+        when(responseBody.string()).thenReturn(bodyString);
+
+        // Act
+        List<PriceByHour> prices = repository.getPricesByRangeOfDates(startDate, endDate);
+
+        // Assert
+        assertEquals(92, prices.size());
+
+        assertEquals(0.00541, prices.get(0).getPrice());
+        assertEquals(0.00600, prices.get(91).getPrice());
+
+        assertEquals("2026:03:29T00:00", getDate(prices.get(0).getHour()));
+        assertEquals("2026:03:29T00:15", getDate(prices.get(1).getHour()));
+        assertEquals("2026:03:29T00:30", getDate(prices.get(2).getHour()));
+        assertEquals("2026:03:29T00:45", getDate(prices.get(3).getHour()));
+
+        assertEquals("2026:03:29T22:45", getDate(prices.get(91).getHour()));
+    }
+
     private String getDate(OffsetDateTime date) {
         return date.format(DateTimeFormatter.ofPattern("yyyy:MM:dd'T'HH:mm"));
     }
-
 }
