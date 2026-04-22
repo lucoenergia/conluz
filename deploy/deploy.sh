@@ -38,12 +38,12 @@ cd deploy || exit
 
 VERSION=$(git describe --tags --abbrev=0)-$(git rev-parse --short HEAD)
 IMAGE_NAME_VERSION="$IMAGE_BASE_NAME:$VERSION"
-IMAGE_NAME_LATEST="$IMAGE_BASE_NAME:latest"
 
-# Build the image with two tags
-echo "Building the Docker image with tags $IMAGE_NAME_VERSION and $IMAGE_NAME_LATEST..."
-docker build -t "$IMAGE_NAME_VERSION" -t $IMAGE_NAME_LATEST ..
+# Build the image
+echo "Building the Docker image with tags $IMAGE_NAME_VERSION..."
+docker build -t "$IMAGE_NAME_VERSION" ..
 
 # Run the container using Docker Compose
 echo "Starting the container..."
+export CONLUZ_VERSION=$VERSION
 docker compose -f $DOCKER_COMPOSE_PATH up -d conluz

@@ -35,10 +35,7 @@ services:
 
   conluz:
     container_name: conluz
-#    image: conluz:latest
-    build:
-      context: .. # The context defines the directory where your application code resides and the Docker daemon executes the build commands within that context.
-      dockerfile: Dockerfile # The dockerfile key points to the Dockerfile that should be used for building the image.
+    image: conluz:${CONLUZ_VERSION}
     ports:
       - "8443:8443"
       - "5005:5005"
