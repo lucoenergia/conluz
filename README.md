@@ -58,10 +58,6 @@ You don't need to do an extra effort of creating all the table manually, because
 
 Conluz uses InfluxDB as a time series database to store consumption, production and energy prices data gathered from different sources like datadis.es, Shelly meters or Huawei inverters.
 
-#### Monitoring
-
-You can monitor the resources of the server where Conluz is running by using Prometheus + Node Exporter.
-
 ### Installation
 
 1. Clone the repository:

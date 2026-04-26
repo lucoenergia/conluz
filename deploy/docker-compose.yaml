@@ -72,6 +72,7 @@ services:
       - ./promtail/config:/etc/promtail
       - /var/run/docker.sock:/var/run/docker.sock  # Required to let promtail access Docker API
     command: -config.file=/etc/promtail/local-config.yaml
+    restart: always
     networks:
       - conluz_network
     depends_on:
@@ -86,31 +87,7 @@ services:
       - ./loki/config:/etc/loki
     networks:
       - conluz_network
-
-#  prometheus:
-#    image: prom/prometheus:latest
-#    container_name: prometheus
-#    volumes:
-#      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-#      - ${PATH_TO_PROMETHEUS_DATA}:/prometheus
-#    command:
-#      - --config.file=/etc/prometheus/prometheus.yml
-#    ports:
-#      - 9090:9090
-#    restart: always
-
-#  node-exporter:
-#    image: prom/node-exporter:latest
-#    container_name: node-exporter
-#    volumes:
-#      - /proc:/host/proc:ro
-#      - /sys:/host/sys:ro
-#      - /:/rootfs:ro
-#    command:
-#      - --path.procfs=/host/proc
-#      - --path.sysfs=/host/sys
-#      - --path.rootfs=/rootfs
-#    restart: always
+    restart: always
 
   telegraf:
     image: telegraf:latest
