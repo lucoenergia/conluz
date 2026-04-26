@@ -40,6 +40,10 @@ import org.springframework.stereotype.Component;
                         description = "REST API endpoints empower querying energy consumption data for diverse community supplies, enabling detailed analysis and optimization of resource usage."
                 ),
                 @Tag(
+                        name = ApiTag.INFO,
+                        description = "REST API endpoints that expose application metadata such as build version for operational and diagnostic purposes."
+                ),
+                @Tag(
                         name = ApiTag.PRICES,
                         description = "REST API endpoints facilitate querying energy prices, providing real-time data from diverse sources for analysis, enabling informed decisions within the energy market."
                 ),

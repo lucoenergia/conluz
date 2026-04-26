@@ -5,6 +5,7 @@ public class ApiTag {
     public static final String AUTHENTICATION = "Authentication";
     public static final String CONFIGURATION = "Configuration";
     public static final String CONSUMPTION = "Consumption";
+    public static final String INFO = "Info";
     public static final String PRICES = "Prices";
     public static final String PRODUCTION = "Production";
     public static final String USERS = "Users";

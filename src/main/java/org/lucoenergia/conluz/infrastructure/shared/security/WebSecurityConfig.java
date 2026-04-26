@@ -64,6 +64,7 @@ public class WebSecurityConfig {
                                         "/api-docs/**",
                                         "/api/v1/login",
                                         "/api/v1/init",
+                                        "/api/v1/info",
                                         "/actuator/**"
                                 ).permitAll()
                                 .anyRequest().authenticated()

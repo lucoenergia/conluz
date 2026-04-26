@@ -56,3 +56,7 @@ jar {
     // We only want to generate the executable jar (which includes dependencies), then we disable the Jar task
     enabled = false
 }
+
+springBoot {
+    buildInfo()
+}
