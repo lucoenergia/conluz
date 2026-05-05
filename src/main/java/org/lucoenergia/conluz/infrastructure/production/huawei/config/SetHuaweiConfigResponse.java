@@ -7,10 +7,14 @@ public class SetHuaweiConfigResponse {
 
     private final String username;
     private final boolean passwordSet;
+    private final String baseUrl;
+    private final boolean enabled;
 
-    private SetHuaweiConfigResponse(String username, boolean passwordSet) {
+    private SetHuaweiConfigResponse(String username, boolean passwordSet, String baseUrl, boolean enabled) {
         this.username = username;
         this.passwordSet = passwordSet;
+        this.baseUrl = baseUrl;
+        this.enabled = enabled;
     }
 
     public String getUsername() {
@@ -21,7 +25,20 @@ public class SetHuaweiConfigResponse {
         return passwordSet;
     }
 
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
     public static SetHuaweiConfigResponse of(HuaweiConfig config) {
-        return new SetHuaweiConfigResponse(config.getUsername(), StringUtils.isNotEmpty(config.getPassword()));
+        return new SetHuaweiConfigResponse(
+                config.getUsername(),
+                StringUtils.isNotEmpty(config.getPassword()),
+                config.getBaseUrl(),
+                Boolean.TRUE.equals(config.getEnabled())
+        );
     }
 }

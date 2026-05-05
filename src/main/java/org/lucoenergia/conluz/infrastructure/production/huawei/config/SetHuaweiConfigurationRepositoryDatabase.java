@@ -30,11 +30,15 @@ public class SetHuaweiConfigurationRepositoryDatabase implements SetHuaweiConfig
 
         newConfig.setUsername(config.getUsername());
         newConfig.setPassword(config.getPassword());
+        newConfig.setBaseUrl(config.getBaseUrl());
+        newConfig.setEnabled(config.getEnabled());
 
         huaweiConfigRepository.save(newConfig);
         return new HuaweiConfig.Builder()
                 .setUsername(newConfig.getUsername())
                 .setPassword(newConfig.getPassword())
+                .setBaseUrl(newConfig.getBaseUrl())
+                .setEnabled(newConfig.getEnabled())
                 .build();
     }
 }

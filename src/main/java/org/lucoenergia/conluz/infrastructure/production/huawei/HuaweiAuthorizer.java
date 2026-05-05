@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.production.huawei;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
-import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigEntity;
 import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigRepository;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.Authorizer;
@@ -21,7 +20,7 @@ import java.util.Optional;
 @Component
 public class HuaweiAuthorizer implements Authorizer {
 
-    private static final String URL = HuaweiConfig.BASE_URL + "/login";
+    private static final String LOGIN_PATH = "/login";
     private static final String BODY_PARAM_USERNAME = "userName";
     private static final String BODY_PARAM_PASSWORD = "systemCode";
     public static final String TOKEN_HEADER = "xsrf-token";
@@ -46,6 +45,7 @@ public class HuaweiAuthorizer implements Authorizer {
         HuaweiConfigEntity config = optionalConfig.get();
         String username = config.getUsername();
         String password = config.getPassword();
+        String url = config.getBaseUrl() + LOGIN_PATH;
 
         OkHttpClient client = conluzRestClientBuilder.build();
 
@@ -63,7 +63,7 @@ public class HuaweiAuthorizer implements Authorizer {
         }
 
         Request request = new Request.Builder()
-                .url(URL)
+                .url(url)
                 .header(HttpHeaders.CONTENT_TYPE, String.join(";", List.of(MediaType.APPLICATION_JSON_VALUE, "charset=UTF-8")))
                 .header(HttpHeaders.ACCEPT, "*/*")
                 .post(requestBody)
@@ -75,11 +75,11 @@ public class HuaweiAuthorizer implements Authorizer {
             } else {
                 throw new HuaweiException(String.format(
                         "Unable to get auth token from %s. Code: %s, message: %s",
-                        URL, response.code(), response.body() != null ? response.body().string() : response.message()
+                        url, response.code(), response.body() != null ? response.body().string() : response.message()
                 ));
             }
         } catch (IOException e) {
-            throw new HuaweiException(String.format("Unable to make the request to %s", URL), e);
+            throw new HuaweiException(String.format("Unable to make the request to %s", url), e);
         }
     }
 }

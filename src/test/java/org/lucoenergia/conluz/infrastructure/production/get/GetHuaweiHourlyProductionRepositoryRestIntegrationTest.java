@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigEntity;
 import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigRepository;
 import org.lucoenergia.conluz.infrastructure.production.huawei.get.GetHuaweiHourlyProductionRepositoryRest;
@@ -47,7 +48,7 @@ class GetHuaweiHourlyProductionRepositoryRestIntegrationTest extends BaseIntegra
 
         // When
         List<HourlyProduction> realTimeProductions = repository.getHourlyProductionByDateInterval(stationCodes, today,
-                todayMinusOneWeek);
+                todayMinusOneWeek, HuaweiConfig.DEFAULT_BASE_URL);
 
         // Then
         assertEquals(1, realTimeProductions.size());

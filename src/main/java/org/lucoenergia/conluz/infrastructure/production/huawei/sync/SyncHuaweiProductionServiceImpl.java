@@ -50,10 +50,14 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
     @Override
     public void syncRealTimeProduction() {
 
-        // Get Huawei configuration
         Optional<HuaweiConfig> huaweiConfig = getHuaweiConfigRepository.getHuaweiConfig();
         if (huaweiConfig.isEmpty()) {
             LOGGER.info("No Huawei config found.");
+            return;
+        }
+        HuaweiConfig config = huaweiConfig.get();
+        if (!Boolean.TRUE.equals(config.getEnabled())) {
+            LOGGER.info("Huawei integration is disabled. Skipping real-time sync.");
             return;
         }
 
@@ -65,7 +69,8 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
         }
 
         // Get the productions for every station
-        List<RealTimeProduction> productions = getHuaweiRealTimeProductionRepositoryRest.getRealTimeProduction(huaweiStations);
+        List<RealTimeProduction> productions = getHuaweiRealTimeProductionRepositoryRest.getRealTimeProduction(
+                huaweiStations, config.getBaseUrl());
 
         // Persist the production data
         persistHuaweiProductionRepository.persistRealTimeProduction(productions);
@@ -79,10 +84,14 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
             return;
         }
 
-        // Get Huawei configuration
         Optional<HuaweiConfig> huaweiConfig = getHuaweiConfigRepository.getHuaweiConfig();
         if (huaweiConfig.isEmpty()) {
             LOGGER.info("No Huawei config found.");
+            return;
+        }
+        HuaweiConfig config = huaweiConfig.get();
+        if (!Boolean.TRUE.equals(config.getEnabled())) {
+            LOGGER.info("Huawei integration is disabled. Skipping hourly sync.");
             return;
         }
 
@@ -94,8 +103,8 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
         }
 
         // Get the productions for every station
-        List<HourlyProduction> productions = getHuaweiHourlyProductionRepositoryRest.getHourlyProductionByDateInterval(huaweiStations,
-                startDate, endDate);
+        List<HourlyProduction> productions = getHuaweiHourlyProductionRepositoryRest.getHourlyProductionByDateInterval(
+                huaweiStations, startDate, endDate, config.getBaseUrl());
 
         // Persist the production data
         persistHuaweiProductionRepository.persistHourlyProduction(productions);

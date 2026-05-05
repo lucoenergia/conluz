@@ -6,7 +6,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
+import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -21,15 +24,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Month;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/production/huawei/sync/monthly")
 public class SyncMonthlyHuaweiProductionController {
 
     private final HuaweiProductionMonthlyAggregationService aggregationService;
+    private final GetHuaweiConfigRepository getHuaweiConfigRepository;
 
-    public SyncMonthlyHuaweiProductionController(HuaweiProductionMonthlyAggregationService aggregationService) {
+    public SyncMonthlyHuaweiProductionController(HuaweiProductionMonthlyAggregationService aggregationService,
+                                                 GetHuaweiConfigRepository getHuaweiConfigRepository) {
         this.aggregationService = aggregationService;
+        this.getHuaweiConfigRepository = getHuaweiConfigRepository;
     }
 
     @PostMapping
@@ -72,6 +79,11 @@ public class SyncMonthlyHuaweiProductionController {
     @InternalServerErrorResponse
     @PreAuthorize("hasRole('ADMIN')")
     public void syncMonthlyHuaweiProduction(@Valid @RequestBody SyncMonthlyHuaweiProductionBody body) {
+
+        Optional<HuaweiConfig> config = getHuaweiConfigRepository.getHuaweiConfig();
+        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
+            throw new HuaweiDisabledException();
+        }
 
         if (body.getPlantCode() != null && !body.getPlantCode().isBlank()) {
             if (body.getMonth() != null) {

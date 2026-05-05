@@ -7,6 +7,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
@@ -146,7 +147,7 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
         OffsetDateTime startDate = endDate.minusWeeks(1);
 
         // When
-        repositoryRest.getHourlyProductionByDateInterval(STATION_CODES, startDate, endDate);
+        repositoryRest.getHourlyProductionByDateInterval(STATION_CODES, startDate, endDate, HuaweiConfig.DEFAULT_BASE_URL);
 
         // Then
         Mockito.verify(client, Mockito.times(8)).newCall(any());
@@ -163,7 +164,8 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
 
         // When/Then
         HuaweiException exception = assertThrows(HuaweiException.class, () ->
-                repositoryRest.getHourlyProductionByDateInterval(STATION_CODES, todayMinusOneWeek, today)
+                repositoryRest.getHourlyProductionByDateInterval(STATION_CODES, todayMinusOneWeek, today,
+                        HuaweiConfig.DEFAULT_BASE_URL)
         );
         assertEquals("Request frequency is too high", exception.getMessage());
 
@@ -180,7 +182,8 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
 
         // When/Then
         HuaweiException exception = assertThrows(HuaweiException.class, () ->
-                repositoryRest.getHourlyProductionByDateInterval(STATION_CODES, todayMinusOneWeek, today)
+                repositoryRest.getHourlyProductionByDateInterval(STATION_CODES, todayMinusOneWeek, today,
+                        HuaweiConfig.DEFAULT_BASE_URL)
         );
         assertEquals("Calling Huawei API failed. Fail code: 11, message: THERE_WAS_AN_ERROR", exception.getMessage());
 
@@ -197,7 +200,7 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
 
         // When
         List<HourlyProduction> realTimeProductions = repositoryRest.getHourlyProductionByDateInterval(STATION_CODES,
-                todayPlusOneWeek, today);
+                todayPlusOneWeek, today, HuaweiConfig.DEFAULT_BASE_URL);
 
         // Then
         assertTrue(realTimeProductions.isEmpty());
@@ -214,7 +217,7 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
 
         // When
         List<HourlyProduction> realTimeProductions = repositoryRest.getHourlyProductionByDateInterval(stationCodes,
-                today, todayMinusOneWeek);
+                today, todayMinusOneWeek, HuaweiConfig.DEFAULT_BASE_URL);
 
         // Then
         assertTrue(realTimeProductions.isEmpty());
@@ -230,7 +233,7 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
 
         // When
         List<HourlyProduction> realTimeProductions = repositoryRest.getHourlyProductionByDateInterval(STATION_CODES,
-                today, today);
+                today, today, HuaweiConfig.DEFAULT_BASE_URL);
 
         // Then
         assertEquals(3, realTimeProductions.size());

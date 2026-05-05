@@ -35,7 +35,8 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
 
         setHuaweiConfigurationRepository.setHuaweiConfiguration(new HuaweiConfig.Builder().setUsername(testUsername).setPassword(testPassword).build());
 
-        ConfigureHuaweiBody body = new ConfigureHuaweiBody(testUsername + modifier, testPassword + modifier);
+        ConfigureHuaweiBody body = new ConfigureHuaweiBody(testUsername + modifier, testPassword + modifier,
+                HuaweiConfig.DEFAULT_BASE_URL, Boolean.TRUE);
         String bodyAsString = objectMapper.writeValueAsString(body);
 
         // Act
@@ -50,7 +51,9 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value(testUsername + modifier))
                 .andExpect(jsonPath("$.passwordSet").isBoolean())
-                .andExpect(jsonPath("$.passwordSet").value(true));
+                .andExpect(jsonPath("$.passwordSet").value(true))
+                .andExpect(jsonPath("$.baseUrl").value(HuaweiConfig.DEFAULT_BASE_URL))
+                .andExpect(jsonPath("$.enabled").value(true));
 
         Assertions.assertTrue(repository.findFirstByOrderByIdAsc().isPresent());
     }
@@ -60,7 +63,8 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         // Assemble
         String testUsername = "testUsername";
         String testPassword = "testPassword";
-        ConfigureHuaweiBody body = new ConfigureHuaweiBody(testUsername, testPassword);
+        ConfigureHuaweiBody body = new ConfigureHuaweiBody(testUsername, testPassword,
+                HuaweiConfig.DEFAULT_BASE_URL, Boolean.TRUE);
         String bodyAsString = objectMapper.writeValueAsString(body);
 
         // Act
@@ -75,7 +79,9 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value(testUsername))
                 .andExpect(jsonPath("$.passwordSet").isBoolean())
-                .andExpect(jsonPath("$.passwordSet").value(true));
+                .andExpect(jsonPath("$.passwordSet").value(true))
+                .andExpect(jsonPath("$.baseUrl").value(HuaweiConfig.DEFAULT_BASE_URL))
+                .andExpect(jsonPath("$.enabled").value(true));
 
         Assertions.assertTrue(repository.findFirstByOrderByIdAsc().isPresent());
     }
