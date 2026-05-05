@@ -3,7 +3,10 @@ package org.lucoenergia.conluz.infrastructure.production.huawei.aggregate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationRepository;
+import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
+import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
@@ -28,8 +31,20 @@ class HuaweiProductionMonthlyAggregationServiceTest {
     @Mock
     private HuaweiProductionMonthlyAggregationRepository aggregationRepository;
 
+    @Mock
+    private GetHuaweiConfigurationService getHuaweiConfigurationService;
+
     @InjectMocks
     private HuaweiProductionMonthlyAggregationServiceImpl service;
+
+    private HuaweiConfig enabledConfig() {
+        return new HuaweiConfig.Builder()
+                .setUsername("u")
+                .setPassword("p")
+                .setBaseUrl(HuaweiConfig.DEFAULT_BASE_URL)
+                .setEnabled(Boolean.TRUE)
+                .build();
+    }
 
     @Test
     void testAggregateMonthlyForAllPlantsAllMonths() {
@@ -37,6 +52,7 @@ class HuaweiProductionMonthlyAggregationServiceTest {
         // Given
         Plant plant1 = PlantMother.random().build();
         Plant plant2 = PlantMother.random().build();
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findAll()).thenReturn(List.of(plant1, plant2));
 
         // When
@@ -53,6 +69,7 @@ class HuaweiProductionMonthlyAggregationServiceTest {
         // Given
         Plant plant1 = PlantMother.random().build();
         Plant plant2 = PlantMother.random().build();
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findAll()).thenReturn(List.of(plant1, plant2));
 
         // When
@@ -68,6 +85,7 @@ class HuaweiProductionMonthlyAggregationServiceTest {
 
         // Given
         Plant plant = PlantMother.random().build();
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
 
         // When
@@ -83,6 +101,7 @@ class HuaweiProductionMonthlyAggregationServiceTest {
 
         // Given
         String unknownCode = "UNKNOWN_PLANT";
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findByCode(unknownCode)).thenReturn(Optional.empty());
 
         // When & Then
@@ -98,6 +117,7 @@ class HuaweiProductionMonthlyAggregationServiceTest {
 
         // Given
         Plant plant = PlantMother.random().build();
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findAll()).thenReturn(List.of(plant));
         doThrow(new RuntimeException("InfluxDB connection error"))
                 .when(aggregationRepository)
@@ -115,6 +135,7 @@ class HuaweiProductionMonthlyAggregationServiceTest {
     void testAggregateMonthlyWithEmptyPlantList() {
 
         // Given
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findAll()).thenReturn(Collections.emptyList());
 
         // When
@@ -123,5 +144,35 @@ class HuaweiProductionMonthlyAggregationServiceTest {
         // Then
         verify(aggregationRepository, never())
                 .aggregateMonthlyProduction(any(Plant.class), any(Month.class), anyInt());
+    }
+
+    @Test
+    void testAggregateMonthly_whenDisabled_thenSkip() {
+
+        // Given
+        HuaweiConfig disabledConfig = new HuaweiConfig.Builder()
+                .setUsername("u").setPassword("p").setEnabled(Boolean.FALSE).build();
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(true);
+
+        // When
+        service.aggregateMonthlyProductions(2024);
+
+        // Then
+        verifyNoInteractions(getEnergyStationRepository);
+        verifyNoInteractions(aggregationRepository);
+    }
+
+    @Test
+    void testAggregateMonthly_whenNoConfig_thenSkip() {
+
+        // Given
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(true);
+
+        // When
+        service.aggregateMonthlyProductions(2024);
+
+        // Then
+        verifyNoInteractions(getEnergyStationRepository);
+        verifyNoInteractions(aggregationRepository);
     }
 }

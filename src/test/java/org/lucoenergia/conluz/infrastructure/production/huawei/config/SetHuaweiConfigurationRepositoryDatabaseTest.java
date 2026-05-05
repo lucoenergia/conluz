@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -21,7 +22,12 @@ class SetHuaweiConfigurationRepositoryDatabaseTest {
         // Given
         when(huaweiConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
 
-        HuaweiConfig testConfig = new HuaweiConfig.Builder().setUsername("username1").setPassword("password1").build();
+        HuaweiConfig testConfig = new HuaweiConfig.Builder()
+                .setUsername("username1")
+                .setPassword("password1")
+                .setBaseUrl("http://mock-huawei.local/thirdData")
+                .setEnabled(Boolean.TRUE)
+                .build();
 
         // When
         HuaweiConfig result = repository.setHuaweiConfiguration(testConfig);
@@ -29,6 +35,8 @@ class SetHuaweiConfigurationRepositoryDatabaseTest {
         // Then
         assertEquals(testConfig.getUsername(), result.getUsername());
         assertEquals(testConfig.getPassword(), result.getPassword());
+        assertEquals(testConfig.getBaseUrl(), result.getBaseUrl());
+        assertEquals(testConfig.getEnabled(), result.getEnabled());
     }
 
     @Test
@@ -38,19 +46,25 @@ class SetHuaweiConfigurationRepositoryDatabaseTest {
         existConfigEntity.setId(UUID.randomUUID());
         existConfigEntity.setUsername("username2");
         existConfigEntity.setPassword("password2");
+        existConfigEntity.setBaseUrl(HuaweiConfig.DEFAULT_BASE_URL);
+        existConfigEntity.setEnabled(Boolean.TRUE);
 
         when(huaweiConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(existConfigEntity));
         when(huaweiConfigRepository.save(any(HuaweiConfigEntity.class))).thenAnswer(invocation -> {
-            Object[] arguments = invocation.getArguments();
-            if (arguments != null && arguments.length > 0 && arguments[0] != null){
-                HuaweiConfigEntity huaweiConfigEntity = (HuaweiConfigEntity) arguments[0];
-                existConfigEntity.setUsername(huaweiConfigEntity.getUsername());
-                existConfigEntity.setPassword(huaweiConfigEntity.getPassword());
-            }
+            HuaweiConfigEntity entity = (HuaweiConfigEntity) invocation.getArguments()[0];
+            existConfigEntity.setUsername(entity.getUsername());
+            existConfigEntity.setPassword(entity.getPassword());
+            existConfigEntity.setBaseUrl(entity.getBaseUrl());
+            existConfigEntity.setEnabled(entity.getEnabled());
             return existConfigEntity;
         });
 
-        HuaweiConfig testConfig = new HuaweiConfig.Builder().setUsername("newUsername").setPassword("newPassword").build();
+        HuaweiConfig testConfig = new HuaweiConfig.Builder()
+                .setUsername("newUsername")
+                .setPassword("newPassword")
+                .setBaseUrl("http://mock-huawei.local/thirdData")
+                .setEnabled(Boolean.FALSE)
+                .build();
 
         // When
         HuaweiConfig result = repository.setHuaweiConfiguration(testConfig);
@@ -58,5 +72,25 @@ class SetHuaweiConfigurationRepositoryDatabaseTest {
         // Then
         assertEquals(testConfig.getUsername(), result.getUsername());
         assertEquals(testConfig.getPassword(), result.getPassword());
+        assertEquals(testConfig.getBaseUrl(), result.getBaseUrl());
+        assertEquals(testConfig.getEnabled(), result.getEnabled());
+    }
+
+    @Test
+    void testSetHuaweiConfiguration_defaultBaseUrlAppliedWhenNotSet() {
+        // Given
+        when(huaweiConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
+
+        HuaweiConfig testConfig = new HuaweiConfig.Builder()
+                .setUsername("u")
+                .setPassword("p")
+                .setEnabled(Boolean.TRUE)
+                .build(); // baseUrl not set → should default
+
+        // When
+        HuaweiConfig result = repository.setHuaweiConfiguration(testConfig);
+
+        // Then
+        assertEquals(HuaweiConfig.DEFAULT_BASE_URL, result.getBaseUrl());
     }
 }

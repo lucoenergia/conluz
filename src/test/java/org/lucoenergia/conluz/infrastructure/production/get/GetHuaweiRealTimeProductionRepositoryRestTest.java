@@ -7,6 +7,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
@@ -53,7 +54,7 @@ class GetHuaweiRealTimeProductionRepositoryRestTest {
         List<Plant> stationCodes = List.of();
 
         // When
-        List<RealTimeProduction> realTimeProductions = repositoryRest.getRealTimeProduction(stationCodes);
+        List<RealTimeProduction> realTimeProductions = repositoryRest.getRealTimeProduction(stationCodes, HuaweiConfig.DEFAULT_BASE_URL);
 
         // Then
         assertTrue(realTimeProductions.isEmpty());
@@ -121,7 +122,7 @@ class GetHuaweiRealTimeProductionRepositoryRestTest {
         when(responseBody.string()).thenReturn(responseBodyString);
 
         // When
-        List<RealTimeProduction> realTimeProductions = repositoryRest.getRealTimeProduction(stationCodes);
+        List<RealTimeProduction> realTimeProductions = repositoryRest.getRealTimeProduction(stationCodes, HuaweiConfig.DEFAULT_BASE_URL);
 
         // Then
         assertEquals(2, realTimeProductions.size());

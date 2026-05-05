@@ -25,6 +25,8 @@ public class GetHuaweiConfigRepositoryDatabase implements GetHuaweiConfigReposit
             return Optional.of(new HuaweiConfig.Builder()
                     .setUsername(configEntity.getUsername())
                     .setPassword(configEntity.getPassword())
+                    .setBaseUrl(configEntity.getBaseUrl())
+                    .setEnabled(configEntity.getEnabled())
                     .build());
         }
         return Optional.empty();

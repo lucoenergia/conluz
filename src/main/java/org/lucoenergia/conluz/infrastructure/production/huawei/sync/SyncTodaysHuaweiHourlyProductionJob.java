@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
 
+import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
@@ -17,10 +18,13 @@ public class SyncTodaysHuaweiHourlyProductionJob implements Job {
 
     private final SyncHuaweiProductionService syncHuaweiProductionService;
     private final DateConverter dateConverter;
+    private final GetHuaweiConfigurationService getHuaweiConfigurationService;
 
-    public SyncTodaysHuaweiHourlyProductionJob(SyncHuaweiProductionService syncHuaweiProductionService, DateConverter dateConverter) {
+    public SyncTodaysHuaweiHourlyProductionJob(SyncHuaweiProductionService syncHuaweiProductionService,
+            DateConverter dateConverter, GetHuaweiConfigurationService getHuaweiConfigurationService) {
         this.syncHuaweiProductionService = syncHuaweiProductionService;
         this.dateConverter = dateConverter;
+        this.getHuaweiConfigurationService = getHuaweiConfigurationService;
     }
 
     /**
@@ -29,6 +33,10 @@ public class SyncTodaysHuaweiHourlyProductionJob implements Job {
     @Override
     @Scheduled(cron = "0 5 6-22 * * *")
     public void run() {
+        if (getHuaweiConfigurationService.isDisabled()) {
+            LOGGER.debug("Huawei configuration is disabled. Skipping today's hourly production sync.");
+            return;
+        }
         LOGGER.info("Huawei hourly production sync started...");
 
         // Calculate date interval to get data

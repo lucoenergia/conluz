@@ -9,7 +9,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
-import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiException;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
@@ -33,7 +32,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GetHuaweiRealTimeProductionRepositoryRest.class);
 
-    private static final String URL = HuaweiConfig.BASE_URL + "/getStationRealKpi";
+    private static final String PATH = "/getStationRealKpi";
     private static final String PARAM_STATION_CODES = "stationCodes";
 
     private final ObjectMapper objectMapper;
@@ -50,7 +49,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
         this.dateConverter = dateConverter;
     }
 
-    public List<RealTimeProduction> getRealTimeProduction(List<Plant> stations) {
+    public List<RealTimeProduction> getRealTimeProduction(List<Plant> stations, String baseUrl) {
 
         List<RealTimeProduction> result = new ArrayList<>();
 
@@ -70,7 +69,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
         LOGGER.info("Getting real time production from stations {}", stationCodes);
 
         // Create the complete URL
-        final String url = UriComponentsBuilder.fromUriString(URL)
+        final String url = UriComponentsBuilder.fromUriString(baseUrl + PATH)
                 .build()
                 .toUriString();
 

@@ -8,7 +8,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
-import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiAuthorizer;
@@ -35,8 +34,7 @@ public class GetHuaweiHourlyProductionRepositoryRest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GetHuaweiHourlyProductionRepositoryRest.class);
 
-    private static final String PATH = HuaweiConfig.BASE_URL + "/getKpiStationHour";
-    private static final String URL = UriComponentsBuilder.fromUriString(PATH).build().toUriString();
+    private static final String PATH = "/getKpiStationHour";
     private static final String PARAM_STATION_CODES = "stationCodes";
     private static final String PARAM_COLLECT_TIME = "collectTime";
 
@@ -55,7 +53,7 @@ public class GetHuaweiHourlyProductionRepositoryRest {
     }
 
     public List<HourlyProduction> getHourlyProductionByDateInterval(List<Plant> stations, OffsetDateTime startDate,
-                                                                    OffsetDateTime endDate) {
+                                                                    OffsetDateTime endDate, String baseUrl) {
 
         List<HourlyProduction> result = new ArrayList<>();
 
@@ -72,12 +70,14 @@ public class GetHuaweiHourlyProductionRepositoryRest {
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
+        final String url = UriComponentsBuilder.fromUriString(baseUrl + PATH).build().toUriString();
+
         LOGGER.info("Getting hourly production from stations {} .", stations);
 
         OffsetDateTime currentDate = startDate;
         while (!currentDate.isAfter(endDate)) {
             LOGGER.info("Processing day {} .", currentDate);
-            result.addAll(getHourlyProductionByDay(stationCodes, currentDate, authToken, client));
+            result.addAll(getHourlyProductionByDay(stationCodes, currentDate, authToken, client, url));
             currentDate = currentDate.plusDays(1);
         }
 
@@ -87,7 +87,8 @@ public class GetHuaweiHourlyProductionRepositoryRest {
     }
 
     private List<HourlyProduction> getHourlyProductionByDay(final String stationCodes, final OffsetDateTime day,
-                                                            final String authToken, final OkHttpClient client) {
+                                                            final String authToken, final OkHttpClient client,
+                                                            final String url) {
 
         List<HourlyProduction> result = new ArrayList<>();
 
@@ -105,7 +106,7 @@ public class GetHuaweiHourlyProductionRepositoryRest {
         }
 
         final Request request = new Request.Builder()
-                .url(URL)
+                .url(url)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .header(HuaweiAuthorizer.TOKEN_HEADER, authToken)
                 .post(requestBody)

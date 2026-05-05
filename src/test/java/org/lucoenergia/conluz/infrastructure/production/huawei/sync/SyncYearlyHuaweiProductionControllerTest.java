@@ -1,8 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
+import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +13,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -27,8 +32,22 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
     @MockitoBean
     private HuaweiProductionYearlyAggregationService aggregationService;
 
+    @MockitoBean
+    private GetHuaweiConfigRepository getHuaweiConfigRepository;
+
     @Autowired
     private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setupEnabledConfig() {
+        HuaweiConfig enabledConfig = new HuaweiConfig.Builder()
+                .setUsername("u")
+                .setPassword("p")
+                .setBaseUrl(HuaweiConfig.DEFAULT_BASE_URL)
+                .setEnabled(Boolean.TRUE)
+                .build();
+        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.of(enabledConfig));
+    }
 
     @Test
     void testAggregateYearlyForAllPlants() throws Exception {
@@ -64,6 +83,24 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
 
         verify(aggregationService, times(1))
                 .aggregateYearlyProductions(eq("PLANT001"), eq(2024));
+    }
+
+    @Test
+    void testWhenHuaweiDisabled_thenConflict() throws Exception {
+
+        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.empty());
+
+        String authHeader = loginAsDefaultAdmin();
+
+        SyncYearlyHuaweiProductionBody body = new SyncYearlyHuaweiProductionBody(2024);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()));
     }
 
     @Test

@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.production.huawei.aggregate;
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
+import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.slf4j.Logger;
@@ -19,15 +20,22 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
 
     private final GetEnergyStationRepository getEnergyStationRepository;
     private final HuaweiProductionYearlyAggregationRepository aggregationRepository;
+    private final GetHuaweiConfigurationService getHuaweiConfigurationService;
 
     public HuaweiProductionYearlyAggregationServiceImpl(GetEnergyStationRepository getEnergyStationRepository,
-                                                        HuaweiProductionYearlyAggregationRepository aggregationRepository) {
+                                                        HuaweiProductionYearlyAggregationRepository aggregationRepository,
+                                                        GetHuaweiConfigurationService getHuaweiConfigurationService) {
         this.getEnergyStationRepository = getEnergyStationRepository;
         this.aggregationRepository = aggregationRepository;
+        this.getHuaweiConfigurationService = getHuaweiConfigurationService;
     }
 
     @Override
     public void aggregateYearlyProductions(int year) {
+        if (getHuaweiConfigurationService.isDisabled()) {
+            LOGGER.debug("Huawei configuration is disabled. Skipping yearly production aggregation.");
+            return;
+        }
         List<Plant> allPlants = getEnergyStationRepository.findAll();
 
         for (Plant plant : allPlants) {
@@ -37,6 +45,10 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
 
     @Override
     public void aggregateYearlyProductions(String plantCode, int year) {
+        if (getHuaweiConfigurationService.isDisabled()) {
+            LOGGER.debug("Huawei configuration is disabled. Skipping yearly production aggregation.");
+            return;
+        }
         Optional<Plant> plantOptional = getEnergyStationRepository.findByCode(plantCode);
         if (plantOptional.isEmpty()) {
             throw new PlantNotFoundException(plantCode);
