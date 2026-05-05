@@ -5,12 +5,12 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
 http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
-    <changeSet id="add_base_url_and_enabled_to_huawei_config_20260505T1200" author="Víctor Cañizares">
+    <changeSet id="add_base_url_and_enabled_to_huawei_config" author="Víctor Cañizares">
         <addColumn tableName="huawei_config">
             <column name="base_url" type="TEXT" defaultValue="https://eu5.fusionsolar.huawei.com/thirdData">
                 <constraints nullable="false"/>
             </column>
-            <column name="enabled" type="BOOLEAN" defaultValueBoolean="true">
+            <column name="enabled" type="BOOLEAN" defaultValueBoolean="false">
                 <constraints nullable="false"/>
             </column>
         </addColumn>

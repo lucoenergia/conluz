@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.aggregate;
 
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +17,12 @@ public class HuaweiProductionMonthlyAggregationJob implements Job {
     private static final Logger LOGGER = LoggerFactory.getLogger(HuaweiProductionMonthlyAggregationJob.class);
 
     private final HuaweiProductionMonthlyAggregationService aggregationService;
+    private final GetHuaweiConfigurationService getHuaweiConfigurationService;
 
-    public HuaweiProductionMonthlyAggregationJob(HuaweiProductionMonthlyAggregationService aggregationService) {
+    public HuaweiProductionMonthlyAggregationJob(HuaweiProductionMonthlyAggregationService aggregationService,
+            GetHuaweiConfigurationService getHuaweiConfigurationService) {
         this.aggregationService = aggregationService;
+        this.getHuaweiConfigurationService = getHuaweiConfigurationService;
     }
 
     /**
@@ -41,6 +45,10 @@ public class HuaweiProductionMonthlyAggregationJob implements Job {
     @Override
     @Scheduled(cron = "0 0 2 * * ?")
     public void run() {
+        if (getHuaweiConfigurationService.isDisabled()) {
+            LOGGER.debug("Huawei configuration is disabled. Skipping monthly production aggregation.");
+            return;
+        }
         LOGGER.info("Huawei production monthly aggregation started...");
 
         LocalDate today = LocalDate.now();

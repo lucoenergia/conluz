@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.huawei.persist.PersistHuaweiProductionRepository;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
@@ -29,9 +30,11 @@ class SyncHuaweiProductionServiceTest {
     private final GetHuaweiRealTimeProductionRepositoryRest getHuaweiRealTimeProductionRepositoryRest = Mockito.mock(GetHuaweiRealTimeProductionRepositoryRest.class);
     private final GetEnergyStationRepository getEnergyStationRepository = Mockito.mock(GetEnergyStationRepository.class);
     private final GetHuaweiConfigRepository getHuaweiConfigRepository = Mockito.mock(GetHuaweiConfigRepository.class);
+    private final GetHuaweiConfigurationService getHuaweiConfigurationService = Mockito.mock(GetHuaweiConfigurationService.class);
     private final SyncHuaweiProductionService syncHuaweiProductionService = new SyncHuaweiProductionServiceImpl(
             persistHuaweiProductionRepository, getHuaweiRealTimeProductionRepositoryRest,
-            getHuaweiHourlyProductionRepositoryRest, getEnergyStationRepository, getHuaweiConfigRepository);
+            getHuaweiHourlyProductionRepositoryRest, getEnergyStationRepository, getHuaweiConfigRepository,
+            getHuaweiConfigurationService);
 
     private HuaweiConfig enabledConfig() {
         return new HuaweiConfig.Builder()
@@ -64,18 +67,7 @@ class SyncHuaweiProductionServiceTest {
         OffsetDateTime startDate = OffsetDateTime.now();
         OffsetDateTime endDate = OffsetDateTime.now().minusDays(1);
 
-        syncHuaweiProductionService.syncHourlyProduction(startDate, endDate);
-
-        verifyNoInteractions(persistHuaweiProductionRepository);
-        verifyNoInteractions(getHuaweiHourlyProductionRepositoryRest);
-    }
-
-    @Test
-    void givenEmptyConfig_whenSyncHourlyProduction_thenDoNotPersist() {
-        OffsetDateTime startDate = OffsetDateTime.now().minusDays(1);
-        OffsetDateTime endDate = OffsetDateTime.now();
-
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.empty());
+        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.of(enabledConfig()));
 
         syncHuaweiProductionService.syncHourlyProduction(startDate, endDate);
 

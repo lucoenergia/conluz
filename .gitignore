@@ -41,3 +41,5 @@ out/
 
 ### Deployment files ###
 deploy/telegraf.conf
+
+.junie

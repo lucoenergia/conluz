@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
+import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.huawei.persist.PersistHuaweiProductionRepository;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionService {
@@ -29,17 +29,19 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
     private final GetHuaweiHourlyProductionRepositoryRest getHuaweiHourlyProductionRepositoryRest;
     private final GetEnergyStationRepository getEnergyStationRepository;
     private final GetHuaweiConfigRepository getHuaweiConfigRepository;
+    private final GetHuaweiConfigurationService getHuaweiConfigurationService;
 
     public SyncHuaweiProductionServiceImpl(PersistHuaweiProductionRepository persistHuaweiProductionRepository,
                                            GetHuaweiRealTimeProductionRepositoryRest getHuaweiRealTimeProductionRepositoryRest,
                                            GetHuaweiHourlyProductionRepositoryRest getHuaweiHourlyProductionRepositoryRest,
                                            GetEnergyStationRepository getEnergyStationRepository,
-                                           GetHuaweiConfigRepository getHuaweiConfigRepository) {
+                                           GetHuaweiConfigRepository getHuaweiConfigRepository, GetHuaweiConfigurationService getHuaweiConfigurationService) {
         this.persistHuaweiProductionRepository = persistHuaweiProductionRepository;
         this.getHuaweiRealTimeProductionRepositoryRest = getHuaweiRealTimeProductionRepositoryRest;
         this.getHuaweiHourlyProductionRepositoryRest = getHuaweiHourlyProductionRepositoryRest;
         this.getEnergyStationRepository = getEnergyStationRepository;
         this.getHuaweiConfigRepository = getHuaweiConfigRepository;
+        this.getHuaweiConfigurationService = getHuaweiConfigurationService;
     }
 
     /**
@@ -50,16 +52,11 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
     @Override
     public void syncRealTimeProduction() {
 
-        Optional<HuaweiConfig> huaweiConfig = getHuaweiConfigRepository.getHuaweiConfig();
-        if (huaweiConfig.isEmpty()) {
-            LOGGER.info("No Huawei config found.");
-            return;
-        }
-        HuaweiConfig config = huaweiConfig.get();
-        if (!Boolean.TRUE.equals(config.getEnabled())) {
+        if (getHuaweiConfigurationService.isDisabled()) {
             LOGGER.info("Huawei integration is disabled. Skipping real-time sync.");
             return;
         }
+        HuaweiConfig config = getHuaweiConfigRepository.getHuaweiConfig().get();
 
         // Get all energy stations with Huawei inverter
         List<Plant> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
@@ -79,19 +76,14 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
     @Override
     public void syncHourlyProduction(OffsetDateTime startDate, OffsetDateTime endDate) {
 
+        if (getHuaweiConfigurationService.isDisabled()) {
+            LOGGER.info("Huawei integration is disabled. Skipping real-time sync.");
+            return;
+        }
+        HuaweiConfig config = getHuaweiConfigRepository.getHuaweiConfig().get();
+
         if (startDate.isAfter(endDate)) {
             LOGGER.error("Start date is after end date. Start date: {}, end date: {}", startDate, endDate);
-            return;
-        }
-
-        Optional<HuaweiConfig> huaweiConfig = getHuaweiConfigRepository.getHuaweiConfig();
-        if (huaweiConfig.isEmpty()) {
-            LOGGER.info("No Huawei config found.");
-            return;
-        }
-        HuaweiConfig config = huaweiConfig.get();
-        if (!Boolean.TRUE.equals(config.getEnabled())) {
-            LOGGER.info("Huawei integration is disabled. Skipping hourly sync.");
             return;
         }
 

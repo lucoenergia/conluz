@@ -1,10 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.aggregate;
 
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
-import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
-import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
+import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.slf4j.Logger;
@@ -22,19 +21,20 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
 
     private final GetEnergyStationRepository getEnergyStationRepository;
     private final HuaweiProductionMonthlyAggregationRepository aggregationRepository;
-    private final GetHuaweiConfigRepository getHuaweiConfigRepository;
+    private final GetHuaweiConfigurationService getHuaweiConfigurationService;
 
     public HuaweiProductionMonthlyAggregationServiceImpl(GetEnergyStationRepository getEnergyStationRepository,
                                                          HuaweiProductionMonthlyAggregationRepository aggregationRepository,
-                                                         GetHuaweiConfigRepository getHuaweiConfigRepository) {
+                                                         GetHuaweiConfigurationService getHuaweiConfigurationService) {
         this.getEnergyStationRepository = getEnergyStationRepository;
         this.aggregationRepository = aggregationRepository;
-        this.getHuaweiConfigRepository = getHuaweiConfigRepository;
+        this.getHuaweiConfigurationService = getHuaweiConfigurationService;
     }
 
     @Override
     public void aggregateMonthlyProductions(int year) {
-        if (isDisabled()) {
+        if (getHuaweiConfigurationService.isDisabled()) {
+            LOGGER.debug("Huawei configuration is disabled. Skipping monthly production aggregation.");
             return;
         }
         List<Plant> allPlants = getEnergyStationRepository.findAll();
@@ -48,7 +48,8 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
 
     @Override
     public void aggregateMonthlyProductions(Month month, int year) {
-        if (isDisabled()) {
+        if (getHuaweiConfigurationService.isDisabled()) {
+            LOGGER.debug("Huawei configuration is disabled. Skipping monthly production aggregation.");
             return;
         }
         List<Plant> allPlants = getEnergyStationRepository.findAll();
@@ -60,7 +61,8 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
 
     @Override
     public void aggregateMonthlyProductions(String plantCode, Month month, int year) {
-        if (isDisabled()) {
+        if (getHuaweiConfigurationService.isDisabled()) {
+            LOGGER.debug("Huawei configuration is disabled. Skipping monthly production aggregation.");
             return;
         }
         Optional<Plant> plantOptional = getEnergyStationRepository.findByCode(plantCode);
@@ -69,19 +71,6 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
         }
 
         aggregateForPlantMonthYear(plantOptional.get(), month, year);
-    }
-
-    private boolean isDisabled() {
-        Optional<HuaweiConfig> config = getHuaweiConfigRepository.getHuaweiConfig();
-        if (config.isEmpty()) {
-            LOGGER.info("No Huawei config found. Skipping monthly aggregation.");
-            return true;
-        }
-        if (!Boolean.TRUE.equals(config.get().getEnabled())) {
-            LOGGER.info("Huawei integration is disabled. Skipping monthly aggregation.");
-            return true;
-        }
-        return false;
     }
 
     private void aggregateForPlantMonthYear(Plant plant, Month month, int year) {

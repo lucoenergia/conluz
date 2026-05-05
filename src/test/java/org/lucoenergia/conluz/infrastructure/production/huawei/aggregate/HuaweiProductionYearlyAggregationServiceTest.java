@@ -5,7 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationRepository;
-import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
+import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
@@ -30,7 +30,7 @@ class HuaweiProductionYearlyAggregationServiceTest {
     private HuaweiProductionYearlyAggregationRepository aggregationRepository;
 
     @Mock
-    private GetHuaweiConfigRepository getHuaweiConfigRepository;
+    private GetHuaweiConfigurationService getHuaweiConfigurationService;
 
     @InjectMocks
     private HuaweiProductionYearlyAggregationServiceImpl service;
@@ -50,7 +50,7 @@ class HuaweiProductionYearlyAggregationServiceTest {
         // Given
         Plant plant1 = PlantMother.random().build();
         Plant plant2 = PlantMother.random().build();
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.of(enabledConfig()));
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findAll()).thenReturn(List.of(plant1, plant2));
 
         // When
@@ -66,7 +66,7 @@ class HuaweiProductionYearlyAggregationServiceTest {
 
         // Given
         Plant plant = PlantMother.random().build();
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.of(enabledConfig()));
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
 
         // When
@@ -81,7 +81,7 @@ class HuaweiProductionYearlyAggregationServiceTest {
 
         // Given
         String unknownCode = "UNKNOWN_PLANT";
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.of(enabledConfig()));
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findByCode(unknownCode)).thenReturn(Optional.empty());
 
         // When & Then
@@ -96,7 +96,7 @@ class HuaweiProductionYearlyAggregationServiceTest {
 
         // Given
         Plant plant = PlantMother.random().build();
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.of(enabledConfig()));
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findAll()).thenReturn(List.of(plant));
         doThrow(new RuntimeException("InfluxDB connection error"))
                 .when(aggregationRepository)
@@ -113,7 +113,7 @@ class HuaweiProductionYearlyAggregationServiceTest {
     void testAggregateYearlyWithEmptyPlantList() {
 
         // Given
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.of(enabledConfig()));
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(false);
         when(getEnergyStationRepository.findAll()).thenReturn(Collections.emptyList());
 
         // When
@@ -129,7 +129,7 @@ class HuaweiProductionYearlyAggregationServiceTest {
         // Given
         HuaweiConfig disabledConfig = new HuaweiConfig.Builder()
                 .setUsername("u").setPassword("p").setEnabled(Boolean.FALSE).build();
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.of(disabledConfig));
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(true);
 
         // When
         service.aggregateYearlyProductions(2024);
@@ -143,7 +143,7 @@ class HuaweiProductionYearlyAggregationServiceTest {
     void testAggregateYearly_whenNoConfig_thenSkip() {
 
         // Given
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.empty());
+        when(getHuaweiConfigurationService.isDisabled()).thenReturn(true);
 
         // When
         service.aggregateYearlyProductions(2024);
