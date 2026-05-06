@@ -1,9 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +14,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -27,8 +32,22 @@ class SyncYearlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @MockitoBean
     private DatadisYearlyAggregationService aggregationService;
 
+    @MockitoBean
+    private GetDatadisConfigRepository getDatadisConfigRepository;
+
     @Autowired
     private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setupEnabledConfig() {
+        DatadisConfig enabledConfig = new DatadisConfig.Builder()
+                .setUsername("u")
+                .setPassword("p")
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .setEnabled(Boolean.TRUE)
+                .build();
+        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(enabledConfig));
+    }
 
     @Test
     void testAggregateYearlyForAllSupplies() throws Exception {

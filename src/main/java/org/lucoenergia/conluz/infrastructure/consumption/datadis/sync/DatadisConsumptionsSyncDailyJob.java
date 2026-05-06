@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
+import org.lucoenergia.conluz.domain.consumption.datadis.config.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
@@ -15,9 +16,12 @@ public class DatadisConsumptionsSyncDailyJob implements Job {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatadisConsumptionsSyncDailyJob.class);
 
     private final DatadisConsumptionSyncService datadisConsumptionSyncService;
+    private final GetDatadisConfigurationService getDatadisConfigurationService;
 
-    public DatadisConsumptionsSyncDailyJob(DatadisConsumptionSyncService datadisConsumptionSyncService) {
+    public DatadisConsumptionsSyncDailyJob(DatadisConsumptionSyncService datadisConsumptionSyncService,
+                                           GetDatadisConfigurationService getDatadisConfigurationService) {
         this.datadisConsumptionSyncService = datadisConsumptionSyncService;
+        this.getDatadisConfigurationService = getDatadisConfigurationService;
     }
 
     /**
@@ -36,6 +40,11 @@ public class DatadisConsumptionsSyncDailyJob implements Job {
     @Override
     @Scheduled(cron = "0 0 4 * * ?")
     public void run() {
+        if (getDatadisConfigurationService.isDisabled()) {
+            LOGGER.info("Datadis integration is disabled. Skipping daily sync.");
+            return;
+        }
+
         LOGGER.info("Datadis consumption daily sync started...");
 
         LocalDate today = LocalDate.now();

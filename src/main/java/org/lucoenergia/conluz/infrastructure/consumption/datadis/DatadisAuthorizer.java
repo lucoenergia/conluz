@@ -15,7 +15,7 @@ import java.util.Optional;
 @Component
 public class DatadisAuthorizer implements Authorizer {
 
-    private static final String URL = "https://datadis.es/nikola-auth/tokens/login";
+    private static final String AUTH_PATH = "/nikola-auth/tokens/login";
     private static final String BODY_PARAM_USERNAME = "username";
     private static final String BODY_PARAM_PASSWORD = "password";
 
@@ -36,6 +36,7 @@ public class DatadisAuthorizer implements Authorizer {
         DatadisConfigEntity config = optionalConfig.get();
         String username = config.getUsername();
         String password = config.getPassword();
+        String url = config.getBaseUrl() + AUTH_PATH;
 
         OkHttpClient client = conluzRestClientBuilder.build();
 
@@ -46,7 +47,7 @@ public class DatadisAuthorizer implements Authorizer {
                 .build();
 
         Request request = new Request.Builder()
-                .url(URL)
+                .url(url)
                 .header(HttpHeaders.ACCEPT, "*/*")
                 .post(requestBody)
                 .build();

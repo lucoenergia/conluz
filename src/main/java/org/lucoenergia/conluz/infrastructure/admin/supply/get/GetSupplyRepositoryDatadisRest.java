@@ -8,10 +8,12 @@ import okhttp3.Response;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisParams;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,17 +32,21 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GetSupplyRepositoryDatadisRest.class);
 
+    private static final String API_PATH = "/api-private/api";
     private static final String GET_SUPPLIES_PATH = "/get-supplies";
 
     private final ObjectMapper objectMapper;
     private final DatadisAuthorizer datadisAuthorizer;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
+    private final DatadisConfigRepository datadisConfigRepository;
 
     public GetSupplyRepositoryDatadisRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
-                                          ConluzRestClientBuilder conluzRestClientBuilder) {
+                                          ConluzRestClientBuilder conluzRestClientBuilder,
+                                          DatadisConfigRepository datadisConfigRepository) {
         this.objectMapper = objectMapper;
         this.datadisAuthorizer = datadisAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
+        this.datadisConfigRepository = datadisConfigRepository;
     }
 
     @Override
@@ -54,8 +60,12 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         LOGGER.info("Getting all supplies from datadis.es of user {}", user.getId());
 
+        final String baseUrl = datadisConfigRepository.findFirstByOrderByIdAsc()
+                .map(DatadisConfigEntity::getBaseUrl)
+                .orElse(DatadisConfig.DEFAULT_BASE_URL);
+
         // Create the complete URL with the query parameter
-        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_SUPPLIES_PATH);
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(baseUrl + API_PATH + GET_SUPPLIES_PATH);
         if (datadisAuthorizer.isAuthorizedNif(UserPersonalId.of(user.getPersonalId()))) {
             urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, user.getPersonalId());
         }

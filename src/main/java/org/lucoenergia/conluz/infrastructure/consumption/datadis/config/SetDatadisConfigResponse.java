@@ -7,10 +7,14 @@ public class SetDatadisConfigResponse {
 
     private final String username;
     private final boolean passwordSet;
+    private final String baseUrl;
+    private final boolean enabled;
 
-    private SetDatadisConfigResponse(String username, boolean passwordSet) {
+    private SetDatadisConfigResponse(String username, boolean passwordSet, String baseUrl, boolean enabled) {
         this.username = username;
         this.passwordSet = passwordSet;
+        this.baseUrl = baseUrl;
+        this.enabled = enabled;
     }
 
     public String getUsername() {
@@ -21,7 +25,20 @@ public class SetDatadisConfigResponse {
         return passwordSet;
     }
 
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
     public static SetDatadisConfigResponse of(DatadisConfig config) {
-        return new SetDatadisConfigResponse(config.getUsername(), StringUtils.isNotEmpty(config.getPassword()));
+        return new SetDatadisConfigResponse(
+                config.getUsername(),
+                StringUtils.isNotEmpty(config.getPassword()),
+                config.getBaseUrl(),
+                Boolean.TRUE.equals(config.getEnabled())
+        );
     }
 }

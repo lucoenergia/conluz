@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.aggregate;
 
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,9 +16,12 @@ public class DatadisYearlyAggregationJob implements Job {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatadisYearlyAggregationJob.class);
 
     private final DatadisYearlyAggregationService aggregationService;
+    private final GetDatadisConfigurationService getDatadisConfigurationService;
 
-    public DatadisYearlyAggregationJob(DatadisYearlyAggregationService aggregationService) {
+    public DatadisYearlyAggregationJob(DatadisYearlyAggregationService aggregationService,
+                                       GetDatadisConfigurationService getDatadisConfigurationService) {
         this.aggregationService = aggregationService;
+        this.getDatadisConfigurationService = getDatadisConfigurationService;
     }
 
     /**
@@ -40,6 +44,11 @@ public class DatadisYearlyAggregationJob implements Job {
     @Override
     @Scheduled(cron = "0 0 6 * * ?")
     public void run() {
+        if (getDatadisConfigurationService.isDisabled()) {
+            LOGGER.info("Datadis integration is disabled. Skipping yearly aggregation.");
+            return;
+        }
+
         LOGGER.info("Datadis yearly aggregation started...");
 
         LocalDate today = LocalDate.now();

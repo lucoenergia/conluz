@@ -6,8 +6,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -21,14 +24,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/api/v1/consumption/datadis/sync")
 public class SyncDatadisConsumptionsController {
 
     private final DatadisConsumptionSyncService datadisConsumptionSyncService;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
-    public SyncDatadisConsumptionsController(DatadisConsumptionSyncService datadisConsumptionSyncService) {
+    public SyncDatadisConsumptionsController(DatadisConsumptionSyncService datadisConsumptionSyncService,
+                                             GetDatadisConfigRepository getDatadisConfigRepository) {
         this.datadisConsumptionSyncService = datadisConsumptionSyncService;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @PostMapping
@@ -75,6 +83,11 @@ public class SyncDatadisConsumptionsController {
     @InternalServerErrorResponse
     @PreAuthorize("hasRole('ADMIN')")
     public void syncDatadisConsumptions(@Valid @RequestBody SyncDatadisConsumptionsBody body) {
+        Optional<DatadisConfig> config = getDatadisConfigRepository.getDatadisConfig();
+        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
+            throw new DatadisDisabledException();
+        }
+
         if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
             datadisConsumptionSyncService.synchronizeConsumptions(
                     body.getStartDate(),
