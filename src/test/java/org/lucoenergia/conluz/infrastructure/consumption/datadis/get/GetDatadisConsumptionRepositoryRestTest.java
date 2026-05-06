@@ -9,8 +9,11 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -30,8 +33,12 @@ class GetDatadisConsumptionRepositoryRestTest {
         datadisAuthorizer = Mockito.mock(DatadisAuthorizer.class);
         conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
         DatadisDateTimeConverter datadisDateTimeConverter = Mockito.mock(DatadisDateTimeConverter.class);
+        DatadisConfigRepository datadisConfigRepository = Mockito.mock(DatadisConfigRepository.class);
+        DatadisConfigEntity configEntity = new DatadisConfigEntity();
+        configEntity.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
+        Mockito.when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(java.util.Optional.of(configEntity));
         repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
-                datadisDateTimeConverter);
+                datadisDateTimeConverter, datadisConfigRepository);
     }
 
     @Test

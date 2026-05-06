@@ -31,8 +31,16 @@ public class SetDatadisConfigurationRepositoryDatabase implements SetDatadisConf
 
         newConfig.setUsername(config.getUsername());
         newConfig.setPassword(config.getPassword());
+        newConfig.setBaseUrl(config.getBaseUrl());
+        newConfig.setEnabled(config.getEnabled());
 
         datadisConfigRepository.save(newConfig);
-        return new DatadisConfig(newConfig.getUsername(), newConfig.getPassword());
+
+        return new DatadisConfig.Builder()
+                .setUsername(newConfig.getUsername())
+                .setPassword(newConfig.getPassword())
+                .setBaseUrl(newConfig.getBaseUrl())
+                .setEnabled(newConfig.getEnabled())
+                .build();
     }
 }

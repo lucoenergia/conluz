@@ -34,9 +34,15 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         String testPassword = "testPassword";
         String modifier = "foo";
 
-        setDatadisConfigurationRepository.setDatadisConfiguration(new DatadisConfig(testUsername, testPassword));
+        setDatadisConfigurationRepository.setDatadisConfiguration(new DatadisConfig.Builder()
+                .setUsername(testUsername)
+                .setPassword(testPassword)
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .setEnabled(Boolean.FALSE)
+                .build());
 
-        ConfigureDatadisBody body = new ConfigureDatadisBody(testUsername + modifier, testPassword + modifier);
+        ConfigureDatadisBody body = new ConfigureDatadisBody(testUsername + modifier, testPassword + modifier,
+                DatadisConfig.DEFAULT_BASE_URL, Boolean.TRUE);
         String bodyAsString = objectMapper.writeValueAsString(body);
 
         // Act
@@ -51,7 +57,9 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value(testUsername + modifier))
                 .andExpect(jsonPath("$.passwordSet").isBoolean())
-                .andExpect(jsonPath("$.passwordSet").value(true));
+                .andExpect(jsonPath("$.passwordSet").value(true))
+                .andExpect(jsonPath("$.baseUrl").value(DatadisConfig.DEFAULT_BASE_URL))
+                .andExpect(jsonPath("$.enabled").value(true));
 
         Assertions.assertTrue(repository.findFirstByOrderByIdAsc().isPresent());
     }
@@ -61,7 +69,8 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         // Assemble
         String testUsername = "testUsername";
         String testPassword = "testPassword";
-        ConfigureDatadisBody body = new ConfigureDatadisBody(testUsername, testPassword);
+        ConfigureDatadisBody body = new ConfigureDatadisBody(testUsername, testPassword,
+                DatadisConfig.DEFAULT_BASE_URL, Boolean.TRUE);
         String bodyAsString = objectMapper.writeValueAsString(body);
 
         // Act
@@ -76,14 +85,15 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value(testUsername))
                 .andExpect(jsonPath("$.passwordSet").isBoolean())
-                .andExpect(jsonPath("$.passwordSet").value(true));
+                .andExpect(jsonPath("$.passwordSet").value(true))
+                .andExpect(jsonPath("$.baseUrl").value(DatadisConfig.DEFAULT_BASE_URL))
+                .andExpect(jsonPath("$.enabled").value(true));
 
         Assertions.assertTrue(repository.findFirstByOrderByIdAsc().isPresent());
     }
 
     @Test
-    void
-    testWithoutBody() throws Exception {
+    void testWithoutBody() throws Exception {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(put(URL)
@@ -115,9 +125,8 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsPartner();
 
-        String testUsername = "testUsername";
-        String testPassword = "testPassword";
-        ConfigureDatadisBody body = new ConfigureDatadisBody(testUsername, testPassword);
+        ConfigureDatadisBody body = new ConfigureDatadisBody("testUsername", "testPassword",
+                DatadisConfig.DEFAULT_BASE_URL, Boolean.FALSE);
         String bodyAsString = objectMapper.writeValueAsString(body);
 
         mockMvc.perform(put(URL)

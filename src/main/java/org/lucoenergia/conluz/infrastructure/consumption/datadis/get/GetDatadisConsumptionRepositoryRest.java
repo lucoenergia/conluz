@@ -9,12 +9,13 @@ import okhttp3.Response;
 import org.apache.commons.lang3.NotImplementedException;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.MeasurementType;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisParams;
-import org.lucoenergia.conluz.domain.consumption.datadis.MeasurementType;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
@@ -39,20 +40,24 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GetDatadisConsumptionRepositoryRest.class);
 
+    private static final String API_PATH = "/api-private/api";
     private static final String GET_CONSUMPTION_DATA_PATH = "/get-consumption-data";
 
     private final ObjectMapper objectMapper;
     private final DatadisAuthorizer datadisAuthorizer;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
     private final DatadisDateTimeConverter datadisDateTimeConverter;
+    private final DatadisConfigRepository datadisConfigRepository;
 
     public GetDatadisConsumptionRepositoryRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
                                                ConluzRestClientBuilder conluzRestClientBuilder,
-                                               DatadisDateTimeConverter datadisDateTimeConverter) {
+                                               DatadisDateTimeConverter datadisDateTimeConverter,
+                                               DatadisConfigRepository datadisConfigRepository) {
         this.objectMapper = objectMapper;
         this.datadisAuthorizer = datadisAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
         this.datadisDateTimeConverter = datadisDateTimeConverter;
+        this.datadisConfigRepository = datadisConfigRepository;
     }
 
     @Override
@@ -70,8 +75,12 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
         validateSupply(supply);
 
+        final String baseUrl = datadisConfigRepository.findFirstByOrderByIdAsc()
+                .map(DatadisConfigEntity::getBaseUrl)
+                .orElse(org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig.DEFAULT_BASE_URL);
+
         // Create the complete URL with the query parameter
-        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(DatadisConfigEntity.BASE_URL + GET_CONSUMPTION_DATA_PATH)
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(baseUrl + API_PATH + GET_CONSUMPTION_DATA_PATH)
                 .queryParam(DatadisParams.CUPS, supply.getCode())
                 .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDistributorCode())
                 .queryParam(DatadisParams.START_DATE, monthDate)

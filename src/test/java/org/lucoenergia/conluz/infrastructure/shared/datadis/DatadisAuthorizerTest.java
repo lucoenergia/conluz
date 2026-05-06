@@ -4,6 +4,7 @@ import okhttp3.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisException;
@@ -43,6 +44,7 @@ class DatadisAuthorizerTest {
         config.setId(UUID.randomUUID());
         config.setUsername(username);
         config.setPassword(password);
+        config.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
         Mockito.when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(config));
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);

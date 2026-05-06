@@ -7,7 +7,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -22,15 +25,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Month;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/consumption/datadis/sync/monthly")
 public class SyncMonthlyDatadisConsumptionsController {
 
     private final DatadisMonthlyAggregationService aggregationService;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
-    public SyncMonthlyDatadisConsumptionsController(DatadisMonthlyAggregationService aggregationService) {
+    public SyncMonthlyDatadisConsumptionsController(DatadisMonthlyAggregationService aggregationService,
+                                                    GetDatadisConfigRepository getDatadisConfigRepository) {
         this.aggregationService = aggregationService;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @PostMapping
@@ -73,6 +80,11 @@ public class SyncMonthlyDatadisConsumptionsController {
     @InternalServerErrorResponse
     @PreAuthorize("hasRole('ADMIN')")
     public void syncMonthlyDatadisConsumptions(@Valid @RequestBody SyncMonthlyDatadisConsumptionsBody body) {
+
+        Optional<DatadisConfig> config = getDatadisConfigRepository.getDatadisConfig();
+        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
+            throw new DatadisDisabledException();
+        }
 
         if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
             if (body.getMonth() != null) {
