@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.consumption.shelly.parse;
 
+import org.lucoenergia.conluz.domain.consumption.shelly.config.GetShellyConfigurationService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +17,12 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements
     private static final Logger LOGGER = LoggerFactory.getLogger(ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob.class);
 
     private final ShellyMqttPowerMessagesToInstantConsumptionsProcessor processor;
+    private final GetShellyConfigurationService getShellyConfigurationService;
 
-    public ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob(ShellyMqttPowerMessagesToInstantConsumptionsProcessor processor) {
+    public ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob(ShellyMqttPowerMessagesToInstantConsumptionsProcessor processor,
+                                                                    GetShellyConfigurationService getShellyConfigurationService) {
         this.processor = processor;
+        this.getShellyConfigurationService = getShellyConfigurationService;
     }
 
     /**
@@ -40,6 +44,10 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements
     @Override
     @Scheduled(cron = "*/30 * * * * *")
     public void run() {
+        if (getShellyConfigurationService.isDisabled()) {
+            LOGGER.debug("Shelly configuration is disabled. Skipping...");
+            return;
+        }
         LOGGER.debug("Shelly MQTT power message to instant consumption processor started...");
 
         // We perform the process every 30 seconds between now and 5 minutes before. This way, could have at least 10 retries

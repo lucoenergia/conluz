@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.consumption.shelly.aggregate;
 
+import org.lucoenergia.conluz.domain.consumption.shelly.config.GetShellyConfigurationService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +17,12 @@ public class ShellyConsumptionsHourlyAggregatorJob implements Job {
     private static final Logger LOGGER = LoggerFactory.getLogger(ShellyConsumptionsHourlyAggregatorJob.class);
 
     private final ShellyConsumptionsHourlyAggregatorService aggregator;
+    private final GetShellyConfigurationService getShellyConfigurationService;
 
-    public ShellyConsumptionsHourlyAggregatorJob(ShellyConsumptionsHourlyAggregatorService aggregator) {
+    public ShellyConsumptionsHourlyAggregatorJob(ShellyConsumptionsHourlyAggregatorService aggregator,
+                                                 GetShellyConfigurationService getShellyConfigurationService) {
         this.aggregator = aggregator;
+        this.getShellyConfigurationService = getShellyConfigurationService;
     }
 
     /**
@@ -33,6 +37,10 @@ public class ShellyConsumptionsHourlyAggregatorJob implements Job {
     @Override
     @Scheduled(cron = "0 0 * * * *")
     public void run() {
+        if (getShellyConfigurationService.isDisabled()) {
+            LOGGER.debug("Shelly configuration is disabled. Skipping...");
+            return;
+        }
         LOGGER.info("Shelly consumption hourly aggregation started...");
 
         // We perform the aggregation hourly between now and 5 hours before. This way, could have at least five retries
