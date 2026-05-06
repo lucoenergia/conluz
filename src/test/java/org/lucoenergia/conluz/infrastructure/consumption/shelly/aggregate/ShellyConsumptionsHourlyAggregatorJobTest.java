@@ -1,35 +1,41 @@
 package org.lucoenergia.conluz.infrastructure.consumption.shelly.aggregate;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.lucoenergia.conluz.domain.consumption.shelly.config.GetShellyConfigurationService;
 
-import java.time.OffsetDateTime;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
 class ShellyConsumptionsHourlyAggregatorJobTest {
 
-    @Mock
-    private ShellyConsumptionsHourlyAggregatorService aggregator;
-
-    @InjectMocks
-    private ShellyConsumptionsHourlyAggregatorJob job;
-
-    /**
-     * Test the `run` method to ensure it invokes the aggregator's aggregate method
-     * with the correct time range parameters.
-     */
     @Test
-    void run_aggregatesForLastFiveHours() {
-        // Act
+    void run_whenShellyDisabled_shouldSkipAggregation() {
+        ShellyConsumptionsHourlyAggregatorService mockService = mock(ShellyConsumptionsHourlyAggregatorService.class);
+        GetShellyConfigurationService getShellyConfigurationService = mock(GetShellyConfigurationService.class);
+
+        when(getShellyConfigurationService.isDisabled()).thenReturn(true);
+
+        ShellyConsumptionsHourlyAggregatorJob job = new ShellyConsumptionsHourlyAggregatorJob(mockService, getShellyConfigurationService);
+
         job.run();
 
-        // Assert
-        verify(aggregator, times(1)).aggregate(any(OffsetDateTime.class),
-                any(OffsetDateTime.class));
+        verify(mockService, times(0)).aggregate(null, null);
+    }
+
+    @Test
+    void run_whenShellyEnabled_shouldCallAggregation() {
+        ShellyConsumptionsHourlyAggregatorService mockService = mock(ShellyConsumptionsHourlyAggregatorService.class);
+        GetShellyConfigurationService getShellyConfigurationService = mock(GetShellyConfigurationService.class);
+
+        when(getShellyConfigurationService.isDisabled()).thenReturn(false);
+
+        ShellyConsumptionsHourlyAggregatorJob job = new ShellyConsumptionsHourlyAggregatorJob(mockService, getShellyConfigurationService);
+
+        job.run();
+
+        verify(mockService, times(1)).aggregate(any(), any());
     }
 }
