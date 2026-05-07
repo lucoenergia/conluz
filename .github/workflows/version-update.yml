@@ -54,4 +54,4 @@ jobs:
           # Tag the commit with the new version
           echo "Tagging with new version: $NEW_VERSION"
           git tag "$NEW_VERSION"
-          git push origin "$NEW_VERSION"
+          git push https://x-access-token:${{ secrets.ACTIONS_CONLUZ }}@github.com/${{ github.repository }} "$NEW_VERSION"
