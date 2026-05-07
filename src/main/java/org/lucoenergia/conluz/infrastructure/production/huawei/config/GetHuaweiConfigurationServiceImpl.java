@@ -35,4 +35,9 @@ public class GetHuaweiConfigurationServiceImpl implements GetHuaweiConfiguration
         }
         return false;
     }
+
+    @Override
+    public Optional<HuaweiConfig> getHuaweiConfiguration() {
+        return getHuaweiConfigRepository.getHuaweiConfig();
+    }
 }
