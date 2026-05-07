@@ -25,6 +25,9 @@ on:
     # Tags use no `v` prefix to match the version literal stored in build.gradle.
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
+  # Also triggered explicitly by version-update.yml via `gh workflow run`, because
+  # tags pushed with GITHUB_TOKEN do not fire push events for downstream workflows.
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
