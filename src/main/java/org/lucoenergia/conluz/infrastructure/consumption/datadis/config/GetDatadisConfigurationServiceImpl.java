@@ -35,4 +35,9 @@ public class GetDatadisConfigurationServiceImpl implements GetDatadisConfigurati
         }
         return false;
     }
+
+    @Override
+    public Optional<DatadisConfig> getDatadisConfiguration() {
+        return getDatadisConfigRepository.getDatadisConfig();
+    }
 }
