@@ -23,6 +23,11 @@ public class GetShellyConfigurationServiceImpl implements GetShellyConfiguration
     }
 
     @Override
+    public Optional<ShellyConfig> getShellyConfiguration() {
+        return getShellyConfigRepository.getShellyConfig();
+    }
+
+    @Override
     public boolean isDisabled() {
         Optional<ShellyConfig> config = getShellyConfigRepository.getShellyConfig();
         if (config.isEmpty()) {
