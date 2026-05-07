@@ -1,0 +1,117 @@
+# Builds and publishes the Conluz Docker image to GitHub Container Registry (GHCR).
+#
+# How it fits in:
+#   1. A push to `main` triggers `version-update.yml`, which bumps the patch
+#      version in build.gradle and pushes a tag like `1.0.76` using a PAT
+#      (secrets.ACTIONS_CONLUZ). The PAT matters: tags pushed with the default
+#      GITHUB_TOKEN do NOT trigger downstream workflows, so this one would not
+#      fire if version-update.yml ever switches to GITHUB_TOKEN.
+#   2. That tag push triggers this workflow, which checks out the tagged
+#      commit, builds the JAR, and publishes the image to GHCR.
+#
+# Resulting tags published per release (for tag `1.0.76`):
+#   ghcr.io/lucoenergia/conluz:1.0.76
+#   ghcr.io/lucoenergia/conluz:1.0
+#   ghcr.io/lucoenergia/conluz:1
+#   ghcr.io/lucoenergia/conluz:latest
+#
+# Reference: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+
+name: Build and push Docker image
+
+on:
+  push:
+    # Trigger only on version tags (e.g. `1.0.76`) created by version-update.yml.
+    # Tags use no `v` prefix to match the version literal stored in build.gradle.
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  REGISTRY: ghcr.io
+  # github.repository is `<owner>/<repo>` (e.g. `lucoenergia/conluz`),
+  # which is the canonical image name for GHCR.
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    # `packages: write` is what allows the built-in GITHUB_TOKEN to push to GHCR.
+    # Without it, the docker/login-action step would still succeed but the
+    # final push would fail with `denied: installation not allowed to ...`.
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # Checks out the repo at the pushed tag's commit, so the JAR built below
+      # contains the version that matches the tag.
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # JDK 17 matches the project's toolchain (see build.gradle).
+      # `cache: gradle` reuses ~/.gradle/caches across runs to speed up builds.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+          cache: 'gradle'
+
+      # The `gradlew` script may lose its executable bit when checked out on
+      # some runners; make sure it can be invoked.
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Produces build/libs/conluz-<version>.jar, which the root Dockerfile
+      # copies in via `ARG JAR_FILE=build/libs/conluz-*.jar`. `gradle build`
+      # also runs the full test suite (JUnit 5 + Testcontainers), so a failing
+      # test will block the image from being published.
+      - name: Build JAR with Gradle (runs tests)
+        run: ./gradlew clean build --info
+
+      # Buildx enables BuildKit features (multi-stage cache, multi-platform).
+      # We only build linux/amd64 today, but Buildx is a prerequisite for the
+      # GitHub Actions cache backend (`type=gha`) configured below.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Authenticates against ghcr.io using the workflow's ephemeral
+      # GITHUB_TOKEN — no PAT or repository secret required for publishing.
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Generates the list of image tags + OCI labels from the git ref.
+      # For tag `1.0.76`, the four `tags:` lines below produce:
+      #   1.0.76, 1.0, 1, latest
+      # If you only want `<version>` + `latest`, drop the two intermediate
+      # semver patterns.
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      # Builds the image from the root Dockerfile (which expects a pre-built
+      # JAR at build/libs/conluz-*.jar) and pushes every tag produced above.
+      # `cache-from`/`cache-to: type=gha` reuses the BuildKit layer cache
+      # across runs via GitHub's Actions cache, avoiding full rebuilds.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
