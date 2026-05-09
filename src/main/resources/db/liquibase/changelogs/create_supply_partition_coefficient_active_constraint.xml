@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Partial unique index: at most one open-ended (active) row per supply at any time -->
+    <changeSet id="create_supply_partition_coefficient_active_constraint" author="Víctor Cañizares">
+        <sql>
+            CREATE UNIQUE INDEX idx_supply_partition_coefficient_one_active
+            ON supply_partition_coefficient (supply_id)
+            WHERE valid_to IS NULL;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
