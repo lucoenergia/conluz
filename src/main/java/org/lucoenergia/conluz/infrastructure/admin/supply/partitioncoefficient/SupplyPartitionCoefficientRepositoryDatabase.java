@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
@@ -82,6 +83,12 @@ public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyParti
 
     @Override
     public void closeActivePeriod(UUID supplyId, Instant validTo) {
-        jpaRepository.closeActivePeriod(supplyId, validTo);
+        Optional<SupplyPartitionCoefficientEntity> result = jpaRepository.findActiveBySupplyId(supplyId);
+        if (result.isEmpty()) {
+            return;
+        }
+        SupplyPartitionCoefficientEntity activeCoefficient = result.get();
+        activeCoefficient.setValidTo(validTo);
+        jpaRepository.save(activeCoefficient);
     }
 }
