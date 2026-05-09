@@ -50,7 +50,7 @@ public class GetPartitionCoefficientHistoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<PartitionCoefficientResponse> getHistory(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId) {
-        return service.getCoefficientHistory(supplyId).stream()
+        return service.findAllCoefficientHistory(supplyId).stream()
                 .map(PartitionCoefficientResponse::new)
                 .toList();
     }

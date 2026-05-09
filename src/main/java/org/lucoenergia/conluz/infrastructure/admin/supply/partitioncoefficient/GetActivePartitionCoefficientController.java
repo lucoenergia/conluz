@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -14,9 +15,12 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -51,10 +55,10 @@ public class GetActivePartitionCoefficientController {
     @PreAuthorize("hasRole('ADMIN')")
     public PartitionCoefficientResponse getActive(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId) {
-        return service.getCoefficientHistory(supplyId).stream()
-                .filter(c -> c.getValidTo() == null)
-                .map(PartitionCoefficientResponse::new)
-                .findFirst()
-                .orElseThrow(() -> new SupplyPartitionCoefficientNotFoundException(supplyId));
+        Optional<SupplyPartitionCoefficient> result = service.findActiveBySupplyId(supplyId);
+        if (result.isEmpty()) {
+            throw new SupplyPartitionCoefficientNotFoundException(supplyId);
+        }
+        return new PartitionCoefficientResponse(result.get());
     }
 }

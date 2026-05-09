@@ -57,7 +57,7 @@ public class GetPartitionCoefficientAtTimestampController {
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
             @Parameter(description = "ISO-8601 timestamp", example = "2025-01-15T12:00:00Z")
             @RequestParam @NotNull Instant timestamp) {
-        BigDecimal coefficient = service.resolveCoefficient(supplyId, timestamp);
+        BigDecimal coefficient = service.findCoefficientByInstant(supplyId, timestamp);
         return new CoefficientAtTimestampResponse(supplyId, timestamp, coefficient);
     }
 }

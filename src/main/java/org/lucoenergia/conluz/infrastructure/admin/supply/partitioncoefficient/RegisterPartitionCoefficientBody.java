@@ -12,7 +12,7 @@ public class RegisterPartitionCoefficientBody {
 
     @NotNull
     @PositiveOrZero
-    @Schema(description = "New partition coefficient value (same unit as supply.partitionCoefficient)",
+    @Schema(description = "New partition coefficient value",
             example = "3.076300")
     private BigDecimal coefficient;
 

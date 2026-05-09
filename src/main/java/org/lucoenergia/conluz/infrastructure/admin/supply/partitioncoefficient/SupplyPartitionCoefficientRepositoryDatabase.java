@@ -10,6 +10,8 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoeffic
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,8 @@ import java.util.UUID;
 @Transactional
 @Repository
 public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyPartitionCoefficientRepository {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SupplyPartitionCoefficientRepositoryDatabase.class);
 
     private final SupplyPartitionCoefficientJpaRepository jpaRepository;
     private final SupplyRepository supplyRepository;
@@ -85,6 +89,7 @@ public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyParti
     public void closeActivePeriod(UUID supplyId, Instant validTo) {
         Optional<SupplyPartitionCoefficientEntity> result = jpaRepository.findActiveBySupplyId(supplyId);
         if (result.isEmpty()) {
+            LOGGER.debug("No active coefficient found for supply {}", supplyId);
             return;
         }
         SupplyPartitionCoefficientEntity activeCoefficient = result.get();
