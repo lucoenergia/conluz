@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
@@ -46,6 +47,11 @@ public class SupplyExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(SupplyPartitionCoefficientNotFoundException.class)
+    public ResponseEntity<RestError> handleException(SupplyPartitionCoefficientNotFoundException e) {
+        return errorBuilder.build(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(SupplyAlreadyExistsException.class)

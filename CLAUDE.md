@@ -151,5 +151,23 @@ With the app running:
 - when injecting beans, always use the interface. This also applies to integration tests
 - when creating tests over services that has an interface, always use the name of the interface + "Test" for naming them
 
+## Temporal Partition Coefficient Model
+
+The `supply_partition_coefficient` table stores the full history of `supply.partition_coefficient` values over time.
+
+### Boundary convention
+- `valid_from` is **inclusive**: a query at exactly `valid_from` returns this row.
+- `valid_to` is **exclusive**: a query at exactly `valid_to` returns the *next* row, not this one.
+- `valid_to = NULL` means the row is currently active (open-ended period).
+
+### Denormalization rule
+`supplies.partition_coefficient` always mirrors the coefficient of the row with `valid_to IS NULL` for that supply. It is updated atomically by `PartitionCoefficientServiceImpl.registerCoefficientChange`.
+
+### Overlap prevention
+A partial unique index (`WHERE valid_to IS NULL`) guarantees at most one active row per supply at any time. The service enforces the correct close-then-insert sequence for historical rows.
+
+### Community sum check
+`computeCommunitySum` sums active coefficients at a given instant. If the total deviates from 100 by more than 0.0001, a `communityCoefficientSumWarning` is included in the POST response. This is a warning only — coefficient changes are never blocked.
+
 ## General Notes
 - Automatically use context7 for code generation and library documentation.

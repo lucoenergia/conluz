@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Seed historical table from current supply.partition_coefficient values.
+         valid_from is set to 2024-05-23 (project start date) since supplies have no created_at column.
+         valid_to = NULL marks each row as the currently active coefficient. -->
+    <changeSet id="backfill_supply_partition_coefficient" author="Víctor Cañizares">
+        <sql>
+            INSERT INTO supply_partition_coefficient (id, supply_id, coefficient, valid_from, valid_to, created_at)
+            SELECT gen_random_uuid(),
+                   id,
+                   partition_coefficient,
+                   TIMESTAMPTZ '2024-05-23 00:00:00 UTC',
+                   NULL,
+                   NOW()
+            FROM supplies
+            WHERE partition_coefficient IS NOT NULL;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

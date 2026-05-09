@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="create_supply_partition_coefficient_table" author="Víctor Cañizares">
+        <createTable tableName="supply_partition_coefficient">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="supply_partition_coefficient_id_pk"/>
+            </column>
+            <column name="supply_id" type="UUID">
+                <constraints foreignKeyName="supply_partition_coefficient_supply_id_fk"
+                             referencedTableName="supplies" referencedColumnNames="id"
+                             nullable="false"/>
+            </column>
+            <column name="coefficient" type="NUMERIC(18, 6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valid_from" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valid_to" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
