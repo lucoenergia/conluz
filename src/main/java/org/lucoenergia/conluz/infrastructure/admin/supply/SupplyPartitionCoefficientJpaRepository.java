@@ -38,7 +38,7 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
             "AND (e.validTo IS NULL OR e.validTo > :timestamp)")
     List<SupplyPartitionCoefficientEntity> findAllActiveAtTimestamp(@Param("timestamp") Instant timestamp);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE SupplyPartitionCoefficientEntity e SET e.validTo = :validTo " +
             "WHERE e.supply.id = :supplyId AND e.validTo IS NULL")
     void closeActivePeriod(@Param("supplyId") UUID supplyId, @Param("validTo") Instant validTo);
