@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RegisterPartitionCoefficientsWithFileControllerTest extends BaseControllerTest {
 
     private static final String URL = "/api/v1/supplies/partition-coefficients/import";
-    private static final String FIXTURE = "fixtures/supplies/partition_coefficients.txt";
+    private static final String FIXTURE = "fixtures/supplies/CAU_2024.txt";
     private static final String TXT_CONTENT_TYPE = "text/plain";
     private static final String EFFECTIVE_AT = "2024-01-01T00:00:00Z";
 
@@ -96,7 +96,24 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
         String authHeader = loginAsDefaultAdmin();
         ClassPathResource resource = new ClassPathResource(FIXTURE);
         MockMultipartFile file = new MockMultipartFile(
-                "file", "partition_coefficients.csv", TXT_CONTENT_TYPE,
+                "file", "CAU_2024.csv", TXT_CONTENT_TYPE,
+                Files.readAllBytes(resource.getFile().toPath()));
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .param("effectiveAt", EFFECTIVE_AT)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+    }
+
+    @Test
+    void returnsBadRequestForInvalidFilename() throws Exception {
+        String authHeader = loginAsDefaultAdmin();
+        ClassPathResource resource = new ClassPathResource(FIXTURE);
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "wrong_name.txt", TXT_CONTENT_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
         mockMvc.perform(multipart(URL)
