@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionService;
+import org.lucoenergia.conluz.domain.shared.response.CreationInBulkResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileParser;
@@ -22,9 +23,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.io.CsvParseExceptionHandler;
-import org.lucoenergia.conluz.domain.shared.response.CreationInBulkResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -55,8 +53,6 @@ import java.util.UUID;
 )
 @Validated
 public class CreateSuppliesPartitionsWithFileController {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(CreateSuppliesPartitionsWithFileController.class);
 
     private final CsvFileRequestValidator csvFileRequestValidator;
     private final CsvFileParser csvFileParser;
