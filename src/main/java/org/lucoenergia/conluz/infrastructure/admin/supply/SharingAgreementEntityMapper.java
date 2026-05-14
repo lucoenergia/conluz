@@ -11,6 +11,13 @@ public class SharingAgreementEntityMapper extends BaseMapper<SharingAgreementEnt
 
     @Override
     public SharingAgreement map(SharingAgreementEntity entity) {
-        return new SharingAgreement(entity.getId(), entity.getStartDate(), entity.getEndDate());
+        return new SharingAgreement.Builder()
+                .withId(entity.getId())
+                .withStartDate(entity.getStartDate())
+                .withEndDate(entity.getEndDate())
+                .withNotes(entity.getNotes())
+                .withCreatedAt(entity.getCreatedAt())
+                .withUpdatedAt(entity.getUpdatedAt())
+                .build();
     }
 }

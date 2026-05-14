@@ -29,7 +29,6 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
     void testGetSharingAgreement() throws Exception {
         String authHeader = loginAsDefaultAdmin();
 
-        // Create a sharing agreement
         SharingAgreementEntity entity = new SharingAgreementEntity();
         entity.setId(UUID.randomUUID());
         entity.setStartDate(LocalDate.of(2023, 1, 1));
@@ -42,7 +41,9 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(entity.getId().toString()))
                 .andExpect(jsonPath("$.startDate").value("2023-01-01"))
-                .andExpect(jsonPath("$.endDate").value("2023-12-31"));
+                .andExpect(jsonPath("$.endDate").value("2023-12-31"))
+                .andExpect(jsonPath("$.status").value("PREVIOUS"))
+                .andExpect(jsonPath("$.supplyCount").value(0));
     }
 
     @Test
@@ -76,17 +77,17 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testWithoutIdInPath() throws Exception {
+    void testGetAllSharingAgreementsReturnsListWhenNoIdProvided() throws Exception {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
-                .andExpect(jsonPath("$.message").isNotEmpty())
-                .andExpect(jsonPath("$.traceId").isNotEmpty());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0))
+                .andExpect(jsonPath("$.active").value(0))
+                .andExpect(jsonPath("$.previous").value(0))
+                .andExpect(jsonPath("$.items").isArray());
     }
 
     @Test

@@ -70,7 +70,7 @@ public class CreateSharingAgreementController {
     @ForbiddenErrorResponse
     @PreAuthorize("hasRole('ADMIN')")
     public SharingAgreementResponse createSharingAgreement(@Valid @RequestBody CreateSharingAgreementBody body) {
-        SharingAgreement sharingAgreement = service.create(body.getStartDate(), body.getEndDate());
+        SharingAgreement sharingAgreement = service.create(body.getStartDate(), body.getEndDate(), body.getNotes());
         return new SharingAgreementResponse(sharingAgreement);
     }
 }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <changeSet id="normalize_supplies_partition_coefficient_to_fraction" author="viktorKhan">
+        <sql>
+            UPDATE supplies s
+            SET partition_coefficient = spc.coefficient / 100.0
+            FROM supply_partition_coefficient spc
+            WHERE spc.supply_id = s.id
+              AND spc.valid_to IS NULL
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

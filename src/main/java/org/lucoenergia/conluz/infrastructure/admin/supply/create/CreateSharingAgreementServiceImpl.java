@@ -8,9 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
-/**
- * Implementation of the service for creating sharing agreements
- */
 @Service
 @Transactional
 public class CreateSharingAgreementServiceImpl implements CreateSharingAgreementService {
@@ -22,10 +19,10 @@ public class CreateSharingAgreementServiceImpl implements CreateSharingAgreement
     }
 
     @Override
-    public SharingAgreement create(LocalDate startDate, LocalDate endDate) {
+    public SharingAgreement create(LocalDate startDate, LocalDate endDate, String notes) {
         if (endDate != null && startDate.isAfter(endDate)) {
             throw new IllegalArgumentException("Start date must be before end date");
         }
-        return repository.create(startDate, endDate);
+        return repository.create(startDate, endDate, notes);
     }
 }

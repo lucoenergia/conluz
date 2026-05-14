@@ -11,9 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/**
- * Implementation of the repository for creating sharing agreements
- */
 @Repository
 @Transactional
 public class CreateSharingAgreementRepositoryDatabase implements CreateSharingAgreementRepository {
@@ -22,18 +19,19 @@ public class CreateSharingAgreementRepositoryDatabase implements CreateSharingAg
     private final SharingAgreementEntityMapper mapper;
 
     public CreateSharingAgreementRepositoryDatabase(SharingAgreementRepository repository,
-                                                   SharingAgreementEntityMapper mapper) {
+                                                    SharingAgreementEntityMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }
 
     @Override
-    public SharingAgreement create(LocalDate startDate, LocalDate endDate) {
+    public SharingAgreement create(LocalDate startDate, LocalDate endDate, String notes) {
         SharingAgreementEntity entity = new SharingAgreementEntity();
         entity.setId(UUID.randomUUID());
         entity.setStartDate(startDate);
         entity.setEndDate(endDate);
-        
+        entity.setNotes(notes);
+
         SharingAgreementEntity savedEntity = repository.save(entity);
         return mapper.map(savedEntity);
     }

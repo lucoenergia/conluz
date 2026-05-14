@@ -5,9 +5,6 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
-/**
- * Request body for creating a sharing agreement
- */
 public class CreateSharingAgreementBody {
 
     @NotNull(message = "Start date is required")
@@ -16,6 +13,8 @@ public class CreateSharingAgreementBody {
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
+
+    private String notes;
 
     public LocalDate getStartDate() {
         return startDate;
@@ -31,5 +30,13 @@ public class CreateSharingAgreementBody {
 
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

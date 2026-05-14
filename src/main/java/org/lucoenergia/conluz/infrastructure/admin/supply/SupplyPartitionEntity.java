@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "supplies_partitions")
+@Table(name = "sharing_agreement_supply")
 public class SupplyPartitionEntity {
 
     @Id

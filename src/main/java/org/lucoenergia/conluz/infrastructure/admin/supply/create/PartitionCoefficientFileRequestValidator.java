@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
+package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
@@ -36,7 +36,7 @@ public class PartitionCoefficientFileRequestValidator {
         if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".txt")) {
             return Optional.of(buildUnsupportedExtensionErrorResponse());
         }
-        if (originalFilename == null || !FILENAME_PATTERN.matcher(originalFilename).matches()) {
+        if (!FILENAME_PATTERN.matcher(originalFilename).matches()) {
             return Optional.of(buildInvalidFilenameErrorResponse(originalFilename));
         }
         return Optional.empty();

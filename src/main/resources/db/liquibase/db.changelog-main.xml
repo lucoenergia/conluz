@@ -27,4 +27,9 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/create_supply_partition_coefficient_index.xml" relativeToChangelogFile="true" />
     <include file="changelogs/create_supply_partition_coefficient_active_constraint.xml" relativeToChangelogFile="true" />
     <include file="changelogs/backfill_supply_partition_coefficient.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/rename_table_supplies_partitions_to_sharing_agreement_supply.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_columns_to_sharing_agreements.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/alter_sharing_agreement_supply_coefficient_to_numeric.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/normalize_supplies_partition_coefficient_to_fraction.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/drop_supply_partition_coefficient_table.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

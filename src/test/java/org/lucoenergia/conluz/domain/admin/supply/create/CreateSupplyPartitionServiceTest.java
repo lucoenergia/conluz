@@ -139,7 +139,7 @@ class CreateSupplyPartitionServiceTest {
                 .withCode("SUPPLY1")
                 .build();
         UUID agreementId = UUID.randomUUID();
-        SharingAgreement agreement = new SharingAgreement(agreementId, LocalDate.now(), LocalDate.now().plusYears(1));
+        SharingAgreement agreement = new SharingAgreement.Builder().withId(agreementId).withStartDate(LocalDate.now()).withEndDate(LocalDate.now().plusYears(1)).build();
         SharingAgreementId sharingAgreementId = SharingAgreementId.of(agreementId);
 
         when(getSupplyRepository.findByCode(code)).thenReturn(Optional.of(supply));
@@ -165,7 +165,7 @@ class CreateSupplyPartitionServiceTest {
                 .withCode("SUPPLY1")
                 .build();
         UUID agreementId = UUID.randomUUID();
-        SharingAgreement agreement = new SharingAgreement(agreementId, LocalDate.now(), LocalDate.now().plusYears(1));
+        SharingAgreement agreement = new SharingAgreement.Builder().withId(agreementId).withStartDate(LocalDate.now()).withEndDate(LocalDate.now().plusYears(1)).build();
         SharingAgreementId sharingAgreementId = SharingAgreementId.of(agreementId);
 
         when(getSupplyRepository.findByCode(code)).thenReturn(Optional.of(supply));
@@ -191,7 +191,7 @@ class CreateSupplyPartitionServiceTest {
                 .withCode("SUPPLY1")
                 .build();
         UUID agreementId = UUID.randomUUID();
-        SharingAgreement agreement = new SharingAgreement(agreementId, LocalDate.now(), LocalDate.now().plusYears(1));
+        SharingAgreement agreement = new SharingAgreement.Builder().withId(agreementId).withStartDate(LocalDate.now()).withEndDate(LocalDate.now().plusYears(1)).build();
         SharingAgreementId sharingAgreementId = SharingAgreementId.of(agreementId);
 
         when(getSupplyRepository.findByCode(code)).thenReturn(Optional.of(supply));
@@ -218,7 +218,7 @@ class CreateSupplyPartitionServiceTest {
                 .withCode("SUPPLY1")
                 .build();
         UUID agreementId = UUID.randomUUID();
-        SharingAgreement agreement = new SharingAgreement(agreementId, LocalDate.now(), LocalDate.now().plusYears(1));
+        SharingAgreement agreement = new SharingAgreement.Builder().withId(agreementId).withStartDate(LocalDate.now()).withEndDate(LocalDate.now().plusYears(1)).build();
         SharingAgreementId sharingAgreementId = SharingAgreementId.of(agreementId);
         UUID partitionId = UUID.randomUUID();
         SupplyPartition existingPartition = new SupplyPartition(partitionId, supply, agreement, 0.300000);
@@ -256,7 +256,7 @@ class CreateSupplyPartitionServiceTest {
                 .withCode("SUPPLY1")
                 .build();
         UUID agreementId = UUID.randomUUID();
-        SharingAgreement agreement = new SharingAgreement(agreementId, LocalDate.now(), LocalDate.now().plusYears(1));
+        SharingAgreement agreement = new SharingAgreement.Builder().withId(agreementId).withStartDate(LocalDate.now()).withEndDate(LocalDate.now().plusYears(1)).build();
         SharingAgreementId sharingAgreementId = SharingAgreementId.of(agreementId);
         UUID partitionId = UUID.randomUUID();
         SupplyPartition newPartition = new SupplyPartition(partitionId, supply, agreement, coefficient);

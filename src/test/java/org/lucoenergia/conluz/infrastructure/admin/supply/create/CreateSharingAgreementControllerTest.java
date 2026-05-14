@@ -50,9 +50,40 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.startDate").value(startDate.toString()))
-                .andExpect(jsonPath("$.endDate").value(endDate.toString()));
+                .andExpect(jsonPath("$.endDate").value(endDate.toString()))
+                .andExpect(jsonPath("$.status").isNotEmpty())
+                .andExpect(jsonPath("$.supplyCount").value(0));
 
-        // Verify that the sharing agreement was created in the database
+        Assertions.assertEquals(1, sharingAgreementRepository.count());
+    }
+
+    @Test
+    void testCreateSharingAgreementWithNotes() throws Exception {
+        String authHeader = loginAsDefaultAdmin();
+
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = startDate.plusMonths(6);
+        String notes = "Test notes for the agreement";
+
+        String body = String.format("""
+                {
+                  "startDate": "%s",
+                  "endDate": "%s",
+                  "notes": "%s"
+                }
+                """, startDate, endDate, notes);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.startDate").value(startDate.toString()))
+                .andExpect(jsonPath("$.endDate").value(endDate.toString()))
+                .andExpect(jsonPath("$.notes").value(notes));
+
         Assertions.assertEquals(1, sharingAgreementRepository.count());
     }
 
@@ -169,7 +200,6 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
                 }
                 """, startDate, endDate);
 
-        // Test users endpoint
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
