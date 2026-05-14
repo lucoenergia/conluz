@@ -74,14 +74,14 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.addressRef").value(supplyModified.getAddressRef()))
                 .andExpect(jsonPath("$.partitionCoefficient").value(supplyModified.getPartitionCoefficient()))
                 .andExpect(jsonPath("$.enabled").value(supply.getEnabled()))
-                .andExpect(jsonPath("$.datadisValidDateFrom").value(supply.getValidDateFrom().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
-                .andExpect(jsonPath("$.datadisDistributor").value(supply.getDistributor()))
-                .andExpect(jsonPath("$.datadisDistributorCode").value(supply.getDistributorCode()))
-                .andExpect(jsonPath("$.datadisPointType").value(supply.getPointType()))
-                .andExpect(jsonPath("$.datadisIsThirdParty").value(supply.isThirdParty()))
-                .andExpect(jsonPath("$.shellyMac").value(supply.getShellyMac()))
-                .andExpect(jsonPath("$.shellyId").value(supply.getShellyId()))
-                .andExpect(jsonPath("$.shellyMqttPrefix").value(supply.getShellyMqttPrefix()))
+                .andExpect(jsonPath("$.contract.validDateFrom").value(supply.getContract().getValidDateFrom().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
+                .andExpect(jsonPath("$.distributor.name").value(supply.getDistributor().getName()))
+                .andExpect(jsonPath("$.distributor.code").value(supply.getDistributor().getCode()))
+                .andExpect(jsonPath("$.distributor.pointType").value(supply.getDistributor().getPointType()))
+                .andExpect(jsonPath("$.datadis.thirdParty").value(supply.getDatadis().isThirdParty()))
+                .andExpect(jsonPath("$.shelly.mac").value(supply.getShelly().getMac()))
+                .andExpect(jsonPath("$.shelly.id").value(supply.getShelly().getId()))
+                .andExpect(jsonPath("$.shelly.mqttPrefix").value(supply.getShelly().getMqttPrefix()))
                 .andExpect(jsonPath("$.user.personalId").value(userOne.getPersonalId()));
     }
 

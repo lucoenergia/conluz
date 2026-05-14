@@ -33,7 +33,7 @@ public class DatadisMonthlyAggregationServiceImpl implements DatadisMonthlyAggre
         List<Supply> allSupplies = getSupplyRepository.findAll();
 
         for (Supply supply : allSupplies) {
-            if (supply.getDistributorCode() == null || supply.getDistributorCode().isBlank()) {
+            if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isBlank()) {
                 LOGGER.warn("Skipping supply with ID: {} because it does not have distributor code", supply.getId());
                 continue;
             }
@@ -52,7 +52,7 @@ public class DatadisMonthlyAggregationServiceImpl implements DatadisMonthlyAggre
         }
 
         Supply supply = supplyOptional.get();
-        if (supply.getDistributorCode() == null || supply.getDistributorCode().isBlank()) {
+        if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isBlank()) {
             LOGGER.warn("Skipping supply with ID: {} because it does not have distributor code", supply.getId());
             return;
         }
@@ -65,7 +65,7 @@ public class DatadisMonthlyAggregationServiceImpl implements DatadisMonthlyAggre
         List<Supply> allSupplies = getSupplyRepository.findAll();
 
         for (Supply supply : allSupplies) {
-            if (supply.getDistributorCode() == null || supply.getDistributorCode().isBlank()) {
+            if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isBlank()) {
                 LOGGER.warn("Skipping supply with ID: {} because it does not have distributor code", supply.getId());
                 continue;
             }

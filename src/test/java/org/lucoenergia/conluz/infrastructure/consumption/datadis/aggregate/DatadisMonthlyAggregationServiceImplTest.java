@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
@@ -36,8 +37,8 @@ class DatadisMonthlyAggregationServiceImplTest {
     void testAggregateMonthlyForAllSuppliesAllMonths() {
 
         // Given
-        Supply supply1 = SupplyMother.random().withDistributorCode("DIST001").build();
-        Supply supply2 = SupplyMother.random().withDistributorCode("DIST002").build();
+        Supply supply1 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
+        Supply supply2 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
         when(getSupplyRepository.findAll()).thenReturn(List.of(supply1, supply2));
 
         // When
@@ -52,8 +53,8 @@ class DatadisMonthlyAggregationServiceImplTest {
     void testAggregateMonthlyForAllSuppliesSpecificMonth() {
 
         // Given
-        Supply supply1 = SupplyMother.random().withDistributorCode("DIST001").build();
-        Supply supply2 = SupplyMother.random().withDistributorCode("DIST002").build();
+        Supply supply1 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
+        Supply supply2 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
         when(getSupplyRepository.findAll()).thenReturn(List.of(supply1, supply2));
 
         // When
@@ -68,7 +69,7 @@ class DatadisMonthlyAggregationServiceImplTest {
     void testAggregateMonthlyForSpecificSupplyAndMonth() {
 
         // Given
-        Supply supply = SupplyMother.random().withDistributorCode("DIST123").build();
+        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build()).build();
         SupplyCode supplyCode = SupplyCode.of(supply.getCode());
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
@@ -84,8 +85,8 @@ class DatadisMonthlyAggregationServiceImplTest {
     void testAggregateMonthlySkipsSuppliesWithoutDistributorCode() {
 
         // Given
-        Supply supplyWithCode = SupplyMother.random().withDistributorCode("DIST001").build();
-        Supply supplyWithoutCode = SupplyMother.random().withDistributorCode(null).build();
+        Supply supplyWithCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
+        Supply supplyWithoutCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode(null).build()).build();
         when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
 
         // When
@@ -102,7 +103,7 @@ class DatadisMonthlyAggregationServiceImplTest {
     void testAggregateMonthlySkipsSuppliesWithBlankDistributorCode() {
 
         // Given
-        Supply supplyWithBlankCode = SupplyMother.random().withDistributorCode("   ").build();
+        Supply supplyWithBlankCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("   ").build()).build();
         when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithBlankCode));
 
         // When
@@ -117,7 +118,7 @@ class DatadisMonthlyAggregationServiceImplTest {
     void testAggregateMonthlyForSpecificSupplyWithoutDistributorCodeDoesNothing() {
 
         // Given
-        Supply supply = SupplyMother.random().withDistributorCode(null).build();
+        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode(null).build()).build();
         SupplyCode supplyCode = SupplyCode.of(supply.getCode());
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
@@ -148,7 +149,7 @@ class DatadisMonthlyAggregationServiceImplTest {
     void testAggregateMonthlyHandlesRepositoryException() {
 
         // Given
-        Supply supply = SupplyMother.random().withDistributorCode("DIST123").build();
+        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build()).build();
         when(getSupplyRepository.findAll()).thenReturn(List.of(supply));
         doThrow(new RuntimeException("InfluxDB connection error"))
                 .when(aggregationRepository)

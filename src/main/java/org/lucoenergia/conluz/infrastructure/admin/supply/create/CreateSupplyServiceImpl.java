@@ -42,14 +42,10 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
                     .withAddressRef(supply.getAddressRef())
                     .withPartitionCoefficient(supply.getPartitionCoefficient())
                     .withEnabled(supply.getEnabled())
-                    .withValidDateFrom(supply.getValidDateFrom())
+                    .withContract(supply.getContract())
                     .withDistributor(supply.getDistributor())
-                    .withDistributorCode(supply.getDistributorCode())
-                    .withPointType(supply.getPointType())
-                    .withThirdParty(supply.isThirdParty())
-                    .withShellyMac(supply.getShellyMac())
-                    .withShellyId(supply.getShellyId())
-                    .withShellyMqttPrefix(supply.getShellyMqttPrefix())
+                    .withDatadis(supply.getDatadis())
+                    .withShelly(supply.getShelly())
                     .build();
         }
 

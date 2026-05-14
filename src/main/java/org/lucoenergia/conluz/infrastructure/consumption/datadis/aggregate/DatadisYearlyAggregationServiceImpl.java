@@ -32,7 +32,7 @@ public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggrega
         List<Supply> allSupplies = getSupplyRepository.findAll();
 
         for (Supply supply : allSupplies) {
-            if (supply.getDistributorCode() == null || supply.getDistributorCode().isBlank()) {
+            if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isBlank()) {
                 LOGGER.warn("Skipping supply with ID: {} because it does not have distributor code", supply.getId());
                 continue;
             }
@@ -49,7 +49,7 @@ public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggrega
         }
 
         Supply supply = supplyOptional.get();
-        if (supply.getDistributorCode() == null || supply.getDistributorCode().isBlank()) {
+        if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isBlank()) {
             LOGGER.warn("Skipping supply with ID: {} because it does not have distributor code", supply.getId());
             return;
         }
@@ -59,7 +59,11 @@ public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggrega
 
     private void aggregateForSupplyYear(Supply supply, int year) {
         try {
+            LOGGER.info("Aggregating yearly consumption for supply ID: {}, year: {}",
+                    supply.getId(), year);
             aggregationRepository.aggregateYearlyConsumption(supply, year);
+            LOGGER.info("Successfully aggregated yearly consumption for supply ID: {}, year: {}",
+                    supply.getId(), year);
         } catch (Exception e) {
             LOGGER.error("Failed to aggregate yearly consumption for supply ID: {}, year: {}",
                     supply.getId(), year, e);

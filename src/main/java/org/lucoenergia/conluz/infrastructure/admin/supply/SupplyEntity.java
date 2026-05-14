@@ -1,10 +1,13 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import jakarta.persistence.*;
+import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -24,14 +27,18 @@ public class SupplyEntity {
     private String addressRef;
     private Float partitionCoefficient;
     private Boolean enabled;
-    private LocalDate validDateFrom;
-    private String distributor;
-    private String distributorCode;
-    private Integer pointType;
-    private Boolean thirdParty;
-    private String shellyMac;
-    private String shellyId;
-    private String shellyMqttPrefix;
+
+    @OneToOne(mappedBy = "supply", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SupplyShellyEntity shelly;
+
+    @OneToOne(mappedBy = "supply", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SupplyDatadisEntity datadis;
+
+    @OneToOne(mappedBy = "supply", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SupplyDistributorEntity distributor;
+
+    @OneToOne(mappedBy = "supply", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SupplyContractEntity contract;
 
     @OneToMany(
             mappedBy = "supply",
@@ -62,15 +69,10 @@ public class SupplyEntity {
         private String addressRef;
         private Float partitionCoefficient;
         private Boolean enabled;
-
-        private LocalDate validDateFrom;
-        private String distributor;
-        private String distributorCode;
-        private Integer pointType;
-        private Boolean thirdParty;
-        private String shellyMac;
-        private String shellyId;
-        private String shellyMqttPrefix;
+        private SupplyShellyEntity shelly;
+        private SupplyDatadisEntity datadis;
+        private SupplyDistributorEntity distributor;
+        private SupplyContractEntity contract;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -112,43 +114,23 @@ public class SupplyEntity {
             return this;
         }
 
-        public Builder withValidDateFrom(LocalDate validDateFrom) {
-            this.validDateFrom = validDateFrom;
+        public Builder withShelly(SupplyShellyEntity shelly) {
+            this.shelly = shelly;
             return this;
         }
 
-        public Builder withDistributor(String distributor) {
+        public Builder withDatadis(SupplyDatadisEntity datadis) {
+            this.datadis = datadis;
+            return this;
+        }
+
+        public Builder withDistributor(SupplyDistributorEntity distributor) {
             this.distributor = distributor;
             return this;
         }
 
-        public Builder withDistributorCode(String distributorCode) {
-            this.distributorCode = distributorCode;
-            return this;
-        }
-
-        public Builder withPointType(Integer pointType) {
-            this.pointType = pointType;
-            return this;
-        }
-
-        public Builder withThirdParty(Boolean thirdParty) {
-            this.thirdParty = thirdParty;
-            return this;
-        }
-
-        public Builder withShellyMac(String shellyMac) {
-            this.shellyMac = shellyMac;
-            return this;
-        }
-
-        public Builder withShellyId(String shellyId) {
-            this.shellyId = shellyId;
-            return this;
-        }
-
-        public Builder withShellyMqttPrefix(String shellyMqttPrefix) {
-            this.shellyMqttPrefix = shellyMqttPrefix;
+        public Builder withContract(SupplyContractEntity contract) {
+            this.contract = contract;
             return this;
         }
 
@@ -162,14 +144,22 @@ public class SupplyEntity {
             entity.addressRef = this.addressRef;
             entity.partitionCoefficient = this.partitionCoefficient;
             entity.enabled = this.enabled;
-            entity.validDateFrom = this.validDateFrom;
-            entity.distributor = this.distributor;
-            entity.distributorCode = this.distributorCode;
-            entity.pointType = this.pointType;
-            entity.thirdParty = this.thirdParty;
-            entity.shellyMac = this.shellyMac;
-            entity.shellyId = this.shellyId;
-            entity.shellyMqttPrefix = this.shellyMqttPrefix;
+            if (shelly != null) {
+                entity.shelly = shelly;
+                shelly.setSupply(entity);
+            }
+            if (datadis != null) {
+                entity.datadis = datadis;
+                datadis.setSupply(entity);
+            }
+            if (distributor != null) {
+                entity.distributor = distributor;
+                distributor.setSupply(entity);
+            }
+            if (contract != null) {
+                entity.contract = contract;
+                contract.setSupply(entity);
+            }
             return entity;
         }
     }
@@ -250,68 +240,48 @@ public class SupplyEntity {
         this.user = user;
     }
 
-    public LocalDate getValidDateFrom() {
-        return validDateFrom;
+    public SupplyShellyEntity getShelly() {
+        return shelly;
     }
 
-    public void setValidDateFrom(LocalDate validDateFrom) {
-        this.validDateFrom = validDateFrom;
+    public void setShelly(SupplyShellyEntity shelly) {
+        this.shelly = shelly;
+        if (shelly != null) {
+            shelly.setSupply(this);
+        }
     }
 
-    public String getDistributor() {
+    public SupplyDatadisEntity getDatadis() {
+        return datadis;
+    }
+
+    public void setDatadis(SupplyDatadisEntity datadis) {
+        this.datadis = datadis;
+        if (datadis != null) {
+            datadis.setSupply(this);
+        }
+    }
+
+    public SupplyDistributorEntity getDistributor() {
         return distributor;
     }
 
-    public void setDistributor(String distributor) {
+    public void setDistributor(SupplyDistributorEntity distributor) {
         this.distributor = distributor;
+        if (distributor != null) {
+            distributor.setSupply(this);
+        }
     }
 
-    public String getDistributorCode() {
-        return distributorCode;
+    public SupplyContractEntity getContract() {
+        return contract;
     }
 
-    public void setDistributorCode(String distributorCode) {
-        this.distributorCode = distributorCode;
-    }
-
-    public Integer getPointType() {
-        return pointType;
-    }
-
-    public void setPointType(Integer pointType) {
-        this.pointType = pointType;
-    }
-
-    public Boolean getThirdParty() {
-        return thirdParty;
-    }
-
-    public void setThirdParty(Boolean datadisIsThirdParty) {
-        this.thirdParty = datadisIsThirdParty;
-    }
-
-    public String getShellyMac() {
-        return shellyMac;
-    }
-
-    public void setShellyMac(String shellyMac) {
-        this.shellyMac = shellyMac;
-    }
-
-    public String getShellyId() {
-        return shellyId;
-    }
-
-    public void setShellyId(String shellyId) {
-        this.shellyId = shellyId;
-    }
-
-    public String getShellyMqttPrefix() {
-        return shellyMqttPrefix;
-    }
-
-    public void setShellyMqttPrefix(String shellyMqttPrefix) {
-        this.shellyMqttPrefix = shellyMqttPrefix;
+    public void setContract(SupplyContractEntity contract) {
+        this.contract = contract;
+        if (contract != null) {
+            contract.setSupply(this);
+        }
     }
 
     public List<PlantEntity> getPlants() {

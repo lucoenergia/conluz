@@ -2,9 +2,12 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
+import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
+import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 public class SupplyResponse {
@@ -25,23 +28,10 @@ public class SupplyResponse {
     private final Float partitionCoefficient;
     @Schema(description = "Whether the supply is enabled or disabled", example = "true")
     private final Boolean enabled;
-    @Schema(description = "Date on which the supply point was registered as valid", example = "true")
-    private final LocalDate datadisValidDateFrom;
-    @Schema(description = "Name of the distribution company", example = "Endesa")
-    private final String datadisDistributor;
-    @Schema(description = "Code of the distribution company", example = "2")
-    private final String datadisDistributorCode;
-    @Schema(description = "Type of measurement point", example = "3")
-    private final Integer datadisPointType;
-    @Schema(description = "Whether is an authorized third parth supply or not", example = "true")
-    private final Boolean datadisIsThirdParty;
-    @Schema(description = "MAC address of the Shelly", example = "24:4c:ab:41:99:f6")
-    private final String shellyMac;
-    @Schema(description = "Unique identifier of the Shelly", example = "shellyem-244CAB4199F6")
-    private final String shellyId;
-    @Schema(description = "MQTT prefix for the Shelly", example = "70u590f396zbae/johndoe")
-    private final String shellyMqttPrefix;
-
+    private final SupplyContract contract;
+    private final SupplyDistributor distributor;
+    private final SupplyDatadis datadis;
+    private final SupplyShelly shelly;
 
     public SupplyResponse(Supply supply) {
         this.id = supply.getId();
@@ -52,19 +42,16 @@ public class SupplyResponse {
         this.partitionCoefficient = supply.getPartitionCoefficient();
         this.enabled = supply.getEnabled();
         this.user = supply.getUser() != null ? new UserResponse(supply.getUser()) : null;
-        this.datadisIsThirdParty = supply.isThirdParty();
-        this.datadisValidDateFrom = supply.getValidDateFrom();
-        this.datadisDistributor = supply.getDistributor();
-        this.datadisDistributorCode = supply.getDistributorCode();
-        this.datadisPointType = supply.getPointType();
-        this.shellyMac = supply.getShellyMac();
-        this.shellyId = supply.getShellyId();
-        this.shellyMqttPrefix = supply.getShellyMqttPrefix();
+        this.contract = supply.getContract();
+        this.distributor = supply.getDistributor();
+        this.datadis = supply.getDatadis();
+        this.shelly = supply.getShelly();
     }
 
     public UUID getId() {
         return id;
     }
+
     public String getCode() {
         return code;
     }
@@ -93,35 +80,19 @@ public class SupplyResponse {
         return enabled;
     }
 
-    public LocalDate getDatadisValidDateFrom() {
-        return datadisValidDateFrom;
+    public SupplyContract getContract() {
+        return contract;
     }
 
-    public String getDatadisDistributor() {
-        return datadisDistributor;
+    public SupplyDistributor getDistributor() {
+        return distributor;
     }
 
-    public String getDatadisDistributorCode() {
-        return datadisDistributorCode;
+    public SupplyDatadis getDatadis() {
+        return datadis;
     }
 
-    public Integer getDatadisPointType() {
-        return datadisPointType;
-    }
-
-    public Boolean getDatadisIsThirdParty() {
-        return datadisIsThirdParty;
-    }
-
-    public String getShellyMac() {
-        return shellyMac;
-    }
-
-    public String getShellyId() {
-        return shellyId;
-    }
-
-    public String getShellyMqttPrefix() {
-        return shellyMqttPrefix;
+    public SupplyShelly getShelly() {
+        return shelly;
     }
 }

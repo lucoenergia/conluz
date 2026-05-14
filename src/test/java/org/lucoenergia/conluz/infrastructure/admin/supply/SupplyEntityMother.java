@@ -2,6 +2,10 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
 import java.time.LocalDate;
@@ -23,16 +27,22 @@ public class SupplyEntityMother {
                 .withEnabled(new Random().nextBoolean())
                 .withUser(user)
                 .withName(RandomStringUtils.random(10, true, false))
-
-                .withDistributor("EDISTRIBUCION")
-                .withDistributorCode("2")
-                .withPointType(5)
-                .withValidDateFrom(LocalDate.now())
-                .withThirdParty(new Random().nextBoolean())
-
-                .withShellyId(RandomStringUtils.random(20, true, true))
-                .withShellyMac(RandomStringUtils.random(10, true, true))
-                .withShellyMqttPrefix(RandomStringUtils.random(20, true, true))
+                .withDistributor(new SupplyDistributorEntity.Builder()
+                        .withDistributor("EDISTRIBUCION")
+                        .withDistributorCode("2")
+                        .withPointType(5)
+                        .build())
+                .withContract(new SupplyContractEntity.Builder()
+                        .withValidDateFrom(LocalDate.now())
+                        .build())
+                .withDatadis(new SupplyDatadisEntity.Builder()
+                        .withThirdParty(new Random().nextBoolean())
+                        .build())
+                .withShelly(new SupplyShellyEntity.Builder()
+                        .withShellyId(RandomStringUtils.random(20, true, true))
+                        .withShellyMac(RandomStringUtils.random(10, true, true))
+                        .withShellyMqttPrefix(RandomStringUtils.random(20, true, true))
+                        .build())
                 .build();
     }
 }

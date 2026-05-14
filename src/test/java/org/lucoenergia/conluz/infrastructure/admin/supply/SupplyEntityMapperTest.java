@@ -3,6 +3,10 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 
 class SupplyEntityMapperTest {
@@ -23,14 +27,19 @@ class SupplyEntityMapperTest {
         Assertions.assertEquals(entity.getEnabled(), result.getEnabled());
         Assertions.assertEquals(entity.getUser().getPersonalId(), result.getUser().getPersonalId());
 
-        Assertions.assertEquals(entity.getValidDateFrom(), result.getValidDateFrom());
-        Assertions.assertEquals(entity.getDistributor(), result.getDistributor());
-        Assertions.assertEquals(entity.getDistributorCode(), result.getDistributorCode());
-        Assertions.assertEquals(entity.getPointType(), result.getPointType());
-        Assertions.assertEquals(entity.getThirdParty(), result.isThirdParty());
+        SupplyContractEntity contract = entity.getContract();
+        SupplyDistributorEntity distributor = entity.getDistributor();
+        SupplyDatadisEntity datadis = entity.getDatadis();
+        SupplyShellyEntity shelly = entity.getShelly();
 
-        Assertions.assertEquals(entity.getShellyMac(), result.getShellyMac());
-        Assertions.assertEquals(entity.getShellyId(), result.getShellyId());
-        Assertions.assertEquals(entity.getShellyMqttPrefix(), result.getShellyMqttPrefix());
+        Assertions.assertEquals(contract.getValidDateFrom(), result.getContract().getValidDateFrom());
+        Assertions.assertEquals(distributor.getDistributor(), result.getDistributor().getName());
+        Assertions.assertEquals(distributor.getDistributorCode(), result.getDistributor().getCode());
+        Assertions.assertEquals(distributor.getPointType(), result.getDistributor().getPointType());
+        Assertions.assertEquals(datadis.getThirdParty(), result.getDatadis().isThirdParty());
+
+        Assertions.assertEquals(shelly.getShellyMac(), result.getShelly().getMac());
+        Assertions.assertEquals(shelly.getShellyId(), result.getShelly().getId());
+        Assertions.assertEquals(shelly.getShellyMqttPrefix(), result.getShelly().getMqttPrefix());
     }
 }

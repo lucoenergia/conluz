@@ -1,6 +1,10 @@
 package org.lucoenergia.conluz.domain.admin.supply;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
+import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
+import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
@@ -24,13 +28,22 @@ public class SupplyMother {
                 .withEnabled(new Random().nextBoolean())
                 .withUser(UserMother.randomUserEntity())
                 .withName(RandomStringUtils.random(10, true, false))
-                .withDistributor(RandomStringUtils.random(10, true, false))
-                .withDistributorCode(RandomStringUtils.random(1, false, true))
-                .withPointType(new Random().nextInt())
-                .withValidDateFrom(LocalDate.now())
-                .withShellyId(RandomStringUtils.random(10, true, true))
-                .withShellyMac(RandomStringUtils.random(10, true, true))
-                .withShellyMqttPrefix(RandomStringUtils.random(10, true, true));
+                .withShelly(new org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity.Builder()
+                        .withShellyId(RandomStringUtils.random(10, true, true))
+                        .withShellyMac(RandomStringUtils.random(10, true, true))
+                        .withShellyMqttPrefix(RandomStringUtils.random(10, true, true))
+                        .build())
+                .withDatadis(new org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity.Builder()
+                        .withThirdParty(new Random().nextBoolean())
+                        .build())
+                .withDistributor(new org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity.Builder()
+                        .withDistributor(RandomStringUtils.random(10, true, false))
+                        .withDistributorCode(RandomStringUtils.random(1, false, true))
+                        .withPointType(new Random().nextInt())
+                        .build())
+                .withContract(new org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity.Builder()
+                        .withValidDateFrom(LocalDate.now())
+                        .build());
     }
 
     public static Supply.Builder random(User user) {
@@ -42,12 +55,21 @@ public class SupplyMother {
                 .withEnabled(new Random().nextBoolean())
                 .withUser(user)
                 .withName(RandomStringUtils.random(10, true, false))
-                .withDistributor(RandomStringUtils.random(10, true, false))
-                .withDistributorCode(RandomStringUtils.random(1, false, true))
-                .withPointType(new Random().nextInt())
-                .withValidDateFrom(LocalDate.now())
-                .withShellyId(RandomStringUtils.random(10, true, true))
-                .withShellyMac(RandomStringUtils.random(10, true, true))
-                .withShellyMqttPrefix(RandomStringUtils.random(10, true, true));
+                .withShelly(new SupplyShelly.Builder()
+                        .withId(RandomStringUtils.random(10, true, true))
+                        .withMac(RandomStringUtils.random(10, true, true))
+                        .withMqttPrefix(RandomStringUtils.random(10, true, true))
+                        .build())
+                .withDatadis(new SupplyDatadis.Builder()
+                        .withThirdParty(new Random().nextBoolean())
+                        .build())
+                .withDistributor(new SupplyDistributor.Builder()
+                        .withName(RandomStringUtils.random(10, true, false))
+                        .withCode(RandomStringUtils.random(1, false, true))
+                        .withPointType(new Random().nextInt())
+                        .build())
+                .withContract(new SupplyContract.Builder()
+                        .withValidDateFrom(LocalDate.now())
+                        .build());
     }
 }

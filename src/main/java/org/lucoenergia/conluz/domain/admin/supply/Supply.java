@@ -3,10 +3,13 @@ package org.lucoenergia.conluz.domain.admin.supply;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
+import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
+import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 
-import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -29,15 +32,11 @@ public class Supply {
     private Float partitionCoefficient;
     @NotNull
     private Boolean enabled;
-    private LocalDate validDateFrom;
-    private String distributor;
-    private String distributorCode;
-    private Integer pointType;
-    private Boolean thirdParty;
-    // Shelly settings
-    private String shellyMac;
-    private String shellyId;
-    private String shellyMqttPrefix;
+
+    private SupplyContract contract;
+    private SupplyDistributor distributor;
+    private SupplyDatadis datadis;
+    private SupplyShelly shelly;
 
     private Supply(Builder builder) {
         this.id = builder.id;
@@ -48,14 +47,10 @@ public class Supply {
         this.addressRef = builder.addressRef;
         this.partitionCoefficient = builder.partitionCoefficient;
         this.enabled = builder.enabled;
-        this.validDateFrom = builder.validDateFrom;
+        this.contract = builder.contract;
         this.distributor = builder.distributor;
-        this.distributorCode = builder.distributorCode;
-        this.pointType = builder.pointType;
-        this.thirdParty = builder.thirdParty;
-        this.shellyId = builder.shellyId;
-        this.shellyMqttPrefix = builder.shellyMqttPrefix;
-        this.shellyMac = builder.shellyMac;
+        this.datadis = builder.datadis;
+        this.shelly = builder.shelly;
     }
 
     public void enable() {
@@ -75,14 +70,10 @@ public class Supply {
         private String addressRef;
         private Float partitionCoefficient;
         private Boolean enabled;
-        private LocalDate validDateFrom;
-        private String distributor;
-        private String distributorCode;
-        private Integer pointType;
-        private Boolean thirdParty;
-        private String shellyMac;
-        private String shellyId;
-        private String shellyMqttPrefix;
+        private SupplyContract contract;
+        private SupplyDistributor distributor;
+        private SupplyDatadis datadis;
+        private SupplyShelly shelly;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -124,43 +115,23 @@ public class Supply {
             return this;
         }
 
-        public Builder withValidDateFrom(LocalDate validDateFrom) {
-            this.validDateFrom = validDateFrom;
+        public Builder withContract(SupplyContract contract) {
+            this.contract = contract;
             return this;
         }
 
-        public Builder withDistributor(String distributor) {
+        public Builder withDistributor(SupplyDistributor distributor) {
             this.distributor = distributor;
             return this;
         }
 
-        public Builder withDistributorCode(String distributorCode) {
-            this.distributorCode = distributorCode;
+        public Builder withDatadis(SupplyDatadis datadis) {
+            this.datadis = datadis;
             return this;
         }
 
-        public Builder withPointType(Integer pointType) {
-            this.pointType = pointType;
-            return this;
-        }
-
-        public Builder withThirdParty(Boolean thirdParty) {
-            this.thirdParty = thirdParty;
-            return this;
-        }
-
-        public Builder withShellyId(String shellyId) {
-            this.shellyId = shellyId;
-            return this;
-        }
-
-        public Builder withShellyMac(String shellyMac) {
-            this.shellyMac = shellyMac;
-            return this;
-        }
-
-        public Builder withShellyMqttPrefix(String shellyMqttPrefix) {
-            this.shellyMqttPrefix = shellyMqttPrefix;
+        public Builder withShelly(SupplyShelly shelly) {
+            this.shelly = shelly;
             return this;
         }
 
@@ -205,24 +176,36 @@ public class Supply {
         return enabled;
     }
 
-    public LocalDate getValidDateFrom() {
-        return validDateFrom;
+    public SupplyContract getContract() {
+        return contract;
     }
 
-    public String getDistributor() {
+    public void setContract(SupplyContract contract) {
+        this.contract = contract;
+    }
+
+    public SupplyDistributor getDistributor() {
         return distributor;
     }
 
-    public String getDistributorCode() {
-        return distributorCode;
+    public void setDistributor(SupplyDistributor distributor) {
+        this.distributor = distributor;
     }
 
-    public Integer getPointType() {
-        return pointType;
+    public SupplyDatadis getDatadis() {
+        return datadis;
     }
 
-    public Boolean isThirdParty() {
-        return thirdParty;
+    public void setDatadis(SupplyDatadis datadis) {
+        this.datadis = datadis;
+    }
+
+    public SupplyShelly getShelly() {
+        return shelly;
+    }
+
+    public void setShelly(SupplyShelly shelly) {
+        this.shelly = shelly;
     }
 
     public void setAddress(String address) {
@@ -231,46 +214,6 @@ public class Supply {
 
     public void setAddressRef(String addressRef) {
         this.addressRef = addressRef;
-    }
-
-    public void setValidDateFrom(LocalDate validDateFrom) {
-        this.validDateFrom = validDateFrom;
-    }
-
-    public void setDistributor(String distributor) {
-        this.distributor = distributor;
-    }
-
-    public void setDistributorCode(String distributorCode) {
-        this.distributorCode = distributorCode;
-    }
-
-    public void setPointType(Integer pointType) {
-        this.pointType = pointType;
-    }
-
-    public String getShellyMac() {
-        return shellyMac;
-    }
-
-    public void setShellyMac(String shellyMac) {
-        this.shellyMac = shellyMac;
-    }
-
-    public String getShellyId() {
-        return shellyId;
-    }
-
-    public void setShellyId(String shellyId) {
-        this.shellyId = shellyId;
-    }
-
-    public String getShellyMqttPrefix() {
-        return shellyMqttPrefix;
-    }
-
-    public void setShellyMqttPrefix(String shellyMqttPrefix) {
-        this.shellyMqttPrefix = shellyMqttPrefix;
     }
 
     @Override
@@ -295,13 +238,9 @@ public class Supply {
                 .withAddressRef(this.addressRef)
                 .withPartitionCoefficient(this.partitionCoefficient)
                 .withEnabled(this.enabled)
-                .withValidDateFrom(this.validDateFrom)
+                .withContract(this.contract)
                 .withDistributor(this.distributor)
-                .withDistributorCode(this.distributorCode)
-                .withPointType(this.pointType)
-                .withThirdParty(this.thirdParty)
-                .withShellyId(this.shellyId)
-                .withShellyMac(this.shellyMac)
-                .withShellyMqttPrefix(this.shellyMqttPrefix);
+                .withDatadis(this.datadis)
+                .withShelly(this.shelly);
     }
 }
