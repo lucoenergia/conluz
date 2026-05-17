@@ -28,8 +28,8 @@ public class SupplyEntityMother {
                 .withUser(user)
                 .withName(RandomStringUtils.random(10, true, false))
                 .withDistributor(new SupplyDistributorEntity.Builder()
-                        .withDistributor("EDISTRIBUCION")
-                        .withDistributorCode("2")
+                        .withName("EDISTRIBUCION")
+                        .withCode("2")
                         .withPointType(5)
                         .build())
                 .withContract(new SupplyContractEntity.Builder()
@@ -39,9 +39,9 @@ public class SupplyEntityMother {
                         .withThirdParty(new Random().nextBoolean())
                         .build())
                 .withShelly(new SupplyShellyEntity.Builder()
-                        .withShellyId(RandomStringUtils.random(20, true, true))
-                        .withShellyMac(RandomStringUtils.random(10, true, true))
-                        .withShellyMqttPrefix(RandomStringUtils.random(20, true, true))
+                        .withId(RandomStringUtils.random(20, true, true))
+                        .withMacAddress(RandomStringUtils.random(10, true, true))
+                        .withMqttPrefix(RandomStringUtils.random(20, true, true))
                         .build())
                 .build();
     }

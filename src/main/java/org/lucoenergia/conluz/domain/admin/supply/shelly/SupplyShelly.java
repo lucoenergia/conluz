@@ -2,26 +2,23 @@ package org.lucoenergia.conluz.domain.admin.supply.shelly;
 
 public class SupplyShelly {
 
-    private String mac;
-    private String id;
-    private String mqttPrefix;
-
-    public SupplyShelly() {
-    }
+    private final String macAddress;
+    private final String id;
+    private final String mqttPrefix;
 
     private SupplyShelly(Builder builder) {
-        this.mac = builder.mac;
+        this.macAddress = builder.macAddress;
         this.id = builder.id;
         this.mqttPrefix = builder.mqttPrefix;
     }
 
     public static class Builder {
-        private String mac;
+        private String macAddress;
         private String id;
         private String mqttPrefix;
 
-        public Builder withMac(String mac) {
-            this.mac = mac;
+        public Builder withMacAddress(String macAddress) {
+            this.macAddress = macAddress;
             return this;
         }
 
@@ -40,27 +37,15 @@ public class SupplyShelly {
         }
     }
 
-    public String getMac() {
-        return mac;
-    }
-
-    public void setMac(String mac) {
-        this.mac = mac;
+    public String getMacAddress() {
+        return macAddress;
     }
 
     public String getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public String getMqttPrefix() {
         return mqttPrefix;
-    }
-
-    public void setMqttPrefix(String mqttPrefix) {
-        this.mqttPrefix = mqttPrefix;
     }
 }

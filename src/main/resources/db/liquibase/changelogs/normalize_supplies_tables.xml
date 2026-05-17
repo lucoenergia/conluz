@@ -13,13 +13,13 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
                              foreignKeyName="supplies_shelly_supply_id_fk"
                              referencedTableName="supplies" referencedColumnNames="id" deleteCascade="true"/>
             </column>
-            <column name="shelly_mac" type="VARCHAR(250)">
+            <column name="mac_address" type="VARCHAR(250)">
                 <constraints nullable="true"/>
             </column>
-            <column name="shelly_id" type="VARCHAR(250)">
+            <column name="id" type="VARCHAR(250)">
                 <constraints nullable="true"/>
             </column>
-            <column name="shelly_mqtt_prefix" type="VARCHAR(250)">
+            <column name="mqtt_prefix" type="VARCHAR(250)">
                 <constraints nullable="true"/>
             </column>
         </createTable>
@@ -41,10 +41,10 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
                              foreignKeyName="supplies_distributor_supply_id_fk"
                              referencedTableName="supplies" referencedColumnNames="id" deleteCascade="true"/>
             </column>
-            <column name="distributor" type="VARCHAR(250)">
+            <column name="name" type="VARCHAR(250)">
                 <constraints nullable="true"/>
             </column>
-            <column name="distributor_code" type="VARCHAR(250)">
+            <column name="code" type="VARCHAR(250)">
                 <constraints nullable="true"/>
             </column>
             <column name="point_type" type="INT">
@@ -64,7 +64,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
         </createTable>
 
         <sql>
-            INSERT INTO supplies_shelly (supply_id, shelly_mac, shelly_id, shelly_mqtt_prefix)
+            INSERT INTO supplies_shelly (supply_id, mac_address, id, mqtt_prefix)
             SELECT id, shelly_mac, shelly_id, shelly_mqtt_prefix FROM supplies;
         </sql>
 
@@ -74,7 +74,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
         </sql>
 
         <sql>
-            INSERT INTO supplies_distributor (supply_id, distributor, distributor_code, point_type)
+            INSERT INTO supplies_distributor (supply_id, name, code, point_type)
             SELECT id, distributor, distributor_code, point_type FROM supplies;
         </sql>
 

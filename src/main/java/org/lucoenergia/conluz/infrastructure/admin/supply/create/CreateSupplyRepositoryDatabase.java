@@ -56,9 +56,9 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
         SupplyShellyEntity shellyEntity = null;
         if (supply.getShelly() != null) {
             shellyEntity = new SupplyShellyEntity.Builder()
-                    .withShellyMac(supply.getShelly().getMac())
-                    .withShellyId(supply.getShelly().getId())
-                    .withShellyMqttPrefix(supply.getShelly().getMqttPrefix())
+                    .withMacAddress(supply.getShelly().getMacAddress())
+                    .withId(supply.getShelly().getId())
+                    .withMqttPrefix(supply.getShelly().getMqttPrefix())
                     .build();
         }
 
@@ -72,8 +72,8 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
         SupplyDistributorEntity distributorEntity = null;
         if (supply.getDistributor() != null) {
             distributorEntity = new SupplyDistributorEntity.Builder()
-                    .withDistributor(supply.getDistributor().getName())
-                    .withDistributorCode(supply.getDistributor().getCode())
+                    .withName(supply.getDistributor().getName())
+                    .withCode(supply.getDistributor().getCode())
                     .withPointType(supply.getDistributor().getPointType())
                     .build();
         }

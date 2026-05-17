@@ -16,9 +16,9 @@ public class SupplyShellyEntity {
     @JoinColumn(name = "supply_id")
     private SupplyEntity supply;
 
-    private String shellyMac;
-    private String shellyId;
-    private String shellyMqttPrefix;
+    private String macAddress;
+    private String id;
+    private String mqttPrefix;
 
     public SupplyShellyEntity() {
     }
@@ -26,9 +26,9 @@ public class SupplyShellyEntity {
     public static class Builder {
         private UUID supplyId;
         private SupplyEntity supply;
-        private String shellyMac;
-        private String shellyId;
-        private String shellyMqttPrefix;
+        private String macAddress;
+        private String id;
+        private String mqttPrefix;
 
         public Builder withSupplyId(UUID supplyId) {
             this.supplyId = supplyId;
@@ -40,18 +40,18 @@ public class SupplyShellyEntity {
             return this;
         }
 
-        public Builder withShellyMac(String shellyMac) {
-            this.shellyMac = shellyMac;
+        public Builder withMacAddress(String macAddress) {
+            this.macAddress = macAddress;
             return this;
         }
 
-        public Builder withShellyId(String shellyId) {
-            this.shellyId = shellyId;
+        public Builder withId(String shellyId) {
+            this.id = shellyId;
             return this;
         }
 
-        public Builder withShellyMqttPrefix(String shellyMqttPrefix) {
-            this.shellyMqttPrefix = shellyMqttPrefix;
+        public Builder withMqttPrefix(String mqttPrefix) {
+            this.mqttPrefix = mqttPrefix;
             return this;
         }
 
@@ -59,9 +59,9 @@ public class SupplyShellyEntity {
             SupplyShellyEntity entity = new SupplyShellyEntity();
             entity.supplyId = this.supplyId;
             entity.supply = this.supply;
-            entity.shellyMac = this.shellyMac;
-            entity.shellyId = this.shellyId;
-            entity.shellyMqttPrefix = this.shellyMqttPrefix;
+            entity.macAddress = this.macAddress;
+            entity.id = this.id;
+            entity.mqttPrefix = this.mqttPrefix;
             return entity;
         }
     }
@@ -82,27 +82,27 @@ public class SupplyShellyEntity {
         this.supply = supply;
     }
 
-    public String getShellyMac() {
-        return shellyMac;
+    public String getMacAddress() {
+        return macAddress;
     }
 
-    public void setShellyMac(String shellyMac) {
-        this.shellyMac = shellyMac;
+    public void setMacAddress(String shellyMac) {
+        this.macAddress = shellyMac;
     }
 
-    public String getShellyId() {
-        return shellyId;
+    public String getId() {
+        return id;
     }
 
-    public void setShellyId(String shellyId) {
-        this.shellyId = shellyId;
+    public void setId(String shellyId) {
+        this.id = shellyId;
     }
 
-    public String getShellyMqttPrefix() {
-        return shellyMqttPrefix;
+    public String getMqttPrefix() {
+        return mqttPrefix;
     }
 
-    public void setShellyMqttPrefix(String shellyMqttPrefix) {
-        this.shellyMqttPrefix = shellyMqttPrefix;
+    public void setMqttPrefix(String shellyMqttPrefix) {
+        this.mqttPrefix = shellyMqttPrefix;
     }
 }

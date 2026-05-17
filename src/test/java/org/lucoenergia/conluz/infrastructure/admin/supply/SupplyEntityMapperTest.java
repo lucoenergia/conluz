@@ -33,13 +33,13 @@ class SupplyEntityMapperTest {
         SupplyShellyEntity shelly = entity.getShelly();
 
         Assertions.assertEquals(contract.getValidDateFrom(), result.getContract().getValidDateFrom());
-        Assertions.assertEquals(distributor.getDistributor(), result.getDistributor().getName());
-        Assertions.assertEquals(distributor.getDistributorCode(), result.getDistributor().getCode());
+        Assertions.assertEquals(distributor.getName(), result.getDistributor().getName());
+        Assertions.assertEquals(distributor.getCode(), result.getDistributor().getCode());
         Assertions.assertEquals(distributor.getPointType(), result.getDistributor().getPointType());
         Assertions.assertEquals(datadis.getThirdParty(), result.getDatadis().isThirdParty());
 
-        Assertions.assertEquals(shelly.getShellyMac(), result.getShelly().getMac());
-        Assertions.assertEquals(shelly.getShellyId(), result.getShelly().getId());
-        Assertions.assertEquals(shelly.getShellyMqttPrefix(), result.getShelly().getMqttPrefix());
+        Assertions.assertEquals(shelly.getMacAddress(), result.getShelly().getMacAddress());
+        Assertions.assertEquals(shelly.getId(), result.getShelly().getId());
+        Assertions.assertEquals(shelly.getMqttPrefix(), result.getShelly().getMqttPrefix());
     }
 }

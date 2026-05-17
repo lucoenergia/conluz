@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.consumption.shelly.get;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -37,7 +36,7 @@ class GetShellyConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
                 .withShelly(new SupplyShelly.Builder()
                         .withMqttPrefix("s87sd56df9d9/ccc")
                         .withId(RandomStringUtils.random(10, true, true))
-                        .withMac(RandomStringUtils.random(10, true, true))
+                        .withMacAddress(RandomStringUtils.random(10, true, true))
                         .build())
                 .build();
 

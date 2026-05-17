@@ -49,9 +49,9 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
             return null;
         }
         return new SupplyShelly.Builder()
-                .withMac(entity.getShellyMac())
-                .withId(entity.getShellyId())
-                .withMqttPrefix(entity.getShellyMqttPrefix())
+                .withMacAddress(entity.getMacAddress())
+                .withId(entity.getId())
+                .withMqttPrefix(entity.getMqttPrefix())
                 .build();
     }
 
@@ -69,8 +69,8 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
             return null;
         }
         return new SupplyDistributor.Builder()
-                .withName(entity.getDistributor())
-                .withCode(entity.getDistributorCode())
+                .withName(entity.getName())
+                .withCode(entity.getCode())
                 .withPointType(entity.getPointType())
                 .build();
     }

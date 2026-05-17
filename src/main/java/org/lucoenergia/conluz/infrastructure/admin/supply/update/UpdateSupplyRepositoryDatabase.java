@@ -7,6 +7,9 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,23 +45,23 @@ public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
 
         if (supply.getContract() != null) {
             if (currentSupply.getContract() == null) {
-                currentSupply.setContract(new org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity());
+                currentSupply.setContract(new SupplyContractEntity());
             }
             currentSupply.getContract().setValidDateFrom(supply.getContract().getValidDateFrom());
         }
 
         if (supply.getDistributor() != null) {
             if (currentSupply.getDistributor() == null) {
-                currentSupply.setDistributor(new org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity());
+                currentSupply.setDistributor(new SupplyDistributorEntity());
             }
-            currentSupply.getDistributor().setDistributor(supply.getDistributor().getName());
-            currentSupply.getDistributor().setDistributorCode(supply.getDistributor().getCode());
+            currentSupply.getDistributor().setName(supply.getDistributor().getName());
+            currentSupply.getDistributor().setCode(supply.getDistributor().getCode());
             currentSupply.getDistributor().setPointType(supply.getDistributor().getPointType());
         }
 
         if (supply.getDatadis() != null) {
             if (currentSupply.getDatadis() == null) {
-                currentSupply.setDatadis(new org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity());
+                currentSupply.setDatadis(new SupplyDatadisEntity());
             }
             currentSupply.getDatadis().setThirdParty(supply.getDatadis().isThirdParty());
         }
@@ -67,9 +70,9 @@ public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
             if (currentSupply.getShelly() == null) {
                 currentSupply.setShelly(new SupplyShellyEntity());
             }
-            currentSupply.getShelly().setShellyMac(supply.getShelly().getMac());
-            currentSupply.getShelly().setShellyId(supply.getShelly().getId());
-            currentSupply.getShelly().setShellyMqttPrefix(supply.getShelly().getMqttPrefix());
+            currentSupply.getShelly().setMacAddress(supply.getShelly().getMacAddress());
+            currentSupply.getShelly().setId(supply.getShelly().getId());
+            currentSupply.getShelly().setMqttPrefix(supply.getShelly().getMqttPrefix());
         }
 
         return mapper.map(repository.save(currentSupply));

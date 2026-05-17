@@ -2,10 +2,7 @@ package org.lucoenergia.conluz.domain.admin.supply.datadis;
 
 public class SupplyDatadis {
 
-    private Boolean thirdParty;
-
-    public SupplyDatadis() {
-    }
+    private final Boolean thirdParty;
 
     private SupplyDatadis(Builder builder) {
         this.thirdParty = builder.thirdParty;
@@ -26,13 +23,5 @@ public class SupplyDatadis {
 
     public Boolean isThirdParty() {
         return thirdParty;
-    }
-
-    public Boolean getThirdParty() {
-        return thirdParty;
-    }
-
-    public void setThirdParty(Boolean thirdParty) {
-        this.thirdParty = thirdParty;
     }
 }

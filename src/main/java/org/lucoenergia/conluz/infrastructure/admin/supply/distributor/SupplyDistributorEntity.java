@@ -16,8 +16,8 @@ public class SupplyDistributorEntity {
     @JoinColumn(name = "supply_id")
     private SupplyEntity supply;
 
-    private String distributor;
-    private String distributorCode;
+    private String name;
+    private String code;
     private Integer pointType;
 
     public SupplyDistributorEntity() {
@@ -26,8 +26,8 @@ public class SupplyDistributorEntity {
     public static class Builder {
         private UUID supplyId;
         private SupplyEntity supply;
-        private String distributor;
-        private String distributorCode;
+        private String name;
+        private String code;
         private Integer pointType;
 
         public Builder withSupplyId(UUID supplyId) {
@@ -40,13 +40,13 @@ public class SupplyDistributorEntity {
             return this;
         }
 
-        public Builder withDistributor(String distributor) {
-            this.distributor = distributor;
+        public Builder withName(String name) {
+            this.name = name;
             return this;
         }
 
-        public Builder withDistributorCode(String distributorCode) {
-            this.distributorCode = distributorCode;
+        public Builder withCode(String code) {
+            this.code = code;
             return this;
         }
 
@@ -59,8 +59,8 @@ public class SupplyDistributorEntity {
             SupplyDistributorEntity entity = new SupplyDistributorEntity();
             entity.supplyId = this.supplyId;
             entity.supply = this.supply;
-            entity.distributor = this.distributor;
-            entity.distributorCode = this.distributorCode;
+            entity.name = this.name;
+            entity.code = this.code;
             entity.pointType = this.pointType;
             return entity;
         }
@@ -82,20 +82,20 @@ public class SupplyDistributorEntity {
         this.supply = supply;
     }
 
-    public String getDistributor() {
-        return distributor;
+    public String getName() {
+        return name;
     }
 
-    public void setDistributor(String distributor) {
-        this.distributor = distributor;
+    public void setName(String distributor) {
+        this.name = distributor;
     }
 
-    public String getDistributorCode() {
-        return distributorCode;
+    public String getCode() {
+        return code;
     }
 
-    public void setDistributorCode(String distributorCode) {
-        this.distributorCode = distributorCode;
+    public void setCode(String distributorCode) {
+        this.code = distributorCode;
     }
 
     public Integer getPointType() {

@@ -4,10 +4,7 @@ import java.time.LocalDate;
 
 public class SupplyContract {
 
-    private LocalDate validDateFrom;
-
-    public SupplyContract() {
-    }
+    private final LocalDate validDateFrom;
 
     private SupplyContract(Builder builder) {
         this.validDateFrom = builder.validDateFrom;
@@ -28,9 +25,5 @@ public class SupplyContract {
 
     public LocalDate getValidDateFrom() {
         return validDateFrom;
-    }
-
-    public void setValidDateFrom(LocalDate validDateFrom) {
-        this.validDateFrom = validDateFrom;
     }
 }

@@ -19,17 +19,17 @@ public class Supply {
     @ValidUUID
     private UUID id;
     @NotBlank
-    private String code;
+    private final String code;
     @NotNull
     private User user;
     @NotBlank
-    private String name;
+    private final String name;
     @NotBlank
     private String address;
     private String addressRef;
     @NotNull
     @PositiveOrZero
-    private Float partitionCoefficient;
+    private final Float partitionCoefficient;
     @NotNull
     private Boolean enabled;
 
