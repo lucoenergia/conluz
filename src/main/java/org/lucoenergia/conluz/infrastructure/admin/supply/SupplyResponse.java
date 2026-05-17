@@ -2,9 +2,12 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractResponse;
+import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisResponse;
+import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorResponse;
+import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyResponse;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 public class SupplyResponse {
@@ -25,23 +28,14 @@ public class SupplyResponse {
     private final Float partitionCoefficient;
     @Schema(description = "Whether the supply is enabled or disabled", example = "true")
     private final Boolean enabled;
-    @Schema(description = "Date on which the supply point was registered as valid", example = "true")
-    private final LocalDate datadisValidDateFrom;
-    @Schema(description = "Name of the distribution company", example = "Endesa")
-    private final String datadisDistributor;
-    @Schema(description = "Code of the distribution company", example = "2")
-    private final String datadisDistributorCode;
-    @Schema(description = "Type of measurement point", example = "3")
-    private final Integer datadisPointType;
-    @Schema(description = "Whether is an authorized third parth supply or not", example = "true")
-    private final Boolean datadisIsThirdParty;
-    @Schema(description = "MAC address of the Shelly", example = "24:4c:ab:41:99:f6")
-    private final String shellyMac;
-    @Schema(description = "Unique identifier of the Shelly", example = "shellyem-244CAB4199F6")
-    private final String shellyId;
-    @Schema(description = "MQTT prefix for the Shelly", example = "70u590f396zbae/johndoe")
-    private final String shellyMqttPrefix;
-
+    @Schema(description = "Contract information of the supply")
+    private final SupplyContractResponse contract;
+    @Schema(description = "Distributor information of the supply")
+    private final SupplyDistributorResponse distributor;
+    @Schema(description = "Datadis integration information of the supply")
+    private final SupplyDatadisResponse datadis;
+    @Schema(description = "Shelly device information of the supply")
+    private final SupplyShellyResponse shelly;
 
     public SupplyResponse(Supply supply) {
         this.id = supply.getId();
@@ -52,19 +46,16 @@ public class SupplyResponse {
         this.partitionCoefficient = supply.getPartitionCoefficient();
         this.enabled = supply.getEnabled();
         this.user = supply.getUser() != null ? new UserResponse(supply.getUser()) : null;
-        this.datadisIsThirdParty = supply.isThirdParty();
-        this.datadisValidDateFrom = supply.getValidDateFrom();
-        this.datadisDistributor = supply.getDistributor();
-        this.datadisDistributorCode = supply.getDistributorCode();
-        this.datadisPointType = supply.getPointType();
-        this.shellyMac = supply.getShellyMac();
-        this.shellyId = supply.getShellyId();
-        this.shellyMqttPrefix = supply.getShellyMqttPrefix();
+        this.contract = supply.getContract() != null ? new SupplyContractResponse(supply.getContract()) : null;
+        this.distributor = supply.getDistributor() != null ? new SupplyDistributorResponse(supply.getDistributor()) : null;
+        this.datadis = supply.getDatadis() != null ? new SupplyDatadisResponse(supply.getDatadis()) : null;
+        this.shelly = supply.getShelly() != null ? new SupplyShellyResponse(supply.getShelly()) : null;
     }
 
     public UUID getId() {
         return id;
     }
+
     public String getCode() {
         return code;
     }
@@ -93,35 +84,19 @@ public class SupplyResponse {
         return enabled;
     }
 
-    public LocalDate getDatadisValidDateFrom() {
-        return datadisValidDateFrom;
+    public SupplyContractResponse getContract() {
+        return contract;
     }
 
-    public String getDatadisDistributor() {
-        return datadisDistributor;
+    public SupplyDistributorResponse getDistributor() {
+        return distributor;
     }
 
-    public String getDatadisDistributorCode() {
-        return datadisDistributorCode;
+    public SupplyDatadisResponse getDatadis() {
+        return datadis;
     }
 
-    public Integer getDatadisPointType() {
-        return datadisPointType;
-    }
-
-    public Boolean getDatadisIsThirdParty() {
-        return datadisIsThirdParty;
-    }
-
-    public String getShellyMac() {
-        return shellyMac;
-    }
-
-    public String getShellyId() {
-        return shellyId;
-    }
-
-    public String getShellyMqttPrefix() {
-        return shellyMqttPrefix;
+    public SupplyShellyResponse getShelly() {
+        return shelly;
     }
 }

@@ -49,7 +49,7 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
         String endDateAsString = dateConverter.convertToString(endDate);
 
         LOGGER.info("Getting hourly consumptions from {} to {} for the supply {}", startDateAsString, endDateAsString,
-                supply.getShellyId());
+                supply.getShelly().getId());
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
@@ -58,7 +58,7 @@ public class GetShellyConsumptionRepositoryInflux implements GetShellyConsumptio
                     ShellyInstantConsumptionPoint.PREFIX,
                     ShellyInstantConsumptionPoint.CONSUMPTION_KW,
                     ShellyInstantConsumptionPoint.MEASUREMENT,
-                    supply.getShellyMqttPrefix(),
+                    supply.getShelly().getMqttPrefix(),
                     startDateAsString,
                     endDateAsString));
 

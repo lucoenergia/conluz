@@ -7,6 +7,10 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,15 +43,37 @@ public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
         currentSupply.setAddressRef(supply.getAddressRef());
         currentSupply.setPartitionCoefficient(supply.getPartitionCoefficient());
 
-        currentSupply.setValidDateFrom(supply.getValidDateFrom());
-        currentSupply.setDistributor(supply.getDistributor());
-        currentSupply.setDistributorCode(supply.getDistributorCode());
-        currentSupply.setPointType(supply.getPointType());
-        currentSupply.setThirdParty(supply.isThirdParty());
+        if (supply.getContract() != null) {
+            if (currentSupply.getContract() == null) {
+                currentSupply.setContract(new SupplyContractEntity());
+            }
+            currentSupply.getContract().setValidDateFrom(supply.getContract().getValidDateFrom());
+        }
 
-        currentSupply.setShellyMac(supply.getShellyMac());
-        currentSupply.setShellyId(supply.getShellyId());
-        currentSupply.setShellyMqttPrefix(supply.getShellyMqttPrefix());
+        if (supply.getDistributor() != null) {
+            if (currentSupply.getDistributor() == null) {
+                currentSupply.setDistributor(new SupplyDistributorEntity());
+            }
+            currentSupply.getDistributor().setName(supply.getDistributor().getName());
+            currentSupply.getDistributor().setCode(supply.getDistributor().getCode());
+            currentSupply.getDistributor().setPointType(supply.getDistributor().getPointType());
+        }
+
+        if (supply.getDatadis() != null) {
+            if (currentSupply.getDatadis() == null) {
+                currentSupply.setDatadis(new SupplyDatadisEntity());
+            }
+            currentSupply.getDatadis().setThirdParty(supply.getDatadis().isThirdParty());
+        }
+
+        if (supply.getShelly() != null) {
+            if (currentSupply.getShelly() == null) {
+                currentSupply.setShelly(new SupplyShellyEntity());
+            }
+            currentSupply.getShelly().setMacAddress(supply.getShelly().getMacAddress());
+            currentSupply.getShelly().setId(supply.getShelly().getId());
+            currentSupply.getShelly().setMqttPrefix(supply.getShelly().getMqttPrefix());
+        }
 
         return mapper.map(repository.save(currentSupply));
     }

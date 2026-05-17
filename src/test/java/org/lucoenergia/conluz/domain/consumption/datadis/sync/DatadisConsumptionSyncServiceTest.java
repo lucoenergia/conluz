@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -60,7 +61,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("DIST123")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -91,7 +92,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("DIST456")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST456").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -124,7 +125,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("DIST789")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST789").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -151,7 +152,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("DISTXY")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DISTXY").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -186,7 +187,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("DIST002")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -229,7 +230,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("DIST003")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST003").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -261,17 +262,17 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply1 = SupplyMother.random()
-                .withDistributorCode("SUPPLY1")
+                .withDistributor(new SupplyDistributor.Builder().withCode("SUPPLY1").build())
                 .build();
         supply1 = createSupplyRepository.create(supply1, UserId.of(user.getId()));
 
         Supply supply2 = SupplyMother.random()
-                .withDistributorCode("SUPPLY2")
+                .withDistributor(new SupplyDistributor.Builder().withCode("SUPPLY2").build())
                 .build();
         supply2 = createSupplyRepository.create(supply2, UserId.of(user.getId()));
 
         Supply supply3 = SupplyMother.random()
-                .withDistributorCode("SUPPLY3")
+                .withDistributor(new SupplyDistributor.Builder().withCode("SUPPLY3").build())
                 .build();
         supply3 = createSupplyRepository.create(supply3, UserId.of(user.getId()));
 
@@ -331,17 +332,17 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply1 = SupplyMother.random()
-                .withDistributorCode(null)
+                .withDistributor(new SupplyDistributor.Builder().withCode(null).build())
                 .build();
         createSupplyRepository.create(supply1, UserId.of(user.getId()));
 
         Supply supply2 = SupplyMother.random()
-                .withDistributorCode(null)
+                .withDistributor(new SupplyDistributor.Builder().withCode(null).build())
                 .build();
         createSupplyRepository.create(supply2, UserId.of(user.getId()));
 
         Supply supply3 = SupplyMother.random()
-                .withDistributorCode(null)
+                .withDistributor(new SupplyDistributor.Builder().withCode(null).build())
                 .build();
         createSupplyRepository.create(supply3, UserId.of(user.getId()));
 
@@ -365,12 +366,12 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply1 = SupplyMother.random()
-                .withDistributorCode("")
+                .withDistributor(new SupplyDistributor.Builder().withCode("").build())
                 .build();
         supply1 = createSupplyRepository.create(supply1, UserId.of(user.getId()));
 
         Supply supply2 = SupplyMother.random()
-                .withDistributorCode("DIST123")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build())
                 .build();
         supply2 = createSupplyRepository.create(supply2, UserId.of(user.getId()));
 
@@ -398,7 +399,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("SINGLE")
+                .withDistributor(new SupplyDistributor.Builder().withCode("SINGLE").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -424,7 +425,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("SINGLE")
+                .withDistributor(new SupplyDistributor.Builder().withCode("SINGLE").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -453,13 +454,13 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
 
         Supply supply1 = SupplyMother.random()
                 .withCode("SUPPLY001")
-                .withDistributorCode("DIST001")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build())
                 .build();
         supply1 = createSupplyRepository.create(supply1, UserId.of(user.getId()));
 
         Supply supply2 = SupplyMother.random()
                 .withCode("SUPPLY002")
-                .withDistributorCode("DIST002")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build())
                 .build();
         supply2 = createSupplyRepository.create(supply2, UserId.of(user.getId()));
 
@@ -506,7 +507,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
 
         Supply supply = SupplyMother.random()
                 .withCode("SUPPLY003")
-                .withDistributorCode(null)
+                .withDistributor(new SupplyDistributor.Builder().withCode(null).build())
                 .build();
         createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -530,7 +531,7 @@ class DatadisConsumptionSyncServiceTest extends BaseIntegrationTest {
 
         Supply supply = SupplyMother.random()
                 .withCode("SUPPLY004")
-                .withDistributorCode("DIST004")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST004").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 

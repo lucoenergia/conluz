@@ -1,9 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.consumption.shelly.get;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.*;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.domain.consumption.shelly.ShellyInstantConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionsInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyMqttPowerMessagesInfluxLoader;
@@ -31,7 +32,13 @@ class GetShellyConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
     void testGetHourlyConsumptionsByMonth() {
         // Assemble
         shellyInstantConsumptionsInfluxLoader.loadData();
-        Supply supply = SupplyMother.random().withShellyMqttPrefix("s87sd56df9d9/ccc").build();
+        Supply supply = SupplyMother.random()
+                .withShelly(new SupplyShelly.Builder()
+                        .withMqttPrefix("s87sd56df9d9/ccc")
+                        .withId(RandomStringUtils.random(10, true, true))
+                        .withMacAddress(RandomStringUtils.random(10, true, true))
+                        .build())
+                .build();
 
         // Act
         List<ShellyInstantConsumption> result = getShellyConsumptionRepositoryInflux.getHourlyConsumptionsByRangeOfDatesAndSupply(supply,

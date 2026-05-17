@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
@@ -48,9 +50,13 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Supply supply = new Supply.Builder()
                 .withCode("cups")
                 .withUser(user)
-                .withDistributorCode("distributorCode")
-                .withPointType(5)
-                .withThirdParty(true)
+                .withDistributor(new SupplyDistributor.Builder()
+                        .withCode("distributorCode")
+                        .withPointType(5)
+                        .build())
+                .withDatadis(new SupplyDatadis.Builder()
+                        .withThirdParty(true)
+                        .build())
                 .build();
         final Month month = Month.APRIL;
         final int year = 2023;
@@ -84,9 +90,13 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Supply supply = new Supply.Builder()
                 .withCode("ES0031300329693002BQ0F")
                 .withUser(user)
-                .withDistributorCode("distributorCode")
-                .withPointType(5)
-                .withThirdParty(false)
+                .withDistributor(new SupplyDistributor.Builder()
+                        .withCode("distributorCode")
+                        .withPointType(5)
+                        .build())
+                .withDatadis(new SupplyDatadis.Builder()
+                        .withThirdParty(false)
+                        .build())
                 .build();
         final Month month = Month.APRIL;
         final int year = 2023;
@@ -171,9 +181,13 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Supply supply = new Supply.Builder()
                 .withCode("ES0031300329693002BQ0F")
                 .withUser(user)
-                .withDistributorCode("distributorCode")
-                .withPointType(5)
-                .withThirdParty(false)
+                .withDistributor(new SupplyDistributor.Builder()
+                        .withCode("distributorCode")
+                        .withPointType(5)
+                        .build())
+                .withDatadis(new SupplyDatadis.Builder()
+                        .withThirdParty(false)
+                        .build())
                 .build();
         final Month month = Month.APRIL;
         final int year = 2023;

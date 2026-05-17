@@ -10,6 +10,10 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
@@ -47,25 +51,52 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
         }
 
         UserEntity userEntity = result.get();
+        UUID supplyId = UUID.randomUUID();
+
+        SupplyShellyEntity shellyEntity = null;
+        if (supply.getShelly() != null) {
+            shellyEntity = new SupplyShellyEntity.Builder()
+                    .withMacAddress(supply.getShelly().getMacAddress())
+                    .withId(supply.getShelly().getId())
+                    .withMqttPrefix(supply.getShelly().getMqttPrefix())
+                    .build();
+        }
+
+        SupplyDatadisEntity datadisEntity = null;
+        if (supply.getDatadis() != null) {
+            datadisEntity = new SupplyDatadisEntity.Builder()
+                    .withThirdParty(supply.getDatadis().isThirdParty())
+                    .build();
+        }
+
+        SupplyDistributorEntity distributorEntity = null;
+        if (supply.getDistributor() != null) {
+            distributorEntity = new SupplyDistributorEntity.Builder()
+                    .withName(supply.getDistributor().getName())
+                    .withCode(supply.getDistributor().getCode())
+                    .withPointType(supply.getDistributor().getPointType())
+                    .build();
+        }
+
+        SupplyContractEntity contractEntity = null;
+        if (supply.getContract() != null) {
+            contractEntity = new SupplyContractEntity.Builder()
+                    .withValidDateFrom(supply.getContract().getValidDateFrom())
+                    .build();
+        }
+
         SupplyEntity supplyEntity = new SupplyEntity.Builder()
-                .withId(UUID.randomUUID())
+                .withId(supplyId)
                 .withCode(supply.getCode())
                 .withName(supply.getName())
                 .withAddress(supply.getAddress())
                 .withAddressRef(supply.getAddressRef())
                 .withPartitionCoefficient(supply.getPartitionCoefficient())
                 .withEnabled(supply.getEnabled())
-
-                .withValidDateFrom(supply.getValidDateFrom())
-                .withDistributor(supply.getDistributor())
-                .withDistributorCode(supply.getDistributorCode())
-                .withPointType(supply.getPointType())
-                .withThirdParty(supply.isThirdParty())
-
-                .withShellyMac(supply.getShellyMac())
-                .withShellyId(supply.getShellyId())
-                .withShellyMqttPrefix(supply.getShellyMqttPrefix())
-
+                .withShelly(shellyEntity)
+                .withDatadis(datadisEntity)
+                .withDistributor(distributorEntity)
+                .withContract(contractEntity)
                 .build();
 
         userEntity.addSupply(supplyEntity);

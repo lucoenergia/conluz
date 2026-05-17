@@ -2,6 +2,8 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.sync;
 
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
@@ -57,12 +59,20 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
                 Supply supply = allSupplies.get(datadisSupply.getCups());
                 if (supply != null) {
                     supply.setAddress(datadisSupply.getAddress());
-                    supply.setDistributorCode(datadisSupply.getDistributorCode());
-                    supply.setDistributor(datadisSupply.getDistributor());
-                    supply.setPointType(datadisSupply.getPointType());
-                    supply.setValidDateFrom(datadisSupply.getValidDateFrom() != null ?
-                            dateConverter.convertStringToLocalDate(datadisSupply.getValidDateFrom()) :
-                            null);
+
+                    SupplyDistributor distributor = new SupplyDistributor.Builder()
+                            .withCode(datadisSupply.getDistributorCode())
+                            .withName(datadisSupply.getDistributor())
+                            .withPointType(datadisSupply.getPointType())
+                            .build();
+                    supply.setDistributor(distributor);
+
+                    SupplyContract contract = new SupplyContract.Builder()
+                            .withValidDateFrom(datadisSupply.getValidDateFrom() != null ?
+                                    dateConverter.convertStringToLocalDate(datadisSupply.getValidDateFrom()) :
+                                    null)
+                            .build();
+                    supply.setContract(contract);
 
                     updateSupplyRepository.update(supply);
                     LOGGER.info("Supply with code {} synchronized with datadis.es.", datadisSupply.getCups());
