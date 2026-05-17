@@ -31,24 +31,6 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
         supply.enable();
         supply.initializeUuid();
 
-        // If name is not provided, use the ID as the default name
-        if (supply.getName() == null) {
-            supply = new Supply.Builder()
-                    .withId(supply.getId())
-                    .withCode(supply.getCode())
-                    .withUser(supply.getUser())
-                    .withName(supply.getAddress())
-                    .withAddress(supply.getAddress())
-                    .withAddressRef(supply.getAddressRef())
-                    .withPartitionCoefficient(supply.getPartitionCoefficient())
-                    .withEnabled(supply.getEnabled())
-                    .withContract(supply.getContract())
-                    .withDistributor(supply.getDistributor())
-                    .withDatadis(supply.getDatadis())
-                    .withShelly(supply.getShelly())
-                    .build();
-        }
-
         return repository.create(supply, id);
     }
 

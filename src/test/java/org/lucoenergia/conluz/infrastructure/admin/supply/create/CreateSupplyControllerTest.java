@@ -69,7 +69,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
                 .andExpect(jsonPath("$.addressRef").value("4ASDF654ASDF89ASD"))
                 .andExpect(jsonPath("$.partitionCoefficient").value("3.0763"))
-                .andExpect(jsonPath("$.name").value("Fake Street 123")) // Name is set to address by default
+                .andExpect(jsonPath("$.name").isEmpty())
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
                 .andExpect(jsonPath("$.user.personalId").value(user.getPersonalId()))
@@ -127,6 +127,36 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.user.enabled").value(user.isEnabled()));
 
         Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333BB0B"));
+    }
+
+    @Test
+    void testCreateSupplyWithoutPartitionCoefficient() throws Exception {
+
+        String authHeader = loginAsDefaultAdmin();
+
+        String userPersonalId = "54889216G";
+        User user = UserMother.randomUser();
+        user.setPersonalId(userPersonalId);
+        createUserRepository.create(user);
+
+        String body = String.format("""
+                {
+                  "code": "ES0033333333333333CC0C",
+                  "personalId": "%s",
+                  "address": "Fake Street 789",
+                  "addressRef": "4ASDF654ASDF89ASD"
+                }
+        """, userPersonalId);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.partitionCoefficient").value(0.0));
+
+        Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333CC0C"));
     }
 
     @Test
@@ -207,14 +237,6 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                           "personalId": "54889216G",
                           "addressRef": "4ASDF654ASDF89ASD",
                           "partitionCoefficient": "2.5432"
-                        }
-                """,
-                """
-                        {
-                          "code": "ES0033333333333333BB0B",
-                          "personalId": "54889216G",
-                          "addressRef": "4ASDF654ASDF89ASD",
-                          "address": "Fake Street 456"
                         }
                 """,
                 """

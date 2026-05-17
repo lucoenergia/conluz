@@ -81,10 +81,14 @@ public class UpdateSupplyDto {
     public Supply mapToSupply(Supply.Builder supplyBuilder) {
         supplyBuilder
                 .withCode(code)
-                .withName(name)
                 .withAddress(address)
-                .withAddressRef(addressRef)
-                .withPartitionCoefficient(partitionCoefficient);
+                .withAddressRef(addressRef);
+        if (name != null) {
+            supplyBuilder.withName(name);
+        }
+        if (partitionCoefficient != null) {
+            supplyBuilder.withPartitionCoefficient(partitionCoefficient);
+        }
         return supplyBuilder.build();
     }
 }

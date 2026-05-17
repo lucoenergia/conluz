@@ -79,7 +79,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.distributor.code").value(supply.getDistributor().getCode()))
                 .andExpect(jsonPath("$.distributor.pointType").value(supply.getDistributor().getPointType()))
                 .andExpect(jsonPath("$.datadis.thirdParty").value(supply.getDatadis().isThirdParty()))
-                .andExpect(jsonPath("$.shelly.mac").value(supply.getShelly().getMacAddress()))
+                .andExpect(jsonPath("$.shelly.macAddress").value(supply.getShelly().getMacAddress()))
                 .andExpect(jsonPath("$.shelly.id").value(supply.getShelly().getId()))
                 .andExpect(jsonPath("$.shelly.mqttPrefix").value(supply.getShelly().getMqttPrefix()))
                 .andExpect(jsonPath("$.user.personalId").value(userOne.getPersonalId()));

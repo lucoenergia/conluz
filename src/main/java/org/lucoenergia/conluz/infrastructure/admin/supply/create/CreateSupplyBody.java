@@ -2,13 +2,12 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
 @Schema(requiredProperties = {
-        "code", "personalId", "address", "partitionCoefficient"
+        "code", "personalId", "address"
 })
 public class CreateSupplyBody {
 
@@ -20,8 +19,7 @@ public class CreateSupplyBody {
     private String address;
     @NotEmpty
     private String addressRef;
-    @NotNull
-    @Positive
+    @PositiveOrZero
     private Float partitionCoefficient;
     private String name;
 
@@ -75,11 +73,11 @@ public class CreateSupplyBody {
 
     public Supply mapToSupply() {
         Supply.Builder builder = new Supply.Builder();
-        builder.withCode(code.trim())
-                .withAddress(address.trim())
-                .withAddressRef(addressRef.trim())
-                .withPartitionCoefficient(partitionCoefficient)
-                .withUser(new User.Builder().personalId(personalId.trim()).build());
+        builder.withCode(code != null ? code.trim() : null)
+                .withAddress(address != null ? address.trim() : null)
+                .withAddressRef(addressRef != null ? addressRef.trim() : null)
+                .withPartitionCoefficient(partitionCoefficient != null ? partitionCoefficient : 0.0F)
+                .withUser(personalId != null ? new User.Builder().personalId(personalId.trim()).build() : null);
 
         if (name != null && !name.isBlank()) {
             builder.withName(name.trim());

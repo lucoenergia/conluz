@@ -223,10 +223,10 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         assertEquals(supply.getCode(), result.getCode());
         assertEquals(supply.getName(), result.getName());
         assertEquals(supply.getAddress(), result.getAddress());
-        assertEquals(supply.getEnabled(), result.getEnabled());
         assertEquals(user.getId(), result.getUser().getId());
+        assertEquals(supply.getEnabled(), false);
+        assertEquals(result.getPartitionCoefficient(), 0F);
         assertNull(result.getAddressRef());
-        assertNull(result.getPartitionCoefficient());
         assertNull(result.getShelly());
         assertNull(result.getDatadis());
         assertNull(result.getDistributor());

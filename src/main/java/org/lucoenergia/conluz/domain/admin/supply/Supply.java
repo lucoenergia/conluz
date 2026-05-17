@@ -22,7 +22,6 @@ public class Supply {
     private final String code;
     @NotNull
     private User user;
-    @NotBlank
     private final String name;
     @NotBlank
     private String address;
@@ -45,8 +44,8 @@ public class Supply {
         this.name = builder.name;
         this.address = builder.address;
         this.addressRef = builder.addressRef;
-        this.partitionCoefficient = builder.partitionCoefficient;
-        this.enabled = builder.enabled;
+        this.partitionCoefficient = builder.partitionCoefficient == null ? 0F : builder.partitionCoefficient;
+        this.enabled = builder.enabled != null && builder.enabled;
         this.contract = builder.contract;
         this.distributor = builder.distributor;
         this.datadis = builder.datadis;

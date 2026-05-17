@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import java.util.UUID;
 
 @Schema(requiredProperties = {
-        "code", "address", "partitionCoefficient"
+        "code", "address"
 })
 public class UpdateSupplyBody {
 
