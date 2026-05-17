@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="normalize_supplies_tables" author="Víctor Cañizares">
+
+        <createTable tableName="supplies_shelly">
+            <column name="supply_id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="supplies_shelly_pk"
+                             foreignKeyName="supplies_shelly_supply_id_fk"
+                             referencedTableName="supplies" referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="mac_address" type="VARCHAR(250)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="id" type="VARCHAR(250)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="mqtt_prefix" type="VARCHAR(250)">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="supplies_datadis">
+            <column name="supply_id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="supplies_datadis_pk"
+                             foreignKeyName="supplies_datadis_supply_id_fk"
+                             referencedTableName="supplies" referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="third_party" type="bool">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="supplies_distributor">
+            <column name="supply_id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="supplies_distributor_pk"
+                             foreignKeyName="supplies_distributor_supply_id_fk"
+                             referencedTableName="supplies" referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="name" type="VARCHAR(250)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="code" type="VARCHAR(250)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="point_type" type="INT">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="supplies_contract">
+            <column name="supply_id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="supplies_contract_pk"
+                             foreignKeyName="supplies_contract_supply_id_fk"
+                             referencedTableName="supplies" referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="valid_date_from" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <sql>
+            INSERT INTO supplies_shelly (supply_id, mac_address, id, mqtt_prefix)
+            SELECT id, shelly_mac, shelly_id, shelly_mqtt_prefix FROM supplies;
+        </sql>
+
+        <sql>
+            INSERT INTO supplies_datadis (supply_id, third_party)
+            SELECT id, third_party FROM supplies;
+        </sql>
+
+        <sql>
+            INSERT INTO supplies_distributor (supply_id, name, code, point_type)
+            SELECT id, distributor, distributor_code, point_type FROM supplies;
+        </sql>
+
+        <sql>
+            INSERT INTO supplies_contract (supply_id, valid_date_from)
+            SELECT id, valid_date_from FROM supplies;
+        </sql>
+
+        <dropColumn tableName="supplies" columnName="shelly_mac"/>
+        <dropColumn tableName="supplies" columnName="shelly_id"/>
+        <dropColumn tableName="supplies" columnName="shelly_mqtt_prefix"/>
+        <dropColumn tableName="supplies" columnName="third_party"/>
+        <dropColumn tableName="supplies" columnName="distributor"/>
+        <dropColumn tableName="supplies" columnName="distributor_code"/>
+        <dropColumn tableName="supplies" columnName="point_type"/>
+        <dropColumn tableName="supplies" columnName="valid_date_from"/>
+
+    </changeSet>
+
+</databaseChangeLog>

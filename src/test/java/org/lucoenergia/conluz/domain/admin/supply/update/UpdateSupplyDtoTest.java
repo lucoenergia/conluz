@@ -32,7 +32,7 @@ class UpdateSupplyDtoTest {
     }
 
     @Test
-    void testMapToSupply_withNullPartitionCoefficient_setsNullInSupply() {
+    void testMapToSupply_withNullPartitionCoefficient_preservesExistingValue() {
         // Arrange
         UpdateSupplyDto updateSupplyDto = new UpdateSupplyDto.Builder()
                 .code("SUP124")
@@ -42,7 +42,7 @@ class UpdateSupplyDtoTest {
                 .partitionCoefficient(null)
                 .build();
 
-        Supply.Builder supplyBuilder = new Supply.Builder();
+        Supply.Builder supplyBuilder = new Supply.Builder().withPartitionCoefficient(0.5f);
 
         // Act
         Supply supply = updateSupplyDto.mapToSupply(supplyBuilder);
@@ -52,7 +52,27 @@ class UpdateSupplyDtoTest {
         assertEquals("Supply Name 2", supply.getName());
         assertEquals("456 Another Street", supply.getAddress());
         assertEquals("Ref456", supply.getAddressRef());
-        assertEquals(null, supply.getPartitionCoefficient());
+        assertEquals(0.5f, supply.getPartitionCoefficient());
+    }
+
+    @Test
+    void testMapToSupply_withNullName_preservesExistingName() {
+        // Arrange
+        UpdateSupplyDto updateSupplyDto = new UpdateSupplyDto.Builder()
+                .code("SUP126")
+                .address("789 Test Street")
+                .addressRef("Ref789")
+                .partitionCoefficient(0.3f)
+                .build();
+
+        Supply.Builder supplyBuilder = new Supply.Builder().withName("Existing Name");
+
+        // Act
+        Supply supply = updateSupplyDto.mapToSupply(supplyBuilder);
+
+        // Assert
+        assertEquals("Existing Name", supply.getName());
+        assertEquals(0.3f, supply.getPartitionCoefficient());
     }
 
     @Test
@@ -71,8 +91,8 @@ class UpdateSupplyDtoTest {
         // Assert
         assertEquals("SUP125", supply.getCode());
         assertEquals("Minimal Supply", supply.getName());
+        assertEquals(0F, supply.getPartitionCoefficient());
         assertEquals(null, supply.getAddress());
         assertEquals(null, supply.getAddressRef());
-        assertEquals(null, supply.getPartitionCoefficient());
     }
 }

@@ -12,6 +12,8 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import java.time.Month;
 import java.util.List;
 import java.util.UUID;
@@ -37,9 +39,13 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
         final Supply supply = new Supply.Builder()
                         .withCode(cups)
                         .withUser(user)
-                        .withDistributorCode(distributorCode)
-                        .withPointType(pointType)
-                        .withThirdParty(isIsThirdParty)
+                        .withDistributor(new SupplyDistributor.Builder()
+                                .withCode(distributorCode)
+                                .withPointType(pointType)
+                                .build())
+                        .withDatadis(new SupplyDatadis.Builder()
+                                .withThirdParty(isIsThirdParty)
+                                .build())
                         .build();
         final Month month = Month.OCTOBER;
         final int year = 2023;

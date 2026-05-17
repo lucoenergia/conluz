@@ -53,11 +53,11 @@ public class ShellyConsumptionsHourlyAggregatorService {
 
             for (Supply supply : supplies) {
 
-                if (StringUtils.isBlank(supply.getShellyId())) {
+                if (supply.getShelly() == null || StringUtils.isBlank(supply.getShelly().getId())) {
                     continue;
                 }
 
-                LOGGER.info("Aggregating Shelly consumption from supply {}", supply.getShellyId());
+                LOGGER.info("Aggregating Shelly consumption from supply {}", supply.getShelly().getId());
 
                 try {
                     Query query = new Query(String.format(
@@ -66,17 +66,17 @@ public class ShellyConsumptionsHourlyAggregatorService {
                             ShellyInstantConsumptionPoint.CONSUMPTION_KW,
                             ShellyInstantConsumptionPoint.MEASUREMENT,
                             ShellyInstantConsumptionPoint.PREFIX,
-                            supply.getShellyMqttPrefix(),
+                            supply.getShelly().getMqttPrefix(),
                             startDateAsString,
                             endDateAsString));
 
                     QueryResult queryResult = connection.query(query);
                     if (queryResult.hasError()) {
-                        LOGGER.error("Query to get aggregated Shelly consumption results from supply {} returned an error: {}", supply.getShellyId(), queryResult.getError());
+                        LOGGER.error("Query to get aggregated Shelly consumption results from supply {} returned an error: {}", supply.getShelly().getId(), queryResult.getError());
                     } else if (queryResult.getResults().isEmpty()) {
-                        LOGGER.debug("Aggregated Shelly consumption results from supply {} are empty.", supply.getShellyId());
+                        LOGGER.debug("Aggregated Shelly consumption results from supply {} are empty.", supply.getShelly().getId());
                     } else {
-                        LOGGER.debug("Aggregated Shelly consumption results from supply {} are {}", supply.getShellyId(), queryResult.getResults());
+                        LOGGER.debug("Aggregated Shelly consumption results from supply {} are {}", supply.getShelly().getId(), queryResult.getResults());
                     }
                     InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
                     List<ShellyAggregateConsumptionPoint> consumptionPoints = resultMapper.toPOJO(queryResult, ShellyAggregateConsumptionPoint.class);
@@ -92,7 +92,7 @@ public class ShellyConsumptionsHourlyAggregatorService {
     private List<ShellyConsumption> mapToConsumption(List<ShellyAggregateConsumptionPoint> consumptionPoints, Supply supply) {
         return consumptionPoints.stream()
                 .map(consumptionPoint -> new ShellyConsumption.Builder()
-                        .withPrefix(supply.getShellyMqttPrefix())
+                        .withPrefix(supply.getShelly().getMqttPrefix())
                         .withConsumptionKWh(consumptionPoint.getConsumptionKW())
                         .withTimestamp(consumptionPoint.getTime())
                         .build())

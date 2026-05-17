@@ -86,35 +86,25 @@ class CreateSupplyServiceTest {
     }
 
     @Test
-    void testCreateSupplyWhenNameIsNotProvidedThenAddressIsUsedAsName() {
+    void testCreateSupplyWhenNameIsNotProvidedThenNameIsNull() {
         // arrange
-        String address = "Test Address 123";
         Supply supply = new Supply.Builder()
                 .withId(UUID.randomUUID())
                 .withCode("code")
-                .withAddress(address)
+                .withAddress("Test Address 123")
                 .withPartitionCoefficient(1.0F)
                 .withEnabled(Boolean.TRUE)
                 .build();
         UserId userId = UserId.of(UUID.randomUUID());
 
-        Supply expectedSupply = new Supply.Builder()
-                .withId(supply.getId())
-                .withCode(supply.getCode())
-                .withAddress(address)
-                .withName(address)
-                .withPartitionCoefficient(supply.getPartitionCoefficient())
-                .withEnabled(supply.getEnabled())
-                .build();
-
-        when(supplyRepository.create(any(Supply.class), any(UserId.class))).thenReturn(expectedSupply);
+        when(supplyRepository.create(any(Supply.class), any(UserId.class))).thenReturn(supply);
 
         // act
         Supply actualSupply = createSupplyService.create(supply, userId);
 
         // assert
         assertNotNull(actualSupply);
-        assertEquals(address, actualSupply.getName());
+        assertNull(actualSupply.getName());
     }
 
 

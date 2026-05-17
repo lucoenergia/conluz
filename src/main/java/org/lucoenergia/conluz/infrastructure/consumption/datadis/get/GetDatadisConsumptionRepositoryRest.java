@@ -82,12 +82,12 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         // Create the complete URL with the query parameter
         UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(baseUrl + API_PATH + GET_CONSUMPTION_DATA_PATH)
                 .queryParam(DatadisParams.CUPS, supply.getCode())
-                .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDistributorCode())
+                .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDistributor().getCode())
                 .queryParam(DatadisParams.START_DATE, monthDate)
                 .queryParam(DatadisParams.END_DATE, monthDate)
                 .queryParam(DatadisParams.MEASUREMENT_TYPE, MeasurementType.PER_HOUR)
-                .queryParam(DatadisParams.POINT_TYPE, supply.getPointType());
-        if (Boolean.TRUE.equals(supply.isThirdParty())) {
+                .queryParam(DatadisParams.POINT_TYPE, supply.getDistributor().getPointType());
+        if (Boolean.TRUE.equals(supply.getDatadis().isThirdParty())) {
             urlBuilder = urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId());
         }
         final String url = urlBuilder.build().toUriString();
@@ -144,10 +144,10 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
     }
 
     private void validateSupply(Supply supply) {
-        if (supply.getDistributorCode() == null || supply.getDistributorCode().isEmpty()) {
+        if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isEmpty()) {
             throw new DatadisSupplyConfigurationException("Distributor code is mandatory to get monthly consumption.");
         }
-        if (supply.getPointType() == null) {
+        if (supply.getDistributor() == null || supply.getDistributor().getPointType() == null) {
             throw new DatadisSupplyConfigurationException("Point type is mandatory to get monthly consumption.");
         }
     }

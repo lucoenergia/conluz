@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -49,12 +50,12 @@ class DatadisYearlyAggregationServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply1 = SupplyMother.random()
-                .withDistributorCode("DIST001")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build())
                 .build();
         supply1 = createSupplyRepository.create(supply1, UserId.of(user.getId()));
 
         Supply supply2 = SupplyMother.random()
-                .withDistributorCode("DIST002")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build())
                 .build();
         supply2 = createSupplyRepository.create(supply2, UserId.of(user.getId()));
 
@@ -74,7 +75,7 @@ class DatadisYearlyAggregationServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("DIST123")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -94,12 +95,12 @@ class DatadisYearlyAggregationServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supplyWithCode = SupplyMother.random()
-                .withDistributorCode("DIST001")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build())
                 .build();
         supplyWithCode = createSupplyRepository.create(supplyWithCode, UserId.of(user.getId()));
 
         Supply supplyWithoutCode = SupplyMother.random()
-                .withDistributorCode(null)
+                .withDistributor(new SupplyDistributor.Builder().withCode(null).build())
                 .build();
         supplyWithoutCode = createSupplyRepository.create(supplyWithoutCode, UserId.of(user.getId()));
 
@@ -135,7 +136,7 @@ class DatadisYearlyAggregationServiceTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random()
-                .withDistributorCode("DIST123")
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 

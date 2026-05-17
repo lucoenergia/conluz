@@ -56,7 +56,7 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
     }
 
     private void processSingleSupply(Supply supply, LocalDate startDate, LocalDate endDate) {
-        if (StringUtils.isBlank(supply.getDistributorCode())) {
+        if (supply.getDistributor() == null || StringUtils.isBlank(supply.getDistributor().getCode())) {
             LOGGER.warn("Skipping supply with ID: {} because does not have distributor code", supply.getId());
             return;
         }

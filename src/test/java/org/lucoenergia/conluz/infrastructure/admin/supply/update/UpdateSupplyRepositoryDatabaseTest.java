@@ -8,6 +8,8 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.mockito.Mockito;
 
+import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,10 +35,14 @@ class UpdateSupplyRepositoryDatabaseTest {
                 .withAddress("address")
                 .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
-                .withValidDateFrom(LocalDate.now())
-                .withDistributor("distributor")
-                .withDistributorCode("distributorCode")
-                .withPointType(1)
+                .withContract(new SupplyContract.Builder()
+                        .withValidDateFrom(LocalDate.now())
+                        .build())
+                .withDistributor(new SupplyDistributor.Builder()
+                        .withName("distributor")
+                        .withCode("distributorCode")
+                        .withPointType(1)
+                        .build())
                 .build();
         SupplyEntity supplyEntity = new SupplyEntity();
         Mockito.when(repository.findById(testSupplyUuid)).thenReturn(Optional.of(supplyEntity));

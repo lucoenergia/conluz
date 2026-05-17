@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -58,9 +59,17 @@ class ShellyConsumptionsHourlyAggregatorServiceTest extends BaseIntegrationTest 
         user = createUserRepository.create(user);
 
         createSupplyRepository.create(SupplyMother.random(user)
-                .withShellyMqttPrefix(SUPPLY_A_MQTT_PREFIX).build(), UserId.of(user.getId()));
+                .withShelly(new SupplyShelly.Builder()
+                        .withMqttPrefix(SUPPLY_A_MQTT_PREFIX)
+                        .withId("shelly-a")
+                        .build())
+                .build(), UserId.of(user.getId()));
         createSupplyRepository.create(SupplyMother.random(user)
-                .withShellyMqttPrefix(SUPPLY_B_MQTT_PREFIX).build(), UserId.of(user.getId()));
+                .withShelly(new SupplyShelly.Builder()
+                        .withMqttPrefix(SUPPLY_B_MQTT_PREFIX)
+                        .withId("shelly-b")
+                        .build())
+                .build(), UserId.of(user.getId()));
 
         //When
         shellyConsumptionsHourlyAggregatorService.aggregate(START_DATE, END_DATE);

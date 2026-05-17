@@ -55,14 +55,10 @@ class DisableSupplyControllerTest extends BaseControllerTest {
                 .withAddress(supply.getAddress())
                 .withPartitionCoefficient(supply.getPartitionCoefficient())
                 .withEnabled(true)
-                .withValidDateFrom(supply.getValidDateFrom())
+                .withContract(supply.getContract())
                 .withDistributor(supply.getDistributor())
-                .withDistributorCode(supply.getDistributorCode())
-                .withPointType(supply.getPointType())
-                .withThirdParty(supply.isThirdParty())
-                .withShellyId(supply.getShellyId())
-                .withShellyMac(supply.getShellyMac())
-                .withShellyMqttPrefix(supply.getShellyMqttPrefix())
+                .withDatadis(supply.getDatadis())
+                .withShelly(supply.getShelly())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
@@ -95,14 +91,10 @@ class DisableSupplyControllerTest extends BaseControllerTest {
                 .withAddress(supply.getAddress())
                 .withPartitionCoefficient(supply.getPartitionCoefficient())
                 .withEnabled(false)
-                .withValidDateFrom(supply.getValidDateFrom())
+                .withContract(supply.getContract())
                 .withDistributor(supply.getDistributor())
-                .withDistributorCode(supply.getDistributorCode())
-                .withPointType(supply.getPointType())
-                .withThirdParty(supply.isThirdParty())
-                .withShellyId(supply.getShellyId())
-                .withShellyMac(supply.getShellyMac())
-                .withShellyMqttPrefix(supply.getShellyMqttPrefix())
+                .withDatadis(supply.getDatadis())
+                .withShelly(supply.getShelly())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
