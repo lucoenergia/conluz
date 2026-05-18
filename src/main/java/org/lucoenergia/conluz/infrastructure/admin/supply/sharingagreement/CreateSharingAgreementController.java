@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply.create;
+package org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

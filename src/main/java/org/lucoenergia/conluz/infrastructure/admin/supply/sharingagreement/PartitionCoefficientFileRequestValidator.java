@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply.create;
+package org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement;
 
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;

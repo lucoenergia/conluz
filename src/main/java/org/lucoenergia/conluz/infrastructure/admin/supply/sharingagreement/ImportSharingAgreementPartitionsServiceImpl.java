@@ -1,8 +1,8 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply.create;
+package org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement;
 
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
-import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionService;
+import org.lucoenergia.conluz.domain.admin.supply.create.ValidateSupplyPartitionsService;
 import org.lucoenergia.conluz.domain.admin.supply.create.ImportSharingAgreementPartitionsService;
 import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
@@ -33,7 +33,7 @@ public class ImportSharingAgreementPartitionsServiceImpl implements ImportSharin
     private final SharingAgreementRepository sharingAgreementRepository;
     private final SupplyRepository supplyRepository;
     private final SupplyPartitionRepository supplyPartitionRepository;
-    private final CreateSupplyPartitionService createSupplyPartitionService;
+    private final ValidateSupplyPartitionsService validateSupplyPartitionsService;
     private final CsvFileParser csvFileParser;
     private final MessageSource messageSource;
 
@@ -41,13 +41,13 @@ public class ImportSharingAgreementPartitionsServiceImpl implements ImportSharin
             SharingAgreementRepository sharingAgreementRepository,
             SupplyRepository supplyRepository,
             SupplyPartitionRepository supplyPartitionRepository,
-            CreateSupplyPartitionService createSupplyPartitionService,
+            ValidateSupplyPartitionsService validateSupplyPartitionsService,
             CsvFileParser csvFileParser,
             MessageSource messageSource) {
         this.sharingAgreementRepository = sharingAgreementRepository;
         this.supplyRepository = supplyRepository;
         this.supplyPartitionRepository = supplyPartitionRepository;
-        this.createSupplyPartitionService = createSupplyPartitionService;
+        this.validateSupplyPartitionsService = validateSupplyPartitionsService;
         this.csvFileParser = csvFileParser;
         this.messageSource = messageSource;
     }
@@ -65,7 +65,7 @@ public class ImportSharingAgreementPartitionsServiceImpl implements ImportSharin
         }
 
         validateEachCoefficient(rows);
-        createSupplyPartitionService.validateTotalCoefficient(rows);
+        validateSupplyPartitionsService.validateTotalCoefficient(rows);
 
         ImportSharingAgreementPartitionsResponse response = new ImportSharingAgreementPartitionsResponse();
 
@@ -114,7 +114,7 @@ public class ImportSharingAgreementPartitionsServiceImpl implements ImportSharin
     private void validateEachCoefficient(List<CreateSupplyPartitionDto> rows) {
         for (CreateSupplyPartitionDto row : rows) {
             Double coefficient = row.getCoefficient();
-            if (coefficient == null || coefficient <= 0 || coefficient > 1) {
+            if (coefficient == null || coefficient < 0 || coefficient > 1) {
                 String message = messageSource.getMessage(
                         "error.supply.partitions.invalid.coefficient.our.of.range",
                         Collections.emptyList().toArray(),

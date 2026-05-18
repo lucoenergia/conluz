@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply.create;
+package org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement;
 
 import com.opencsv.bean.AbstractBeanField;
 import com.opencsv.bean.CsvBindByPosition;

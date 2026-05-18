@@ -3,11 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.update;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Positive;
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyDto;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
-
-import java.util.UUID;
 
 @Schema(requiredProperties = {
         "code", "address"
@@ -19,7 +15,6 @@ public class UpdateSupplyBody {
     private String name;
     @NotEmpty
     private String address;
-    @NotEmpty
     private String addressRef;
     @Positive
     private Float partitionCoefficient;

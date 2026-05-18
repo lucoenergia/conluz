@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.CreateSharingAgreementServiceImpl;
 
 import java.time.LocalDate;
 import java.util.UUID;

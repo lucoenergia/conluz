@@ -17,7 +17,6 @@ public class CreateSupplyBody {
     private String personalId;
     @NotEmpty
     private String address;
-    @NotEmpty
     private String addressRef;
     @PositiveOrZero
     private Float partitionCoefficient;

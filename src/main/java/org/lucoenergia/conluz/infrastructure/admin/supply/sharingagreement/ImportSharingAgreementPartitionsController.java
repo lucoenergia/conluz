@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.supply.create;
+package org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -8,8 +8,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.create.ImportSharingAgreementPartitionsService;
 import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
-import org.lucoenergia.conluz.infrastructure.admin.supply.create.ImportSharingAgreementPartitionsResponse;
-import org.lucoenergia.conluz.infrastructure.admin.supply.create.PartitionCoefficientFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
