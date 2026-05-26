@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.domain.admin.supply.create;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
-import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.CreateSupplyPartitionDto;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.create.CreateSupplyPartitionDto;
 import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.ValidateSupplyPartitionsServiceImpl;
 import org.springframework.context.MessageSource;
 

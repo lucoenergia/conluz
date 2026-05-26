@@ -1,11 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.update;
 
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementEntityMapper;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementEntityMapper;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +32,7 @@ public class UpdateSharingAgreementRepositoryDatabase implements UpdateSharingAg
     @Override
     public SharingAgreement update(UUID id, LocalDate startDate, LocalDate endDate) {
         SharingAgreementEntity entity = repository.findById(id)
-                .orElseThrow(() -> new SharingAgreementNotFoundException(org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId.of(id)));
+                .orElseThrow(() -> new SharingAgreementNotFoundException(SharingAgreementId.of(id)));
         
         entity.setStartDate(startDate);
         entity.setEndDate(endDate);

@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.delete;
 
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.delete.DeleteSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.delete.DeleteSharingAgreementService;
 import org.springframework.stereotype.Service;

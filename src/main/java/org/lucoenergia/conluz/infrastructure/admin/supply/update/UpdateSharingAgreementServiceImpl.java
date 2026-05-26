@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.update;
 
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSharingAgreementService;
 import org.springframework.stereotype.Service;

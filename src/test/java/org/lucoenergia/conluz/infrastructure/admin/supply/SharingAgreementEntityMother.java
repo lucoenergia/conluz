@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementEntity;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;

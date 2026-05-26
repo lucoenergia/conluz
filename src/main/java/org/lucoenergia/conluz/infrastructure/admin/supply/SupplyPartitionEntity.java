@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import jakarta.persistence.*;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementEntity;
 
 import java.util.UUID;
 

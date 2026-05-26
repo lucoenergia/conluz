@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 
 class SupplyPartitionEntityMapperTest {

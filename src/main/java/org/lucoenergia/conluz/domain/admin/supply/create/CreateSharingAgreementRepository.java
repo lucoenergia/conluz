@@ -1,10 +1,8 @@
 package org.lucoenergia.conluz.domain.admin.supply.create;
 
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
-
-import java.time.LocalDate;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreement;
 
 public interface CreateSharingAgreementRepository {
 
-    SharingAgreement create(LocalDate startDate, LocalDate endDate, String notes);
+    SharingAgreement create(CreateSharingAgreement command);
 }

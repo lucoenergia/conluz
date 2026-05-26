@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.supply;
 
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreement;
+
 import java.util.UUID;
 
 public class SupplyPartition {

@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement;
 
 import org.lucoenergia.conluz.domain.admin.supply.create.ValidateSupplyPartitionsService;
 import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.create.CreateSupplyPartitionDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;

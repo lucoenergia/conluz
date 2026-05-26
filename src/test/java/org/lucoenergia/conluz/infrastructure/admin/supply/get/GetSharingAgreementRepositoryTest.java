@@ -1,11 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementEntity;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreementId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.get.GetSharingAgreementRepositoryDatabase;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementEntityMother;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;

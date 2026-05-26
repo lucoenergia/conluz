@@ -1,10 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.delete;
 
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreementId;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.delete.DeleteSharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 

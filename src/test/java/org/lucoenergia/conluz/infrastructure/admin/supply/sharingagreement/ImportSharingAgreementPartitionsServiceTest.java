@@ -1,18 +1,20 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement;
 
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreementId;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.create.ValidateSupplyPartitionsService;
 import org.lucoenergia.conluz.infrastructure.admin.supply.InvalidSupplyPartitionCoefficientException;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementEntityMother;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionEntityMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.create.CreateSupplyPartitionDto;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.io.ImportSharingAgreementPartitionsResponse;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.io.ImportSharingAgreementPartitionsServiceImpl;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileParser;
 import org.springframework.context.MessageSource;
 import org.springframework.web.multipart.MultipartFile;

@@ -2,7 +2,9 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
+import org.lucoenergia.conluz.domain.admin.supply.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.sharingagreement.SharingAgreementEntityMapper;
 
 import java.time.Instant;
 
