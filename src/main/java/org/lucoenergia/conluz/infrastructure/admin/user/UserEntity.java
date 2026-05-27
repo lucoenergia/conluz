@@ -26,6 +26,8 @@ public class UserEntity {
     private Boolean enabled = true;
     @Enumerated(EnumType.STRING)
     private Role role;
+    @Column(name = "is_platform_admin")
+    private Boolean isPlatformAdmin = false;
     @OneToMany(
             mappedBy = "user",
             cascade = CascadeType.ALL,
@@ -114,6 +116,14 @@ public class UserEntity {
         this.role = role;
     }
 
+    public Boolean isPlatformAdmin() {
+        return isPlatformAdmin != null && isPlatformAdmin;
+    }
+
+    public void setPlatformAdmin(Boolean isPlatformAdmin) {
+        this.isPlatformAdmin = isPlatformAdmin;
+    }
+
     public List<SupplyEntity> getSupplies() {
         return supplies;
     }
@@ -140,6 +150,7 @@ public class UserEntity {
         entity.setPhoneNumber(user.getPhoneNumber());
         entity.setEnabled(user.isEnabled());
         entity.setRole(user.getRole());
+        entity.setPlatformAdmin(user.isPlatformAdmin());
         return entity;
     }
 
@@ -155,6 +166,7 @@ public class UserEntity {
         user.setPhoneNumber(this.getPhoneNumber());
         user.setEnabled(this.isEnabled());
         user.setRole(this.getRole());
+        user.setPlatformAdmin(this.isPlatformAdmin());
 
         return user;
     }

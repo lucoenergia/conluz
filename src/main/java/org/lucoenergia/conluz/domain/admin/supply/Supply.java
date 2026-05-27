@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.admin.supply;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
 import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
@@ -36,6 +37,7 @@ public class Supply {
     private SupplyDistributor distributor;
     private SupplyDatadis datadis;
     private SupplyShelly shelly;
+    private Community community;
 
     private Supply(Builder builder) {
         this.id = builder.id;
@@ -50,6 +52,7 @@ public class Supply {
         this.distributor = builder.distributor;
         this.datadis = builder.datadis;
         this.shelly = builder.shelly;
+        this.community = builder.community;
     }
 
     public void enable() {
@@ -73,6 +76,7 @@ public class Supply {
         private SupplyDistributor distributor;
         private SupplyDatadis datadis;
         private SupplyShelly shelly;
+        private Community community;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -131,6 +135,11 @@ public class Supply {
 
         public Builder withShelly(SupplyShelly shelly) {
             this.shelly = shelly;
+            return this;
+        }
+
+        public Builder withCommunity(Community community) {
+            this.community = community;
             return this;
         }
 
@@ -207,6 +216,14 @@ public class Supply {
         this.shelly = shelly;
     }
 
+    public Community getCommunity() {
+        return community;
+    }
+
+    public void setCommunity(Community community) {
+        this.community = community;
+    }
+
     public void setAddress(String address) {
         this.address = address;
     }
@@ -240,6 +257,7 @@ public class Supply {
                 .withContract(this.contract)
                 .withDistributor(this.distributor)
                 .withDatadis(this.datadis)
-                .withShelly(this.shelly);
+                .withShelly(this.shelly)
+                .withCommunity(this.community);
     }
 }

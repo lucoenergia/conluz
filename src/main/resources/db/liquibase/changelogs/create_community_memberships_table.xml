@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="create_community_memberships" author="Víctor Cañizares">
+        <createTable tableName="community_memberships">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="community_memberships_id_pk"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="community_memberships_user_id_fk"
+                             referencedTableName="users" referencedColumnNames="id"/>
+            </column>
+            <column name="community_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="community_memberships_community_id_fk"
+                             referencedTableName="communities" referencedColumnNames="id"/>
+            </column>
+            <column name="role" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enabled" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="community_memberships"
+                             columnNames="user_id, community_id"
+                             constraintName="community_memberships_user_community_uq"/>
+    </changeSet>
+
+</databaseChangeLog>

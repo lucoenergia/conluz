@@ -259,4 +259,16 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         assertThrows(SupplyAlreadyExistsException.class,
                 () -> createSupplyRepository.create(duplicate, UserId.of(user.getId())));
     }
+
+    @Test
+    void testSupplyLinkedToCommunityIsReadBack() {
+        User user = UserMother.randomUser();
+        user = createUserRepository.create(user);
+
+        Supply supply = SupplyMother.random(user).build();
+        Supply created = createSupplyRepository.create(supply, UserId.of(user.getId()));
+
+        assertNotNull(created.getCommunity(), "Supply created via service should be linked to the default community");
+        assertEquals(UUID.fromString("f47ac10b-58cc-4372-a567-0e02b2c3d479"), created.getCommunity().getId());
+    }
 }

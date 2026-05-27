@@ -7,8 +7,10 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
@@ -18,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 
 @Transactional
 class GetEnergyStationRepositoryDatabaseTest extends BaseIntegrationTest {
@@ -30,11 +34,18 @@ class GetEnergyStationRepositoryDatabaseTest extends BaseIntegrationTest {
     private UserRepository userRepository;
     @Autowired
     private SupplyRepository supplyRepository;
+    @Autowired
+    private CommunityJpaRepository communityJpaRepository;
 
     @Test
     void testFindAllByInverterProvider() {
         UserEntity user = userRepository.save(UserMother.randomUserEntity());
-        SupplyEntity supply = supplyRepository.save(SupplyMother.randomEntity().withUser(user).build());
+        SupplyEntity supply = supplyRepository.save(
+                SupplyMother.randomEntity()
+                        .withUser(user)
+                        .withCommunity(communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID))
+                        .build()
+        );
         PlantEntity plantEntity1 = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
         PlantEntity plantEntity2 = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
 

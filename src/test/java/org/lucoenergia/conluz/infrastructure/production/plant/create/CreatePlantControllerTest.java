@@ -7,8 +7,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,6 +43,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
     private UserRepository userRepository;
     @Autowired
     private SupplyRepository supplyRepository;
+    @Autowired
+    private CommunityJpaRepository communityJpaRepository;
 
     @Test
     void testFullBody() throws Exception {
@@ -50,7 +55,11 @@ class CreatePlantControllerTest extends BaseControllerTest {
         UserEntity user = UserMother.randomUserEntity();
         user.setPersonalId(userPersonalId);
         userRepository.save(user);
-        SupplyEntity supply = SupplyMother.randomEntity().withUser(user).build();
+        SupplyEntity supply = SupplyMother
+                .randomEntity()
+                .withUser(user)
+                .withCommunity(communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID))
+                .build();
         supplyRepository.save(supply);
 
         String plantCode = "PS-456798";
@@ -96,7 +105,10 @@ class CreatePlantControllerTest extends BaseControllerTest {
         UserEntity user = UserMother.randomUserEntity();
         user.setPersonalId(userPersonalId);
         userRepository.save(user);
-        SupplyEntity supply = SupplyMother.randomEntity().withUser(user).build();
+        SupplyEntity supply = SupplyMother.randomEntity()
+                .withUser(user)
+                .withCommunity(communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID))
+                .build();
         supplyRepository.save(supply);
 
 
@@ -266,7 +278,10 @@ class CreatePlantControllerTest extends BaseControllerTest {
 
         UserEntity userOne = UserMother.randomUserEntity();
         userRepository.save(userOne);
-        SupplyEntity supplyOne = SupplyMother.randomEntity().withUser(userOne).build();
+        SupplyEntity supplyOne = SupplyMother.randomEntity()
+                .withUser(userOne)
+                .withCommunity(communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID))
+                .build();
         supplyRepository.save(supplyOne);
 
         String plantCode = "PS-456798";

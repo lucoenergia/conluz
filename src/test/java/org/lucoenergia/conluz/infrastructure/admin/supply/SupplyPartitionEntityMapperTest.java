@@ -3,12 +3,14 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyPartition;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 
 class SupplyPartitionEntityMapperTest {
 
     private final UserEntityMapper userEntityMapper = new UserEntityMapper();
-    private final SupplyEntityMapper supplyEntityMapper = new SupplyEntityMapper(userEntityMapper);
+    private final CommunityEntityMapper communityEntityMapper = new CommunityEntityMapper();
+    private final SupplyEntityMapper supplyEntityMapper = new SupplyEntityMapper(userEntityMapper, communityEntityMapper);
     private final SharingAgreementEntityMapper sharingAgreementEntityMapper = new SharingAgreementEntityMapper();
     private final SupplyPartitionEntityMapper mapper = new SupplyPartitionEntityMapper(
             supplyEntityMapper, sharingAgreementEntityMapper);

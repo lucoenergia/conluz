@@ -29,4 +29,9 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/backfill_supply_partition_coefficient.xml" relativeToChangelogFile="true" />
     <include file="changelogs/normalize_supplies_tables.xml" relativeToChangelogFile="true" />
     <include file="changelogs/make_supply_name_and_partition_coefficient_nullable.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/create_communities_table.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/create_community_memberships_table.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_is_platform_admin_to_users.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_community_id_to_supplies.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/backfill_default_community.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>
