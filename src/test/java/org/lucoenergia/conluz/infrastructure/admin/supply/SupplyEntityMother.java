@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
@@ -18,7 +19,7 @@ public class SupplyEntityMother {
         return random(UserMother.randomUserEntity());
     }
 
-    public static SupplyEntity random(UserEntity user) {
+    public static SupplyEntity random(UserEntity user, CommunityEntity community) {
         return new SupplyEntity.Builder()
                 .withId(UUID.randomUUID())
                 .withCode(RandomStringUtils.random(20, true, true))
@@ -26,6 +27,7 @@ public class SupplyEntityMother {
                 .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(new Random().nextBoolean())
                 .withUser(user)
+                .withCommunity(community)
                 .withName(RandomStringUtils.random(10, true, false))
                 .withDistributor(new SupplyDistributorEntity.Builder()
                         .withName("EDISTRIBUCION")
@@ -44,5 +46,9 @@ public class SupplyEntityMother {
                         .withMqttPrefix(RandomStringUtils.random(20, true, true))
                         .build())
                 .build();
+    }
+
+    public static SupplyEntity random(UserEntity user) {
+        return random(user, null);
     }
 }

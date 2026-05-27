@@ -7,12 +7,14 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContrac
 import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 
 class SupplyEntityMapperTest {
 
     private final UserEntityMapper userEntityMapper = new UserEntityMapper();
-    private final SupplyEntityMapper mapper = new SupplyEntityMapper(userEntityMapper);
+    private final CommunityEntityMapper communityEntityMapper = new CommunityEntityMapper();
+    private final SupplyEntityMapper mapper = new SupplyEntityMapper(userEntityMapper, communityEntityMapper);
 
     @Test
     void testMap() {

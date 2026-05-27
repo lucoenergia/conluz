@@ -5,7 +5,9 @@ import org.lucoenergia.conluz.domain.admin.supply.*;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.*;
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 
 @Transactional
 class CreateSupplyPartitionRepositoryTest extends BaseIntegrationTest {
@@ -29,6 +32,8 @@ class CreateSupplyPartitionRepositoryTest extends BaseIntegrationTest {
     private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private CommunityJpaRepository communityJpaRepository;
 
     @Test
     void shouldUpdateCoefficientSuccessfully() {
@@ -36,7 +41,10 @@ class CreateSupplyPartitionRepositoryTest extends BaseIntegrationTest {
         UserEntity user = UserMother.randomUserEntity();
         user = userRepository.save(user);
 
-        SupplyEntity supplyEntity = SupplyEntityMother.random(user);
+        SupplyEntity supplyEntity = SupplyEntityMother.random(
+                user,
+                communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID)
+        );
         supplyEntity = supplyRepository.save(supplyEntity);
 
         SharingAgreementEntity sharingAgreement = SharingAgreementEntityMother.random();
@@ -79,7 +87,10 @@ class CreateSupplyPartitionRepositoryTest extends BaseIntegrationTest {
         UserEntity user = UserMother.randomUserEntity();
         user = userRepository.save(user);
 
-        SupplyEntity supplyEntity = SupplyEntityMother.random(user);
+        SupplyEntity supplyEntity = SupplyEntityMother.random(
+                user,
+                communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID)
+        );
         supplyEntity = supplyRepository.save(supplyEntity);
 
         SharingAgreementEntity sharingAgreement = SharingAgreementEntityMother.random();
@@ -120,7 +131,10 @@ class CreateSupplyPartitionRepositoryTest extends BaseIntegrationTest {
         UserEntity user = UserMother.randomUserEntity();
         user = userRepository.save(user);
 
-        SupplyEntity supplyEntity = SupplyEntityMother.random(user);
+        SupplyEntity supplyEntity = SupplyEntityMother.random(
+                user,
+                communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID)
+        );
         supplyEntity = supplyRepository.save(supplyEntity);
         SupplyCode supplyCode = SupplyCode.of(supplyEntity.getCode());
 

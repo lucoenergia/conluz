@@ -4,10 +4,12 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
@@ -21,6 +23,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 
 @Transactional
 class SupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrationTest {
@@ -37,10 +40,16 @@ class SupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrationTe
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private CommunityJpaRepository communityJpaRepository;
+
     private SupplyEntity persistSupply() {
         UserEntity user = UserMother.randomUserEntity();
         userRepository.save(user);
-        return supplyRepository.save(SupplyEntityMother.random(user));
+        return supplyRepository.save(SupplyEntityMother.random(
+                user,
+                communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID)
+        ));
     }
 
     private SupplyPartitionCoefficient persist(UUID supplyId, BigDecimal coefficient,

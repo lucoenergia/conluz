@@ -3,9 +3,12 @@ package org.lucoenergia.conluz.infrastructure.production.get;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
@@ -18,6 +21,7 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -29,6 +33,8 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     private UserRepository userRepository;
     @Autowired
     private SupplyRepository supplyRepository;
+    @Autowired
+    private CommunityJpaRepository communityJpaRepository;
     @Autowired
     private EnergyProductionInfluxLoader energyProductionInfluxLoader;
 
@@ -59,15 +65,16 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
         user = userRepository.save(user);
 
         String authHeader = loginAsDefaultAdmin();
+        CommunityEntity community = communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID);
         UUID supplyId = UUID.randomUUID();
-        SupplyEntity supplyEntity = SupplyEntityMother.random(user);
+        SupplyEntity supplyEntity = SupplyEntityMother.random(user, community);
         supplyEntity.setId(supplyId);
 
         // Create some supplies
         supplyRepository.saveAll(Arrays.asList(
                 supplyEntity,
-                SupplyEntityMother.random(user),
-                SupplyEntityMother.random(user)
+                SupplyEntityMother.random(user, community),
+                SupplyEntityMother.random(user, community)
         ));
 
         mockMvc.perform(get("/api/v1/production")

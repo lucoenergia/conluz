@@ -3,7 +3,9 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.*;
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -20,6 +22,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.hasItem;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -39,6 +42,8 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private CommunityJpaRepository communityJpaRepository;
 
     // No need to mock the service for these simplified tests
 
@@ -56,7 +61,10 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
         user = userRepository.save(user);
 
         // Create a supply with the specific code
-        SupplyEntity supplyEntity = SupplyEntityMother.random(user);
+        SupplyEntity supplyEntity = SupplyEntityMother.random(
+                user,
+                communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID)
+        );
         supplyEntity.setCode("ES015678901234");
         supplyRepository.save(supplyEntity);
 

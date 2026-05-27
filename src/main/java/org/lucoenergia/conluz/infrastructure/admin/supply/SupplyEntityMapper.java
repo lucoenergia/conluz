@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
@@ -19,9 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
 
     private final UserEntityMapper userEntityMapper;
+    private final CommunityEntityMapper communityEntityMapper;
 
-    public SupplyEntityMapper(UserEntityMapper userEntityMapper) {
+    public SupplyEntityMapper(UserEntityMapper userEntityMapper, CommunityEntityMapper communityEntityMapper) {
         this.userEntityMapper = userEntityMapper;
+        this.communityEntityMapper = communityEntityMapper;
     }
 
     @Override
@@ -35,6 +38,7 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
                 .withPartitionCoefficient(entity.getPartitionCoefficient())
                 .withEnabled(entity.getEnabled())
                 .withUser(userEntityMapper.map(entity.getUser()))
+                .withCommunity(entity.getCommunity() != null ? communityEntityMapper.map(entity.getCommunity()) : null)
 
                 .withShelly(mapShelly(entity.getShelly()))
                 .withDatadis(mapDatadis(entity.getDatadis()))

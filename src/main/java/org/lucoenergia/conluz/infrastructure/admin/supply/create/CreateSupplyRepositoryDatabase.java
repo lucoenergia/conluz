@@ -7,6 +7,8 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyCannotBeCreatedException
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
@@ -27,15 +29,20 @@ import java.util.UUID;
 @Repository
 public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
 
+    public static final UUID DEFAULT_COMMUNITY_ID = UUID.fromString("f47ac10b-58cc-4372-a567-0e02b2c3d479");
+
     private final SupplyRepository supplyRepository;
     private final UserRepository userRepository;
+    private final CommunityJpaRepository communityJpaRepository;
     private final SupplyEntityMapper supplyEntityMapper;
     private final UserEntityMapper userEntityMapper;
 
     public CreateSupplyRepositoryDatabase(SupplyRepository supplyRepository, UserRepository userRepository,
+                                          CommunityJpaRepository communityJpaRepository,
                                           SupplyEntityMapper supplyEntityMapper, UserEntityMapper userEntityMapper) {
         this.supplyRepository = supplyRepository;
         this.userRepository = userRepository;
+        this.communityJpaRepository = communityJpaRepository;
         this.supplyEntityMapper = supplyEntityMapper;
         this.userEntityMapper = userEntityMapper;
     }
@@ -85,6 +92,8 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                     .build();
         }
 
+        CommunityEntity communityEntity = communityJpaRepository.findById(DEFAULT_COMMUNITY_ID).orElse(null);
+
         SupplyEntity supplyEntity = new SupplyEntity.Builder()
                 .withId(supplyId)
                 .withCode(supply.getCode())
@@ -93,6 +102,7 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                 .withAddressRef(supply.getAddressRef())
                 .withPartitionCoefficient(supply.getPartitionCoefficient())
                 .withEnabled(supply.getEnabled())
+                .withCommunity(communityEntity)
                 .withShelly(shellyEntity)
                 .withDatadis(datadisEntity)
                 .withDistributor(distributorEntity)

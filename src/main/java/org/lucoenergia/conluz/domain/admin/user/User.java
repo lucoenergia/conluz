@@ -38,6 +38,7 @@ public class User implements UserDetails {
     private Boolean enabled;
     @NotNull
     private Role role;
+    private Boolean isPlatformAdmin;
 
     public UUID getId() {
         return id;
@@ -117,6 +118,14 @@ public class User implements UserDetails {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public Boolean isPlatformAdmin() {
+        return isPlatformAdmin != null && isPlatformAdmin;
+    }
+
+    public void setPlatformAdmin(Boolean isPlatformAdmin) {
+        this.isPlatformAdmin = isPlatformAdmin;
     }
 
     @Override
@@ -209,6 +218,11 @@ public class User implements UserDetails {
 
         public Builder role(Role role) {
             user.role = role;
+            return this;
+        }
+
+        public Builder isPlatformAdmin(Boolean isPlatformAdmin) {
+            user.isPlatformAdmin = isPlatformAdmin;
             return this;
         }
 

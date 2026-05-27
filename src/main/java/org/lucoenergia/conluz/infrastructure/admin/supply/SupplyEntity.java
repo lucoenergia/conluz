@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import jakarta.persistence.*;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
@@ -21,6 +22,9 @@ public class SupplyEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     private UserEntity user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private CommunityEntity community;
 
     private String name;
     private String address;
@@ -64,6 +68,7 @@ public class SupplyEntity {
         private UUID id;
         private String code;
         private UserEntity user;
+        private CommunityEntity community;
         private String name;
         private String address;
         private String addressRef;
@@ -86,6 +91,11 @@ public class SupplyEntity {
 
         public Builder withUser(UserEntity user) {
             this.user = user;
+            return this;
+        }
+
+        public Builder withCommunity(CommunityEntity community) {
+            this.community = community;
             return this;
         }
 
@@ -139,6 +149,7 @@ public class SupplyEntity {
             entity.id = this.id;
             entity.code = this.code;
             entity.user = this.user;
+            entity.community = this.community;
             entity.name = this.name;
             entity.address = this.address;
             entity.addressRef = this.addressRef;
@@ -238,6 +249,14 @@ public class SupplyEntity {
 
     public void setUser(UserEntity user) {
         this.user = user;
+    }
+
+    public CommunityEntity getCommunity() {
+        return community;
+    }
+
+    public void setCommunity(CommunityEntity community) {
+        this.community = community;
     }
 
     public SupplyShellyEntity getShelly() {
