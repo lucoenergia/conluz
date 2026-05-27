@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.error.GlobalExceptionFilter;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationExceptionFilter;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
+import org.lucoenergia.conluz.infrastructure.shared.security.community.CommunityContextFilter;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.ConluzAccessDeniedHandler;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.ConluzAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,17 +43,20 @@ public class WebSecurityConfig {
     private final GlobalExceptionFilter globalExceptionFilter;
     private final ObjectMapper objectMapper;
     private final ErrorBuilder errorBuilder;
+    private final CommunityContextFilter communityContextFilter;
 
     public WebSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                              JwtAuthenticationExceptionFilter jwtAuthenticationExceptionFilter,
                              AuthenticationProvider authenticationProvider,
-                             GlobalExceptionFilter globalExceptionFilter, ObjectMapper objectMapper, ErrorBuilder errorBuilder) {
+                             GlobalExceptionFilter globalExceptionFilter, ObjectMapper objectMapper,
+                             ErrorBuilder errorBuilder, CommunityContextFilter communityContextFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.jwtAuthenticationExceptionFilter = jwtAuthenticationExceptionFilter;
         this.authenticationProvider = authenticationProvider;
         this.globalExceptionFilter = globalExceptionFilter;
         this.objectMapper = objectMapper;
         this.errorBuilder = errorBuilder;
+        this.communityContextFilter = communityContextFilter;
     }
 
     @Bean
@@ -76,6 +80,7 @@ public class WebSecurityConfig {
                 )
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(communityContextFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationExceptionFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(globalExceptionFilter, JwtAuthenticationExceptionFilter.class)
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> {

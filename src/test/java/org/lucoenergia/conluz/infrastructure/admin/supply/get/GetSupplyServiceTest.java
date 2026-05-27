@@ -1,11 +1,13 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
@@ -20,7 +22,9 @@ import static org.mockito.Mockito.*;
 class GetSupplyServiceTest {
 
     private final GetSupplyRepository repository = Mockito.mock(GetSupplyRepository.class);
-    private final GetSupplyService service = new GetSupplyServiceImpl(repository, null);
+    private final AuthService authService = Mockito.mock(AuthService.class);
+    private final CommunityAccessGuard communityAccessGuard = Mockito.mock(CommunityAccessGuard.class);
+    private final GetSupplyService service = new GetSupplyServiceImpl(repository, authService, communityAccessGuard);
 
     @Test
     void getByUserIdWithAuthorization_shouldReturnSuppliesWhenUserIsAdmin() {
