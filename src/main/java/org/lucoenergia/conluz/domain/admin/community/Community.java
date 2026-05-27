@@ -13,13 +13,13 @@ public class Community {
     @ValidUUID
     private UUID id;
     @NotBlank
-    private String name;
+    private final String name;
     @NotBlank
-    private String code;
-    private String legalId;
-    private String address;
+    private final String code;
+    private final String legalId;
+    private final String address;
     @NotNull
-    private Boolean enabled;
+    private final Boolean enabled;
 
     private Community(Builder builder) {
         this.id = builder.id;

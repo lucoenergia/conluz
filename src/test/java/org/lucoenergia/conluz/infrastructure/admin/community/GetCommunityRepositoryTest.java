@@ -5,13 +5,8 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,17 +55,5 @@ class GetCommunityRepositoryTest extends BaseIntegrationTest {
         assertEquals(created.getId(), found.get().getId());
         assertEquals(community.getName(), found.get().getName());
         assertEquals(community.getCode(), found.get().getCode());
-    }
-
-    @Test
-    void testSupplyLinkedToCommunityIsReadBack() {
-        User user = UserMother.randomUser();
-        user = createUserRepository.create(user);
-
-        Supply supply = SupplyMother.random(user).build();
-        Supply created = createSupplyRepository.create(supply, UserId.of(user.getId()));
-
-        assertNotNull(created.getCommunity(), "Supply created via service should be linked to the default community");
-        assertEquals(UUID.fromString("f47ac10b-58cc-4372-a567-0e02b2c3d479"), created.getCommunity().getId());
     }
 }

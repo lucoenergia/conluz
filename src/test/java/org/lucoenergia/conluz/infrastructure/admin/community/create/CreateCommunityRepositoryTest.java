@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Transactional
 class CreateCommunityRepositoryTest extends BaseIntegrationTest {
@@ -42,4 +42,20 @@ class CreateCommunityRepositoryTest extends BaseIntegrationTest {
         assertThrows(CommunityAlreadyExistsException.class,
                 () -> createCommunityRepository.create(duplicate));
     }
+
+    @Test
+    void shouldCreateCommunitySuccessfully() {
+        Community community = CommunityMother.random().build();
+
+        Community created = createCommunityRepository.create(community);
+
+        assertNotNull(created);
+        assertNotNull(created.getId());
+        assertEquals(community.getName(), created.getName());
+        assertEquals(community.getCode(), created.getCode());
+        assertEquals(community.getLegalId(), created.getLegalId());
+        assertEquals(community.getAddress(), created.getAddress());
+        assertEquals(community.isEnabled(), created.isEnabled());
+    }
+
 }

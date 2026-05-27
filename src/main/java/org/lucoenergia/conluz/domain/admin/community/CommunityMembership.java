@@ -11,15 +11,15 @@ public class CommunityMembership {
 
     @NotNull
     @ValidUUID
-    private UUID id;
+    private final UUID id;
     @NotNull
-    private User user;
+    private final User user;
     @NotNull
-    private Community community;
+    private final Community community;
     @NotNull
-    private CommunityRole role;
+    private final CommunityRole role;
     @NotNull
-    private Boolean enabled;
+    private final Boolean enabled;
 
     private CommunityMembership(Builder builder) {
         this.id = builder.id;
