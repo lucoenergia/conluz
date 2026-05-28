@@ -43,7 +43,7 @@ public class UserDetailsServiceFromDatabase implements UserDetailsService {
 
         // Load community memberships for the user
         List<CommunityMembershipEntity> membershipEntities =
-                communityMembershipJpaRepository.findByUser_Id(user.getId());
+                communityMembershipJpaRepository.findByUserId(user.getId());
         List<CommunityMembership> memberships = membershipEntities.stream()
                 .map(this::mapMembership)
                 .toList();

@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface CommunityMembershipJpaRepository extends JpaRepository<CommunityMembershipEntity, UUID> {
 
-    List<CommunityMembershipEntity> findByUser_Id(UUID userId);
+    List<CommunityMembershipEntity> findByUserId(UUID userId);
 }
