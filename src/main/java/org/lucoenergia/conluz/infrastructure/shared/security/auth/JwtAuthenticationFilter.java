@@ -62,7 +62,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         userId = authRepository.getUserIdFromToken(token);
 
-        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (userId == null) {
+            throw new InvalidTokenException(tokenString.get());
+        }
+
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
             User user = (User) userDetailsService.loadUserByUsername(userId.toString());
 
             if (authRepository.isTokenValid(token, user)) {
@@ -76,9 +80,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             } else {
                 throw new InvalidTokenException(tokenString.get());
             }
-        } else {
-            throw new InvalidTokenException(tokenString.get());
         }
+        // If authentication is already set by a prior filter invocation, proceed without re-processing.
 
         filterChain.doFilter(request, response);
     }

@@ -4,6 +4,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.apache.commons.collections4.map.HashedMap;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
@@ -15,6 +16,7 @@ import java.security.Key;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +28,8 @@ public class JwtAuthRepository implements AuthRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthRepository.class);
 
     private static final String CUSTOM_CLAIM_ROLE = "role";
+    private static final String CUSTOM_CLAIM_IS_PLATFORM_ADMIN = "is_platform_admin";
+    private static final String CUSTOM_CLAIM_COMMUNITY_MEMBERSHIPS = "community_memberships";
 
     private final JwtConfiguration jwtConfiguration;
 
@@ -54,7 +58,31 @@ public class JwtAuthRepository implements AuthRepository {
     private Map<String, Object> getCustomClaims(User user) {
         Map<String, Object> claims = new HashedMap<>();
         claims.put(CUSTOM_CLAIM_ROLE, user.getRole().name());
+        claims.put(CUSTOM_CLAIM_IS_PLATFORM_ADMIN, user.isPlatformAdmin());
+        Map<String, String> membershipMap = new HashMap<>();
+        if (user.getMemberships() != null) {
+            for (CommunityMembership m : user.getMemberships()) {
+                membershipMap.put(m.getCommunity().getId().toString(), m.getRole().name());
+            }
+        }
+        claims.put(CUSTOM_CLAIM_COMMUNITY_MEMBERSHIPS, membershipMap);
         return claims;
+    }
+
+    @Override
+    public boolean isPlatformAdmin(Token token) {
+        Object claim = getAllClaims(token).get(CUSTOM_CLAIM_IS_PLATFORM_ADMIN);
+        return Boolean.TRUE.equals(claim);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Map<String, String> getCommunityMemberships(Token token) {
+        Object claim = getAllClaims(token).get(CUSTOM_CLAIM_COMMUNITY_MEMBERSHIPS);
+        if (claim instanceof Map) {
+            return (Map<String, String>) claim;
+        }
+        return Map.of();
     }
 
     @Override

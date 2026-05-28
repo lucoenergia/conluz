@@ -4,11 +4,14 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -39,6 +42,7 @@ public class User implements UserDetails {
     @NotNull
     private Role role;
     private Boolean isPlatformAdmin;
+    private List<CommunityMembership> memberships = new ArrayList<>();
 
     public UUID getId() {
         return id;
@@ -128,9 +132,27 @@ public class User implements UserDetails {
         this.isPlatformAdmin = isPlatformAdmin;
     }
 
+    public List<CommunityMembership> getMemberships() {
+        return memberships;
+    }
+
+    public void setMemberships(List<CommunityMembership> memberships) {
+        this.memberships = memberships;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        if (Boolean.TRUE.equals(isPlatformAdmin)) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_PLATFORM_ADMIN"));
+        }
+        boolean isCommunityAdmin = memberships != null && memberships.stream()
+                .anyMatch(m -> m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()));
+        if (isCommunityAdmin) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_COMMUNITY_ADMIN"));
+        }
+        return authorities;
     }
 
     @Override
