@@ -59,7 +59,7 @@ public class DeletePlantController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public void deletePlant(@PathVariable("id") UUID plantId) {
         service.delete(PlantId.of(plantId));
     }

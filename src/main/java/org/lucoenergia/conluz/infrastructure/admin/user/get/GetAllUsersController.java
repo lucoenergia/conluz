@@ -72,7 +72,7 @@ public class GetAllUsersController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) Pageable page) {
         PagedResult<User> users = service.findAll(paginationRequestMapper.mapRequest(page));
 

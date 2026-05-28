@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
-import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -143,14 +142,8 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
         if (Boolean.TRUE.equals(isPlatformAdmin)) {
             authorities.add(new SimpleGrantedAuthority("ROLE_PLATFORM_ADMIN"));
-        }
-        boolean isCommunityAdmin = memberships != null && memberships.stream()
-                .anyMatch(m -> m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()));
-        if (isCommunityAdmin) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_COMMUNITY_ADMIN"));
         }
         return authorities;
     }

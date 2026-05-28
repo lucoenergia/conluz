@@ -60,7 +60,7 @@ public class RegisterPartitionCoefficientController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public RegisterPartitionCoefficientResponse registerCoefficient(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
             @Valid @RequestBody RegisterPartitionCoefficientBody body) {

@@ -57,7 +57,7 @@ public class EnableUserController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
     public void enableUser(@PathVariable("id") UUID userId) {
         service.enable(UserId.of(userId));
     }

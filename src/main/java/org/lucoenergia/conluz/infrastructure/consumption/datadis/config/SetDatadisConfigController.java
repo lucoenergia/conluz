@@ -65,7 +65,7 @@ public class SetDatadisConfigController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public SetDatadisConfigResponse configureDatadis(@RequestBody ConfigureDatadisBody body) {
         DatadisConfig config = service.setDatadisConfiguration(body.toDatadisConfig());
         return SetDatadisConfigResponse.of(config);

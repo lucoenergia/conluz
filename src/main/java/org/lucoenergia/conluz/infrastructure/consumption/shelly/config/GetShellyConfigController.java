@@ -63,7 +63,7 @@ public class GetShellyConfigController {
     @UnauthorizedErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public ResponseEntity<GetShellyConfigResponse> getShellyConfig() {
         Optional<ShellyConfig> config = service.getShellyConfiguration();
         return config

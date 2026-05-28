@@ -78,7 +78,7 @@ public class SyncMonthlyDatadisConsumptionsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public void syncMonthlyDatadisConsumptions(@Valid @RequestBody SyncMonthlyDatadisConsumptionsBody body) {
 
         Optional<DatadisConfig> config = getDatadisConfigRepository.getDatadisConfig();

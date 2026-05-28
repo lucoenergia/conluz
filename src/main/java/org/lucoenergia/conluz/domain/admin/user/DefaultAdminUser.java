@@ -9,6 +9,7 @@ public class DefaultAdminUser extends User {
         super();
         this.number = 0;
         this.role = Role.ADMIN;
+        setPlatformAdmin(true);
     }
 
     @Override

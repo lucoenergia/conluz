@@ -99,7 +99,7 @@ public class CreateUsersWithFileController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public ResponseEntity createUsersWithFile(
             @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String), address(String), email(String), phoneNumber(String), role(String), password(String).")
             @RequestParam("file") MultipartFile file) {

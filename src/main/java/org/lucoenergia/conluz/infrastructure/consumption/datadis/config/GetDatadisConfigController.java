@@ -66,7 +66,7 @@ public class GetDatadisConfigController {
     @UnauthorizedErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public ResponseEntity<GetDatadisConfigResponse> getDatadisConfig() {
         Optional<DatadisConfig> config = service.getDatadisConfiguration();
         return config

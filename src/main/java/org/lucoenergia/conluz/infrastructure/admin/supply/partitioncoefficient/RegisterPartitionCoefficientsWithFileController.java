@@ -106,7 +106,7 @@ public class RegisterPartitionCoefficientsWithFileController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public ResponseEntity importPartitionCoefficientsWithFile(
             @Parameter(description = "TXT file from the distribution company. Format: CUPS;coefficient (comma decimal separator). File name must follow the pattern: CAU_YYYY.txt.", required = true)
             @RequestParam("file") MultipartFile file,

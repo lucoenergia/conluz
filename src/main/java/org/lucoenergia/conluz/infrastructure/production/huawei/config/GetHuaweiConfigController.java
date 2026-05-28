@@ -66,7 +66,7 @@ public class GetHuaweiConfigController {
     @UnauthorizedErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public ResponseEntity<GetHuaweiConfigResponse> getHuaweiConfig() {
         Optional<HuaweiConfig> config = service.getHuaweiConfiguration();
         return config

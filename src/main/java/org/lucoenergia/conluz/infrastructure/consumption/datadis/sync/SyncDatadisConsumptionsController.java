@@ -81,7 +81,7 @@ public class SyncDatadisConsumptionsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public void syncDatadisConsumptions(@Valid @RequestBody SyncDatadisConsumptionsBody body) {
         Optional<DatadisConfig> config = getDatadisConfigRepository.getDatadisConfig();
         if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {

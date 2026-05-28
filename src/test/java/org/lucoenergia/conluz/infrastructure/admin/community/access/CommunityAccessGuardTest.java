@@ -12,6 +12,9 @@ import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,9 +31,15 @@ class CommunityAccessGuardTest {
 
     @Mock
     private AuthService authService;
+    @Mock
+    private CommunityMembershipJpaRepository membershipJpaRepository;
+    @Mock
+    private SupplyRepository supplyRepository;
+    @Mock
+    private SupplyEntityMapper supplyEntityMapper;
 
     private CommunityAccessGuard guard() {
-        return new CommunityAccessGuardImpl(authService);
+        return new CommunityAccessGuardImpl(authService, membershipJpaRepository, supplyRepository, supplyEntityMapper);
     }
 
     // --- canReadSupply ---
