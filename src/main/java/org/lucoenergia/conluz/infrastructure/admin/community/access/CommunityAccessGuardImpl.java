@@ -1,21 +1,17 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
-import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.Role;
-import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -27,17 +23,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
 
     private final AuthService authService;
     private final CommunityMembershipJpaRepository membershipJpaRepository;
-    private final SupplyRepository supplyRepository;
-    private final SupplyEntityMapper supplyEntityMapper;
 
     public CommunityAccessGuardImpl(AuthService authService,
-                                    CommunityMembershipJpaRepository membershipJpaRepository,
-                                    SupplyRepository supplyRepository,
-                                    SupplyEntityMapper supplyEntityMapper) {
+                                    CommunityMembershipJpaRepository membershipJpaRepository) {
         this.authService = authService;
         this.membershipJpaRepository = membershipJpaRepository;
-        this.supplyRepository = supplyRepository;
-        this.supplyEntityMapper = supplyEntityMapper;
     }
 
     @Override
@@ -50,26 +40,12 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
-    public boolean canReadSupply(UUID supplyId) {
-        return supplyRepository.findById(supplyId)
-                .map(entity -> canReadSupply(supplyEntityMapper.map(entity)))
-                .orElseGet(() -> throwNotFoundIfAuthorized(supplyId));
-    }
-
-    @Override
     public boolean canEditSupply(Supply supply) {
         User user = authService.getCurrentUser().orElse(null);
         if (user == null) return false;
         if (user.getRole() == Role.ADMIN) return true;
         if (isOwner(supply, user)) return true;
         return hasCommunityAdminRoleIn(user, supply.getCommunity() != null ? supply.getCommunity().getId() : null);
-    }
-
-    @Override
-    public boolean canEditSupply(UUID supplyId) {
-        return supplyRepository.findById(supplyId)
-                .map(entity -> canEditSupply(supplyEntityMapper.map(entity)))
-                .orElseGet(() -> throwNotFoundIfAuthorized(supplyId));
     }
 
     @Override
