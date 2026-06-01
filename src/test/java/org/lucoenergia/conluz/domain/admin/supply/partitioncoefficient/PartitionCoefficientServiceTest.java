@@ -193,6 +193,46 @@ class PartitionCoefficientServiceTest {
         assertEquals(0, BigDecimal.valueOf(100.000000).compareTo(sum));
     }
 
+    // --- findAllCoefficientHistory ---
+
+    @Test
+    void findAllCoefficientHistory_delegatesAndReturnsOrderedList() {
+        Instant t0 = Instant.parse("2023-01-01T00:00:00Z");
+        Instant t1 = Instant.parse("2024-01-01T00:00:00Z");
+        SupplyPartitionCoefficient p1 = buildRecord(t0, t1, BigDecimal.valueOf(1.0));
+        SupplyPartitionCoefficient p2 = buildRecord(t1, null, BigDecimal.valueOf(2.0));
+        when(repository.findAllBySupplyIdOrderByValidFromAsc(SUPPLY_ID)).thenReturn(List.of(p1, p2));
+
+        List<SupplyPartitionCoefficient> result = service.findAllCoefficientHistory(SUPPLY_ID);
+
+        assertEquals(2, result.size());
+        assertEquals(t0, result.get(0).getValidFrom());
+        assertEquals(t1, result.get(1).getValidFrom());
+        verify(repository).findAllBySupplyIdOrderByValidFromAsc(SUPPLY_ID);
+    }
+
+    // --- findActiveBySupplyId ---
+
+    @Test
+    void findActiveBySupplyId_delegatesAndReturnsOptional() {
+        SupplyPartitionCoefficient active = buildRecord(Instant.now().minusSeconds(3600), null, BigDecimal.valueOf(5.0));
+        when(repository.findActiveBySupplyId(SUPPLY_ID)).thenReturn(Optional.of(active));
+
+        Optional<SupplyPartitionCoefficient> result = service.findActiveBySupplyId(SUPPLY_ID);
+
+        assertTrue(result.isPresent());
+        assertEquals(active, result.get());
+    }
+
+    @Test
+    void findActiveBySupplyId_returnsEmpty_whenNoActiveRecord() {
+        when(repository.findActiveBySupplyId(SUPPLY_ID)).thenReturn(Optional.empty());
+
+        Optional<SupplyPartitionCoefficient> result = service.findActiveBySupplyId(SUPPLY_ID);
+
+        assertTrue(result.isEmpty());
+    }
+
     // --- helpers ---
 
     private SupplyPartitionCoefficient buildRecord(Instant validFrom, Instant validTo, BigDecimal coefficient) {
