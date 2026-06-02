@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run conluz with remote debug enabled" type="CompoundRunConfigurationType">
+    <toRun name="Run conluz from Docker" type="docker-deploy" />
+    <method v="2" />
+  </configuration>
+</component>

@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ConLuzApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+    <envs>
+      <env name="CONLUZ_JWT_SECRET_KEY" value="b5f86373ba5d7593f4c6eab57862bf4be76369c1adbe263ae2d50ddae40b8ca2" />
+    </envs>
+    <module name="conluz.main" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="org.lucoenergia.conluz.ConLuzApplication" />
+    <option name="VM_PARAMETERS" value="-Dspring.profiles.active=prod -Dspring.liquibase.drop-first=false" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

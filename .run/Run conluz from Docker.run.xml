@@ -1,0 +1,24 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run conluz from Docker" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
+    <deployment type="docker-compose.yml">
+      <settings>
+        <option name="envFilePath" value="" />
+        <option name="envFilePaths">
+          <list>
+            <option value="" />
+          </list>
+        </option>
+        <option name="commandLineOptions" value="--build" />
+        <option name="services">
+          <list>
+            <option value="conluz" />
+          </list>
+        </option>
+        <option name="sourceFilePath" value="deploy/docker-compose.yaml" />
+      </settings>
+    </deployment>
+    <method v="2">
+      <option name="Gradle.BeforeRunTask" enabled="false" tasks="clean build -x test" externalProjectPath="$PROJECT_DIR$" vmOptions="" scriptParameters="" />
+    </method>
+  </configuration>
+</component>
