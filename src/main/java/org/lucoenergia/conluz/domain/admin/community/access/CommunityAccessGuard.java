@@ -9,7 +9,7 @@ public interface CommunityAccessGuard {
 
     boolean canReadSupply(Supply supply);
 
-    boolean canEditSupply(Supply supply);
+    boolean canEditSupply(UUID supply);
 
     boolean canReadCommunity(UUID communityId);
 

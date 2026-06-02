@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
@@ -23,11 +24,13 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
 
     private final AuthService authService;
     private final CommunityMembershipJpaRepository membershipJpaRepository;
+    private final GetSupplyRepository getSupplyRepository;
 
     public CommunityAccessGuardImpl(AuthService authService,
-                                    CommunityMembershipJpaRepository membershipJpaRepository) {
+                                    CommunityMembershipJpaRepository membershipJpaRepository, GetSupplyRepository getSupplyRepository) {
         this.authService = authService;
         this.membershipJpaRepository = membershipJpaRepository;
+        this.getSupplyRepository = getSupplyRepository;
     }
 
     @Override
@@ -40,9 +43,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
-    public boolean canEditSupply(Supply supply) {
+    public boolean canEditSupply(UUID supplyId) {
         User user = authService.getCurrentUser().orElse(null);
+        Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
         if (user == null) return false;
+        if (supply == null) return throwNotFoundIfAuthorized(supplyId);
         if (user.getRole() == Role.ADMIN) return true;
         if (isOwner(supply, user)) return true;
         return hasCommunityAdminRoleIn(user, supply.getCommunity() != null ? supply.getCommunity().getId() : null);

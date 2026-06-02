@@ -8,10 +8,12 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
@@ -23,8 +25,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -35,9 +40,12 @@ class CommunityAccessGuardTest {
     private AuthService authService;
     @Mock
     private CommunityMembershipJpaRepository membershipJpaRepository;
+    @Mock
+    private GetSupplyRepository getSupplyRepository;
 
     private CommunityAccessGuard guard() {
-        return new CommunityAccessGuardImpl(authService, membershipJpaRepository);
+        return new CommunityAccessGuardImpl(authService, membershipJpaRepository,
+                getSupplyRepository);
     }
 
     // --- canReadSupply ---
@@ -109,20 +117,24 @@ class CommunityAccessGuardTest {
 
     @Test
     void canEditSupply_returnsTrue_whenUserIsAdmin() {
+        Supply supply = supplyOwnedBy(UUID.randomUUID());
         User admin = UserMother.randomUser();
         admin.setRole(Role.ADMIN);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertTrue(guard().canEditSupply(supplyOwnedBy(UUID.randomUUID())));
+        assertTrue(guard().canEditSupply(supply.getId()));
     }
 
     @Test
     void canEditSupply_returnsTrue_whenUserIsOwner() {
         User user = UserMother.randomUser();
         user.setRole(Role.PARTNER);
+        Supply supply = supplyOwnedBy(user.getId());
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertTrue(guard().canEditSupply(supplyOwnedBy(user.getId())));
+        assertTrue(guard().canEditSupply(supply.getId()));
     }
 
     @Test
@@ -132,8 +144,9 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertTrue(guard().canEditSupply(supply));
+        assertTrue(guard().canEditSupply(supply.getId()));
     }
 
     @Test
@@ -143,8 +156,31 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canEditSupply(supply));
+        assertFalse(guard().canEditSupply(supply.getId()));
+    }
+
+    @Test
+    void canEditSupply_throwsNotFoundException_whenAdminAndSupplyNotFound() {
+        UUID supplyId = UUID.randomUUID();
+        User admin = UserMother.randomUser();
+        admin.setRole(Role.ADMIN);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+        when(getSupplyRepository.findById(SupplyId.of(supplyId))).thenReturn(Optional.empty());
+
+        assertThrows(SupplyNotFoundException.class, () -> guard().canEditSupply(supplyId));
+    }
+
+    @Test
+    void canEditSupply_returnsFalse_whenNonAdminAndSupplyNotFound() {
+        UUID supplyId = UUID.randomUUID();
+        User user = UserMother.randomUser();
+        user.setRole(Role.PARTNER);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getSupplyRepository.findById(SupplyId.of(supplyId))).thenReturn(Optional.empty());
+
+        assertFalse(guard().canEditSupply(supplyId));
     }
 
     // --- canReadCommunity ---
