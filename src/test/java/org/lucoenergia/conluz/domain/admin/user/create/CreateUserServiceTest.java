@@ -59,7 +59,7 @@ class CreateUserServiceTest {
         when(communityContext.getActiveCommunityId()).thenReturn(Optional.of(contextCommunityId));
         when(repository.create(user)).thenReturn(user);
 
-        service().create(user, null, null);
+        service().create(user);
 
         verify(createMembershipService).create(eq(contextCommunityId), eq(user.getId()), any());
     }
@@ -74,7 +74,7 @@ class CreateUserServiceTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
         when(repository.create(user)).thenReturn(user);
 
-        service().create(user, null, null);
+        service().create(user);
 
         verifyNoInteractions(createMembershipService);
     }
@@ -90,7 +90,7 @@ class CreateUserServiceTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
         when(repository.create(user)).thenReturn(user);
 
-        service().create(user, null, null);
+        service().create(user);
 
         verifyNoInteractions(createMembershipService);
     }

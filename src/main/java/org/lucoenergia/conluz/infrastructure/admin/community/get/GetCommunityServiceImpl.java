@@ -30,11 +30,6 @@ public class GetCommunityServiceImpl implements GetCommunityService {
     }
 
     @Override
-    public List<Community> findAll() {
-        return repository.findAll();
-    }
-
-    @Override
     public List<Community> findAllVisible() {
         Set<UUID> visibleIds = guard.visibleCommunityIds();
         if (visibleIds == null) {

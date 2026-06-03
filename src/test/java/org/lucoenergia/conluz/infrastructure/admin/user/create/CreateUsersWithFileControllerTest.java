@@ -1,7 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CreateUsersWithFileControllerTest extends BaseControllerTest {
 
     private static final String URL = "/api/v1/users/import";
+
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
 
     @Test
     void testMinimumBody() throws Exception {
@@ -213,5 +220,32 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
+
+    @Test
+    void testWithCommunityColumns() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+
+        String csvContent = "number,fullName,personalId,address,email,phoneNumber,role,password,communityId,communityRole\n" +
+                "1,Test User,111111111A,1 Test St,test.user@example.com,600000001,partner,password1," +
+                community.getId() + ",COMMUNITY_MEMBER\n";
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "users_with_community.csv",
+                "text/csv",
+                csvContent.getBytes());
+
+        String authHeader = loginAsDefaultAdmin();
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created").isArray())
+                .andExpect(jsonPath("$.created").isNotEmpty())
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors").isEmpty());
     }
 }
