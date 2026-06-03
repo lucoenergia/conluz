@@ -41,17 +41,6 @@ class GetCommunityServiceTest {
     }
 
     @Test
-    void findAll_delegatesToRepository() {
-        Community c1 = CommunityMother.random().build();
-        Community c2 = CommunityMother.random().build();
-        when(repository.findAll()).thenReturn(List.of(c1, c2));
-
-        List<Community> result = service().findAll();
-
-        assertEquals(2, result.size());
-    }
-
-    @Test
     void findAllVisible_whenGuardReturnsNull_callsFindAll() {
         when(guard.visibleCommunityIds()).thenReturn(null);
         when(repository.findAll()).thenReturn(List.of(CommunityMother.random().build()));

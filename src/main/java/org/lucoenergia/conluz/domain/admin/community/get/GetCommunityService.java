@@ -10,7 +10,5 @@ public interface GetCommunityService {
 
     Optional<Community> findById(UUID id);
 
-    List<Community> findAll();
-
     List<Community> findAllVisible();
 }
