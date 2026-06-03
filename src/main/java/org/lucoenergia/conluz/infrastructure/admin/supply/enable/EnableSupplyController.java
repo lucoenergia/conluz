@@ -55,7 +55,7 @@ public class EnableSupplyController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
     public SupplyResponse enableSupply(@PathVariable("id") UUID supplyId) {
         Supply updated = service.enable(SupplyId.of(supplyId));
         return new SupplyResponse(updated);

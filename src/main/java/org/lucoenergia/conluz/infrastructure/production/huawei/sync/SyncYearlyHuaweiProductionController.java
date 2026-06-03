@@ -76,7 +76,7 @@ public class SyncYearlyHuaweiProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public void syncYearlyHuaweiProduction(@Valid @RequestBody SyncYearlyHuaweiProductionBody body) {
 
         Optional<HuaweiConfig> config = getHuaweiConfigRepository.getHuaweiConfig();

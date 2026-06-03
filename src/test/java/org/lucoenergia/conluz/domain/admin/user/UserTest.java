@@ -18,51 +18,64 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class UserTest {
 
     @Test
-    void partnerRoleGrantsOnlyPartnerAuthority() {
+    void partnerRoleEmitsNoAuthority() {
         User user = UserMother.randomUser();
         user.setRole(Role.PARTNER);
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
-        assertEquals(1, authorities.size());
-        assertTrue(containsAuthority(authorities, "ROLE_PARTNER"));
+        assertEquals(0, authorities.size());
+        assertFalse(containsAuthority(authorities, "ROLE_PARTNER"));
     }
 
     @Test
-    void adminRoleGrantsOnlyAdminAuthority() {
+    void adminRoleEmitsNoAuthority() {
         User user = UserMother.randomUser();
         user.setRole(Role.ADMIN);
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
-        assertEquals(1, authorities.size());
-        assertTrue(containsAuthority(authorities, "ROLE_ADMIN"));
+        assertEquals(0, authorities.size());
+        assertFalse(containsAuthority(authorities, "ROLE_ADMIN"));
     }
 
     @Test
-    void platformAdminFlagAddsPlatformAdminAuthority() {
+    void platformAdminFlagGrantsPlatformAdminAuthority() {
         User user = UserMother.randomUser();
         user.setRole(Role.PARTNER);
         user.setPlatformAdmin(true);
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
-        assertEquals(2, authorities.size());
-        assertTrue(containsAuthority(authorities, "ROLE_PARTNER"));
+        assertEquals(1, authorities.size());
         assertTrue(containsAuthority(authorities, "ROLE_PLATFORM_ADMIN"));
     }
 
     @Test
-    void activeCommunityAdminMembershipGrantsCommunityAdminAuthority() {
+    void platformAdminFalseEmitsNoAuthority() {
+        User user = UserMother.randomUser();
+        user.setRole(Role.PARTNER);
+        user.setPlatformAdmin(false);
+
+        Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
+
+        assertEquals(0, authorities.size());
+    }
+
+    /**
+     * Privilege-escalation regression: COMMUNITY_ADMIN membership must never produce a global
+     * ROLE_COMMUNITY_ADMIN authority. Community authorization goes through CommunityAccessGuard only.
+     */
+    @Test
+    void activeCommunityAdminMembershipDoesNotGrantCommunityAdminAuthority() {
         User user = UserMother.randomUser();
         user.setRole(Role.PARTNER);
         user.setMemberships(List.of(membershipWith(user, CommunityRole.COMMUNITY_ADMIN, true)));
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
-        assertEquals(2, authorities.size());
-        assertTrue(containsAuthority(authorities, "ROLE_PARTNER"));
-        assertTrue(containsAuthority(authorities, "ROLE_COMMUNITY_ADMIN"));
+        assertEquals(0, authorities.size());
+        assertFalse(containsAuthority(authorities, "ROLE_COMMUNITY_ADMIN"));
     }
 
     @Test
@@ -73,8 +86,7 @@ class UserTest {
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
-        assertEquals(1, authorities.size());
-        assertTrue(containsAuthority(authorities, "ROLE_PARTNER"));
+        assertEquals(0, authorities.size());
         assertFalse(containsAuthority(authorities, "ROLE_COMMUNITY_ADMIN"));
     }
 
@@ -86,8 +98,7 @@ class UserTest {
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
-        assertEquals(1, authorities.size());
-        assertTrue(containsAuthority(authorities, "ROLE_PARTNER"));
+        assertEquals(0, authorities.size());
         assertFalse(containsAuthority(authorities, "ROLE_COMMUNITY_ADMIN"));
     }
 
@@ -99,13 +110,12 @@ class UserTest {
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
-        assertEquals(1, authorities.size());
-        assertTrue(containsAuthority(authorities, "ROLE_PARTNER"));
+        assertEquals(0, authorities.size());
         assertFalse(containsAuthority(authorities, "ROLE_COMMUNITY_ADMIN"));
     }
 
     @Test
-    void allFlagsSetGrantsAllAuthorities() {
+    void onlyPlatformAdminFlagProducesAnAuthority() {
         User user = UserMother.randomUser();
         user.setRole(Role.PARTNER);
         user.setPlatformAdmin(true);
@@ -113,10 +123,10 @@ class UserTest {
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
-        assertEquals(3, authorities.size());
-        assertTrue(containsAuthority(authorities, "ROLE_PARTNER"));
+        assertEquals(1, authorities.size());
         assertTrue(containsAuthority(authorities, "ROLE_PLATFORM_ADMIN"));
-        assertTrue(containsAuthority(authorities, "ROLE_COMMUNITY_ADMIN"));
+        assertFalse(containsAuthority(authorities, "ROLE_COMMUNITY_ADMIN"));
+        assertFalse(containsAuthority(authorities, "ROLE_PARTNER"));
     }
 
     private CommunityMembership membershipWith(User user, CommunityRole communityRole, boolean enabled) {

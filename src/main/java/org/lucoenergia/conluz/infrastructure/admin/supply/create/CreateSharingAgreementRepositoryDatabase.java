@@ -28,12 +28,13 @@ public class CreateSharingAgreementRepositoryDatabase implements CreateSharingAg
     }
 
     @Override
-    public SharingAgreement create(LocalDate startDate, LocalDate endDate) {
+    public SharingAgreement create(LocalDate startDate, LocalDate endDate, UUID communityId) {
         SharingAgreementEntity entity = new SharingAgreementEntity();
         entity.setId(UUID.randomUUID());
         entity.setStartDate(startDate);
         entity.setEndDate(endDate);
-        
+        entity.setCommunityId(communityId);
+
         SharingAgreementEntity savedEntity = repository.save(entity);
         return mapper.map(savedEntity);
     }

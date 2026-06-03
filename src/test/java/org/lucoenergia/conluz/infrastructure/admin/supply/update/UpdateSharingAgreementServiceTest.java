@@ -25,7 +25,7 @@ class UpdateSharingAgreementServiceTest {
         UUID id = UUID.randomUUID();
         LocalDate startDate = LocalDate.of(2023, 1, 1);
         LocalDate endDate = LocalDate.of(2023, 12, 31);
-        SharingAgreement expectedAgreement = new SharingAgreement(id, startDate, endDate);
+        SharingAgreement expectedAgreement = new SharingAgreement(id, startDate, endDate, null);
 
         when(repository.update(id, startDate, endDate)).thenReturn(expectedAgreement);
 
@@ -64,7 +64,7 @@ class UpdateSharingAgreementServiceTest {
         // Arrange
         UUID id = UUID.randomUUID();
         LocalDate startDate = LocalDate.of(2023, 1, 1);
-        SharingAgreement expectedAgreement = new SharingAgreement(id, startDate, null);
+        SharingAgreement expectedAgreement = new SharingAgreement(id, startDate, null, null);
 
 
         when(repository.update(id, startDate, null)).thenReturn(expectedAgreement);

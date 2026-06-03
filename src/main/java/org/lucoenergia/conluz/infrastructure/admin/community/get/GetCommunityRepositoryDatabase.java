@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Transactional
@@ -34,5 +35,10 @@ public class GetCommunityRepositoryDatabase implements GetCommunityRepository {
     @Override
     public List<Community> findAll() {
         return communityEntityMapper.mapList(communityJpaRepository.findAll());
+    }
+
+    @Override
+    public List<Community> findAllByIds(Set<UUID> ids) {
+        return communityEntityMapper.mapList(communityJpaRepository.findAllById(ids));
     }
 }

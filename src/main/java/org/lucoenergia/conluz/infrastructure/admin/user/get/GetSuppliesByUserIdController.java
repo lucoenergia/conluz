@@ -69,7 +69,7 @@ public class GetSuppliesByUserIdController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canReadUser(#userId)")
     public List<SupplyResponse> getSuppliesByUserId(@PathVariable("id") UUID userId) {
         User currentUser = authService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("User must be authenticated"));

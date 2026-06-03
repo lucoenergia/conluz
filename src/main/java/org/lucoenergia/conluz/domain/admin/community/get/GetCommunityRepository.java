@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface GetCommunityRepository {
@@ -11,4 +12,6 @@ public interface GetCommunityRepository {
     Optional<Community> findById(UUID id);
 
     List<Community> findAll();
+
+    List<Community> findAllByIds(Set<UUID> ids);
 }

@@ -62,7 +62,7 @@ public class UpdatePlantController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public PlantResponse updatePlant(@PathVariable("id") UUID plantId, @Valid @RequestBody UpdatePlantBody body) {
         return new PlantResponse(service.update(body.toPlant(plantId)));
     }

@@ -41,6 +41,7 @@ import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 
 /**
@@ -99,9 +100,9 @@ public class CreateUsersWithFileController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public ResponseEntity createUsersWithFile(
-            @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String), address(String), email(String), phoneNumber(String), role(String), password(String).")
+            @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String), address(String), email(String), phoneNumber(String), role(String), password(String), communityId(UUID, optional), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).")
             @RequestParam("file") MultipartFile file) {
 
         Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);
@@ -113,18 +114,19 @@ public class CreateUsersWithFileController {
         try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
 
             // create csv bean reader
-            CsvToBean<CreateUserBody> csvToBean = new CsvToBeanBuilder<CreateUserBody>(reader)
-                    .withType(CreateUserBody.class)
+            CsvToBean<CreateUserCsvBody> csvToBean = new CsvToBeanBuilder<CreateUserCsvBody>(reader)
+                    .withType(CreateUserCsvBody.class)
                     .withIgnoreLeadingWhiteSpace(true)
                     .build();
 
             // convert `CsvToBean` object to list of users
-            List<CreateUserBody> users = csvToBean.parse();
+            List<CreateUserCsvBody> users = csvToBean.parse();
 
             // save users in DB
             users.forEach(user -> {
                 try {
-                    User newUser = createUserService.create(user.mapToUser());
+                    UUID communityId = user.getCommunityId() != null ? UUID.fromString(user.getCommunityId()) : null;
+                    User newUser = createUserService.create(user.mapToUser(), communityId, user.getCommunityRole());
                     response.addCreated(UserPersonalId.of(newUser.getPersonalId()));
                 } catch (UserAlreadyExistsException e) {
                     response.addError(UserPersonalId.of(user.getPersonalId()),

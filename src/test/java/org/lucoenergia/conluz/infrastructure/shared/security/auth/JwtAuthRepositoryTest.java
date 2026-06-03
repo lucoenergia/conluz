@@ -6,6 +6,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -15,7 +19,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @ExtendWith(MockitoExtension.class)
 class JwtAuthRepositoryTest {
@@ -92,6 +99,53 @@ class JwtAuthRepositoryTest {
     }
     
     
+
+    // --- isPlatformAdmin ---
+
+    @Test
+    void isPlatformAdmin_returnsTrue_whenTokenContainsPlatformAdminClaim() {
+        User user = UserMother.randomUser();
+        user.setPlatformAdmin(true);
+        mockJwtConfig();
+
+        Token token = repository.getToken(user);
+
+        Assertions.assertTrue(repository.isPlatformAdmin(token));
+    }
+
+    @Test
+    void isPlatformAdmin_returnsFalse_whenTokenDoesNotContainPlatformAdminClaim() {
+        User user = UserMother.randomUser();
+        user.setPlatformAdmin(false);
+        mockJwtConfig();
+
+        Token token = repository.getToken(user);
+
+        Assertions.assertFalse(repository.isPlatformAdmin(token));
+    }
+
+    // --- getCommunityMemberships ---
+
+    @Test
+    void getCommunityMemberships_returnsMembershipMapFromToken() {
+        Community community = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        CommunityMembership membership = new CommunityMembership.Builder()
+                .withId(UUID.randomUUID())
+                .withUser(user)
+                .withCommunity(community)
+                .withRole(CommunityRole.COMMUNITY_ADMIN)
+                .withEnabled(true)
+                .build();
+        user.setMemberships(List.of(membership));
+        mockJwtConfig();
+
+        Token token = repository.getToken(user);
+
+        Map<String, String> memberships = repository.getCommunityMemberships(token);
+        Assertions.assertTrue(memberships.containsKey(community.getId().toString()));
+        Assertions.assertEquals(CommunityRole.COMMUNITY_ADMIN.name(), memberships.get(community.getId().toString()));
+    }
 
     private void mockJwtConfig() {
         // Mock expiration time and JWT secret key

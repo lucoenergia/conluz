@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 /**
  * Request body for creating a sharing agreement
@@ -16,6 +17,9 @@ public class CreateSharingAgreementBody {
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
+
+    @NotNull(message = "Community ID is required")
+    private UUID communityId;
 
     public LocalDate getStartDate() {
         return startDate;
@@ -31,5 +35,13 @@ public class CreateSharingAgreementBody {
 
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
+    }
+
+    public UUID getCommunityId() {
+        return communityId;
+    }
+
+    public void setCommunityId(UUID communityId) {
+        this.communityId = communityId;
     }
 }

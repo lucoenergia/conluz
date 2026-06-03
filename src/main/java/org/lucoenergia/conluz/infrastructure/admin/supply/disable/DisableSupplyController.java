@@ -55,7 +55,7 @@ public class DisableSupplyController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
     public SupplyResponse disableSupply(@PathVariable("id") UUID supplyId) {
         Supply updated = service.disable(SupplyId.of(supplyId));
         return new SupplyResponse(updated);

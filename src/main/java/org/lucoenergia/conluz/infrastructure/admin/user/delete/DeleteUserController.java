@@ -57,7 +57,7 @@ public class DeleteUserController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
     public void deleteUser(@PathVariable("id") UUID userId) {
         service.delete(UserId.of(userId));
     }

@@ -141,6 +141,27 @@ class SupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrationTe
     }
 
     @Test
+    void findAllActiveAtTimestampReturnsOnlyActiveRows() {
+        SupplyEntity supply1 = persistSupply();
+        SupplyEntity supply2 = persistSupply();
+
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
+        Instant queryAt = Instant.parse("2025-06-01T00:00:00Z");
+
+        persist(supply1.getId(), BigDecimal.valueOf(10.0), t0, null);
+        persist(supply2.getId(), BigDecimal.valueOf(20.0), t0, null);
+        // closed row — should not appear
+        persist(persistSupply().getId(), BigDecimal.valueOf(30.0), t0, t1);
+
+        List<SupplyPartitionCoefficient> result = repository.findAllActiveAtTimestamp(queryAt);
+
+        assertTrue(result.stream().anyMatch(c -> c.getSupplyId().equals(supply1.getId())));
+        assertTrue(result.stream().anyMatch(c -> c.getSupplyId().equals(supply2.getId())));
+        assertTrue(result.stream().noneMatch(c -> c.getValidTo() != null && c.getValidTo().isBefore(queryAt)));
+    }
+
+    @Test
     void findAllBySupplyIdOrderByValidFromAscReturnsChronologicalHistory() {
         SupplyEntity supply = persistSupply();
         Instant t0 = Instant.parse("2023-01-01T00:00:00Z");

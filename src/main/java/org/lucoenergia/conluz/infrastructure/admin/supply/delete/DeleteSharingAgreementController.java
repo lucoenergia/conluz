@@ -62,7 +62,7 @@ public class DeleteSharingAgreementController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public void deleteSharingAgreement(@PathVariable("id") UUID id) {
         service.delete(SharingAgreementId.of(id));
     }

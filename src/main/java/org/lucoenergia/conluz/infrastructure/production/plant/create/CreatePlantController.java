@@ -75,7 +75,7 @@ public class CreatePlantController {
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public PlantResponse createPlant(@Valid @RequestBody CreatePlantBody body) {
         Plant newPlant = service.create(body.mapToPlant(), SupplyCode.of(body.getSupplyCode()));
         return new PlantResponse(newPlant);

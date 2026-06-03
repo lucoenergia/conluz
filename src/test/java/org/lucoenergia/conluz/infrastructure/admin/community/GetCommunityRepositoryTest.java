@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,5 +56,19 @@ class GetCommunityRepositoryTest extends BaseIntegrationTest {
         assertEquals(created.getId(), found.get().getId());
         assertEquals(community.getName(), found.get().getName());
         assertEquals(community.getCode(), found.get().getCode());
+    }
+
+    @Test
+    void testFindAllByIds_returnsOnlyRequestedCommunities() {
+        Community c1 = createCommunityRepository.create(CommunityMother.random().build());
+        Community c2 = createCommunityRepository.create(CommunityMother.random().build());
+        Community c3 = createCommunityRepository.create(CommunityMother.random().build());
+
+        List<Community> result = getCommunityRepository.findAllByIds(Set.of(c1.getId(), c2.getId()));
+
+        assertEquals(2, result.size());
+        assertTrue(result.stream().anyMatch(c -> c.getId().equals(c1.getId())));
+        assertTrue(result.stream().anyMatch(c -> c.getId().equals(c2.getId())));
+        assertTrue(result.stream().noneMatch(c -> c.getId().equals(c3.getId())));
     }
 }

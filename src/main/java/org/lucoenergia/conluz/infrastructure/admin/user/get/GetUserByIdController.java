@@ -61,7 +61,7 @@ public class GetUserByIdController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canReadUser(#userId)")
     public UserResponse getUserById(@PathVariable("id") UUID userId) {
         User user = service.findById(UserId.of(userId));
         return new UserResponse(user);

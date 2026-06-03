@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface CommunityMembershipJpaRepository extends JpaRepository<CommunityMembershipEntity, UUID> {
 
     List<CommunityMembershipEntity> findByUserId(UUID userId);
+
+    List<CommunityMembershipEntity> findByCommunityId(UUID communityId);
 }

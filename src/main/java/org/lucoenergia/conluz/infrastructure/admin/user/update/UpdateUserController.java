@@ -60,7 +60,7 @@ public class UpdateUserController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
     public UserResponse updateUser(@PathVariable("id") UUID userId, @Valid @RequestBody UpdateUserBody body) {
         return new UserResponse(service.update(body.toUser(userId)));
     }

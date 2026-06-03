@@ -47,8 +47,14 @@ public class CreateUserController {
                 
                 This endpoint requires clients to send a request containing essential user details, including username, password, and any additional relevant information.
                 
+                Optionally, a communityId and communityRole can be specified to automatically create a membership
+                for the new user in the given community. If communityId is not provided and the caller is a
+                COMMUNITY_ADMIN, the community is derived from the caller's active context. If the caller is a
+                PLATFORM_ADMIN and communityId is not provided, a user with no memberships is created
+                (they can be attached later).
+                
                 Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                **Required Role: ADMIN**
+                **Required Role: PLATFORM_ADMIN or COMMUNITY_ADMIN in the target community**
                 
                 Upon successful user creation, the server responds with an HTTP status code of 200, along with comprehensive details about the newly created user, such as a unique identifier and username.
                 
@@ -69,9 +75,9 @@ public class CreateUserController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canCreateUserIn(#body.communityId)")
     public UserResponse createUser(@Valid @RequestBody CreateUserBody body) {
-        User user = service.create(body.mapToUser());
+        User user = service.create(body.mapToUser(), body.getCommunityId(), body.getCommunityRole());
         return new UserResponse(user);
     }
 }

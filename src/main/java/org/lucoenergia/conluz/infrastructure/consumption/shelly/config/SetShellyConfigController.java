@@ -72,7 +72,7 @@ public class SetShellyConfigController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public SetShellyConfigResponse configureShelly(@RequestBody ConfigureShellyBody body) {
         ShellyConfig config = service.setShellyConfiguration(body.toShellyConfig());
         return SetShellyConfigResponse.of(config);

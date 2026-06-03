@@ -60,7 +60,7 @@ public class SyncDatadisSuppliesController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public void syncDatadisConsumptions() {
         datadisSuppliesSyncService.synchronizeSupplies();
     }

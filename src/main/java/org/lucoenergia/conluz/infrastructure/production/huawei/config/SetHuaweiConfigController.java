@@ -81,7 +81,7 @@ public class SetHuaweiConfigController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
     public SetHuaweiConfigResponse configureHuawei(@RequestBody ConfigureHuaweiBody body) {
         HuaweiConfig config = service.setHuaweiConfiguration(body.toHuaweiConfig());
         return SetHuaweiConfigResponse.of(config);

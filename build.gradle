@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.6'
+    id 'org.springframework.boot' version '3.5.14'
     id 'io.spring.dependency-management' version '1.1.4'
 }
 
@@ -43,8 +43,8 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'org.testcontainers:postgresql:1.18.3'
-    testImplementation "org.testcontainers:influxdb:1.19.1"
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:influxdb'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
 }
 

@@ -68,9 +68,9 @@ public class CreateSharingAgreementController {
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
     public SharingAgreementResponse createSharingAgreement(@Valid @RequestBody CreateSharingAgreementBody body) {
-        SharingAgreement sharingAgreement = service.create(body.getStartDate(), body.getEndDate());
+        SharingAgreement sharingAgreement = service.create(body.getStartDate(), body.getEndDate(), body.getCommunityId());
         return new SharingAgreementResponse(sharingAgreement);
     }
 }
