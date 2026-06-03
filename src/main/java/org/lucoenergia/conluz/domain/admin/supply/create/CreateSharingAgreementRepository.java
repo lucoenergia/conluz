@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.admin.supply.create;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 /**
  * Repository for creating sharing agreements
@@ -16,5 +17,5 @@ public interface CreateSharingAgreementRepository {
      * @param endDate the end date of the agreement
      * @return the created sharing agreement
      */
-    SharingAgreement create(LocalDate startDate, LocalDate endDate);
+    SharingAgreement create(LocalDate startDate, LocalDate endDate, UUID communityId);
 }

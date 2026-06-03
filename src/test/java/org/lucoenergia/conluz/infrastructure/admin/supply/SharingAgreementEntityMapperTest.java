@@ -17,19 +17,23 @@ class SharingAgreementEntityMapperTest {
         Assertions.assertEquals(entity.getId(), result.getId());
         Assertions.assertEquals(entity.getStartDate(), result.getStartDate());
         Assertions.assertEquals(entity.getEndDate(), result.getEndDate());
+        Assertions.assertEquals(entity.getCommunityId(), result.getCommunityId());
     }
 
     @Test
     void testMapWithSpecificValues() {
+        java.util.UUID communityId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000002");
         SharingAgreementEntity entity = new SharingAgreementEntity();
         entity.setId(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"));
         entity.setStartDate(java.time.LocalDate.of(2023, 1, 1));
         entity.setEndDate(java.time.LocalDate.of(2023, 12, 31));
+        entity.setCommunityId(communityId);
 
         SharingAgreement result = mapper.map(entity);
 
         Assertions.assertEquals(java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"), result.getId());
         Assertions.assertEquals(java.time.LocalDate.of(2023, 1, 1), result.getStartDate());
         Assertions.assertEquals(java.time.LocalDate.of(2023, 12, 31), result.getEndDate());
+        Assertions.assertEquals(communityId, result.getCommunityId());
     }
 }

@@ -4,6 +4,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.user.Role;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.random;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -27,20 +37,28 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Autowired
     private SharingAgreementRepository sharingAgreementRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private CreateUserRepository createUserRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
 
     @Test
     void testCreateSharingAgreement() throws Exception {
         String authHeader = loginAsDefaultAdmin();
 
+        Community community = createCommunityRepository.create(random().build());
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = startDate.plusMonths(6);
 
         String body = String.format("""
                 {
                   "startDate": "%s",
-                  "endDate": "%s"
+                  "endDate": "%s",
+                  "communityId": "%s"
                 }
-                """, startDate, endDate);
+                """, startDate, endDate, community.getId());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -50,10 +68,82 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.startDate").value(startDate.toString()))
-                .andExpect(jsonPath("$.endDate").value(endDate.toString()));
+                .andExpect(jsonPath("$.endDate").value(endDate.toString()))
+                .andExpect(jsonPath("$.communityId").value(community.getId().toString()));
 
-        // Verify that the sharing agreement was created in the database
         Assertions.assertEquals(1, sharingAgreementRepository.count());
+    }
+
+    @Test
+    void testCommunityAdminCanCreateForOwnCommunity() throws Exception {
+        loginAsDefaultAdmin();
+
+        Community community = createCommunityRepository.create(random().build());
+
+        User communityAdmin = UserMother.randomUser();
+        communityAdmin.setRole(Role.PARTNER);
+        communityAdmin.enable();
+        createUserRepository.create(communityAdmin);
+        createMembershipService.create(community.getId(), communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+
+        String authHeader = loginUser(communityAdmin);
+
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = startDate.plusMonths(6);
+
+        String body = String.format("""
+                {
+                  "startDate": "%s",
+                  "endDate": "%s",
+                  "communityId": "%s"
+                }
+                """, startDate, endDate, community.getId());
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.communityId").value(community.getId().toString()));
+
+        Assertions.assertEquals(1, sharingAgreementRepository.count());
+    }
+
+    @Test
+    void testCommunityAdminCannotCreateForOtherCommunity() throws Exception {
+        loginAsDefaultAdmin();
+
+        Community ownCommunity = createCommunityRepository.create(random().build());
+        Community otherCommunity = createCommunityRepository.create(random().build());
+
+        User communityAdmin = UserMother.randomUser();
+        communityAdmin.setRole(Role.PARTNER);
+        communityAdmin.enable();
+        createUserRepository.create(communityAdmin);
+        createMembershipService.create(ownCommunity.getId(), communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+
+        String authHeader = loginUser(communityAdmin);
+
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = startDate.plusMonths(6);
+
+        String body = String.format("""
+                {
+                  "startDate": "%s",
+                  "endDate": "%s",
+                  "communityId": "%s"
+                }
+                """, startDate, endDate, otherCommunity.getId());
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 
     @ParameterizedTest
@@ -74,9 +164,17 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     static List<String> getBodyWithMissingRequiredFields() {
+        UUID communityId = UUID.randomUUID();
         return List.of(
+                String.format("""
+                {
+                  "endDate": "2023-12-31",
+                  "communityId": "%s"
+                }
+                """, communityId),
                 """
                 {
+                  "startDate": "2023-01-01",
                   "endDate": "2023-12-31"
                 }
                 """,
@@ -105,25 +203,29 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     static List<String> getBodyWithInvalidFormatValues() {
+        UUID communityId = UUID.randomUUID();
         return List.of(
-                """
+                String.format("""
                 {
                   "startDate": "invalid-date",
-                  "endDate": "2023-12-31"
+                  "endDate": "2023-12-31",
+                  "communityId": "%s"
                 }
-                """,
-                """
+                """, communityId),
+                String.format("""
                 {
                   "startDate": "2023-01-01",
-                  "endDate": "invalid-date"
+                  "endDate": "invalid-date",
+                  "communityId": "%s"
                 }
-                """,
-                """
+                """, communityId),
+                String.format("""
                 {
                   "startDate": "01/01/2023",
-                  "endDate": "31/12/2023"
+                  "endDate": "31/12/2023",
+                  "communityId": "%s"
                 }
-                """
+                """, communityId)
         );
     }
 
@@ -165,11 +267,11 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
         String body = String.format("""
                 {
                   "startDate": "%s",
-                  "endDate": "%s"
+                  "endDate": "%s",
+                  "communityId": "%s"
                 }
-                """, startDate, endDate);
+                """, startDate, endDate, UUID.randomUUID());
 
-        // Test users endpoint
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)

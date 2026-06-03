@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +35,7 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
         entity.setId(UUID.randomUUID());
         entity.setStartDate(LocalDate.of(2023, 1, 1));
         entity.setEndDate(LocalDate.of(2023, 12, 31));
+        entity.setCommunityId(CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID);
         sharingAgreementRepository.save(entity);
 
         mockMvc.perform(get(URL + "/" + entity.getId())

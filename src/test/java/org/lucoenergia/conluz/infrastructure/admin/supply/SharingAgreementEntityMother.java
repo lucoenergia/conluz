@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
+import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
+
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -18,6 +20,7 @@ public class SharingAgreementEntityMother {
         entity.setId(UUID.randomUUID());
         entity.setStartDate(LocalDate.now());
         entity.setEndDate(LocalDate.now().plusMonths(6));
+        entity.setCommunityId(CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID);
         return entity;
     }
 

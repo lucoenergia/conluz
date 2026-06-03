@@ -19,6 +19,9 @@ public class SharingAgreementEntity {
     @Column(name = "end_date")
     private LocalDate endDate;
 
+    @Column(name = "community_id")
+    private UUID communityId;
+
     public UUID getId() {
         return id;
     }
@@ -41,5 +44,13 @@ public class SharingAgreementEntity {
 
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
+    }
+
+    public UUID getCommunityId() {
+        return communityId;
+    }
+
+    public void setCommunityId(UUID communityId) {
+        this.communityId = communityId;
     }
 }

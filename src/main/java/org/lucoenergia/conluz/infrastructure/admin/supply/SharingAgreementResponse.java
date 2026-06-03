@@ -13,11 +13,13 @@ public class SharingAgreementResponse {
     private final UUID id;
     private final LocalDate startDate;
     private final LocalDate endDate;
+    private final UUID communityId;
 
     public SharingAgreementResponse(SharingAgreement sharingAgreement) {
         this.id = sharingAgreement.getId();
         this.startDate = sharingAgreement.getStartDate();
         this.endDate = sharingAgreement.getEndDate();
+        this.communityId = sharingAgreement.getCommunityId();
     }
 
     public UUID getId() {
@@ -30,5 +32,9 @@ public class SharingAgreementResponse {
 
     public LocalDate getEndDate() {
         return endDate;
+    }
+
+    public UUID getCommunityId() {
+        return communityId;
     }
 }
