@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
@@ -11,6 +13,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +40,8 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyService createSupplyService;
+    @Autowired
+    private GetCommunityRepository getCommunityRepository;
 
     @Test
     void testCreateSupplyWithoutName() throws Exception {
@@ -167,7 +172,8 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         Supply supply = SupplyMother.random().build();
-        createSupplyService.create(supply, UserId.of(user.getId()));
+        Community community = getCommunityRepository.findAll().stream().findFirst().get();
+        createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), community.getId());
 
         String body = String.format("""
                 {
@@ -175,10 +181,11 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "personalId": "%s",
                   "address": "%s",
                   "addressRef": "%s",
-                  "partitionCoefficient": "%s"
+                  "partitionCoefficient": "%s",
+                  "communityId": "%s"
                 }
         """, supply.getCode(), user.getPersonalId(), supply.getAddress(), supply.getAddressRef(),
-                supply.getPartitionCoefficient());
+                supply.getPartitionCoefficient(), community.getId());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

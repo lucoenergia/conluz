@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
@@ -9,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Component
 public class DatadisConsumptionsSyncDailyJob implements Job {
@@ -24,33 +26,28 @@ public class DatadisConsumptionsSyncDailyJob implements Job {
         this.getDatadisConfigurationService = getDatadisConfigurationService;
     }
 
-    /**
-     * Synchronize consumptions from datadis.es at 4:00 AM every day.
-     * This job retrieves all supplies from the repository and synchronizes the consumption data
-     * from datadis.es for a date range between 1 year ago and today.
-     * <p>
-     * Cron expression breakdown:
-     * 0 seconds (at the start of the minute)
-     * 0 minutes (at the start of the hour)
-     * 4 (at 4 AM)
-     * * (every day)
-     * * (every month)
-     * ? (any day of the week)
-     */
     @Override
     @Scheduled(cron = "0 0 4 * * ?")
     public void run() {
-        if (getDatadisConfigurationService.isDisabled()) {
-            LOGGER.info("Datadis integration is disabled. Skipping daily sync.");
+        List<DatadisConfig> enabledConfigs = getDatadisConfigurationService.findAllEnabled();
+        if (enabledConfigs.isEmpty()) {
+            LOGGER.info("No enabled Datadis configs found. Skipping daily sync.");
             return;
         }
 
-        LOGGER.info("Datadis consumption daily sync started...");
+        LOGGER.info("Datadis consumption daily sync started for {} communities...", enabledConfigs.size());
 
         LocalDate today = LocalDate.now();
         LocalDate oneYearAgo = today.minusYears(1).withDayOfMonth(1);
 
-        datadisConsumptionSyncService.synchronizeConsumptions(oneYearAgo, today);
+        for (DatadisConfig config : enabledConfigs) {
+            LOGGER.info("Syncing community {}", config.getCommunityId());
+            try {
+                datadisConsumptionSyncService.synchronizeConsumptions(config.getCommunityId(), oneYearAgo, today);
+            } catch (Exception e) {
+                LOGGER.error("Failed to sync community {}", config.getCommunityId(), e);
+            }
+        }
 
         LOGGER.info("...finished Datadis consumption daily sync.");
     }

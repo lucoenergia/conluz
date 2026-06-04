@@ -17,7 +17,7 @@ public class SetShellyConfigurationServiceImpl implements SetShellyConfiguration
     }
 
     @Override
-    public ShellyConfig setShellyConfiguration(ShellyConfig config) {
-        return setShellyConfigRepository.setShellyConfiguration(config);
+    public ShellyConfig setShellyConfiguration(java.util.UUID communityId, ShellyConfig config) {
+        return setShellyConfigRepository.setShellyConfiguration(communityId, config);
     }
 }

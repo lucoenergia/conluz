@@ -16,9 +16,11 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping(
-        value = "/api/v1/consumption/datadis/config",
+        value = "/api/v1/communities/{communityId}/config/datadis",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -32,18 +34,18 @@ public class SetDatadisConfigController {
 
     @PutMapping
     @Operation(
-            summary = "Sets up the configuration to be able to connect with Datadis.",
+            summary = "Sets up the Datadis configuration for the specified community.",
             description = """
-                    This endpoint allows to configure the app to connect with datadis.es.
-                    
+                    This endpoint allows to configure the app to connect with datadis.es for a specific community.
+
                     This configuration is a mandatory step to be able to retrieve consumption data from datadis.es.
-                    
+
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
-                    
+                    **Required Role: ADMIN or COMMUNITY_ADMIN**
+
                     Upon successful request, the server responds with an HTTP status code of 200, along with details
                     about the configuration already set.
-                    
+
                     In cases where the creation process encounters errors, the server responds with an appropriate error
                     status code, accompanied by a descriptive error message to guide clients in addressing and resolving
                     the issue.
@@ -65,9 +67,9 @@ public class SetDatadisConfigController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
-    public SetDatadisConfigResponse configureDatadis(@RequestBody ConfigureDatadisBody body) {
-        DatadisConfig config = service.setDatadisConfiguration(body.toDatadisConfig());
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
+    public SetDatadisConfigResponse configureDatadis(@PathVariable UUID communityId, @RequestBody ConfigureDatadisBody body) {
+        DatadisConfig config = service.setDatadisConfiguration(communityId, body.toDatadisConfig());
         return SetDatadisConfigResponse.of(config);
     }
 }

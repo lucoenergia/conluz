@@ -16,10 +16,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(
@@ -34,11 +36,11 @@ public class GetHuaweiConfigController {
         this.service = service;
     }
 
-    @GetMapping
+    @GetMapping("/{plantId}")
     @Operation(
-            summary = "Returns the current Huawei configuration.",
+            summary = "Returns the current Huawei configuration for a plant.",
             description = """
-                    This endpoint returns the current Huawei FusionSolar API configuration.
+                    This endpoint returns the Huawei FusionSolar API configuration for a specific plant.
 
                     The password is never returned in the response. Instead, a boolean field
                     `passwordSet` indicates whether a password has been configured.
@@ -66,9 +68,9 @@ public class GetHuaweiConfigController {
     @UnauthorizedErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
-    public ResponseEntity<GetHuaweiConfigResponse> getHuaweiConfig() {
-        Optional<HuaweiConfig> config = service.getHuaweiConfiguration();
+    @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
+    public ResponseEntity<GetHuaweiConfigResponse> getHuaweiConfig(@PathVariable UUID plantId) {
+        Optional<HuaweiConfig> config = service.getHuaweiConfiguration(plantId);
         return config
                 .map(c -> ResponseEntity.ok(GetHuaweiConfigResponse.of(c)))
                 .orElse(ResponseEntity.notFound().build());

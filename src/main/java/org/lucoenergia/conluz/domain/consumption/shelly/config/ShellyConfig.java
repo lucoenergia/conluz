@@ -6,6 +6,7 @@ public class ShellyConfig {
 
     private UUID id;
     private Boolean enabled;
+    private UUID communityId;
 
     public UUID getId() {
         return id;
@@ -15,9 +16,14 @@ public class ShellyConfig {
         return enabled;
     }
 
+    public UUID getCommunityId() {
+        return communityId;
+    }
+
     public static class Builder {
         private UUID id;
         private Boolean enabled;
+        private UUID communityId;
 
         public Builder setId(UUID id) {
             this.id = id;
@@ -29,10 +35,16 @@ public class ShellyConfig {
             return this;
         }
 
+        public Builder setCommunityId(UUID communityId) {
+            this.communityId = communityId;
+            return this;
+        }
+
         public ShellyConfig build() {
             ShellyConfig shellyConfig = new ShellyConfig();
             shellyConfig.id = this.id;
             shellyConfig.enabled = this.enabled != null ? this.enabled : Boolean.FALSE;
+            shellyConfig.communityId = this.communityId;
             return shellyConfig;
         }
     }

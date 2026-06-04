@@ -45,11 +45,6 @@ public class DatadisMonthlyAggregationJob implements Job {
     @Override
     @Scheduled(cron = "0 0 5 * * ?")
     public void run() {
-        if (getDatadisConfigurationService.isDisabled()) {
-            LOGGER.info("Datadis integration is disabled. Skipping monthly aggregation.");
-            return;
-        }
-
         LOGGER.info("Datadis monthly aggregation started...");
 
         LocalDate today = LocalDate.now();

@@ -100,10 +100,12 @@ public class CreateUsersWithFileController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canCreateUserIn(#communityId)")
     public ResponseEntity createUsersWithFile(
             @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String), address(String), email(String), phoneNumber(String), role(String), password(String), communityId(UUID, optional), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).")
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "Target community UUID. Required for community admins; optional for platform admins.")
+            @RequestParam(value = "communityId", required = false) UUID communityId) {
 
         Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);
         if (optionalResponseEntity.isPresent()) {
@@ -113,20 +115,19 @@ public class CreateUsersWithFileController {
 
         try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
 
-            // create csv bean reader
             CsvToBean<CreateUserCsvBody> csvToBean = new CsvToBeanBuilder<CreateUserCsvBody>(reader)
                     .withType(CreateUserCsvBody.class)
                     .withIgnoreLeadingWhiteSpace(true)
                     .build();
 
-            // convert `CsvToBean` object to list of users
             List<CreateUserCsvBody> users = csvToBean.parse();
 
-            // save users in DB
             users.forEach(user -> {
                 try {
-                    UUID communityId = user.getCommunityId() != null ? UUID.fromString(user.getCommunityId()) : null;
-                    User newUser = createUserService.create(user.mapToUser(), communityId, user.getCommunityRole());
+                    UUID effectiveCommunityId = user.getCommunityId() != null
+                            ? UUID.fromString(user.getCommunityId())
+                            : communityId;
+                    User newUser = createUserService.create(user.mapToUser(), effectiveCommunityId, user.getCommunityRole());
                     response.addCreated(UserPersonalId.of(newUser.getPersonalId()));
                 } catch (UserAlreadyExistsException e) {
                     response.addError(UserPersonalId.of(user.getPersonalId()),

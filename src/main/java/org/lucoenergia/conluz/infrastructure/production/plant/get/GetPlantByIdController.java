@@ -61,7 +61,7 @@ public class GetPlantByIdController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
     public PlantResponse getPlantById(@PathVariable("id") UUID plantId) {
         Plant plant = service.findById(PlantId.of(plantId));
         return new PlantResponse(plant);

@@ -37,6 +37,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.UUID;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -107,10 +109,12 @@ public class CreateSuppliesWithFileController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public ResponseEntity createSuppliesWithFile(
             @Parameter(description = "CSV file format: code(String), address(String), partitionCoefficient(Float), address(String), personalId(String).")
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "Target community UUID.")
+            @RequestParam(value = "communityId", required = false) UUID communityId) {
 
         Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);
         if (optionalResponseEntity.isPresent()) {
@@ -128,7 +132,8 @@ public class CreateSuppliesWithFileController {
         // save supplies in DB
         supplies.forEach(supply -> {
             try {
-                Supply newSupply = createSupplyService.create(supply.mapToSupply(), UserPersonalId.of(supply.getPersonalId()));
+                Supply newSupply = createSupplyService.create(supply.mapToSupply(),
+                        UserPersonalId.of(supply.getPersonalId()), communityId);
                 response.addCreated(newSupply.getCode());
             } catch (SupplyAlreadyExistsException e) {
                 LOGGER.error("Supply already exists", e);

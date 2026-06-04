@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Transactional
 @Repository
@@ -85,5 +86,10 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
     public List<Supply> findByUserId(UserId userId) {
         List<SupplyEntity> supplyEntities = supplyRepository.findByUserId(userId.getId());
         return supplyEntityMapper.mapList(supplyEntities);
+    }
+
+    @Override
+    public List<Supply> findAllByCommunityId(UUID communityId) {
+        return supplyEntityMapper.mapList(supplyRepository.findByCommunityId(communityId));
     }
 }

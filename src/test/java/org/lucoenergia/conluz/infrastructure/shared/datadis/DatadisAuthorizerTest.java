@@ -45,7 +45,7 @@ class DatadisAuthorizerTest {
         config.setUsername(username);
         config.setPassword(password);
         config.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
-        Mockito.when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(config));
+        Mockito.when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.of(config));
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -86,7 +86,7 @@ class DatadisAuthorizerTest {
         DatadisConfigRepository datadisConfigRepository = mock(DatadisConfigRepository.class);
         ConluzRestClientBuilder conluzRestClientBuilder = mock(ConluzRestClientBuilder.class);
 
-        when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
+        when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.empty());
 
         // invocation
         DatadisAuthorizer datadisAuthorizer = new DatadisAuthorizer(datadisConfigRepository, conluzRestClientBuilder);

@@ -6,6 +6,8 @@ import org.lucoenergia.conluz.domain.consumption.datadis.config.SetDatadisConfig
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Transactional
 @Service
 public class SetDatadisConfigurationServiceImpl implements SetDatadisConfigurationService {
@@ -16,7 +18,8 @@ public class SetDatadisConfigurationServiceImpl implements SetDatadisConfigurati
         this.setDatadisConfigurationRepository = setDatadisConfigurationRepository;
     }
 
-    public DatadisConfig setDatadisConfiguration(DatadisConfig config) {
-        return setDatadisConfigurationRepository.setDatadisConfiguration(config);
+    @Override
+    public DatadisConfig setDatadisConfiguration(UUID communityId, DatadisConfig config) {
+        return setDatadisConfigurationRepository.setDatadisConfiguration(communityId, config);
     }
 }

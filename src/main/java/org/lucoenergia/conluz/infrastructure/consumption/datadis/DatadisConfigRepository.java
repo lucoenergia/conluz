@@ -8,5 +8,9 @@ import java.util.UUID;
 
 public interface DatadisConfigRepository extends JpaRepository<DatadisConfigEntity, UUID> {
 
-    Optional<DatadisConfigEntity> findFirstByOrderByIdAsc();
+    Optional<DatadisConfigEntity> findFirstBy();
+
+    Optional<DatadisConfigEntity> findByCommunityId(UUID communityId);
+
+    java.util.List<DatadisConfigEntity> findAllByEnabledTrue();
 }

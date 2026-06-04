@@ -6,7 +6,10 @@ import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRe
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class GetDatadisConfigRepositoryDatabase implements GetDatadisConfigRepository {
@@ -19,16 +22,29 @@ public class GetDatadisConfigRepositoryDatabase implements GetDatadisConfigRepos
 
     @Override
     public Optional<DatadisConfig> getDatadisConfig() {
-        Optional<DatadisConfigEntity> entity = datadisConfigRepository.findFirstByOrderByIdAsc();
-        if (entity.isPresent()) {
-            DatadisConfigEntity configEntity = entity.get();
-            return Optional.of(new DatadisConfig.Builder()
-                    .setUsername(configEntity.getUsername())
-                    .setPassword(configEntity.getPassword())
-                    .setBaseUrl(configEntity.getBaseUrl())
-                    .setEnabled(configEntity.getEnabled())
-                    .build());
-        }
-        return Optional.empty();
+        return datadisConfigRepository.findFirstBy().map(this::toDomain);
+    }
+
+    @Override
+    public Optional<DatadisConfig> findByCommunityId(UUID communityId) {
+        Optional<DatadisConfigEntity> entity = datadisConfigRepository.findByCommunityId(communityId);
+        return entity.map(this::toDomain);
+    }
+
+    @Override
+    public List<DatadisConfig> findAllEnabled() {
+        return datadisConfigRepository.findAllByEnabledTrue().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    private DatadisConfig toDomain(DatadisConfigEntity configEntity) {
+        return new DatadisConfig.Builder()
+                .setUsername(configEntity.getUsername())
+                .setPassword(configEntity.getPassword())
+                .setBaseUrl(configEntity.getBaseUrl())
+                .setEnabled(configEntity.getEnabled())
+                .setCommunityId(configEntity.getCommunity() != null ? configEntity.getCommunity().getId() : null)
+                .build();
     }
 }

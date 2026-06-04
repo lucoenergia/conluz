@@ -1,9 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.aggregate;
 
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
-import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
+import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.slf4j.Logger;
@@ -21,50 +22,58 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
 
     private final GetEnergyStationRepository getEnergyStationRepository;
     private final HuaweiProductionMonthlyAggregationRepository aggregationRepository;
-    private final GetHuaweiConfigurationService getHuaweiConfigurationService;
+    private final GetHuaweiConfigRepository getHuaweiConfigRepository;
 
     public HuaweiProductionMonthlyAggregationServiceImpl(GetEnergyStationRepository getEnergyStationRepository,
                                                          HuaweiProductionMonthlyAggregationRepository aggregationRepository,
-                                                         GetHuaweiConfigurationService getHuaweiConfigurationService) {
+                                                         GetHuaweiConfigRepository getHuaweiConfigRepository) {
         this.getEnergyStationRepository = getEnergyStationRepository;
         this.aggregationRepository = aggregationRepository;
-        this.getHuaweiConfigurationService = getHuaweiConfigurationService;
+        this.getHuaweiConfigRepository = getHuaweiConfigRepository;
     }
 
     @Override
     public void aggregateMonthlyProductions(int year) {
-        if (getHuaweiConfigurationService.isDisabled()) {
-            LOGGER.debug("Huawei configuration is disabled. Skipping monthly production aggregation.");
+        List<HuaweiConfig> enabledConfigs = getHuaweiConfigRepository.getEnabledHuaweiConfigs();
+        if (enabledConfigs.isEmpty()) {
+            LOGGER.debug("No enabled Huawei configs found. Skipping monthly production aggregation.");
             return;
         }
-        List<Plant> allPlants = getEnergyStationRepository.findAll();
-
-        for (Plant plant : allPlants) {
-            for (Month month : Month.values()) {
-                aggregateForPlantMonthYear(plant, month, year);
-            }
+        for (HuaweiConfig config : enabledConfigs) {
+            Optional<Plant> plant = config.getPlantId() != null
+                    ? getEnergyStationRepository.findById(config.getPlantId())
+                    : Optional.empty();
+            plant.ifPresentOrElse(
+                    p -> {
+                        for (Month month : Month.values()) {
+                            aggregateForPlantMonthYear(p, month, year);
+                        }
+                    },
+                    () -> LOGGER.warn("Plant not found for Huawei config with plantId={}", config.getPlantId())
+            );
         }
     }
 
     @Override
     public void aggregateMonthlyProductions(Month month, int year) {
-        if (getHuaweiConfigurationService.isDisabled()) {
-            LOGGER.debug("Huawei configuration is disabled. Skipping monthly production aggregation.");
+        List<HuaweiConfig> enabledConfigs = getHuaweiConfigRepository.getEnabledHuaweiConfigs();
+        if (enabledConfigs.isEmpty()) {
+            LOGGER.debug("No enabled Huawei configs found. Skipping monthly production aggregation.");
             return;
         }
-        List<Plant> allPlants = getEnergyStationRepository.findAll();
-
-        for (Plant plant : allPlants) {
-            aggregateForPlantMonthYear(plant, month, year);
+        for (HuaweiConfig config : enabledConfigs) {
+            Optional<Plant> plant = config.getPlantId() != null
+                    ? getEnergyStationRepository.findById(config.getPlantId())
+                    : Optional.empty();
+            plant.ifPresentOrElse(
+                    p -> aggregateForPlantMonthYear(p, month, year),
+                    () -> LOGGER.warn("Plant not found for Huawei config with plantId={}", config.getPlantId())
+            );
         }
     }
 
     @Override
     public void aggregateMonthlyProductions(String plantCode, Month month, int year) {
-        if (getHuaweiConfigurationService.isDisabled()) {
-            LOGGER.debug("Huawei configuration is disabled. Skipping monthly production aggregation.");
-            return;
-        }
         Optional<Plant> plantOptional = getEnergyStationRepository.findByCode(plantCode);
         if (plantOptional.isEmpty()) {
             throw new PlantNotFoundException(plantCode);

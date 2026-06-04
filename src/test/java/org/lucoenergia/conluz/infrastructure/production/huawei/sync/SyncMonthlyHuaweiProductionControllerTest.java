@@ -15,6 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Month;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -45,7 +47,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .setBaseUrl(HuaweiConfig.DEFAULT_BASE_URL)
                 .setEnabled(Boolean.TRUE)
                 .build();
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.of(enabledConfig));
+        when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(List.of(enabledConfig));
     }
 
     @Test
@@ -124,7 +126,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testWhenHuaweiDisabled_thenConflict() throws Exception {
 
-        when(getHuaweiConfigRepository.getHuaweiConfig()).thenReturn(Optional.empty());
+        when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(Collections.emptyList());
 
         String authHeader = loginAsDefaultAdmin();
 

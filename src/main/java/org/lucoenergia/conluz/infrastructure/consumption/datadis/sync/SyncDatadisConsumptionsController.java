@@ -81,9 +81,11 @@ public class SyncDatadisConsumptionsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
     public void syncDatadisConsumptions(@Valid @RequestBody SyncDatadisConsumptionsBody body) {
-        Optional<DatadisConfig> config = getDatadisConfigRepository.getDatadisConfig();
+        Optional<DatadisConfig> config = body.getCommunityId() != null
+                ? getDatadisConfigRepository.findByCommunityId(body.getCommunityId())
+                : getDatadisConfigRepository.getDatadisConfig();
         if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
             throw new DatadisDisabledException();
         }

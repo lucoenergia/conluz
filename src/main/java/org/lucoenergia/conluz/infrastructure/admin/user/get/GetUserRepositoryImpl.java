@@ -17,6 +17,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 @Repository
 public class GetUserRepositoryImpl implements GetUserRepository {
@@ -69,6 +71,12 @@ public class GetUserRepositoryImpl implements GetUserRepository {
     @Override
     public PagedResult<User> findAll(PagedRequest pagedRequest) {
         Page<UserEntity> result = userRepository.findAll(paginationRequestMapper.mapRequest(pagedRequest));
+        return paginationResultMapper.mapResult(result, userEntityMapper.mapList(result.toList()));
+    }
+
+    @Override
+    public PagedResult<User> findAllByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds) {
+        Page<UserEntity> result = userRepository.findAllByCommunityIdIn(communityIds, paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, userEntityMapper.mapList(result.toList()));
     }
 

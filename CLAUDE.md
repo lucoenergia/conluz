@@ -150,3 +150,4 @@ With the app running:
 - Architecture tests are enforced via ArchUnit (see `src/test/java/org/lucoenergia/conluz/architecture/`)
 - When injecting beans, always use the interface. This also applies to integration tests
 - When creating tests over services that has an interface, always use the name of the interface + "Test" for naming them
+- **Never use `findAll().stream().findFirst()` in production code** to retrieve a single entity. This loads all rows into memory. Use a Spring Data derived query method that produces a `LIMIT 1` query instead — e.g., `findFirstBy()` or `findFirstByOrderByIdAsc()` in the JPA repository interface. This anti-pattern is only acceptable in test code where it avoids adding repository methods purely for test purposes.

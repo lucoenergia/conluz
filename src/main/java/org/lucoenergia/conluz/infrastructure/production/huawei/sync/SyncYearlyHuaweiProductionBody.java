@@ -14,6 +14,7 @@ public class SyncYearlyHuaweiProductionBody {
     private Integer year;
 
     private String plantCode;
+    private java.util.UUID communityId;
 
     public SyncYearlyHuaweiProductionBody() {
     }
@@ -41,5 +42,13 @@ public class SyncYearlyHuaweiProductionBody {
 
     public void setPlantCode(String plantCode) {
         this.plantCode = plantCode;
+    }
+
+    public java.util.UUID getCommunityId() {
+        return communityId;
+    }
+
+    public void setCommunityId(java.util.UUID communityId) {
+        this.communityId = communityId;
     }
 }

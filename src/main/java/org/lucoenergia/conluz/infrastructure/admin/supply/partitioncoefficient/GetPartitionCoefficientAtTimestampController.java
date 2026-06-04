@@ -52,7 +52,7 @@ public class GetPartitionCoefficientAtTimestampController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
     public CoefficientAtTimestampResponse getAtTimestamp(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
             @Parameter(description = "ISO-8601 timestamp", example = "2025-01-15T12:00:00Z")

@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.mockito.Mockito;
 
@@ -15,12 +16,13 @@ import java.util.UUID;
 class SetDatadisConfigurationRepositoryDatabaseTest {
 
     private final DatadisConfigRepository datadisConfigRepository = Mockito.mock(DatadisConfigRepository.class);
-    private final SetDatadisConfigurationRepositoryDatabase repository = new SetDatadisConfigurationRepositoryDatabase(datadisConfigRepository);
+    private final CommunityJpaRepository communityJpaRepository = Mockito.mock(CommunityJpaRepository.class);
+    private final SetDatadisConfigurationRepositoryDatabase repository =
+            new SetDatadisConfigurationRepositoryDatabase(datadisConfigRepository, communityJpaRepository);
 
     @Test
     void testSetDatadisConfiguration_notExist() {
-        // Given
-        when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
+        when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.empty());
         when(datadisConfigRepository.save(any(DatadisConfigEntity.class))).thenAnswer(invocation -> invocation.getArguments()[0]);
 
         DatadisConfig testConfig = new DatadisConfig.Builder()
@@ -30,10 +32,8 @@ class SetDatadisConfigurationRepositoryDatabaseTest {
                 .setEnabled(Boolean.TRUE)
                 .build();
 
-        // When
         DatadisConfig result = repository.setDatadisConfiguration(testConfig);
 
-        // Then
         assertEquals(testConfig.getUsername(), result.getUsername());
         assertEquals(testConfig.getPassword(), result.getPassword());
         assertEquals(testConfig.getBaseUrl(), result.getBaseUrl());
@@ -42,7 +42,6 @@ class SetDatadisConfigurationRepositoryDatabaseTest {
 
     @Test
     void testSetDatadisConfiguration_exist() {
-        // Given
         DatadisConfigEntity existConfigEntity = new DatadisConfigEntity();
         existConfigEntity.setId(UUID.randomUUID());
         existConfigEntity.setUsername("username2");
@@ -50,16 +49,13 @@ class SetDatadisConfigurationRepositoryDatabaseTest {
         existConfigEntity.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
         existConfigEntity.setEnabled(Boolean.FALSE);
 
-        when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(existConfigEntity));
+        when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.of(existConfigEntity));
         when(datadisConfigRepository.save(any(DatadisConfigEntity.class))).thenAnswer(invocation -> {
-            Object[] arguments = invocation.getArguments();
-            if (arguments != null && arguments.length > 0 && arguments[0] != null) {
-                DatadisConfigEntity datadisConfigEntity = (DatadisConfigEntity) arguments[0];
-                existConfigEntity.setUsername(datadisConfigEntity.getUsername());
-                existConfigEntity.setPassword(datadisConfigEntity.getPassword());
-                existConfigEntity.setBaseUrl(datadisConfigEntity.getBaseUrl());
-                existConfigEntity.setEnabled(datadisConfigEntity.getEnabled());
-            }
+            DatadisConfigEntity e = (DatadisConfigEntity) invocation.getArguments()[0];
+            existConfigEntity.setUsername(e.getUsername());
+            existConfigEntity.setPassword(e.getPassword());
+            existConfigEntity.setBaseUrl(e.getBaseUrl());
+            existConfigEntity.setEnabled(e.getEnabled());
             return existConfigEntity;
         });
 
@@ -70,10 +66,8 @@ class SetDatadisConfigurationRepositoryDatabaseTest {
                 .setEnabled(Boolean.TRUE)
                 .build();
 
-        // When
         DatadisConfig result = repository.setDatadisConfiguration(testConfig);
 
-        // Then
         assertEquals(testConfig.getUsername(), result.getUsername());
         assertEquals(testConfig.getPassword(), result.getPassword());
         assertEquals(testConfig.getBaseUrl(), result.getBaseUrl());

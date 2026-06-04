@@ -16,14 +16,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/consumption/shelly/config",
+        value = "/api/v1/communities/{communityId}/config/shelly",
         produces = MediaType.APPLICATION_JSON_VALUE
 )
 public class GetShellyConfigController {
@@ -36,12 +38,12 @@ public class GetShellyConfigController {
 
     @GetMapping
     @Operation(
-            summary = "Returns the current Shelly configuration.",
+            summary = "Returns the Shelly configuration for the specified community.",
             description = """
-                    This endpoint returns the current Shelly integration configuration.
+                    This endpoint returns the Shelly integration configuration for a specific community.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required Role: ADMIN or COMMUNITY_ADMIN**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with
                     the current configuration. If no configuration has been set yet, a 404 is returned.
@@ -54,18 +56,16 @@ public class GetShellyConfigController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Current Shelly configuration returned successfully.",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
-                    )
+                    useReturnTypeSchema = true
             )
     })
     @ForbiddenErrorResponse
     @UnauthorizedErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
-    public ResponseEntity<GetShellyConfigResponse> getShellyConfig() {
-        Optional<ShellyConfig> config = service.getShellyConfiguration();
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
+    public ResponseEntity<GetShellyConfigResponse> getShellyConfig(@PathVariable UUID communityId) {
+        Optional<ShellyConfig> config = service.getShellyConfiguration(communityId);
         return config
                 .map(c -> ResponseEntity.ok(GetShellyConfigResponse.of(c)))
                 .orElse(ResponseEntity.notFound().build());

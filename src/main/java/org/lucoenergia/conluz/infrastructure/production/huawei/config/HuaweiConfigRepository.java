@@ -7,5 +7,9 @@ import java.util.UUID;
 
 public interface HuaweiConfigRepository extends JpaRepository<HuaweiConfigEntity, UUID> {
 
-    Optional<HuaweiConfigEntity> findFirstByOrderByIdAsc();
+    Optional<HuaweiConfigEntity> findFirstBy();
+
+    Optional<HuaweiConfigEntity> findByPlantId(UUID plantId);
+
+    java.util.List<HuaweiConfigEntity> findAllByEnabledTrue();
 }

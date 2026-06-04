@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
@@ -23,8 +24,8 @@ public class GetShellyConfigurationServiceImpl implements GetShellyConfiguration
     }
 
     @Override
-    public Optional<ShellyConfig> getShellyConfiguration() {
-        return getShellyConfigRepository.getShellyConfig();
+    public Optional<ShellyConfig> getShellyConfiguration(UUID communityId) {
+        return getShellyConfigRepository.getShellyConfig(communityId);
     }
 
     @Override

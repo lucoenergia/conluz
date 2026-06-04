@@ -6,6 +6,8 @@ import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigura
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Transactional
 @Service
 public class SetHuaweiConfigurationServiceImpl implements SetHuaweiConfigurationService {
@@ -16,7 +18,8 @@ public class SetHuaweiConfigurationServiceImpl implements SetHuaweiConfiguration
         this.setHuaweiConfigurationRepository = setHuaweiConfigurationRepository;
     }
 
-    public HuaweiConfig setHuaweiConfiguration(HuaweiConfig config) {
-        return setHuaweiConfigurationRepository.setHuaweiConfiguration(config);
+    @Override
+    public HuaweiConfig setHuaweiConfiguration(UUID plantId, HuaweiConfig config) {
+        return setHuaweiConfigurationRepository.setHuaweiConfiguration(plantId, config);
     }
 }

@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.ByteArrayOutputStream;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/consumption/datadis/report/hourly")
@@ -67,10 +68,11 @@ public class GetDatadisConsumptionCsvReportController {
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public ResponseEntity<byte[]> getDatadisConsumptionHourlyCsvReport(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
+            @RequestParam(value = "communityId", required = false) UUID communityId) {
 
         ByteArrayOutputStream out =
                 getDatadisConsumptionReportService.getHourlyConsumptionReportAsCsv(startDate, endDate);

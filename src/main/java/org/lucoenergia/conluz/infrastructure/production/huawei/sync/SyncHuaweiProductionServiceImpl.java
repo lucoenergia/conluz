@@ -1,11 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
 
-import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HourlyProduction;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
-import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.huawei.persist.PersistHuaweiProductionRepository;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
@@ -18,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionService {
@@ -29,76 +28,86 @@ public class SyncHuaweiProductionServiceImpl implements SyncHuaweiProductionServ
     private final GetHuaweiHourlyProductionRepositoryRest getHuaweiHourlyProductionRepositoryRest;
     private final GetEnergyStationRepository getEnergyStationRepository;
     private final GetHuaweiConfigRepository getHuaweiConfigRepository;
-    private final GetHuaweiConfigurationService getHuaweiConfigurationService;
 
     public SyncHuaweiProductionServiceImpl(PersistHuaweiProductionRepository persistHuaweiProductionRepository,
                                            GetHuaweiRealTimeProductionRepositoryRest getHuaweiRealTimeProductionRepositoryRest,
                                            GetHuaweiHourlyProductionRepositoryRest getHuaweiHourlyProductionRepositoryRest,
                                            GetEnergyStationRepository getEnergyStationRepository,
-                                           GetHuaweiConfigRepository getHuaweiConfigRepository, GetHuaweiConfigurationService getHuaweiConfigurationService) {
+                                           GetHuaweiConfigRepository getHuaweiConfigRepository) {
         this.persistHuaweiProductionRepository = persistHuaweiProductionRepository;
         this.getHuaweiRealTimeProductionRepositoryRest = getHuaweiRealTimeProductionRepositoryRest;
         this.getHuaweiHourlyProductionRepositoryRest = getHuaweiHourlyProductionRepositoryRest;
         this.getEnergyStationRepository = getEnergyStationRepository;
         this.getHuaweiConfigRepository = getHuaweiConfigRepository;
-        this.getHuaweiConfigurationService = getHuaweiConfigurationService;
     }
 
-    /**
-     * Syncs the real-time production data from Huawei energy stations.
-     * It retrieves all energy stations with Huawei inverters, gets the real-time production data
-     * for each station, and persists the production data.
-     */
     @Override
     public void syncRealTimeProduction() {
-
-        if (getHuaweiConfigurationService.isDisabled()) {
-            LOGGER.info("Huawei integration is disabled. Skipping real-time sync.");
-            return;
-        }
-        HuaweiConfig config = getHuaweiConfigRepository.getHuaweiConfig().get();
-
-        // Get all energy stations with Huawei inverter
-        List<Plant> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
-        if (huaweiStations.isEmpty()) {
-            LOGGER.info("No Huawei stations found.");
+        List<HuaweiConfig> enabledConfigs = getHuaweiConfigRepository.getEnabledHuaweiConfigs();
+        if (enabledConfigs.isEmpty()) {
+            LOGGER.info("No enabled Huawei configs found. Skipping real-time sync.");
             return;
         }
 
-        // Get the productions for every station
-        List<RealTimeProduction> productions = getHuaweiRealTimeProductionRepositoryRest.getRealTimeProduction(
-                huaweiStations, config.getBaseUrl());
-
-        // Persist the production data
-        persistHuaweiProductionRepository.persistRealTimeProduction(productions);
+        for (HuaweiConfig config : enabledConfigs) {
+            syncRealTimeProductionForPlant(config);
+        }
     }
 
     @Override
     public void syncHourlyProduction(OffsetDateTime startDate, OffsetDateTime endDate) {
-
-        if (getHuaweiConfigurationService.isDisabled()) {
-            LOGGER.info("Huawei integration is disabled. Skipping real-time sync.");
-            return;
-        }
-        HuaweiConfig config = getHuaweiConfigRepository.getHuaweiConfig().get();
-
         if (startDate.isAfter(endDate)) {
             LOGGER.error("Start date is after end date. Start date: {}, end date: {}", startDate, endDate);
             return;
         }
 
-        // Get all energy stations with Huawei inverter
-        List<Plant> huaweiStations = getEnergyStationRepository.findAllByInverterProvider(InverterProvider.HUAWEI);
-        if (huaweiStations.isEmpty()) {
-            LOGGER.info("No Huawei stations found.");
+        List<HuaweiConfig> enabledConfigs = getHuaweiConfigRepository.getEnabledHuaweiConfigs();
+        if (enabledConfigs.isEmpty()) {
+            LOGGER.info("No enabled Huawei configs found. Skipping hourly sync.");
             return;
         }
 
-        // Get the productions for every station
-        List<HourlyProduction> productions = getHuaweiHourlyProductionRepositoryRest.getHourlyProductionByDateInterval(
-                huaweiStations, startDate, endDate, config.getBaseUrl());
+        for (HuaweiConfig config : enabledConfigs) {
+            syncHourlyProductionForPlant(config, startDate, endDate);
+        }
+    }
 
-        // Persist the production data
-        persistHuaweiProductionRepository.persistHourlyProduction(productions);
+    private void syncRealTimeProductionForPlant(HuaweiConfig config) {
+        if (config.getPlantId() == null) {
+            LOGGER.warn("Huawei config {} has no plant assigned, skipping.", config.getId());
+            return;
+        }
+        Optional<Plant> plant = getEnergyStationRepository.findById(config.getPlantId());
+        if (plant.isEmpty()) {
+            LOGGER.warn("Plant {} not found for Huawei config {}, skipping.", config.getPlantId(), config.getId());
+            return;
+        }
+        try {
+            List<RealTimeProduction> productions = getHuaweiRealTimeProductionRepositoryRest.getRealTimeProduction(
+                    List.of(plant.get()), config.getBaseUrl(), config.getUsername(), config.getPassword());
+            persistHuaweiProductionRepository.persistRealTimeProduction(productions);
+        } catch (Exception e) {
+            LOGGER.error("Failed to sync real-time production for plant {}", config.getPlantId(), e);
+        }
+    }
+
+    private void syncHourlyProductionForPlant(HuaweiConfig config, OffsetDateTime startDate, OffsetDateTime endDate) {
+        if (config.getPlantId() == null) {
+            LOGGER.warn("Huawei config {} has no plant assigned, skipping.", config.getId());
+            return;
+        }
+        Optional<Plant> plant = getEnergyStationRepository.findById(config.getPlantId());
+        if (plant.isEmpty()) {
+            LOGGER.warn("Plant {} not found for Huawei config {}, skipping.", config.getPlantId(), config.getId());
+            return;
+        }
+        try {
+            List<HourlyProduction> productions = getHuaweiHourlyProductionRepositoryRest.getHourlyProductionByDateInterval(
+                    List.of(plant.get()), startDate, endDate, config.getBaseUrl(),
+                    config.getUsername(), config.getPassword());
+            persistHuaweiProductionRepository.persistHourlyProduction(productions);
+        } catch (Exception e) {
+            LOGGER.error("Failed to sync hourly production for plant {}", config.getPlantId(), e);
+        }
     }
 }

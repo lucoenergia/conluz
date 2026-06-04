@@ -14,4 +14,6 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
     int countByCode(String code);
 
     List<SupplyEntity> findByUserId(UUID userId);
+
+    List<SupplyEntity> findByCommunityId(UUID communityId);
 }

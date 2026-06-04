@@ -26,4 +26,12 @@ public interface CommunityAccessGuard {
     Set<UUID> visibleCommunityIds();
 
     boolean canCreateUserIn(UUID communityId);
+
+    boolean canListUsers();
+
+    boolean canManagePlant(UUID plantId);
+
+    boolean canManagePlantCreate(String supplyCode);
+
+    boolean canManageSharingAgreement(UUID agreementId);
 }

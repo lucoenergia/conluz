@@ -68,7 +68,7 @@ public class UpdateSharingAgreementController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#id)")
     public SharingAgreementResponse updateSharingAgreement(
             @PathVariable("id") UUID id,
             @Valid @RequestBody UpdateSharingAgreementBody body) {

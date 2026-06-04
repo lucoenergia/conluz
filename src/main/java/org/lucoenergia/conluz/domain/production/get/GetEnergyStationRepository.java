@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.production.InverterProvider;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface GetEnergyStationRepository {
 
@@ -13,4 +14,6 @@ public interface GetEnergyStationRepository {
     List<Plant> findAllByInverterProvider(InverterProvider provider);
 
     Optional<Plant> findByCode(String code);
+
+    Optional<Plant> findById(UUID plantId);
 }

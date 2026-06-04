@@ -47,7 +47,7 @@ public class GetPartitionCoefficientHistoryController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
     public List<PartitionCoefficientResponse> getHistory(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId) {
         return service.findAllCoefficientHistory(supplyId).stream()

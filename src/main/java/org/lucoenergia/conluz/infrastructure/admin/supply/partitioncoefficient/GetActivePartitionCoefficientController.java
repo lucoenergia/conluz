@@ -52,7 +52,7 @@ public class GetActivePartitionCoefficientController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
     public PartitionCoefficientResponse getActive(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId) {
         Optional<SupplyPartitionCoefficient> result = service.findActiveBySupplyId(supplyId);

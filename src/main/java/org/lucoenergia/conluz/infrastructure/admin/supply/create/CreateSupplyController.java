@@ -68,9 +68,9 @@ public class CreateSupplyController {
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
     public SupplyResponse createSupply(@Valid @RequestBody CreateSupplyBody body) {
-        Supply newSupply = service.create(body.mapToSupply(), UserPersonalId.of(body.getPersonalId()));
+        Supply newSupply = service.create(body.mapToSupply(), UserPersonalId.of(body.getPersonalId()), body.getCommunityId());
         return new SupplyResponse(newSupply);
     }
 }

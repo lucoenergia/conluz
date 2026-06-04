@@ -38,14 +38,16 @@ public class HuaweiAuthorizer implements Authorizer {
 
     @Override
     public String getAuthToken() {
-        Optional<HuaweiConfigEntity> optionalConfig = huaweiConfigRepository.findFirstByOrderByIdAsc();
+        Optional<HuaweiConfigEntity> optionalConfig = huaweiConfigRepository.findFirstBy();
         if (optionalConfig.isEmpty()) {
             throw new HuaweiException("Huawei configuration not found");
         }
         HuaweiConfigEntity config = optionalConfig.get();
-        String username = config.getUsername();
-        String password = config.getPassword();
-        String url = config.getBaseUrl() + LOGIN_PATH;
+        return getAuthToken(config.getBaseUrl(), config.getUsername(), config.getPassword());
+    }
+
+    public String getAuthToken(String baseUrl, String username, String password) {
+        String url = baseUrl + LOGIN_PATH;
 
         OkHttpClient client = conluzRestClientBuilder.build();
 
