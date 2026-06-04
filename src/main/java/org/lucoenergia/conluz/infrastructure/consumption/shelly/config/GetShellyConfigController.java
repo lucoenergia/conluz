@@ -56,9 +56,7 @@ public class GetShellyConfigController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Current Shelly configuration returned successfully.",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
-                    )
+                    useReturnTypeSchema = true
             )
     })
     @ForbiddenErrorResponse

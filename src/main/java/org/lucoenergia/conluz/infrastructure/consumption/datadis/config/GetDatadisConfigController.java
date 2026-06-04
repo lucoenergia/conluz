@@ -59,9 +59,7 @@ public class GetDatadisConfigController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Current Datadis configuration returned successfully.",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
-                    )
+                    useReturnTypeSchema = true
             )
     })
     @ForbiddenErrorResponse
