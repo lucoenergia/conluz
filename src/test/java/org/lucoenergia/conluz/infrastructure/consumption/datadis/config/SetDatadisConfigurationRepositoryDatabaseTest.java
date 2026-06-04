@@ -10,8 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 class SetDatadisConfigurationRepositoryDatabaseTest {
@@ -23,7 +22,7 @@ class SetDatadisConfigurationRepositoryDatabaseTest {
 
     @Test
     void testSetDatadisConfiguration_notExist() {
-        when(datadisConfigRepository.findAll()).thenReturn(Collections.emptyList());
+        when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.empty());
         when(datadisConfigRepository.save(any(DatadisConfigEntity.class))).thenAnswer(invocation -> invocation.getArguments()[0]);
 
         DatadisConfig testConfig = new DatadisConfig.Builder()
@@ -50,7 +49,7 @@ class SetDatadisConfigurationRepositoryDatabaseTest {
         existConfigEntity.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
         existConfigEntity.setEnabled(Boolean.FALSE);
 
-        when(datadisConfigRepository.findAll()).thenReturn(List.of(existConfigEntity));
+        when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.of(existConfigEntity));
         when(datadisConfigRepository.save(any(DatadisConfigEntity.class))).thenAnswer(invocation -> {
             DatadisConfigEntity e = (DatadisConfigEntity) invocation.getArguments()[0];
             existConfigEntity.setUsername(e.getUsername());

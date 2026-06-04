@@ -60,7 +60,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         LOGGER.info("Getting all supplies from datadis.es of user {}", user.getId());
 
-        final String baseUrl = datadisConfigRepository.findAll().stream().findFirst()
+        final String baseUrl = datadisConfigRepository.findFirstBy()
                 .map(DatadisConfigEntity::getBaseUrl)
                 .orElse(DatadisConfig.DEFAULT_BASE_URL);
 

@@ -38,7 +38,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         DatadisConfigRepository datadisConfigRepository = Mockito.mock(DatadisConfigRepository.class);
         DatadisConfigEntity configEntity = new DatadisConfigEntity();
         configEntity.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
-        Mockito.when(datadisConfigRepository.findAll()).thenReturn(java.util.List.of(configEntity));
+        Mockito.when(datadisConfigRepository.findFirstBy()).thenReturn(java.util.Optional.of(configEntity));
         Mockito.when(datadisAuthorizer.getAuthToken(Mockito.any(DatadisConfigEntity.class))).thenReturn("testToken");
         repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
                 datadisDateTimeConverter, datadisConfigRepository);

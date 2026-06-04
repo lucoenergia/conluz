@@ -24,7 +24,7 @@ public class SetDatadisConfigurationRepositoryDatabase implements SetDatadisConf
 
     @Override
     public DatadisConfig setDatadisConfiguration(DatadisConfig config) {
-        DatadisConfigEntity entity = datadisConfigRepository.findAll().stream().findFirst()
+        DatadisConfigEntity entity = datadisConfigRepository.findFirstBy()
                 .orElseGet(() -> { DatadisConfigEntity e = new DatadisConfigEntity(); e.setId(UUID.randomUUID()); return e; });
         return persist(entity, config, null);
     }

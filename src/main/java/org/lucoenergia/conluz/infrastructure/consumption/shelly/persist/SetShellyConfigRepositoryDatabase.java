@@ -27,7 +27,7 @@ public class SetShellyConfigRepositoryDatabase implements SetShellyConfigReposit
 
     @Override
     public ShellyConfig setShellyConfiguration(ShellyConfig config) {
-        ShellyConfigEntity entity = shellyConfigRepository.findAll().stream().findFirst()
+        ShellyConfigEntity entity = shellyConfigRepository.findFirstBy()
                 .orElseGet(() -> { ShellyConfigEntity e = new ShellyConfigEntity(); e.setId(UUID.randomUUID()); return e; });
         return persist(entity, config, null);
     }

@@ -5,8 +5,7 @@ import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.mockito.Mockito;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,7 +21,7 @@ class SetHuaweiConfigurationRepositoryDatabaseTest {
 
     @Test
     void testSetHuaweiConfiguration_notExist() {
-        when(huaweiConfigRepository.findAll()).thenReturn(Collections.emptyList());
+        when(huaweiConfigRepository.findFirstBy()).thenReturn(Optional.empty());
 
         HuaweiConfig testConfig = new HuaweiConfig.Builder()
                 .setUsername("username1")
@@ -48,7 +47,7 @@ class SetHuaweiConfigurationRepositoryDatabaseTest {
         existConfigEntity.setBaseUrl(HuaweiConfig.DEFAULT_BASE_URL);
         existConfigEntity.setEnabled(Boolean.TRUE);
 
-        when(huaweiConfigRepository.findAll()).thenReturn(List.of(existConfigEntity));
+        when(huaweiConfigRepository.findFirstBy()).thenReturn(Optional.of(existConfigEntity));
         when(huaweiConfigRepository.save(any(HuaweiConfigEntity.class))).thenAnswer(invocation -> {
             HuaweiConfigEntity entity = (HuaweiConfigEntity) invocation.getArguments()[0];
             existConfigEntity.setUsername(entity.getUsername());
@@ -75,7 +74,7 @@ class SetHuaweiConfigurationRepositoryDatabaseTest {
 
     @Test
     void testSetHuaweiConfiguration_defaultBaseUrlAppliedWhenNotSet() {
-        when(huaweiConfigRepository.findAll()).thenReturn(Collections.emptyList());
+        when(huaweiConfigRepository.findFirstBy()).thenReturn(Optional.empty());
 
         HuaweiConfig testConfig = new HuaweiConfig.Builder()
                 .setUsername("u")

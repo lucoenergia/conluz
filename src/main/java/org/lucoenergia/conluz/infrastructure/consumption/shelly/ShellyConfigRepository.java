@@ -8,6 +8,8 @@ import java.util.UUID;
 
 public interface ShellyConfigRepository extends JpaRepository<ShellyConfigEntity, UUID> {
 
+    Optional<ShellyConfigEntity> findFirstBy();
+
     Optional<ShellyConfigEntity> findByCommunityId(UUID communityId);
 
     java.util.List<ShellyConfigEntity> findAllByEnabledTrue();

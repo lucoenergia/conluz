@@ -24,7 +24,7 @@ public class GetShellyConfigRepositoryImpl implements GetShellyConfigRepository 
 
     @Override
     public Optional<ShellyConfig> getShellyConfig() {
-        return shellyConfigRepository.findAll().stream().findFirst().map(this::toDomain);
+        return shellyConfigRepository.findFirstBy().map(this::toDomain);
     }
 
     @Override

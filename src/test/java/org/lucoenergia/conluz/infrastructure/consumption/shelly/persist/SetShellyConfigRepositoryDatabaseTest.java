@@ -10,8 +10,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,7 +35,7 @@ class SetShellyConfigRepositoryDatabaseTest {
         ShellyConfig inputConfig = new ShellyConfig.Builder()
                 .setEnabled(true)
                 .build();
-        when(shellyConfigRepository.findAll()).thenReturn(Collections.emptyList());
+        when(shellyConfigRepository.findFirstBy()).thenReturn(Optional.empty());
         when(shellyConfigRepository.save(any(ShellyConfigEntity.class))).thenAnswer(invocation -> {
             ShellyConfigEntity entity = invocation.getArgument(0);
             entity.setId(newId);
@@ -51,7 +49,7 @@ class SetShellyConfigRepositoryDatabaseTest {
         assertNotNull(result);
         assertEquals(newId, result.getId());
         assertTrue(result.getEnabled());
-        verify(shellyConfigRepository, times(1)).findAll();
+        verify(shellyConfigRepository, times(1)).findFirstBy();
         verify(shellyConfigRepository, times(1)).save(any(ShellyConfigEntity.class));
     }
 
@@ -65,7 +63,7 @@ class SetShellyConfigRepositoryDatabaseTest {
         ShellyConfigEntity existingEntity = new ShellyConfigEntity();
         existingEntity.setId(existingId);
         existingEntity.setEnabled(true);
-        when(shellyConfigRepository.findAll()).thenReturn(List.of(existingEntity));
+        when(shellyConfigRepository.findFirstBy()).thenReturn(Optional.of(existingEntity));
         when(shellyConfigRepository.save(any(ShellyConfigEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
@@ -75,7 +73,7 @@ class SetShellyConfigRepositoryDatabaseTest {
         assertNotNull(result);
         assertEquals(existingId, result.getId());
         assertFalse(result.getEnabled());
-        verify(shellyConfigRepository, times(1)).findAll();
+        verify(shellyConfigRepository, times(1)).findFirstBy();
         verify(shellyConfigRepository, times(1)).save(existingEntity);
     }
 }

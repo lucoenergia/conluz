@@ -29,7 +29,7 @@ public class DatadisAuthorizer implements Authorizer {
 
     @Override
     public String getAuthToken() {
-        Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findAll().stream().findFirst();
+        Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findFirstBy();
         if (optionalConfig.isEmpty()) {
             throw new DatadisException("Datadis configuration not found");
         }
@@ -70,7 +70,7 @@ public class DatadisAuthorizer implements Authorizer {
     }
 
     public boolean isOwner(UserPersonalId id) {
-        Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findAll().stream().findFirst();
+        Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findFirstBy();
         if (optionalConfig.isEmpty()) {
             throw new DatadisException("Datadis configuration not found");
         }

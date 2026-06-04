@@ -13,8 +13,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBui
 import org.mockito.Mockito;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,7 +45,7 @@ class DatadisAuthorizerTest {
         config.setUsername(username);
         config.setPassword(password);
         config.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
-        Mockito.when(datadisConfigRepository.findAll()).thenReturn(List.of(config));
+        Mockito.when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.of(config));
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -88,7 +86,7 @@ class DatadisAuthorizerTest {
         DatadisConfigRepository datadisConfigRepository = mock(DatadisConfigRepository.class);
         ConluzRestClientBuilder conluzRestClientBuilder = mock(ConluzRestClientBuilder.class);
 
-        when(datadisConfigRepository.findAll()).thenReturn(Collections.emptyList());
+        when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.empty());
 
         // invocation
         DatadisAuthorizer datadisAuthorizer = new DatadisAuthorizer(datadisConfigRepository, conluzRestClientBuilder);

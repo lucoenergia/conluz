@@ -7,7 +7,9 @@ import java.util.UUID;
 
 public interface ConfigRepository extends JpaRepository<ConfigEntity, UUID> {
 
+    Optional<ConfigEntity> findFirstBy();
+
     default Optional<ConfigEntity> find() {
-        return findAll().stream().findFirst();
+        return findFirstBy();
     }
 }

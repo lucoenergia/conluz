@@ -22,7 +22,7 @@ public class GetDatadisConfigRepositoryDatabase implements GetDatadisConfigRepos
 
     @Override
     public Optional<DatadisConfig> getDatadisConfig() {
-        return datadisConfigRepository.findAll().stream().findFirst().map(this::toDomain);
+        return datadisConfigRepository.findFirstBy().map(this::toDomain);
     }
 
     @Override

@@ -23,7 +23,7 @@ public class SetHuaweiConfigurationRepositoryDatabase implements SetHuaweiConfig
 
     @Override
     public HuaweiConfig setHuaweiConfiguration(HuaweiConfig config) {
-        HuaweiConfigEntity newConfig = huaweiConfigRepository.findAll().stream().findFirst()
+        HuaweiConfigEntity newConfig = huaweiConfigRepository.findFirstBy()
                 .orElseGet(() -> {
                     HuaweiConfigEntity e = new HuaweiConfigEntity();
                     e.setId(UUID.randomUUID());

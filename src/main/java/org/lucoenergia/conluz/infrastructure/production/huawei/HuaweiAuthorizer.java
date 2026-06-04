@@ -38,7 +38,7 @@ public class HuaweiAuthorizer implements Authorizer {
 
     @Override
     public String getAuthToken() {
-        Optional<HuaweiConfigEntity> optionalConfig = huaweiConfigRepository.findAll().stream().findFirst();
+        Optional<HuaweiConfigEntity> optionalConfig = huaweiConfigRepository.findFirstBy();
         if (optionalConfig.isEmpty()) {
             throw new HuaweiException("Huawei configuration not found");
         }

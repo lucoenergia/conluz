@@ -76,7 +76,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         final UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
         final Optional<DatadisConfigEntity> configOpt = communityId != null
                 ? datadisConfigRepository.findByCommunityId(communityId)
-                : datadisConfigRepository.findAll().stream().findFirst();
+                : datadisConfigRepository.findFirstBy();
 
         if (configOpt.isEmpty()) {
             LOGGER.warn("No Datadis config found for supply {} (community {}), skipping.", supply.getId(), communityId);
