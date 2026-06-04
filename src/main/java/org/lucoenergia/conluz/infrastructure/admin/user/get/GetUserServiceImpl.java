@@ -35,7 +35,7 @@ public class GetUserServiceImpl implements GetUserService {
     }
 
     @Override
-    public PagedResult<User> findAll(PagedRequest pagedRequest, Set<UUID> communityIds) {
+    public PagedResult<User> findAllByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds) {
         if (communityIds == null) {
             return findAll(pagedRequest);
         }

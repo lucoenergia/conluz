@@ -29,7 +29,7 @@ public class DatadisConsumptionsSyncDailyJob implements Job {
     @Override
     @Scheduled(cron = "0 0 4 * * ?")
     public void run() {
-        List<DatadisConfig> enabledConfigs = getDatadisConfigurationService.getEnabledDatadisConfigurations();
+        List<DatadisConfig> enabledConfigs = getDatadisConfigurationService.findAllEnabled();
         if (enabledConfigs.isEmpty()) {
             LOGGER.info("No enabled Datadis configs found. Skipping daily sync.");
             return;

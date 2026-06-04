@@ -70,7 +70,7 @@ public class GetDatadisConfigController {
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public ResponseEntity<GetDatadisConfigResponse> getDatadisConfig(@PathVariable UUID communityId) {
-        Optional<DatadisConfig> config = service.getDatadisConfiguration(communityId);
+        Optional<DatadisConfig> config = service.findByCommunityId(communityId);
         return config
                 .map(c -> ResponseEntity.ok(GetDatadisConfigResponse.of(c)))
                 .orElse(ResponseEntity.notFound().build());

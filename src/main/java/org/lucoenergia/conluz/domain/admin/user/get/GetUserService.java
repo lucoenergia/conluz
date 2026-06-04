@@ -12,7 +12,7 @@ public interface GetUserService {
 
     PagedResult<User> findAll(PagedRequest pagedRequest);
 
-    PagedResult<User> findAll(PagedRequest pagedRequest, Set<UUID> communityIds);
+    PagedResult<User> findAllByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds);
 
     User findById(UserId id);
 }

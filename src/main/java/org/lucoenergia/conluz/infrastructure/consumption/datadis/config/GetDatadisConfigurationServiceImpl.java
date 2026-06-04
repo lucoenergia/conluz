@@ -16,8 +16,6 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class GetDatadisConfigurationServiceImpl implements GetDatadisConfigurationService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GetDatadisConfigurationServiceImpl.class);
-
     private final GetDatadisConfigRepository getDatadisConfigRepository;
 
     public GetDatadisConfigurationServiceImpl(GetDatadisConfigRepository getDatadisConfigRepository) {
@@ -25,31 +23,12 @@ public class GetDatadisConfigurationServiceImpl implements GetDatadisConfigurati
     }
 
     @Override
-    public boolean isDisabled() {
-        Optional<DatadisConfig> config = getDatadisConfigRepository.getDatadisConfig();
-        if (config.isEmpty()) {
-            LOGGER.info("No Datadis config found.");
-            return true;
-        }
-        if (!Boolean.TRUE.equals(config.get().getEnabled())) {
-            LOGGER.info("Datadis integration is disabled.");
-            return true;
-        }
-        return false;
+    public Optional<DatadisConfig> findByCommunityId(UUID communityId) {
+        return getDatadisConfigRepository.findByCommunityId(communityId);
     }
 
     @Override
-    public Optional<DatadisConfig> getDatadisConfiguration() {
-        return getDatadisConfigRepository.getDatadisConfig();
-    }
-
-    @Override
-    public Optional<DatadisConfig> getDatadisConfiguration(UUID communityId) {
-        return getDatadisConfigRepository.getDatadisConfig(communityId);
-    }
-
-    @Override
-    public List<DatadisConfig> getEnabledDatadisConfigurations() {
-        return getDatadisConfigRepository.getEnabledDatadisConfigs();
+    public List<DatadisConfig> findAllEnabled() {
+        return getDatadisConfigRepository.findAllEnabled();
     }
 }

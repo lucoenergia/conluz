@@ -10,7 +10,7 @@ public interface GetDatadisConfigRepository {
 
     Optional<DatadisConfig> getDatadisConfig();
 
-    Optional<DatadisConfig> getDatadisConfig(UUID communityId);
+    Optional<DatadisConfig> findByCommunityId(UUID communityId);
 
-    List<DatadisConfig> getEnabledDatadisConfigs();
+    List<DatadisConfig> findAllEnabled();
 }

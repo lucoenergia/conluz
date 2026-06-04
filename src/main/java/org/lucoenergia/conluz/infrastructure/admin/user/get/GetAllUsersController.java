@@ -82,7 +82,7 @@ public class GetAllUsersController {
     @PreAuthorize("@communityAccessGuard.canListUsers()")
     public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) Pageable page) {
         Set<UUID> visibleCommunityIds = communityAccessGuard.visibleCommunityIds();
-        PagedResult<User> users = service.findAll(paginationRequestMapper.mapRequest(page), visibleCommunityIds);
+        PagedResult<User> users = service.findAllByCommunities(paginationRequestMapper.mapRequest(page), visibleCommunityIds);
 
         List<UserResponse> responseUsers = users.getItems().stream()
                 .map(UserResponse::new).toList();

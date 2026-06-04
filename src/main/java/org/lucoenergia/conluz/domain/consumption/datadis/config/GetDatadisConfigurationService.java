@@ -6,11 +6,7 @@ import java.util.UUID;
 
 public interface GetDatadisConfigurationService {
 
-    boolean isDisabled();
+    Optional<DatadisConfig> findByCommunityId(UUID communityId);
 
-    Optional<DatadisConfig> getDatadisConfiguration();
-
-    Optional<DatadisConfig> getDatadisConfiguration(UUID communityId);
-
-    List<DatadisConfig> getEnabledDatadisConfigurations();
+    List<DatadisConfig> findAllEnabled();
 }

@@ -26,13 +26,13 @@ public class GetDatadisConfigRepositoryDatabase implements GetDatadisConfigRepos
     }
 
     @Override
-    public Optional<DatadisConfig> getDatadisConfig(UUID communityId) {
+    public Optional<DatadisConfig> findByCommunityId(UUID communityId) {
         Optional<DatadisConfigEntity> entity = datadisConfigRepository.findByCommunityId(communityId);
         return entity.map(this::toDomain);
     }
 
     @Override
-    public List<DatadisConfig> getEnabledDatadisConfigs() {
+    public List<DatadisConfig> findAllEnabled() {
         return datadisConfigRepository.findAllByEnabledTrue().stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());

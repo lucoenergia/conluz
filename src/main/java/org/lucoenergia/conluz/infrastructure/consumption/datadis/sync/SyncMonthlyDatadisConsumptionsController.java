@@ -82,7 +82,7 @@ public class SyncMonthlyDatadisConsumptionsController {
     public void syncMonthlyDatadisConsumptions(@Valid @RequestBody SyncMonthlyDatadisConsumptionsBody body) {
 
         Optional<DatadisConfig> config = body.getCommunityId() != null
-                ? getDatadisConfigRepository.getDatadisConfig(body.getCommunityId())
+                ? getDatadisConfigRepository.findByCommunityId(body.getCommunityId())
                 : getDatadisConfigRepository.getDatadisConfig();
         if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
             throw new DatadisDisabledException();

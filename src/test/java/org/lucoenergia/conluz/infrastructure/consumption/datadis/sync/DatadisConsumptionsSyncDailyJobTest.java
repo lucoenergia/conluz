@@ -23,7 +23,7 @@ class DatadisConsumptionsSyncDailyJobTest {
         DatadisConfig enabledConfig = new DatadisConfig.Builder()
                 .setCommunityId(communityId).setEnabled(Boolean.TRUE)
                 .setUsername("u").setPassword("p").build();
-        when(mockConfigService.getEnabledDatadisConfigurations()).thenReturn(List.of(enabledConfig));
+        when(mockConfigService.findAllEnabled()).thenReturn(List.of(enabledConfig));
 
         DatadisConsumptionsSyncDailyJob job = new DatadisConsumptionsSyncDailyJob(mockSyncService, mockConfigService);
 
@@ -39,7 +39,7 @@ class DatadisConsumptionsSyncDailyJobTest {
     void testRun_ShouldSkipSyncWhenNoEnabledConfigs() {
         DatadisConsumptionSyncService mockSyncService = Mockito.mock(DatadisConsumptionSyncService.class);
         GetDatadisConfigurationService mockConfigService = Mockito.mock(GetDatadisConfigurationService.class);
-        when(mockConfigService.getEnabledDatadisConfigurations()).thenReturn(Collections.emptyList());
+        when(mockConfigService.findAllEnabled()).thenReturn(Collections.emptyList());
 
         DatadisConsumptionsSyncDailyJob job = new DatadisConsumptionsSyncDailyJob(mockSyncService, mockConfigService);
 
