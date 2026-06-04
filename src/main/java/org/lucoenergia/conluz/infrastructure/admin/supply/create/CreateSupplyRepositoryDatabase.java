@@ -49,6 +49,11 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
 
     @Override
     public Supply create(Supply supply, UserId id) {
+        return create(supply, id, null);
+    }
+
+    @Override
+    public Supply create(Supply supply, UserId id, UUID communityId) {
         Optional<UserEntity> result = userRepository.findById(id.getId());
         if (result.isEmpty()) {
             throw new UserNotFoundException(id);
@@ -92,7 +97,8 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                     .build();
         }
 
-        CommunityEntity communityEntity = communityJpaRepository.findById(DEFAULT_COMMUNITY_ID).orElse(null);
+        UUID effectiveCommunityId = communityId != null ? communityId : DEFAULT_COMMUNITY_ID;
+        CommunityEntity communityEntity = communityJpaRepository.findById(effectiveCommunityId).orElse(null);
 
         SupplyEntity supplyEntity = new SupplyEntity.Builder()
                 .withId(supplyId)

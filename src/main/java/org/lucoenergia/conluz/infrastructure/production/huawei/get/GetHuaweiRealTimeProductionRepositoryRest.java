@@ -50,6 +50,14 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
     }
 
     public List<RealTimeProduction> getRealTimeProduction(List<Plant> stations, String baseUrl) {
+        return getRealTimeProduction(stations, baseUrl, huaweiAuthorizer.getAuthToken());
+    }
+
+    public List<RealTimeProduction> getRealTimeProduction(List<Plant> stations, String baseUrl, String username, String password) {
+        return getRealTimeProduction(stations, baseUrl, huaweiAuthorizer.getAuthToken(baseUrl, username, password));
+    }
+
+    private List<RealTimeProduction> getRealTimeProduction(List<Plant> stations, String baseUrl, String authToken) {
 
         List<RealTimeProduction> result = new ArrayList<>();
 
@@ -61,8 +69,6 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
         String stationCodes = stations.stream()
                 .map(Plant::getCode)
                 .collect(Collectors.joining(", "));
-
-        final String authToken = huaweiAuthorizer.getAuthToken();
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 

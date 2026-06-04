@@ -54,6 +54,19 @@ public class GetHuaweiHourlyProductionRepositoryRest {
 
     public List<HourlyProduction> getHourlyProductionByDateInterval(List<Plant> stations, OffsetDateTime startDate,
                                                                     OffsetDateTime endDate, String baseUrl) {
+        return getHourlyProductionByDateInterval(stations, startDate, endDate, baseUrl, huaweiAuthorizer.getAuthToken());
+    }
+
+    public List<HourlyProduction> getHourlyProductionByDateInterval(List<Plant> stations, OffsetDateTime startDate,
+                                                                    OffsetDateTime endDate, String baseUrl,
+                                                                    String username, String password) {
+        return getHourlyProductionByDateInterval(stations, startDate, endDate, baseUrl,
+                huaweiAuthorizer.getAuthToken(baseUrl, username, password));
+    }
+
+    private List<HourlyProduction> getHourlyProductionByDateInterval(List<Plant> stations, OffsetDateTime startDate,
+                                                                     OffsetDateTime endDate, String baseUrl,
+                                                                     String authToken) {
 
         List<HourlyProduction> result = new ArrayList<>();
 
@@ -65,8 +78,6 @@ public class GetHuaweiHourlyProductionRepositoryRest {
         String stationCodes = stations.stream()
                 .map(Plant::getCode)
                 .collect(Collectors.joining(", "));
-
-        final String authToken = huaweiAuthorizer.getAuthToken();
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 

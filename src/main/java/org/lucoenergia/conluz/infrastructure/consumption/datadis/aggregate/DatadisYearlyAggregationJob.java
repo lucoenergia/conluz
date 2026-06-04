@@ -44,11 +44,6 @@ public class DatadisYearlyAggregationJob implements Job {
     @Override
     @Scheduled(cron = "0 0 6 * * ?")
     public void run() {
-        if (getDatadisConfigurationService.isDisabled()) {
-            LOGGER.info("Datadis integration is disabled. Skipping yearly aggregation.");
-            return;
-        }
-
         LOGGER.info("Datadis yearly aggregation started...");
 
         LocalDate today = LocalDate.now();

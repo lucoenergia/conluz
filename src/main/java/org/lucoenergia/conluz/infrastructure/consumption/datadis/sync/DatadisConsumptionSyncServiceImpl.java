@@ -10,7 +10,6 @@ import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisC
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,6 +19,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSyncService {
@@ -42,6 +42,14 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
     public void synchronizeConsumptions(LocalDate startDate, LocalDate endDate) {
         List<Supply> allSupplies = getSupplyRepository.findAll();
         for (Supply supply : allSupplies) {
+            processSingleSupply(supply, startDate, endDate);
+        }
+    }
+
+    @Override
+    public void synchronizeConsumptions(UUID communityId, LocalDate startDate, LocalDate endDate) {
+        List<Supply> communitySupplies = getSupplyRepository.findAllByCommunityId(communityId);
+        for (Supply supply : communitySupplies) {
             processSingleSupply(supply, startDate, endDate);
         }
     }

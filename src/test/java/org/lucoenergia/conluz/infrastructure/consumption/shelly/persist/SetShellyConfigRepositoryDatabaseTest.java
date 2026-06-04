@@ -3,12 +3,15 @@ package org.lucoenergia.conluz.infrastructure.consumption.shelly.persist;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.consumption.shelly.config.ShellyConfig;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyConfigRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.config.ShellyConfigEntity;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +24,9 @@ class SetShellyConfigRepositoryDatabaseTest {
     @Mock
     private ShellyConfigRepository shellyConfigRepository;
 
+    @Mock
+    private CommunityJpaRepository communityJpaRepository;
+
     @InjectMocks
     private SetShellyConfigRepositoryDatabase setShellyConfigRepositoryDatabase;
 
@@ -31,7 +37,7 @@ class SetShellyConfigRepositoryDatabaseTest {
         ShellyConfig inputConfig = new ShellyConfig.Builder()
                 .setEnabled(true)
                 .build();
-        when(shellyConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
+        when(shellyConfigRepository.findAll()).thenReturn(Collections.emptyList());
         when(shellyConfigRepository.save(any(ShellyConfigEntity.class))).thenAnswer(invocation -> {
             ShellyConfigEntity entity = invocation.getArgument(0);
             entity.setId(newId);
@@ -45,7 +51,7 @@ class SetShellyConfigRepositoryDatabaseTest {
         assertNotNull(result);
         assertEquals(newId, result.getId());
         assertTrue(result.getEnabled());
-        verify(shellyConfigRepository, times(1)).findFirstByOrderByIdAsc();
+        verify(shellyConfigRepository, times(1)).findAll();
         verify(shellyConfigRepository, times(1)).save(any(ShellyConfigEntity.class));
     }
 
@@ -59,7 +65,7 @@ class SetShellyConfigRepositoryDatabaseTest {
         ShellyConfigEntity existingEntity = new ShellyConfigEntity();
         existingEntity.setId(existingId);
         existingEntity.setEnabled(true);
-        when(shellyConfigRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.of(existingEntity));
+        when(shellyConfigRepository.findAll()).thenReturn(List.of(existingEntity));
         when(shellyConfigRepository.save(any(ShellyConfigEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
@@ -69,7 +75,7 @@ class SetShellyConfigRepositoryDatabaseTest {
         assertNotNull(result);
         assertEquals(existingId, result.getId());
         assertFalse(result.getEnabled());
-        verify(shellyConfigRepository, times(1)).findFirstByOrderByIdAsc();
+        verify(shellyConfigRepository, times(1)).findAll();
         verify(shellyConfigRepository, times(1)).save(existingEntity);
     }
 }

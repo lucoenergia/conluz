@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="add_community_id_to_shelly_config_add_column" author="Víctor Cañizares">
+        <addColumn tableName="shelly_config">
+            <column name="community_id" type="UUID">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="add_community_id_to_shelly_config_backfill" author="Víctor Cañizares">
+        <sql>
+            UPDATE shelly_config
+            SET community_id = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+            WHERE community_id IS NULL;
+        </sql>
+    </changeSet>
+
+    <changeSet id="add_community_id_to_shelly_config_not_null" author="Víctor Cañizares">
+        <addNotNullConstraint tableName="shelly_config" columnName="community_id" columnDataType="UUID"/>
+        <addForeignKeyConstraint
+                baseTableName="shelly_config"
+                baseColumnNames="community_id"
+                constraintName="shelly_config_community_id_fk"
+                referencedTableName="communities"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

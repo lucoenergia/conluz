@@ -8,7 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
@@ -24,13 +26,9 @@ public class GetHuaweiConfigurationServiceImpl implements GetHuaweiConfiguration
 
     @Override
     public boolean isDisabled() {
-        Optional<HuaweiConfig> config = getHuaweiConfigRepository.getHuaweiConfig();
-        if (config.isEmpty()) {
-            LOGGER.info("No Huawei config found.");
-            return true;
-        }
-        if (!Boolean.TRUE.equals(config.get().getEnabled())) {
-            LOGGER.info("Huawei integration is disabled.");
+        List<HuaweiConfig> enabledConfigs = getHuaweiConfigRepository.getEnabledHuaweiConfigs();
+        if (enabledConfigs.isEmpty()) {
+            LOGGER.info("No enabled Huawei config found.");
             return true;
         }
         return false;
@@ -39,5 +37,15 @@ public class GetHuaweiConfigurationServiceImpl implements GetHuaweiConfiguration
     @Override
     public Optional<HuaweiConfig> getHuaweiConfiguration() {
         return getHuaweiConfigRepository.getHuaweiConfig();
+    }
+
+    @Override
+    public Optional<HuaweiConfig> getHuaweiConfiguration(UUID plantId) {
+        return getHuaweiConfigRepository.getHuaweiConfig(plantId);
+    }
+
+    @Override
+    public List<HuaweiConfig> getEnabledHuaweiConfigurations() {
+        return getHuaweiConfigRepository.getEnabledHuaweiConfigs();
     }
 }

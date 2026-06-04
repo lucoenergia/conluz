@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="add_plant_id_to_huawei_config_add_column" author="Víctor Cañizares">
+        <addColumn tableName="huawei_config">
+            <column name="plant_id" type="UUID">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Backfill: assign the single existing row to the first plant found (if any) -->
+    <changeSet id="add_plant_id_to_huawei_config_backfill" author="Víctor Cañizares">
+        <sql>
+            UPDATE huawei_config
+            SET plant_id = (SELECT id FROM plants ORDER BY id LIMIT 1)
+            WHERE plant_id IS NULL
+              AND EXISTS (SELECT 1 FROM plants);
+        </sql>
+    </changeSet>
+
+    <!-- Make plant_id NOT NULL only if there is at least one plant; otherwise leave nullable.
+         In production we always have plants, so this constraint is safe.
+         The FK is added unconditionally — the column stays nullable until backfill succeeds. -->
+    <changeSet id="add_plant_id_to_huawei_config_fk" author="Víctor Cañizares">
+        <addForeignKeyConstraint
+                baseTableName="huawei_config"
+                baseColumnNames="plant_id"
+                constraintName="huawei_config_plant_id_fk"
+                referencedTableName="plants"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

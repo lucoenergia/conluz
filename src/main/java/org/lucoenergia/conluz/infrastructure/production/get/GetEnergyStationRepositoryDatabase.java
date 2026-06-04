@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Transactional
 @Repository
@@ -40,6 +41,11 @@ public class GetEnergyStationRepositoryDatabase implements GetEnergyStationRepos
     @Override
     public Optional<Plant> findByCode(String code) {
         return plantRepository.findByCode(code).map(this::mapEntityToDomain);
+    }
+
+    @Override
+    public Optional<Plant> findById(UUID plantId) {
+        return plantRepository.findById(plantId).map(this::mapEntityToDomain);
     }
 
     private Plant mapEntityToDomain(PlantEntity entity) {

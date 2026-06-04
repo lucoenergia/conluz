@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.consumption.datadis.config;
 
+import java.util.UUID;
+
 public class DatadisConfig {
 
     public static final String DEFAULT_BASE_URL = "https://datadis.es";
@@ -8,6 +10,7 @@ public class DatadisConfig {
     private String password;
     private String baseUrl;
     private Boolean enabled;
+    private UUID communityId;
 
     public String getUsername() {
         return username;
@@ -25,11 +28,16 @@ public class DatadisConfig {
         return enabled;
     }
 
+    public UUID getCommunityId() {
+        return communityId;
+    }
+
     public static class Builder {
         private String username;
         private String password;
         private String baseUrl;
         private Boolean enabled;
+        private UUID communityId;
 
         public Builder setUsername(String username) {
             this.username = username;
@@ -51,12 +59,18 @@ public class DatadisConfig {
             return this;
         }
 
+        public Builder setCommunityId(UUID communityId) {
+            this.communityId = communityId;
+            return this;
+        }
+
         public DatadisConfig build() {
             DatadisConfig config = new DatadisConfig();
             config.username = this.username;
             config.password = this.password;
             config.baseUrl = this.baseUrl != null ? this.baseUrl : DEFAULT_BASE_URL;
             config.enabled = this.enabled != null ? this.enabled : Boolean.FALSE;
+            config.communityId = this.communityId;
             return config;
         }
     }

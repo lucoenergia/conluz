@@ -8,12 +8,18 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,12 +31,19 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     private final AuthService authService;
     private final CommunityMembershipJpaRepository membershipJpaRepository;
     private final GetSupplyRepository getSupplyRepository;
+    private final PlantRepository plantRepository;
+    private final SharingAgreementRepository sharingAgreementRepository;
 
     public CommunityAccessGuardImpl(AuthService authService,
-                                    CommunityMembershipJpaRepository membershipJpaRepository, GetSupplyRepository getSupplyRepository) {
+                                    CommunityMembershipJpaRepository membershipJpaRepository,
+                                    GetSupplyRepository getSupplyRepository,
+                                    PlantRepository plantRepository,
+                                    SharingAgreementRepository sharingAgreementRepository) {
         this.authService = authService;
         this.membershipJpaRepository = membershipJpaRepository;
         this.getSupplyRepository = getSupplyRepository;
+        this.plantRepository = plantRepository;
+        this.sharingAgreementRepository = sharingAgreementRepository;
     }
 
     @Override
@@ -122,6 +135,51 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         if (user.isPlatformAdmin()) return true;
         if (user.getRole() == Role.ADMIN) return true;
         if (communityId == null) return false;
+        return hasCommunityAdminRoleIn(user, communityId);
+    }
+
+    @Override
+    public boolean canListUsers() {
+        User user = authService.getCurrentUser().orElse(null);
+        if (user == null) return false;
+        if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
+        if (user.getMemberships() == null) return false;
+        return user.getMemberships().stream()
+                .anyMatch(m -> m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()));
+    }
+
+    @Override
+    public boolean canManagePlant(UUID plantId) {
+        User user = authService.getCurrentUser().orElse(null);
+        if (user == null) return false;
+        if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
+        Optional<PlantEntity> plant = plantRepository.findById(plantId);
+        if (plant.isEmpty()) return false;
+        UUID communityId = plant.get().getSupply() != null && plant.get().getSupply().getCommunity() != null
+                ? plant.get().getSupply().getCommunity().getId() : null;
+        return hasCommunityAdminRoleIn(user, communityId);
+    }
+
+    @Override
+    public boolean canManagePlantCreate(String supplyCode) {
+        User user = authService.getCurrentUser().orElse(null);
+        if (user == null) return false;
+        if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
+        if (supplyCode == null) return false;
+        Optional<Supply> supply = getSupplyRepository.findByCode(SupplyCode.of(supplyCode));
+        if (supply.isEmpty()) return false;
+        UUID communityId = supply.get().getCommunity() != null ? supply.get().getCommunity().getId() : null;
+        return hasCommunityAdminRoleIn(user, communityId);
+    }
+
+    @Override
+    public boolean canManageSharingAgreement(UUID agreementId) {
+        User user = authService.getCurrentUser().orElse(null);
+        if (user == null) return false;
+        if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
+        Optional<SharingAgreementEntity> agreement = sharingAgreementRepository.findById(agreementId);
+        if (agreement.isEmpty()) return false;
+        UUID communityId = agreement.get().getCommunityId();
         return hasCommunityAdminRoleIn(user, communityId);
     }
 

@@ -58,7 +58,7 @@ class CreateSupplyServiceTest {
 
         User user = UserMother.randomUser();
         when(userRepository.findByPersonalId(any(UserPersonalId.class))).thenReturn(Optional.of(user));
-        when(supplyRepository.create(any(Supply.class), any(UserId.class))).thenReturn(expectedSupply);
+        when(supplyRepository.create(any(Supply.class), any(UserId.class), any())).thenReturn(expectedSupply);
 
         // act
         Supply actualSupply = createSupplyService.create(expectedSupply, UserPersonalId.of(user.getPersonalId()));

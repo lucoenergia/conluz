@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface GetSupplyRepository {
 
@@ -23,4 +24,6 @@ public interface GetSupplyRepository {
     List<Supply> findAll();
 
     List<Supply> findByUserId(UserId userId);
+
+    List<Supply> findAllByCommunityId(UUID communityId);
 }

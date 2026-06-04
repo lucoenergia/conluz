@@ -16,6 +16,7 @@ public class HuaweiConfig {
     private String password;
     private String baseUrl;
     private Boolean enabled;
+    private UUID plantId;
 
     public UUID getId() {
         return id;
@@ -37,12 +38,17 @@ public class HuaweiConfig {
         return enabled;
     }
 
+    public UUID getPlantId() {
+        return plantId;
+    }
+
     public static class Builder {
         private UUID id;
         private String username;
         private String password;
         private String baseUrl;
         private Boolean enabled;
+        private UUID plantId;
 
         public Builder setId(UUID id) {
             this.id = id;
@@ -69,6 +75,11 @@ public class HuaweiConfig {
             return this;
         }
 
+        public Builder setPlantId(UUID plantId) {
+            this.plantId = plantId;
+            return this;
+        }
+
         public HuaweiConfig build() {
             HuaweiConfig huaweiConfig = new HuaweiConfig();
             huaweiConfig.id = this.id;
@@ -76,6 +87,7 @@ public class HuaweiConfig {
             huaweiConfig.password = this.password;
             huaweiConfig.baseUrl = this.baseUrl != null ? this.baseUrl : DEFAULT_BASE_URL;
             huaweiConfig.enabled = this.enabled != null ? this.enabled : Boolean.FALSE;
+            huaweiConfig.plantId = this.plantId;
             return huaweiConfig;
         }
     }

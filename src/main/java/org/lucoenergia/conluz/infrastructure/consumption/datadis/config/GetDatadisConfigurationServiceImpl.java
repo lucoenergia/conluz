@@ -8,7 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
@@ -39,5 +41,15 @@ public class GetDatadisConfigurationServiceImpl implements GetDatadisConfigurati
     @Override
     public Optional<DatadisConfig> getDatadisConfiguration() {
         return getDatadisConfigRepository.getDatadisConfig();
+    }
+
+    @Override
+    public Optional<DatadisConfig> getDatadisConfiguration(UUID communityId) {
+        return getDatadisConfigRepository.getDatadisConfig(communityId);
+    }
+
+    @Override
+    public List<DatadisConfig> getEnabledDatadisConfigurations() {
+        return getDatadisConfigRepository.getEnabledDatadisConfigs();
     }
 }

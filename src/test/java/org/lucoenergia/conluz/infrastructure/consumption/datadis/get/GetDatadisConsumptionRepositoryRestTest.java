@@ -38,7 +38,8 @@ class GetDatadisConsumptionRepositoryRestTest {
         DatadisConfigRepository datadisConfigRepository = Mockito.mock(DatadisConfigRepository.class);
         DatadisConfigEntity configEntity = new DatadisConfigEntity();
         configEntity.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
-        Mockito.when(datadisConfigRepository.findFirstByOrderByIdAsc()).thenReturn(java.util.Optional.of(configEntity));
+        Mockito.when(datadisConfigRepository.findAll()).thenReturn(java.util.List.of(configEntity));
+        Mockito.when(datadisAuthorizer.getAuthToken(Mockito.any(DatadisConfigEntity.class))).thenReturn("testToken");
         repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
                 datadisDateTimeConverter, datadisConfigRepository);
     }
@@ -61,9 +62,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Month month = Month.APRIL;
         final int year = 2023;
 
-        Mockito
-                .when(datadisAuthorizer.getAuthBearerToken())
-                .thenReturn("token");
+        // auth token is resolved from config entity in setUp()
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -101,9 +100,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Month month = Month.APRIL;
         final int year = 2023;
 
-        Mockito
-                .when(datadisAuthorizer.getAuthBearerToken())
-                .thenReturn("token");
+        // auth token is resolved from config entity in setUp()
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -192,9 +189,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Month month = Month.APRIL;
         final int year = 2023;
 
-        Mockito
-                .when(datadisAuthorizer.getAuthBearerToken())
-                .thenReturn("token");
+        // auth token is resolved from config entity in setUp()
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,14 +21,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class GetShellyConfigControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/consumption/shelly/config";
+    private static final String URL_TEMPLATE = "/api/v1/communities/%s/config/shelly";
 
     @Autowired
     private SetShellyConfigRepository setShellyConfigRepository;
 
     @Test
     void testGetConfigWhenExists() throws Exception {
-        setShellyConfigRepository.setShellyConfiguration(new ShellyConfig.Builder()
+        setShellyConfigRepository.setShellyConfiguration(DEFAULT_COMMUNITY_ID, new ShellyConfig.Builder()
                 .setId(UUID.randomUUID())
                 .setEnabled(Boolean.TRUE)
                 .build());
@@ -35,7 +36,7 @@ class GetShellyConfigControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(
-                        get(URL)
+                        get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -49,7 +50,7 @@ class GetShellyConfigControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(
-                        get(URL)
+                        get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -58,7 +59,7 @@ class GetShellyConfigControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutToken() throws Exception {
-        mockMvc.perform(get(URL)
+        mockMvc.perform(get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
@@ -73,7 +74,7 @@ class GetShellyConfigControllerTest extends BaseControllerTest {
         String authHeader = loginAsPartner();
 
         mockMvc.perform(
-                        get(URL)
+                        get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())

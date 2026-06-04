@@ -1,14 +1,27 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.config;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationRepository;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -18,19 +31,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class GetHuaweiConfigControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/production/huawei/config";
+    private static final String URL_TEMPLATE = "/api/v1/production/huawei/config/%s";
 
     @Autowired
     private SetHuaweiConfigurationRepository setHuaweiConfigurationRepository;
+    @Autowired
+    private CreateUserRepository createUserRepository;
+    @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreatePlantRepository createPlantRepository;
 
     @Test
     void testGetConfigWhenExists() throws Exception {
-        String testUsername = "testUsername";
-        String testPassword = "testPassword";
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
+        Supply supply = SupplyMother.random().build();
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Plant plant = PlantMother.random(supply).build();
+        plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
 
-        setHuaweiConfigurationRepository.setHuaweiConfiguration(new HuaweiConfig.Builder()
-                .setUsername(testUsername)
-                .setPassword(testPassword)
+        setHuaweiConfigurationRepository.setHuaweiConfiguration(plant.getId(), new HuaweiConfig.Builder()
+                .setUsername("testUsername")
+                .setPassword("testPassword")
                 .setBaseUrl(HuaweiConfig.DEFAULT_BASE_URL)
                 .setEnabled(Boolean.TRUE)
                 .build());
@@ -38,13 +61,12 @@ class GetHuaweiConfigControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(
-                        get(URL)
+                        get(String.format(URL_TEMPLATE, plant.getId()))
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value(testUsername))
-                .andExpect(jsonPath("$.passwordSet").isBoolean())
+                .andExpect(jsonPath("$.username").value("testUsername"))
                 .andExpect(jsonPath("$.passwordSet").value(true))
                 .andExpect(jsonPath("$.baseUrl").value(HuaweiConfig.DEFAULT_BASE_URL))
                 .andExpect(jsonPath("$.enabled").value(true))
@@ -56,7 +78,7 @@ class GetHuaweiConfigControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultAdmin();
 
         mockMvc.perform(
-                        get(URL)
+                        get(String.format(URL_TEMPLATE, UUID.randomUUID()))
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -65,7 +87,7 @@ class GetHuaweiConfigControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutToken() throws Exception {
-        mockMvc.perform(get(URL)
+        mockMvc.perform(get(String.format(URL_TEMPLATE, UUID.randomUUID()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
@@ -80,7 +102,7 @@ class GetHuaweiConfigControllerTest extends BaseControllerTest {
         String authHeader = loginAsPartner();
 
         mockMvc.perform(
-                        get(URL)
+                        get(String.format(URL_TEMPLATE, UUID.randomUUID()))
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())

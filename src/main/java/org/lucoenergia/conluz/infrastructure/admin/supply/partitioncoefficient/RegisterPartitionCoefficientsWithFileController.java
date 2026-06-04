@@ -35,6 +35,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(
@@ -106,12 +107,14 @@ public class RegisterPartitionCoefficientsWithFileController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public ResponseEntity importPartitionCoefficientsWithFile(
             @Parameter(description = "TXT file from the distribution company. Format: CUPS;coefficient (comma decimal separator). File name must follow the pattern: CAU_YYYY.txt.", required = true)
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "ISO-8601 instant from which the new coefficients are effective.", required = true)
-            @RequestParam("effectiveAt") @NotNull Instant effectiveAt
+            @RequestParam("effectiveAt") @NotNull Instant effectiveAt,
+            @Parameter(description = "Target community UUID.")
+            @RequestParam(value = "communityId", required = false) UUID communityId
     ) {
         Optional<ResponseEntity<RestError>> validationErrors = fileRequestValidator.validate(file);
         if (validationErrors.isPresent()) {

@@ -6,6 +6,8 @@ import jakarta.validation.constraints.PositiveOrZero;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
+import java.util.UUID;
+
 @Schema(requiredProperties = {
         "code", "personalId", "address"
 })
@@ -22,6 +24,7 @@ public class CreateSupplyBody {
     @PositiveOrZero
     private Float partitionCoefficient;
     private String name;
+    private UUID communityId;
 
     public String getCode() {
         return code;
@@ -69,6 +72,14 @@ public class CreateSupplyBody {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public UUID getCommunityId() {
+        return communityId;
+    }
+
+    public void setCommunityId(UUID communityId) {
+        this.communityId = communityId;
     }
 
     public Supply mapToSupply() {

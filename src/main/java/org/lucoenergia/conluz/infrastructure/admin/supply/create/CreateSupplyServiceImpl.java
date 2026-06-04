@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Transactional
 @Service
@@ -34,11 +35,19 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
         return repository.create(supply, id);
     }
 
+    @Override
     public Supply create(Supply supply, UserPersonalId id) {
+        return create(supply, id, null);
+    }
+
+    @Override
+    public Supply create(Supply supply, UserPersonalId id, UUID communityId) {
         Optional<User> user = getUserRepository.findByPersonalId(id);
         if (user.isEmpty()) {
             throw new UserNotFoundException(id);
         }
-        return create(supply, UserId.of(user.get().getId()));
+        supply.enable();
+        supply.initializeUuid();
+        return repository.create(supply, UserId.of(user.get().getId()), communityId);
     }
 }

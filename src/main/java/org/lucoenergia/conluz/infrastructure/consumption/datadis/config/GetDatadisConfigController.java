@@ -16,14 +16,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/consumption/datadis/config",
+        value = "/api/v1/communities/{communityId}/config/datadis",
         produces = MediaType.APPLICATION_JSON_VALUE
 )
 public class GetDatadisConfigController {
@@ -36,15 +38,15 @@ public class GetDatadisConfigController {
 
     @GetMapping
     @Operation(
-            summary = "Returns the current Datadis configuration.",
+            summary = "Returns the Datadis configuration for the specified community.",
             description = """
-                    This endpoint returns the current Datadis connection configuration.
+                    This endpoint returns the Datadis connection configuration for a specific community.
 
                     The password is never returned in the response. Instead, a boolean field
                     `passwordSet` indicates whether a password has been configured.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required Role: ADMIN or COMMUNITY_ADMIN**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with
                     the current configuration. If no configuration has been set yet, a 404 is returned.
@@ -66,9 +68,9 @@ public class GetDatadisConfigController {
     @UnauthorizedErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
-    public ResponseEntity<GetDatadisConfigResponse> getDatadisConfig() {
-        Optional<DatadisConfig> config = service.getDatadisConfiguration();
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
+    public ResponseEntity<GetDatadisConfigResponse> getDatadisConfig(@PathVariable UUID communityId) {
+        Optional<DatadisConfig> config = service.getDatadisConfiguration(communityId);
         return config
                 .map(c -> ResponseEntity.ok(GetDatadisConfigResponse.of(c)))
                 .orElse(ResponseEntity.notFound().build());

@@ -14,10 +14,13 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping(
@@ -33,7 +36,7 @@ public class SetHuaweiConfigController {
         this.service = service;
     }
 
-    @PutMapping
+    @PutMapping("/{plantId}")
     @Operation(
             summary = "Sets up the configuration to be able to connect with Huawei.",
             description = """
@@ -81,9 +84,9 @@ public class SetHuaweiConfigController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
-    public SetHuaweiConfigResponse configureHuawei(@RequestBody ConfigureHuaweiBody body) {
-        HuaweiConfig config = service.setHuaweiConfiguration(body.toHuaweiConfig());
+    @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
+    public SetHuaweiConfigResponse configureHuawei(@PathVariable UUID plantId, @RequestBody ConfigureHuaweiBody body) {
+        HuaweiConfig config = service.setHuaweiConfiguration(plantId, body.toHuaweiConfig());
         return SetHuaweiConfigResponse.of(config);
     }
 }

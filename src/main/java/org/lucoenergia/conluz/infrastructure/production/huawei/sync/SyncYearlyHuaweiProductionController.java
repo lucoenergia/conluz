@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
@@ -22,8 +21,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/production/huawei/sync/yearly")
@@ -76,11 +73,10 @@ public class SyncYearlyHuaweiProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
     public void syncYearlyHuaweiProduction(@Valid @RequestBody SyncYearlyHuaweiProductionBody body) {
 
-        Optional<HuaweiConfig> config = getHuaweiConfigRepository.getHuaweiConfig();
-        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
+        if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
             throw new HuaweiDisabledException();
         }
 

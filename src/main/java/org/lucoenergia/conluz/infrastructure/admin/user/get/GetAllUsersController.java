@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserService;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
@@ -23,9 +24,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
- * Get all users
+ * Get all users — platform admin sees all; community admin sees only their communities' users.
  */
 @RestController
 @RequestMapping(value = "/api/v1/users")
@@ -33,10 +36,13 @@ public class GetAllUsersController {
 
     private final GetUserService service;
     private final PaginationRequestMapper paginationRequestMapper;
+    private final CommunityAccessGuard communityAccessGuard;
 
-    public GetAllUsersController(GetUserService service, PaginationRequestMapper paginationRequestMapper) {
+    public GetAllUsersController(GetUserService service, PaginationRequestMapper paginationRequestMapper,
+                                 CommunityAccessGuard communityAccessGuard) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
+        this.communityAccessGuard = communityAccessGuard;
     }
 
     @GetMapping
@@ -45,13 +51,14 @@ public class GetAllUsersController {
             description = """
                     This endpoint facilitates the retrieval of all users within the system, allowing clients to access a
                     comprehensive list of user details.
-            
-                    **Required Role: ADMIN**
-            
+
+                    **Required Role: ADMIN or COMMUNITY_ADMIN**
+                    Platform admins see all users; community admins see only users belonging to their communities.
+
                     Features:
                     - Pagination support through page and limit parameters
                     - Sorting options for customized result ordering
-            
+
                     Authentication:
                     - Requires valid authentication token
                     - Bearer token authorization
@@ -72,9 +79,10 @@ public class GetAllUsersController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canListUsers()")
     public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) Pageable page) {
-        PagedResult<User> users = service.findAll(paginationRequestMapper.mapRequest(page));
+        Set<UUID> visibleCommunityIds = communityAccessGuard.visibleCommunityIds();
+        PagedResult<User> users = service.findAll(paginationRequestMapper.mapRequest(page), visibleCommunityIds);
 
         List<UserResponse> responseUsers = users.getItems().stream()
                 .map(UserResponse::new).toList();

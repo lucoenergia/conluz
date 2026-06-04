@@ -15,7 +15,10 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/supplies/datadis/sync")
@@ -60,8 +63,9 @@ public class SyncDatadisSuppliesController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
-    public void syncDatadisConsumptions() {
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
+    public void syncDatadisConsumptions(
+            @RequestParam(value = "communityId", required = false) UUID communityId) {
         datadisSuppliesSyncService.synchronizeSupplies();
     }
 }

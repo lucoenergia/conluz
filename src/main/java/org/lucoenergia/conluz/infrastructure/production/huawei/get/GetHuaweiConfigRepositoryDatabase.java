@@ -6,7 +6,10 @@ import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConf
 import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class GetHuaweiConfigRepositoryDatabase implements GetHuaweiConfigRepository {
@@ -19,16 +22,31 @@ public class GetHuaweiConfigRepositoryDatabase implements GetHuaweiConfigReposit
 
     @Override
     public Optional<HuaweiConfig> getHuaweiConfig() {
-        Optional<HuaweiConfigEntity> entity = huaweiConfigRepository.findFirstByOrderByIdAsc();
-        if (entity.isPresent()) {
-            HuaweiConfigEntity configEntity = entity.get();
-            return Optional.of(new HuaweiConfig.Builder()
-                    .setUsername(configEntity.getUsername())
-                    .setPassword(configEntity.getPassword())
-                    .setBaseUrl(configEntity.getBaseUrl())
-                    .setEnabled(configEntity.getEnabled())
-                    .build());
-        }
-        return Optional.empty();
+        return huaweiConfigRepository.findAll().stream()
+                .findFirst()
+                .map(this::toDomain);
+    }
+
+    @Override
+    public Optional<HuaweiConfig> getHuaweiConfig(UUID plantId) {
+        return huaweiConfigRepository.findByPlantId(plantId).map(this::toDomain);
+    }
+
+    @Override
+    public List<HuaweiConfig> getEnabledHuaweiConfigs() {
+        return huaweiConfigRepository.findAllByEnabledTrue().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    private HuaweiConfig toDomain(HuaweiConfigEntity configEntity) {
+        return new HuaweiConfig.Builder()
+                .setId(configEntity.getId())
+                .setUsername(configEntity.getUsername())
+                .setPassword(configEntity.getPassword())
+                .setBaseUrl(configEntity.getBaseUrl())
+                .setEnabled(configEntity.getEnabled())
+                .setPlantId(configEntity.getPlant() != null ? configEntity.getPlant().getId() : null)
+                .build();
     }
 }

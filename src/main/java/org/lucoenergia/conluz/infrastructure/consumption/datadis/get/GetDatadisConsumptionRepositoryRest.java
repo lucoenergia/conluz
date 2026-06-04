@@ -32,6 +32,8 @@ import java.time.Month;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 
 @Repository
@@ -67,17 +69,28 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
         final String monthDate = datadisDateTimeConverter.convertFromMonthAndYear(month, year);
 
-        final String authToken = datadisAuthorizer.getAuthBearerToken();
-
-        final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(60));
-
         LOGGER.info("Processing supply {} to get consumptions.", supply.getId());
 
         validateSupply(supply);
 
-        final String baseUrl = datadisConfigRepository.findFirstByOrderByIdAsc()
-                .map(DatadisConfigEntity::getBaseUrl)
-                .orElse(org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig.DEFAULT_BASE_URL);
+        final UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
+        final Optional<DatadisConfigEntity> configOpt = communityId != null
+                ? datadisConfigRepository.findByCommunityId(communityId)
+                : datadisConfigRepository.findAll().stream().findFirst();
+
+        if (configOpt.isEmpty()) {
+            LOGGER.warn("No Datadis config found for supply {} (community {}), skipping.", supply.getId(), communityId);
+            return result;
+        }
+        final DatadisConfigEntity configEntity = configOpt.get();
+
+        final String authToken = "Bearer " + datadisAuthorizer.getAuthToken(configEntity);
+
+        final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(60));
+
+        final String baseUrl = configEntity.getBaseUrl() != null
+                ? configEntity.getBaseUrl()
+                : org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig.DEFAULT_BASE_URL;
 
         // Create the complete URL with the query parameter
         UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(baseUrl + API_PATH + GET_CONSUMPTION_DATA_PATH)

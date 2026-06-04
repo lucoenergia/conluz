@@ -77,10 +77,12 @@ public class SyncYearlyDatadisConsumptionsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
     public void syncYearlyDatadisConsumptions(@Valid @RequestBody SyncYearlyDatadisConsumptionsBody body) {
 
-        Optional<DatadisConfig> config = getDatadisConfigRepository.getDatadisConfig();
+        Optional<DatadisConfig> config = body.getCommunityId() != null
+                ? getDatadisConfigRepository.getDatadisConfig(body.getCommunityId())
+                : getDatadisConfigRepository.getDatadisConfig();
         if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
             throw new DatadisDisabledException();
         }

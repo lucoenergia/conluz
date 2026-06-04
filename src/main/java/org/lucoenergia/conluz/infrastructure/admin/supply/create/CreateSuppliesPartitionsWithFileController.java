@@ -109,7 +109,7 @@ public class CreateSuppliesPartitionsWithFileController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#sharingAgreementId)")
     public ResponseEntity importSuppliesWithFile(
             @Parameter(description = "CSV file format: code(String), coefficient(Float).", required = true)
             @RequestParam("file") MultipartFile file,

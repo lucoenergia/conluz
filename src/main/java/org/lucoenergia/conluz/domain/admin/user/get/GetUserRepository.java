@@ -8,6 +8,8 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 public interface GetUserRepository {
 
@@ -20,6 +22,8 @@ public interface GetUserRepository {
     boolean existsByPersonalId(UserPersonalId id);
 
     PagedResult<User> findAll(PagedRequest pagedRequest);
+
+    PagedResult<User> findAllByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds);
 
     List<User> findAll();
 

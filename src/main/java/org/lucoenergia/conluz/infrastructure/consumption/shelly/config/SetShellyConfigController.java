@@ -14,14 +14,17 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping(
-        value = "/api/v1/consumption/shelly/config",
+        value = "/api/v1/communities/{communityId}/config/shelly",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -35,7 +38,7 @@ public class SetShellyConfigController {
 
     @PutMapping
     @Operation(
-            summary = "Sets up the configuration for Shelly integration.",
+            summary = "Sets up the Shelly configuration for the specified community.",
             description = """
                     This endpoint allows to enable or disable the Shelly integration for the energy community.
 
@@ -48,7 +51,7 @@ public class SetShellyConfigController {
                     This configuration is a mandatory step to be able to process Shelly consumption data.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required Role: ADMIN or COMMUNITY_ADMIN**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with details
                     about the configuration already set.
@@ -72,9 +75,9 @@ public class SetShellyConfigController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlatform()")
-    public SetShellyConfigResponse configureShelly(@RequestBody ConfigureShellyBody body) {
-        ShellyConfig config = service.setShellyConfiguration(body.toShellyConfig());
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
+    public SetShellyConfigResponse configureShelly(@PathVariable UUID communityId, @RequestBody ConfigureShellyBody body) {
+        ShellyConfig config = service.setShellyConfiguration(communityId, body.toShellyConfig());
         return SetShellyConfigResponse.of(config);
     }
 }
