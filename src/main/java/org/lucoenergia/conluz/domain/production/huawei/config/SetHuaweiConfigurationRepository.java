@@ -6,7 +6,5 @@ import java.util.UUID;
 
 public interface SetHuaweiConfigurationRepository {
 
-    HuaweiConfig setHuaweiConfiguration(HuaweiConfig config);
-
     HuaweiConfig setHuaweiConfiguration(UUID plantId, HuaweiConfig config);
 }

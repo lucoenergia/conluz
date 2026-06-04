@@ -4,7 +4,5 @@ import java.util.UUID;
 
 public interface SetDatadisConfigurationService {
 
-    DatadisConfig setDatadisConfiguration(DatadisConfig config);
-
     DatadisConfig setDatadisConfiguration(UUID communityId, DatadisConfig config);
 }

@@ -19,11 +19,6 @@ public class SetDatadisConfigurationServiceImpl implements SetDatadisConfigurati
     }
 
     @Override
-    public DatadisConfig setDatadisConfiguration(DatadisConfig config) {
-        return setDatadisConfigurationRepository.setDatadisConfiguration(config);
-    }
-
-    @Override
     public DatadisConfig setDatadisConfiguration(UUID communityId, DatadisConfig config) {
         return setDatadisConfigurationRepository.setDatadisConfiguration(communityId, config);
     }

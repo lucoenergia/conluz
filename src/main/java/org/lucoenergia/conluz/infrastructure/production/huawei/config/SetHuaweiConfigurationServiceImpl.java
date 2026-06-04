@@ -19,11 +19,6 @@ public class SetHuaweiConfigurationServiceImpl implements SetHuaweiConfiguration
     }
 
     @Override
-    public HuaweiConfig setHuaweiConfiguration(HuaweiConfig config) {
-        return setHuaweiConfigurationRepository.setHuaweiConfiguration(config);
-    }
-
-    @Override
     public HuaweiConfig setHuaweiConfiguration(UUID plantId, HuaweiConfig config) {
         return setHuaweiConfigurationRepository.setHuaweiConfiguration(plantId, config);
     }

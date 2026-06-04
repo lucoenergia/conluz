@@ -11,6 +11,4 @@ public interface GetShellyConfigRepository {
     Optional<ShellyConfig> getShellyConfig();
 
     Optional<ShellyConfig> getShellyConfig(UUID communityId);
-
-    List<ShellyConfig> getEnabledShellyConfigs();
 }

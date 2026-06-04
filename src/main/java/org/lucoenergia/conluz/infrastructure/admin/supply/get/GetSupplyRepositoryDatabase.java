@@ -90,6 +90,6 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
 
     @Override
     public List<Supply> findAllByCommunityId(UUID communityId) {
-        return supplyEntityMapper.mapList(supplyRepository.findByCommunity_Id(communityId));
+        return supplyEntityMapper.mapList(supplyRepository.findByCommunityId(communityId));
     }
 }

@@ -9,7 +9,6 @@ import org.lucoenergia.conluz.infrastructure.consumption.shelly.config.ShellyCon
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -23,13 +22,6 @@ public class SetShellyConfigRepositoryDatabase implements SetShellyConfigReposit
                                              CommunityJpaRepository communityJpaRepository) {
         this.shellyConfigRepository = shellyConfigRepository;
         this.communityJpaRepository = communityJpaRepository;
-    }
-
-    @Override
-    public ShellyConfig setShellyConfiguration(ShellyConfig config) {
-        ShellyConfigEntity entity = shellyConfigRepository.findFirstBy()
-                .orElseGet(() -> { ShellyConfigEntity e = new ShellyConfigEntity(); e.setId(UUID.randomUUID()); return e; });
-        return persist(entity, config, null);
     }
 
     @Override

@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.get;
 
-import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigEntity;
 import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigRepository;
 import org.springframework.stereotype.Repository;
@@ -18,13 +18,6 @@ public class GetHuaweiConfigRepositoryDatabase implements GetHuaweiConfigReposit
 
     public GetHuaweiConfigRepositoryDatabase(HuaweiConfigRepository huaweiConfigRepository) {
         this.huaweiConfigRepository = huaweiConfigRepository;
-    }
-
-    @Override
-    public Optional<HuaweiConfig> getHuaweiConfig() {
-        return huaweiConfigRepository.findAll().stream()
-                .findFirst()
-                .map(this::toDomain);
     }
 
     @Override

@@ -35,17 +35,7 @@ public class GetHuaweiConfigurationServiceImpl implements GetHuaweiConfiguration
     }
 
     @Override
-    public Optional<HuaweiConfig> getHuaweiConfiguration() {
-        return getHuaweiConfigRepository.getHuaweiConfig();
-    }
-
-    @Override
     public Optional<HuaweiConfig> getHuaweiConfiguration(UUID plantId) {
         return getHuaweiConfigRepository.getHuaweiConfig(plantId);
-    }
-
-    @Override
-    public List<HuaweiConfig> getEnabledHuaweiConfigurations() {
-        return getHuaweiConfigRepository.getEnabledHuaweiConfigs();
     }
 }

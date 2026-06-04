@@ -6,7 +6,6 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -19,20 +18,6 @@ public class SetHuaweiConfigurationRepositoryDatabase implements SetHuaweiConfig
                                                     PlantRepository plantRepository) {
         this.huaweiConfigRepository = huaweiConfigRepository;
         this.plantRepository = plantRepository;
-    }
-
-    @Override
-    public HuaweiConfig setHuaweiConfiguration(HuaweiConfig config) {
-        HuaweiConfigEntity newConfig = huaweiConfigRepository.findFirstBy()
-                .orElseGet(() -> {
-                    HuaweiConfigEntity e = new HuaweiConfigEntity();
-                    e.setId(UUID.randomUUID());
-                    return e;
-                });
-
-        applyConfig(newConfig, config);
-        huaweiConfigRepository.save(newConfig);
-        return toDomain(newConfig);
     }
 
     @Override

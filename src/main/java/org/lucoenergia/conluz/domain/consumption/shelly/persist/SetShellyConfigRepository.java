@@ -6,7 +6,5 @@ import java.util.UUID;
 
 public interface SetShellyConfigRepository {
 
-    ShellyConfig setShellyConfiguration(ShellyConfig config);
-
     ShellyConfig setShellyConfiguration(UUID communityId, ShellyConfig config);
 }

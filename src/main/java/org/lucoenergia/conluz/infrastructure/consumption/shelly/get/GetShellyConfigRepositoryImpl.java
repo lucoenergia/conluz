@@ -32,13 +32,6 @@ public class GetShellyConfigRepositoryImpl implements GetShellyConfigRepository 
         return shellyConfigRepository.findByCommunityId(communityId).map(this::toDomain);
     }
 
-    @Override
-    public List<ShellyConfig> getEnabledShellyConfigs() {
-        return shellyConfigRepository.findAllByEnabledTrue().stream()
-                .map(this::toDomain)
-                .collect(Collectors.toList());
-    }
-
     private ShellyConfig toDomain(ShellyConfigEntity entity) {
         return new ShellyConfig.Builder()
                 .setId(entity.getId())

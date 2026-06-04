@@ -15,5 +15,5 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
 
     List<SupplyEntity> findByUserId(UUID userId);
 
-    List<SupplyEntity> findByCommunity_Id(UUID communityId);
+    List<SupplyEntity> findByCommunityId(UUID communityId);
 }

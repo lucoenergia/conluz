@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,18 +24,8 @@ public class GetShellyConfigurationServiceImpl implements GetShellyConfiguration
     }
 
     @Override
-    public Optional<ShellyConfig> getShellyConfiguration() {
-        return getShellyConfigRepository.getShellyConfig();
-    }
-
-    @Override
     public Optional<ShellyConfig> getShellyConfiguration(UUID communityId) {
         return getShellyConfigRepository.getShellyConfig(communityId);
-    }
-
-    @Override
-    public List<ShellyConfig> getEnabledShellyConfigurations() {
-        return getShellyConfigRepository.getEnabledShellyConfigs();
     }
 
     @Override
