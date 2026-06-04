@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
@@ -10,6 +13,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +38,8 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     private CreateSupplyService createSupplyService;
     @Autowired
     private SupplyPartitionCoefficientRepository partitionCoefficientRepository;
+    @Autowired
+    private GetCommunityRepository getCommunityRepository;
 
     @Test
     void getHistoryReturnsAllPeriodsOrdered() throws Exception {
@@ -107,7 +113,8 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         Supply supply = SupplyMother.random(user).build();
-        return createSupplyService.create(supply, UserId.of(user.getId()));
+        Community community = getCommunityRepository.findAll().stream().findFirst().get();
+        return createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), community.getId());
     }
 
     private void persistCoefficient(UUID supplyId, BigDecimal coefficient, Instant validFrom, Instant validTo) {

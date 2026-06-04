@@ -28,19 +28,6 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
     }
 
     @Override
-    public Supply create(Supply supply, UserId id) {
-        supply.enable();
-        supply.initializeUuid();
-
-        return repository.create(supply, id);
-    }
-
-    @Override
-    public Supply create(Supply supply, UserPersonalId id) {
-        return create(supply, id, null);
-    }
-
-    @Override
     public Supply create(Supply supply, UserPersonalId id, UUID communityId) {
         Optional<User> user = getUserRepository.findByPersonalId(id);
         if (user.isEmpty()) {

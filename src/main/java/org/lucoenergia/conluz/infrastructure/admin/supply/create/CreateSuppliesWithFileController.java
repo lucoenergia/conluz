@@ -132,7 +132,8 @@ public class CreateSuppliesWithFileController {
         // save supplies in DB
         supplies.forEach(supply -> {
             try {
-                Supply newSupply = createSupplyService.create(supply.mapToSupply(), UserPersonalId.of(supply.getPersonalId()));
+                Supply newSupply = createSupplyService.create(supply.mapToSupply(),
+                        UserPersonalId.of(supply.getPersonalId()), communityId);
                 response.addCreated(newSupply.getCode());
             } catch (SupplyAlreadyExistsException e) {
                 LOGGER.error("Supply already exists", e);
