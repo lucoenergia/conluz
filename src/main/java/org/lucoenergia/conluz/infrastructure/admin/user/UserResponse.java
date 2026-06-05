@@ -1,8 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.user;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class UserResponse {
@@ -16,6 +20,8 @@ public class UserResponse {
     private final String phoneNumber;
     private final Boolean enabled;
     private final Role role;
+    private final Boolean isPlatformAdmin;
+    private final Map<String, String> memberships;
 
     public UserResponse(User user) {
         id = user.getId();
@@ -27,6 +33,14 @@ public class UserResponse {
         phoneNumber = user.getPhoneNumber();
         enabled = user.isEnabled();
         role = user.getRole();
+        isPlatformAdmin = user.isPlatformAdmin();
+        Map<String, String> membershipMap = new HashMap<>();
+        if (user.getMemberships() != null) {
+            for (CommunityMembership m : user.getMemberships()) {
+                membershipMap.put(m.getCommunity().getId().toString(), m.getRole().name());
+            }
+        }
+        memberships = membershipMap;
     }
 
     public UUID getId() {
@@ -63,5 +77,14 @@ public class UserResponse {
 
     public Role getRole() {
         return role;
+    }
+
+    @JsonProperty("isPlatformAdmin")
+    public Boolean getIsPlatformAdmin() {
+        return isPlatformAdmin;
+    }
+
+    public Map<String, String> getMemberships() {
+        return memberships;
     }
 }
