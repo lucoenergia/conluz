@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityWithStats;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityService;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -57,8 +57,7 @@ public class GetAllCommunitiesController {
     @ForbiddenErrorResponse
     @PreAuthorize("isAuthenticated()")
     public List<CommunityResponse> getAllCommunities() {
-        List<Community> communities = service.findAllVisible();
-        return communities.stream()
+        return service.findAllVisibleWithStats().stream()
                 .map(CommunityResponse::new)
                 .toList();
     }

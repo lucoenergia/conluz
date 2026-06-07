@@ -1,21 +1,24 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
 import java.util.UUID;
 
 public class MembershipResponse {
 
     private final UUID id;
-    private final UUID userId;
+    @Schema(description = "User associated with the membership")
+    private final UserResponse user;
     private final UUID communityId;
     private final CommunityRole role;
     private final Boolean enabled;
 
     public MembershipResponse(CommunityMembership membership) {
         this.id = membership.getId();
-        this.userId = membership.getUser().getId();
+        this.user = membership.getUser() != null ? new UserResponse(membership.getUser()) : null;
         this.communityId = membership.getCommunity().getId();
         this.role = membership.getRole();
         this.enabled = membership.isEnabled();
@@ -25,8 +28,8 @@ public class MembershipResponse {
         return id;
     }
 
-    public UUID getUserId() {
-        return userId;
+    public UserResponse getUser() {
+        return user;
     }
 
     public UUID getCommunityId() {
