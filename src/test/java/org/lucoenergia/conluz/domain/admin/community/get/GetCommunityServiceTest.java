@@ -4,11 +4,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityWithStats;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -77,5 +79,71 @@ class GetCommunityServiceTest {
         assertEquals(1, result.size());
         verify(repository).findAllByIds(ids);
         verify(repository, never()).findAll();
+    }
+
+    @Test
+    void findByIdWithStats_returnsCommunityWithStats() {
+        UUID id = UUID.randomUUID();
+        Community community = CommunityMother.random().withId(id).build();
+        when(repository.findById(id)).thenReturn(Optional.of(community));
+        when(repository.countMembersByCommunityIds(Set.of(id))).thenReturn(Map.of(id, 5));
+        when(repository.countSuppliesByCommunityIds(Set.of(id))).thenReturn(Map.of(id, 3));
+        when(repository.findAdminNamesByCommunityIds(Set.of(id))).thenReturn(Map.of(id, List.of("Alice Admin", "Bob Admin")));
+
+        Optional<CommunityWithStats> result = service().findByIdWithStats(id);
+
+        assertTrue(result.isPresent());
+        assertEquals(id, result.get().getId());
+        assertEquals(5, result.get().getMemberCount());
+        assertEquals(3, result.get().getSupplyPointCount());
+        assertEquals(List.of("Alice Admin", "Bob Admin"), result.get().getAdminNames());
+    }
+
+    @Test
+    void findByIdWithStats_returnsEmptyWhenCommunityNotFound() {
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        Optional<CommunityWithStats> result = service().findByIdWithStats(id);
+
+        assertTrue(result.isEmpty());
+        verify(repository, never()).countMembersByCommunityIds(any());
+    }
+
+    @Test
+    void findAllVisibleWithStats_enrichesAllCommunities() {
+        Community c1 = CommunityMother.random().build();
+        Community c2 = CommunityMother.random().build();
+        Set<UUID> ids = Set.of(c1.getId(), c2.getId());
+
+        when(guard.visibleCommunityIds()).thenReturn(null);
+        when(repository.findAll()).thenReturn(List.of(c1, c2));
+        when(repository.countMembersByCommunityIds(ids)).thenReturn(Map.of(c1.getId(), 5, c2.getId(), 3));
+        when(repository.countSuppliesByCommunityIds(ids)).thenReturn(Map.of(c1.getId(), 10, c2.getId(), 7));
+        when(repository.findAdminNamesByCommunityIds(ids)).thenReturn(Map.of(c1.getId(), List.of("Admin1")));
+
+        List<CommunityWithStats> result = service().findAllVisibleWithStats();
+
+        assertEquals(2, result.size());
+
+        CommunityWithStats r1 = result.stream().filter(r -> r.getId().equals(c1.getId())).findFirst().orElseThrow();
+        assertEquals(5, r1.getMemberCount());
+        assertEquals(10, r1.getSupplyPointCount());
+        assertEquals(List.of("Admin1"), r1.getAdminNames());
+
+        CommunityWithStats r2 = result.stream().filter(r -> r.getId().equals(c2.getId())).findFirst().orElseThrow();
+        assertEquals(3, r2.getMemberCount());
+        assertEquals(7, r2.getSupplyPointCount());
+        assertTrue(r2.getAdminNames().isEmpty());
+    }
+
+    @Test
+    void findAllVisibleWithStats_returnsEmptyListWhenNoCommunities() {
+        when(guard.visibleCommunityIds()).thenReturn(Set.of());
+
+        List<CommunityWithStats> result = service().findAllVisibleWithStats();
+
+        assertTrue(result.isEmpty());
+        verify(repository, never()).countMembersByCommunityIds(any());
     }
 }

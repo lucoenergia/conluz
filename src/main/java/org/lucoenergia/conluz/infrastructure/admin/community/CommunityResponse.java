@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityWithStats;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,6 +40,18 @@ public class CommunityResponse {
         this.adminNames = adminNames;
         this.memberCount = memberCount;
         this.supplyPointCount = supplyPointCount;
+    }
+
+    public CommunityResponse(CommunityWithStats community) {
+        this.id = community.getId();
+        this.name = community.getName();
+        this.code = community.getCode();
+        this.legalId = community.getLegalId();
+        this.address = community.getAddress();
+        this.enabled = community.isEnabled();
+        this.adminNames = community.getAdminNames();
+        this.memberCount = community.getMemberCount();
+        this.supplyPointCount = community.getSupplyPointCount();
     }
 
     public UUID getId() {

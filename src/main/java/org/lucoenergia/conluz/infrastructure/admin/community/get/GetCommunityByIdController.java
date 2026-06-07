@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityService;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityResponse;
@@ -69,7 +68,7 @@ public class GetCommunityByIdController {
         if (!guard.canReadCommunity(id)) {
             return ResponseEntity.notFound().build();
         }
-        return service.findById(id)
+        return service.findByIdWithStats(id)
                 .map(c -> ResponseEntity.ok(new CommunityResponse(c)))
                 .orElse(ResponseEntity.notFound().build());
     }

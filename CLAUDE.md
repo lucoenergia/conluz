@@ -151,3 +151,4 @@ With the app running:
 - When injecting beans, always use the interface. This also applies to integration tests
 - When creating tests over services that has an interface, always use the name of the interface + "Test" for naming them
 - **Never use `findAll().stream().findFirst()` in production code** to retrieve a single entity. This loads all rows into memory. Use a Spring Data derived query method that produces a `LIMIT 1` query instead — e.g., `findFirstBy()` or `findFirstByOrderByIdAsc()` in the JPA repository interface. This anti-pattern is only acceptable in test code where it avoids adding repository methods purely for test purposes.
+- **Controllers must never inject JPA repositories or handle JPA entities.** All data access must go through domain repository interfaces defined in the `domain/` layer. Repository implementations in `infrastructure/` are the only place where JPA/ORM types are used.
