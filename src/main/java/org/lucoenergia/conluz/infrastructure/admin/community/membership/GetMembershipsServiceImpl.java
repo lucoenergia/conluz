@@ -32,7 +32,7 @@ public class GetMembershipsServiceImpl implements GetMembershipsService {
         Community community = getCommunityRepository.findById(communityId)
                 .orElseThrow(() -> new CommunityNotFoundException(communityId));
 
-        List<CommunityMembershipEntity> entities = membershipJpaRepository.findByCommunityId(communityId);
+        List<CommunityMembershipEntity> entities = membershipJpaRepository.findByCommunityIdWithUser(communityId);
         return entities.stream()
                 .map(e -> toDomain(e, community, e.getUser() != null ? e.getUser().getUser() : null))
                 .toList();
