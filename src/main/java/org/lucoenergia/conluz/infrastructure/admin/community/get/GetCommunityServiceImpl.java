@@ -47,15 +47,15 @@ public class GetCommunityServiceImpl implements GetCommunityService {
     @Override
     public Optional<CommunityWithStats> findByIdWithStats(UUID id) {
         return findById(id)
-                .map(community -> enrich(List.of(community)).get(0));
+                .map(community -> enrichWithStats(List.of(community)).get(0));
     }
 
     @Override
     public List<CommunityWithStats> findAllVisibleWithStats() {
-        return enrich(findAllVisible());
+        return enrichWithStats(findAllVisible());
     }
 
-    private List<CommunityWithStats> enrich(List<Community> communities) {
+    private List<CommunityWithStats> enrichWithStats(List<Community> communities) {
         if (communities.isEmpty()) {
             return List.of();
         }

@@ -58,11 +58,11 @@ class GetMembershipsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[?(@.fullName == 'Alice Admin')].email").value("alice@test.com"))
-                .andExpect(jsonPath("$[?(@.fullName == 'Alice Admin')].role").value("COMMUNITY_ADMIN"))
-                .andExpect(jsonPath("$[?(@.fullName == 'Bob Member')].email").value("bob@test.com"))
-                .andExpect(jsonPath("$[?(@.fullName == 'Bob Member')].role").value("COMMUNITY_MEMBER"))
-                .andExpect(jsonPath("$[0].userId").isString())
+                .andExpect(jsonPath("$[?(@.user.fullName == 'Alice Admin')].user.email").value("alice@test.com"))
+                .andExpect(jsonPath("$[?(@.user.fullName == 'Alice Admin')].role").value("COMMUNITY_ADMIN"))
+                .andExpect(jsonPath("$[?(@.user.fullName == 'Bob Member')].user.email").value("bob@test.com"))
+                .andExpect(jsonPath("$[?(@.user.fullName == 'Bob Member')].role").value("COMMUNITY_MEMBER"))
+                .andExpect(jsonPath("$[0].user.id").isString())
                 .andExpect(jsonPath("$[0].communityId").value(community.getId().toString()))
                 .andExpect(jsonPath("$[0].enabled").isBoolean());
     }
@@ -83,10 +83,10 @@ class GetMembershipsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].fullName").value("Charlie"))
-                .andExpect(jsonPath("$[0].email").value("charlie@test.com"))
+                .andExpect(jsonPath("$[0].user.fullName").value("Charlie"))
+                .andExpect(jsonPath("$[0].user.email").value("charlie@test.com"))
                 .andExpect(jsonPath("$[0].role").value("COMMUNITY_MEMBER"))
-                .andExpect(jsonPath("$[0].userId").isString())
+                .andExpect(jsonPath("$[0].user.id").isString())
                 .andExpect(jsonPath("$[0].communityId").value(community.getId().toString()))
                 .andExpect(jsonPath("$[0].enabled").isBoolean());
     }
