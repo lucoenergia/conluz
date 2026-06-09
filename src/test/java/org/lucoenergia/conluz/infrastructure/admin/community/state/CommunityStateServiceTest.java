@@ -3,12 +3,10 @@ package org.lucoenergia.conluz.infrastructure.admin.community.state;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
+import org.lucoenergia.conluz.domain.admin.community.state.CommunityStateRepository;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,48 +16,42 @@ import static org.mockito.Mockito.*;
 class CommunityStateServiceTest {
 
     @Mock
-    private CommunityJpaRepository repository;
+    private CommunityStateRepository repository;
 
     private CommunityStateService service() {
         return new CommunityStateService(repository);
     }
 
     @Test
-    void enable_setsEnabledTrueAndSaves() {
+    void enable_delegatesToRepository() {
         UUID id = UUID.randomUUID();
-        CommunityEntity entity = new CommunityEntity.Builder().withId(id).withEnabled(false).build();
-        when(repository.findById(id)).thenReturn(Optional.of(entity));
 
         service().enable(id);
 
-        assertTrue(entity.isEnabled());
-        verify(repository).save(entity);
+        verify(repository).enable(id);
     }
 
     @Test
-    void enable_throwsCommunityNotFoundException_whenNotFound() {
+    void enable_propagatesCommunityNotFoundException() {
         UUID id = UUID.randomUUID();
-        when(repository.findById(id)).thenReturn(Optional.empty());
+        doThrow(new CommunityNotFoundException(id)).when(repository).enable(id);
 
         assertThrows(CommunityNotFoundException.class, () -> service().enable(id));
     }
 
     @Test
-    void disable_setsEnabledFalseAndSaves() {
+    void disable_delegatesToRepository() {
         UUID id = UUID.randomUUID();
-        CommunityEntity entity = new CommunityEntity.Builder().withId(id).withEnabled(true).build();
-        when(repository.findById(id)).thenReturn(Optional.of(entity));
 
         service().disable(id);
 
-        assertFalse(entity.isEnabled());
-        verify(repository).save(entity);
+        verify(repository).disable(id);
     }
 
     @Test
-    void disable_throwsCommunityNotFoundException_whenNotFound() {
+    void disable_propagatesCommunityNotFoundException() {
         UUID id = UUID.randomUUID();
-        when(repository.findById(id)).thenReturn(Optional.empty());
+        doThrow(new CommunityNotFoundException(id)).when(repository).disable(id);
 
         assertThrows(CommunityNotFoundException.class, () -> service().disable(id));
     }

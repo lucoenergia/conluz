@@ -46,8 +46,7 @@ public class JpaUsageArchTest extends BaseArchTest {
             "UpdateMembershipRoleServiceImpl",
             "DeleteMembershipServiceImpl",
             "GetMembershipsServiceImpl",
-            "CommunityAccessGuardImpl",
-            "CommunityStateService"
+            "CommunityAccessGuardImpl"
     );
 
     @Test
