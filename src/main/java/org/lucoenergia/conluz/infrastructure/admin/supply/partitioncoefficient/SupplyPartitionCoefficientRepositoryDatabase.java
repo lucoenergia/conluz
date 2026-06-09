@@ -1,10 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
-import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntityMapper;
@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -95,5 +96,13 @@ public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyParti
         SupplyPartitionCoefficientEntity activeCoefficient = result.get();
         activeCoefficient.setValidTo(validTo);
         jpaRepository.save(activeCoefficient);
+    }
+
+    @Override
+    public void syncSupplyPartitionCoefficient(UUID supplyId, BigDecimal newCoefficient) {
+        SupplyEntity supply = supplyRepository.findById(supplyId)
+                .orElseThrow(() -> new SupplyNotFoundException(SupplyId.of(supplyId)));
+        supply.setPartitionCoefficient(newCoefficient.floatValue());
+        supplyRepository.save(supply);
     }
 }

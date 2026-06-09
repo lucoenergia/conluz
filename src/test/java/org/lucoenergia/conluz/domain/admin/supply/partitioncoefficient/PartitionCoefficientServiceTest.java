@@ -2,8 +2,10 @@ package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient.PartitionCoefficientServiceImpl;
 
 import java.math.BigDecimal;
@@ -16,22 +18,21 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class PartitionCoefficientServiceTest {
 
     private PartitionCoefficientService service;
     private SupplyPartitionCoefficientRepository repository;
-    private SupplyRepository supplyRepository;
+    private GetSupplyRepository getSupplyRepository;
 
     private static final UUID SUPPLY_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
         repository = mock(SupplyPartitionCoefficientRepository.class);
-        supplyRepository = mock(SupplyRepository.class);
-        service = new PartitionCoefficientServiceImpl(repository, supplyRepository);
+        getSupplyRepository = mock(GetSupplyRepository.class);
+        service = new PartitionCoefficientServiceImpl(repository, getSupplyRepository);
     }
 
     // --- resolveCoefficient ---
@@ -152,8 +153,7 @@ class PartitionCoefficientServiceTest {
         Instant effectiveAt = Instant.parse("2025-06-01T00:00:00Z");
         BigDecimal newCoefficient = BigDecimal.valueOf(7.000000);
 
-        when(supplyRepository.findById(SUPPLY_ID)).thenReturn(Optional.of(mock(
-                org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity.class)));
+        when(getSupplyRepository.findById(SupplyId.of(SUPPLY_ID))).thenReturn(Optional.of(mock(Supply.class)));
 
         SupplyPartitionCoefficient saved = buildRecord(effectiveAt, null, newCoefficient);
         when(repository.save(any())).thenReturn(saved);
@@ -166,12 +166,13 @@ class PartitionCoefficientServiceTest {
                         && c.getCoefficient().equals(newCoefficient)
                         && c.getValidFrom().equals(effectiveAt)
                         && c.getValidTo() == null));
+        verify(repository).syncSupplyPartitionCoefficient(SUPPLY_ID, newCoefficient);
         assertNotNull(result);
     }
 
     @Test
     void registerCoefficientChangeThrowsWhenSupplyNotFound() {
-        when(supplyRepository.findById(SUPPLY_ID)).thenReturn(Optional.empty());
+        when(getSupplyRepository.findById(SupplyId.of(SUPPLY_ID))).thenReturn(Optional.empty());
 
         assertThrows(SupplyNotFoundException.class,
                 () -> service.registerCoefficientChange(SUPPLY_ID, BigDecimal.ONE, Instant.now()));

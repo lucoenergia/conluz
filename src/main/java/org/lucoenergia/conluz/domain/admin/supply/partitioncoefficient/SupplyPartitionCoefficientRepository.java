@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -20,4 +21,6 @@ public interface SupplyPartitionCoefficientRepository {
     SupplyPartitionCoefficient save(SupplyPartitionCoefficient coefficient);
 
     void closeActivePeriod(UUID supplyId, Instant validTo);
+
+    void syncSupplyPartitionCoefficient(UUID supplyId, BigDecimal newCoefficient);
 }

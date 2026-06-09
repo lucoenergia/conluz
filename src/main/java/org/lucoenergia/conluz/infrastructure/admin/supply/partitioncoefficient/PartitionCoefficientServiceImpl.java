@@ -1,13 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +22,12 @@ import java.util.stream.Collectors;
 public class PartitionCoefficientServiceImpl implements PartitionCoefficientService {
 
     private final SupplyPartitionCoefficientRepository repository;
-    private final SupplyRepository supplyRepository;
+    private final GetSupplyRepository getSupplyRepository;
 
     public PartitionCoefficientServiceImpl(SupplyPartitionCoefficientRepository repository,
-                                           SupplyRepository supplyRepository) {
+                                           GetSupplyRepository getSupplyRepository) {
         this.repository = repository;
-        this.supplyRepository = supplyRepository;
+        this.getSupplyRepository = getSupplyRepository;
     }
 
     @Override
@@ -51,7 +50,7 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
     @Override
     public SupplyPartitionCoefficient registerCoefficientChange(UUID supplyId, BigDecimal newCoefficient,
                                                                 Instant effectiveAt) {
-        SupplyEntity supply = supplyRepository.findById(supplyId)
+        getSupplyRepository.findById(SupplyId.of(supplyId))
                 .orElseThrow(() -> new SupplyNotFoundException(SupplyId.of(supplyId)));
 
         repository.closeActivePeriod(supplyId, effectiveAt);
@@ -68,8 +67,7 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
         SupplyPartitionCoefficient saved = repository.save(newPeriod);
 
         // Keep supply.partition_coefficient in sync with the active value
-        supply.setPartitionCoefficient(newCoefficient.floatValue());
-        supplyRepository.save(supply);
+        repository.syncSupplyPartitionCoefficient(supplyId, newCoefficient);
 
         return saved;
     }
