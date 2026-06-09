@@ -23,6 +23,11 @@ public class GetHuaweiConfigRepositoryDatabase implements GetHuaweiConfigReposit
     }
 
     @Override
+    public Optional<HuaweiConfig> findFirst() {
+        return huaweiConfigRepository.findFirstBy().map(this::toDomain);
+    }
+
+    @Override
     public Optional<HuaweiConfig> getHuaweiConfig(UUID plantId) {
         return huaweiConfigRepository.findByPlantId(plantId).map(this::toDomain);
     }

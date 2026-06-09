@@ -56,7 +56,6 @@ public class JpaUsageArchTest extends BaseArchTest {
     // Non-repository infrastructure classes that need to reference entities.
     // These should be refactored when possible.
     private static final Set<String> INFRASTRUCTURE_EXCEPTIONS = Set.of(
-            "HuaweiAuthorizer",
             "SupplySpecifications"
     );
 

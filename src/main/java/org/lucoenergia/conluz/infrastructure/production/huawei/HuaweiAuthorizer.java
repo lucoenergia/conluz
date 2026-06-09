@@ -3,8 +3,8 @@ package org.lucoenergia.conluz.infrastructure.production.huawei;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
-import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigEntity;
-import org.lucoenergia.conluz.infrastructure.production.huawei.config.HuaweiConfigRepository;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.Authorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.http.HttpHeaders;
@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Component
 public class HuaweiAuthorizer implements Authorizer {
@@ -27,22 +26,19 @@ public class HuaweiAuthorizer implements Authorizer {
 
     private final ObjectMapper objectMapper;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
-    private final HuaweiConfigRepository huaweiConfigRepository;
+    private final GetHuaweiConfigRepository getHuaweiConfigRepository;
 
     public HuaweiAuthorizer(ObjectMapper objectMapper, ConluzRestClientBuilder conluzRestClientBuilder,
-                            HuaweiConfigRepository huaweiConfigRepository) {
+                            GetHuaweiConfigRepository getHuaweiConfigRepository) {
         this.objectMapper = objectMapper;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
-        this.huaweiConfigRepository = huaweiConfigRepository;
+        this.getHuaweiConfigRepository = getHuaweiConfigRepository;
     }
 
     @Override
     public String getAuthToken() {
-        Optional<HuaweiConfigEntity> optionalConfig = huaweiConfigRepository.findFirstBy();
-        if (optionalConfig.isEmpty()) {
-            throw new HuaweiException("Huawei configuration not found");
-        }
-        HuaweiConfigEntity config = optionalConfig.get();
+        HuaweiConfig config = getHuaweiConfigRepository.findFirst()
+                .orElseThrow(() -> new HuaweiException("Huawei configuration not found"));
         return getAuthToken(config.getBaseUrl(), config.getUsername(), config.getPassword());
     }
 

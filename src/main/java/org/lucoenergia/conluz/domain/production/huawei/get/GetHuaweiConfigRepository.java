@@ -8,6 +8,8 @@ import java.util.UUID;
 
 public interface GetHuaweiConfigRepository {
 
+    Optional<HuaweiConfig> findFirst();
+
     Optional<HuaweiConfig> getHuaweiConfig(UUID plantId);
 
     List<HuaweiConfig> getEnabledHuaweiConfigs();
