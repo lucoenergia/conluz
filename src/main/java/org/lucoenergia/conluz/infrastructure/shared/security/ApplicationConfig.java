@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.shared.security;
 
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
+import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.UserDetailsServiceFromDatabase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,13 +16,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 public class ApplicationConfig {
 
-    private final UserRepository userRepository;
-    private final CommunityMembershipJpaRepository communityMembershipJpaRepository;
+    private final GetUserRepository getUserRepository;
+    private final GetMembershipsRepository getMembershipsRepository;
 
-    public ApplicationConfig(UserRepository userRepository,
-                             CommunityMembershipJpaRepository communityMembershipJpaRepository) {
-        this.userRepository = userRepository;
-        this.communityMembershipJpaRepository = communityMembershipJpaRepository;
+    public ApplicationConfig(GetUserRepository getUserRepository,
+                             GetMembershipsRepository getMembershipsRepository) {
+        this.getUserRepository = getUserRepository;
+        this.getMembershipsRepository = getMembershipsRepository;
     }
 
     @Bean
@@ -45,6 +45,6 @@ public class ApplicationConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return new UserDetailsServiceFromDatabase(userRepository, communityMembershipJpaRepository);
+        return new UserDetailsServiceFromDatabase(getUserRepository, getMembershipsRepository);
     }
 }
