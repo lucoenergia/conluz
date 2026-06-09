@@ -42,10 +42,6 @@ public class JpaUsageArchTest extends BaseArchTest {
 
     private static final Set<String> SERVICE_EXCEPTIONS = Set.of(
             "PartitionCoefficientServiceImpl",
-            "CreateMembershipServiceImpl",
-            "UpdateMembershipRoleServiceImpl",
-            "DeleteMembershipServiceImpl",
-            "GetMembershipsServiceImpl",
             "CommunityAccessGuardImpl"
     );
 

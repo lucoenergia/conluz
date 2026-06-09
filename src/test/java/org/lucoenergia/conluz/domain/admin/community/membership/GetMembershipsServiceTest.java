@@ -6,13 +6,8 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.GetMembershipsServiceImpl;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,42 +22,27 @@ import static org.mockito.Mockito.*;
 class GetMembershipsServiceTest {
 
     @Mock
-    private CommunityMembershipJpaRepository membershipJpaRepository;
+    private GetMembershipsRepository getMembershipsRepository;
     @Mock
     private GetCommunityRepository getCommunityRepository;
 
     private GetMembershipsService service() {
-        return new GetMembershipsServiceImpl(membershipJpaRepository, getCommunityRepository);
+        return new GetMembershipsServiceImpl(getMembershipsRepository, getCommunityRepository);
     }
 
     @Test
-    void findByCommunityId_returnsAllMembershipsForCommunity() {
+    void findByCommunityId_validatesCommunityExistsAndDelegatesToRepository() {
         Community community = CommunityMother.random().build();
-        CommunityEntity communityEntity = new CommunityEntity.Builder().withId(community.getId()).build();
-
-        UserEntity userEntity = new UserEntity();
-        userEntity.setId(UUID.randomUUID());
-        userEntity.setFullName("John Doe");
-        userEntity.setEmail("john@example.com");
-
-        CommunityMembershipEntity entity = new CommunityMembershipEntity.Builder()
-                .withId(UUID.randomUUID())
-                .withUser(userEntity)
-                .withCommunity(communityEntity)
-                .withRole(CommunityRole.COMMUNITY_MEMBER)
-                .withEnabled(true)
-                .build();
+        CommunityMembership membership = mock(CommunityMembership.class);
+        List<CommunityMembership> expected = List.of(membership);
 
         when(getCommunityRepository.findById(community.getId())).thenReturn(Optional.of(community));
-        when(membershipJpaRepository.findByCommunityIdWithUser(community.getId())).thenReturn(List.of(entity));
+        when(getMembershipsRepository.findByCommunityId(community.getId())).thenReturn(expected);
 
         List<CommunityMembership> result = service().findByCommunityId(community.getId());
 
-        assertEquals(1, result.size());
-        assertEquals(CommunityRole.COMMUNITY_MEMBER, result.get(0).getRole());
-        assertNotNull(result.get(0).getUser());
-        assertEquals("John Doe", result.get(0).getUser().getFullName());
-        assertEquals("john@example.com", result.get(0).getUser().getEmail());
+        assertEquals(expected, result);
+        verify(getMembershipsRepository).findByCommunityId(community.getId());
     }
 
     @Test
@@ -72,6 +52,6 @@ class GetMembershipsServiceTest {
 
         assertThrows(CommunityNotFoundException.class, () -> service().findByCommunityId(communityId));
 
-        verifyNoInteractions(membershipJpaRepository);
+        verifyNoInteractions(getMembershipsRepository);
     }
 }
