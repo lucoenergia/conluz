@@ -4,17 +4,15 @@ import okhttp3.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisException;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -23,14 +21,14 @@ import static org.mockito.Mockito.when;
 class DatadisAuthorizerTest {
 
     private DatadisAuthorizer datadisAuthorizer;
-    private DatadisConfigRepository datadisConfigRepository;
+    private GetDatadisConfigRepository getDatadisConfigRepository;
     private ConluzRestClientBuilder conluzRestClientBuilder;
 
     @BeforeEach
     public void setUp() {
         conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
-        datadisConfigRepository = Mockito.mock(DatadisConfigRepository.class);
-        datadisAuthorizer = new DatadisAuthorizer(datadisConfigRepository, conluzRestClientBuilder);
+        getDatadisConfigRepository = Mockito.mock(GetDatadisConfigRepository.class);
+        datadisAuthorizer = new DatadisAuthorizer(getDatadisConfigRepository, conluzRestClientBuilder);
     }
 
     @Test
@@ -40,12 +38,12 @@ class DatadisAuthorizerTest {
         final String username = "wrong_user";
         final String password = "wrong_password";
 
-        final DatadisConfigEntity config = new DatadisConfigEntity();
-        config.setId(UUID.randomUUID());
-        config.setUsername(username);
-        config.setPassword(password);
-        config.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
-        Mockito.when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.of(config));
+        final DatadisConfig config = new DatadisConfig.Builder()
+                .setUsername(username)
+                .setPassword(password)
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .build();
+        Mockito.when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -83,13 +81,13 @@ class DatadisAuthorizerTest {
     @Test
     void testGetAuthTokenNoConfig() {
         // setup
-        DatadisConfigRepository datadisConfigRepository = mock(DatadisConfigRepository.class);
+        GetDatadisConfigRepository getDatadisConfigRepository = mock(GetDatadisConfigRepository.class);
         ConluzRestClientBuilder conluzRestClientBuilder = mock(ConluzRestClientBuilder.class);
 
-        when(datadisConfigRepository.findFirstBy()).thenReturn(Optional.empty());
+        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.empty());
 
         // invocation
-        DatadisAuthorizer datadisAuthorizer = new DatadisAuthorizer(datadisConfigRepository, conluzRestClientBuilder);
+        DatadisAuthorizer datadisAuthorizer = new DatadisAuthorizer(getDatadisConfigRepository, conluzRestClientBuilder);
 
         // verification and assertion
         Assertions.assertThrows(DatadisException.class, datadisAuthorizer::getAuthToken);

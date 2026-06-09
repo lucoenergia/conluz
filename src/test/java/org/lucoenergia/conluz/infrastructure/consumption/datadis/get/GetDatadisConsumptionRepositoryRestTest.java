@@ -10,12 +10,11 @@ import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
-import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
+import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -35,13 +34,14 @@ class GetDatadisConsumptionRepositoryRestTest {
         datadisAuthorizer = Mockito.mock(DatadisAuthorizer.class);
         conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
         DatadisDateTimeConverter datadisDateTimeConverter = Mockito.mock(DatadisDateTimeConverter.class);
-        DatadisConfigRepository datadisConfigRepository = Mockito.mock(DatadisConfigRepository.class);
-        DatadisConfigEntity configEntity = new DatadisConfigEntity();
-        configEntity.setBaseUrl(DatadisConfig.DEFAULT_BASE_URL);
-        Mockito.when(datadisConfigRepository.findFirstBy()).thenReturn(java.util.Optional.of(configEntity));
-        Mockito.when(datadisAuthorizer.getAuthToken(Mockito.any(DatadisConfigEntity.class))).thenReturn("testToken");
+        GetDatadisConfigRepository getDatadisConfigRepository = Mockito.mock(GetDatadisConfigRepository.class);
+        DatadisConfig config = new DatadisConfig.Builder()
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .build();
+        Mockito.when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(java.util.Optional.of(config));
+        Mockito.when(datadisAuthorizer.getAuthToken(Mockito.any(DatadisConfig.class))).thenReturn("testToken");
         repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
-                datadisDateTimeConverter, datadisConfigRepository);
+                datadisDateTimeConverter, getDatadisConfigRepository);
     }
 
     @Test
@@ -62,7 +62,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Month month = Month.APRIL;
         final int year = 2023;
 
-        // auth token is resolved from config entity in setUp()
+        // auth token is resolved from config in setUp()
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -100,7 +100,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Month month = Month.APRIL;
         final int year = 2023;
 
-        // auth token is resolved from config entity in setUp()
+        // auth token is resolved from config in setUp()
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -189,7 +189,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         final Month month = Month.APRIL;
         final int year = 2023;
 
-        // auth token is resolved from config entity in setUp()
+        // auth token is resolved from config in setUp()
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);

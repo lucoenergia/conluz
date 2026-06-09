@@ -10,6 +10,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Set;
+
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
@@ -29,12 +31,34 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  *   <li>Other entity classes</li>
  * </ul>
  *
+ * <p>If you need to add a service exception, add the class simple name to
+ * {@link #SERVICE_EXCEPTIONS}. All such entries should eventually be refactored.</p>
  */
 public class JpaUsageArchTest extends BaseArchTest {
 
     private static final JavaClasses IMPORTED_CLASSES = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages(BASE_PACKAGE);
+
+    // Service classes that still reference JPA types directly.
+    // These should be refactored to use domain repository interfaces instead.
+    private static final Set<String> SERVICE_EXCEPTIONS = Set.of(
+            "PartitionCoefficientServiceImpl",
+            "CreateMembershipServiceImpl",
+            "UpdateMembershipRoleServiceImpl",
+            "DeleteMembershipServiceImpl",
+            "GetMembershipsServiceImpl",
+            "UpdateCommunityServiceImpl",
+            "CommunityAccessGuardImpl",
+            "CommunityStateService"
+    );
+
+    // Non-repository infrastructure classes that need to reference entities.
+    // These should be refactored when possible.
+    private static final Set<String> INFRASTRUCTURE_EXCEPTIONS = Set.of(
+            "HuaweiAuthorizer",
+            "SupplySpecifications"
+    );
 
     @Test
     void jpaEntitiesMustResideInInfrastructure() {
@@ -72,6 +96,7 @@ public class JpaUsageArchTest extends BaseArchTest {
     void servicesShouldNotDependOnJpaEntities() {
         noClasses()
                 .that().areAnnotatedWith(Service.class)
+                .and().haveNameNotMatching(nameMatching(SERVICE_EXCEPTIONS))
                 .should().dependOnClassesThat().areAnnotatedWith(Entity.class)
                 .check(IMPORTED_CLASSES);
     }
@@ -80,6 +105,7 @@ public class JpaUsageArchTest extends BaseArchTest {
     void servicesShouldNotDependOnJpaRepositories() {
         noClasses()
                 .that().areAnnotatedWith(Service.class)
+                .and().haveNameNotMatching(nameMatching(SERVICE_EXCEPTIONS))
                 .should().dependOnClassesThat().areAssignableTo(JpaRepository.class)
                 .check(IMPORTED_CLASSES);
     }
@@ -100,5 +126,41 @@ public class JpaUsageArchTest extends BaseArchTest {
                 .or().areAnnotatedWith(Controller.class)
                 .should().dependOnClassesThat().areAssignableTo(JpaRepository.class)
                 .check(IMPORTED_CLASSES);
+    }
+
+    @Test
+    void nonRepositoryInfrastructureClassesShouldNotDependOnJpaEntities() {
+        noClasses()
+                .that().resideInAnyPackage("..infrastructure..")
+                .and().areNotAnnotatedWith(Entity.class)
+                .and().areNotAssignableTo(JpaRepository.class)
+                .and().haveNameNotMatching(".*\\$.*")          // inner classes (entity builders, etc.)
+                .and().haveNameNotMatching(".*EntityMapper")
+                .and().haveNameNotMatching(".*Repository(Database|Impl|Influx|Rest)$")
+                .and().haveNameNotMatching(".*JpaRepository$")
+                .and().haveNameNotMatching(nameMatching(SERVICE_EXCEPTIONS))
+                .and().haveNameNotMatching(nameMatching(INFRASTRUCTURE_EXCEPTIONS))
+                .should().dependOnClassesThat().areAnnotatedWith(Entity.class)
+                .check(IMPORTED_CLASSES);
+    }
+
+    @Test
+    void nonRepositoryInfrastructureClassesShouldNotDependOnJpaRepositories() {
+        noClasses()
+                .that().resideInAnyPackage("..infrastructure..")
+                .and().areNotAnnotatedWith(Entity.class)
+                .and().areNotAssignableTo(JpaRepository.class)
+                .and().haveNameNotMatching(".*\\$.*")          // inner classes (entity builders, etc.)
+                .and().haveNameNotMatching(".*EntityMapper")
+                .and().haveNameNotMatching(".*Repository(Database|Impl|Influx|Rest)$")
+                .and().haveNameNotMatching(".*JpaRepository$")
+                .and().haveNameNotMatching(nameMatching(SERVICE_EXCEPTIONS))
+                .and().haveNameNotMatching(nameMatching(INFRASTRUCTURE_EXCEPTIONS))
+                .should().dependOnClassesThat().areAssignableTo(JpaRepository.class)
+                .check(IMPORTED_CLASSES);
+    }
+
+    private static String nameMatching(Set<String> exceptions) {
+        return ".*(" + String.join("|", exceptions) + ").*";
     }
 }

@@ -2,15 +2,15 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 import okhttp3.*;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisException;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.Authorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.Optional;
 
 @Component
 public class DatadisAuthorizer implements Authorizer {
@@ -19,24 +19,22 @@ public class DatadisAuthorizer implements Authorizer {
     private static final String BODY_PARAM_USERNAME = "username";
     private static final String BODY_PARAM_PASSWORD = "password";
 
-    private final DatadisConfigRepository datadisConfigRepository;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
 
-    public DatadisAuthorizer(DatadisConfigRepository datadisConfigRepository, ConluzRestClientBuilder conluzRestClientBuilder) {
-        this.datadisConfigRepository = datadisConfigRepository;
+    public DatadisAuthorizer(GetDatadisConfigRepository getDatadisConfigRepository, ConluzRestClientBuilder conluzRestClientBuilder) {
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
     }
 
     @Override
     public String getAuthToken() {
-        Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findFirstBy();
-        if (optionalConfig.isEmpty()) {
-            throw new DatadisException("Datadis configuration not found");
-        }
-        return getAuthToken(optionalConfig.get());
+        DatadisConfig config = getDatadisConfigRepository.getDatadisConfig()
+                .orElseThrow(() -> new DatadisException("Datadis configuration not found"));
+        return getAuthToken(config);
     }
 
-    public String getAuthToken(DatadisConfigEntity config) {
+    public String getAuthToken(DatadisConfig config) {
         String username = config.getUsername();
         String password = config.getPassword();
         String url = config.getBaseUrl() + AUTH_PATH;
@@ -70,14 +68,12 @@ public class DatadisAuthorizer implements Authorizer {
     }
 
     public boolean isOwner(UserPersonalId id) {
-        Optional<DatadisConfigEntity> optionalConfig = datadisConfigRepository.findFirstBy();
-        if (optionalConfig.isEmpty()) {
-            throw new DatadisException("Datadis configuration not found");
-        }
-        return optionalConfig.get().getUsername().equals(id.getPersonalId());
+        DatadisConfig config = getDatadisConfigRepository.getDatadisConfig()
+                .orElseThrow(() -> new DatadisException("Datadis configuration not found"));
+        return config.getUsername().equals(id.getPersonalId());
     }
 
-    public boolean isOwner(DatadisConfigEntity config, UserPersonalId id) {
+    public boolean isOwner(DatadisConfig config, UserPersonalId id) {
         return config.getUsername().equals(id.getPersonalId());
     }
 

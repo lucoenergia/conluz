@@ -9,11 +9,10 @@ import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisParams;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,15 +37,15 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
     private final ObjectMapper objectMapper;
     private final DatadisAuthorizer datadisAuthorizer;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
-    private final DatadisConfigRepository datadisConfigRepository;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
     public GetSupplyRepositoryDatadisRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
                                           ConluzRestClientBuilder conluzRestClientBuilder,
-                                          DatadisConfigRepository datadisConfigRepository) {
+                                          GetDatadisConfigRepository getDatadisConfigRepository) {
         this.objectMapper = objectMapper;
         this.datadisAuthorizer = datadisAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
-        this.datadisConfigRepository = datadisConfigRepository;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @Override
@@ -60,8 +59,8 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         LOGGER.info("Getting all supplies from datadis.es of user {}", user.getId());
 
-        final String baseUrl = datadisConfigRepository.findFirstBy()
-                .map(DatadisConfigEntity::getBaseUrl)
+        final String baseUrl = getDatadisConfigRepository.getDatadisConfig()
+                .map(DatadisConfig::getBaseUrl)
                 .orElse(DatadisConfig.DEFAULT_BASE_URL);
 
         // Create the complete URL with the query parameter

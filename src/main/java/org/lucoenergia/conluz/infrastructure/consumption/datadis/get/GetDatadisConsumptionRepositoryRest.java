@@ -10,13 +10,13 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.MeasurementType;
+import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisParams;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,17 +49,17 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
     private final DatadisAuthorizer datadisAuthorizer;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
     private final DatadisDateTimeConverter datadisDateTimeConverter;
-    private final DatadisConfigRepository datadisConfigRepository;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
     public GetDatadisConsumptionRepositoryRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
                                                ConluzRestClientBuilder conluzRestClientBuilder,
                                                DatadisDateTimeConverter datadisDateTimeConverter,
-                                               DatadisConfigRepository datadisConfigRepository) {
+                                               GetDatadisConfigRepository getDatadisConfigRepository) {
         this.objectMapper = objectMapper;
         this.datadisAuthorizer = datadisAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
         this.datadisDateTimeConverter = datadisDateTimeConverter;
-        this.datadisConfigRepository = datadisConfigRepository;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @Override
@@ -74,23 +74,21 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         validateSupply(supply);
 
         final UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
-        final Optional<DatadisConfigEntity> configOpt = communityId != null
-                ? datadisConfigRepository.findByCommunityId(communityId)
-                : datadisConfigRepository.findFirstBy();
+        final Optional<DatadisConfig> configOpt = communityId != null
+                ? getDatadisConfigRepository.findByCommunityId(communityId)
+                : getDatadisConfigRepository.getDatadisConfig();
 
         if (configOpt.isEmpty()) {
             LOGGER.warn("No Datadis config found for supply {} (community {}), skipping.", supply.getId(), communityId);
             return result;
         }
-        final DatadisConfigEntity configEntity = configOpt.get();
+        final DatadisConfig config = configOpt.get();
 
-        final String authToken = "Bearer " + datadisAuthorizer.getAuthToken(configEntity);
+        final String authToken = "Bearer " + datadisAuthorizer.getAuthToken(config);
 
         final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(60));
 
-        final String baseUrl = configEntity.getBaseUrl() != null
-                ? configEntity.getBaseUrl()
-                : org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig.DEFAULT_BASE_URL;
+        final String baseUrl = config.getBaseUrl();
 
         // Create the complete URL with the query parameter
         UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(baseUrl + API_PATH + GET_CONSUMPTION_DATA_PATH)
