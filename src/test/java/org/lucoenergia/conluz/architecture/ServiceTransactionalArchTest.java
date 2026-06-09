@@ -49,9 +49,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
  * }
  * </pre>
  */
-public class ServiceTransactionalArchTest {
-
-    private static final String BASE_PACKAGE = "org.lucoenergia.conluz";
+public class ServiceTransactionalArchTest extends BaseArchTest {
 
     // Set of classes that are exempt from the rule
     private static final Set<String> EXCEPTIONS = new HashSet<>();
