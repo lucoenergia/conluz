@@ -40,18 +40,7 @@ public class JpaUsageArchTest extends BaseArchTest {
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages(BASE_PACKAGE);
 
-    // Service classes that still reference JPA types directly.
-    // These should be refactored to use domain repository interfaces instead.
-    private static final Set<String> SERVICE_EXCEPTIONS = Set.of(
-            "PartitionCoefficientServiceImpl",
-            "CreateMembershipServiceImpl",
-            "UpdateMembershipRoleServiceImpl",
-            "DeleteMembershipServiceImpl",
-            "GetMembershipsServiceImpl",
-            "UpdateCommunityServiceImpl",
-            "CommunityAccessGuardImpl",
-            "CommunityStateService"
-    );
+    private static final Set<String> SERVICE_EXCEPTIONS = Set.of();
 
     // Non-repository infrastructure classes that need to reference entities.
     // These should be refactored when possible.
@@ -160,6 +149,9 @@ public class JpaUsageArchTest extends BaseArchTest {
     }
 
     private static String nameMatching(Set<String> exceptions) {
+        if (exceptions.isEmpty()) {
+            return "^$"; // matches nothing — no classes are excluded
+        }
         return ".*(" + String.join("|", exceptions) + ").*";
     }
 }
