@@ -7,18 +7,17 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,12 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,17 +35,17 @@ class CommunityAccessGuardTest {
     @Mock
     private AuthService authService;
     @Mock
-    private CommunityMembershipJpaRepository membershipJpaRepository;
+    private GetMembershipsRepository getMembershipsRepository;
     @Mock
     private GetSupplyRepository getSupplyRepository;
     @Mock
-    private PlantRepository plantRepository;
+    private GetPlantRepository getPlantRepository;
     @Mock
-    private SharingAgreementRepository sharingAgreementRepository;
+    private GetSharingAgreementRepository getSharingAgreementRepository;
 
     private CommunityAccessGuard guard() {
-        return new CommunityAccessGuardImpl(authService, membershipJpaRepository,
-                getSupplyRepository, plantRepository, sharingAgreementRepository);
+        return new CommunityAccessGuardImpl(authService, getMembershipsRepository,
+                getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
     }
 
     // --- canReadSupply ---
@@ -274,59 +268,6 @@ class CommunityAccessGuardTest {
         assertFalse(guard().canManagePlatform());
     }
 
-    // --- helpers ---
-
-    private Supply supplyOwnedBy(UUID ownerId) {
-        User owner = new User.Builder().id(ownerId).build();
-        return new Supply.Builder()
-                .withId(UUID.randomUUID())
-                .withCode("ES001")
-                .withUser(owner)
-                .withName("Supply")
-                .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
-                .withEnabled(true)
-                .build();
-    }
-
-    private Supply supplyInCommunity(UUID ownerId, Community community) {
-        User owner = new User.Builder().id(ownerId).build();
-        return new Supply.Builder()
-                .withId(UUID.randomUUID())
-                .withCode("ES001")
-                .withUser(owner)
-                .withCommunity(community)
-                .withName("Supply")
-                .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
-                .withEnabled(true)
-                .build();
-    }
-
-    private User userWithMembership(Community community, CommunityRole communityRole, boolean enabled) {
-        User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
-        CommunityMembership membership = new CommunityMembership.Builder()
-                .withId(UUID.randomUUID())
-                .withUser(user)
-                .withCommunity(community)
-                .withRole(communityRole)
-                .withEnabled(enabled)
-                .build();
-        user.setMemberships(List.of(membership));
-        return user;
-    }
-
-    private CommunityMembershipEntity membershipEntityInCommunity(UUID communityId, CommunityRole role, boolean enabled) {
-        CommunityEntity communityEntity = new CommunityEntity.Builder().withId(communityId).build();
-        return new CommunityMembershipEntity.Builder()
-                .withId(UUID.randomUUID())
-                .withCommunity(communityEntity)
-                .withRole(role)
-                .withEnabled(enabled)
-                .build();
-    }
-
     // --- canManageMemberships ---
 
     @Test
@@ -388,8 +329,8 @@ class CommunityAccessGuardTest {
         Community sharedCommunity = CommunityMother.random().withId(sharedCommunityId).build();
 
         UUID targetUserId = UUID.randomUUID();
-        when(membershipJpaRepository.findByUserId(targetUserId))
-                .thenReturn(List.of(membershipEntityInCommunity(sharedCommunityId, CommunityRole.COMMUNITY_MEMBER, true)));
+        when(getMembershipsRepository.findByUserId(targetUserId))
+                .thenReturn(List.of(membershipDomainInCommunity(sharedCommunityId, CommunityRole.COMMUNITY_MEMBER, true)));
 
         User caller = userWithMembership(sharedCommunity, CommunityRole.COMMUNITY_ADMIN, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
@@ -407,7 +348,7 @@ class CommunityAccessGuardTest {
     @Test
     void canReadUser_returnsFalse_whenTargetUserHasNoCommunities() {
         UUID targetUserId = UUID.randomUUID();
-        when(membershipJpaRepository.findByUserId(targetUserId)).thenReturn(List.of());
+        when(getMembershipsRepository.findByUserId(targetUserId)).thenReturn(List.of());
 
         User caller = UserMother.randomUser();
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
@@ -432,8 +373,8 @@ class CommunityAccessGuardTest {
         Community sharedCommunity = CommunityMother.random().withId(sharedCommunityId).build();
 
         UUID targetUserId = UUID.randomUUID();
-        when(membershipJpaRepository.findByUserId(targetUserId))
-                .thenReturn(List.of(membershipEntityInCommunity(sharedCommunityId, CommunityRole.COMMUNITY_MEMBER, true)));
+        when(getMembershipsRepository.findByUserId(targetUserId))
+                .thenReturn(List.of(membershipDomainInCommunity(sharedCommunityId, CommunityRole.COMMUNITY_MEMBER, true)));
 
         User caller = userWithMembership(sharedCommunity, CommunityRole.COMMUNITY_ADMIN, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
@@ -451,7 +392,7 @@ class CommunityAccessGuardTest {
     @Test
     void canEditUser_returnsFalse_whenCallerIsRegularPartner() {
         UUID targetUserId = UUID.randomUUID();
-        when(membershipJpaRepository.findByUserId(targetUserId)).thenReturn(List.of());
+        when(getMembershipsRepository.findByUserId(targetUserId)).thenReturn(List.of());
 
         User caller = UserMother.randomUser();
         caller.setRole(Role.PARTNER);
@@ -559,5 +500,58 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.empty());
 
         assertFalse(guard().canCreateUserIn(UUID.randomUUID()));
+    }
+
+    // --- helpers ---
+
+    private Supply supplyOwnedBy(UUID ownerId) {
+        User owner = new User.Builder().id(ownerId).build();
+        return new Supply.Builder()
+                .withId(UUID.randomUUID())
+                .withCode("ES001")
+                .withUser(owner)
+                .withName("Supply")
+                .withAddress("Address")
+                .withPartitionCoefficient(1.0f)
+                .withEnabled(true)
+                .build();
+    }
+
+    private Supply supplyInCommunity(UUID ownerId, Community community) {
+        User owner = new User.Builder().id(ownerId).build();
+        return new Supply.Builder()
+                .withId(UUID.randomUUID())
+                .withCode("ES001")
+                .withUser(owner)
+                .withCommunity(community)
+                .withName("Supply")
+                .withAddress("Address")
+                .withPartitionCoefficient(1.0f)
+                .withEnabled(true)
+                .build();
+    }
+
+    private User userWithMembership(Community community, CommunityRole communityRole, boolean enabled) {
+        User user = UserMother.randomUser();
+        user.setRole(Role.PARTNER);
+        CommunityMembership membership = new CommunityMembership.Builder()
+                .withId(UUID.randomUUID())
+                .withUser(user)
+                .withCommunity(community)
+                .withRole(communityRole)
+                .withEnabled(enabled)
+                .build();
+        user.setMemberships(List.of(membership));
+        return user;
+    }
+
+    private CommunityMembership membershipDomainInCommunity(UUID communityId, CommunityRole role, boolean enabled) {
+        Community community = CommunityMother.random().withId(communityId).build();
+        return new CommunityMembership.Builder()
+                .withId(UUID.randomUUID())
+                .withCommunity(community)
+                .withRole(role)
+                .withEnabled(enabled)
+                .build();
     }
 }

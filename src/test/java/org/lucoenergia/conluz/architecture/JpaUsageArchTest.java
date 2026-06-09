@@ -41,8 +41,7 @@ public class JpaUsageArchTest extends BaseArchTest {
             .importPackages(BASE_PACKAGE);
 
     private static final Set<String> SERVICE_EXCEPTIONS = Set.of(
-            "PartitionCoefficientServiceImpl",
-            "CommunityAccessGuardImpl"
+            "PartitionCoefficientServiceImpl"
     );
 
     @Test

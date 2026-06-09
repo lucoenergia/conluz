@@ -1,20 +1,23 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
+import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
-import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,21 +32,21 @@ import java.util.stream.Collectors;
 public class CommunityAccessGuardImpl implements CommunityAccessGuard {
 
     private final AuthService authService;
-    private final CommunityMembershipJpaRepository membershipJpaRepository;
+    private final GetMembershipsRepository getMembershipsRepository;
     private final GetSupplyRepository getSupplyRepository;
-    private final PlantRepository plantRepository;
-    private final SharingAgreementRepository sharingAgreementRepository;
+    private final GetPlantRepository getPlantRepository;
+    private final GetSharingAgreementRepository getSharingAgreementRepository;
 
     public CommunityAccessGuardImpl(AuthService authService,
-                                    CommunityMembershipJpaRepository membershipJpaRepository,
+                                    GetMembershipsRepository getMembershipsRepository,
                                     GetSupplyRepository getSupplyRepository,
-                                    PlantRepository plantRepository,
-                                    SharingAgreementRepository sharingAgreementRepository) {
+                                    GetPlantRepository getPlantRepository,
+                                    GetSharingAgreementRepository getSharingAgreementRepository) {
         this.authService = authService;
-        this.membershipJpaRepository = membershipJpaRepository;
+        this.getMembershipsRepository = getMembershipsRepository;
         this.getSupplyRepository = getSupplyRepository;
-        this.plantRepository = plantRepository;
-        this.sharingAgreementRepository = sharingAgreementRepository;
+        this.getPlantRepository = getPlantRepository;
+        this.getSharingAgreementRepository = getSharingAgreementRepository;
     }
 
     @Override
@@ -153,7 +156,7 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         User user = authService.getCurrentUser().orElse(null);
         if (user == null) return false;
         if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        Optional<PlantEntity> plant = plantRepository.findById(plantId);
+        Optional<Plant> plant = getPlantRepository.findById(PlantId.of(plantId));
         if (plant.isEmpty()) return false;
         UUID communityId = plant.get().getSupply() != null && plant.get().getSupply().getCommunity() != null
                 ? plant.get().getSupply().getCommunity().getId() : null;
@@ -177,16 +180,16 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         User user = authService.getCurrentUser().orElse(null);
         if (user == null) return false;
         if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        Optional<SharingAgreementEntity> agreement = sharingAgreementRepository.findById(agreementId);
+        Optional<SharingAgreement> agreement = getSharingAgreementRepository.findById(SharingAgreementId.of(agreementId));
         if (agreement.isEmpty()) return false;
         UUID communityId = agreement.get().getCommunityId();
         return hasCommunityAdminRoleIn(user, communityId);
     }
 
     private boolean isCommunityAdminOfAnyCommunityOfTargetUser(User caller, UUID targetUserId) {
-        Set<UUID> targetCommunityIds = membershipJpaRepository.findByUserId(targetUserId).stream()
-                .filter(e -> Boolean.TRUE.equals(e.isEnabled()))
-                .map(e -> e.getCommunity() != null ? e.getCommunity().getId() : null)
+        Set<UUID> targetCommunityIds = getMembershipsRepository.findByUserId(targetUserId).stream()
+                .filter(m -> Boolean.TRUE.equals(m.isEnabled()))
+                .map(m -> m.getCommunity() != null ? m.getCommunity().getId() : null)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         if (targetCommunityIds.isEmpty()) return false;
