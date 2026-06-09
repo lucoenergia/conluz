@@ -6,11 +6,13 @@ import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
+@Transactional
 public class SetDatadisConfigurationRepositoryDatabase implements SetDatadisConfigurationRepository {
 
     private final DatadisConfigRepository datadisConfigRepository;

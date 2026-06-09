@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRep
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,6 +13,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Repository
+@Transactional(readOnly = true)
 public class GetDatadisConfigRepositoryDatabase implements GetDatadisConfigRepository {
 
     private final DatadisConfigRepository datadisConfigRepository;

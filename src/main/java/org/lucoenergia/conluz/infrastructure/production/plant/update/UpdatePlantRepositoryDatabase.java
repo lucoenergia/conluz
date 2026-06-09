@@ -15,11 +15,13 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
+@Transactional
 public class UpdatePlantRepositoryDatabase implements UpdatePlantRepository {
 
     private final PlantRepository repository;

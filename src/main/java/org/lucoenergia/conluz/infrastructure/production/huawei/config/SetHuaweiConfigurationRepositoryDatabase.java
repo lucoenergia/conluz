@@ -5,10 +5,12 @@ import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigura
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Repository
+@Transactional
 public class SetHuaweiConfigurationRepositoryDatabase implements SetHuaweiConfigurationRepository {
 
     private final HuaweiConfigRepository huaweiConfigRepository;
