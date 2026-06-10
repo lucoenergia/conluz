@@ -50,79 +50,105 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canReadSupply(Supply supply) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        if (isOwner(supply, user)) return true;
-        return hasMembershipInCommunity(user, supply.getCommunity() != null ? supply.getCommunity().getId() : null);
+        if (user == null) {
+            return false;
+        }
+        UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
+        if (hasCommunityAdminRoleIn(user, communityId)) {
+            return true;
+        }
+        return isOwner(supply, user);
     }
 
     @Override
     public boolean canEditSupply(UUID supplyId) {
         User user = authService.getCurrentUser().orElse(null);
         Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
-        if (user == null) return false;
-        if (supply == null) return throwNotFoundIfAuthorized(supplyId);
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        if (isOwner(supply, user)) return true;
-        return hasCommunityAdminRoleIn(user, supply.getCommunity() != null ? supply.getCommunity().getId() : null);
+        if (user == null) {
+            return false;
+        }
+        if (supply == null) {
+            return throwNotFoundIfAuthorized(supplyId);
+        }
+        UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
+        if (hasCommunityAdminRoleIn(user, communityId)) {
+            return true;
+        }
+        return isOwner(supply, user);
     }
 
     @Override
     public boolean canReadCommunity(UUID communityId) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
+        if (user == null) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
+            return true;
+        }
         return hasMembershipInCommunity(user, communityId);
     }
 
     @Override
     public boolean canManageCommunity(UUID communityId) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
+        if (user == null) {
+            return false;
+        }
         return hasCommunityAdminRoleIn(user, communityId);
-    }
-
-    @Override
-    public boolean canManagePlatform() {
-        return authService.getCurrentUser()
-                .map(User::isPlatformAdmin)
-                .orElse(false);
     }
 
     @Override
     public boolean canManageMemberships(UUID communityId) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
+        if (user == null) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
+            return true;
+        }
         return hasCommunityAdminRoleIn(user, communityId);
     }
 
     @Override
     public boolean canReadUser(UUID userId) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.isPlatformAdmin()) return true;
-        if (user.getId().equals(userId)) return true;
+        if (user == null) {
+            return false;
+        }
+        if (user.isPlatformAdmin()) {
+            return true;
+        }
+        if (user.getId().equals(userId)) {
+            return true;
+        }
         return isCommunityAdminOfAnyCommunityOfTargetUser(user, userId);
     }
 
     @Override
     public boolean canEditUser(UUID userId) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.isPlatformAdmin()) return true;
+        if (user == null) {
+            return false;
+        }
+        if (user.isPlatformAdmin()) {
+            return true;
+        }
         return isCommunityAdminOfAnyCommunityOfTargetUser(user, userId);
     }
 
     @Override
     public Set<UUID> visibleCommunityIds() {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return Set.of();
+        if (user == null) {
+            return Set.of();
+        }
         if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
             return null;
         }
-        if (user.getMemberships() == null) return Set.of();
+        if (user.getMemberships() == null) {
+            return Set.of();
+        }
         return user.getMemberships().stream()
                 .filter(m -> Boolean.TRUE.equals(m.isEnabled()))
                 .map(m -> m.getCommunity().getId())
@@ -132,43 +158,66 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canCreateUserIn(UUID communityId) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.isPlatformAdmin()) return true;
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        if (communityId == null) return false;
+        if (user == null) {
+            return false;
+        }
+        if (user.isPlatformAdmin()) {
+            return true;
+        }
+        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
+            return true;
+        }
+        if (communityId == null) {
+            return false;
+        }
         return hasCommunityAdminRoleIn(user, communityId);
     }
 
     @Override
     public boolean canListUsers() {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        if (user.getMemberships() == null) return false;
+        if (user == null) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
+            return true;
+        }
+        if (user.getMemberships() == null) {
+            return false;
+        }
         return user.getMemberships().stream()
-                .anyMatch(m -> m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()));
+                .anyMatch(m ->
+                        m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()));
     }
 
     @Override
     public boolean canManagePlant(UUID plantId) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
+        if (user == null) {
+            return false;
+        }
         Optional<Plant> plant = getPlantRepository.findById(PlantId.of(plantId));
-        if (plant.isEmpty()) return false;
+        if (plant.isEmpty()) {
+            return false;
+        }
         UUID communityId = plant.get().getSupply() != null && plant.get().getSupply().getCommunity() != null
                 ? plant.get().getSupply().getCommunity().getId() : null;
         return hasCommunityAdminRoleIn(user, communityId);
     }
 
     @Override
-    public boolean canManagePlantCreate(String supplyCode) {
+    public boolean canCreatePlant(String supplyCode) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        if (supplyCode == null) return false;
+        if (user == null) {
+            return false;
+        }
+        if (supplyCode == null) {
+            return false;
+        }
         Optional<Supply> supply = getSupplyRepository.findByCode(SupplyCode.of(supplyCode));
-        if (supply.isEmpty()) return false;
+        if (supply.isEmpty()) {
+            return false;
+        }
         UUID communityId = supply.get().getCommunity() != null ? supply.get().getCommunity().getId() : null;
         return hasCommunityAdminRoleIn(user, communityId);
     }
@@ -176,10 +225,13 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canManageSharingAgreement(UUID agreementId) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
+        if (user == null) {
+            return false;
+        }
         Optional<SharingAgreement> agreement = getSharingAgreementRepository.findById(SharingAgreementId.of(agreementId));
-        if (agreement.isEmpty()) return false;
+        if (agreement.isEmpty()) {
+            return false;
+        }
         UUID communityId = agreement.get().getCommunityId();
         return hasCommunityAdminRoleIn(user, communityId);
     }

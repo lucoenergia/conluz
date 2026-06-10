@@ -15,8 +15,6 @@ public interface CommunityAccessGuard {
 
     boolean canManageCommunity(UUID communityId);
 
-    boolean canManagePlatform();
-
     boolean canManageMemberships(UUID communityId);
 
     boolean canReadUser(UUID userId);
@@ -31,7 +29,7 @@ public interface CommunityAccessGuard {
 
     boolean canManagePlant(UUID plantId);
 
-    boolean canManagePlantCreate(String supplyCode);
+    boolean canCreatePlant(String supplyCode);
 
     boolean canManageSharingAgreement(UUID agreementId);
 }

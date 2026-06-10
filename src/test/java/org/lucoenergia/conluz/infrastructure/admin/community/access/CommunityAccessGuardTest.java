@@ -9,13 +9,18 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
+import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.shared.PlantId;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -50,14 +55,14 @@ class CommunityAccessGuardTest {
     // --- canReadSupply ---
 
     @Test
-    void canReadSupply_returnsTrue_whenUserIsPlatformAdmin() {
+    void canReadSupply_returnsFalse_whenUserIsPlatformAdminButNotCommunityAdminOrMember() {
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
 
         Supply supply = supplyOwnedBy(UUID.randomUUID());
 
-        assertTrue(guard().canReadSupply(supply));
+        assertFalse(guard().canReadSupply(supply));
     }
 
     @Test
@@ -71,14 +76,14 @@ class CommunityAccessGuardTest {
     }
 
     @Test
-    void canReadSupply_returnsTrue_whenUserIsMemberOfSupplyCommunity() {
+    void canReadSupply_returnsFalse_whenUserIsMemberOfSupplyCommunityButNotCommunityAdminOrOwner() {
         Community community = CommunityMother.random().build();
         User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
 
-        assertTrue(guard().canReadSupply(supply));
+        assertFalse(guard().canReadSupply(supply));
     }
 
     @Test
@@ -114,14 +119,14 @@ class CommunityAccessGuardTest {
     // --- canEditSupply ---
 
     @Test
-    void canEditSupply_returnsTrue_whenUserIsPlatformAdmin() {
+    void canEditSupply_returnsFalse_whenUserIsPlatformAdminButNotCommunityAdmin() {
         Supply supply = supplyOwnedBy(UUID.randomUUID());
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertTrue(guard().canEditSupply(supply.getId()));
+        assertFalse(guard().canEditSupply(supply.getId()));
     }
 
     @Test
@@ -210,12 +215,12 @@ class CommunityAccessGuardTest {
     // --- canManageCommunity ---
 
     @Test
-    void canManageCommunity_returnsTrue_whenUserIsPlatformAdmin() {
+    void canManageCommunity_returnsFalse_whenUserIsPlatformAdminButNotCommunityAdmin() {
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
 
-        assertTrue(guard().canManageCommunity(UUID.randomUUID()));
+        assertFalse(guard().canManageCommunity(UUID.randomUUID()));
     }
 
     @Test
@@ -236,33 +241,6 @@ class CommunityAccessGuardTest {
         assertFalse(guard().canManageCommunity(community.getId()));
     }
 
-    // --- canManagePlatform ---
-
-    @Test
-    void canManagePlatform_returnsTrue_whenUserIsPlatformAdmin() {
-        User user = UserMother.randomUser();
-        user.setPlatformAdmin(true);
-        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
-
-        assertTrue(guard().canManagePlatform());
-    }
-
-    @Test
-    void canManagePlatform_returnsFalse_whenUserIsNotPlatformAdmin() {
-        User user = UserMother.randomUser();
-        user.setPlatformAdmin(false);
-        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
-
-        assertFalse(guard().canManagePlatform());
-    }
-
-    @Test
-    void canManagePlatform_returnsFalse_whenNoAuthenticatedUser() {
-        when(authService.getCurrentUser()).thenReturn(Optional.empty());
-
-        assertFalse(guard().canManagePlatform());
-    }
-
     // --- platform privilege comes only from isPlatformAdmin + memberships ---
 
     /**
@@ -278,7 +256,6 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         UUID communityId = UUID.randomUUID();
-        assertFalse(guard().canManagePlatform());
         assertFalse(guard().canReadCommunity(communityId));
         assertFalse(guard().canManageCommunity(communityId));
         assertFalse(guard().canManageMemberships(communityId));
@@ -518,6 +495,254 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.empty());
 
         assertFalse(guard().canCreateUserIn(UUID.randomUUID()));
+    }
+
+    // --- canListUsers ---
+
+    @Test
+    void canListUsers_returnsTrue_whenUserIsPlatformAdmin() {
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+
+        assertTrue(guard().canListUsers());
+    }
+
+    @Test
+    void canListUsers_returnsTrue_whenUserHasCommunityAdminMembership() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertTrue(guard().canListUsers());
+    }
+
+    @Test
+    void canListUsers_returnsFalse_whenUserHasOnlyCommunityMemberMemberships() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertFalse(guard().canListUsers());
+    }
+
+    @Test
+    void canListUsers_returnsFalse_whenUserHasNoMemberships() {
+        User user = UserMother.randomUser();
+        user.setPlatformAdmin(false);
+        user.setMemberships(null);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertFalse(guard().canListUsers());
+    }
+
+    @Test
+    void canListUsers_returnsFalse_whenCommunityAdminMembershipIsDisabled() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, false);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertFalse(guard().canListUsers());
+    }
+
+    @Test
+    void canListUsers_returnsFalse_whenNoAuthenticatedUser() {
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canListUsers());
+    }
+
+    // --- canManagePlant ---
+
+    @Test
+    void canManagePlant_returnsFalse_whenNoAuthenticatedUser() {
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canManagePlant(UUID.randomUUID()));
+    }
+
+    @Test
+    void canManagePlant_returnsFalse_whenPlantNotFound() {
+        User user = UserMother.randomUser();
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        UUID plantId = UUID.randomUUID();
+        when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.empty());
+
+        assertFalse(guard().canManagePlant(plantId));
+    }
+
+    @Test
+    void canManagePlant_returnsFalse_whenUserIsPlatformAdminButNotCommunityAdmin() {
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+
+        Community community = CommunityMother.random().build();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder()
+                .withId(UUID.randomUUID())
+                .withSupply(supply)
+                .build();
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        assertFalse(guard().canManagePlant(plant.getId()));
+    }
+
+    @Test
+    void canManagePlant_returnsTrue_whenUserIsCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder()
+                .withId(UUID.randomUUID())
+                .withSupply(supply)
+                .build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        assertTrue(guard().canManagePlant(plant.getId()));
+    }
+
+    @Test
+    void canManagePlant_returnsFalse_whenUserIsCommunityMember() {
+        Community community = CommunityMother.random().build();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder()
+                .withId(UUID.randomUUID())
+                .withSupply(supply)
+                .build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        assertFalse(guard().canManagePlant(plant.getId()));
+    }
+
+    @Test
+    void canManagePlant_returnsFalse_whenPlantSupplyHasNoCommunity() {
+        Supply supply = supplyOwnedBy(UUID.randomUUID());
+        Plant plant = new Plant.Builder()
+                .withId(UUID.randomUUID())
+                .withSupply(supply)
+                .build();
+        User user = UserMother.randomUser();
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        assertFalse(guard().canManagePlant(plant.getId()));
+    }
+
+    // --- canCreatePlant ---
+
+    @Test
+    void canCreatePlant_returnsFalse_whenNoAuthenticatedUser() {
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canCreatePlant("ES001"));
+    }
+
+    @Test
+    void canCreatePlant_returnsFalse_whenSupplyCodeIsNull() {
+        User user = UserMother.randomUser();
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertFalse(guard().canCreatePlant(null));
+    }
+
+    @Test
+    void canCreatePlant_returnsFalse_whenSupplyNotFoundByCode() {
+        User user = UserMother.randomUser();
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        String supplyCode = "ES001";
+        when(getSupplyRepository.findByCode(SupplyCode.of(supplyCode))).thenReturn(Optional.empty());
+
+        assertFalse(guard().canCreatePlant(supplyCode));
+    }
+
+    @Test
+    void canCreatePlant_returnsTrue_whenUserIsCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        String supplyCode = "ES001";
+        when(getSupplyRepository.findByCode(SupplyCode.of(supplyCode))).thenReturn(Optional.of(supply));
+
+        assertTrue(guard().canCreatePlant(supplyCode));
+    }
+
+    @Test
+    void canCreatePlant_returnsFalse_whenUserIsCommunityMember() {
+        Community community = CommunityMother.random().build();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        String supplyCode = "ES001";
+        when(getSupplyRepository.findByCode(SupplyCode.of(supplyCode))).thenReturn(Optional.of(supply));
+
+        assertFalse(guard().canCreatePlant(supplyCode));
+    }
+
+    @Test
+    void canCreatePlant_returnsFalse_whenSupplyHasNoCommunity() {
+        Supply supply = supplyOwnedBy(UUID.randomUUID());
+        User user = UserMother.randomUser();
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        String supplyCode = "ES001";
+        when(getSupplyRepository.findByCode(SupplyCode.of(supplyCode))).thenReturn(Optional.of(supply));
+
+        assertFalse(guard().canCreatePlant(supplyCode));
+    }
+
+    // --- canManageSharingAgreement ---
+
+    @Test
+    void canManageSharingAgreement_returnsFalse_whenNoAuthenticatedUser() {
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canManageSharingAgreement(UUID.randomUUID()));
+    }
+
+    @Test
+    void canManageSharingAgreement_returnsFalse_whenAgreementNotFound() {
+        User user = UserMother.randomUser();
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        UUID agreementId = UUID.randomUUID();
+        when(getSharingAgreementRepository.findById(SharingAgreementId.of(agreementId))).thenReturn(Optional.empty());
+
+        assertFalse(guard().canManageSharingAgreement(agreementId));
+    }
+
+    @Test
+    void canManageSharingAgreement_returnsTrue_whenUserIsCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement(agreementId, null, null, community.getId());
+        when(getSharingAgreementRepository.findById(SharingAgreementId.of(agreementId))).thenReturn(Optional.of(agreement));
+
+        assertTrue(guard().canManageSharingAgreement(agreementId));
+    }
+
+    @Test
+    void canManageSharingAgreement_returnsFalse_whenUserIsCommunityMember() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement(agreementId, null, null, community.getId());
+        when(getSharingAgreementRepository.findById(SharingAgreementId.of(agreementId))).thenReturn(Optional.of(agreement));
+
+        assertFalse(guard().canManageSharingAgreement(agreementId));
     }
 
     // --- helpers ---
