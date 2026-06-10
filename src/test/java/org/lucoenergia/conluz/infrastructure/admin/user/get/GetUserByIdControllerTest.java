@@ -46,8 +46,7 @@ class GetUserByIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.address").value(user.getAddress()))
                 .andExpect(jsonPath("$.email").value(user.getEmail()))
                 .andExpect(jsonPath("$.phoneNumber").value(user.getPhoneNumber()))
-                .andExpect(jsonPath("$.enabled").value(user.isEnabled()))
-                .andExpect(jsonPath("$.role").value(user.getRole().toString()));
+                .andExpect(jsonPath("$.enabled").value(user.isEnabled()));
     }
 
     @Test

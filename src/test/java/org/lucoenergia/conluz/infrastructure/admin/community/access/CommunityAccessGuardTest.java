@@ -12,7 +12,6 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
@@ -64,7 +63,6 @@ class CommunityAccessGuardTest {
     @Test
     void canReadSupply_returnsTrue_whenUserIsOwner() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         Supply supply = supplyOwnedBy(user.getId());
@@ -129,7 +127,6 @@ class CommunityAccessGuardTest {
     @Test
     void canEditSupply_returnsTrue_whenUserIsOwner() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         Supply supply = supplyOwnedBy(user.getId());
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
@@ -176,7 +173,6 @@ class CommunityAccessGuardTest {
     void canEditSupply_returnsFalse_whenNonAdminAndSupplyNotFound() {
         UUID supplyId = UUID.randomUUID();
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
         when(getSupplyRepository.findById(SupplyId.of(supplyId))).thenReturn(Optional.empty());
 
@@ -206,7 +202,6 @@ class CommunityAccessGuardTest {
     @Test
     void canReadCommunity_returnsFalse_whenUserIsNotMember() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         assertFalse(guard().canReadCommunity(UUID.randomUUID()));
@@ -268,18 +263,16 @@ class CommunityAccessGuardTest {
         assertFalse(guard().canManagePlatform());
     }
 
-    // --- escalation: obsolete users.role grants nothing ---
+    // --- platform privilege comes only from isPlatformAdmin + memberships ---
 
     /**
-     * Core proof of the migration: a user carrying the obsolete {@code role = ADMIN} but with
-     * {@code isPlatformAdmin = false} and no community memberships receives no platform grants and
-     * is denied every community operation. This guarantees the legacy column is no longer an
-     * authorization input.
+     * Core guarantee of the migration: a user with {@code isPlatformAdmin = false} and no community
+     * memberships receives no platform grants and is denied every community operation. With the
+     * obsolete users.role column removed, this is the only way to obtain platform privilege.
      */
     @Test
-    void legacyRoleAdmin_withoutPlatformAdminOrMemberships_isDeniedEverything() {
+    void userWithoutPlatformAdminOrMemberships_isDeniedEverything() {
         User user = UserMother.randomUser();
-        user.setRole(Role.ADMIN);
         user.setPlatformAdmin(false);
         user.setMemberships(List.of());
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
@@ -419,7 +412,6 @@ class CommunityAccessGuardTest {
         when(getMembershipsRepository.findByUserId(targetUserId)).thenReturn(List.of());
 
         User caller = UserMother.randomUser();
-        caller.setRole(Role.PARTNER);
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
 
         assertFalse(guard().canEditUser(targetUserId));
@@ -428,10 +420,8 @@ class CommunityAccessGuardTest {
     // --- visibleCommunityIds ---
 
     @Test
-    void visibleCommunityIds_returnsEmpty_whenLegacyRoleAdminWithoutPlatformAdminOrMemberships() {
-        // Escalation proof: the obsolete users.role no longer widens visibility.
+    void visibleCommunityIds_returnsEmpty_whenNotPlatformAdminAndNoMemberships() {
         User user = UserMother.randomUser();
-        user.setRole(Role.ADMIN);
         user.setPlatformAdmin(false);
         user.setMemberships(List.of());
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
@@ -487,10 +477,8 @@ class CommunityAccessGuardTest {
     }
 
     @Test
-    void canCreateUserIn_returnsFalse_whenLegacyRoleAdminWithoutPlatformAdminOrMemberships() {
-        // Escalation proof: the obsolete users.role no longer authorizes user creation.
+    void canCreateUserIn_returnsFalse_whenNotPlatformAdminAndNoMemberships() {
         User user = UserMother.randomUser();
-        user.setRole(Role.ADMIN);
         user.setPlatformAdmin(false);
         user.setMemberships(List.of());
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
@@ -563,7 +551,6 @@ class CommunityAccessGuardTest {
 
     private User userWithMembership(Community community, CommunityRole communityRole, boolean enabled) {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         CommunityMembership membership = new CommunityMembership.Builder()
                 .withId(UUID.randomUUID())
                 .withUser(user)

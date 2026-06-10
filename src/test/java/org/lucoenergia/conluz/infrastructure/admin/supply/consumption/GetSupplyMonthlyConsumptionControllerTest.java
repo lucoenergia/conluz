@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -77,7 +76,6 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
     void testGetSupplyMonthlyConsumptionAsOwner() throws Exception {
         // Create a partner user
         User partnerUser = UserMother.randomUser();
-        partnerUser.setRole(Role.PARTNER);
         partnerUser.enable();
         User createdPartnerUser = createUserRepository.create(partnerUser);
 

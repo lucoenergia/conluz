@@ -17,17 +17,6 @@ class DefaultAdminUserTest {
     }
 
     @Test
-    void roleMustBeAlwaysAdmin() {
-        DefaultAdminUser user = new DefaultAdminUser();
-
-        Assertions.assertEquals(Role.ADMIN, user.getRole());
-
-        user.setRole(Role.PARTNER);
-
-        Assertions.assertEquals(Role.ADMIN, user.getRole());
-    }
-
-    @Test
     void mustAlwaysBePlatformAdmin() {
         DefaultAdminUser user = new DefaultAdminUser();
 

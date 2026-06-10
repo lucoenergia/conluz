@@ -9,7 +9,6 @@ import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepos
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -62,12 +61,10 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
 
         // Create member users
         memberA = UserMother.randomUser();
-        memberA.setRole(Role.PARTNER);
         memberA.enable();
         createUserRepository.create(memberA);
 
         memberB = UserMother.randomUser();
-        memberB.setRole(Role.PARTNER);
         memberB.enable();
         createUserRepository.create(memberB);
 

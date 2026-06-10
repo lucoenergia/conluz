@@ -6,7 +6,6 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -45,7 +44,6 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.personalId").value(DefaultUserAdminMother.PERSONAL_ID))
                 .andExpect(jsonPath("$.fullName").value(DefaultUserAdminMother.FULL_NAME))
                 .andExpect(jsonPath("$.email").value(DefaultUserAdminMother.EMAIL))
-                .andExpect(jsonPath("$.role").value("ADMIN"))
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.isPlatformAdmin").value(true))
                 .andExpect(jsonPath("$.memberships").isEmpty())
@@ -59,7 +57,6 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
         Community community = createCommunityRepository.create(random().build());
 
         User communityAdmin = UserMother.randomUser();
-        communityAdmin.setRole(Role.PARTNER);
         communityAdmin.enable();
         createUserRepository.create(communityAdmin);
         createMembershipService.create(community.getId(), communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);

@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
@@ -49,7 +48,6 @@ class CreateUserServiceTest {
     @Test
     void create_withNullCommunityId_autoResolvesFromContextForRegularPartner() {
         User caller = UserMother.randomUser();
-        caller.setRole(Role.PARTNER);
         caller.setPlatformAdmin(false);
 
         User user = UserMother.randomUser();
@@ -77,25 +75,5 @@ class CreateUserServiceTest {
         service().create(user);
 
         verifyNoInteractions(createMembershipService);
-    }
-
-    @Test
-    void create_withNullCommunityId_autoResolvesForLegacyAdminRoleWithoutPlatformAdmin() {
-        // Escalation proof: the obsolete users.role no longer grants the platform-admin skip;
-        // a legacy ADMIN-role caller is treated as a regular user and auto-resolves from context.
-        User caller = UserMother.randomUser();
-        caller.setRole(Role.ADMIN);
-        caller.setPlatformAdmin(false);
-
-        User user = UserMother.randomUser();
-        UUID contextCommunityId = UUID.randomUUID();
-
-        when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
-        when(communityContext.getActiveCommunityId()).thenReturn(Optional.of(contextCommunityId));
-        when(repository.create(user)).thenReturn(user);
-
-        service().create(user);
-
-        verify(createMembershipService).create(eq(contextCommunityId), eq(user.getId()), any());
     }
 }

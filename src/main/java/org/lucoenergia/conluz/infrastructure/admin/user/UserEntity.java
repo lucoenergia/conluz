@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import jakarta.persistence.*;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
@@ -24,8 +23,6 @@ public class UserEntity {
     private String email;
     private String phoneNumber;
     private Boolean enabled = true;
-    @Enumerated(EnumType.STRING)
-    private Role role;
     @Column(name = "is_platform_admin")
     private Boolean isPlatformAdmin = false;
     @OneToMany(
@@ -108,14 +105,6 @@ public class UserEntity {
         this.enabled = enabled;
     }
 
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
     public Boolean isPlatformAdmin() {
         return isPlatformAdmin != null && isPlatformAdmin;
     }
@@ -149,7 +138,6 @@ public class UserEntity {
         entity.setEmail(user.getEmail());
         entity.setPhoneNumber(user.getPhoneNumber());
         entity.setEnabled(user.isEnabled());
-        entity.setRole(user.getRole());
         entity.setPlatformAdmin(user.isPlatformAdmin());
         return entity;
     }
@@ -165,7 +153,6 @@ public class UserEntity {
         user.setEmail(this.getEmail());
         user.setPhoneNumber(this.getPhoneNumber());
         user.setEnabled(this.isEnabled());
-        user.setRole(this.getRole());
         user.setPlatformAdmin(this.isPlatformAdmin());
 
         return user;

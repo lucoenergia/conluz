@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -73,7 +72,6 @@ public class BaseControllerTest extends BaseIntegrationTest {
 
         // Create a user with PARTNER role
         User defaultPartnerUser = UserMother.randomUser();
-        defaultPartnerUser.setRole(Role.PARTNER);
         defaultPartnerUser.enable();
         createUserRepository.create(defaultPartnerUser);
 

@@ -51,7 +51,6 @@ class GetAllUsersControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[1].address").value(userOne.getAddress()))
                 .andExpect(jsonPath("$.items[1].email").value(userOne.getEmail()))
                 .andExpect(jsonPath("$.items[1].phoneNumber").value(userOne.getPhoneNumber()))
-                .andExpect(jsonPath("$.items[1].role").value(userOne.getRole().name()))
                 .andExpect(jsonPath("$.items[1].enabled").value(userOne.isEnabled()))
                 .andExpect(jsonPath("$.items[1].password").doesNotExist());
     }

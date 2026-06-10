@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
 public class CreateUserCsvBody {
@@ -13,7 +12,6 @@ public class CreateUserCsvBody {
     private String email;
     private String phoneNumber;
     private String password;
-    private Role role;
     private String communityId;
     private CommunityRole communityRole;
 
@@ -73,14 +71,6 @@ public class CreateUserCsvBody {
         this.password = password;
     }
 
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
     public String getCommunityId() {
         return communityId;
     }
@@ -106,7 +96,6 @@ public class CreateUserCsvBody {
         user.setAddress(this.getAddress());
         user.setEmail(this.getEmail());
         user.setPhoneNumber(this.getPhoneNumber());
-        user.setRole(this.getRole());
         return user;
     }
 }
