@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.springframework.stereotype.Component;
@@ -15,9 +16,11 @@ import java.util.stream.Collectors;
 public class CommunityAccessGuardHelper {
 
     private final AuthService authService;
+    private final GetCommunityRepository getCommunityRepository;
 
-    public CommunityAccessGuardHelper(AuthService authService) {
+    public CommunityAccessGuardHelper(AuthService authService, GetCommunityRepository getCommunityRepository) {
         this.authService = authService;
+        this.getCommunityRepository = getCommunityRepository;
     }
 
     public Optional<User> getCurrentUser() {
@@ -48,7 +51,7 @@ public class CommunityAccessGuardHelper {
             return Set.of();
         }
         if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
-            return null;
+            return getCommunityRepository.findAllIds();
         }
         if (user.getMemberships() == null) {
             return Set.of();
@@ -65,7 +68,7 @@ public class CommunityAccessGuardHelper {
             return Set.of();
         }
         if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
-            return null;
+            return getCommunityRepository.findAllIds();
         }
         if (user.getMemberships() == null) {
             return Set.of();

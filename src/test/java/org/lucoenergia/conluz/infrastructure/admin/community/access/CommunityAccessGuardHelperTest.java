@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
@@ -17,15 +18,18 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CommunityAccessGuardHelperTest {
 
     @Mock
     private AuthService authService;
+    @Mock
+    private GetCommunityRepository getCommunityRepository;
 
     private CommunityAccessGuardHelper helper() {
-        return new CommunityAccessGuardHelper(authService);
+        return new CommunityAccessGuardHelper(authService, getCommunityRepository);
     }
 
     @Test
@@ -136,10 +140,14 @@ class CommunityAccessGuardHelperTest {
     }
 
     @Test
-    void visibleCommunityIds_returnsNull_whenUserIsPlatformAdmin() {
+    void visibleCommunityIds_returnsAllIds_whenUserIsPlatformAdmin() {
+        Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         user.setPlatformAdmin(true);
-        assertNull(helper().visibleCommunityIds(user));
+        when(getCommunityRepository.findAllIds()).thenReturn(Set.of(community.getId()));
+
+        Set<UUID> result = helper().visibleCommunityIds(user);
+        assertTrue(result.contains(community.getId()));
     }
 
     @Test
@@ -163,10 +171,14 @@ class CommunityAccessGuardHelperTest {
     }
 
     @Test
-    void adminCommunityIds_returnsNull_whenUserIsPlatformAdmin() {
+    void adminCommunityIds_returnsAllIds_whenUserIsPlatformAdmin() {
+        Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         user.setPlatformAdmin(true);
-        assertNull(helper().adminCommunityIds(user));
+        when(getCommunityRepository.findAllIds()).thenReturn(Set.of(community.getId()));
+
+        Set<UUID> result = helper().adminCommunityIds(user);
+        assertTrue(result.contains(community.getId()));
     }
 
     @Test

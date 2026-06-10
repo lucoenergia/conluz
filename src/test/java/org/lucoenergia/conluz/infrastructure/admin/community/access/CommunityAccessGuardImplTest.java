@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -31,6 +32,8 @@ class CommunityAccessGuardImplTest {
     @Mock
     private AuthService authService;
     @Mock
+    private GetCommunityRepository getCommunityRepository;
+    @Mock
     private GetMembershipsRepository getMembershipsRepository;
     @Mock
     private GetSupplyRepository getSupplyRepository;
@@ -40,7 +43,7 @@ class CommunityAccessGuardImplTest {
     private GetSharingAgreementRepository getSharingAgreementRepository;
 
     private CommunityAccessGuard guard() {
-        return new CommunityAccessGuardImpl(authService, getMembershipsRepository,
+        return new CommunityAccessGuardImpl(authService, getCommunityRepository, getMembershipsRepository,
                 getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
     }
 
@@ -129,12 +132,16 @@ class CommunityAccessGuardImplTest {
     }
 
     @Test
-    void visibleCommunityIds_returnsNull_whenUserIsPlatformAdmin() {
+    void visibleCommunityIds_returnsAllIds_whenUserIsPlatformAdmin() {
+        Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         user.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getCommunityRepository.findAllIds()).thenReturn(Set.of(community.getId()));
 
-        assertNull(guard().visibleCommunityIds());
+        Set<UUID> result = guard().visibleCommunityIds();
+
+        assertTrue(result.contains(community.getId()));
     }
 
     @Test
@@ -167,12 +174,16 @@ class CommunityAccessGuardImplTest {
     // --- adminCommunityIds ---
 
     @Test
-    void adminCommunityIds_returnsNull_whenUserIsPlatformAdmin() {
+    void adminCommunityIds_returnsAllIds_whenUserIsPlatformAdmin() {
+        Community community = CommunityMother.random().build();
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+        when(getCommunityRepository.findAllIds()).thenReturn(Set.of(community.getId()));
 
-        assertNull(guard().adminCommunityIds());
+        Set<UUID> result = guard().adminCommunityIds();
+
+        assertTrue(result.contains(community.getId()));
     }
 
     @Test

@@ -14,6 +14,8 @@ public interface GetCommunityRepository {
 
     List<Community> findAll();
 
+    Set<UUID> findAllIds();
+
     List<Community> findAllByIds(Set<UUID> ids);
 
     Map<UUID, Integer> countMembersByCommunityIds(Set<UUID> ids);

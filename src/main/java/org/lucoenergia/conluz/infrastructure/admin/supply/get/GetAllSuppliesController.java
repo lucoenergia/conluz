@@ -75,15 +75,14 @@ public class GetAllSuppliesController {
     @PageableAsQueryParam
     @PreAuthorize("isAuthenticated()")
     public PagedResult<SupplyResponse> getAllSupplies(@Parameter(hidden = true) Pageable page) {
+        User currentUser = authService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
         Set<UUID> adminCommunityIds = communityAccessGuard.adminCommunityIds();
 
         PagedResult<Supply> supplies;
-        if (adminCommunityIds == null) {
-            // Platform admin: all supplies.
+        if (Boolean.TRUE.equals(currentUser.isPlatformAdmin())) {
             supplies = service.findAll(paginationRequestMapper.mapRequest(page));
         } else {
-            User currentUser = authService.getCurrentUser()
-                    .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
             supplies = service.findAllVisible(paginationRequestMapper.mapRequest(page),
                     UserId.of(currentUser.getId()), adminCommunityIds);
         }

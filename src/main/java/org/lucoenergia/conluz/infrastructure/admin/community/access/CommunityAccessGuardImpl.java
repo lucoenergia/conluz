@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.community.access.PlantAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.access.SharingAgreementAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.access.SupplyAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.access.UserAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -30,11 +31,12 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     private final SharingAgreementAccessGuard sharingAgreementAccessGuard;
 
     public CommunityAccessGuardImpl(AuthService authService,
+                                    GetCommunityRepository getCommunityRepository,
                                     GetMembershipsRepository getMembershipsRepository,
                                     GetSupplyRepository getSupplyRepository,
                                     GetPlantRepository getPlantRepository,
                                     GetSharingAgreementRepository getSharingAgreementRepository) {
-        this.helper = new CommunityAccessGuardHelper(authService);
+        this.helper = new CommunityAccessGuardHelper(authService, getCommunityRepository);
         this.supplyAccessGuard = new SupplyAccessGuardImpl(helper, getSupplyRepository);
         this.membershipAccessGuard = new MembershipAccessGuardImpl(helper);
         this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository);

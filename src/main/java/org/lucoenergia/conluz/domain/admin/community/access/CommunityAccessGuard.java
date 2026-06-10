@@ -17,9 +17,9 @@ public interface CommunityAccessGuard extends
     Set<UUID> visibleCommunityIds();
 
     /**
-     * Community ids the current user administers. Returns {@code null} for platform
-     * admins (meaning "all communities"), otherwise the set of community ids where the
-     * user holds an enabled {@code COMMUNITY_ADMIN} membership (possibly empty).
+     * Community ids the current user administers. Returns all community ids for platform
+     * admins, otherwise the set of community ids where the user holds an enabled
+     * {@code COMMUNITY_ADMIN} membership (possibly empty).
      */
     Set<UUID> adminCommunityIds();
 
