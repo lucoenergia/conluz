@@ -39,7 +39,7 @@ public class GetPartitionCoefficientAtTimestampController {
             summary = "Returns the coefficient that was active at the given point in time.",
             description = """
                     Uses boundary convention: validFrom inclusive, validTo exclusive.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin, Community Admin, or the supply owner**
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getPartitionCoefficientAtTimestamp",

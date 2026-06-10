@@ -35,7 +35,7 @@ public class DisableSupplyController {
                     This endpoint disables a supply by its unique identifier.
 
                     Authentication via bearer token is required.
-                    Required Role: ADMIN
+                    Required: Platform Admin, Community Admin, or the supply owner
 
                     The operation is idempotent: disabling an already disabled supply will not fail and will return the current state.
                     """,

@@ -41,7 +41,7 @@ public class GetUserByIdController {
             description = """
                     This endpoint retrieves detailed information about a specific user by their unique identifier.
 
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin, Community Admin, or the user themselves**
 
                     Authentication is required using a Bearer token.
                     """,

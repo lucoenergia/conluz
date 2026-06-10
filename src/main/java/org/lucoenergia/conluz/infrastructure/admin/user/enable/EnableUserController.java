@@ -36,7 +36,7 @@ public class EnableUserController {
                     This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path.
                     
                     Proper authentication, through an authentication token, is required for secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
                     
                     Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled.
                     

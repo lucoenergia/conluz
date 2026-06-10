@@ -52,7 +52,7 @@ public class GetAllUsersController {
                     This endpoint facilitates the retrieval of all users within the system, allowing clients to access a
                     comprehensive list of user details.
 
-                    **Required Role: ADMIN or COMMUNITY_ADMIN**
+                    **Required: Platform Admin or Community Admin**
                     Platform admins see all users; community admins see only users belonging to their communities.
 
                     Features:

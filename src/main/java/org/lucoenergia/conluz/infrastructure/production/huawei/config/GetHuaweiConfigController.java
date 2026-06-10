@@ -46,7 +46,7 @@ public class GetHuaweiConfigController {
                     `passwordSet` indicates whether a password has been configured.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with
                     the current configuration. If no configuration has been set yet, a 404 is returned.

@@ -54,7 +54,7 @@ public class CreateUserController {
                 (they can be attached later).
                 
                 Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                **Required Role: PLATFORM_ADMIN or COMMUNITY_ADMIN in the target community**
+                **Required: Platform Admin, or Community Admin of the target community**
                 
                 Upon successful user creation, the server responds with an HTTP status code of 200, along with comprehensive details about the newly created user, such as a unique identifier and username.
                 

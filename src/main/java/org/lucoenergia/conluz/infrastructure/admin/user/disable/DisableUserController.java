@@ -39,7 +39,7 @@ public class DisableUserController {
                 This endpoint is designed to disable a user within the system by specifying the user's unique identifier in the endpoint path.
                 
                 This operation requires proper authentication, through an authentication token, to ensure secure access.
-                **Required Role: ADMIN**
+                **Required: Platform Admin or Community Admin**
                 
                 Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been disabled.
                 

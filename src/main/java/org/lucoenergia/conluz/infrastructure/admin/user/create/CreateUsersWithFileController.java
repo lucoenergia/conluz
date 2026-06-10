@@ -78,7 +78,7 @@ public class CreateUsersWithFileController {
                     This endpoint requires clients to send a request containing a file with essential details for each user, including username, password, and any additional relevant information.
                                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
                                     
                     Upon successful file processing, the server responds with an HTTP status code of 200, along with comprehensive details about the result of the bulk operation, including what users have been created or any potential error.
                                     

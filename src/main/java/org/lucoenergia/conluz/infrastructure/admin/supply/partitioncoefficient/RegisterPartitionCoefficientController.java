@@ -47,7 +47,7 @@ public class RegisterPartitionCoefficientController {
                     The response includes a communityCoefficientSumWarning field if the total sum of active
                     coefficients across all supplies at effectiveAt deviates from 100 by more than 0.0001.
                     This warning is informational only — the change is always persisted.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin, Community Admin, or the supply owner**
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "registerPartitionCoefficient",

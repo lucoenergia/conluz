@@ -38,7 +38,7 @@ public class UpdatePlantController {
                 
                 Clients send a request containing the updated plant details, and authentication, through an
                 authentication token, is required for secure access.
-                **Required Role: ADMIN**
+                **Required: Platform Admin or Community Admin**
                 
                 A successful update results in an HTTP status code of 200, indicating that the plant information has
                 been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.

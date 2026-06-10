@@ -56,7 +56,7 @@ public class SyncDatadisConsumptionsController {
                     - If supplyCode is not provided or is empty: Synchronizes all active supplies
 
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     A successful request returns an HTTP status code of 200.
 

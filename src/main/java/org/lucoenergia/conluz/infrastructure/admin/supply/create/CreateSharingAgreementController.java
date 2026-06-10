@@ -43,7 +43,7 @@ public class CreateSharingAgreementController {
                     start and end dates.
                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
                     
                     Upon successful creation, the server responds with an HTTP status code of 200, providing comprehensive
                     details about the newly created sharing agreement.

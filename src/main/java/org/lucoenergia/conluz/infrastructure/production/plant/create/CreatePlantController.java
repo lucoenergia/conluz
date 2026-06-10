@@ -52,7 +52,7 @@ public class CreatePlantController {
                     address, its code and any relevant parameters.
                     
                     Proper authentication, through authentication tokens, is required to access this endpoint.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
                     
                     Upon successful creation, the server responds with a status code of 200, providing comprehensive
                     details about the newly created plant, including its unique identifier.

@@ -41,7 +41,7 @@ public class GetPlantByIdController {
             description = """
                     This endpoint retrieves detailed information about a specific plant by its unique identifier.
 
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     Authentication is required using a Bearer token.
                     """,

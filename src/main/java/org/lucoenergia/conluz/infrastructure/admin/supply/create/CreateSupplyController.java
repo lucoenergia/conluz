@@ -47,7 +47,7 @@ public class CreateSupplyController {
                     To utilize this endpoint, a client sends a request containing essential details such as the supply's address, partition coefficient, and any relevant parameters.
                     
                     Proper authentication, through authentication tokens, is required to access this endpoint.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
                     
                     Upon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.
                     

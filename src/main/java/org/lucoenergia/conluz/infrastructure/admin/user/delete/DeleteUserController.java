@@ -36,7 +36,7 @@ public class DeleteUserController {
                     This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.
 
                     To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.
 
