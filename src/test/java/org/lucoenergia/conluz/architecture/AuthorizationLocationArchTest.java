@@ -35,9 +35,9 @@ public class AuthorizationLocationArchTest extends BaseArchTest {
                 .that().areNotAnnotatedWith(RestController.class)
                 .and().areNotAnnotatedWith(Controller.class)
                 .and().resideOutsideOfPackage(ACCESS_GUARD_PACKAGE)
-                .should().dependOnClassesThat().haveSimpleNameStartingWith("CommunityAccessGuard")
+                .should().dependOnClassesThat().haveSimpleNameEndingWith("AccessGuard")
                 .because("authorization must be enforced in controllers via @PreAuthorize; "
-                        + "services and repositories must not call the CommunityAccessGuard")
+                        + "services and repositories must not call the CommunityAccessGuard or its sub-interfaces")
                 .check(IMPORTED_CLASSES);
     }
 

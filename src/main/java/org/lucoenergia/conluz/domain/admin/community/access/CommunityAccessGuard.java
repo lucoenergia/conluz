@@ -3,21 +3,16 @@ package org.lucoenergia.conluz.domain.admin.community.access;
 import java.util.Set;
 import java.util.UUID;
 
-public interface CommunityAccessGuard {
-
-    boolean canReadSupply(UUID supplyId);
-
-    boolean canEditSupply(UUID supply);
+public interface CommunityAccessGuard extends
+        SupplyAccessGuard,
+        MembershipAccessGuard,
+        UserAccessGuard,
+        PlantAccessGuard,
+        SharingAgreementAccessGuard {
 
     boolean canReadCommunity(UUID communityId);
 
     boolean canManageCommunity(UUID communityId);
-
-    boolean canManageMemberships(UUID communityId);
-
-    boolean canReadUser(UUID userId);
-
-    boolean canEditUser(UUID userId);
 
     Set<UUID> visibleCommunityIds();
 
@@ -32,14 +27,4 @@ public interface CommunityAccessGuard {
      * @return true when the authenticated user's id equals {@code userId}.
      */
     boolean isCurrentUser(UUID userId);
-
-    boolean canCreateUserIn(UUID communityId);
-
-    boolean canListUsers();
-
-    boolean canManagePlant(UUID plantId);
-
-    boolean canCreatePlant(String supplyCode);
-
-    boolean canManageSharingAgreement(UUID agreementId);
 }
