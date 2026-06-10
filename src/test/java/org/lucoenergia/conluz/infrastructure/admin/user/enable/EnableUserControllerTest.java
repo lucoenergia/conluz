@@ -39,7 +39,7 @@ class EnableUserControllerTest extends BaseControllerTest {
         createUserRepository.create(user);
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(String.format("/api/v1/users/%s/enable", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -51,7 +51,7 @@ class EnableUserControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownUser() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 

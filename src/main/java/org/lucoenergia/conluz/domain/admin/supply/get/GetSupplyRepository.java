@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface GetSupplyRepository {
@@ -22,6 +23,11 @@ public interface GetSupplyRepository {
 
     PagedResult<Supply> findAll(PagedRequest pagedRequest);
     List<Supply> findAll();
+
+    /**
+     * Supplies owned by {@code ownerId} unioned with supplies belonging to {@code communityIds}.
+     */
+    PagedResult<Supply> findByOwnerOrCommunities(PagedRequest pagedRequest, UserId ownerId, Set<UUID> communityIds);
 
     List<Supply> findByUserId(UserId userId);
 

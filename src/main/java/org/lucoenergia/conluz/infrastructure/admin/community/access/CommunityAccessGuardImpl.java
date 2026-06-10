@@ -48,10 +48,14 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
-    public boolean canReadSupply(Supply supply) {
+    public boolean canReadSupply(UUID supplyId) {
         User user = authService.getCurrentUser().orElse(null);
-        if (user == null) {
+        if (user == null || supplyId == null) {
             return false;
+        }
+        Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
+        if (supply == null) {
+            return throwNotFoundIfAuthorized(supplyId);
         }
         UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
         if (hasCommunityAdminRoleIn(user, communityId)) {
@@ -156,13 +160,34 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public Set<UUID> adminCommunityIds() {
+        User user = authService.getCurrentUser().orElse(null);
+        if (user == null) {
+            return Set.of();
+        }
+        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
+            return null;
+        }
+        if (user.getMemberships() == null) {
+            return Set.of();
+        }
+        return user.getMemberships().stream()
+                .filter(m -> m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()))
+                .map(m -> m.getCommunity().getId())
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public boolean isCurrentUser(UUID userId) {
+        User user = authService.getCurrentUser().orElse(null);
+        return user != null && userId != null && userId.equals(user.getId());
+    }
+
+    @Override
     public boolean canCreateUserIn(UUID communityId) {
         User user = authService.getCurrentUser().orElse(null);
         if (user == null) {
             return false;
-        }
-        if (user.isPlatformAdmin()) {
-            return true;
         }
         if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
             return true;

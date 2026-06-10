@@ -33,7 +33,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testFullBody() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         String body = """
                         {
@@ -78,7 +78,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testMinimumBody() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         String body = """
                         {
@@ -119,7 +119,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithDuplicatedUser() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         String body = String.format("""
                         {
@@ -147,7 +147,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -208,7 +208,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -245,7 +245,7 @@ class CreateUserControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutBody() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

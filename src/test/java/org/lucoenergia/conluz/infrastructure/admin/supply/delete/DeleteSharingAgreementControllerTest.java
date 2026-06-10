@@ -31,7 +31,7 @@ class DeleteSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testDeleteSharingAgreement() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID);
 
         // Create a sharing agreement
         SharingAgreementEntity entity = new SharingAgreementEntity();
@@ -53,7 +53,9 @@ class DeleteSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testDeleteNonExistentSharingAgreement() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        // A non-existent agreement is denied by the access guard (403) before the controller runs,
+        // avoiding resource-existence leakage.
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         UUID nonExistentId = UUID.randomUUID();
 
@@ -61,16 +63,16 @@ class DeleteSharingAgreementControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
     @Test
     void testWithInvalidId() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(delete(URL + "/invalid-id")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -85,7 +87,7 @@ class DeleteSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutIdInPath() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(delete(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

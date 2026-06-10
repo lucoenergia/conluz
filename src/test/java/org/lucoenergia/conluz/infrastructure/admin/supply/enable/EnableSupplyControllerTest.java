@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,7 +41,7 @@ class EnableSupplyControllerTest extends BaseControllerTest {
 
     @Test
     void testEnableSupply_success() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = UserMother.randomUser();
         user = createUserRepository.create(user);
@@ -76,7 +77,7 @@ class EnableSupplyControllerTest extends BaseControllerTest {
 
     @Test
     void testEnableSupply_idempotent_whenAlreadyEnabled() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = UserMother.randomUser();
         user = createUserRepository.create(user);
@@ -110,7 +111,7 @@ class EnableSupplyControllerTest extends BaseControllerTest {
 
     @Test
     void testEnableSupply_notFound() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
         UUID randomId = UUID.randomUUID();
 
         mockMvc.perform(post(String.format("%s/%s/enable", PATH, randomId))

@@ -12,7 +12,6 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -24,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -46,7 +46,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     @Test
     void testCreateSupplyWithoutName() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String userPersonalId = "54889216G";
         User user = UserMother.randomUser();
@@ -56,6 +56,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         String body = String.format("""
                 {
                   "code": "ES0033333333333333AA0A",
+                  "communityId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
                   "personalId": "%s",
                   "address": "Fake Street 123",
                   "addressRef": "4ASDF654ASDF89ASD",
@@ -91,7 +92,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     @Test
     void testCreateSupplyWithName() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String userPersonalId = "54889216G";
         User user = UserMother.randomUser();
@@ -101,6 +102,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         String body = String.format("""
                 {
                   "code": "ES0033333333333333BB0B",
+                  "communityId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
                   "personalId": "%s",
                   "address": "Fake Street 456",
                   "addressRef": "4ASDF654ASDF89ASD",
@@ -137,7 +139,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     @Test
     void testCreateSupplyWithoutPartitionCoefficient() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String userPersonalId = "54889216G";
         User user = UserMother.randomUser();
@@ -147,6 +149,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         String body = String.format("""
                 {
                   "code": "ES0033333333333333CC0C",
+                  "communityId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
                   "personalId": "%s",
                   "address": "Fake Street 789",
                   "addressRef": "4ASDF654ASDF89ASD"
@@ -167,13 +170,12 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     @Test
     void testWithDuplicatedSupply() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         Supply supply = SupplyMother.random().build();
-        Community community = getCommunityRepository.findAll().stream().findFirst().get();
-        createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), community.getId());
+        createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), DEFAULT_COMMUNITY_ID);
 
         String body = String.format("""
                 {
@@ -185,7 +187,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "communityId": "%s"
                 }
         """, supply.getCode(), user.getPersonalId(), supply.getAddress(), supply.getAddressRef(),
-                supply.getPartitionCoefficient(), community.getId());
+                supply.getPartitionCoefficient(), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -207,7 +209,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         user.setPersonalId("54889216G");
         createUserRepository.create(user);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -261,7 +263,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -307,7 +309,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutBody() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

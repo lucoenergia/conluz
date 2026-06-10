@@ -40,7 +40,7 @@ class DisableUserControllerTest extends BaseControllerTest {
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
 
         // Login as default admin user
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(String.format("/api/v1/users/%s/disable", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -52,7 +52,7 @@ class DisableUserControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownUser() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 

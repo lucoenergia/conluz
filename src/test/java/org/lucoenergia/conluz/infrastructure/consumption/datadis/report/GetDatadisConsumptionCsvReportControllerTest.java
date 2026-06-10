@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -50,7 +51,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
     @Test
     void testGetCsvReportAsAdmin() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
         createSupplyRepository.create(
@@ -60,7 +61,8 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", START_DATE)
-                        .queryParam("endDate", END_DATE))
+                        .queryParam("endDate", END_DATE)
+                        .queryParam("communityId", DEFAULT_COMMUNITY_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(content().string(containsString("\"cups\",\"date\",\"time\",\"consumptionKWh\",\"obtainMethod\",\"surplusEnergyKWh\",\"generationEnergyKWh\",\"selfConsumptionEnergyKWh\"")))
@@ -69,12 +71,13 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
     @Test
     void testGetCsvReportWithNoSuppliesReturnsOnlyHeader() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", START_DATE)
-                        .queryParam("endDate", END_DATE))
+                        .queryParam("endDate", END_DATE)
+                        .queryParam("communityId", DEFAULT_COMMUNITY_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(content().string(containsString("\"cups\",\"date\",\"time\",\"consumptionKWh\",\"obtainMethod\",\"surplusEnergyKWh\",\"generationEnergyKWh\",\"selfConsumptionEnergyKWh\"")));
@@ -97,7 +100,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
     @Test
     void testGetCsvReportWithMissingStartDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -109,7 +112,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
     @Test
     void testGetCsvReportWithMissingEndDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -147,7 +150,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
     @Test
     void testTimezoneFilteringIncludesMayData() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
         createSupplyRepository.create(
@@ -157,7 +160,8 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2023-04-01T00:00:00Z")
-                        .queryParam("endDate", "2023-05-01T00:00:00Z"))
+                        .queryParam("endDate", "2023-05-01T00:00:00Z")
+                        .queryParam("communityId", DEFAULT_COMMUNITY_ID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(content().string(containsString("2023/05/01")))

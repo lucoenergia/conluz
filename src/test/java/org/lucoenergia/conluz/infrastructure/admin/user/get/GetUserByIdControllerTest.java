@@ -32,7 +32,7 @@ class GetUserByIdControllerTest extends BaseControllerTest {
         createUserRepository.create(user);
 
         // Login as default admin
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(String.format("/api/v1/users/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -52,7 +52,7 @@ class GetUserByIdControllerTest extends BaseControllerTest {
     @Test
     void testGetUserById_shouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -69,7 +69,7 @@ class GetUserByIdControllerTest extends BaseControllerTest {
 
     @Test
     void testGetUserById_shouldReturnBadRequestWhenIdIsInvalid() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get("/api/v1/users/invalid-uuid")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

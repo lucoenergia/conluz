@@ -33,7 +33,7 @@ class GetShellyConfigControllerTest extends BaseControllerTest {
                 .setEnabled(Boolean.TRUE)
                 .build());
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                         get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
@@ -47,7 +47,7 @@ class GetShellyConfigControllerTest extends BaseControllerTest {
 
     @Test
     void testGetConfigWhenNotExists() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                         get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))

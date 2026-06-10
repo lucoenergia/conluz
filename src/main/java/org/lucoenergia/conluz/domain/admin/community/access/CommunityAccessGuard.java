@@ -1,13 +1,11 @@
 package org.lucoenergia.conluz.domain.admin.community.access;
 
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
-
 import java.util.Set;
 import java.util.UUID;
 
 public interface CommunityAccessGuard {
 
-    boolean canReadSupply(Supply supply);
+    boolean canReadSupply(UUID supplyId);
 
     boolean canEditSupply(UUID supply);
 
@@ -22,6 +20,18 @@ public interface CommunityAccessGuard {
     boolean canEditUser(UUID userId);
 
     Set<UUID> visibleCommunityIds();
+
+    /**
+     * Community ids the current user administers. Returns {@code null} for platform
+     * admins (meaning "all communities"), otherwise the set of community ids where the
+     * user holds an enabled {@code COMMUNITY_ADMIN} membership (possibly empty).
+     */
+    Set<UUID> adminCommunityIds();
+
+    /**
+     * @return true when the authenticated user's id equals {@code userId}.
+     */
+    boolean isCurrentUser(UUID userId);
 
     boolean canCreateUserIn(UUID communityId);
 

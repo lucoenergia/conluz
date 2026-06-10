@@ -6,12 +6,9 @@ import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
-
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,7 +34,7 @@ class RegisterPartitionCoefficientControllerTest extends BaseControllerTest {
 
     @Test
     void registersNewCoefficientAndReturnsWarning() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         String url = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
 
@@ -61,7 +55,7 @@ class RegisterPartitionCoefficientControllerTest extends BaseControllerTest {
 
     @Test
     void returnsBadRequestForNegativeCoefficient() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         String url = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
 
@@ -79,7 +73,7 @@ class RegisterPartitionCoefficientControllerTest extends BaseControllerTest {
 
     @Test
     void returnsBadRequestWhenCoefficientMissing() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         String url = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
 
@@ -120,7 +114,6 @@ class RegisterPartitionCoefficientControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         Supply supply = SupplyMother.random(user).build();
-        Community community = getCommunityRepository.findAll().stream().findFirst().get();
-        return createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), community.getId());
+        return createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), DEFAULT_COMMUNITY_ID);
     }
 }

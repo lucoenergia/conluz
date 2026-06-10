@@ -48,7 +48,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -78,7 +78,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -110,7 +110,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -128,7 +128,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -158,7 +158,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -188,7 +188,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -218,7 +218,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).withName("Third").build();
         supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -252,7 +252,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).withName("Third").withCode("C").build();
         supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -287,7 +287,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).withName("Third").build();
         supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

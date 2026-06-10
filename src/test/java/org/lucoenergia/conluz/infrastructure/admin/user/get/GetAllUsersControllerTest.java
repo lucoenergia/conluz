@@ -33,7 +33,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -66,7 +66,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         User userThree = UserMother.randomUser();
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -84,7 +84,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownParameter() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -102,7 +102,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -118,7 +118,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownField() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -134,7 +134,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownDirection() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -161,7 +161,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         userThree.setFullName("Rob Halford");
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -198,7 +198,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         userThree.setFullName("Rob Halford");
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -232,7 +232,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         userThree.setFullName("Rob Halford");
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

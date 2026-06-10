@@ -5,7 +5,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityWithStats;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,11 +22,9 @@ class GetCommunityServiceTest {
 
     @Mock
     private GetCommunityRepository repository;
-    @Mock
-    private CommunityAccessGuard guard;
 
     private GetCommunityService service() {
-        return new org.lucoenergia.conluz.infrastructure.admin.community.get.GetCommunityServiceImpl(repository, guard);
+        return new org.lucoenergia.conluz.infrastructure.admin.community.get.GetCommunityServiceImpl(repository);
     }
 
     @Test
@@ -43,11 +40,10 @@ class GetCommunityServiceTest {
     }
 
     @Test
-    void findAllVisible_whenGuardReturnsNull_callsFindAll() {
-        when(guard.visibleCommunityIds()).thenReturn(null);
+    void findAll_whenVisibleIdsNull_callsFindAll() {
         when(repository.findAll()).thenReturn(List.of(CommunityMother.random().build()));
 
-        List<Community> result = service().findAllVisible();
+        List<Community> result = service().findAll(null);
 
         assertFalse(result.isEmpty());
         verify(repository).findAll();
@@ -55,10 +51,8 @@ class GetCommunityServiceTest {
     }
 
     @Test
-    void findAllVisible_whenGuardReturnsEmptySet_returnsEmptyList() {
-        when(guard.visibleCommunityIds()).thenReturn(Set.of());
-
-        List<Community> result = service().findAllVisible();
+    void findAll_whenVisibleIdsEmptySet_returnsEmptyList() {
+        List<Community> result = service().findAll(Set.of());
 
         assertTrue(result.isEmpty());
         verify(repository, never()).findAll();
@@ -66,15 +60,14 @@ class GetCommunityServiceTest {
     }
 
     @Test
-    void findAllVisible_whenGuardReturnsCommunityIds_callsFindAllByIds() {
+    void findAll_whenVisibleIdsProvided_callsFindAllByIds() {
         UUID id1 = UUID.randomUUID();
         UUID id2 = UUID.randomUUID();
         Set<UUID> ids = Set.of(id1, id2);
         Community c = CommunityMother.random().build();
-        when(guard.visibleCommunityIds()).thenReturn(ids);
         when(repository.findAllByIds(ids)).thenReturn(List.of(c));
 
-        List<Community> result = service().findAllVisible();
+        List<Community> result = service().findAll(ids);
 
         assertEquals(1, result.size());
         verify(repository).findAllByIds(ids);
@@ -111,18 +104,17 @@ class GetCommunityServiceTest {
     }
 
     @Test
-    void findAllVisibleWithStats_enrichesAllCommunities() {
+    void findAllWithStats_enrichesAllCommunities() {
         Community c1 = CommunityMother.random().build();
         Community c2 = CommunityMother.random().build();
         Set<UUID> ids = Set.of(c1.getId(), c2.getId());
 
-        when(guard.visibleCommunityIds()).thenReturn(null);
         when(repository.findAll()).thenReturn(List.of(c1, c2));
         when(repository.countMembersByCommunityIds(ids)).thenReturn(Map.of(c1.getId(), 5, c2.getId(), 3));
         when(repository.countSuppliesByCommunityIds(ids)).thenReturn(Map.of(c1.getId(), 10, c2.getId(), 7));
         when(repository.findAdminNamesByCommunityIds(ids)).thenReturn(Map.of(c1.getId(), List.of("Admin1")));
 
-        List<CommunityWithStats> result = service().findAllVisibleWithStats();
+        List<CommunityWithStats> result = service().findAllWithStats(null);
 
         assertEquals(2, result.size());
 
@@ -138,10 +130,8 @@ class GetCommunityServiceTest {
     }
 
     @Test
-    void findAllVisibleWithStats_returnsEmptyListWhenNoCommunities() {
-        when(guard.visibleCommunityIds()).thenReturn(Set.of());
-
-        List<CommunityWithStats> result = service().findAllVisibleWithStats();
+    void findAllWithStats_returnsEmptyListWhenNoCommunities() {
+        List<CommunityWithStats> result = service().findAllWithStats(Set.of());
 
         assertTrue(result.isEmpty());
         verify(repository, never()).countMembersByCommunityIds(any());

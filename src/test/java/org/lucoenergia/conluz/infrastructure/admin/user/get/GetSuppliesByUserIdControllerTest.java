@@ -61,7 +61,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
         createSupplyRepository.create(supply2, UserId.of(user.getId()));
 
         // Login as default admin
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -173,7 +173,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
         createUserRepository.create(user);
 
         // Login as default admin
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

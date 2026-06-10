@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -55,7 +56,7 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyYearlyConsumptionAsAdmin() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -123,7 +124,7 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyYearlyConsumptionWithMissingStartDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -142,7 +143,7 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyYearlyConsumptionWithMissingEndDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -162,7 +163,7 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyYearlyConsumptionWithUnknownSupply() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
         UUID supplyId = UUID.randomUUID();
 
         mockMvc.perform(get(URL + "/" + supplyId + "/consumption/yearly")

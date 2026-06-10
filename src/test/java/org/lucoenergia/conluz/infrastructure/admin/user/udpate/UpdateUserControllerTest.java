@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.user.udpate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -34,7 +33,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testUpdateUser() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         // Creates a user
         User user = new User();
@@ -79,7 +78,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithMissingNotRequiredFields() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         // Creates a user
         User user = new User();
@@ -121,7 +120,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownUser() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -155,7 +154,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
                         }
                 """;
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -175,7 +174,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -224,7 +223,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -260,7 +259,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void
     testWithoutBody() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -278,7 +277,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void
     testWithoutIdInPath() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(put(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

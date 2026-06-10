@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -35,7 +36,7 @@ public class GetInstantProductionController {
     @GetMapping
     @Operation(
             summary = "Delivers real-time energy production details for a specific power plant supply.",
-            description = "This endpoint offers real-time insights into the instantaneous energy production of a designated power plant supply, identified by its unique supply ID. Clients must authenticate using an authentication token. Upon a successful request, the server responds with an HTTP status code of 200, furnishing up-to-the-moment production metrics for the specified supply. In cases of errors or invalid parameters, the server issues an appropriate error status code accompanied by descriptive messages. This endpoint proves invaluable for immediate monitoring and analysis of energy output, enabling timely decision-making and performance evaluation for the designated power plant supply.",
+            description = "This endpoint offers real-time insights into the instantaneous energy production of a designated power plant supply, identified by its unique supply ID. **Required: any authenticated user.** When a `supplyId` is provided, only the supply owner or a Community Admin of the supply's community may access it. Upon a successful request, the server responds with an HTTP status code of 200, furnishing up-to-the-moment production metrics for the specified supply. In cases of errors or invalid parameters, the server issues an appropriate error status code accompanied by descriptive messages. This endpoint proves invaluable for immediate monitoring and analysis of energy output, enabling timely decision-making and performance evaluation for the designated power plant supply.",
             tags = ApiTag.PRODUCTION,
             operationId = "getInstantProduction"
     )
@@ -50,6 +51,7 @@ public class GetInstantProductionController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
+    @PreAuthorize("isAuthenticated() and (#supplyId == null or @communityAccessGuard.canReadSupply(#supplyId))")
     public InstantProduction getInstantProduction(@RequestParam(required = false) UUID supplyId) {
         if (Objects.isNull(supplyId)) {
             return getProductionService.getInstantProduction();

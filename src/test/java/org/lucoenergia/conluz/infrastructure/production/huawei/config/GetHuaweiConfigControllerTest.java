@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -58,7 +59,7 @@ class GetHuaweiConfigControllerTest extends BaseControllerTest {
                 .setEnabled(Boolean.TRUE)
                 .build());
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                         get(String.format(URL_TEMPLATE, plant.getId()))
@@ -75,10 +76,19 @@ class GetHuaweiConfigControllerTest extends BaseControllerTest {
 
     @Test
     void testGetConfigWhenNotExists() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        // The plant exists and is accessible (so the guard passes) but has no Huawei config set,
+        // so the controller returns 404.
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
+        Supply supply = SupplyMother.random().build();
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Plant plant = PlantMother.random(supply).build();
+        plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
-                        get(String.format(URL_TEMPLATE, UUID.randomUUID()))
+                        get(String.format(URL_TEMPLATE, plant.getId()))
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())

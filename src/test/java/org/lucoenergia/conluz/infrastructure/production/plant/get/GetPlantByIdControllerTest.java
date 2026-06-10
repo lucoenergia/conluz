@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -48,8 +49,8 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
         Plant plant = PlantMother.random(supply).build();
         plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
 
-        // Login as default admin
-        String authHeader = loginAsDefaultAdmin();
+        // Login as an admin of the plant's community
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(String.format("/api/v1/plants/%s", plant.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -69,9 +70,10 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetPlantById_shouldReturnNotFoundWhenPlantDoesNotExist() throws Exception {
-
-        String authHeader = loginAsDefaultAdmin();
+    void testGetPlantById_shouldReturnForbiddenWhenPlantDoesNotExist() throws Exception {
+        // A non-existent plant cannot be associated to a community, so the access guard denies it
+        // (403) rather than reaching the controller — this avoids leaking plant existence.
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String plantId = UUID.randomUUID().toString();
 
@@ -79,16 +81,16 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isNotFound())
+                .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
     @Test
     void testGetPlantById_shouldReturnBadRequestWhenIdIsInvalid() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get("/api/v1/plants/invalid-uuid")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

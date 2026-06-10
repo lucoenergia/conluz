@@ -1,8 +1,5 @@
 package org.lucoenergia.conluz.architecture;
 
-import com.tngtech.archunit.core.domain.JavaClasses;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
@@ -70,9 +67,6 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
 
     @Test
     void servicesAreTransactional() {
-        JavaClasses importedClasses = new ClassFileImporter()
-                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-                .importPackages(BASE_PACKAGE);
 
         ArchRule rule;
 
@@ -87,7 +81,7 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
                     .should(beAnnotatedWithTransactional());
         }
 
-        rule.check(importedClasses);
+        rule.check(IMPORTED_CLASSES);
     }
 
     private ArchCondition<com.tngtech.archunit.core.domain.JavaClass> beAnnotatedWithTransactional() {

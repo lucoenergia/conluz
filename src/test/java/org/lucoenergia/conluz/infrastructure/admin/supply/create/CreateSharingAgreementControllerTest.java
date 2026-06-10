@@ -45,9 +45,14 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testCreateSharingAgreement() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
-
         Community community = createCommunityRepository.create(random().build());
+
+        User communityAdmin = UserMother.randomUser();
+        communityAdmin.enable();
+        createUserRepository.create(communityAdmin);
+        createMembershipService.create(community.getId(), communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        String authHeader = loginUser(communityAdmin);
+
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = startDate.plusMonths(6);
 
@@ -75,7 +80,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testCommunityAdminCanCreateForOwnCommunity() throws Exception {
-        loginAsDefaultAdmin();
+        loginAsDefaultPlatformAdmin();
 
         Community community = createCommunityRepository.create(random().build());
 
@@ -111,7 +116,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testCommunityAdminCannotCreateForOtherCommunity() throws Exception {
-        loginAsDefaultAdmin();
+        loginAsDefaultPlatformAdmin();
 
         Community ownCommunity = createCommunityRepository.create(random().build());
         Community otherCommunity = createCommunityRepository.create(random().build());
@@ -146,7 +151,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     @ParameterizedTest
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -185,7 +190,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     @ParameterizedTest
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -228,7 +233,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutBody() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

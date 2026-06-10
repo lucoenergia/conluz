@@ -35,7 +35,7 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
 
     @Test
     void testGetCurrentUserSuccess() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -52,7 +52,7 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
 
     @Test
     void testGetCurrentUserReturnsMembershipsForCommunityAdmin() throws Exception {
-        loginAsDefaultAdmin();
+        loginAsDefaultPlatformAdmin();
 
         Community community = createCommunityRepository.create(random().build());
 

@@ -19,7 +19,7 @@ class LogoutUserControllerTest extends BaseControllerTest {
     @Test
     void testLogoutWithToken() throws Exception {
         // Arrange - Login to get a token
-        String authToken = loginAsDefaultAdmin();
+        String authToken = loginAsDefaultPlatformAdmin();
 
         // Act & Assert - Logout with the token
         mockMvc.perform(post(LOGOUT_PATH)
@@ -47,7 +47,7 @@ class LogoutUserControllerTest extends BaseControllerTest {
     @Test
     void testLogoutWithTokenTwice() throws Exception {
         // Arrange - Login to get a token
-        String authToken = loginAsDefaultAdmin();
+        String authToken = loginAsDefaultPlatformAdmin();
 
         // Act & Assert - Logout with the token
         mockMvc.perform(post(LOGOUT_PATH)

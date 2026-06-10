@@ -1,8 +1,5 @@
 package org.lucoenergia.conluz.architecture;
 
-import com.tngtech.archunit.core.domain.JavaClasses;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
@@ -18,21 +15,13 @@ public class RepositoryTransactionalArchTest extends BaseArchTest {
 
     private static final Set<String> EXCEPTIONS = new HashSet<>();
 
-    static {
-        // Add classes exempt from the @Transactional requirement, if any.
-    }
-
     @Test
     void repositoryDatabaseClassesAreTransactional() {
-        JavaClasses importedClasses = new ClassFileImporter()
-                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-                .importPackages(BASE_PACKAGE);
-
         classes()
                 .that().haveSimpleNameEndingWith("RepositoryDatabase")
                 .and().haveNameNotMatching(nameMatching(EXCEPTIONS))
                 .should(beAnnotatedWithTransactional())
-                .check(importedClasses);
+                .check(IMPORTED_CLASSES);
     }
 
     private ArchCondition<com.tngtech.archunit.core.domain.JavaClass> beAnnotatedWithTransactional() {

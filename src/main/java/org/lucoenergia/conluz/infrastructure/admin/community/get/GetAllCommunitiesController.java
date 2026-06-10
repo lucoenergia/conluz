@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.CommunityWithStats;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityService;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(
@@ -28,9 +31,11 @@ import java.util.List;
 public class GetAllCommunitiesController {
 
     private final GetCommunityService service;
+    private final CommunityAccessGuard communityAccessGuard;
 
-    public GetAllCommunitiesController(GetCommunityService service) {
+    public GetAllCommunitiesController(GetCommunityService service, CommunityAccessGuard communityAccessGuard) {
         this.service = service;
+        this.communityAccessGuard = communityAccessGuard;
     }
 
     @GetMapping
@@ -57,7 +62,8 @@ public class GetAllCommunitiesController {
     @ForbiddenErrorResponse
     @PreAuthorize("isAuthenticated()")
     public List<CommunityResponse> getAllCommunities() {
-        return service.findAllVisibleWithStats().stream()
+        Set<UUID> visibleCommunityIds = communityAccessGuard.visibleCommunityIds();
+        return service.findAllWithStats(visibleCommunityIds).stream()
                 .map(CommunityResponse::new)
                 .toList();
     }

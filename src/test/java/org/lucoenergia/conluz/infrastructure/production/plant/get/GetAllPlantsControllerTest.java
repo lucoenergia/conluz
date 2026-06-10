@@ -59,7 +59,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -105,7 +105,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithNoResults() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -137,7 +137,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -164,7 +164,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -182,7 +182,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -214,7 +214,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -246,7 +246,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -287,7 +287,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -335,7 +335,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -384,7 +384,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

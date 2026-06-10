@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantService;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
@@ -19,11 +20,14 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.springdoc.core.converters.models.PageableAsQueryParam;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Get all plants registered in the energy community
@@ -34,16 +38,23 @@ public class GetAllPlantsController {
 
     private final GetPlantService service;
     private final PaginationRequestMapper paginationRequestMapper;
+    private final CommunityAccessGuard communityAccessGuard;
 
-    public GetAllPlantsController(GetPlantService service, PaginationRequestMapper paginationRequestMapper) {
+    public GetAllPlantsController(GetPlantService service, PaginationRequestMapper paginationRequestMapper,
+                                  CommunityAccessGuard communityAccessGuard) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
+        this.communityAccessGuard = communityAccessGuard;
     }
 
     @GetMapping
     @Operation(
-            summary = "Retrieves all registered plants in the system with support for pagination, filtering, and sorting.",
-            description = "This endpoint serves to retrieve all registered plants within the system, supporting pagination, filtering, and sorting for a customized query experience. This endpoint requires authentication through a Bearer Token for secure access. Clients can include optional query parameters such as page to specify the page number, limit to determine plants per page, filter to selectively retrieve plants based on criteria, and sort to define the order of the results. A successful request yields a paginated list of plants, providing essential details, while any authentication or retrieval issues prompt an appropriate error response. With its versatile functionality, this endpoint enhances the ability to explore and manage the array of energy plants within the system.",
+            summary = "Retrieves the plants visible to the current user with support for pagination, filtering, and sorting.",
+            description = """
+                    Retrieves plants with pagination, filtering and sorting. Requires authentication through a Bearer Token.
+
+                    **Visibility:** Platform admins see all plants. Any member of a community sees all plants of the
+                    communities they belong to.""",
             tags = ApiTag.PLANTS,
             operationId = "getAllPlants"
     )
@@ -59,8 +70,11 @@ public class GetAllPlantsController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
+    @PreAuthorize("isAuthenticated()")
     public PagedResult<PlantResponse> getAllPlants(@Parameter(hidden = true) Pageable page) {
-        PagedResult<Plant> plants = service.findAll(paginationRequestMapper.mapRequest(page));
+        Set<UUID> visibleCommunityIds = communityAccessGuard.visibleCommunityIds();
+        PagedResult<Plant> plants = service.findAllByCommunities(paginationRequestMapper.mapRequest(page),
+                visibleCommunityIds);
 
         List<PlantResponse> plantsResponse = plants.getItems().stream()
                 .map(PlantResponse::new)

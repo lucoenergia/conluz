@@ -61,8 +61,9 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
 
         Supply supply = supplyOwnedBy(UUID.randomUUID());
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canReadSupply(supply));
+        assertFalse(guard().canReadSupply(supply.getId()));
     }
 
     @Test
@@ -71,8 +72,21 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         Supply supply = supplyOwnedBy(user.getId());
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertTrue(guard().canReadSupply(supply));
+        assertTrue(guard().canReadSupply(supply.getId()));
+    }
+
+    @Test
+    void canReadSupply_returnsTrue_whenUserIsCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        assertTrue(guard().canReadSupply(supply.getId()));
     }
 
     @Test
@@ -82,8 +96,9 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canReadSupply(supply));
+        assertFalse(guard().canReadSupply(supply.getId()));
     }
 
     @Test
@@ -94,8 +109,9 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         Supply supply = supplyInCommunity(UUID.randomUUID(), communityB);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canReadSupply(supply));
+        assertFalse(guard().canReadSupply(supply.getId()));
     }
 
     @Test
@@ -105,15 +121,37 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canReadSupply(supply));
+        assertFalse(guard().canReadSupply(supply.getId()));
     }
 
     @Test
     void canReadSupply_returnsFalse_whenNoAuthenticatedUser() {
         when(authService.getCurrentUser()).thenReturn(Optional.empty());
 
-        assertFalse(guard().canReadSupply(supplyOwnedBy(UUID.randomUUID())));
+        assertFalse(guard().canReadSupply(UUID.randomUUID()));
+    }
+
+    @Test
+    void canReadSupply_throwsNotFoundException_whenPlatformAdminAndSupplyNotFound() {
+        UUID supplyId = UUID.randomUUID();
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+        when(getSupplyRepository.findById(SupplyId.of(supplyId))).thenReturn(Optional.empty());
+
+        assertThrows(SupplyNotFoundException.class, () -> guard().canReadSupply(supplyId));
+    }
+
+    @Test
+    void canReadSupply_returnsFalse_whenNonAdminAndSupplyNotFound() {
+        UUID supplyId = UUID.randomUUID();
+        User user = UserMother.randomUser();
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getSupplyRepository.findById(SupplyId.of(supplyId))).thenReturn(Optional.empty());
+
+        assertFalse(guard().canReadSupply(supplyId));
     }
 
     // --- canEditSupply ---
@@ -440,6 +478,88 @@ class CommunityAccessGuardTest {
         when(authService.getCurrentUser()).thenReturn(Optional.empty());
 
         assertTrue(guard().visibleCommunityIds().isEmpty());
+    }
+
+    // --- adminCommunityIds ---
+
+    @Test
+    void adminCommunityIds_returnsNull_whenUserIsPlatformAdmin() {
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+
+        assertNull(guard().adminCommunityIds());
+    }
+
+    @Test
+    void adminCommunityIds_returnsOnlyCommunitiesWhereUserIsEnabledAdmin() {
+        Community adminCommunity = CommunityMother.random().build();
+        Community memberCommunity = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        CommunityMembership adminMembership = new CommunityMembership.Builder()
+                .withId(UUID.randomUUID()).withUser(user).withCommunity(adminCommunity)
+                .withRole(CommunityRole.COMMUNITY_ADMIN).withEnabled(true).build();
+        CommunityMembership memberMembership = new CommunityMembership.Builder()
+                .withId(UUID.randomUUID()).withUser(user).withCommunity(memberCommunity)
+                .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(true).build();
+        user.setMemberships(List.of(adminMembership, memberMembership));
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        Set<UUID> result = guard().adminCommunityIds();
+
+        assertTrue(result.contains(adminCommunity.getId()));
+        assertFalse(result.contains(memberCommunity.getId()));
+    }
+
+    @Test
+    void adminCommunityIds_excludesDisabledAdminMemberships() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, false);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertTrue(guard().adminCommunityIds().isEmpty());
+    }
+
+    @Test
+    void adminCommunityIds_returnsEmpty_whenNotPlatformAdminAndNoMemberships() {
+        User user = UserMother.randomUser();
+        user.setPlatformAdmin(false);
+        user.setMemberships(List.of());
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertTrue(guard().adminCommunityIds().isEmpty());
+    }
+
+    @Test
+    void adminCommunityIds_returnsEmpty_whenNoAuthenticatedUser() {
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertTrue(guard().adminCommunityIds().isEmpty());
+    }
+
+    // --- isCurrentUser ---
+
+    @Test
+    void isCurrentUser_returnsTrue_whenIdMatchesAuthenticatedUser() {
+        User user = UserMother.randomUser();
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertTrue(guard().isCurrentUser(user.getId()));
+    }
+
+    @Test
+    void isCurrentUser_returnsFalse_whenIdDoesNotMatch() {
+        User user = UserMother.randomUser();
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertFalse(guard().isCurrentUser(UUID.randomUUID()));
+    }
+
+    @Test
+    void isCurrentUser_returnsFalse_whenNoAuthenticatedUser() {
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().isCurrentUser(UUID.randomUUID()));
     }
 
     // --- canCreateUserIn ---

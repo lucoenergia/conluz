@@ -36,7 +36,7 @@ public class EnableUserController {
                     This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path.
                     
                     Proper authentication, through an authentication token, is required for secure access.
-                    **Required: Platform Admin or Community Admin**
+                    **Required: Platform Admin or Community Admin. You cannot enable your own account.**
                     
                     Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled.
                     
@@ -57,7 +57,7 @@ public class EnableUserController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
+    @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
     public void enableUser(@PathVariable("id") UUID userId) {
         service.enable(UserId.of(userId));
     }

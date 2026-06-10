@@ -40,7 +40,7 @@ public class GetSupplyHourlyProductionController {
     @GetMapping
     @Operation(
             summary = "Retrieves hourly production data assigned to a specific supply",
-            description = "This endpoint retrieves hourly energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community.",
+            description = "This endpoint retrieves hourly energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community. **Required: the supply owner or a Community Admin of the supply's community.**",
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyHourlyProduction"
     )
@@ -56,7 +56,7 @@ public class GetSupplyHourlyProductionController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canReadSupply(#id)")
     public List<ProductionByTime> getSupplyHourlyProduction(
             @PathVariable("id") UUID id,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
