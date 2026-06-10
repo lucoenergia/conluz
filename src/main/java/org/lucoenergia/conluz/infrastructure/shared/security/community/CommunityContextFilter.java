@@ -6,7 +6,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
@@ -65,8 +64,8 @@ public class CommunityContextFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Platform admin or ADMIN role can use any community without membership check
-            if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) {
+            // Platform admin can use any community without membership check
+            if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
                 communityContext.setActiveCommunityId(communityId);
                 filterChain.doFilter(request, response);
                 return;

@@ -80,18 +80,22 @@ class CreateUserServiceTest {
     }
 
     @Test
-    void create_withNullCommunityId_skipsAutoResolveForAdminRole() {
+    void create_withNullCommunityId_autoResolvesForLegacyAdminRoleWithoutPlatformAdmin() {
+        // Escalation proof: the obsolete users.role no longer grants the platform-admin skip;
+        // a legacy ADMIN-role caller is treated as a regular user and auto-resolves from context.
         User caller = UserMother.randomUser();
         caller.setRole(Role.ADMIN);
         caller.setPlatformAdmin(false);
 
         User user = UserMother.randomUser();
+        UUID contextCommunityId = UUID.randomUUID();
 
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
+        when(communityContext.getActiveCommunityId()).thenReturn(Optional.of(contextCommunityId));
         when(repository.create(user)).thenReturn(user);
 
         service().create(user);
 
-        verifyNoInteractions(createMembershipService);
+        verify(createMembershipService).create(eq(contextCommunityId), eq(user.getId()), any());
     }
 }

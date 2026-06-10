@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -76,7 +75,7 @@ public class GetSuppliesByUserIdController {
 
         UserId targetUserId = UserId.of(userId);
         UserId requestingUserId = UserId.of(currentUser.getId());
-        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+        boolean isAdmin = Boolean.TRUE.equals(currentUser.isPlatformAdmin());
 
         List<Supply> supplies = supplyService.getByUserId(targetUserId, requestingUserId, isAdmin);
 
