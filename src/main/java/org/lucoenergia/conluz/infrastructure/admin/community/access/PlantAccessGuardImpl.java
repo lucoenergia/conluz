@@ -12,7 +12,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import java.util.Optional;
 import java.util.UUID;
 
-public class PlantAccessGuardImpl implements PlantAccessGuard {
+class PlantAccessGuardImpl implements PlantAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
     private final GetPlantRepository getPlantRepository;

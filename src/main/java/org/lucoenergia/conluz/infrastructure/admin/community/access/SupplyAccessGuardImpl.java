@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import java.util.Optional;
 import java.util.UUID;
 
-public class SupplyAccessGuardImpl implements SupplyAccessGuard {
+class SupplyAccessGuardImpl implements SupplyAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
     private final GetSupplyRepository getSupplyRepository;

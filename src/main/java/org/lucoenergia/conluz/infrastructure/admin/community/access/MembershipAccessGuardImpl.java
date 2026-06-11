@@ -5,7 +5,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 
 import java.util.UUID;
 
-public class MembershipAccessGuardImpl implements MembershipAccessGuard {
+class MembershipAccessGuardImpl implements MembershipAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
 

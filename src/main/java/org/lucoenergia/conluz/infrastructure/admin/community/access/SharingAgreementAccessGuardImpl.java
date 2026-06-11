@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import java.util.Optional;
 import java.util.UUID;
 
-public class SharingAgreementAccessGuardImpl implements SharingAgreementAccessGuard {
+class SharingAgreementAccessGuardImpl implements SharingAgreementAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
     private final GetSharingAgreementRepository getSharingAgreementRepository;

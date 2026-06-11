@@ -5,6 +5,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
@@ -62,6 +63,7 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
         addException(DatadisYearlyAggregationService.class.getSimpleName());
         addException(HuaweiProductionMonthlyAggregationService.class.getSimpleName());
         addException(HuaweiProductionYearlyAggregationService.class.getSimpleName());
+        addException(CommunityAccessGuard.class.getSimpleName());
         // Add more exceptions as needed
     }
 

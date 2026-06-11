@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class UserAccessGuardImpl implements UserAccessGuard {
+class UserAccessGuardImpl implements UserAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
     private final GetMembershipsRepository getMembershipsRepository;

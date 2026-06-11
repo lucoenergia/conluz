@@ -4,7 +4,6 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
-import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -12,8 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Component
-public class CommunityAccessGuardHelper {
+class CommunityAccessGuardHelper {
 
     private final AuthService authService;
     private final GetCommunityRepository getCommunityRepository;

@@ -1,11 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
-import org.lucoenergia.conluz.domain.admin.community.access.MembershipAccessGuard;
-import org.lucoenergia.conluz.domain.admin.community.access.PlantAccessGuard;
-import org.lucoenergia.conluz.domain.admin.community.access.SharingAgreementAccessGuard;
-import org.lucoenergia.conluz.domain.admin.community.access.SupplyAccessGuard;
-import org.lucoenergia.conluz.domain.admin.community.access.UserAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.access.*;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
@@ -14,13 +9,11 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 import java.util.UUID;
 
 @Service("communityAccessGuard")
-@Transactional(readOnly = true)
 public class CommunityAccessGuardImpl implements CommunityAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
