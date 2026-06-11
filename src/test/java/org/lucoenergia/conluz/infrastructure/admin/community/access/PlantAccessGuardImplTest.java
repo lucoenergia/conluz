@@ -19,7 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -117,6 +118,123 @@ class PlantAccessGuardImplTest {
         when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
 
         assertFalse(guard().canManagePlant(plant.getId()));
+    }
+
+    // --- canReadPlant ---
+
+    @Test
+    void canReadPlant_returnsFalse_whenNoAuthenticatedUser() {
+        when(helper.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canReadPlant(UUID.randomUUID()));
+    }
+
+    @Test
+    void canReadPlant_returnsFalse_whenUserIsPlatformAdminAndDoesntBelongToCommunity() {
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        when(helper.getCurrentUser()).thenReturn(Optional.of(admin));
+
+        // Plant reads are community-scoped: a platform admin who is not a member of the plant's
+        // community cannot read it.
+        assertFalse(guard().canReadPlant(UUID.randomUUID()));
+    }
+
+    @Test
+    void canReadPlant_returnsFalse_whenPlantNotFound() {
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+
+        UUID plantId = UUID.randomUUID();
+        when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.empty());
+
+        assertFalse(guard().canReadPlant(plantId));
+    }
+
+    @Test
+    void canReadPlant_returnsTrue_whenUserIsMemberOfPlantCommunity() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder()
+                .withId(UUID.randomUUID())
+                .withSupply(supply)
+                .build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        assertTrue(guard().canReadPlant(plant.getId()));
+    }
+
+    @Test
+    void canReadPlant_returnsFalse_whenUserIsNotMemberOfPlantCommunity() {
+        Community community = CommunityMother.random().build();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder()
+                .withId(UUID.randomUUID())
+                .withSupply(supply)
+                .build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        assertFalse(guard().canReadPlant(plant.getId()));
+    }
+
+    @Test
+    void canReadPlant_returnsFalse_whenPlantSupplyHasNoCommunity() {
+        Supply supply = supplyOwnedBy(UUID.randomUUID());
+        Plant plant = new Plant.Builder()
+                .withId(UUID.randomUUID())
+                .withSupply(supply)
+                .build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        assertFalse(guard().canReadPlant(plant.getId()));
+    }
+
+    // --- canListPlants ---
+
+    @Test
+    void canListPlants_returnsFalse_whenNoAuthenticatedUser() {
+        when(helper.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canListPlants(UUID.randomUUID()));
+    }
+
+    @Test
+    void canListPlants_returnsFalse_whenUserIsPlatformAdminAndDoesntBelongToCommunity() {
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        when(helper.getCurrentUser()).thenReturn(Optional.of(admin));
+
+        // Plant reads are community-scoped: a platform admin who is not a member of the plant's
+        // community cannot read it.
+        assertFalse(guard().canListPlants(UUID.randomUUID()));
+    }
+
+    @Test
+    void canListPlants_returnsTrue_whenUserIsMemberOfPlantCommunity() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+
+        assertTrue(guard().canListPlants(communityId));
+    }
+
+    @Test
+    void canListPlants_returnsFalse_whenUserIsNotMemberOfPlantCommunity() {
+        Community community = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertFalse(guard().canListPlants(community.getId()));
     }
 
     // --- canCreatePlant ---

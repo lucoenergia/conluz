@@ -96,6 +96,19 @@ public class BaseControllerTest extends BaseIntegrationTest {
         return loginUser(communityAdmin);
     }
 
+    /**
+     * Creates an enabled user who is a {@code COMMUNITY_MEMBER} (regular, non-admin member) of the
+     * given community and returns their bearer token. Useful for tests that exercise endpoints any
+     * community member may access.
+     */
+    protected String loginAsCommunityMember(UUID communityId) throws Exception {
+        User communityMember = UserMother.randomUser();
+        communityMember.enable();
+        createUserRepository.create(communityMember);
+        createMembershipService.create(communityId, communityMember.getId(), CommunityRole.COMMUNITY_MEMBER);
+        return loginUser(communityMember);
+    }
+
     protected String loginUser(User user) throws Exception {
 
         // Login as the partner user

@@ -41,6 +41,22 @@ public class PlantAccessGuardImpl implements PlantAccessGuard {
     }
 
     @Override
+    public boolean canReadPlant(UUID plantId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        Optional<Plant> plant = getPlantRepository.findById(PlantId.of(plantId));
+        if (plant.isEmpty()) {
+            return false;
+        }
+        UUID communityId = plant.get().getSupply() != null && plant.get().getSupply().getCommunity() != null
+                ? plant.get().getSupply().getCommunity().getId() : null;
+        // Any enabled member (regardless of role) of the plant's community can read it
+        return helper.hasMembershipInCommunity(user, communityId);
+    }
+
+    @Override
     public boolean canCreatePlant(String supplyCode) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
@@ -55,5 +71,15 @@ public class PlantAccessGuardImpl implements PlantAccessGuard {
         }
         UUID communityId = supply.get().getCommunity() != null ? supply.get().getCommunity().getId() : null;
         return helper.hasCommunityAdminRoleIn(user, communityId);
+    }
+
+    @Override
+    public boolean canListPlants(UUID communityId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        // Any enabled member (regardless of role) of the plant's community can read it
+        return helper.hasMembershipInCommunity(user, communityId);
     }
 }

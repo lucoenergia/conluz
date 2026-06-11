@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantService;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
@@ -22,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,31 +30,28 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Get all plants registered in the energy community
+ * Get all plants of a community
  */
 @RestController
-@RequestMapping(value = "/api/v1/plants")
+@RequestMapping(value = "/api/v1/communities/{communityId}/plants")
 public class GetAllPlantsController {
 
     private final GetPlantService service;
     private final PaginationRequestMapper paginationRequestMapper;
-    private final CommunityAccessGuard communityAccessGuard;
 
-    public GetAllPlantsController(GetPlantService service, PaginationRequestMapper paginationRequestMapper,
-                                  CommunityAccessGuard communityAccessGuard) {
+    public GetAllPlantsController(GetPlantService service, PaginationRequestMapper paginationRequestMapper) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
-        this.communityAccessGuard = communityAccessGuard;
     }
 
     @GetMapping
     @Operation(
-            summary = "Retrieves the plants visible to the current user with support for pagination, filtering, and sorting.",
+            summary = "Retrieves the plants of a community with support for pagination, filtering, and sorting.",
             description = """
-                    Retrieves plants with pagination, filtering and sorting. Requires authentication through a Bearer Token.
+                    Retrieves the plants of the given community with pagination, filtering and sorting. Requires
+                    authentication through a Bearer Token.
 
-                    **Visibility:** Platform admins see all plants. Any member of a community sees all plants of the
-                    communities they belong to.""",
+                    **Required: any member of the community (any role) or a Platform Admin.**""",
             tags = ApiTag.PLANTS,
             operationId = "getAllPlants"
     )
@@ -70,11 +67,11 @@ public class GetAllPlantsController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
-    @PreAuthorize("isAuthenticated()")
-    public PagedResult<PlantResponse> getAllPlants(@Parameter(hidden = true) Pageable page) {
-        Set<UUID> visibleCommunityIds = communityAccessGuard.visibleCommunityIds();
+    @PreAuthorize("@communityAccessGuard.canListPlants(#communityId)")
+    public PagedResult<PlantResponse> getAllPlants(@PathVariable("communityId") UUID communityId,
+                                                   @Parameter(hidden = true) Pageable page) {
         PagedResult<Plant> plants = service.findAllByCommunities(paginationRequestMapper.mapRequest(page),
-                visibleCommunityIds);
+                Set.of(communityId));
 
         List<PlantResponse> plantsResponse = plants.getItems().stream()
                 .map(PlantResponse::new)

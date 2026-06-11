@@ -70,10 +70,9 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetPlantById_shouldReturnForbiddenWhenPlantDoesNotExist() throws Exception {
-        // A non-existent plant cannot be associated to a community, so the access guard denies it
-        // (403) rather than reaching the controller — this avoids leaking plant existence.
-        String authHeader = loginAsDefaultPlatformAdmin();
+    void testGetPlantById_shouldReturnNotFoundWhenPlantDoesNotExist() throws Exception {
+        // A non-existent plant returns 404 (not 403) so callers cannot probe plant existence by ID.
+        String authHeader = loginAsPartner();
 
         final String plantId = UUID.randomUUID().toString();
 
@@ -81,9 +80,9 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
@@ -117,7 +116,7 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetPlantById_shouldReturnForbiddenWhenUserIsNotAdmin() throws Exception {
+    void testGetPlantById_shouldReturnPlantForRegularCommunityMember() throws Exception {
 
         // Create user, supply, and plant
         User user = UserMother.randomUser();
@@ -127,13 +126,38 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
         Plant plant = PlantMother.random(supply).build();
         plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
 
+        // A regular (non-admin) member of the plant's community can read it
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(get(String.format("/api/v1/plants/%s", plant.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(plant.getId().toString()))
+                .andExpect(jsonPath("$.code").value(plant.getCode()));
+    }
+
+    @Test
+    void testGetPlantById_shouldReturnNotFoundWhenUserIsNotMember() throws Exception {
+
+        // Create user, supply, and plant
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
+        Supply supply = SupplyMother.random().build();
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Plant plant = PlantMother.random(supply).build();
+        plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
+
+        // A user who is not a member of the plant's community gets 404, not 403, so the existence
+        // of the plant is not leaked.
         String authHeader = loginAsPartner();
 
         mockMvc.perform(get(String.format("/api/v1/plants/%s", plant.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

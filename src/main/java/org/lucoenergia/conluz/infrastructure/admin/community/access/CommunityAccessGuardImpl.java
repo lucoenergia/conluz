@@ -106,8 +106,18 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canReadPlant(UUID plantId) {
+        return plantAccessGuard.canReadPlant(plantId);
+    }
+
+    @Override
     public boolean canCreatePlant(String supplyCode) {
         return plantAccessGuard.canCreatePlant(supplyCode);
+    }
+
+    @Override
+    public boolean canListPlants(UUID communityId) {
+        return plantAccessGuard.canListPlants(communityId);
     }
 
     @Override
