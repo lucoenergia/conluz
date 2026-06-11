@@ -9,7 +9,6 @@ import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -156,7 +155,6 @@ class GetCommunityRepositoryTest extends BaseIntegrationTest {
     private User createUser(String fullName) {
         User user = UserMother.randomUser();
         user.setFullName(fullName);
-        user.setRole(Role.PARTNER);
         user.enable();
         createUserRepository.create(user);
         return user;

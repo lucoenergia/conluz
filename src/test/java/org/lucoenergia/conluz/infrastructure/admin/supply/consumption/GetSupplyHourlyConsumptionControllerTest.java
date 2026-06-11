@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -23,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -56,7 +56,7 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyHourlyConsumptionAsAdmin() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -77,7 +77,6 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
     void testGetSupplyHourlyConsumptionAsOwner() throws Exception {
         // Create a partner user
         User partnerUser = UserMother.randomUser();
-        partnerUser.setRole(Role.PARTNER);
         partnerUser.enable();
         User createdPartnerUser = createUserRepository.create(partnerUser);
 
@@ -124,7 +123,7 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyHourlyConsumptionWithMissingStartDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -143,7 +142,7 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyHourlyConsumptionWithMissingEndDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -163,7 +162,7 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyHourlyConsumptionWithUnknownSupply() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
         UUID supplyId = UUID.randomUUID();
 
         mockMvc.perform(get(URL + "/" + supplyId + "/consumption/hourly")

@@ -39,7 +39,7 @@ public class DeleteMembershipController {
             description = "Deletes the membership of the specified user in the community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.",
             tags = ApiTag.MEMBERSHIPS,
             operationId = "deleteMembership",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"COMMUNITY_ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

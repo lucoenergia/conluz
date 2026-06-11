@@ -52,7 +52,7 @@ public class CreatePlantController {
                     address, its code and any relevant parameters.
                     
                     Proper authentication, through authentication tokens, is required to access this endpoint.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
                     
                     Upon successful creation, the server responds with a status code of 200, providing comprehensive
                     details about the newly created plant, including its unique identifier.
@@ -62,7 +62,7 @@ public class CreatePlantController {
                     """,
             tags = ApiTag.PLANTS,
             operationId = "createPlant",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -75,7 +75,7 @@ public class CreatePlantController {
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlantCreate(#body.supplyCode)")
+    @PreAuthorize("@communityAccessGuard.canCreatePlant(#body.supplyCode)")
     public PlantResponse createPlant(@Valid @RequestBody CreatePlantBody body) {
         Plant newPlant = service.create(body.mapToPlant(), SupplyCode.of(body.getSupplyCode()));
         return new PlantResponse(newPlant);

@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -34,7 +33,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testFullBody() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         String body = """
                         {
@@ -44,8 +43,7 @@ class CreateUserControllerTest extends BaseControllerTest {
                           "address": "Fake Street 123",
                           "email": "johndoe@email.com",
                           "phoneNumber": "+34666555444",
-                          "password": "a secure password1!",
-                          "role": "PARTNER"
+                          "password": "a secure password1!"
                         }
                 """;
 
@@ -57,7 +55,6 @@ class CreateUserControllerTest extends BaseControllerTest {
         expectedUser.setEmail("johndoe@email.com");
         expectedUser.setPhoneNumber("+34666555444");
         expectedUser.setEnabled(true);
-        expectedUser.setRole(Role.PARTNER);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -73,7 +70,6 @@ class CreateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.email").value(expectedUser.getEmail()))
                 .andExpect(jsonPath("$.phoneNumber").value(expectedUser.getPhoneNumber()))
                 .andExpect(jsonPath("$.enabled").value(expectedUser.isEnabled()))
-                .andExpect(jsonPath("$.role").value(expectedUser.getRole().name()))
                 .andExpect(jsonPath("$.password").doesNotExist());
 
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(expectedUser.getPersonalId())));
@@ -82,7 +78,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testMinimumBody() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         String body = """
                         {
@@ -90,8 +86,7 @@ class CreateUserControllerTest extends BaseControllerTest {
                           "fullName": "John Doe",
                           "number": 1,
                           "email": "johndoe@email.com",
-                          "password": "a secure password1!",
-                          "role": "PARTNER"
+                          "password": "a secure password1!"
                         }
                 """;
 
@@ -101,7 +96,6 @@ class CreateUserControllerTest extends BaseControllerTest {
         expectedUser.setFullName("John Doe");
         expectedUser.setEmail("johndoe@email.com");
         expectedUser.setEnabled(true);
-        expectedUser.setRole(Role.PARTNER);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -117,7 +111,6 @@ class CreateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.email").value(expectedUser.getEmail()))
                 .andExpect(jsonPath("$.phoneNumber").value(expectedUser.getPhoneNumber()))
                 .andExpect(jsonPath("$.enabled").value(expectedUser.isEnabled()))
-                .andExpect(jsonPath("$.role").value(expectedUser.getRole().name()))
                 .andExpect(jsonPath("$.password").doesNotExist());
 
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(expectedUser.getPersonalId())));
@@ -126,7 +119,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithDuplicatedUser() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         String body = String.format("""
                         {
@@ -134,8 +127,7 @@ class CreateUserControllerTest extends BaseControllerTest {
                           "fullName": "John Doe",
                           "number": 1,
                           "email": "johndoe@email.com",
-                          "password": "a secure password1!",
-                          "role": "PARTNER"
+                          "password": "a secure password1!"
                         }
                 """, DefaultUserAdminMother.PERSONAL_ID);
 
@@ -155,7 +147,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -175,53 +167,39 @@ class CreateUserControllerTest extends BaseControllerTest {
                           "fullName": "John Doe",
                           "number": 1,
                           "email": "johndoe@email.com",
-                          "password": "a secure password1!",
-                          "role": "PARTNER"
+                          "password": "a secure password1!"
                         }
                 """,
                 """
                         {
                           "personalId": "12345678Z",
-                          "number": 1,
-                          "email": "johndoe@email.com",
-                          "password": "a secure password1!",
-                          "role": "PARTNER"
-                        }
-                """,
-                """
-                        {
-                          "personalId": "12345678Z",
-                          "fullName": "John Doe",
-                          "email": "johndoe@email.com",
-                          "password": "a secure password1!",
-                          "role": "PARTNER"
-                        }
-                """,
-                """
-                        {
-                          "personalId": "12345678Z",
-                          "fullName": "John Doe",
-                          "number": 1,
-                          "password": "a secure password1!",
-                          "role": "PARTNER"
-                        }
-                """,
-                """
-                        {
-                          "personalId": "12345678Z",
-                          "fullName": "John Doe",
-                          "number": 1,
-                          "email": "johndoe@email.com",
-                          "role": "PARTNER"
-                        }
-                """,
-                """
-                        {
-                          "personalId": "12345678Z",
-                          "fullName": "John Doe",
                           "number": 1,
                           "email": "johndoe@email.com",
                           "password": "a secure password1!"
+                        }
+                """,
+                """
+                        {
+                          "personalId": "12345678Z",
+                          "fullName": "John Doe",
+                          "email": "johndoe@email.com",
+                          "password": "a secure password1!"
+                        }
+                """,
+                """
+                        {
+                          "personalId": "12345678Z",
+                          "fullName": "John Doe",
+                          "number": 1,
+                          "password": "a secure password1!"
+                        }
+                """,
+                """
+                        {
+                          "personalId": "12345678Z",
+                          "fullName": "John Doe",
+                          "number": 1,
+                          "email": "johndoe@email.com"
                         }
                 """);
     }
@@ -230,7 +208,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -251,8 +229,7 @@ class CreateUserControllerTest extends BaseControllerTest {
                         "fullName": "John Doe",
                         "number": "invalid value",
                         "email": "johndoe@email.com",
-                        "password": "a secure password1!",
-                        "role": "PARTNER"
+                        "password": "a secure password1!"
                     }
                 """,
                 """
@@ -261,25 +238,14 @@ class CreateUserControllerTest extends BaseControllerTest {
                         "fullName": "John Doe",
                         "number": 1,
                         "email": "invalid value",
-                        "password": "a secure password1!",
-                        "role": "PARTNER"
-                    }
-                """,
-                """
-                    {
-                        "personalId": "12345678Z",
-                        "fullName": "John Doe",
-                        "number": 1,
-                        "email": "johndoe@email.com",
-                        "password": "a secure password1!",
-                        "role": "invalid value"
+                        "password": "a secure password1!"
                     }
                 """);
     }
 
     @Test
     void testWithoutBody() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -316,8 +282,7 @@ class CreateUserControllerTest extends BaseControllerTest {
                           "fullName": "John Doe",
                           "number": 1,
                           "email": "johndoe@email.com",
-                          "password": "a secure password1!",
-                          "role": "PARTNER"
+                          "password": "a secure password1!"
                         }
                 """, DefaultUserAdminMother.PERSONAL_ID);
 

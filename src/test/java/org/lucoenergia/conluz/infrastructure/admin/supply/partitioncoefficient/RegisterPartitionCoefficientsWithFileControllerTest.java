@@ -3,14 +3,12 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.file.Files;
 
 import static org.hamcrest.Matchers.hasItem;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -47,7 +46,7 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
 
     @Test
     void importsCoefficientsSuccessfully() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         createSupplyWithCode("ES0031300806333001KE0F");
         createSupplyWithCode("ES0031300326337001WS0F");
 
@@ -56,6 +55,7 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
         mockMvc.perform(multipart(URL)
                         .file(file)
                         .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -68,7 +68,7 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
 
     @Test
     void handlesUnknownCupsAsError() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         createSupplyWithCode("ES0031300806333001KE0F");
 
         MockMultipartFile file = loadFixture(FIXTURE, TXT_CONTENT_TYPE);
@@ -76,6 +76,7 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
         mockMvc.perform(multipart(URL)
                         .file(file)
                         .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -85,12 +86,13 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
 
     @Test
     void returnsBadRequestForWrongContentType() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         MockMultipartFile file = loadFixture(FIXTURE, "application/octet-stream");
 
         mockMvc.perform(multipart(URL)
                         .file(file)
                         .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -99,7 +101,7 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
 
     @Test
     void returnsBadRequestForWrongExtension() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         ClassPathResource resource = new ClassPathResource(FIXTURE);
         MockMultipartFile file = new MockMultipartFile(
                 "file", "CAU_2024.csv", TXT_CONTENT_TYPE,
@@ -108,6 +110,7 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
         mockMvc.perform(multipart(URL)
                         .file(file)
                         .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -116,7 +119,7 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
 
     @Test
     void returnsBadRequestForInvalidFilename() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         ClassPathResource resource = new ClassPathResource(FIXTURE);
         MockMultipartFile file = new MockMultipartFile(
                 "file", "wrong_name.txt", TXT_CONTENT_TYPE,
@@ -125,6 +128,7 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
         mockMvc.perform(multipart(URL)
                         .file(file)
                         .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -134,7 +138,8 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
     @Test
     void returnsUnauthorizedWithoutToken() throws Exception {
         mockMvc.perform(post(URL)
-                        .param("effectiveAt", EFFECTIVE_AT))
+                        .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString()))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()));
@@ -148,6 +153,7 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
         mockMvc.perform(multipart(URL)
                         .file(file)
                         .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isForbidden())

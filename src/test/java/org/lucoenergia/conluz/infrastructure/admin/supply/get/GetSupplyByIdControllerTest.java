@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,7 +41,7 @@ class GetSupplyByIdControllerTest extends BaseControllerTest {
         Supply supply = SupplyMother.random(user).build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -53,7 +54,7 @@ class GetSupplyByIdControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyByIdNotFound() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
         UUID randomId = UUID.randomUUID();
 
         mockMvc.perform(get(URL + "/" + randomId)

@@ -55,13 +55,13 @@ public class SyncMonthlyHuaweiProductionController {
                     - If neither month nor plantCode is provided: Aggregates all plants for all months of the year
 
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     A successful request returns an HTTP status code of 200.
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "syncMonthlyHuaweiProduction",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

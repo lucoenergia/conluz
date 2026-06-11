@@ -2,7 +2,6 @@ package org.lucoenergia.conluz.domain.admin.user;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
@@ -26,7 +25,6 @@ public class UserMother {
         user.setEmail(RandomStringUtils.random(5, true, false) + "@" + RandomStringUtils.random(5, true, false) + ".com");
         user.setPhoneNumber("+34666333111");
         user.setEnabled(RandomUtils.nextBoolean());
-        user.setRole(Role.PARTNER);
         return user;
     }
 
@@ -45,7 +43,6 @@ public class UserMother {
         user.setEmail(RandomStringUtils.random(5, true, false) + "@" + RandomStringUtils.random(5, true, false) + ".com");
         user.setPhoneNumber("+34666333111");
         user.setEnabled(RandomUtils.nextBoolean());
-        user.setRole(Role.PARTNER);
         return user;
     }
 
@@ -60,7 +57,6 @@ public class UserMother {
         user.setEmail(RandomStringUtils.random(5, true, false) + "@" + RandomStringUtils.random(5, true, false) + ".com");
         user.setPhoneNumber("+34666333111");
         user.setEnabled(RandomUtils.nextBoolean());
-        user.setRole(Role.PARTNER);
         return user;
     }
 

@@ -43,7 +43,7 @@ public class UpdateMembershipRoleController {
             description = "Changes the role of a user within a community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.",
             tags = ApiTag.MEMBERSHIPS,
             operationId = "updateMembershipRole",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"COMMUNITY_ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

@@ -4,7 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantService;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantResponse;
@@ -30,9 +32,11 @@ import java.util.UUID;
 public class GetPlantByIdController {
 
     private final GetPlantService service;
+    private final CommunityAccessGuard communityAccessGuard;
 
-    public GetPlantByIdController(GetPlantService service) {
+    public GetPlantByIdController(GetPlantService service, CommunityAccessGuard communityAccessGuard) {
         this.service = service;
+        this.communityAccessGuard = communityAccessGuard;
     }
 
     @GetMapping("/plants/{id}")
@@ -41,13 +45,16 @@ public class GetPlantByIdController {
             description = """
                     This endpoint retrieves detailed information about a specific plant by its unique identifier.
 
-                    **Required Role: ADMIN**
+                    **Required: any member of the plant's community (any role).**
+
+                    Returns 404 if the plant does not exist OR if the caller is not a member of its
+                    community, to avoid leaking the existence of plants by ID.
 
                     Authentication is required using a Bearer token.
                     """,
             tags = ApiTag.PLANTS,
             operationId = "getPlantById",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -61,8 +68,12 @@ public class GetPlantByIdController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
+    @PreAuthorize("isAuthenticated()")
     public PlantResponse getPlantById(@PathVariable("id") UUID plantId) {
+        // Non-members get a 404 (not 403) so they cannot probe the existence of a plant by its ID.
+        if (!communityAccessGuard.canReadPlant(plantId)) {
+            throw new PlantNotFoundException(PlantId.of(plantId));
+        }
         Plant plant = service.findById(PlantId.of(plantId));
         return new PlantResponse(plant);
     }

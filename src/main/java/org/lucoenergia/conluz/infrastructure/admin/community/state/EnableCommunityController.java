@@ -38,7 +38,7 @@ public class EnableCommunityController {
             description = "Re-enables a previously disabled community. Requires PLATFORM_ADMIN role.",
             tags = ApiTag.COMMUNITIES,
             operationId = "enableCommunity",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"PLATFORM_ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

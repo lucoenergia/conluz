@@ -59,7 +59,7 @@ public class SetHuaweiConfigController {
                     from the Huawei API.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with details
                     about the configuration already set.
@@ -69,7 +69,7 @@ public class SetHuaweiConfigController {
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "configureHuawei",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

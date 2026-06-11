@@ -17,6 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.Optional;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -47,14 +48,16 @@ class SyncYearlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .setEnabled(Boolean.TRUE)
                 .build();
         when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(enabledConfig));
+        when(getDatadisConfigRepository.findByCommunityId(DEFAULT_COMMUNITY_ID)).thenReturn(Optional.of(enabledConfig));
     }
 
     @Test
     void testAggregateYearlyForAllSupplies() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyDatadisConsumptionsBody body = new SyncYearlyDatadisConsumptionsBody(2024);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -70,9 +73,10 @@ class SyncYearlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testAggregateYearlyForSpecificSupply() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyDatadisConsumptionsBody body = new SyncYearlyDatadisConsumptionsBody(2024, "SUPPLY001");
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -89,6 +93,7 @@ class SyncYearlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     void testWithoutToken() throws Exception {
 
         SyncYearlyDatadisConsumptionsBody body = new SyncYearlyDatadisConsumptionsBody(2024);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -104,6 +109,7 @@ class SyncYearlyDatadisConsumptionsControllerTest extends BaseControllerTest {
         String authHeader = loginAsPartner();
 
         SyncYearlyDatadisConsumptionsBody body = new SyncYearlyDatadisConsumptionsBody(2024);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -117,9 +123,10 @@ class SyncYearlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidYearTooLow() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyDatadisConsumptionsBody body = new SyncYearlyDatadisConsumptionsBody(1999);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -133,9 +140,10 @@ class SyncYearlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidYearTooHigh() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyDatadisConsumptionsBody body = new SyncYearlyDatadisConsumptionsBody(2101);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -149,7 +157,7 @@ class SyncYearlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithNullYear() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": null}";
 
@@ -165,9 +173,10 @@ class SyncYearlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidSupplyCode() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyDatadisConsumptionsBody body = new SyncYearlyDatadisConsumptionsBody(2024, "INVALID");
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         doThrow(new SupplyNotFoundException(SupplyCode.of("INVALID")))
                 .when(aggregationService)

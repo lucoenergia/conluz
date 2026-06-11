@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +36,8 @@ public class UpdateSupplyController {
                 This endpoint enables the update of supply information by specifying the supply's unique identifier in the endpoint path.
                 
                 Clients send a request containing the updated supply details, and authentication, through an authentication token, is required for secure access.
-                
+                **Required: Platform Admin, Community Admin of the supply's community, or the supply owner.**
+
                 A successful update results in an HTTP status code of 200, indicating that the supply information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.
                 
                 If you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.""",
@@ -54,6 +56,7 @@ public class UpdateSupplyController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @NotFoundErrorResponse
+    @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
     public SupplyResponse updateSupply(@PathVariable("id") UUID supplyId, @Valid @RequestBody UpdateSupplyBody body) {
         return new SupplyResponse(service.update(SupplyId.of(supplyId), body.mapToSupply()));
     }

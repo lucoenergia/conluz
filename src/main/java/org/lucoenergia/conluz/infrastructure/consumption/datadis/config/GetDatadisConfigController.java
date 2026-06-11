@@ -46,14 +46,14 @@ public class GetDatadisConfigController {
                     `passwordSet` indicates whether a password has been configured.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN or COMMUNITY_ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with
                     the current configuration. If no configuration has been set yet, a 404 is returned.
                     """,
             tags = ApiTag.CONSUMPTION,
             operationId = "getDatadisConfig",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

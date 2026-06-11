@@ -6,9 +6,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
-import org.lucoenergia.conluz.domain.admin.user.Role;
-import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -34,11 +31,9 @@ import java.util.UUID;
 public class GetSuppliesByUserIdController {
 
     private final GetSupplyService supplyService;
-    private final AuthService authService;
 
-    public GetSuppliesByUserIdController(GetSupplyService supplyService, AuthService authService) {
+    public GetSuppliesByUserIdController(GetSupplyService supplyService) {
         this.supplyService = supplyService;
-        this.authService = authService;
     }
 
     @GetMapping("/{id}/supplies")
@@ -48,8 +43,8 @@ public class GetSuppliesByUserIdController {
                     This endpoint retrieves all supplies associated with a specific user by their unique identifier.
 
                     **Authorization Rules:**
-                    - Users with role ADMIN can retrieve supplies for any user
-                    - Users with role PARTNER can only retrieve their own supplies
+                    - Platform admins and Community Admins (of the target user's community) can retrieve supplies for that user
+                    - A user can retrieve their own supplies
 
                     Authentication is required using a Bearer token.
                     """,
@@ -71,14 +66,7 @@ public class GetSuppliesByUserIdController {
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canReadUser(#userId)")
     public List<SupplyResponse> getSuppliesByUserId(@PathVariable("id") UUID userId) {
-        User currentUser = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
-
-        UserId targetUserId = UserId.of(userId);
-        UserId requestingUserId = UserId.of(currentUser.getId());
-        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
-
-        List<Supply> supplies = supplyService.getByUserId(targetUserId, requestingUserId, isAdmin);
+        List<Supply> supplies = supplyService.getByUserId(UserId.of(userId));
 
         return supplies.stream()
                 .map(SupplyResponse::new)

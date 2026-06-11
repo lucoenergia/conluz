@@ -35,7 +35,7 @@ public class DeletePlantController {
 
                     To utilize this endpoint, clients send a DELETE request with the targeted plant's ID, requiring
                     authentication for secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the
                     plant has been successfully removed.
@@ -46,7 +46,7 @@ public class DeletePlantController {
                 """,
             tags = ApiTag.PLANTS,
             operationId = "deletePlant",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

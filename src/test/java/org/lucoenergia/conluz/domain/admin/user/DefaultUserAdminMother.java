@@ -1,7 +1,5 @@
 package org.lucoenergia.conluz.domain.admin.user;
 
-import org.lucoenergia.conluz.domain.admin.user.DefaultAdminUser;
-
 public class DefaultUserAdminMother {
 
     public final static String PERSONAL_ID = "01234567Z";

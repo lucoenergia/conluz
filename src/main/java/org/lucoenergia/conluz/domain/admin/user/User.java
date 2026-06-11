@@ -38,8 +38,6 @@ public class User implements UserDetails {
     private String phoneNumber;
     @NotNull
     private Boolean enabled;
-    @NotNull
-    private Role role;
     private Boolean isPlatformAdmin;
     private List<CommunityMembership> memberships = new ArrayList<>();
 
@@ -113,14 +111,6 @@ public class User implements UserDetails {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
     }
 
     public Boolean isPlatformAdmin() {
@@ -228,11 +218,6 @@ public class User implements UserDetails {
 
         public Builder enabled(Boolean enabled) {
             user.enabled = enabled;
-            return this;
-        }
-
-        public Builder role(Role role) {
-            user.role = role;
             return this;
         }
 

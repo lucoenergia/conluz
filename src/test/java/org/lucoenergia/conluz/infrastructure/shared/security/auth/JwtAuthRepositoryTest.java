@@ -58,7 +58,6 @@ class JwtAuthRepositoryTest {
         Assertions.assertNotNull(token);
         Assertions.assertTrue(repository.isTokenValid(token, user));
         Assertions.assertEquals(user.getId(), repository.getUserIdFromToken(token));
-        Assertions.assertEquals(user.getRole().name(), repository.getRole(token));
     }
 
     @Test

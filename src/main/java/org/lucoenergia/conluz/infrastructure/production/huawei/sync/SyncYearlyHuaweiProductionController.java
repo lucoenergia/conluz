@@ -53,13 +53,13 @@ public class SyncYearlyHuaweiProductionController {
                     for the specified year.
 
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     A successful request returns an HTTP status code of 200.
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "syncYearlyHuaweiProduction",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

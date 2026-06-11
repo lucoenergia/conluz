@@ -35,13 +35,13 @@ public class EnableSupplyController {
                     This endpoint enables a supply by its unique identifier.
 
                     Authentication via bearer token is required.
-                    Required Role: ADMIN
+                    Required: Platform Admin, Community Admin, or the supply owner
 
                     The operation is idempotent: enabling an already enabled supply will not fail and will return the current state.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "enableSupply",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

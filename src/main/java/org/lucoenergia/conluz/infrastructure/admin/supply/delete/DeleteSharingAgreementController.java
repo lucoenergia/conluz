@@ -38,7 +38,7 @@ public class DeleteSharingAgreementController {
 
                     To utilize this endpoint, clients send a DELETE request with the targeted agreement's ID, requiring
                     authentication for secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin**
 
                     Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the
                     sharing agreement has been successfully removed.
@@ -49,7 +49,7 @@ public class DeleteSharingAgreementController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "deleteSharingAgreement",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

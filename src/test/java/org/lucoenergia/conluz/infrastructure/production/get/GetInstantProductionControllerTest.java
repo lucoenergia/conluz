@@ -8,7 +8,6 @@ import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaReposit
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
@@ -50,7 +49,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetInstantProduction() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get("/api/v1/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -64,7 +63,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
         UserEntity user = UserMother.randomUserEntity();
         user = userRepository.save(user);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         CommunityEntity community = communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID);
         UUID supplyId = UUID.randomUUID();
         SupplyEntity supplyEntity = SupplyEntityMother.random(user, community);
@@ -87,7 +86,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetInstantProductionByUnknownSupply() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
         UUID supplyId = UUID.randomUUID();
 
         mockMvc.perform(get("/api/v1/production")
@@ -103,7 +102,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetInstantProductionWithWrongParameter() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
         String supplyId = "1";
 
         mockMvc.perform(get("/api/v1/production")

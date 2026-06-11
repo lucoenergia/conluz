@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.admin.user;
 
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,7 +15,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     Optional<UserEntity> findByPersonalId(String personalId);
 
-    Optional<UserEntity> findByNumberAndRole(int number, Role role);
+    Optional<UserEntity> findFirstByNumber(int number);
 
     boolean existsByPersonalId(String personalId);
 

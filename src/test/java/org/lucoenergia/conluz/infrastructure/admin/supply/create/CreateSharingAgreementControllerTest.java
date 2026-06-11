@@ -8,7 +8,6 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -46,9 +45,14 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testCreateSharingAgreement() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
-
         Community community = createCommunityRepository.create(random().build());
+
+        User communityAdmin = UserMother.randomUser();
+        communityAdmin.enable();
+        createUserRepository.create(communityAdmin);
+        createMembershipService.create(community.getId(), communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        String authHeader = loginUser(communityAdmin);
+
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = startDate.plusMonths(6);
 
@@ -76,12 +80,11 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testCommunityAdminCanCreateForOwnCommunity() throws Exception {
-        loginAsDefaultAdmin();
+        loginAsDefaultPlatformAdmin();
 
         Community community = createCommunityRepository.create(random().build());
 
         User communityAdmin = UserMother.randomUser();
-        communityAdmin.setRole(Role.PARTNER);
         communityAdmin.enable();
         createUserRepository.create(communityAdmin);
         createMembershipService.create(community.getId(), communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
@@ -113,13 +116,12 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testCommunityAdminCannotCreateForOtherCommunity() throws Exception {
-        loginAsDefaultAdmin();
+        loginAsDefaultPlatformAdmin();
 
         Community ownCommunity = createCommunityRepository.create(random().build());
         Community otherCommunity = createCommunityRepository.create(random().build());
 
         User communityAdmin = UserMother.randomUser();
-        communityAdmin.setRole(Role.PARTNER);
         communityAdmin.enable();
         createUserRepository.create(communityAdmin);
         createMembershipService.create(ownCommunity.getId(), communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
@@ -149,7 +151,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     @ParameterizedTest
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -188,7 +190,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     @ParameterizedTest
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -231,7 +233,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutBody() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

@@ -41,7 +41,7 @@ public class GetMembershipsController {
             description = "Returns the list of memberships for the specified community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.",
             tags = ApiTag.MEMBERSHIPS,
             operationId = "getMemberships",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"COMMUNITY_ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

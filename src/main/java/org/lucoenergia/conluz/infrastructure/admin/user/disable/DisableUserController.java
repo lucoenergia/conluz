@@ -39,7 +39,7 @@ public class DisableUserController {
                 This endpoint is designed to disable a user within the system by specifying the user's unique identifier in the endpoint path.
                 
                 This operation requires proper authentication, through an authentication token, to ensure secure access.
-                **Required Role: ADMIN**
+                **Required: Platform Admin or Community Admin. You cannot disable your own account.**
                 
                 Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been disabled.
                 
@@ -49,7 +49,7 @@ public class DisableUserController {
             """,
             tags = ApiTag.USERS,
             operationId = "disableUser",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -61,7 +61,7 @@ public class DisableUserController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
+    @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
     public void disableUser(@PathVariable("id") UUID userId) {
         service.disable(UserId.of(userId));
     }

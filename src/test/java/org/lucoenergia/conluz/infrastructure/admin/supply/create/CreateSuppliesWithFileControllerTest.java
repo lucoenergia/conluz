@@ -22,6 +22,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.not;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -73,10 +74,11 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -103,10 +105,11 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -128,10 +131,11 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -153,10 +157,11 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 MediaType.APPLICATION_OCTET_STREAM_VALUE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -177,10 +182,11 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -201,10 +207,11 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -225,10 +232,11 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -241,7 +249,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
     @Test
     void
     testWithoutFile() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -280,6 +288,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isForbidden())

@@ -18,6 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.time.LocalDate;
 import java.util.Optional;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -48,14 +49,16 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .setEnabled(Boolean.TRUE)
                 .build();
         when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(enabledConfig));
+        when(getDatadisConfigRepository.findByCommunityId(DEFAULT_COMMUNITY_ID)).thenReturn(Optional.of(enabledConfig));
     }
 
     @Test
     void testSyncDatadisConsumptions() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -75,6 +78,7 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     void testWithoutToken() throws Exception {
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -93,6 +97,7 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
         String authHeader = loginAsPartner();
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -106,9 +111,10 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidYearTooLow() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(1999);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -122,9 +128,10 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidYearTooHigh() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2101);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -138,7 +145,7 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithNullYear() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": null}";
 
@@ -154,7 +161,7 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithMissingYear() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{}";
 
@@ -170,7 +177,7 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithMissingBody() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -183,9 +190,10 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testSyncDatadisConsumptionsWithValidSupplyCode() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024, "SUPPLY001");
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -208,9 +216,10 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testSyncDatadisConsumptionsWithInvalidSupplyCode() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024, "INVALID");
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         doThrow(new SupplyNotFoundException(SupplyCode.of("INVALID")))
                 .when(datadisConsumptionSyncService)
@@ -233,9 +242,10 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testSyncDatadisConsumptionsWithNullSupplyCode() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024, null);
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -257,9 +267,10 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testSyncDatadisConsumptionsWithEmptySupplyCode() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024, "");
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -281,9 +292,10 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testSyncDatadisConsumptionsWithBlankSupplyCode() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024, "   ");
+        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

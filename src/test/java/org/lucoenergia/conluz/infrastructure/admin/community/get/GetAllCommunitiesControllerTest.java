@@ -67,7 +67,7 @@ class GetAllCommunitiesControllerTest extends BaseControllerTest {
         createSupplyWithCommunity(admin2, community);
         createSupplyWithCommunity(member1, community);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get("/api/v1/communities")
                         .header("Authorization", authHeader)
@@ -92,7 +92,7 @@ class GetAllCommunitiesControllerTest extends BaseControllerTest {
 
         createMembership(member1, community, CommunityRole.COMMUNITY_MEMBER);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get("/api/v1/communities")
                         .header("Authorization", authHeader)
@@ -110,7 +110,7 @@ class GetAllCommunitiesControllerTest extends BaseControllerTest {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         String communityId = community.getId().toString();
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get("/api/v1/communities")
                         .header("Authorization", authHeader)

@@ -35,10 +35,10 @@ public class GetPartitionCoefficientHistoryController {
     @GetMapping
     @Operation(
             summary = "Returns the full partition coefficient history for a supply.",
-            description = "Returns all coefficient periods ordered by validFrom ascending. **Required Role: ADMIN**",
+            description = "Returns all coefficient periods ordered by validFrom ascending. **Required: Platform Admin, Community Admin, or the supply owner**",
             tags = ApiTag.SUPPLIES,
             operationId = "getPartitionCoefficientHistory",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "History retrieved successfully.", useReturnTypeSchema = true)
