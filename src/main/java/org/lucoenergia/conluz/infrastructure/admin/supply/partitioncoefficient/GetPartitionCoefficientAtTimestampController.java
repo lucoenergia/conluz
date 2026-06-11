@@ -43,7 +43,7 @@ public class GetPartitionCoefficientAtTimestampController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getPartitionCoefficientAtTimestamp",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Coefficient retrieved successfully.", useReturnTypeSchema = true)

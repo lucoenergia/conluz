@@ -48,7 +48,7 @@ public class SyncDatadisSuppliesController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "syncDatadisSupplies",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

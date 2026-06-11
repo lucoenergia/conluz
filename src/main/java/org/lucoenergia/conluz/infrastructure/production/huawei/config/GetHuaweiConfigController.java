@@ -53,7 +53,7 @@ public class GetHuaweiConfigController {
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "getHuaweiConfig",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

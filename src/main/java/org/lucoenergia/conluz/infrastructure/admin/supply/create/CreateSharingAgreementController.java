@@ -55,7 +55,7 @@ public class CreateSharingAgreementController {
             description = "This endpoint creates a new sharing agreement with the specified start and end dates.",
             tags = ApiTag.SUPPLIES,
             operationId = "createSharingAgreement",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

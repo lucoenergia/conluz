@@ -38,7 +38,7 @@ public class DisableCommunityController {
             description = "Disables an existing community. Requires PLATFORM_ADMIN role.",
             tags = ApiTag.COMMUNITIES,
             operationId = "disableCommunity",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"PLATFORM_ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

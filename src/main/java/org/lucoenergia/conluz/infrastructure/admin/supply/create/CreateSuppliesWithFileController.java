@@ -95,7 +95,7 @@ public class CreateSuppliesWithFileController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "createSuppliesWithFile",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

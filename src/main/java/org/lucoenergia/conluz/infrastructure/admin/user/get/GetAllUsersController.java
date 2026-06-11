@@ -68,7 +68,7 @@ public class GetAllUsersController {
                     """,
             tags = ApiTag.USERS,
             operationId = "getAllUsers",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

@@ -48,7 +48,7 @@ public class UpdatePlantController {
                 """,
             tags = ApiTag.PLANTS,
             operationId = "updatePlant",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

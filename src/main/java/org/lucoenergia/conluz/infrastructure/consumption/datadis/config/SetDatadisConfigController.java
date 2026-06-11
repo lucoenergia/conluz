@@ -52,7 +52,7 @@ public class SetDatadisConfigController {
                     """,
             tags = ApiTag.CONSUMPTION,
             operationId = "configureDatadis",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

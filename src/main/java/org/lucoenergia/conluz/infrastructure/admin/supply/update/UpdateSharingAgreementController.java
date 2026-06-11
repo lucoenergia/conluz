@@ -54,7 +54,7 @@ public class UpdateSharingAgreementController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "updateSharingAgreement",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

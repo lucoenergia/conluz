@@ -59,7 +59,7 @@ public class SyncYearlyHuaweiProductionController {
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "syncYearlyHuaweiProduction",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

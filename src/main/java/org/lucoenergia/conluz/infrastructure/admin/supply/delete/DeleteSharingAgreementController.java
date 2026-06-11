@@ -49,7 +49,7 @@ public class DeleteSharingAgreementController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "deleteSharingAgreement",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

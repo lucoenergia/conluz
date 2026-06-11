@@ -51,7 +51,7 @@ public class RegisterPartitionCoefficientController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "registerPartitionCoefficient",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Coefficient registered successfully.", useReturnTypeSchema = true)

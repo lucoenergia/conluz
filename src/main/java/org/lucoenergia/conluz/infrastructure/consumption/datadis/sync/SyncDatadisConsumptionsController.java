@@ -65,7 +65,7 @@ public class SyncDatadisConsumptionsController {
                     """,
             tags = ApiTag.CONSUMPTION,
             operationId = "syncDatadisConsumptions",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

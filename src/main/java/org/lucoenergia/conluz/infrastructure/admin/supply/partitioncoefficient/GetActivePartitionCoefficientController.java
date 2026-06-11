@@ -43,7 +43,7 @@ public class GetActivePartitionCoefficientController {
             description = "Returns the coefficient with validTo = null. **Required: Platform Admin, Community Admin, or the supply owner**",
             tags = ApiTag.SUPPLIES,
             operationId = "getActivePartitionCoefficient",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Active coefficient retrieved successfully.", useReturnTypeSchema = true)

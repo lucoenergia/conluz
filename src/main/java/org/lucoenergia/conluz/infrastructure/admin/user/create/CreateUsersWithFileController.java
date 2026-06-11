@@ -86,7 +86,7 @@ public class CreateUsersWithFileController {
                     """,
             tags = ApiTag.USERS,
             operationId = "createUsersWithFile",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

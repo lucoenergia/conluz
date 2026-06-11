@@ -46,7 +46,7 @@ public class UpdateUserController {
                 If you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.""",
             tags = ApiTag.USERS,
             operationId = "updateUser",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

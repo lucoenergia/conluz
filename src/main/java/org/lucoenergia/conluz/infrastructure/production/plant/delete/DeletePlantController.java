@@ -46,7 +46,7 @@ public class DeletePlantController {
                 """,
             tags = ApiTag.PLANTS,
             operationId = "deletePlant",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

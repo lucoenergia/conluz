@@ -93,7 +93,7 @@ public class RegisterPartitionCoefficientsWithFileController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "importPartitionCoefficientsWithFile",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

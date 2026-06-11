@@ -55,7 +55,7 @@ public class CreateSupplyController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "createSupply",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

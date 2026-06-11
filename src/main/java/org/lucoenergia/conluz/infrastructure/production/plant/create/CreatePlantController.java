@@ -62,7 +62,7 @@ public class CreatePlantController {
                     """,
             tags = ApiTag.PLANTS,
             operationId = "createPlant",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

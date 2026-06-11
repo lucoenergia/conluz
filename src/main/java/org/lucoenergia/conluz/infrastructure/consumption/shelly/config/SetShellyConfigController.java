@@ -60,7 +60,7 @@ public class SetShellyConfigController {
                     status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.
                     """,
             tags = ApiTag.CONSUMPTION,
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

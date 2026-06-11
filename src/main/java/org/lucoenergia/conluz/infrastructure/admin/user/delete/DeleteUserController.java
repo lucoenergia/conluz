@@ -44,7 +44,7 @@ public class DeleteUserController {
                 """,
             tags = ApiTag.USERS,
             operationId = "deleteUser",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

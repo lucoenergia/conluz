@@ -62,7 +62,7 @@ public class CreateUserController {
                 """,
             tags = ApiTag.USERS,
             operationId = "createUser",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

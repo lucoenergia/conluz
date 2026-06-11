@@ -49,7 +49,7 @@ public class DisableUserController {
             """,
             tags = ApiTag.USERS,
             operationId = "disableUser",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

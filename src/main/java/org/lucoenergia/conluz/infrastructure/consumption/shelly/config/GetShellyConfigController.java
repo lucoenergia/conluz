@@ -50,7 +50,7 @@ public class GetShellyConfigController {
                     """,
             tags = ApiTag.CONSUMPTION,
             operationId = "getShellyConfig",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

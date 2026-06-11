@@ -51,7 +51,7 @@ public class CreateCommunityController {
                     """,
             tags = ApiTag.COMMUNITIES,
             operationId = "createCommunity",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"PLATFORM_ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

@@ -41,7 +41,7 @@ public class DisableSupplyController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "disableSupply",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
