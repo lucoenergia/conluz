@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
@@ -19,24 +21,29 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoun
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/consumption/datadis/sync/yearly")
+@RequestMapping("/api/v1/communities/{communityId}/consumption/datadis/sync/yearly")
 public class SyncYearlyDatadisConsumptionsController {
 
     private final DatadisYearlyAggregationService aggregationService;
     private final GetDatadisConfigRepository getDatadisConfigRepository;
+    private final CommunityAccessGuard communityAccessGuard;
 
     public SyncYearlyDatadisConsumptionsController(DatadisYearlyAggregationService aggregationService,
-                                                   GetDatadisConfigRepository getDatadisConfigRepository) {
+                                                   GetDatadisConfigRepository getDatadisConfigRepository,
+                                                   CommunityAccessGuard communityAccessGuard) {
         this.aggregationService = aggregationService;
         this.getDatadisConfigRepository = getDatadisConfigRepository;
+        this.communityAccessGuard = communityAccessGuard;
     }
 
     @PostMapping
@@ -56,8 +63,10 @@ public class SyncYearlyDatadisConsumptionsController {
                     **Note:** This aggregation requires that monthly aggregations have already been performed
                     for the specified year.
 
+                    The community is taken from the path and only that community's supplies are aggregated.
+
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required: Platform Admin or Community Admin**
+                    **Required: Platform Admin or Community Admin of the community. Returns 404 if the community does not exist or cannot be managed.**
 
                     A successful request returns an HTTP status code of 200.
                     """,
@@ -77,23 +86,26 @@ public class SyncYearlyDatadisConsumptionsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
-    public void syncYearlyDatadisConsumptions(@Valid @RequestBody SyncYearlyDatadisConsumptionsBody body) {
+    @PreAuthorize("isAuthenticated()")
+    public void syncYearlyDatadisConsumptions(@PathVariable UUID communityId,
+                                              @Valid @RequestBody SyncYearlyDatadisConsumptionsBody body) {
+        if (!communityAccessGuard.canManageCommunity(communityId)) {
+            throw new CommunityNotFoundException(communityId);
+        }
 
-        Optional<DatadisConfig> config = body.getCommunityId() != null
-                ? getDatadisConfigRepository.findByCommunityId(body.getCommunityId())
-                : getDatadisConfigRepository.getDatadisConfig();
+        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
         if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
             throw new DatadisDisabledException();
         }
 
         if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
             aggregationService.aggregateYearlyConsumptions(
+                    communityId,
                     SupplyCode.of(body.getSupplyCode()),
                     body.getYear()
             );
         } else {
-            aggregationService.aggregateYearlyConsumptions(body.getYear());
+            aggregationService.aggregateYearlyConsumptions(communityId, body.getYear());
         }
     }
 }

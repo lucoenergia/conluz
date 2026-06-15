@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductio
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.Month;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProductionMonthlyAggregationService {
@@ -23,13 +25,16 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
     private final GetEnergyStationRepository getEnergyStationRepository;
     private final HuaweiProductionMonthlyAggregationRepository aggregationRepository;
     private final GetHuaweiConfigRepository getHuaweiConfigRepository;
+    private final GetPlantRepository getPlantRepository;
 
     public HuaweiProductionMonthlyAggregationServiceImpl(GetEnergyStationRepository getEnergyStationRepository,
                                                          HuaweiProductionMonthlyAggregationRepository aggregationRepository,
-                                                         GetHuaweiConfigRepository getHuaweiConfigRepository) {
+                                                         GetHuaweiConfigRepository getHuaweiConfigRepository,
+                                                         GetPlantRepository getPlantRepository) {
         this.getEnergyStationRepository = getEnergyStationRepository;
         this.aggregationRepository = aggregationRepository;
         this.getHuaweiConfigRepository = getHuaweiConfigRepository;
+        this.getPlantRepository = getPlantRepository;
     }
 
     @Override
@@ -80,6 +85,42 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
         }
 
         aggregateForPlantMonthYear(plantOptional.get(), month, year);
+    }
+
+    @Override
+    public void aggregateMonthlyProductions(UUID communityId, int year) {
+        for (Plant plant : communityPlants(communityId)) {
+            for (Month month : Month.values()) {
+                aggregateForPlantMonthYear(plant, month, year);
+            }
+        }
+    }
+
+    @Override
+    public void aggregateMonthlyProductions(UUID communityId, Month month, int year) {
+        for (Plant plant : communityPlants(communityId)) {
+            aggregateForPlantMonthYear(plant, month, year);
+        }
+    }
+
+    @Override
+    public void aggregateMonthlyProductions(UUID communityId, String plantCode, Month month, int year) {
+        Plant plant = getEnergyStationRepository.findByCode(plantCode)
+                .orElseThrow(() -> new PlantNotFoundException(plantCode));
+        if (!getPlantRepository.findPlantCodesByCommunity(communityId).contains(plantCode)) {
+            throw new PlantNotFoundException(plantCode);
+        }
+        aggregateForPlantMonthYear(plant, month, year);
+    }
+
+    /**
+     * Resolves the plants belonging to the given community from their codes.
+     */
+    private List<Plant> communityPlants(UUID communityId) {
+        return getPlantRepository.findPlantCodesByCommunity(communityId).stream()
+                .map(getEnergyStationRepository::findByCode)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     private void aggregateForPlantMonthYear(Plant plant, Month month, int year) {

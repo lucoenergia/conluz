@@ -14,7 +14,6 @@ public class SyncYearlyDatadisConsumptionsBody {
     private Integer year;
 
     private String supplyCode;
-    private java.util.UUID communityId;
 
     public SyncYearlyDatadisConsumptionsBody() {
     }
@@ -42,13 +41,5 @@ public class SyncYearlyDatadisConsumptionsBody {
 
     public void setSupplyCode(String supplyCode) {
         this.supplyCode = supplyCode;
-    }
-
-    public java.util.UUID getCommunityId() {
-        return communityId;
-    }
-
-    public void setCommunityId(java.util.UUID communityId) {
-        this.communityId = communityId;
     }
 }

@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -214,6 +215,24 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
                         .header("Authorization", tokenA)
                         .queryParam("startDate", "2023-04-01T00:00:00Z")
                         .queryParam("endDate", "2023-04-30T23:59:59Z"))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void adminOfCommunityACannotSyncCommunityB() throws Exception {
+        // A community admin of A is rejected with 404 when targeting community B's sync job,
+        // so a sync can never reach another community's supplies.
+        User adminA = UserMother.randomUser();
+        adminA.enable();
+        createUserRepository.create(adminA);
+        createMembership(adminA, communityA, CommunityRole.COMMUNITY_ADMIN);
+        String tokenAdminA = loginUser(adminA);
+
+        mockMvc.perform(post("/api/v1/communities/" + communityB.getId() + "/consumption/datadis/sync")
+                        .header("Authorization", tokenAdminA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"year\": 2024}"))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }

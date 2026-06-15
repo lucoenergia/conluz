@@ -63,6 +63,16 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
         processSingleSupply(supplyOptional.get(), startDate, endDate);
     }
 
+    @Override
+    public void synchronizeConsumptions(UUID communityId, LocalDate startDate, LocalDate endDate, SupplyCode supplyCode) {
+        Supply supply = getSupplyRepository.findByCode(supplyCode)
+                .orElseThrow(() -> new SupplyNotFoundException(supplyCode));
+        if (supply.getCommunity() == null || !communityId.equals(supply.getCommunity().getId())) {
+            throw new SupplyNotFoundException(supplyCode);
+        }
+        processSingleSupply(supply, startDate, endDate);
+    }
+
     private void processSingleSupply(Supply supply, LocalDate startDate, LocalDate endDate) {
         if (supply.getDistributor() == null || StringUtils.isBlank(supply.getDistributor().getCode())) {
             LOGGER.warn("Skipping supply with ID: {} because does not have distributor code", supply.getId());

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.Month;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class DatadisMonthlyAggregationServiceImpl implements DatadisMonthlyAggregationService {
@@ -72,6 +73,46 @@ public class DatadisMonthlyAggregationServiceImpl implements DatadisMonthlyAggre
 
             aggregateForSupplyMonthYear(supply, month, year);
         }
+    }
+
+    @Override
+    public void aggregateMonthlyConsumptions(UUID communityId, int year) {
+        for (Supply supply : getSupplyRepository.findAllByCommunityId(communityId)) {
+            if (hasNoDistributorCode(supply)) {
+                continue;
+            }
+            for (Month month : Month.values()) {
+                aggregateForSupplyMonthYear(supply, month, year);
+            }
+        }
+    }
+
+    @Override
+    public void aggregateMonthlyConsumptions(UUID communityId, Month month, int year) {
+        for (Supply supply : getSupplyRepository.findAllByCommunityId(communityId)) {
+            if (hasNoDistributorCode(supply)) {
+                continue;
+            }
+            aggregateForSupplyMonthYear(supply, month, year);
+        }
+    }
+
+    @Override
+    public void aggregateMonthlyConsumptions(UUID communityId, SupplyCode supplyCode, Month month, int year) {
+        Supply supply = getSupplyRepository.findByCode(supplyCode)
+                .orElseThrow(() -> new SupplyNotFoundException(supplyCode));
+        if (supply.getCommunity() == null || !communityId.equals(supply.getCommunity().getId())) {
+            throw new SupplyNotFoundException(supplyCode);
+        }
+        if (hasNoDistributorCode(supply)) {
+            return;
+        }
+        aggregateForSupplyMonthYear(supply, month, year);
+    }
+
+    private boolean hasNoDistributorCode(Supply supply) {
+        return supply.getDistributor() == null || supply.getDistributor().getCode() == null
+                || supply.getDistributor().getCode().isBlank();
     }
 
     private void aggregateForSupplyMonthYear(Supply supply, Month month, int year) {

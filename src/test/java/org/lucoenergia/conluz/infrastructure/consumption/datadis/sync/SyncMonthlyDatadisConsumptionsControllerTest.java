@@ -17,6 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Month;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/consumption/datadis/sync/monthly";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/consumption/datadis/sync/monthly";
 
     @MockitoBean
     private DatadisMonthlyAggregationService aggregationService;
@@ -48,7 +49,6 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
                 .setEnabled(Boolean.TRUE)
                 .build();
-        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(enabledConfig));
         when(getDatadisConfigRepository.findByCommunityId(DEFAULT_COMMUNITY_ID)).thenReturn(Optional.of(enabledConfig));
     }
 
@@ -58,7 +58,6 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024);
-        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -68,7 +67,7 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyConsumptions(eq(2024));
+                .aggregateMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), eq(2024));
     }
 
     @Test
@@ -77,7 +76,6 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, 1);
-        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -87,7 +85,7 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyConsumptions(eq(Month.JANUARY), eq(2024));
+                .aggregateMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), eq(Month.JANUARY), eq(2024));
     }
 
     @Test
@@ -96,7 +94,6 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, null, "SUPPLY001");
-        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -107,7 +104,7 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
 
         // Should call for all 12 months
         verify(aggregationService, times(12))
-                .aggregateMonthlyConsumptions(any(SupplyCode.class), any(Month.class), eq(2024));
+                .aggregateMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), any(SupplyCode.class), any(Month.class), eq(2024));
     }
 
     @Test
@@ -116,7 +113,6 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, 6, "SUPPLY001");
-        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -126,14 +122,13 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyConsumptions(eq(SupplyCode.of("SUPPLY001")), eq(Month.JUNE), eq(2024));
+                .aggregateMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), eq(SupplyCode.of("SUPPLY001")), eq(Month.JUNE), eq(2024));
     }
 
     @Test
     void testWithoutToken() throws Exception {
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024);
-        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -144,20 +139,19 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+    void testAuthenticatedUserWithoutAdminRoleGetsNotFound() throws Exception {
 
         String authHeader = loginAsPartner();
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024);
-        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 
     @Test
@@ -166,7 +160,6 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(1999);
-        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -183,7 +176,6 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2101);
-        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -248,11 +240,10 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, 1, "INVALID");
-        body.setCommunityId(DEFAULT_COMMUNITY_ID);
 
         doThrow(new SupplyNotFoundException(SupplyCode.of("INVALID")))
                 .when(aggregationService)
-                .aggregateMonthlyConsumptions(any(SupplyCode.class), any(Month.class), any(Integer.class));
+                .aggregateMonthlyConsumptions(any(UUID.class), any(SupplyCode.class), any(Month.class), any(Integer.class));
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
