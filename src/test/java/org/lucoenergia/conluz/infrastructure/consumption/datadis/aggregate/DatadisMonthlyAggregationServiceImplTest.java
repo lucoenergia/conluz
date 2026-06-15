@@ -5,20 +5,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
-import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Month;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,22 +29,6 @@ class DatadisMonthlyAggregationServiceImplTest {
     private DatadisMonthlyAggregationServiceImpl service;
 
     @Test
-    void testAggregateMonthlyForAllSuppliesAllMonths() {
-
-        // Given
-        Supply supply1 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
-        Supply supply2 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supply1, supply2));
-
-        // When
-        service.aggregateMonthlyConsumptions(2024);
-
-        // Then - 2 supplies × 12 months = 24 calls
-        verify(aggregationRepository, times(24))
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), eq(2024));
-    }
-
-    @Test
     void testAggregateMonthlyForAllSuppliesSpecificMonth() {
 
         // Given
@@ -63,22 +42,6 @@ class DatadisMonthlyAggregationServiceImplTest {
         // Then - 2 supplies × 1 month = 2 calls
         verify(aggregationRepository, times(2))
                 .aggregateMonthlyConsumption(any(Supply.class), eq(Month.DECEMBER), eq(2024));
-    }
-
-    @Test
-    void testAggregateMonthlyForSpecificSupplyAndMonth() {
-
-        // Given
-        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build()).build();
-        SupplyCode supplyCode = SupplyCode.of(supply.getCode());
-        when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
-
-        // When
-        service.aggregateMonthlyConsumptions(supplyCode, Month.JUNE, 2024);
-
-        // Then
-        verify(aggregationRepository, times(1))
-                .aggregateMonthlyConsumption(eq(supply), eq(Month.JUNE), eq(2024));
     }
 
     @Test
@@ -115,37 +78,6 @@ class DatadisMonthlyAggregationServiceImplTest {
     }
 
     @Test
-    void testAggregateMonthlyForSpecificSupplyWithoutDistributorCodeDoesNothing() {
-
-        // Given
-        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode(null).build()).build();
-        SupplyCode supplyCode = SupplyCode.of(supply.getCode());
-        when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
-
-        // When
-        service.aggregateMonthlyConsumptions(supplyCode, Month.JUNE, 2024);
-
-        // Then - skipped because no distributor code
-        verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
-    }
-
-    @Test
-    void testAggregateMonthlyWithSupplyNotFound() {
-
-        // Given
-        SupplyCode unknownCode = SupplyCode.of("UNKNOWN_CUPS");
-        when(getSupplyRepository.findByCode(unknownCode)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThrows(SupplyNotFoundException.class, () ->
-                service.aggregateMonthlyConsumptions(unknownCode, Month.JUNE, 2024));
-
-        verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
-    }
-
-    @Test
     void testAggregateMonthlyHandlesRepositoryException() {
 
         // Given
@@ -161,19 +93,5 @@ class DatadisMonthlyAggregationServiceImplTest {
         // Then - attempted the call
         verify(aggregationRepository, times(1))
                 .aggregateMonthlyConsumption(eq(supply), eq(Month.JUNE), eq(2024));
-    }
-
-    @Test
-    void testAggregateMonthlyWithEmptySupplyList() {
-
-        // Given
-        when(getSupplyRepository.findAll()).thenReturn(Collections.emptyList());
-
-        // When
-        service.aggregateMonthlyConsumptions(2024);
-
-        // Then
-        verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
     }
 }

@@ -18,15 +18,6 @@ public interface DatadisYearlyAggregationService {
      */
     void aggregateYearlyConsumptions(int year);
 
-    /**
-     * Aggregates monthly consumption data into yearly totals for a specific supply
-     * and year.
-     *
-     * @param supplyCode the supply code to aggregate
-     * @param year the year to aggregate
-     */
-    void aggregateYearlyConsumptions(SupplyCode supplyCode, int year);
-
     // --- Community-scoped variants: only the given community's supplies are aggregated ---
 
     void aggregateYearlyConsumptions(UUID communityId, int year);

@@ -38,28 +38,6 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
     }
 
     @Override
-    public void aggregateMonthlyProductions(int year) {
-        List<HuaweiConfig> enabledConfigs = getHuaweiConfigRepository.getEnabledHuaweiConfigs();
-        if (enabledConfigs.isEmpty()) {
-            LOGGER.debug("No enabled Huawei configs found. Skipping monthly production aggregation.");
-            return;
-        }
-        for (HuaweiConfig config : enabledConfigs) {
-            Optional<Plant> plant = config.getPlantId() != null
-                    ? getEnergyStationRepository.findById(config.getPlantId())
-                    : Optional.empty();
-            plant.ifPresentOrElse(
-                    p -> {
-                        for (Month month : Month.values()) {
-                            aggregateForPlantMonthYear(p, month, year);
-                        }
-                    },
-                    () -> LOGGER.warn("Plant not found for Huawei config with plantId={}", config.getPlantId())
-            );
-        }
-    }
-
-    @Override
     public void aggregateMonthlyProductions(Month month, int year) {
         List<HuaweiConfig> enabledConfigs = getHuaweiConfigRepository.getEnabledHuaweiConfigs();
         if (enabledConfigs.isEmpty()) {
@@ -75,16 +53,6 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
                     () -> LOGGER.warn("Plant not found for Huawei config with plantId={}", config.getPlantId())
             );
         }
-    }
-
-    @Override
-    public void aggregateMonthlyProductions(String plantCode, Month month, int year) {
-        Optional<Plant> plantOptional = getEnergyStationRepository.findByCode(plantCode);
-        if (plantOptional.isEmpty()) {
-            throw new PlantNotFoundException(plantCode);
-        }
-
-        aggregateForPlantMonthYear(plantOptional.get(), month, year);
     }
 
     @Override

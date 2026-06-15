@@ -4,6 +4,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,13 +39,6 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         energyProductionInfluxLoader.clearData();
     }
 
-    @Test
-    void testGetInstantProduction() {
-
-        Double result = repository.getInstantProduction().getPower();
-
-        Assertions.assertNotNull(result);
-    }
 
     @Test
     void testGetHourlyProductionByRangeOfDates() {
@@ -188,5 +183,198 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         ProductionByTime yearData = result.get(0);
         assertNotNull(yearData);
         assertEquals(1000.0d * 0.5d, yearData.getPower(), 0.01d, "Yearly production should be multiplied by partition coefficient");
+    }
+
+    // --- Instant production ---
+
+    @Test
+    void testGetInstantProductionReturnsZeroForEmptyStationCodes() {
+        InstantProduction result = repository.getInstantProduction(Collections.emptyList());
+
+        assertNotNull(result);
+        assertEquals(0.0d, result.getPower(), 0.01d, "Empty station codes should yield zero production");
+    }
+
+    @Test
+    void testGetInstantProductionReturnsZeroForNullStationCodes() {
+        InstantProduction result = repository.getInstantProduction(null);
+
+        assertNotNull(result);
+        assertEquals(0.0d, result.getPower(), 0.01d, "Null station codes should yield zero production");
+    }
+
+    @Test
+    void testGetInstantProductionReturnsLastValueForSeededStation() {
+        InstantProduction result = repository.getInstantProduction(List.of(EnergyProductionInfluxLoader.STATION_CODE));
+
+        assertNotNull(result);
+        // LAST() returns the most recent seeded hour (2023-09-01T23:00, a night-time hour with no production)
+        assertEquals(0.0d, result.getPower(), 0.01d, "Instant production should be the last recorded value");
+    }
+
+    @Test
+    void testGetInstantProductionReturnsZeroForUnknownStation() {
+        InstantProduction result = repository.getInstantProduction(List.of("UNKNOWN_STATION"));
+
+        assertNotNull(result);
+        assertEquals(0.0d, result.getPower(), 0.01d, "Unknown station code should yield zero production");
+    }
+
+    // --- Daily production ---
+
+    @Test
+    void testGetDailyProductionByRangeOfDates() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+        Float partitionCoefficient = 1.0f;
+
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        double totalProduction = result.stream()
+                .mapToDouble(ProductionByTime::getPower)
+                .sum();
+        assertEquals(236.15d, totalProduction, 0.01d, "Daily totals should sum to the full day's production");
+    }
+
+    @Test
+    void testGetDailyProductionByRangeOfDatesWithPartitionCoefficient() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+        Float partitionCoefficient = 0.5f;
+
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        double totalProduction = result.stream()
+                .mapToDouble(ProductionByTime::getPower)
+                .sum();
+        assertEquals(236.15d * 0.5d, totalProduction, 0.01d, "Daily totals should be halved with 0.5 partition coefficient");
+    }
+
+    // --- Station-code-scoped (community) variants ---
+
+    @Test
+    void testGetHourlyProductionByRangeOfDatesAndStationCodes() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
+
+        assertNotNull(result);
+        assertEquals(24, result.size());
+
+        double totalProduction = result.stream()
+                .mapToDouble(ProductionByTime::getPower)
+                .sum();
+        assertEquals(236.15d, totalProduction, 0.01d, "Scoped hourly production should match the seeded station's data");
+    }
+
+    @Test
+    void testGetHourlyProductionByRangeOfDatesReturnsEmptyForEmptyStationCodes() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+                Collections.emptyList());
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty(), "Empty station codes should yield an empty list");
+    }
+
+    @Test
+    void testGetHourlyProductionByRangeOfDatesReturnsEmptyForUnknownStation() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+                List.of("UNKNOWN_STATION"));
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty(), "Unknown station code should yield an empty list");
+    }
+
+    @Test
+    void testGetDailyProductionByRangeOfDatesAndStationCodes() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, 1.0f,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+
+        double totalProduction = result.stream()
+                .mapToDouble(ProductionByTime::getPower)
+                .sum();
+        assertEquals(236.15d, totalProduction, 0.01d, "Scoped daily totals should match the seeded station's data");
+    }
+
+    @Test
+    void testGetDailyProductionByRangeOfDatesReturnsEmptyForEmptyStationCodes() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, 1.0f,
+                Collections.emptyList());
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty(), "Empty station codes should yield an empty list");
+    }
+
+    @Test
+    void testGetMonthlyProductionByRangeOfDatesAndStationCodes() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(236.15d, result.get(0).getPower(), 0.01d, "Scoped monthly production should match pre-aggregated value");
+    }
+
+    @Test
+    void testGetMonthlyProductionByRangeOfDatesReturnsEmptyForEmptyStationCodes() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+                Collections.emptyList());
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty(), "Empty station codes should yield an empty list");
+    }
+
+    @Test
+    void testGetYearlyProductionByRangeOfDatesAndStationCodes() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00.000+00:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:59:59.000+00:00");
+
+        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1000.0d, result.get(0).getPower(), 0.01d, "Scoped yearly production should match pre-aggregated value");
+    }
+
+    @Test
+    void testGetYearlyProductionByRangeOfDatesReturnsEmptyForEmptyStationCodes() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00.000+00:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:59:59.000+00:00");
+
+        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+                Collections.emptyList());
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty(), "Empty station codes should yield an empty list");
     }
 }

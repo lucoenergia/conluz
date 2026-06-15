@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 @Transactional
@@ -65,11 +64,6 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
     }
 
     @Override
-    public boolean existsById(SupplyId id) {
-        return supplyRepository.existsById(id.getId());
-    }
-
-    @Override
     public PagedResult<Supply> findAll(PagedRequest pagedRequest) {
         Page<SupplyEntity> result = supplyRepository.findAll(paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
@@ -81,14 +75,6 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
         PagedResult<Supply> allSupplies = findAll(PagedRequest.of(0, Long.valueOf(total > 0 ? total : 1).intValue()));
 
         return allSupplies.getItems();
-    }
-
-    @Override
-    public PagedResult<Supply> findByOwnerOrCommunities(PagedRequest pagedRequest, UserId ownerId,
-                                                        Set<UUID> communityIds) {
-        Page<SupplyEntity> result = supplyRepository.findByOwnerOrCommunityIdIn(ownerId.getId(), communityIds,
-                paginationRequestMapper.mapRequest(pagedRequest));
-        return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
     }
 
     @Override

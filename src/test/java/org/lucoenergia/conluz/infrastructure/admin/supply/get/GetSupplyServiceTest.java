@@ -52,17 +52,31 @@ class GetSupplyServiceTest {
     }
 
     @Test
-    void findAllVisible_delegatesToRepositoryWithOwnerAndCommunities() {
-        UUID ownerId = UUID.randomUUID();
-        UserId owner = UserId.of(ownerId);
-        Set<UUID> communityIds = Set.of(UUID.randomUUID());
-        PagedRequest pagedRequest = PagedRequest.of(0, 10);
-        PagedResult<Supply> expected = new PagedResult<>(List.of(), 0, 0, 0, 0);
-        when(repository.findByOwnerOrCommunities(pagedRequest, owner, communityIds)).thenReturn(expected);
+    void findByCommunity_delegatesToRepository() {
+        UUID communityId = UUID.randomUUID();
+        PagedRequest pagedRequest = PagedRequest.of(0, 20);
+        PagedResult<Supply> expected = new PagedResult<>(List.of(), 0, 0L, 0, 0);
 
-        PagedResult<Supply> result = service.findAllVisible(pagedRequest, owner, communityIds);
+        when(repository.findByCommunity(pagedRequest, communityId)).thenReturn(expected);
+
+        PagedResult<Supply> result = service.findByCommunity(pagedRequest, communityId);
 
         assertSame(expected, result);
-        verify(repository).findByOwnerOrCommunities(pagedRequest, owner, communityIds);
+        verify(repository).findByCommunity(pagedRequest, communityId);
+    }
+
+    @Test
+    void findByOwnerAndCommunity_delegatesToRepository() {
+        UUID communityId = UUID.randomUUID();
+        UserId ownerId = UserId.of(UUID.randomUUID());
+        PagedRequest pagedRequest = PagedRequest.of(0, 20);
+        PagedResult<Supply> expected = new PagedResult<>(List.of(), 0, 0L, 0, 0);
+
+        when(repository.findByOwnerAndCommunity(pagedRequest, ownerId, communityId)).thenReturn(expected);
+
+        PagedResult<Supply> result = service.findByOwnerAndCommunity(pagedRequest, ownerId, communityId);
+
+        assertSame(expected, result);
+        verify(repository).findByOwnerAndCommunity(pagedRequest, ownerId, communityId);
     }
 }

@@ -7,10 +7,6 @@ import java.util.UUID;
 
 public interface DatadisConsumptionSyncService {
 
-    void synchronizeConsumptions(LocalDate startDate, LocalDate endDate);
-
-    void synchronizeConsumptions(LocalDate startDate, LocalDate endDate, SupplyCode supplyCode);
-
     void synchronizeConsumptions(UUID communityId, LocalDate startDate, LocalDate endDate);
 
     /**

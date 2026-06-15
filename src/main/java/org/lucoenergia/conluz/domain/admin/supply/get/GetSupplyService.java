@@ -7,23 +7,10 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 public interface GetSupplyService {
 
-    PagedResult<Supply> findAll(PagedRequest pagedRequest);
-
-    /**
-     * Retrieves the supplies visible to a non-platform-admin caller: supplies they own
-     * unioned with supplies belonging to the communities they administer.
-     *
-     * @param pagedRequest      pagination/sorting request
-     * @param ownerId           the id of the calling user (their owned supplies are included)
-     * @param adminCommunityIds community ids the caller administers (may be empty)
-     * @return the page of supplies visible to the caller
-     */
-    PagedResult<Supply> findAllVisible(PagedRequest pagedRequest, UserId ownerId, Set<UUID> adminCommunityIds);
 
     /**
      * Retrieves all supplies belonging to the given community. Intended for callers that administer

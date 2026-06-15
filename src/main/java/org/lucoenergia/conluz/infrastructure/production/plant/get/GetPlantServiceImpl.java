@@ -25,8 +25,7 @@ public class GetPlantServiceImpl implements GetPlantService {
         this.repository = repository;
     }
 
-    @Override
-    public PagedResult<Plant> findAll(PagedRequest pagedRequest) {
+    PagedResult<Plant> findAll(PagedRequest pagedRequest) {
         applyDefaultSort(pagedRequest);
         return repository.findAll(pagedRequest);
     }

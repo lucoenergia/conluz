@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Transactional(readOnly = true)
@@ -23,16 +22,6 @@ public class GetSupplyServiceImpl implements GetSupplyService {
 
     public GetSupplyServiceImpl(GetSupplyRepository repository) {
         this.repository = repository;
-    }
-
-    @Override
-    public PagedResult<Supply> findAll(PagedRequest pagedRequest) {
-        return repository.findAll(pagedRequest);
-    }
-
-    @Override
-    public PagedResult<Supply> findAllVisible(PagedRequest pagedRequest, UserId ownerId, Set<UUID> adminCommunityIds) {
-        return repository.findByOwnerOrCommunities(pagedRequest, ownerId, adminCommunityIds);
     }
 
     @Override

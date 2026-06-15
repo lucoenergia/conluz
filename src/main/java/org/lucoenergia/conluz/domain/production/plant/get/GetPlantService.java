@@ -14,14 +14,6 @@ import java.util.UUID;
 public interface GetPlantService {
 
     /**
-     * Find all plants with pagination.
-     *
-     * @param pagedRequest the pagination request
-     * @return a paged result of plants
-     */
-    PagedResult<Plant> findAll(PagedRequest pagedRequest);
-
-    /**
      * Find plants visible to a caller scoped to the given communities. A {@code null}
      * {@code communityIds} means no restriction (all plants); an empty set yields no plants.
      *

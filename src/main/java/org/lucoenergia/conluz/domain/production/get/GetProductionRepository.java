@@ -9,15 +9,11 @@ import java.util.List;
 
 public interface GetProductionRepository {
 
-    InstantProduction getInstantProduction();
-
     /**
      * Instant production restricted to the given InfluxDB {@code station_code}s (i.e. a community's plants).
      * An empty collection yields zero production.
      */
     InstantProduction getInstantProduction(Collection<String> stationCodes);
-
-    List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate);
 
     List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                              Float partitionCoefficient);
@@ -29,23 +25,17 @@ public interface GetProductionRepository {
     List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                              Float partitionCoefficient, Collection<String> stationCodes);
 
-    List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate);
-
     List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                              Float partitionCoefficient);
 
     List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                             Float partitionCoefficient, Collection<String> stationCodes);
 
-    List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate);
-
     List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                             Float partitionCoefficient);
 
     List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                             Float partitionCoefficient, Collection<String> stationCodes);
-
-    List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate);
 
     List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                               Float partitionCoefficient);

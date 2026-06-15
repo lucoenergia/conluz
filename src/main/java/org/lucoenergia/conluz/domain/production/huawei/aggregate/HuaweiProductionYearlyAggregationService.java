@@ -16,15 +16,6 @@ public interface HuaweiProductionYearlyAggregationService {
      */
     void aggregateYearlyProductions(int year);
 
-    /**
-     * Aggregates monthly production data into yearly totals for a specific plant
-     * and year.
-     *
-     * @param plantCode the plant code to aggregate
-     * @param year      the year to aggregate
-     */
-    void aggregateYearlyProductions(String plantCode, int year);
-
     // --- Community-scoped variants: only the given community's plants are aggregated ---
 
     void aggregateYearlyProductions(UUID communityId, int year);

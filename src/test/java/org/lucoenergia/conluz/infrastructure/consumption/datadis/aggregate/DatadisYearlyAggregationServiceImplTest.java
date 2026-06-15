@@ -5,19 +5,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationRepository;
-import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,21 +45,6 @@ class DatadisYearlyAggregationServiceImplTest {
     }
 
     @Test
-    void testAggregateYearlyForSpecificSupply() {
-
-        // Given
-        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build()).build();
-        SupplyCode supplyCode = SupplyCode.of(supply.getCode());
-        when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
-
-        // When
-        service.aggregateYearlyConsumptions(supplyCode, 2024);
-
-        // Then
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply), eq(2024));
-    }
-
-    @Test
     void testAggregateYearlySkipsSuppliesWithoutDistributorCode() {
 
         // Given
@@ -90,35 +71,6 @@ class DatadisYearlyAggregationServiceImplTest {
         service.aggregateYearlyConsumptions(2024);
 
         // Then
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
-    }
-
-    @Test
-    void testAggregateYearlyForSpecificSupplyWithoutDistributorCodeDoesNothing() {
-
-        // Given
-        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode(null).build()).build();
-        SupplyCode supplyCode = SupplyCode.of(supply.getCode());
-        when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
-
-        // When
-        service.aggregateYearlyConsumptions(supplyCode, 2024);
-
-        // Then - skipped because no distributor code
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
-    }
-
-    @Test
-    void testAggregateYearlyWithSupplyNotFound() {
-
-        // Given
-        SupplyCode unknownCode = SupplyCode.of("UNKNOWN_CUPS");
-        when(getSupplyRepository.findByCode(unknownCode)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThrows(SupplyNotFoundException.class, () ->
-                service.aggregateYearlyConsumptions(unknownCode, 2024));
-
         verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
     }
 

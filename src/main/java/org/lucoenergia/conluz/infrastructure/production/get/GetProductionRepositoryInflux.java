@@ -50,29 +50,6 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     }
 
     @Override
-    public InstantProduction getInstantProduction() {
-        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
-            Query query = new Query(String.format("SELECT * FROM \"%s\" LIMIT 1",
-                    HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT
-            ));
-
-            QueryResult queryResult = connection.query(query);
-
-            InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
-            List<ProductionPoint> measurementPoints = resultMapper
-                    .toPOJO(queryResult, ProductionPoint.class);
-
-            Optional<ProductionPoint> instantProductionPoint = measurementPoints.stream().findFirst();
-
-            if (instantProductionPoint.isPresent()) {
-                return instantProductionInfluxMapper.map(instantProductionPoint.get());
-            }
-
-            return new InstantProduction(0.0d);
-        }
-    }
-
-    @Override
     public InstantProduction getInstantProduction(Collection<String> stationCodes) {
         if (stationCodes == null || stationCodes.isEmpty()) {
             return new InstantProduction(0.0d);
@@ -95,11 +72,6 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
                     .map(instantProductionInfluxMapper::map)
                     .orElseGet(() -> new InstantProduction(0.0d));
         }
-    }
-
-    @Override
-    public List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
-        return getHourlyProductionByRangeOfDates(startDate, endDate, 1f);
     }
 
     @Override
@@ -141,11 +113,6 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     }
 
     @Override
-    public List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
-        return getDailyProductionByRangeOfDates(startDate, endDate, 1f);
-    }
-
-    @Override
     public List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                    Float partitionCoefficient) {
         return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
@@ -161,11 +128,6 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
         }
         return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
                 partitionCoefficient, InfluxDuration.DAILY, stationCodeAndClause(stationCodes));
-    }
-
-    @Override
-    public List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
-        return getMonthlyProductionByRangeOfDates(startDate, endDate, 1f);
     }
 
     @Override
@@ -185,11 +147,6 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
         return queryAggregatedMeasurement(HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT,
                 startDate, endDate, partitionCoefficient, stationCodeAndClause(stationCodes),
                 HuaweiHourlyProductionMonthlyPoint.class);
-    }
-
-    @Override
-    public List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
-        return getYearlyProductionByRangeOfDates(startDate, endDate, 1f);
     }
 
     @Override

@@ -55,16 +55,6 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
     }
 
     @Override
-    public void aggregateYearlyProductions(String plantCode, int year) {
-        Optional<Plant> plantOptional = getEnergyStationRepository.findByCode(plantCode);
-        if (plantOptional.isEmpty()) {
-            throw new PlantNotFoundException(plantCode);
-        }
-
-        aggregateForPlantYear(plantOptional.get(), year);
-    }
-
-    @Override
     public void aggregateYearlyProductions(UUID communityId, int year) {
         for (Plant plant : communityPlants(communityId)) {
             aggregateForPlantYear(plant, year);

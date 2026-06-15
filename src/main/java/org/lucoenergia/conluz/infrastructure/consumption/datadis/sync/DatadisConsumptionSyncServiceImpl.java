@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -39,28 +38,11 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
     }
 
     @Override
-    public void synchronizeConsumptions(LocalDate startDate, LocalDate endDate) {
-        List<Supply> allSupplies = getSupplyRepository.findAll();
-        for (Supply supply : allSupplies) {
-            processSingleSupply(supply, startDate, endDate);
-        }
-    }
-
-    @Override
     public void synchronizeConsumptions(UUID communityId, LocalDate startDate, LocalDate endDate) {
         List<Supply> communitySupplies = getSupplyRepository.findAllByCommunityId(communityId);
         for (Supply supply : communitySupplies) {
             processSingleSupply(supply, startDate, endDate);
         }
-    }
-
-    @Override
-    public void synchronizeConsumptions(LocalDate startDate, LocalDate endDate, SupplyCode supplyCode) {
-        Optional<Supply> supplyOptional = getSupplyRepository.findByCode(supplyCode);
-        if (supplyOptional.isEmpty()) {
-            throw new SupplyNotFoundException(supplyCode);
-        }
-        processSingleSupply(supplyOptional.get(), startDate, endDate);
     }
 
     @Override
