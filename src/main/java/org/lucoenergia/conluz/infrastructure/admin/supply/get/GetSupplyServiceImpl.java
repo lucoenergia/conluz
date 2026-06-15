@@ -36,6 +36,16 @@ public class GetSupplyServiceImpl implements GetSupplyService {
     }
 
     @Override
+    public PagedResult<Supply> findByCommunity(PagedRequest pagedRequest, UUID communityId) {
+        return repository.findByCommunity(pagedRequest, communityId);
+    }
+
+    @Override
+    public PagedResult<Supply> findByOwnerAndCommunity(PagedRequest pagedRequest, UserId ownerId, UUID communityId) {
+        return repository.findByOwnerAndCommunity(pagedRequest, ownerId, communityId);
+    }
+
+    @Override
     public Supply getById(SupplyId id) {
         return repository.findById(id).orElseThrow(() -> new SupplyNotFoundException(id));
     }

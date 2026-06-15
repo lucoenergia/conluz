@@ -6,9 +6,14 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Service for retrieving production information.
+ *
+ * <p>Community-scoped methods restrict the time-series query to the plants of the given community
+ * (resolved from PostgreSQL); the optional supply variants additionally apply the supply's
+ * partition coefficient and require the supply to belong to that community.</p>
  */
 public interface GetProductionService {
 
@@ -102,4 +107,38 @@ public interface GetProductionService {
      * @return a list of yearly production for the supply
      */
     List<ProductionByTime> getYearlyProductionByRangeOfDatesAndSupply(OffsetDateTime startDate, OffsetDateTime endDate, SupplyId id);
+
+    // --- Community-scoped variants ---
+
+    InstantProduction getInstantProductionByCommunity(UUID communityId);
+
+    InstantProduction getInstantProductionByCommunityAndSupply(UUID communityId, SupplyId id);
+
+    List<ProductionByTime> getHourlyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                         UUID communityId);
+
+    List<ProductionByTime> getHourlyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
+                                                                                  OffsetDateTime endDate,
+                                                                                  UUID communityId, SupplyId id);
+
+    List<ProductionByTime> getDailyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                        UUID communityId);
+
+    List<ProductionByTime> getDailyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
+                                                                                 OffsetDateTime endDate,
+                                                                                 UUID communityId, SupplyId id);
+
+    List<ProductionByTime> getMonthlyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                          UUID communityId);
+
+    List<ProductionByTime> getMonthlyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
+                                                                                   OffsetDateTime endDate,
+                                                                                   UUID communityId, SupplyId id);
+
+    List<ProductionByTime> getYearlyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                         UUID communityId);
+
+    List<ProductionByTime> getYearlyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
+                                                                                  OffsetDateTime endDate,
+                                                                                  UUID communityId, SupplyId id);
 }

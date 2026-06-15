@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
@@ -77,13 +78,13 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
                 .withCommunity(communityA)
                 .withEnabled(true)
                 .build();
-        supplyA = createSupplyRepository.create(supplyADomain, UserId.of(memberA.getId()));
+        supplyA = createSupplyRepository.create(supplyADomain, UserId.of(memberA.getId()), communityA.getId());
 
         Supply supplyBDomain = SupplyMother.random(memberB)
                 .withCommunity(communityB)
                 .withEnabled(true)
                 .build();
-        supplyB = createSupplyRepository.create(supplyBDomain, UserId.of(memberB.getId()));
+        supplyB = createSupplyRepository.create(supplyBDomain, UserId.of(memberB.getId()), communityB.getId());
     }
 
     @Test
@@ -153,6 +154,68 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
+    }
+
+    // --- Nested read endpoints scoped by community path ---
+
+    @Test
+    void memberACanListSuppliesOfTheirCommunity() throws Exception {
+        String tokenA = loginUser(memberA);
+
+        mockMvc.perform(get("/api/v1/communities/" + communityA.getId() + "/supplies")
+                        .header("Authorization", tokenA))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(supplyA.getId().toString()));
+    }
+
+    @Test
+    void memberACannotListSuppliesOfCommunityB() throws Exception {
+        String tokenA = loginUser(memberA);
+
+        mockMvc.perform(get("/api/v1/communities/" + communityB.getId() + "/supplies")
+                        .header("Authorization", tokenA))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void memberACanReadProductionOfTheirCommunity() throws Exception {
+        String tokenA = loginUser(memberA);
+
+        mockMvc.perform(get("/api/v1/communities/" + communityA.getId() + "/production/hourly")
+                        .header("Authorization", tokenA)
+                        .queryParam("startDate", "2023-09-01T00:00:00.000+02:00")
+                        .queryParam("endDate", "2023-09-01T23:00:00.000+02:00"))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void memberACannotReadProductionOfCommunityB() throws Exception {
+        String tokenA = loginUser(memberA);
+
+        mockMvc.perform(get("/api/v1/communities/" + communityB.getId() + "/production/hourly")
+                        .header("Authorization", tokenA)
+                        .queryParam("startDate", "2023-09-01T00:00:00.000+02:00")
+                        .queryParam("endDate", "2023-09-01T23:00:00.000+02:00"))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void regularMemberCannotDownloadCommunityConsumptionCsv() throws Exception {
+        String tokenA = loginUser(memberA);
+
+        // The CSV report is admin-only; a regular member of the community gets 404 (existence is not leaked).
+        mockMvc.perform(get("/api/v1/communities/" + communityA.getId()
+                        + "/consumption/datadis/report/hourly/csv")
+                        .header("Authorization", tokenA)
+                        .queryParam("startDate", "2023-04-01T00:00:00Z")
+                        .queryParam("endDate", "2023-04-30T23:59:59Z"))
+                .andDo(print())
+                .andExpect(status().isNotFound());
     }
 
     private void createMembership(User user, Community community, CommunityRole role) {

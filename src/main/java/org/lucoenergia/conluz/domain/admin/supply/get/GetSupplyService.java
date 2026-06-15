@@ -25,6 +25,18 @@ public interface GetSupplyService {
      */
     PagedResult<Supply> findAllVisible(PagedRequest pagedRequest, UserId ownerId, Set<UUID> adminCommunityIds);
 
+    /**
+     * Retrieves all supplies belonging to the given community. Intended for callers that administer
+     * the community (platform or community admins).
+     */
+    PagedResult<Supply> findByCommunity(PagedRequest pagedRequest, UUID communityId);
+
+    /**
+     * Retrieves the supplies the given user owns within the given community. Intended for regular
+     * members, who may only see their own supplies.
+     */
+    PagedResult<Supply> findByOwnerAndCommunity(PagedRequest pagedRequest, UserId ownerId, UUID communityId);
+
     Supply getById(SupplyId id);
 
     /**

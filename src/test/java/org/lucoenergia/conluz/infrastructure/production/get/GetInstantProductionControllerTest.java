@@ -51,7 +51,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     void testGetInstantProduction() throws Exception {
         String authHeader = loginAsDefaultPlatformAdmin();
 
-        mockMvc.perform(get("/api/v1/production")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));
@@ -76,7 +76,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
                 SupplyEntityMother.random(user, community)
         ));
 
-        mockMvc.perform(get("/api/v1/production")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("supplyId", supplyId.toString()))
                 .andExpect(status().isOk())
@@ -89,7 +89,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultPlatformAdmin();
         UUID supplyId = UUID.randomUUID();
 
-        mockMvc.perform(get("/api/v1/production")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("supplyId", supplyId.toString()))
                 .andExpect(status().isNotFound())
@@ -105,7 +105,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultPlatformAdmin();
         String supplyId = "1";
 
-        mockMvc.perform(get("/api/v1/production")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("supply", supplyId))
                 .andExpect(status().isOk())

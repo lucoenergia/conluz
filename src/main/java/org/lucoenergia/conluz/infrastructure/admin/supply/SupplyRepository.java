@@ -24,6 +24,16 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
     List<SupplyEntity> findByCommunityId(UUID communityId);
 
     /**
+     * Supplies belonging to the given community (paginated).
+     */
+    Page<SupplyEntity> findByCommunityId(UUID communityId, Pageable pageable);
+
+    /**
+     * Supplies owned by the given user that belong to the given community (paginated).
+     */
+    Page<SupplyEntity> findByUserIdAndCommunityId(UUID userId, UUID communityId, Pageable pageable);
+
+    /**
      * Supplies owned by the given user OR belonging to any of the given communities.
      * An empty {@code communityIds} collection effectively restricts the result to owned supplies.
      */

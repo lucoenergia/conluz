@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
@@ -33,8 +34,9 @@ public class GetDatadisConsumptionReportServiceImpl implements GetDatadisConsump
     }
 
     @Override
-    public ByteArrayOutputStream getHourlyConsumptionReportAsCsv(OffsetDateTime startDate, OffsetDateTime endDate) {
-        List<Supply> supplies = getSupplyRepository.findAll();
+    public ByteArrayOutputStream getHourlyConsumptionReportAsCsv(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                 UUID communityId) {
+        List<Supply> supplies = getSupplyRepository.findAllByCommunityId(communityId);
         List<DatadisConsumption> consumptions = new ArrayList<>();
         for (Supply supply : supplies) {
             consumptions.addAll(

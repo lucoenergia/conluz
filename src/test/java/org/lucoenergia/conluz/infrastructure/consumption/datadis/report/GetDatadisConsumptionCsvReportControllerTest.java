@@ -27,7 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/consumption/datadis/report/hourly/csv";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID
+            + "/consumption/datadis/report/hourly/csv";
     private static final String START_DATE = "2023-04-01T00:00:00Z";
     private static final String END_DATE = "2023-04-30T23:59:59Z";
     private static final String CUPS_CODE = "ES0031406912345678JN0F";
@@ -61,8 +62,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", START_DATE)
-                        .queryParam("endDate", END_DATE)
-                        .queryParam("communityId", DEFAULT_COMMUNITY_ID.toString()))
+                        .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(content().string(containsString("\"cups\",\"date\",\"time\",\"consumptionKWh\",\"obtainMethod\",\"surplusEnergyKWh\",\"generationEnergyKWh\",\"selfConsumptionEnergyKWh\"")))
@@ -76,15 +76,14 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", START_DATE)
-                        .queryParam("endDate", END_DATE)
-                        .queryParam("communityId", DEFAULT_COMMUNITY_ID.toString()))
+                        .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(content().string(containsString("\"cups\",\"date\",\"time\",\"consumptionKWh\",\"obtainMethod\",\"surplusEnergyKWh\",\"generationEnergyKWh\",\"selfConsumptionEnergyKWh\"")));
     }
 
     @Test
-    void testGetCsvReportAsPartnerIsForbidden() throws Exception {
+    void testGetCsvReportAsPartnerIsNotFound() throws Exception {
         String partnerToken = loginAsPartner();
 
         mockMvc.perform(get(URL)
@@ -92,8 +91,8 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
@@ -160,8 +159,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2023-04-01T00:00:00Z")
-                        .queryParam("endDate", "2023-05-01T00:00:00Z")
-                        .queryParam("communityId", DEFAULT_COMMUNITY_ID.toString()))
+                        .queryParam("endDate", "2023-05-01T00:00:00Z"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(content().string(containsString("2023/05/01")))

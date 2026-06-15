@@ -19,13 +19,18 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Repository
 public class GetProductionRepositoryInflux implements GetProductionRepository {
+
+    private static final String STATION_CODE_TAG = "station_code";
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
 
@@ -68,6 +73,31 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     }
 
     @Override
+    public InstantProduction getInstantProduction(Collection<String> stationCodes) {
+        if (stationCodes == null || stationCodes.isEmpty()) {
+            return new InstantProduction(0.0d);
+        }
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            Query query = new Query(String.format(
+                    "SELECT LAST(\"%s\") AS \"%s\" FROM \"%s\" WHERE %s",
+                    ProductionPoint.INVERTER_POWER,
+                    ProductionPoint.INVERTER_POWER,
+                    HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
+                    stationCodeOrChain(stationCodes)));
+
+            QueryResult queryResult = connection.query(query);
+
+            InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
+            List<ProductionPoint> measurementPoints = resultMapper
+                    .toPOJO(queryResult, ProductionPoint.class);
+
+            return measurementPoints.stream().findFirst()
+                    .map(instantProductionInfluxMapper::map)
+                    .orElseGet(() -> new InstantProduction(0.0d));
+        }
+    }
+
+    @Override
     public List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
         return getHourlyProductionByRangeOfDates(startDate, endDate, 1f);
     }
@@ -75,14 +105,30 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     @Override
     public List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                     Float partitionCoefficient) {
+        return queryHourly(startDate, endDate, partitionCoefficient, "");
+    }
+
+    @Override
+    public List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                    Float partitionCoefficient,
+                                                                    Collection<String> stationCodes) {
+        if (stationCodes == null || stationCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return queryHourly(startDate, endDate, partitionCoefficient, stationCodeAndClause(stationCodes));
+    }
+
+    private List<ProductionByTime> queryHourly(OffsetDateTime startDate, OffsetDateTime endDate,
+                                               Float partitionCoefficient, String stationClause) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
-                    "SELECT time, \"%s\"*%s FROM \"%s\" WHERE time >= '%s' AND time <= '%s'",
+                    "SELECT time, \"%s\"*%s FROM \"%s\" WHERE time >= '%s' AND time <= '%s'%s",
                     ProductionPoint.INVERTER_POWER,
                     partitionCoefficient,
                     HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
                     dateConverter.convertToString(startDate),
-                    dateConverter.convertToString(endDate)));
+                    dateConverter.convertToString(endDate),
+                    stationClause));
 
             QueryResult queryResult = connection.query(query);
 
@@ -103,7 +149,18 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     public List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                    Float partitionCoefficient) {
         return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
-                partitionCoefficient, InfluxDuration.DAILY);
+                partitionCoefficient, InfluxDuration.DAILY, "");
+    }
+
+    @Override
+    public List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                   Float partitionCoefficient,
+                                                                   Collection<String> stationCodes) {
+        if (stationCodes == null || stationCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
+                partitionCoefficient, InfluxDuration.DAILY, stationCodeAndClause(stationCodes));
     }
 
     @Override
@@ -114,21 +171,20 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     @Override
     public List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                      Float partitionCoefficient) {
-        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
-            Query query = new Query(String.format(
-                    "SELECT \"inverter_power\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s'",
-                    HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT,
-                    dateConverter.convertToString(startDate),
-                    dateConverter.convertToString(endDate)));
+        return queryAggregatedMeasurement(HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT,
+                startDate, endDate, partitionCoefficient, "", HuaweiHourlyProductionMonthlyPoint.class);
+    }
 
-            QueryResult queryResult = connection.query(query);
-
-            InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
-            List<HuaweiHourlyProductionMonthlyPoint> points = resultMapper
-                    .toPOJO(queryResult, HuaweiHourlyProductionMonthlyPoint.class);
-
-            return groupByTimeAndApplyCoefficient(points, partitionCoefficient);
+    @Override
+    public List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                     Float partitionCoefficient,
+                                                                     Collection<String> stationCodes) {
+        if (stationCodes == null || stationCodes.isEmpty()) {
+            return Collections.emptyList();
         }
+        return queryAggregatedMeasurement(HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT,
+                startDate, endDate, partitionCoefficient, stationCodeAndClause(stationCodes),
+                HuaweiHourlyProductionMonthlyPoint.class);
     }
 
     @Override
@@ -139,18 +195,37 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     @Override
     public List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                     Float partitionCoefficient) {
+        return queryAggregatedMeasurement(HuaweiConfig.HUAWEI_YEARLY_PRODUCTION_MEASUREMENT,
+                startDate, endDate, partitionCoefficient, "", HuaweiHourlyProductionYearlyPoint.class);
+    }
+
+    @Override
+    public List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
+                                                                    Float partitionCoefficient,
+                                                                    Collection<String> stationCodes) {
+        if (stationCodes == null || stationCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return queryAggregatedMeasurement(HuaweiConfig.HUAWEI_YEARLY_PRODUCTION_MEASUREMENT,
+                startDate, endDate, partitionCoefficient, stationCodeAndClause(stationCodes),
+                HuaweiHourlyProductionYearlyPoint.class);
+    }
+
+    private <T> List<ProductionByTime> queryAggregatedMeasurement(String measurement, OffsetDateTime startDate,
+                                                                  OffsetDateTime endDate, Float partitionCoefficient,
+                                                                  String stationClause, Class<T> pointType) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
-                    "SELECT \"inverter_power\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s'",
-                    HuaweiConfig.HUAWEI_YEARLY_PRODUCTION_MEASUREMENT,
+                    "SELECT \"inverter_power\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s'%s",
+                    measurement,
                     dateConverter.convertToString(startDate),
-                    dateConverter.convertToString(endDate)));
+                    dateConverter.convertToString(endDate),
+                    stationClause));
 
             QueryResult queryResult = connection.query(query);
 
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
-            List<HuaweiHourlyProductionYearlyPoint> points = resultMapper
-                    .toPOJO(queryResult, HuaweiHourlyProductionYearlyPoint.class);
+            List<T> points = resultMapper.toPOJO(queryResult, pointType);
 
             return groupByTimeAndApplyCoefficient(points, partitionCoefficient);
         }
@@ -185,16 +260,18 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     private List<ProductionByTime> getProductionByRangeOfDatesGroupedByDuration(OffsetDateTime startDate,
                                                                                 OffsetDateTime endDate,
                                                                                 Float partitionCoefficient,
-                                                                                String duration) {
+                                                                                String duration,
+                                                                                String stationClause) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
-                    "SELECT SUM(\"%s\")*%s AS \"%s\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s' GROUP BY time(%s)",
+                    "SELECT SUM(\"%s\")*%s AS \"%s\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s'%s GROUP BY time(%s)",
                     ProductionPoint.INVERTER_POWER,
                     partitionCoefficient,
                     ProductionPoint.INVERTER_POWER,
                     HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
                     dateConverter.convertToString(startDate),
                     dateConverter.convertToString(endDate),
+                    stationClause,
                     duration));
 
             QueryResult queryResult = connection.query(query);
@@ -205,5 +282,23 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
             return productionByHourInfluxMapper.mapList(measurementPoints);
         }
+    }
+
+    /**
+     * Builds an InfluxQL predicate matching any of the given station codes, e.g.
+     * {@code ("station_code" = 'A' OR "station_code" = 'B')}.
+     */
+    private String stationCodeOrChain(Collection<String> stationCodes) {
+        return stationCodes.stream()
+                .map(code -> String.format("\"%s\" = '%s'", STATION_CODE_TAG, code))
+                .collect(Collectors.joining(" OR ", "(", ")"));
+    }
+
+    /**
+     * Same predicate as {@link #stationCodeOrChain} but prefixed with {@code AND } so it can be
+     * appended to an existing {@code WHERE time ...} clause.
+     */
+    private String stationCodeAndClause(Collection<String> stationCodes) {
+        return " AND " + stationCodeOrChain(stationCodes);
     }
 }

@@ -92,6 +92,20 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
     }
 
     @Override
+    public PagedResult<Supply> findByCommunity(PagedRequest pagedRequest, UUID communityId) {
+        Page<SupplyEntity> result = supplyRepository.findByCommunityId(communityId,
+                paginationRequestMapper.mapRequest(pagedRequest));
+        return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
+    }
+
+    @Override
+    public PagedResult<Supply> findByOwnerAndCommunity(PagedRequest pagedRequest, UserId ownerId, UUID communityId) {
+        Page<SupplyEntity> result = supplyRepository.findByUserIdAndCommunityId(ownerId.getId(), communityId,
+                paginationRequestMapper.mapRequest(pagedRequest));
+        return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
+    }
+
+    @Override
     public List<Supply> findByUserId(UserId userId) {
         List<SupplyEntity> supplyEntities = supplyRepository.findByUserId(userId.getId());
         return supplyEntityMapper.mapList(supplyEntities);

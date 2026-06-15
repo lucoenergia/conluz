@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -19,4 +20,10 @@ public interface GetPlantRepository {
      * Plants whose supply belongs to any of the given communities.
      */
     PagedResult<Plant> findByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds);
+
+    /**
+     * Codes of the plants belonging to the given community. These codes match the InfluxDB
+     * {@code station_code} tag, so they can be used to scope time-series production queries.
+     */
+    List<String> findPlantCodesByCommunity(UUID communityId);
 }

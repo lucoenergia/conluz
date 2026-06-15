@@ -29,6 +29,16 @@ public interface GetSupplyRepository {
      */
     PagedResult<Supply> findByOwnerOrCommunities(PagedRequest pagedRequest, UserId ownerId, Set<UUID> communityIds);
 
+    /**
+     * All supplies belonging to the given community (paginated).
+     */
+    PagedResult<Supply> findByCommunity(PagedRequest pagedRequest, UUID communityId);
+
+    /**
+     * Supplies owned by {@code ownerId} that belong to the given community (paginated).
+     */
+    PagedResult<Supply> findByOwnerAndCommunity(PagedRequest pagedRequest, UserId ownerId, UUID communityId);
+
     List<Supply> findByUserId(UserId userId);
 
     List<Supply> findAllByCommunityId(UUID communityId);

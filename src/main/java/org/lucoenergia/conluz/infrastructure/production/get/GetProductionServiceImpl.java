@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Transactional(readOnly = true)
 @Service
@@ -21,11 +23,14 @@ public class GetProductionServiceImpl implements GetProductionService {
 
     private final GetProductionRepository getProductionRepository;
     private final GetSupplyRepository getSupplyRepository;
+    private final GetPlantRepository getPlantRepository;
 
     public GetProductionServiceImpl(GetProductionRepository getProductionRepository,
-                                GetSupplyRepository getSupplyRepository) {
+                                GetSupplyRepository getSupplyRepository,
+                                GetPlantRepository getPlantRepository) {
         this.getProductionRepository = getProductionRepository;
         this.getSupplyRepository = getSupplyRepository;
+        this.getPlantRepository = getPlantRepository;
     }
 
     @Override
@@ -112,5 +117,97 @@ public class GetProductionServiceImpl implements GetProductionService {
 
         return getProductionRepository.getYearlyProductionByRangeOfDates(startDate,
                 endDate, supply.get().getPartitionCoefficient());
+    }
+
+    // --- Community-scoped variants ---
+
+    @Override
+    public InstantProduction getInstantProductionByCommunity(UUID communityId) {
+        return getProductionRepository.getInstantProduction(getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    @Override
+    public InstantProduction getInstantProductionByCommunityAndSupply(UUID communityId, SupplyId id) {
+        Supply supply = requireSupplyInCommunity(id, communityId);
+        InstantProduction total = getProductionRepository.getInstantProduction(
+                getPlantRepository.findPlantCodesByCommunity(communityId));
+        return new InstantProduction(total.getPower() * supply.getPartitionCoefficient());
+    }
+
+    @Override
+    public List<ProductionByTime> getHourlyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate,
+                                                                                OffsetDateTime endDate, UUID communityId) {
+        return getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate, 1f,
+                getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    @Override
+    public List<ProductionByTime> getHourlyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
+                                                                                         OffsetDateTime endDate,
+                                                                                         UUID communityId, SupplyId id) {
+        Supply supply = requireSupplyInCommunity(id, communityId);
+        return getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate,
+                supply.getPartitionCoefficient(), getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    @Override
+    public List<ProductionByTime> getDailyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate,
+                                                                               OffsetDateTime endDate, UUID communityId) {
+        return getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate, 1f,
+                getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    @Override
+    public List<ProductionByTime> getDailyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
+                                                                                        OffsetDateTime endDate,
+                                                                                        UUID communityId, SupplyId id) {
+        Supply supply = requireSupplyInCommunity(id, communityId);
+        return getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate,
+                supply.getPartitionCoefficient(), getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    @Override
+    public List<ProductionByTime> getMonthlyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate,
+                                                                                 OffsetDateTime endDate, UUID communityId) {
+        return getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate, 1f,
+                getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    @Override
+    public List<ProductionByTime> getMonthlyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
+                                                                                          OffsetDateTime endDate,
+                                                                                          UUID communityId, SupplyId id) {
+        Supply supply = requireSupplyInCommunity(id, communityId);
+        return getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate,
+                supply.getPartitionCoefficient(), getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    @Override
+    public List<ProductionByTime> getYearlyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate,
+                                                                                OffsetDateTime endDate, UUID communityId) {
+        return getProductionRepository.getYearlyProductionByRangeOfDates(startDate, endDate, 1f,
+                getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    @Override
+    public List<ProductionByTime> getYearlyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
+                                                                                         OffsetDateTime endDate,
+                                                                                         UUID communityId, SupplyId id) {
+        Supply supply = requireSupplyInCommunity(id, communityId);
+        return getProductionRepository.getYearlyProductionByRangeOfDates(startDate, endDate,
+                supply.getPartitionCoefficient(), getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    /**
+     * Loads the supply and verifies it belongs to the given community. A supply that does not exist
+     * or belongs to another community yields a {@link SupplyNotFoundException} (404) so the caller
+     * cannot probe supplies outside their community.
+     */
+    private Supply requireSupplyInCommunity(SupplyId id, UUID communityId) {
+        Supply supply = getSupplyRepository.findById(id).orElseThrow(() -> new SupplyNotFoundException(id));
+        if (supply.getCommunity() == null || !communityId.equals(supply.getCommunity().getId())) {
+            throw new SupplyNotFoundException(id);
+        }
+        return supply;
     }
 }
