@@ -174,16 +174,15 @@ class CommunityAccessGuardImplTest {
     // --- adminCommunityIds ---
 
     @Test
-    void adminCommunityIds_returnsAllIds_whenUserIsPlatformAdmin() {
+    void adminCommunityIds_returnsEmpty_whenUserIsPlatformAdminButDoesntAdminAnyCommunity() {
         Community community = CommunityMother.random().build();
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
-        when(getCommunityRepository.findAllIds()).thenReturn(Set.of(community.getId()));
 
         Set<UUID> result = guard().adminCommunityIds();
 
-        assertTrue(result.contains(community.getId()));
+        assertFalse(result.contains(community.getId()));
     }
 
     @Test

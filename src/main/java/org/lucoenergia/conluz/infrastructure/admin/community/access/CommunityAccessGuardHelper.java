@@ -65,9 +65,6 @@ class CommunityAccessGuardHelper {
         if (user == null) {
             return Set.of();
         }
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
-            return getCommunityRepository.findAllIds();
-        }
         if (user.getMemberships() == null) {
             return Set.of();
         }

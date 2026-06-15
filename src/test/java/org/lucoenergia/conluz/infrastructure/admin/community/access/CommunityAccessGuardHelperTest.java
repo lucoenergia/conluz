@@ -171,14 +171,13 @@ class CommunityAccessGuardHelperTest {
     }
 
     @Test
-    void adminCommunityIds_returnsAllIds_whenUserIsPlatformAdmin() {
+    void adminCommunityIds_returnsEmpty_whenUserIsPlatformAdminButIsNotAdminOfAnyCommunity() {
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         user.setPlatformAdmin(true);
-        when(getCommunityRepository.findAllIds()).thenReturn(Set.of(community.getId()));
 
         Set<UUID> result = helper().adminCommunityIds(user);
-        assertTrue(result.contains(community.getId()));
+        assertFalse(result.contains(community.getId()));
     }
 
     @Test

@@ -15,11 +15,7 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationRequestMapper;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
 import org.springdoc.core.converters.models.PageableAsQueryParam;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -88,8 +84,7 @@ public class GetAllSuppliesController {
         User currentUser = authService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
 
-        boolean canSeeAll = Boolean.TRUE.equals(currentUser.isPlatformAdmin())
-                || communityAccessGuard.adminCommunityIds().contains(communityId);
+        boolean canSeeAll = communityAccessGuard.adminCommunityIds().contains(communityId);
 
         PagedResult<Supply> supplies;
         if (canSeeAll) {
