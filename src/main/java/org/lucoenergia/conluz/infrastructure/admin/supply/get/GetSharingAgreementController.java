@@ -36,7 +36,7 @@ public class GetSharingAgreementController {
             description = """
                     This endpoint retrieves a sharing agreement by its unique identifier.
 
-                    **Required: Platform Admin or Community Admin of the sharing agreement's community.**""",
+                    **Required: Community Admin of the sharing agreement's community.**""",
             tags = ApiTag.SUPPLIES,
             operationId = "getSharingAgreement"
     )

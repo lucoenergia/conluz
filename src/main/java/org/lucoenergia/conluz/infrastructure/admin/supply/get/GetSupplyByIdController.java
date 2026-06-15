@@ -36,7 +36,7 @@ public class GetSupplyByIdController {
             description = """
                     This endpoint retrieves a supply by its unique identifier.
 
-                    **Required: Platform Admin, Community Admin of the supply's community, or the supply owner.**""",
+                    **Required: Community Admin of the supply's community, or the supply owner.**""",
             tags = ApiTag.SUPPLIES,
             operationId = "getSupply"
     )

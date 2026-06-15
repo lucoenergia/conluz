@@ -49,7 +49,7 @@ public class GetDatadisConsumptionCsvReportController {
                     `communityId` within the specified date range and returns the result as a downloadable CSV file.
 
                     **Authorization Rules:**
-                    - Only a Community Admin of the community (or a Platform Admin) can access this endpoint.
+                    - Only a Community Admin of the community can access this endpoint.
                     - Returns 404 if the community does not exist or the caller cannot manage it.
 
                     The CSV includes:

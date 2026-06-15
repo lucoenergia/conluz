@@ -54,7 +54,7 @@ public class CreateSupplyController {
                     The supply's community is provided in the body via the required `communityId` field.
 
                     Proper authentication, through authentication tokens, is required to access this endpoint.
-                    **Required: Platform Admin or Community Admin of the community. Returns 400 if `communityId` is missing and 404 if the community does not exist or cannot be managed.**
+                    **Required: Community Admin of the community. Returns 400 if `communityId` is missing and 404 if the community does not exist or cannot be managed.**
 
                     Upon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.
                     

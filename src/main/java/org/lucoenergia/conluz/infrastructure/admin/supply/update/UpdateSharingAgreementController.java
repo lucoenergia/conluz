@@ -41,7 +41,7 @@ public class UpdateSharingAgreementController {
     
                     Clients send a request containing the updated agreement details, and authentication, through an
                     authentication token, is required for secure access.
-                    **Required: Platform Admin or Community Admin**
+                    **Required: Community Admin**
     
                     A successful update results in an HTTP status code of 200, indicating that the sharing agreement
                     information has been successfully modified and returning the updated agreement details.

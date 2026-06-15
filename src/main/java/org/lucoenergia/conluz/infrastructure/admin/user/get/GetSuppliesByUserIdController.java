@@ -43,7 +43,7 @@ public class GetSuppliesByUserIdController {
                     This endpoint retrieves all supplies associated with a specific user by their unique identifier.
 
                     **Authorization Rules:**
-                    - Platform admins and Community Admins (of the target user's community) can retrieve supplies for that user
+                    - Community Admins (of the target user's community) can retrieve supplies for that user
                     - A user can retrieve their own supplies
 
                     Authentication is required using a Bearer token.

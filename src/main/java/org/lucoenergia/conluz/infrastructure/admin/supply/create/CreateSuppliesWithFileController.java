@@ -85,7 +85,7 @@ public class CreateSuppliesWithFileController {
                     supply, including code, address, users and any additional relevant information.
                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required: Platform Admin or Community Admin**
+                    **Required: Community Admin**
                     
                     Upon successful file processing, the server responds with an HTTP status code of 200, along with
                     comprehensive details about the result of the bulk operation, including what users have been created

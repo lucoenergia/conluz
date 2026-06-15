@@ -35,7 +35,7 @@ public class EnableSupplyController {
                     This endpoint enables a supply by its unique identifier.
 
                     Authentication via bearer token is required.
-                    Required: Platform Admin, Community Admin, or the supply owner
+                    Required: Community Admin
 
                     The operation is idempotent: enabling an already enabled supply will not fail and will return the current state.
                     """,

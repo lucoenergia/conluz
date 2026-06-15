@@ -55,7 +55,7 @@ public class GetAllSuppliesController {
                     Retrieves the supplies of the community identified by the path `communityId`, with pagination,
                     filtering and sorting. Requires authentication through a Bearer Token.
 
-                    **Visibility:** Platform admins and Community admins of the community see all of its supplies.
+                    **Visibility:** Community admins of the community see all of its supplies.
                     Regular members see only the supplies they own within the community. Returns 404 if the community
                     does not exist or the caller is not a member of it.""",
             tags = ApiTag.SUPPLIES,

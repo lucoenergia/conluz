@@ -40,7 +40,7 @@ public class GetActivePartitionCoefficientController {
     @GetMapping
     @Operation(
             summary = "Returns the currently active partition coefficient for a supply.",
-            description = "Returns the coefficient with validTo = null. **Required: Platform Admin, Community Admin, or the supply owner**",
+            description = "Returns the coefficient with validTo = null. **Required: Community Admin**",
             tags = ApiTag.SUPPLIES,
             operationId = "getActivePartitionCoefficient",
             security = @SecurityRequirement(name = "bearerToken")

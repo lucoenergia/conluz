@@ -66,7 +66,7 @@ public class SyncDatadisConsumptionsController {
                     community are used and only that community's supplies are synchronized.
 
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required: Platform Admin or Community Admin of the community. Returns 404 if the community does not exist or cannot be managed.**
+                    **Required: Community Admin of the community. Returns 404 if the community does not exist or cannot be managed.**
 
                     A successful request returns an HTTP status code of 200.
 

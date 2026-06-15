@@ -45,7 +45,7 @@ public class GetSupplyMonthlyConsumptionController {
                     This endpoint retrieves monthly consumption data from Datadis for a specific supply within a given date range.
 
                     **Authorization Rules:**
-                    - Platform admins and Community Admins can retrieve consumption data for any supply they administer
+                    - Community Admins can retrieve consumption data for any supply they administer
                     - Supply owners can only retrieve consumption data for their own supplies
 
                     The consumption data includes:

@@ -43,7 +43,7 @@ public class GetShellyConfigController {
                     This endpoint returns the Shelly integration configuration for a specific community.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required: Platform Admin or Community Admin**
+                    **Required: Community Admin**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with
                     the current configuration. If no configuration has been set yet, a 404 is returned.

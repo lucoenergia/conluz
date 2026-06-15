@@ -36,7 +36,7 @@ public class UpdateSupplyController {
                 This endpoint enables the update of supply information by specifying the supply's unique identifier in the endpoint path.
                 
                 Clients send a request containing the updated supply details, and authentication, through an authentication token, is required for secure access.
-                **Required: Platform Admin, Community Admin of the supply's community, or the supply owner.**
+                **Required: Community Admin of the supply's community.**
 
                 A successful update results in an HTTP status code of 200, indicating that the supply information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.
                 

@@ -51,7 +51,7 @@ public class GetAllPlantsController {
                     Retrieves the plants of the given community with pagination, filtering and sorting. Requires
                     authentication through a Bearer Token.
 
-                    **Required: any member of the community (any role) or a Platform Admin.**""",
+                    **Required: any member of the community (any role).**""",
             tags = ApiTag.PLANTS,
             operationId = "getAllPlants"
     )

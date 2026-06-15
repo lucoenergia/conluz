@@ -59,7 +59,7 @@ public class SetHuaweiConfigController {
                     from the Huawei API.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required: Platform Admin or Community Admin**
+                    **Required: Community Admin**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with details
                     about the configuration already set.

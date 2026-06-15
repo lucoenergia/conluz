@@ -89,7 +89,7 @@ public class RegisterPartitionCoefficientsWithFileController {
                     coefficients across all supplies deviates from 100 by more than 0.0001 at `effectiveAt`.
                     This warning is informational only.
 
-                    **Required: Platform Admin or Community Admin**
+                    **Required: Community Admin**
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "importPartitionCoefficientsWithFile",
