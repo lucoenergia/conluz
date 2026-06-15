@@ -189,6 +189,113 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
     }
 
     @Test
+    void findByCommunityReturnsOnlySuppliesOfThatCommunity() {
+        // Given
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        Community otherCommunity = createCommunityRepository.create(CommunityMother.random().build());
+
+        User user = createUserRepository.create(UserMother.randomUser());
+
+        Supply supplyOne = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), community.getId());
+        Supply supplyTwo = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), community.getId());
+        Supply supplyInOtherCommunity = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), otherCommunity.getId());
+
+        // When
+        PagedResult<Supply> result = getSupplyRepositoryDatabase.findByCommunity(PagedRequest.of(0, 10),
+                community.getId());
+
+        // Then
+        Assertions.assertEquals(2, result.getTotalElements());
+        Assertions.assertEquals(2, result.getItems().size());
+        Assertions.assertTrue(result.getItems().contains(supplyOne));
+        Assertions.assertTrue(result.getItems().contains(supplyTwo));
+        Assertions.assertFalse(result.getItems().contains(supplyInOtherCommunity));
+    }
+
+    @Test
+    void findByCommunityReturnsRequestedPage() {
+        // Given
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User user = createUserRepository.create(UserMother.randomUser());
+
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), community.getId());
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), community.getId());
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), community.getId());
+
+        // When
+        PagedResult<Supply> firstPage = getSupplyRepositoryDatabase.findByCommunity(PagedRequest.of(0, 2),
+                community.getId());
+        PagedResult<Supply> secondPage = getSupplyRepositoryDatabase.findByCommunity(PagedRequest.of(1, 2),
+                community.getId());
+
+        // Then
+        Assertions.assertEquals(3, firstPage.getTotalElements());
+        Assertions.assertEquals(2, firstPage.getTotalPages());
+        Assertions.assertEquals(2, firstPage.getItems().size());
+        Assertions.assertEquals(1, secondPage.getItems().size());
+    }
+
+    @Test
+    void findByCommunityReturnsEmptyResultWhenCommunityHasNoSupplies() {
+        // Given
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+
+        // When
+        PagedResult<Supply> result = getSupplyRepositoryDatabase.findByCommunity(PagedRequest.of(0, 10),
+                community.getId());
+
+        // Then
+        Assertions.assertEquals(0, result.getTotalElements());
+        Assertions.assertTrue(result.getItems().isEmpty());
+    }
+
+    @Test
+    void findByOwnerAndCommunityReturnsOnlySuppliesOwnedByThatUserInThatCommunity() {
+        // Given
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        Community otherCommunity = createCommunityRepository.create(CommunityMother.random().build());
+
+        User owner = createUserRepository.create(UserMother.randomUser());
+        User otherUser = createUserRepository.create(UserMother.randomUser());
+
+        Supply ownedInCommunity = createSupplyRepository.create(SupplyMother.random(owner).build(),
+                UserId.of(owner.getId()), community.getId());
+        Supply ownedInOtherCommunity = createSupplyRepository.create(SupplyMother.random(owner).build(),
+                UserId.of(owner.getId()), otherCommunity.getId());
+        Supply otherUsersSupplyInCommunity = createSupplyRepository.create(SupplyMother.random(otherUser).build(),
+                UserId.of(otherUser.getId()), community.getId());
+
+        // When
+        PagedResult<Supply> result = getSupplyRepositoryDatabase.findByOwnerAndCommunity(PagedRequest.of(0, 10),
+                UserId.of(owner.getId()), community.getId());
+
+        // Then
+        Assertions.assertEquals(1, result.getTotalElements());
+        Assertions.assertEquals(1, result.getItems().size());
+        Assertions.assertTrue(result.getItems().contains(ownedInCommunity));
+        Assertions.assertFalse(result.getItems().contains(ownedInOtherCommunity));
+        Assertions.assertFalse(result.getItems().contains(otherUsersSupplyInCommunity));
+    }
+
+    @Test
+    void findByOwnerAndCommunityReturnsEmptyResultWhenUserOwnsNoSuppliesInThatCommunity() {
+        // Given
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User user = createUserRepository.create(UserMother.randomUser());
+
+        // When
+        PagedResult<Supply> result = getSupplyRepositoryDatabase.findByOwnerAndCommunity(PagedRequest.of(0, 10),
+                UserId.of(user.getId()), community.getId());
+
+        // Then
+        Assertions.assertEquals(0, result.getTotalElements());
+        Assertions.assertTrue(result.getItems().isEmpty());
+    }
+
+    @Test
     void findAllByCommunityIdReturnsOnlySuppliesOfThatCommunity() {
         // Given
         Community community = createCommunityRepository.create(CommunityMother.random().build());

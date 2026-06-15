@@ -51,7 +51,7 @@ public class GetPlantRepositoryDatabase implements GetPlantRepository {
 
     @Override
     public PagedResult<Plant> findByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds) {
-        Page<PlantEntity> result = plantRepository.findBySupply_Community_IdIn(communityIds,
+        Page<PlantEntity> result = plantRepository.findBySupplyCommunityIdIn(communityIds,
                 paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, plantEntityMapper.mapList(result.toList()));
     }

@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.get;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
@@ -15,10 +14,7 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
@@ -147,42 +143,6 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         ProductionByTime monthData = result.get(0);
         assertNotNull(monthData);
         assertEquals(236.15d * 0.5d, monthData.getPower(), 0.01d, "Monthly production should be multiplied by partition coefficient");
-    }
-
-    @Test
-    void testGetYearlyProductionByRangeOfDates() {
-        // Date range covers 2023-01-01T00:00:00Z where the pre-aggregated yearly record is stored
-        OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00.000+00:00");
-        OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:59:59.000+00:00");
-        Float partitionCoefficient = 1.0f;
-
-        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
-
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-
-        ProductionByTime yearData = result.get(0);
-        assertNotNull(yearData);
-        assertNotNull(yearData.getPower());
-        assertNotNull(yearData.getTime());
-        assertEquals(1000.0d, yearData.getPower(), 0.01d, "Yearly production should match pre-aggregated value");
-    }
-
-    @Test
-    void testGetYearlyProductionByRangeOfDatesWithPartitionCoefficient() {
-        OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00.000+00:00");
-        OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:59:59.000+00:00");
-        Float partitionCoefficient = 0.5f;
-
-        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
-
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-
-        ProductionByTime yearData = result.get(0);
-        assertNotNull(yearData);
-        assertEquals(1000.0d * 0.5d, yearData.getPower(), 0.01d, "Yearly production should be multiplied by partition coefficient");
     }
 
     // --- Instant production ---

@@ -38,8 +38,5 @@ public interface GetProductionRepository {
                                                             Float partitionCoefficient, Collection<String> stationCodes);
 
     List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                              Float partitionCoefficient);
-
-    List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                               Float partitionCoefficient, Collection<String> stationCodes);
 }

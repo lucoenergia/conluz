@@ -23,7 +23,7 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
     /**
      * Plants whose supply belongs to any of the given communities. An empty collection yields an empty page.
      */
-    Page<PlantEntity> findBySupply_Community_IdIn(Collection<UUID> communityIds, Pageable pageable);
+    Page<PlantEntity> findBySupplyCommunityIdIn(Collection<UUID> communityIds, Pageable pageable);
 
     /**
      * Codes of the plants whose supply belongs to the given community. These codes match the

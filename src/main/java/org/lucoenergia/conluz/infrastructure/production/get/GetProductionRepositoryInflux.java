@@ -151,13 +151,6 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     @Override
     public List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                                    Float partitionCoefficient) {
-        return queryAggregatedMeasurement(HuaweiConfig.HUAWEI_YEARLY_PRODUCTION_MEASUREMENT,
-                startDate, endDate, partitionCoefficient, "", HuaweiHourlyProductionYearlyPoint.class);
-    }
-
-    @Override
-    public List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                     Float partitionCoefficient,
                                                                     Collection<String> stationCodes) {
         if (stationCodes == null || stationCodes.isEmpty()) {
