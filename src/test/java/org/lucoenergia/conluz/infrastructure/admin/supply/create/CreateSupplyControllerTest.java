@@ -255,8 +255,49 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                           "partitionCoefficient": "2.5432",
                           "address": "Fake Street 456"
                         }
+                """,
+                // Missing communityId (now required) -> 400
+                """
+                        {
+                          "code": "ES0033333333333333BB0B",
+                          "personalId": "54889216G",
+                          "address": "Fake Street 456",
+                          "addressRef": "4ASDF654ASDF89ASD",
+                          "partitionCoefficient": "2.5432"
+                        }
                 """
                 );
+    }
+
+    @Test
+    void testWithCommunityTheCallerCannotManageReturnsNotFound() throws Exception {
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        String userPersonalId = "54889216G";
+        User user = UserMother.randomUser();
+        user.setPersonalId(userPersonalId);
+        createUserRepository.create(user);
+
+        // A community the caller does not administer -> 404 (existence is not leaked)
+        String body = String.format("""
+                {
+                  "code": "ES0033333333333333DD0D",
+                  "communityId": "%s",
+                  "personalId": "%s",
+                  "address": "Fake Street 123",
+                  "addressRef": "4ASDF654ASDF89ASD",
+                  "partitionCoefficient": "3.0763"
+                }
+        """, java.util.UUID.randomUUID(), userPersonalId);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 
     @ParameterizedTest
@@ -336,7 +377,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+    void testAuthenticatedUserWithoutAdminRoleGetsNotFound() throws Exception {
 
         String authHeader = loginAsPartner();
 
@@ -344,19 +385,20 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         String body = String.format("""
                 {
                   "code": "ES0033333333333333AA0A",
+                  "communityId": "%s",
                   "personalId": "%s",
                   "address": "Fake Street 123",
                   "addressRef": "4ASDF654ASDF89ASD",
                   "partitionCoefficient": "3.0763"
                 }
-        """, userPersonalId);
+        """, DEFAULT_COMMUNITY_ID, userPersonalId);
 
         mockMvc.perform(post(URL)
                         .content(body)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

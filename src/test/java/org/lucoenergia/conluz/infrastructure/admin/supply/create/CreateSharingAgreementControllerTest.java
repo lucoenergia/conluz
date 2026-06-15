@@ -115,7 +115,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testCommunityAdminCannotCreateForOtherCommunity() throws Exception {
+    void testCommunityAdminCannotCreateForOtherCommunityGetsNotFound() throws Exception {
         loginAsDefaultPlatformAdmin();
 
         Community ownCommunity = createCommunityRepository.create(random().build());
@@ -144,8 +144,8 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 
     @ParameterizedTest
@@ -279,7 +279,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

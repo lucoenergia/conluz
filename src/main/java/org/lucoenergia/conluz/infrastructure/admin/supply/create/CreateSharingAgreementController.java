@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSharingAgreementService;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementResponse;
@@ -29,9 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class CreateSharingAgreementController {
 
     private final CreateSharingAgreementService service;
+    private final CommunityAccessGuard communityAccessGuard;
 
-    public CreateSharingAgreementController(CreateSharingAgreementService service) {
+    public CreateSharingAgreementController(CreateSharingAgreementService service,
+                                            CommunityAccessGuard communityAccessGuard) {
         this.service = service;
+        this.communityAccessGuard = communityAccessGuard;
     }
 
     @PostMapping
@@ -68,8 +73,12 @@ public class CreateSharingAgreementController {
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
+    @NotFoundErrorResponse
+    @PreAuthorize("isAuthenticated()")
     public SharingAgreementResponse createSharingAgreement(@Valid @RequestBody CreateSharingAgreementBody body) {
+        if (!communityAccessGuard.canManageCommunity(body.getCommunityId())) {
+            throw new CommunityNotFoundException(body.getCommunityId());
+        }
         SharingAgreement sharingAgreement = service.create(body.getStartDate(), body.getEndDate(), body.getCommunityId());
         return new SharingAgreementResponse(sharingAgreement);
     }
