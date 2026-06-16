@@ -42,4 +42,9 @@ out/
 ### Deployment files ###
 deploy/telegraf.conf
 
+### Snapshot tooling ###
+# Local snapshot config (secrets) and generated bundles must never be committed.
+deploy/snapshot/.env
+deploy/snapshot/snapshots/
+
 .junie

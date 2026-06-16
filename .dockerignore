@@ -1,0 +1,22 @@
+# The production image (see Dockerfile) only needs build/libs/conluz-*.jar.
+# Everything else is excluded from the build context.
+#
+# In particular, the operational snapshot tooling MUST NOT enter the image:
+deploy/snapshot/
+# The rest of the deploy/ ops scripts are not needed in the image either:
+deploy/
+
+# Sources, tests and docs are not needed (the jar is already built):
+src/
+docs/
+logs/
+
+# Local/VCS noise:
+.git/
+.gradle/
+.idea/
+*.env
+.junie
+.claude
+.github
+.run
