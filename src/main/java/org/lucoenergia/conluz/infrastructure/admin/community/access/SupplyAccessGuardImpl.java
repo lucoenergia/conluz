@@ -35,9 +35,21 @@ class SupplyAccessGuardImpl implements SupplyAccessGuard {
 
     @Override
     public boolean canEditSupply(UUID supplyId) {
-        // Reading and editing a supply require the same access (community admin or owner), so a
-        // caller who cannot edit it also cannot see it: deny with a 404 to avoid leaking existence.
-        return canReadSupply(supplyId);
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null || supplyId == null) {
+            return false;
+        }
+        // A caller who cannot see the supply (it does not exist, or they neither administer its
+        // community nor own it) gets a 404, never a 403, to avoid leaking the supply's existence.
+        if (!canSeeSupply(user, supplyId)) {
+            throw new SupplyNotFoundException(SupplyId.of(supplyId));
+        }
+        Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
+        if (supply == null) {
+            return false;
+        }
+        UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
+        return helper.hasCommunityAdminRoleIn(user, communityId);
     }
 
     private boolean canSeeSupply(User user, UUID supplyId) {

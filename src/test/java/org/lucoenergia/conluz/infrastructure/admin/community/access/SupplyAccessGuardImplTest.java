@@ -143,13 +143,13 @@ class SupplyAccessGuardImplTest {
     }
 
     @Test
-    void canEditSupply_returnsTrue_whenUserIsOwner() {
+    void canEditSupply_returnsFalse_whenUserIsOwner() {
         User user = UserMother.randomUser();
         Supply supply = supplyOwnedBy(user.getId());
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertTrue(guard().canEditSupply(supply.getId()));
+        assertFalse(guard().canEditSupply(supply.getId()));
     }
 
     @Test
