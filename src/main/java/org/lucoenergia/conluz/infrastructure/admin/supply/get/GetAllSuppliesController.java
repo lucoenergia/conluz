@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
@@ -74,13 +73,9 @@ public class GetAllSuppliesController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canReadCommunity(#communityId)")
     public PagedResult<SupplyResponse> getAllSupplies(@PathVariable UUID communityId,
                                                       @Parameter(hidden = true) Pageable page) {
-        if (!communityAccessGuard.canReadCommunity(communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-
         User currentUser = authService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
 

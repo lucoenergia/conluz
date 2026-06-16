@@ -1,9 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.UserAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+import org.lucoenergia.conluz.domain.shared.UserId;
 
 import java.util.Objects;
 import java.util.Set;
@@ -26,13 +29,10 @@ class UserAccessGuardImpl implements UserAccessGuard {
         if (user == null) {
             return false;
         }
-        if (user.isPlatformAdmin()) {
-            return true;
+        if (!canSeeUser(user, userId)) {
+            throw new UserNotFoundException(UserId.of(userId));
         }
-        if (user.getId().equals(userId)) {
-            return true;
-        }
-        return isCommunityAdminOfAnyCommunityOfTargetUser(user, userId);
+        return true;
     }
 
     @Override
@@ -40,6 +40,9 @@ class UserAccessGuardImpl implements UserAccessGuard {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
             return false;
+        }
+        if (!canSeeUser(user, userId)) {
+            throw new UserNotFoundException(UserId.of(userId));
         }
         if (user.isPlatformAdmin()) {
             return true;
@@ -59,7 +62,26 @@ class UserAccessGuardImpl implements UserAccessGuard {
         if (communityId == null) {
             return false;
         }
+        if (!helper.canSeeCommunity(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
+        }
         return helper.hasCommunityAdminRoleIn(user, communityId);
+    }
+
+    /**
+     * Whether the caller is able to <em>see</em> the target user exists: platform admins see
+     * everyone, a user sees themselves, and a community admin sees the members of the communities
+     * they administer. Used to decide between a 404 (cannot see the user) and a 403 (can see but
+     * lacks permission for the action).
+     */
+    private boolean canSeeUser(User caller, UUID userId) {
+        if (Boolean.TRUE.equals(caller.isPlatformAdmin())) {
+            return true;
+        }
+        if (caller.getId().equals(userId)) {
+            return true;
+        }
+        return isCommunityAdminOfAnyCommunityOfTargetUser(caller, userId);
     }
 
     @Override

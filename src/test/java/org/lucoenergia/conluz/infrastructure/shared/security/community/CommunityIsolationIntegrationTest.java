@@ -131,7 +131,7 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
                         .header("Authorization", tokenA)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -142,7 +142,7 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
                         .header("Authorization", tokenB)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -209,14 +209,15 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
     void regularMemberCannotDownloadCommunityConsumptionCsv() throws Exception {
         String tokenA = loginUser(memberA);
 
-        // The CSV report is admin-only; a regular member of the community gets 404 (existence is not leaked).
+        // The CSV report is admin-only; a regular member can see the community but is not an admin,
+        // so the request is denied with a 403 (the community's existence is not leaked anyway).
         mockMvc.perform(get("/api/v1/communities/" + communityA.getId()
                         + "/consumption/datadis/report/hourly/csv")
                         .header("Authorization", tokenA)
                         .queryParam("startDate", "2023-04-01T00:00:00Z")
                         .queryParam("endDate", "2023-04-30T23:59:59Z"))
                 .andDo(print())
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
     }
 
     @Test

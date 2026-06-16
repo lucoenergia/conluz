@@ -4,12 +4,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.PlantAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
@@ -20,6 +23,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -47,31 +51,29 @@ class PlantAccessGuardImplTest {
     }
 
     @Test
-    void canManagePlant_returnsFalse_whenPlantNotFound() {
+    void canManagePlant_throwsNotFound_whenPlantNotFound() {
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
 
         UUID plantId = UUID.randomUUID();
         when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.empty());
 
-        assertFalse(guard().canManagePlant(plantId));
+        assertThrows(PlantNotFoundException.class, () -> guard().canManagePlant(plantId));
     }
 
     @Test
-    void canManagePlant_returnsFalse_whenUserIsPlatformAdminButNotCommunityAdmin() {
+    void canManagePlant_throwsNotFound_whenUserIsNotMemberOfPlantCommunity() {
+        // A platform admin who is not a member of the plant's community cannot see the plant -> 404.
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(helper.getCurrentUser()).thenReturn(Optional.of(admin));
 
         Community community = CommunityMother.random().build();
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
-        Plant plant = new Plant.Builder()
-                .withId(UUID.randomUUID())
-                .withSupply(supply)
-                .build();
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
         when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
 
-        assertFalse(guard().canManagePlant(plant.getId()));
+        assertThrows(PlantNotFoundException.class, () -> guard().canManagePlant(plant.getId()));
     }
 
     @Test
@@ -79,45 +81,40 @@ class PlantAccessGuardImplTest {
         Community community = CommunityMother.random().build();
         UUID communityId = community.getId();
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
-        Plant plant = new Plant.Builder()
-                .withId(UUID.randomUUID())
-                .withSupply(supply)
-                .build();
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
-        when(helper.hasCommunityAdminRoleIn(user, communityId)).thenReturn(true);
         when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(helper.hasCommunityAdminRoleIn(user, communityId)).thenReturn(true);
 
         assertTrue(guard().canManagePlant(plant.getId()));
     }
 
     @Test
     void canManagePlant_returnsFalse_whenUserIsCommunityMember() {
+        // A member can see the plant but only admins may manage it -> 403 (return false), not 404.
         Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
-        Plant plant = new Plant.Builder()
-                .withId(UUID.randomUUID())
-                .withSupply(supply)
-                .build();
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
         when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
 
         assertFalse(guard().canManagePlant(plant.getId()));
     }
 
     @Test
-    void canManagePlant_returnsFalse_whenPlantSupplyHasNoCommunity() {
+    void canManagePlant_throwsNotFound_whenPlantSupplyHasNoCommunity() {
         Supply supply = supplyOwnedBy(UUID.randomUUID());
-        Plant plant = new Plant.Builder()
-                .withId(UUID.randomUUID())
-                .withSupply(supply)
-                .build();
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
         when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
 
-        assertFalse(guard().canManagePlant(plant.getId()));
+        assertThrows(PlantNotFoundException.class, () -> guard().canManagePlant(plant.getId()));
     }
 
     // --- canReadPlant ---
@@ -130,25 +127,30 @@ class PlantAccessGuardImplTest {
     }
 
     @Test
-    void canReadPlant_returnsFalse_whenUserIsPlatformAdminAndDoesntBelongToCommunity() {
+    void canReadPlant_throwsNotFound_whenUserIsPlatformAdminAndDoesntBelongToCommunity() {
+        // Plant reads are community-scoped: a platform admin who is not a member of the plant's
+        // community cannot see it -> 404.
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(helper.getCurrentUser()).thenReturn(Optional.of(admin));
 
-        // Plant reads are community-scoped: a platform admin who is not a member of the plant's
-        // community cannot read it.
-        assertFalse(guard().canReadPlant(UUID.randomUUID()));
+        Community community = CommunityMother.random().build();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        assertThrows(PlantNotFoundException.class, () -> guard().canReadPlant(plant.getId()));
     }
 
     @Test
-    void canReadPlant_returnsFalse_whenPlantNotFound() {
+    void canReadPlant_throwsNotFound_whenPlantNotFound() {
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
 
         UUID plantId = UUID.randomUUID();
         when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.empty());
 
-        assertFalse(guard().canReadPlant(plantId));
+        assertThrows(PlantNotFoundException.class, () -> guard().canReadPlant(plantId));
     }
 
     @Test
@@ -156,10 +158,7 @@ class PlantAccessGuardImplTest {
         Community community = CommunityMother.random().build();
         UUID communityId = community.getId();
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
-        Plant plant = new Plant.Builder()
-                .withId(UUID.randomUUID())
-                .withSupply(supply)
-                .build();
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
         when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
@@ -169,32 +168,26 @@ class PlantAccessGuardImplTest {
     }
 
     @Test
-    void canReadPlant_returnsFalse_whenUserIsNotMemberOfPlantCommunity() {
+    void canReadPlant_throwsNotFound_whenUserIsNotMemberOfPlantCommunity() {
         Community community = CommunityMother.random().build();
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
-        Plant plant = new Plant.Builder()
-                .withId(UUID.randomUUID())
-                .withSupply(supply)
-                .build();
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
         when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
 
-        assertFalse(guard().canReadPlant(plant.getId()));
+        assertThrows(PlantNotFoundException.class, () -> guard().canReadPlant(plant.getId()));
     }
 
     @Test
-    void canReadPlant_returnsFalse_whenPlantSupplyHasNoCommunity() {
+    void canReadPlant_throwsNotFound_whenPlantSupplyHasNoCommunity() {
         Supply supply = supplyOwnedBy(UUID.randomUUID());
-        Plant plant = new Plant.Builder()
-                .withId(UUID.randomUUID())
-                .withSupply(supply)
-                .build();
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
         when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
 
-        assertFalse(guard().canReadPlant(plant.getId()));
+        assertThrows(PlantNotFoundException.class, () -> guard().canReadPlant(plant.getId()));
     }
 
     // --- canListPlants ---
@@ -208,13 +201,15 @@ class PlantAccessGuardImplTest {
 
     @Test
     void canListPlants_returnsFalse_whenUserIsPlatformAdminAndDoesntBelongToCommunity() {
+        // A platform admin can see the community but is not a member, so listing its plants is
+        // denied with a 403 (return false), not a 404.
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
+        UUID communityId = UUID.randomUUID();
         when(helper.getCurrentUser()).thenReturn(Optional.of(admin));
+        when(helper.canSeeCommunity(admin, communityId)).thenReturn(true);
 
-        // Plant reads are community-scoped: a platform admin who is not a member of the plant's
-        // community cannot read it.
-        assertFalse(guard().canListPlants(UUID.randomUUID()));
+        assertFalse(guard().canListPlants(communityId));
     }
 
     @Test
@@ -223,18 +218,20 @@ class PlantAccessGuardImplTest {
         UUID communityId = community.getId();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.canSeeCommunity(user, communityId)).thenReturn(true);
         when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
 
         assertTrue(guard().canListPlants(communityId));
     }
 
     @Test
-    void canListPlants_returnsFalse_whenUserIsNotMemberOfPlantCommunity() {
+    void canListPlants_throwsNotFound_whenUserIsNotMemberOfPlantCommunity() {
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.canSeeCommunity(user, community.getId())).thenReturn(false);
 
-        assertFalse(guard().canListPlants(community.getId()));
+        assertThrows(CommunityNotFoundException.class, () -> guard().canListPlants(community.getId()));
     }
 
     // --- canCreatePlant ---
@@ -255,14 +252,14 @@ class PlantAccessGuardImplTest {
     }
 
     @Test
-    void canCreatePlant_returnsFalse_whenSupplyNotFoundByCode() {
+    void canCreatePlant_throwsNotFound_whenSupplyNotFoundByCode() {
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
 
         String supplyCode = "ES001";
         when(getSupplyRepository.findByCode(SupplyCode.of(supplyCode))).thenReturn(Optional.empty());
 
-        assertFalse(guard().canCreatePlant(supplyCode));
+        assertThrows(SupplyNotFoundException.class, () -> guard().canCreatePlant(supplyCode));
     }
 
     @Test
@@ -281,10 +278,11 @@ class PlantAccessGuardImplTest {
     }
 
     @Test
-    void canCreatePlant_returnsFalse_whenUserIsCommunityMember() {
+    void canCreatePlant_returnsFalse_whenUserOwnsSupplyButIsNotCommunityAdmin() {
+        // The owner can see the supply but only community admins may create plants -> 403.
         Community community = CommunityMother.random().build();
-        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
         User user = UserMother.randomUser();
+        Supply supply = supplyInCommunityOwnedBy(user, community);
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
 
         String supplyCode = "ES001";
@@ -294,7 +292,21 @@ class PlantAccessGuardImplTest {
     }
 
     @Test
-    void canCreatePlant_returnsFalse_whenSupplyHasNoCommunity() {
+    void canCreatePlant_throwsNotFound_whenUserCannotSeeSupply() {
+        // Neither the supply's owner nor an admin of its community -> cannot see it -> 404.
+        Community community = CommunityMother.random().build();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+
+        String supplyCode = "ES001";
+        when(getSupplyRepository.findByCode(SupplyCode.of(supplyCode))).thenReturn(Optional.of(supply));
+
+        assertThrows(SupplyNotFoundException.class, () -> guard().canCreatePlant(supplyCode));
+    }
+
+    @Test
+    void canCreatePlant_throwsNotFound_whenSupplyHasNoCommunity() {
         Supply supply = supplyOwnedBy(UUID.randomUUID());
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
@@ -302,7 +314,7 @@ class PlantAccessGuardImplTest {
         String supplyCode = "ES001";
         when(getSupplyRepository.findByCode(SupplyCode.of(supplyCode))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canCreatePlant(supplyCode));
+        assertThrows(SupplyNotFoundException.class, () -> guard().canCreatePlant(supplyCode));
     }
 
     // --- helpers ---
@@ -322,6 +334,19 @@ class PlantAccessGuardImplTest {
 
     private Supply supplyInCommunity(UUID ownerId, Community community) {
         User owner = new User.Builder().id(ownerId).build();
+        return new Supply.Builder()
+                .withId(UUID.randomUUID())
+                .withCode("ES001")
+                .withUser(owner)
+                .withCommunity(community)
+                .withName("Supply")
+                .withAddress("Address")
+                .withPartitionCoefficient(1.0f)
+                .withEnabled(true)
+                .build();
+    }
+
+    private Supply supplyInCommunityOwnedBy(User owner, Community community) {
         return new Supply.Builder()
                 .withId(UUID.randomUUID())
                 .withCode("ES001")

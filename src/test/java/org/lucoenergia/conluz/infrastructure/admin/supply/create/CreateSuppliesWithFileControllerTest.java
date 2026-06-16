@@ -291,7 +291,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                         .param("communityId", DEFAULT_COMMUNITY_ID.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

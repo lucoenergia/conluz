@@ -5,8 +5,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -28,12 +26,9 @@ import java.util.UUID;
 public class SyncDatadisSuppliesController {
 
     private final DatadisSuppliesSyncService datadisSuppliesSyncService;
-    private final CommunityAccessGuard communityAccessGuard;
 
-    public SyncDatadisSuppliesController(DatadisSuppliesSyncService datadisSuppliesSyncService,
-                                         CommunityAccessGuard communityAccessGuard) {
+    public SyncDatadisSuppliesController(DatadisSuppliesSyncService datadisSuppliesSyncService) {
         this.datadisSuppliesSyncService = datadisSuppliesSyncService;
-        this.communityAccessGuard = communityAccessGuard;
     }
 
     @PostMapping
@@ -45,7 +40,8 @@ public class SyncDatadisSuppliesController {
 
                     Proper authentication, through an authentication token, is required for secure access to this
                     endpoint.
-                    **Required: Community Admin of the community. Returns 404 if the community does not exist or cannot be managed.**
+                    **Required: Community Admin of the community. Returns 404 if the community does not exist or the
+                    caller is not a member of it, or 403 if the caller is a member but not one of its admins.**
 
                     A successful request returns an HTTP status code of 200.
                     
@@ -70,11 +66,8 @@ public class SyncDatadisSuppliesController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncDatadisSupplies(@PathVariable UUID communityId) {
-        if (!communityAccessGuard.canManageCommunity(communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
         datadisSuppliesSyncService.synchronizeSupplies(communityId);
     }
 }

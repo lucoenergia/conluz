@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.*;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
@@ -53,10 +54,10 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         if (user == null) {
             return false;
         }
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
-            return true;
+        if (!helper.canSeeCommunity(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
         }
-        return helper.hasMembershipInCommunity(user, communityId);
+        return true;
     }
 
     @Override
@@ -64,6 +65,9 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
             return false;
+        }
+        if (!helper.canSeeCommunity(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
         }
         return helper.hasCommunityAdminRoleIn(user, communityId);
     }

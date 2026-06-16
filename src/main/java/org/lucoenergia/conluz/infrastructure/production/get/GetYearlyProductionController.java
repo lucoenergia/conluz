@@ -3,8 +3,6 @@ package org.lucoenergia.conluz.infrastructure.production.get;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.production.get.GetProductionService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -32,12 +30,9 @@ import java.util.UUID;
 public class GetYearlyProductionController {
 
     private final GetProductionService getProductionService;
-    private final CommunityAccessGuard communityAccessGuard;
 
-    public GetYearlyProductionController(GetProductionService getProductionService,
-                                         CommunityAccessGuard communityAccessGuard) {
+    public GetYearlyProductionController(GetProductionService getProductionService) {
         this.getProductionService = getProductionService;
-        this.communityAccessGuard = communityAccessGuard;
     }
 
     @GetMapping
@@ -63,16 +58,14 @@ public class GetYearlyProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated() and (#supplyId == null or @communityAccessGuard.canReadSupply(#supplyId))")
+    @PreAuthorize("isAuthenticated() and @communityAccessGuard.canReadCommunity(#communityId)"
+            + " and (#supplyId == null or @communityAccessGuard.canReadSupply(#supplyId))")
     public List<ProductionByTime> getYearlyProduction(
             @PathVariable UUID communityId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
             @RequestParam(required = false) UUID supplyId) {
 
-        if (!communityAccessGuard.canReadCommunity(communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
         if (Objects.isNull(supplyId)) {
             return getProductionService.getYearlyProductionByRangeOfDatesAndCommunity(startDate, endDate, communityId);
         }

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
@@ -68,11 +69,12 @@ class CommunityAccessGuardImplTest {
     }
 
     @Test
-    void canReadCommunity_returnsFalse_whenUserIsNotMember() {
+    void canReadCommunity_throwsNotFound_whenUserIsNotMember() {
+        // A non-member cannot see the community -> 404 to avoid leaking its existence.
         User user = UserMother.randomUser();
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
-        assertFalse(guard().canReadCommunity(UUID.randomUUID()));
+        assertThrows(CommunityNotFoundException.class, () -> guard().canReadCommunity(UUID.randomUUID()));
     }
 
     // --- canManageCommunity ---
@@ -114,8 +116,9 @@ class CommunityAccessGuardImplTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         UUID communityId = UUID.randomUUID();
-        assertFalse(guard().canReadCommunity(communityId));
-        assertFalse(guard().canManageCommunity(communityId));
+        // Cannot see the community -> 404 for both read and manage.
+        assertThrows(CommunityNotFoundException.class, () -> guard().canReadCommunity(communityId));
+        assertThrows(CommunityNotFoundException.class, () -> guard().canManageCommunity(communityId));
         assertTrue(guard().visibleCommunityIds().isEmpty());
     }
 

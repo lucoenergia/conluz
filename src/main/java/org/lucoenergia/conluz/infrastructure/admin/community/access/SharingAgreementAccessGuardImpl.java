@@ -3,10 +3,10 @@ package org.lucoenergia.conluz.infrastructure.admin.community.access;
 import org.lucoenergia.conluz.domain.admin.community.access.SharingAgreementAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
+import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
-import java.util.Optional;
 import java.util.UUID;
 
 class SharingAgreementAccessGuardImpl implements SharingAgreementAccessGuard {
@@ -26,12 +26,13 @@ class SharingAgreementAccessGuardImpl implements SharingAgreementAccessGuard {
         if (user == null) {
             return false;
         }
-        Optional<SharingAgreement> agreement = getSharingAgreementRepository.findById(
-                SharingAgreementId.of(agreementId));
-        if (agreement.isEmpty()) {
-            return false;
+        SharingAgreement agreement = getSharingAgreementRepository.findById(
+                SharingAgreementId.of(agreementId)).orElse(null);
+        // Sharing agreements are only visible to admins of their community, so a caller who cannot
+        // manage it cannot see it either: deny with a 404 to avoid leaking the agreement's existence.
+        if (agreement == null || !helper.hasCommunityAdminRoleIn(user, agreement.getCommunityId())) {
+            throw new SharingAgreementNotFoundException(SharingAgreementId.of(agreementId));
         }
-        UUID communityId = agreement.get().getCommunityId();
-        return helper.hasCommunityAdminRoleIn(user, communityId);
+        return true;
     }
 }

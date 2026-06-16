@@ -7,7 +7,6 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 
-import java.util.Optional;
 import java.util.UUID;
 
 class SupplyAccessGuardImpl implements SupplyAccessGuard {
@@ -26,44 +25,32 @@ class SupplyAccessGuardImpl implements SupplyAccessGuard {
         if (user == null || supplyId == null) {
             return false;
         }
-        Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
-        if (supply == null) {
-            return throwNotFoundIfAuthorized(supplyId);
+        // A caller who cannot see the supply (it does not exist, or they neither administer its
+        // community nor own it) gets a 404, never a 403, to avoid leaking the supply's existence.
+        if (!canSeeSupply(user, supplyId)) {
+            throw new SupplyNotFoundException(SupplyId.of(supplyId));
         }
-        UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
-        if (helper.hasCommunityAdminRoleIn(user, communityId)) {
-            return true;
-        }
-        return isOwner(supply, user);
+        return true;
     }
 
     @Override
     public boolean canEditSupply(UUID supplyId) {
-        User user = helper.getCurrentUser().orElse(null);
+        // Reading and editing a supply require the same access (community admin or owner), so a
+        // caller who cannot edit it also cannot see it: deny with a 404 to avoid leaking existence.
+        return canReadSupply(supplyId);
+    }
+
+    private boolean canSeeSupply(User user, UUID supplyId) {
         Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
-        if (user == null) {
+        if (supply == null) {
             return false;
         }
-        if (supply == null) {
-            return throwNotFoundIfAuthorized(supplyId);
-        }
         UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
-        if (helper.hasCommunityAdminRoleIn(user, communityId)) {
-            return true;
-        }
-        return isOwner(supply, user);
+        return helper.hasCommunityAdminRoleIn(user, communityId) || isOwner(supply, user);
     }
 
     private boolean isOwner(Supply supply, User user) {
         return supply.getUser() != null && supply.getUser().getId() != null
                 && supply.getUser().getId().equals(user.getId());
-    }
-
-    private boolean throwNotFoundIfAuthorized(UUID supplyId) {
-        Optional<User> userOpt = helper.getCurrentUser();
-        if (userOpt.isPresent() && Boolean.TRUE.equals(userOpt.get().isPlatformAdmin())) {
-            throw new SupplyNotFoundException(SupplyId.of(supplyId));
-        }
-        return false;
     }
 }

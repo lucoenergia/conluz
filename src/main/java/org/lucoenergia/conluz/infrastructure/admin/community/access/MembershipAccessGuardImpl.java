@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.MembershipAccessGuard;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
@@ -18,6 +19,9 @@ class MembershipAccessGuardImpl implements MembershipAccessGuard {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
             return false;
+        }
+        if (!helper.canSeeCommunity(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
         }
         if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
             return true;

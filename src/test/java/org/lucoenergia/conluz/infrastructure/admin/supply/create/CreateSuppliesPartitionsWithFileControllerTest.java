@@ -308,9 +308,9 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                         .param("sharingAgreementId", nonExistentSharingAgreementId.toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
-                .andExpect(status().isForbidden())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
@@ -349,7 +349,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("sharingAgreementId", sharingAgreementId.toString()))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

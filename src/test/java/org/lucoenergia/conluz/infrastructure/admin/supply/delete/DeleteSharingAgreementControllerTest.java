@@ -53,8 +53,8 @@ class DeleteSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testDeleteNonExistentSharingAgreement() throws Exception {
-        // A non-existent agreement is denied by the access guard (403) before the controller runs,
-        // avoiding resource-existence leakage.
+        // A non-existent agreement cannot be seen by the caller, so the guard returns 404 before the
+        // controller runs, avoiding resource-existence leakage.
         String authHeader = loginAsDefaultPlatformAdmin();
 
         UUID nonExistentId = UUID.randomUUID();
@@ -63,9 +63,9 @@ class DeleteSharingAgreementControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
@@ -125,7 +125,7 @@ class DeleteSharingAgreementControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

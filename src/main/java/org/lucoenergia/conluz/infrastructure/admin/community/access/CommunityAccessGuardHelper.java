@@ -40,6 +40,21 @@ class CommunityAccessGuardHelper {
                         && Boolean.TRUE.equals(m.isEnabled()));
     }
 
+    /**
+     * Whether the user is able to <em>see</em> the community exists (platform admins see every
+     * community; otherwise the user must hold an enabled membership in it). Used to decide between
+     * a 404 (cannot see the community) and a 403 (can see it but lacks the required permission).
+     */
+    public boolean canSeeCommunity(User user, UUID communityId) {
+        if (user == null) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
+            return true;
+        }
+        return hasMembershipInCommunity(user, communityId);
+    }
+
     public boolean isCurrentUser(User user, UUID userId) {
         return user != null && userId != null && userId.equals(user.getId());
     }

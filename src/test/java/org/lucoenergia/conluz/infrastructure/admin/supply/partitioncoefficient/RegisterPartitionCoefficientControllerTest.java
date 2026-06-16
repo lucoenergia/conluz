@@ -105,7 +105,7 @@ class RegisterPartitionCoefficientControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"coefficient\": 10.0, \"effectiveAt\": \"2025-06-01T00:00:00Z\"}"))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     private static final String UUID_PLACEHOLDER = "00000000-0000-0000-0000-000000000000";

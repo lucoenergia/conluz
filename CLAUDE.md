@@ -185,8 +185,20 @@ This policy is MANDATORY. Every REST controller endpoint MUST enforce it via a `
 ### Enforcement rules for developers and AI agents
 - Platform-wide actions: `@PreAuthorize("hasRole('PLATFORM_ADMIN')")`.
 - Community-scoped actions: `@PreAuthorize("@communityAccessGuard.<method>(...)")` using the matching guard method (`canManageCommunity`, `canManageMemberships`, `canManagePlant`, `canCreatePlant`, `canManageSharingAgreement`, `canEditSupply`, `canCreateUserIn`, `canReadUser`, `canEditUser`, `canListUsers`).
-- Object reads scoped to ownership/community: enforce `canReadSupply` / `canReadCommunity` directly in the controller `@PreAuthorize` (never in the service).
+- Object reads scoped to ownership/community: enforce `canReadSupply` / `canReadCommunity` (or the matching object-scoped guard method) directly in the controller `@PreAuthorize` (never in the service). The guard method itself throws the matching `*NotFoundException` (→ 404) when the caller cannot see the object — controllers MUST NOT add their own `if (!guard.canX(id)) throw ...` / `ResponseEntity.notFound()` boilerplate. See "Error responses for denied access" below.
 - List endpoints: compute the visible scope in the controller via the guard (`visibleCommunityIds()` for membership scope, `adminCommunityIds()` for admin-only scope) and pass it as a plain parameter to the service/repository query — the service must not call the guard itself.
 - `isAuthenticated()` alone is acceptable ONLY for endpoints any authenticated user may call without object scope (e.g. `GET /prices`). Otherwise use a `@communityAccessGuard` method.
 - Self-service: a user editing their own record is allowed; enabling/disabling/deleting one's own account MUST be rejected for everyone, including admins (e.g. `@PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")`).
-- New endpoints without an authorization clause are NOT permitted. Add a controller test asserting 401 (no token) and 403 (wrong role) for every endpoint.
+- New endpoints without an authorization clause are NOT permitted. Add a controller test for every endpoint asserting **401** (no token); **404** when an authenticated caller cannot see the targeted object (object-scoped denial); and **403** when the caller can see the object but lacks permission for the action (role/scope denials and self-service).
+
+### Error responses for denied access (401 / 403 / 404)
+
+To avoid leaking the existence of resources, denials are mapped by **visibility**, not just by role:
+- **401 Unauthorized** — the request is unauthenticated.
+- **404 Not Found** — the authenticated caller **cannot see** the targeted object (it does not exist, or it is outside everything they may read). Returning 403 here would reveal that the object exists.
+- **403 Forbidden** — the authenticated caller **can see** the object but is **not permitted to perform this action** (e.g. a non-admin community member hitting a community-admin-only endpoint). They already know it exists, so nothing leaks. Also used for platform-wide role checks (`hasRole('PLATFORM_ADMIN')`) and self-service guards (enabling/disabling/deleting one's own account).
+
+How this is enforced (centralized in the guard — no controller boilerplate):
+- Object-scoped `@communityAccessGuard` methods perform a **visibility gate then an authorization check**: they **throw the matching `*NotFoundException`** (`CommunityNotFoundException`, `SupplyNotFoundException`, `PlantNotFoundException`, `UserNotFoundException`, `SharingAgreementNotFoundException`) when the caller cannot see the object, and otherwise **return** whether the action is allowed (`false` → 403). They return `false` (never throw) only when the caller is unauthenticated, so anonymous requests become 401.
+- Controllers reference the guard directly in `@PreAuthorize` (e.g. `@PreAuthorize("@communityAccessGuard.canReadSupply(#id)")`); they add **no** not-found/forbidden boilerplate. A `*NotFoundException` thrown during `@PreAuthorize` evaluation is mapped to 404 by the global `@RestControllerAdvice` handlers; a `false` result is mapped to 403 by `ConluzAccessDeniedHandler` (or 401 for anonymous callers).
+- This is why an object-scoped denial must NEVER be left to fall through to a 403 when the caller cannot see the object — the guard decides 404 vs 403. Throwing a domain `*NotFoundException` from the guard does not violate the "only `ConluzAccessDeniedHandler` references `AccessDeniedException`" rule (it is a different exception type).

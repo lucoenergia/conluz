@@ -1,15 +1,17 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.PlantAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 
-import java.util.Optional;
 import java.util.UUID;
 
 class PlantAccessGuardImpl implements PlantAccessGuard {
@@ -31,12 +33,9 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        Optional<Plant> plant = getPlantRepository.findById(PlantId.of(plantId));
-        if (plant.isEmpty()) {
-            return false;
-        }
-        UUID communityId = plant.get().getSupply() != null && plant.get().getSupply().getCommunity() != null
-                ? plant.get().getSupply().getCommunity().getId() : null;
+        UUID communityId = communityIdOfVisiblePlant(user, plantId);
+        // A member of the plant's community can see it but only community admins may manage it
+        // (member-non-admin -> 403). Non-members never get here (they received a 404 above).
         return helper.hasCommunityAdminRoleIn(user, communityId);
     }
 
@@ -46,14 +45,8 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        Optional<Plant> plant = getPlantRepository.findById(PlantId.of(plantId));
-        if (plant.isEmpty()) {
-            return false;
-        }
-        UUID communityId = plant.get().getSupply() != null && plant.get().getSupply().getCommunity() != null
-                ? plant.get().getSupply().getCommunity().getId() : null;
-        // Any enabled member (regardless of role) of the plant's community can read it
-        return helper.hasMembershipInCommunity(user, communityId);
+        communityIdOfVisiblePlant(user, plantId);
+        return true;
     }
 
     @Override
@@ -65,11 +58,15 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (supplyCode == null) {
             return false;
         }
-        Optional<Supply> supply = getSupplyRepository.findByCode(SupplyCode.of(supplyCode));
-        if (supply.isEmpty()) {
-            return false;
+        Supply supply = getSupplyRepository.findByCode(SupplyCode.of(supplyCode)).orElse(null);
+        UUID communityId = supply != null && supply.getCommunity() != null
+                ? supply.getCommunity().getId() : null;
+        // The supply is the resource whose existence must not leak: a caller who cannot see it
+        // (it does not exist, or they neither administer its community nor own it) gets a 404.
+        if (supply == null || !(helper.hasCommunityAdminRoleIn(user, communityId) || isOwner(supply, user))) {
+            throw new SupplyNotFoundException(SupplyCode.of(supplyCode));
         }
-        UUID communityId = supply.get().getCommunity() != null ? supply.get().getCommunity().getId() : null;
+        // Owners who are not community admins can see the supply but may not create plants (-> 403).
         return helper.hasCommunityAdminRoleIn(user, communityId);
     }
 
@@ -79,7 +76,33 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        // Any enabled member (regardless of role) of the plant's community can read it
+        if (!helper.canSeeCommunity(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
+        }
+        // Any enabled member (regardless of role) of the community can list its plants.
         return helper.hasMembershipInCommunity(user, communityId);
+    }
+
+    /**
+     * Resolves the community of the plant the user is allowed to see, throwing
+     * {@link PlantNotFoundException} (404) when the plant does not exist or the user is not a
+     * member of its community — so the plant's existence is never leaked to non-members.
+     */
+    private UUID communityIdOfVisiblePlant(User user, UUID plantId) {
+        Plant plant = getPlantRepository.findById(PlantId.of(plantId)).orElse(null);
+        if (plant == null) {
+            throw new PlantNotFoundException(PlantId.of(plantId));
+        }
+        UUID communityId = plant.getSupply() != null && plant.getSupply().getCommunity() != null
+                ? plant.getSupply().getCommunity().getId() : null;
+        if (!helper.hasMembershipInCommunity(user, communityId)) {
+            throw new PlantNotFoundException(PlantId.of(plantId));
+        }
+        return communityId;
+    }
+
+    private boolean isOwner(Supply supply, User user) {
+        return supply.getUser() != null && supply.getUser().getId() != null
+                && supply.getUser().getId().equals(user.getId());
     }
 }

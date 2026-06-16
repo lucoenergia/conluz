@@ -402,7 +402,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyAsString))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

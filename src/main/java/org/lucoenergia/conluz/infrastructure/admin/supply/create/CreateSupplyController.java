@@ -5,8 +5,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -36,11 +34,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class CreateSupplyController {
 
     private final CreateSupplyService service;
-    private final CommunityAccessGuard communityAccessGuard;
 
-    public CreateSupplyController(CreateSupplyService service, CommunityAccessGuard communityAccessGuard) {
+    public CreateSupplyController(CreateSupplyService service) {
         this.service = service;
-        this.communityAccessGuard = communityAccessGuard;
     }
 
     @PostMapping
@@ -54,7 +50,9 @@ public class CreateSupplyController {
                     The supply's community is provided in the body via the required `communityId` field.
 
                     Proper authentication, through authentication tokens, is required to access this endpoint.
-                    **Required: Community Admin of the community. Returns 400 if `communityId` is missing and 404 if the community does not exist or cannot be managed.**
+                    **Required: Community Admin of the community. Returns 400 if `communityId` is missing, 404 if the
+                    community does not exist or the caller is not a member of it, or 403 if the caller is a member but
+                    not one of its admins.**
 
                     Upon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.
                     
@@ -76,11 +74,8 @@ public class CreateSupplyController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
     public SupplyResponse createSupply(@Valid @RequestBody CreateSupplyBody body) {
-        if (!communityAccessGuard.canManageCommunity(body.getCommunityId())) {
-            throw new CommunityNotFoundException(body.getCommunityId());
-        }
         Supply newSupply = service.create(body.mapToSupply(), UserPersonalId.of(body.getPersonalId()), body.getCommunityId());
         return new SupplyResponse(newSupply);
     }

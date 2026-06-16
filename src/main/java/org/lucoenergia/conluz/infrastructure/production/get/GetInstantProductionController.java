@@ -3,8 +3,6 @@ package org.lucoenergia.conluz.infrastructure.production.get;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
 import org.lucoenergia.conluz.domain.production.get.GetProductionService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -29,12 +27,9 @@ import java.util.UUID;
 public class GetInstantProductionController {
 
     private final GetProductionService getProductionService;
-    private final CommunityAccessGuard communityAccessGuard;
 
-    public GetInstantProductionController(GetProductionService getProductionService,
-                                          CommunityAccessGuard communityAccessGuard) {
+    public GetInstantProductionController(GetProductionService getProductionService) {
         this.getProductionService = getProductionService;
-        this.communityAccessGuard = communityAccessGuard;
     }
 
     @GetMapping
@@ -60,12 +55,10 @@ public class GetInstantProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated() and (#supplyId == null or @communityAccessGuard.canReadSupply(#supplyId))")
+    @PreAuthorize("isAuthenticated() and @communityAccessGuard.canReadCommunity(#communityId)"
+            + " and (#supplyId == null or @communityAccessGuard.canReadSupply(#supplyId))")
     public InstantProduction getInstantProduction(@PathVariable UUID communityId,
                                                   @RequestParam(required = false) UUID supplyId) {
-        if (!communityAccessGuard.canReadCommunity(communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
         if (Objects.isNull(supplyId)) {
             return getProductionService.getInstantProductionByCommunity(communityId);
         }

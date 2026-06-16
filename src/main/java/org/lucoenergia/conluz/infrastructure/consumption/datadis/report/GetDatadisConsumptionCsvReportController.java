@@ -4,8 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionReportService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -33,12 +31,9 @@ import java.util.UUID;
 public class GetDatadisConsumptionCsvReportController {
 
     private final GetDatadisConsumptionReportService getDatadisConsumptionReportService;
-    private final CommunityAccessGuard communityAccessGuard;
 
-    public GetDatadisConsumptionCsvReportController(GetDatadisConsumptionReportService getDatadisConsumptionReportService,
-                                                    CommunityAccessGuard communityAccessGuard) {
+    public GetDatadisConsumptionCsvReportController(GetDatadisConsumptionReportService getDatadisConsumptionReportService) {
         this.getDatadisConsumptionReportService = getDatadisConsumptionReportService;
-        this.communityAccessGuard = communityAccessGuard;
     }
 
     @GetMapping(value = "/csv")
@@ -50,7 +45,8 @@ public class GetDatadisConsumptionCsvReportController {
 
                     **Authorization Rules:**
                     - Only a Community Admin of the community can access this endpoint.
-                    - Returns 404 if the community does not exist or the caller cannot manage it.
+                    - Returns 404 if the community does not exist or the caller is not a member of it,
+                      or 403 if the caller is a member of the community but not one of its admins.
 
                     The CSV includes:
                     - cups: Supply point identifier
@@ -77,15 +73,11 @@ public class GetDatadisConsumptionCsvReportController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public ResponseEntity<byte[]> getDatadisConsumptionHourlyCsvReport(
             @PathVariable UUID communityId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
-
-        if (!communityAccessGuard.canManageCommunity(communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
 
         ByteArrayOutputStream out =
                 getDatadisConsumptionReportService.getHourlyConsumptionReportAsCsv(startDate, endDate, communityId);

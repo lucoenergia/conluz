@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
-import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.SupplyAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
@@ -18,7 +17,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,9 +35,11 @@ class SupplyAccessGuardImplTest {
     }
 
     // --- canReadSupply ---
+    // Reading and editing a supply require the same access (community admin or owner), so any
+    // authenticated caller who cannot see the supply gets a 404, never a 403.
 
     @Test
-    void canReadSupply_returnsFalse_whenUserIsPlatformAdminButNotCommunityAdminOrMember() {
+    void canReadSupply_throwsNotFound_whenUserIsPlatformAdminButNotCommunityAdminOrOwner() {
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(helper.getCurrentUser()).thenReturn(Optional.of(admin));
@@ -44,7 +47,7 @@ class SupplyAccessGuardImplTest {
         Supply supply = supplyOwnedBy(UUID.randomUUID());
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canReadSupply(supply.getId()));
+        assertThrows(SupplyNotFoundException.class, () -> guard().canReadSupply(supply.getId()));
     }
 
     @Test
@@ -73,7 +76,7 @@ class SupplyAccessGuardImplTest {
     }
 
     @Test
-    void canReadSupply_returnsFalse_whenUserIsMemberOfSupplyCommunityButNotCommunityAdminOrOwner() {
+    void canReadSupply_throwsNotFound_whenUserIsMemberOfSupplyCommunityButNotCommunityAdminOrOwner() {
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         UUID communityId = community.getId();
@@ -83,11 +86,11 @@ class SupplyAccessGuardImplTest {
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canReadSupply(supply.getId()));
+        assertThrows(SupplyNotFoundException.class, () -> guard().canReadSupply(supply.getId()));
     }
 
     @Test
-    void canReadSupply_returnsFalse_whenUserIsNotMemberOfSupplyCommunity() {
+    void canReadSupply_throwsNotFound_whenUserIsNotMemberOfSupplyCommunity() {
         Community communityB = CommunityMother.random().build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
@@ -95,7 +98,7 @@ class SupplyAccessGuardImplTest {
         Supply supply = supplyInCommunity(UUID.randomUUID(), communityB);
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canReadSupply(supply.getId()));
+        assertThrows(SupplyNotFoundException.class, () -> guard().canReadSupply(supply.getId()));
     }
 
     @Test
@@ -106,7 +109,7 @@ class SupplyAccessGuardImplTest {
     }
 
     @Test
-    void canReadSupply_throwsNotFoundException_whenPlatformAdminAndSupplyNotFound() {
+    void canReadSupply_throwsNotFound_whenPlatformAdminAndSupplyNotFound() {
         UUID supplyId = UUID.randomUUID();
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
@@ -117,26 +120,26 @@ class SupplyAccessGuardImplTest {
     }
 
     @Test
-    void canReadSupply_returnsFalse_whenNonAdminAndSupplyNotFound() {
+    void canReadSupply_throwsNotFound_whenNonAdminAndSupplyNotFound() {
         UUID supplyId = UUID.randomUUID();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
         when(getSupplyRepository.findById(SupplyId.of(supplyId))).thenReturn(Optional.empty());
 
-        assertFalse(guard().canReadSupply(supplyId));
+        assertThrows(SupplyNotFoundException.class, () -> guard().canReadSupply(supplyId));
     }
 
     // --- canEditSupply ---
 
     @Test
-    void canEditSupply_returnsFalse_whenUserIsPlatformAdminButNotCommunityAdmin() {
+    void canEditSupply_throwsNotFound_whenUserIsPlatformAdminButNotCommunityAdminOrOwner() {
         Supply supply = supplyOwnedBy(UUID.randomUUID());
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(helper.getCurrentUser()).thenReturn(Optional.of(admin));
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canEditSupply(supply.getId()));
+        assertThrows(SupplyNotFoundException.class, () -> guard().canEditSupply(supply.getId()));
     }
 
     @Test
@@ -164,7 +167,7 @@ class SupplyAccessGuardImplTest {
     }
 
     @Test
-    void canEditSupply_returnsFalse_whenUserIsCommunityMember() {
+    void canEditSupply_throwsNotFound_whenUserIsCommunityMember() {
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
@@ -172,11 +175,11 @@ class SupplyAccessGuardImplTest {
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
-        assertFalse(guard().canEditSupply(supply.getId()));
+        assertThrows(SupplyNotFoundException.class, () -> guard().canEditSupply(supply.getId()));
     }
 
     @Test
-    void canEditSupply_throwsNotFoundException_whenPlatformAdminAndSupplyNotFound() {
+    void canEditSupply_throwsNotFound_whenPlatformAdminAndSupplyNotFound() {
         UUID supplyId = UUID.randomUUID();
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
@@ -187,13 +190,10 @@ class SupplyAccessGuardImplTest {
     }
 
     @Test
-    void canEditSupply_returnsFalse_whenNonAdminAndSupplyNotFound() {
-        UUID supplyId = UUID.randomUUID();
-        User user = UserMother.randomUser();
-        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
-        when(getSupplyRepository.findById(SupplyId.of(supplyId))).thenReturn(Optional.empty());
+    void canEditSupply_returnsFalse_whenNoAuthenticatedUser() {
+        when(helper.getCurrentUser()).thenReturn(Optional.empty());
 
-        assertFalse(guard().canEditSupply(supplyId));
+        assertFalse(guard().canEditSupply(UUID.randomUUID()));
     }
 
     // --- helpers ---

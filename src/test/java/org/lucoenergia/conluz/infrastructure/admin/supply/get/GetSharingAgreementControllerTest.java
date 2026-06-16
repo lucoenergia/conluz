@@ -49,8 +49,8 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testGetNonExistentSharingAgreement() throws Exception {
-        // A non-existent agreement is denied by the access guard before the service runs, so callers
-        // receive 403 (avoiding resource-existence leakage) rather than a not-found error.
+        // A non-existent agreement cannot be seen by the caller, so the guard returns 404 (avoiding
+        // resource-existence leakage).
         String authHeader = loginAsDefaultPlatformAdmin();
 
         UUID nonExistentId = UUID.randomUUID();
@@ -58,9 +58,9 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + nonExistentId)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
-                .andExpect(status().isForbidden())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }

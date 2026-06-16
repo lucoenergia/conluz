@@ -5,11 +5,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.UserAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -78,14 +80,15 @@ class UserAccessGuardImplTest {
     }
 
     @Test
-    void canReadUser_returnsFalse_whenTargetUserHasNoCommunities() {
+    void canReadUser_throwsNotFound_whenTargetUserHasNoCommunities() {
+        // The caller cannot see the target user -> 404 to avoid leaking the user's existence.
         UUID targetUserId = UUID.randomUUID();
         when(getMembershipsRepository.findByUserId(targetUserId)).thenReturn(List.of());
 
         User caller = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(caller));
 
-        assertFalse(guard().canReadUser(targetUserId));
+        assertThrows(UserNotFoundException.class, () -> guard().canReadUser(targetUserId));
     }
 
     // --- canEditUser ---
@@ -126,14 +129,15 @@ class UserAccessGuardImplTest {
     }
 
     @Test
-    void canEditUser_returnsFalse_whenCallerIsRegularPartner() {
+    void canEditUser_throwsNotFound_whenCallerIsRegularPartner() {
+        // A regular partner cannot see another user -> 404 to avoid leaking the user's existence.
         UUID targetUserId = UUID.randomUUID();
         when(getMembershipsRepository.findByUserId(targetUserId)).thenReturn(List.of());
 
         User caller = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(caller));
 
-        assertFalse(guard().canEditUser(targetUserId));
+        assertThrows(UserNotFoundException.class, () -> guard().canEditUser(targetUserId));
     }
 
     // --- canCreateUserIn ---
@@ -148,13 +152,16 @@ class UserAccessGuardImplTest {
     }
 
     @Test
-    void canCreateUserIn_returnsFalse_whenNotPlatformAdminAndNoMemberships() {
+    void canCreateUserIn_throwsNotFound_whenNotPlatformAdminAndNotMember() {
+        // A non-member cannot see the community -> 404 to avoid leaking its existence.
         User user = UserMother.randomUser();
         user.setPlatformAdmin(false);
         user.setMemberships(List.of());
+        UUID communityId = UUID.randomUUID();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.canSeeCommunity(user, communityId)).thenReturn(false);
 
-        assertFalse(guard().canCreateUserIn(UUID.randomUUID()));
+        assertThrows(CommunityNotFoundException.class, () -> guard().canCreateUserIn(communityId));
     }
 
     @Test
@@ -162,6 +169,7 @@ class UserAccessGuardImplTest {
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.canSeeCommunity(user, community.getId())).thenReturn(true);
         when(helper.hasCommunityAdminRoleIn(user, community.getId())).thenReturn(true);
 
         assertTrue(guard().canCreateUserIn(community.getId()));
@@ -169,9 +177,11 @@ class UserAccessGuardImplTest {
 
     @Test
     void canCreateUserIn_returnsFalse_whenUserIsCommunityMember() {
+        // A member can see the community but is not an admin -> 403 (return false), not 404.
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.canSeeCommunity(user, community.getId())).thenReturn(true);
         when(helper.hasCommunityAdminRoleIn(user, community.getId())).thenReturn(false);
 
         assertFalse(guard().canCreateUserIn(community.getId()));

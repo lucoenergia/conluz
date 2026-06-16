@@ -6,8 +6,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
@@ -37,14 +35,11 @@ public class SyncMonthlyDatadisConsumptionsController {
 
     private final DatadisMonthlyAggregationService aggregationService;
     private final GetDatadisConfigRepository getDatadisConfigRepository;
-    private final CommunityAccessGuard communityAccessGuard;
 
     public SyncMonthlyDatadisConsumptionsController(DatadisMonthlyAggregationService aggregationService,
-                                                    GetDatadisConfigRepository getDatadisConfigRepository,
-                                                    CommunityAccessGuard communityAccessGuard) {
+                                                    GetDatadisConfigRepository getDatadisConfigRepository) {
         this.aggregationService = aggregationService;
         this.getDatadisConfigRepository = getDatadisConfigRepository;
-        this.communityAccessGuard = communityAccessGuard;
     }
 
     @PostMapping
@@ -67,7 +62,8 @@ public class SyncMonthlyDatadisConsumptionsController {
                     The community is taken from the path and only that community's supplies are aggregated.
 
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required: Community Admin of the community. Returns 404 if the community does not exist or cannot be managed.**
+                    **Required: Community Admin of the community. Returns 404 if the community does not exist or the
+                    caller is not a member of it, or 403 if the caller is a member but not one of its admins.**
 
                     A successful request returns an HTTP status code of 200.
                     """,
@@ -87,13 +83,9 @@ public class SyncMonthlyDatadisConsumptionsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncMonthlyDatadisConsumptions(@PathVariable UUID communityId,
                                                @Valid @RequestBody SyncMonthlyDatadisConsumptionsBody body) {
-        if (!communityAccessGuard.canManageCommunity(communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-
         Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
         if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
             throw new DatadisDisabledException();

@@ -76,8 +76,8 @@ class DeletePlantControllerTest extends BaseControllerTest {
 
     @Test
     void testWithUnknown() throws Exception {
-        // A non-existent plant cannot be associated to a community, so the access guard denies it
-        // (403) before the controller runs, avoiding plant-existence leakage.
+        // A non-existent plant cannot be seen by the caller, so the access guard returns 404 before
+        // the controller runs, avoiding plant-existence leakage.
         String authHeader = loginAsDefaultPlatformAdmin();
 
         final String plantId = UUID.randomUUID().toString();
@@ -86,9 +86,9 @@ class DeletePlantControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
@@ -133,7 +133,7 @@ class DeletePlantControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

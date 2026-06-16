@@ -115,9 +115,9 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andDo(print())
-                .andExpect(status().isForbidden())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }

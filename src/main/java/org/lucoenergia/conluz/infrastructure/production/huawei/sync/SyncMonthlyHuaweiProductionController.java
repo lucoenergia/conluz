@@ -6,8 +6,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
@@ -34,14 +32,11 @@ public class SyncMonthlyHuaweiProductionController {
 
     private final HuaweiProductionMonthlyAggregationService aggregationService;
     private final GetHuaweiConfigRepository getHuaweiConfigRepository;
-    private final CommunityAccessGuard communityAccessGuard;
 
     public SyncMonthlyHuaweiProductionController(HuaweiProductionMonthlyAggregationService aggregationService,
-                                                 GetHuaweiConfigRepository getHuaweiConfigRepository,
-                                                 CommunityAccessGuard communityAccessGuard) {
+                                                 GetHuaweiConfigRepository getHuaweiConfigRepository) {
         this.aggregationService = aggregationService;
         this.getHuaweiConfigRepository = getHuaweiConfigRepository;
-        this.communityAccessGuard = communityAccessGuard;
     }
 
     @PostMapping
@@ -64,7 +59,8 @@ public class SyncMonthlyHuaweiProductionController {
                     The community is taken from the path and only that community's plants are aggregated.
 
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required: Community Admin of the community. Returns 404 if the community does not exist or cannot be managed.**
+                    **Required: Community Admin of the community. Returns 404 if the community does not exist or the
+                    caller is not a member of it, or 403 if the caller is a member but not one of its admins.**
 
                     A successful request returns an HTTP status code of 200.
                     """,
@@ -84,13 +80,9 @@ public class SyncMonthlyHuaweiProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncMonthlyHuaweiProduction(@PathVariable UUID communityId,
                                             @Valid @RequestBody SyncMonthlyHuaweiProductionBody body) {
-        if (!communityAccessGuard.canManageCommunity(communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-
         if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
             throw new HuaweiDisabledException();
         }

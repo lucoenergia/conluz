@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.access.SharingAgreementAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
 import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
+import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -39,14 +40,15 @@ class SharingAgreementAccessGuardImplTest {
     }
 
     @Test
-    void canManageSharingAgreement_returnsFalse_whenAgreementNotFound() {
+    void canManageSharingAgreement_throwsNotFound_whenAgreementNotFound() {
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
 
         UUID agreementId = UUID.randomUUID();
         when(getSharingAgreementRepository.findById(SharingAgreementId.of(agreementId))).thenReturn(Optional.empty());
 
-        assertFalse(guard().canManageSharingAgreement(agreementId));
+        assertThrows(SharingAgreementNotFoundException.class,
+                () -> guard().canManageSharingAgreement(agreementId));
     }
 
     @Test
@@ -65,15 +67,19 @@ class SharingAgreementAccessGuardImplTest {
     }
 
     @Test
-    void canManageSharingAgreement_returnsFalse_whenUserIsCommunityMember() {
+    void canManageSharingAgreement_throwsNotFound_whenUserIsNotCommunityAdmin() {
+        // Sharing agreements are only visible to admins of their community, so a non-admin gets a
+        // 404 (not 403) to avoid leaking the agreement's existence.
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
         when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasCommunityAdminRoleIn(user, community.getId())).thenReturn(false);
 
         UUID agreementId = UUID.randomUUID();
         SharingAgreement agreement = new SharingAgreement(agreementId, null, null, community.getId());
         when(getSharingAgreementRepository.findById(SharingAgreementId.of(agreementId))).thenReturn(Optional.of(agreement));
 
-        assertFalse(guard().canManageSharingAgreement(agreementId));
+        assertThrows(SharingAgreementNotFoundException.class,
+                () -> guard().canManageSharingAgreement(agreementId));
     }
 }

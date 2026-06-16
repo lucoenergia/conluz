@@ -433,8 +433,8 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 
     @Test
