@@ -35,7 +35,7 @@ services:
 
   conluz:
     container_name: conluz
-    image: ghcr.io/lucoenergia/conluz:1.0.85
+    image: conluz:${CONLUZ_VERSION}
     ports:
       - "8443:8443"
       - "5005:5005"
