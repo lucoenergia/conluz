@@ -28,15 +28,15 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSharingAgreement() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
-
-        // Create a sharing agreement
+        // Create a sharing agreement in the default community and log in as an admin of that community
         SharingAgreementEntity entity = new SharingAgreementEntity();
         entity.setId(UUID.randomUUID());
         entity.setStartDate(LocalDate.of(2023, 1, 1));
         entity.setEndDate(LocalDate.of(2023, 12, 31));
         entity.setCommunityId(CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID);
         sharingAgreementRepository.save(entity);
+
+        String authHeader = loginAsCommunityAdmin(CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + entity.getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -49,23 +49,25 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testGetNonExistentSharingAgreement() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        // A non-existent agreement cannot be seen by the caller, so the guard returns 404 (avoiding
+        // resource-existence leakage).
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         UUID nonExistentId = UUID.randomUUID();
 
         mockMvc.perform(get(URL + "/" + nonExistentId)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
     @Test
     void testWithInvalidId() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL + "/invalid-id")
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -79,7 +81,7 @@ class GetSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutIdInPath() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))

@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class GetAllPlantsControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/plants";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/plants";
 
     @Autowired
     private CreateUserRepository createUserRepository;
@@ -59,7 +60,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -105,7 +106,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithNoResults() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -137,7 +138,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -164,7 +165,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -182,7 +183,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -214,7 +215,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -246,7 +247,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -287,7 +288,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -335,7 +336,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -384,7 +385,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -399,6 +400,41 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.number").value("1"))
                 .andExpect(jsonPath("$.items.size()").value(1))
                 .andExpect(jsonPath("$.items[0].code").value(plantThree.getCode()));
+    }
+
+    @Test
+    void testRegularMemberOfTheCommunityCanListItsPlants() throws Exception {
+
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
+        Supply supply = SupplyMother.random().build();
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Plant plant = PlantMother.random(supply).withCode("TS-456789").build();
+        createPlantRepository.create(plant, SupplyId.of(supply.getId()));
+
+        // A regular (non-admin) member of the plant's community can list its plants
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value("1"))
+                .andExpect(jsonPath("$.items.size()").value(1))
+                .andExpect(jsonPath("$.items[0].code").value(plant.getCode()));
+    }
+
+    @Test
+    void testNonMemberOfTheCommunityCannotListItsPlants() throws Exception {
+
+        // A user with no membership in the community is forbidden
+        String authHeader = loginAsPartner();
+
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 
     @Test

@@ -17,13 +17,16 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoun
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 @RestController
-@RequestMapping("/api/v1/production/huawei/sync/yearly")
+@RequestMapping("/api/v1/communities/{communityId}/production/huawei/sync/yearly")
 public class SyncYearlyHuaweiProductionController {
 
     private final HuaweiProductionYearlyAggregationService aggregationService;
@@ -52,14 +55,17 @@ public class SyncYearlyHuaweiProductionController {
                     **Note:** This aggregation requires that monthly aggregations have already been performed
                     for the specified year.
 
+                    The community is taken from the path and only that community's plants are aggregated.
+
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required Role: ADMIN**
+                    **Required: Community Admin of the community. Returns 404 if the community does not exist or the
+                    caller is not a member of it, or 403 if the caller is a member but not one of its admins.**
 
                     A successful request returns an HTTP status code of 200.
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "syncYearlyHuaweiProduction",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -73,17 +79,17 @@ public class SyncYearlyHuaweiProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
-    public void syncYearlyHuaweiProduction(@Valid @RequestBody SyncYearlyHuaweiProductionBody body) {
-
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
+    public void syncYearlyHuaweiProduction(@PathVariable UUID communityId,
+                                           @Valid @RequestBody SyncYearlyHuaweiProductionBody body) {
         if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
             throw new HuaweiDisabledException();
         }
 
         if (body.getPlantCode() != null && !body.getPlantCode().isBlank()) {
-            aggregationService.aggregateYearlyProductions(body.getPlantCode(), body.getYear());
+            aggregationService.aggregateYearlyProductions(communityId, body.getPlantCode(), body.getYear());
         } else {
-            aggregationService.aggregateYearlyProductions(body.getYear());
+            aggregationService.aggregateYearlyProductions(communityId, body.getYear());
         }
     }
 }

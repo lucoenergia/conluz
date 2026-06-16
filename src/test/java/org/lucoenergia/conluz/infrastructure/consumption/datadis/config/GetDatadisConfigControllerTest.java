@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis.config;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.SetDatadisConfigurationRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -37,7 +36,7 @@ class GetDatadisConfigControllerTest extends BaseControllerTest {
                 .setEnabled(Boolean.TRUE)
                 .build());
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                         get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
@@ -55,7 +54,7 @@ class GetDatadisConfigControllerTest extends BaseControllerTest {
 
     @Test
     void testGetConfigWhenNotExists() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                         get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
@@ -86,9 +85,9 @@ class GetDatadisConfigControllerTest extends BaseControllerTest {
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }

@@ -56,6 +56,7 @@ services:
       - CONLUZ_MQTT_SERVER_USERNAME
       # Uncomment this to enable remote debugging
 #      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+#      - SPRING_LIQUIBASE_DROP_FIRST=true
     restart: always
     networks:
       - conluz_network

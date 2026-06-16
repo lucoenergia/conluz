@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
@@ -49,7 +48,6 @@ class CreateUserServiceTest {
     @Test
     void create_withNullCommunityId_autoResolvesFromContextForRegularPartner() {
         User caller = UserMother.randomUser();
-        caller.setRole(Role.PARTNER);
         caller.setPlatformAdmin(false);
 
         User user = UserMother.randomUser();
@@ -68,22 +66,6 @@ class CreateUserServiceTest {
     void create_withNullCommunityId_skipsAutoResolveForPlatformAdmin() {
         User caller = UserMother.randomUser();
         caller.setPlatformAdmin(true);
-
-        User user = UserMother.randomUser();
-
-        when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
-        when(repository.create(user)).thenReturn(user);
-
-        service().create(user);
-
-        verifyNoInteractions(createMembershipService);
-    }
-
-    @Test
-    void create_withNullCommunityId_skipsAutoResolveForAdminRole() {
-        User caller = UserMother.randomUser();
-        caller.setRole(Role.ADMIN);
-        caller.setPlatformAdmin(false);
 
         User user = UserMother.randomUser();
 

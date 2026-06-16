@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityService;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -31,11 +30,9 @@ import java.util.UUID;
 public class GetCommunityByIdController {
 
     private final GetCommunityService service;
-    private final CommunityAccessGuard guard;
 
-    public GetCommunityByIdController(GetCommunityService service, CommunityAccessGuard guard) {
+    public GetCommunityByIdController(GetCommunityService service) {
         this.service = service;
-        this.guard = guard;
     }
 
     @GetMapping("/{id}")
@@ -63,11 +60,8 @@ public class GetCommunityByIdController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and @communityAccessGuard.canReadCommunity(#id)")
     public ResponseEntity<CommunityResponse> getCommunityById(@PathVariable("id") UUID id) {
-        if (!guard.canReadCommunity(id)) {
-            return ResponseEntity.notFound().build();
-        }
         return service.findByIdWithStats(id)
                 .map(c -> ResponseEntity.ok(new CommunityResponse(c)))
                 .orElse(ResponseEntity.notFound().build());

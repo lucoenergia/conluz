@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -23,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -56,7 +56,7 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyYearlyConsumptionAsAdmin() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -78,7 +78,6 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
     void testGetSupplyYearlyConsumptionAsOwner() throws Exception {
         // Create a partner user
         User partnerUser = UserMother.randomUser();
-        partnerUser.setRole(Role.PARTNER);
         partnerUser.enable();
         User createdPartnerUser = createUserRepository.create(partnerUser);
 
@@ -116,16 +115,16 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andDo(print())
-                .andExpect(status().isForbidden())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
     @Test
     void testGetSupplyYearlyConsumptionWithMissingStartDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -144,7 +143,7 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyYearlyConsumptionWithMissingEndDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -164,7 +163,7 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSupplyYearlyConsumptionWithUnknownSupply() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
         UUID supplyId = UUID.randomUUID();
 
         mockMvc.perform(get(URL + "/" + supplyId + "/consumption/yearly")

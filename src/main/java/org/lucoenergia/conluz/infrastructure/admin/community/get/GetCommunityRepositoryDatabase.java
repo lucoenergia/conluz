@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +47,11 @@ public class GetCommunityRepositoryDatabase implements GetCommunityRepository {
     @Override
     public List<Community> findAll() {
         return communityEntityMapper.mapList(communityJpaRepository.findAll());
+    }
+
+    @Override
+    public Set<UUID> findAllIds() {
+        return new HashSet<>(communityJpaRepository.findAllIds());
     }
 
     @Override

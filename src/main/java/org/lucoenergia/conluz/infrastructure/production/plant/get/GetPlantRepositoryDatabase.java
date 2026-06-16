@@ -14,7 +14,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 @Transactional
 @Repository
@@ -44,5 +47,17 @@ public class GetPlantRepositoryDatabase implements GetPlantRepository {
     public PagedResult<Plant> findAll(PagedRequest pagedRequest) {
         Page<PlantEntity> result = plantRepository.findAll(paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, plantEntityMapper.mapList(result.toList()));
+    }
+
+    @Override
+    public PagedResult<Plant> findByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds) {
+        Page<PlantEntity> result = plantRepository.findBySupplyCommunityIdIn(communityIds,
+                paginationRequestMapper.mapRequest(pagedRequest));
+        return paginationResultMapper.mapResult(result, plantEntityMapper.mapList(result.toList()));
+    }
+
+    @Override
+    public List<String> findPlantCodesByCommunity(UUID communityId) {
+        return plantRepository.findCodesByCommunityId(communityId);
     }
 }

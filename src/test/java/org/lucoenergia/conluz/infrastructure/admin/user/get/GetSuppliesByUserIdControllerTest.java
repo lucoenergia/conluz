@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.user.get;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -37,7 +36,6 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     void testGetSuppliesByUserId_shouldReturnSuppliesWhenAdminRequestsAnyUser() throws Exception {
         // Create a user with supplies
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         createUserRepository.create(user);
 
         Supply supply1 = new Supply.Builder()
@@ -63,7 +61,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
         createSupplyRepository.create(supply2, UserId.of(user.getId()));
 
         // Login as default admin
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -81,7 +79,6 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     void testGetSuppliesByUserId_shouldReturnSuppliesWhenUserRequestsOwnSupplies() throws Exception {
         // Create a user with supplies
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         user.enable();
         createUserRepository.create(user);
 
@@ -120,12 +117,10 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     void testGetSuppliesByUserId_shouldReturnForbiddenWhenNonAdminRequestsOtherUserSupplies() throws Exception {
         // Create two users
         User user1 = UserMother.randomUser();
-        user1.setRole(Role.PARTNER);
         user1.enable();
         createUserRepository.create(user1);
 
         User user2 = UserMother.randomUser();
-        user2.setRole(Role.PARTNER);
         user2.enable();
         createUserRepository.create(user2);
 
@@ -153,8 +148,8 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 
     @Test
@@ -175,11 +170,10 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     void testGetSuppliesByUserId_shouldReturnEmptyListWhenUserHasNoSupplies() throws Exception {
         // Create a user with no supplies
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         createUserRepository.create(user);
 
         // Login as default admin
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

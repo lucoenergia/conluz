@@ -19,15 +19,17 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoun
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/consumption/datadis/sync/yearly")
+@RequestMapping("/api/v1/communities/{communityId}/consumption/datadis/sync/yearly")
 public class SyncYearlyDatadisConsumptionsController {
 
     private final DatadisYearlyAggregationService aggregationService;
@@ -56,14 +58,17 @@ public class SyncYearlyDatadisConsumptionsController {
                     **Note:** This aggregation requires that monthly aggregations have already been performed
                     for the specified year.
 
+                    The community is taken from the path and only that community's supplies are aggregated.
+
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required Role: ADMIN**
+                    **Required: Community Admin of the community. Returns 404 if the community does not exist or the
+                    caller is not a member of it, or 403 if the caller is a member but not one of its admins.**
 
                     A successful request returns an HTTP status code of 200.
                     """,
             tags = ApiTag.CONSUMPTION,
             operationId = "syncYearlyDatadisConsumptions",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -77,23 +82,22 @@ public class SyncYearlyDatadisConsumptionsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
-    public void syncYearlyDatadisConsumptions(@Valid @RequestBody SyncYearlyDatadisConsumptionsBody body) {
-
-        Optional<DatadisConfig> config = body.getCommunityId() != null
-                ? getDatadisConfigRepository.findByCommunityId(body.getCommunityId())
-                : getDatadisConfigRepository.getDatadisConfig();
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
+    public void syncYearlyDatadisConsumptions(@PathVariable UUID communityId,
+                                              @Valid @RequestBody SyncYearlyDatadisConsumptionsBody body) {
+        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
         if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
             throw new DatadisDisabledException();
         }
 
         if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
             aggregationService.aggregateYearlyConsumptions(
+                    communityId,
                     SupplyCode.of(body.getSupplyCode()),
                     body.getYear()
             );
         } else {
-            aggregationService.aggregateYearlyConsumptions(body.getYear());
+            aggregationService.aggregateYearlyConsumptions(communityId, body.getYear());
         }
     }
 }

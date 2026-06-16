@@ -33,7 +33,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -51,7 +51,6 @@ class GetAllUsersControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[1].address").value(userOne.getAddress()))
                 .andExpect(jsonPath("$.items[1].email").value(userOne.getEmail()))
                 .andExpect(jsonPath("$.items[1].phoneNumber").value(userOne.getPhoneNumber()))
-                .andExpect(jsonPath("$.items[1].role").value(userOne.getRole().name()))
                 .andExpect(jsonPath("$.items[1].enabled").value(userOne.isEnabled()))
                 .andExpect(jsonPath("$.items[1].password").doesNotExist());
     }
@@ -67,7 +66,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         User userThree = UserMother.randomUser();
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -85,7 +84,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownParameter() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -103,7 +102,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -119,7 +118,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownField() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -135,7 +134,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownDirection() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -162,7 +161,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         userThree.setFullName("Rob Halford");
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -199,7 +198,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         userThree.setFullName("Rob Halford");
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -233,7 +232,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         userThree.setFullName("Rob Halford");
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

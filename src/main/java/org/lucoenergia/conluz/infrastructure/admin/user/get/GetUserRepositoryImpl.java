@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -91,7 +90,7 @@ public class GetUserRepositoryImpl implements GetUserRepository {
 
     @Override
     public Optional<User> getDefaultAdminUser() {
-        Optional<UserEntity> entity = userRepository.findByNumberAndRole(0, Role.ADMIN);
+        Optional<UserEntity> entity = userRepository.findFirstByNumber(0);
         if (entity.isEmpty()) {
             Optional.empty();
         }

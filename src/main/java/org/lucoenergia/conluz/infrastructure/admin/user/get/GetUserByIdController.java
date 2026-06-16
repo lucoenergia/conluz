@@ -41,13 +41,13 @@ public class GetUserByIdController {
             description = """
                     This endpoint retrieves detailed information about a specific user by their unique identifier.
 
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin, Community Admin, or the user themselves**
 
                     Authentication is required using a Bearer token.
                     """,
             tags = ApiTag.USERS,
             operationId = "getUserById",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

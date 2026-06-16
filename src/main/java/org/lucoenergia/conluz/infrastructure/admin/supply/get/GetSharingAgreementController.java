@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementRespon
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,7 +33,10 @@ public class GetSharingAgreementController {
     @GetMapping("/{id}")
     @Operation(
             summary = "Gets a sharing agreement by ID",
-            description = "This endpoint retrieves a sharing agreement by its unique identifier.",
+            description = """
+                    This endpoint retrieves a sharing agreement by its unique identifier.
+
+                    **Required: Community Admin of the sharing agreement's community.**""",
             tags = ApiTag.SUPPLIES,
             operationId = "getSharingAgreement"
     )
@@ -48,6 +52,7 @@ public class GetSharingAgreementController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#id)")
     public SharingAgreementResponse getSharingAgreement(@PathVariable("id") UUID id) {
         return new SharingAgreementResponse(service.getById(SharingAgreementId.of(id)));
     }

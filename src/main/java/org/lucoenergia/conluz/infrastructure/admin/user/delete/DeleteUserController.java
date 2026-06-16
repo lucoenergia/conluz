@@ -36,7 +36,7 @@ public class DeleteUserController {
                     This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.
 
                     To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin. You cannot delete your own account.**
 
                     Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.
 
@@ -44,7 +44,7 @@ public class DeleteUserController {
                 """,
             tags = ApiTag.USERS,
             operationId = "deleteUser",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -57,7 +57,7 @@ public class DeleteUserController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
+    @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
     public void deleteUser(@PathVariable("id") UUID userId) {
         service.delete(UserId.of(userId));
     }

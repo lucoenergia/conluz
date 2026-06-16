@@ -24,7 +24,6 @@ public class CreateUserRepositoryImplTest extends BaseIntegrationTest {
         Assertions.assertEquals(user.getPersonalId(), newUser.getPersonalId());
         Assertions.assertEquals(user.getNumber(), newUser.getNumber());
         Assertions.assertEquals(user.getFullName(), newUser.getFullName());
-        Assertions.assertEquals(user.getRole(), newUser.getRole());
         Assertions.assertNotNull(newUser.getPassword());
         Assertions.assertEquals(user.getUsername(), newUser.getUsername());
         Assertions.assertEquals(user.getAddress(), newUser.getAddress());

@@ -17,7 +17,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Month;
 import java.util.Optional;
+import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -28,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/consumption/datadis/sync/monthly";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/consumption/datadis/sync/monthly";
 
     @MockitoBean
     private DatadisMonthlyAggregationService aggregationService;
@@ -47,13 +49,13 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
                 .setEnabled(Boolean.TRUE)
                 .build();
-        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(enabledConfig));
+        when(getDatadisConfigRepository.findByCommunityId(DEFAULT_COMMUNITY_ID)).thenReturn(Optional.of(enabledConfig));
     }
 
     @Test
     void testAggregateMonthlyForAllSuppliesAllMonths() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024);
 
@@ -65,13 +67,13 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyConsumptions(eq(2024));
+                .aggregateMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), eq(2024));
     }
 
     @Test
     void testAggregateMonthlyForAllSuppliesSpecificMonth() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, 1);
 
@@ -83,13 +85,13 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyConsumptions(eq(Month.JANUARY), eq(2024));
+                .aggregateMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), eq(Month.JANUARY), eq(2024));
     }
 
     @Test
     void testAggregateMonthlyForSpecificSupplyAllMonths() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, null, "SUPPLY001");
 
@@ -102,13 +104,13 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
 
         // Should call for all 12 months
         verify(aggregationService, times(12))
-                .aggregateMonthlyConsumptions(any(SupplyCode.class), any(Month.class), eq(2024));
+                .aggregateMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), any(SupplyCode.class), any(Month.class), eq(2024));
     }
 
     @Test
     void testAggregateMonthlyForSpecificSupplySpecificMonth() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, 6, "SUPPLY001");
 
@@ -120,7 +122,7 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyConsumptions(eq(SupplyCode.of("SUPPLY001")), eq(Month.JUNE), eq(2024));
+                .aggregateMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), eq(SupplyCode.of("SUPPLY001")), eq(Month.JUNE), eq(2024));
     }
 
     @Test
@@ -137,7 +139,7 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+    void testAuthenticatedUserWithoutAdminRoleGetsNotFound() throws Exception {
 
         String authHeader = loginAsPartner();
 
@@ -148,14 +150,14 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 
     @Test
     void testWithInvalidYearTooLow() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(1999);
 
@@ -171,7 +173,7 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidYearTooHigh() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2101);
 
@@ -187,7 +189,7 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithNullYear() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": null}";
 
@@ -203,7 +205,7 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidMonthTooLow() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": 2024, \"month\": 0}";
 
@@ -219,7 +221,7 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidMonthTooHigh() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": 2024, \"month\": 13}";
 
@@ -235,13 +237,13 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidSupplyCode() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, 1, "INVALID");
 
         doThrow(new SupplyNotFoundException(SupplyCode.of("INVALID")))
                 .when(aggregationService)
-                .aggregateMonthlyConsumptions(any(SupplyCode.class), any(Month.class), any(Integer.class));
+                .aggregateMonthlyConsumptions(any(UUID.class), any(SupplyCode.class), any(Month.class), any(Integer.class));
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

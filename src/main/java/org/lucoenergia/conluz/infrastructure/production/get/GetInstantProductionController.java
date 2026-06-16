@@ -1,20 +1,20 @@
 package org.lucoenergia.conluz.infrastructure.production.get;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.lucoenergia.conluz.domain.production.get.GetProductionService;
 import org.lucoenergia.conluz.domain.production.InstantProduction;
+import org.lucoenergia.conluz.domain.production.get.GetProductionService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
-import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/production")
+@RequestMapping("/api/v1/communities/{communityId}/production")
 public class GetInstantProductionController {
 
     private final GetProductionService getProductionService;
@@ -34,8 +34,12 @@ public class GetInstantProductionController {
 
     @GetMapping
     @Operation(
-            summary = "Delivers real-time energy production details for a specific power plant supply.",
-            description = "This endpoint offers real-time insights into the instantaneous energy production of a designated power plant supply, identified by its unique supply ID. Clients must authenticate using an authentication token. Upon a successful request, the server responds with an HTTP status code of 200, furnishing up-to-the-moment production metrics for the specified supply. In cases of errors or invalid parameters, the server issues an appropriate error status code accompanied by descriptive messages. This endpoint proves invaluable for immediate monitoring and analysis of energy output, enabling timely decision-making and performance evaluation for the designated power plant supply.",
+            summary = "Delivers real-time energy production details of a community.",
+            description = "Offers real-time insights into the instantaneous energy production of the plants of the "
+                    + "community identified by the path `communityId`. **Required: any member of the community.** "
+                    + "Returns 404 if the community does not exist or the caller is not a member of it. When a `supplyId` "
+                    + "is provided, only the supply owner or a Community Admin of the supply's community may access it, "
+                    + "and the supply must belong to the community in the path.",
             tags = ApiTag.PRODUCTION,
             operationId = "getInstantProduction"
     )
@@ -49,11 +53,15 @@ public class GetInstantProductionController {
     @ForbiddenErrorResponse
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
+    @NotFoundErrorResponse
     @InternalServerErrorResponse
-    public InstantProduction getInstantProduction(@RequestParam(required = false) UUID supplyId) {
+    @PreAuthorize("isAuthenticated() and @communityAccessGuard.canReadCommunity(#communityId)"
+            + " and (#supplyId == null or @communityAccessGuard.canReadSupply(#supplyId))")
+    public InstantProduction getInstantProduction(@PathVariable UUID communityId,
+                                                  @RequestParam(required = false) UUID supplyId) {
         if (Objects.isNull(supplyId)) {
-            return getProductionService.getInstantProduction();
+            return getProductionService.getInstantProductionByCommunity(communityId);
         }
-        return getProductionService.getInstantProductionBySupply(SupplyId.of(supplyId));
+        return getProductionService.getInstantProductionByCommunityAndSupply(communityId, SupplyId.of(supplyId));
     }
 }

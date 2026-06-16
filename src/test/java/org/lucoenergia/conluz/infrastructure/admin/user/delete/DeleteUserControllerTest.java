@@ -39,7 +39,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
 
         // Login as default admin
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(delete(String.format("/api/v1/users/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -51,7 +51,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownUser() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -69,7 +69,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
     @Test
     void
     testWithoutIdInPath() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(delete("/api/v1/users")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -106,7 +106,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

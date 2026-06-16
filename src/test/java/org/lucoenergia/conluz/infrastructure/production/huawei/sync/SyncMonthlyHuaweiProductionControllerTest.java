@@ -17,18 +17,19 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.time.Month;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/production/huawei/sync/monthly";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/huawei/sync/monthly";
 
     @MockitoBean
     private HuaweiProductionMonthlyAggregationService aggregationService;
@@ -53,7 +54,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testAggregateMonthlyForAllPlantsAllMonths() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024);
 
@@ -65,13 +66,13 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyProductions(eq(2024));
+                .aggregateMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq(2024));
     }
 
     @Test
     void testAggregateMonthlyForAllPlantsSpecificMonth() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024, 1);
 
@@ -83,13 +84,13 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyProductions(eq(Month.JANUARY), eq(2024));
+                .aggregateMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq(Month.JANUARY), eq(2024));
     }
 
     @Test
     void testAggregateMonthlyForSpecificPlantAllMonths() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024, null, "PLANT001");
 
@@ -102,13 +103,13 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
 
         // Should call for all 12 months
         verify(aggregationService, times(12))
-                .aggregateMonthlyProductions(eq("PLANT001"), any(Month.class), eq(2024));
+                .aggregateMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq("PLANT001"), any(Month.class), eq(2024));
     }
 
     @Test
     void testAggregateMonthlyForSpecificPlantSpecificMonth() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024, 6, "PLANT001");
 
@@ -120,7 +121,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyProductions(eq("PLANT001"), eq(Month.JUNE), eq(2024));
+                .aggregateMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq("PLANT001"), eq(Month.JUNE), eq(2024));
     }
 
     @Test
@@ -128,7 +129,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
 
         when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(Collections.emptyList());
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024);
 
@@ -155,7 +156,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+    void testAuthenticatedUserWithoutAdminRoleGetsNotFound() throws Exception {
 
         String authHeader = loginAsPartner();
 
@@ -166,14 +167,14 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 
     @Test
     void testWithInvalidYearTooLow() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(1999);
 
@@ -189,7 +190,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidYearTooHigh() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2101);
 
@@ -205,7 +206,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testWithNullYear() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": null}";
 
@@ -221,7 +222,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidMonthTooLow() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": 2024, \"month\": 0}";
 
@@ -237,7 +238,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidMonthTooHigh() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": 2024, \"month\": 13}";
 
@@ -253,13 +254,13 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidPlantCode() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024, 1, "INVALID");
 
         doThrow(new PlantNotFoundException("INVALID"))
                 .when(aggregationService)
-                .aggregateMonthlyProductions(anyString(), any(Month.class), any(Integer.class));
+                .aggregateMonthlyProductions(any(UUID.class), anyString(), any(Month.class), any(Integer.class));
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

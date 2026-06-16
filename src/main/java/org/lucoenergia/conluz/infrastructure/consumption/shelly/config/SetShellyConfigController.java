@@ -51,7 +51,7 @@ public class SetShellyConfigController {
                     This configuration is a mandatory step to be able to process Shelly consumption data.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN or COMMUNITY_ADMIN**
+                    **Required: Community Admin**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with details
                     about the configuration already set.
@@ -60,7 +60,7 @@ public class SetShellyConfigController {
                     status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.
                     """,
             tags = ApiTag.CONSUMPTION,
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

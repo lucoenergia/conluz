@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -26,7 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/consumption/datadis/report/hourly/csv";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID
+            + "/consumption/datadis/report/hourly/csv";
     private static final String START_DATE = "2023-04-01T00:00:00Z";
     private static final String END_DATE = "2023-04-30T23:59:59Z";
     private static final String CUPS_CODE = "ES0031406912345678JN0F";
@@ -50,7 +52,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
     @Test
     void testGetCsvReportAsAdmin() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
         createSupplyRepository.create(
@@ -69,7 +71,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
     @Test
     void testGetCsvReportWithNoSuppliesReturnsOnlyHeader() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -81,7 +83,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetCsvReportAsPartnerIsForbidden() throws Exception {
+    void testGetCsvReportAsPartnerIsNotFound() throws Exception {
         String partnerToken = loginAsPartner();
 
         mockMvc.perform(get(URL)
@@ -89,15 +91,15 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
     @Test
     void testGetCsvReportWithMissingStartDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -109,7 +111,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
     @Test
     void testGetCsvReportWithMissingEndDate() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -147,7 +149,7 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
 
     @Test
     void testTimezoneFilteringIncludesMayData() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
         createSupplyRepository.create(

@@ -39,7 +39,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         ConfigureDatadisBody body = new ConfigureDatadisBody("testUsernameNew", "testPasswordNew",
                 DatadisConfig.DEFAULT_BASE_URL, Boolean.TRUE);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                 put(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
@@ -59,7 +59,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         ConfigureDatadisBody body = new ConfigureDatadisBody("testUser", "testPass",
                 DatadisConfig.DEFAULT_BASE_URL, Boolean.TRUE);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                         put(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
@@ -76,7 +76,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutBody() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(put(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -113,7 +113,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

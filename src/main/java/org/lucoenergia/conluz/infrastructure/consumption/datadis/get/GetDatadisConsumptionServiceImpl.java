@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.get;
 
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -9,7 +8,6 @@ import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumpti
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,26 +21,18 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
 
     private final GetDatadisConsumptionRepository getDatadisConsumptionRepository;
     private final GetSupplyRepository getSupplyRepository;
-    private final CommunityAccessGuard communityAccessGuard;
 
     public GetDatadisConsumptionServiceImpl(
             @Qualifier("getDatadisConsumptionRepositoryInflux") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
-            GetSupplyRepository getSupplyRepository,
-            CommunityAccessGuard communityAccessGuard) {
+            GetSupplyRepository getSupplyRepository) {
         this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;
         this.getSupplyRepository = getSupplyRepository;
-        this.communityAccessGuard = communityAccessGuard;
     }
 
     @Override
     public List<DatadisConsumption> getDailyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                 OffsetDateTime endDate) {
         Supply supply = getSupplyOrThrow(supplyId);
-
-        if (!communityAccessGuard.canReadSupply(supply)) {
-            throw new AccessDeniedException("User does not have permission to access this supply's consumption data");
-        }
-
         return getDatadisConsumptionRepository.getDailyConsumptionsByRangeOfDates(supply, startDate, endDate);
     }
 
@@ -50,11 +40,6 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     public List<DatadisConsumption> getHourlyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                  OffsetDateTime endDate) {
         Supply supply = getSupplyOrThrow(supplyId);
-
-        if (!communityAccessGuard.canReadSupply(supply)) {
-            throw new AccessDeniedException("User does not have permission to access this supply's consumption data");
-        }
-
         return getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(supply, startDate, endDate);
     }
 
@@ -62,11 +47,6 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     public List<DatadisConsumption> getMonthlyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                    OffsetDateTime endDate) {
         Supply supply = getSupplyOrThrow(supplyId);
-
-        if (!communityAccessGuard.canReadSupply(supply)) {
-            throw new AccessDeniedException("User does not have permission to access this supply's consumption data");
-        }
-
         return getDatadisConsumptionRepository.getMonthlyConsumptionsByRangeOfDates(supply, startDate, endDate);
     }
 
@@ -74,11 +54,6 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     public List<DatadisConsumption> getYearlyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                   OffsetDateTime endDate) {
         Supply supply = getSupplyOrThrow(supplyId);
-
-        if (!communityAccessGuard.canReadSupply(supply)) {
-            throw new AccessDeniedException("User does not have permission to access this supply's consumption data");
-        }
-
         return getDatadisConsumptionRepository.getYearlyConsumptionsByRangeOfDates(supply, startDate, endDate);
     }
 

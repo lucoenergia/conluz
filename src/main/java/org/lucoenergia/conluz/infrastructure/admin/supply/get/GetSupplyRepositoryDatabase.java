@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -64,11 +64,6 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
     }
 
     @Override
-    public boolean existsById(SupplyId id) {
-        return supplyRepository.existsById(id.getId());
-    }
-
-    @Override
     public PagedResult<Supply> findAll(PagedRequest pagedRequest) {
         Page<SupplyEntity> result = supplyRepository.findAll(paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
@@ -80,6 +75,20 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
         PagedResult<Supply> allSupplies = findAll(PagedRequest.of(0, Long.valueOf(total > 0 ? total : 1).intValue()));
 
         return allSupplies.getItems();
+    }
+
+    @Override
+    public PagedResult<Supply> findByCommunity(PagedRequest pagedRequest, UUID communityId) {
+        Page<SupplyEntity> result = supplyRepository.findByCommunityId(communityId,
+                paginationRequestMapper.mapRequest(pagedRequest));
+        return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
+    }
+
+    @Override
+    public PagedResult<Supply> findByOwnerAndCommunity(PagedRequest pagedRequest, UserId ownerId, UUID communityId) {
+        Page<SupplyEntity> result = supplyRepository.findByUserIdAndCommunityId(ownerId.getId(), communityId,
+                paginationRequestMapper.mapRequest(pagedRequest));
+        return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
     }
 
     @Override

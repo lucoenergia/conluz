@@ -27,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -58,7 +59,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
         plantOne = createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         // Modify data of the plant
         UpdatePlantBody plantModified = new UpdatePlantBody();
@@ -92,7 +93,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
     @Test
     void testWithMissingNotRequiredFields() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
@@ -138,7 +139,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownPlant() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String plantId = UUID.randomUUID().toString();
 
@@ -173,7 +174,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
         plantOne = createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         UpdatePlantBody plantModified = new UpdatePlantBody();
         plantModified.setCode("TS-234123");
@@ -208,7 +209,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                         }
                 """;
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String plantId = UUID.randomUUID().toString();
 
@@ -228,7 +229,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String plantId = UUID.randomUUID().toString();
 
@@ -280,7 +281,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String plantId = UUID.randomUUID().toString();
 
@@ -332,7 +333,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutBody() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String plantId = UUID.randomUUID().toString();
 
@@ -349,7 +350,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutIdInPath() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(put("/api/v1/plants")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -401,7 +402,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyAsString))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

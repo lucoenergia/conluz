@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -35,7 +36,7 @@ public class GetPriceByHourController {
     @GetMapping
     @Operation(
             summary = "Retrieve hourly energy prices within a specified date interval.",
-            description = "This endpoint enables users to access detailed hourly energy prices within a specified date interval, offering insights into cost variations over time. Clients can include query parameters to define the start and end dates, allowing for flexible customization of the data retrieved. Proper authentication, through an authentication token, is required for secure access to this endpoint. A successful request returns an HTTP status code of 200, delivering a dataset that includes timestamped energy prices for each hour within the specified interval. In cases of errors or invalid parameters, the server responds with an appropriate error status code accompanied by a descriptive message to guide users in resolving any issues. This endpoint serves as a valuable tool for monitoring and analyzing historical energy pricing trends within the system.",
+            description = "This endpoint enables users to access detailed hourly energy prices within a specified date interval, offering insights into cost variations over time. Clients can include query parameters to define the start and end dates, allowing for flexible customization of the data retrieved. **Required: any authenticated user.** A successful request returns an HTTP status code of 200, delivering a dataset that includes timestamped energy prices for each hour within the specified interval. In cases of errors or invalid parameters, the server responds with an appropriate error status code accompanied by a descriptive message to guide users in resolving any issues. This endpoint serves as a valuable tool for monitoring and analyzing historical energy pricing trends within the system.",
             tags = ApiTag.PRICES,
             operationId = "getPriceByRangeOfDates"
     )
@@ -50,6 +51,7 @@ public class GetPriceByHourController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
+    @PreAuthorize("isAuthenticated()")
     public List<PriceByHour> getPriceByRangeOfDates(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {

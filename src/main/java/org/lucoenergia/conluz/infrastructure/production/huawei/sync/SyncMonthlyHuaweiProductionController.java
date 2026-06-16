@@ -17,15 +17,17 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoun
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Month;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/production/huawei/sync/monthly")
+@RequestMapping("/api/v1/communities/{communityId}/production/huawei/sync/monthly")
 public class SyncMonthlyHuaweiProductionController {
 
     private final HuaweiProductionMonthlyAggregationService aggregationService;
@@ -54,14 +56,17 @@ public class SyncMonthlyHuaweiProductionController {
                     - If only plantCode is provided: Aggregates that plant for all months of the year
                     - If neither month nor plantCode is provided: Aggregates all plants for all months of the year
 
+                    The community is taken from the path and only that community's plants are aggregated.
+
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
-                    **Required Role: ADMIN**
+                    **Required: Community Admin of the community. Returns 404 if the community does not exist or the
+                    caller is not a member of it, or 403 if the caller is a member but not one of its admins.**
 
                     A successful request returns an HTTP status code of 200.
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "syncMonthlyHuaweiProduction",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -75,9 +80,9 @@ public class SyncMonthlyHuaweiProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
-    public void syncMonthlyHuaweiProduction(@Valid @RequestBody SyncMonthlyHuaweiProductionBody body) {
-
+    @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
+    public void syncMonthlyHuaweiProduction(@PathVariable UUID communityId,
+                                            @Valid @RequestBody SyncMonthlyHuaweiProductionBody body) {
         if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
             throw new HuaweiDisabledException();
         }
@@ -86,6 +91,7 @@ public class SyncMonthlyHuaweiProductionController {
             if (body.getMonth() != null) {
                 // Specific plant, specific month
                 aggregationService.aggregateMonthlyProductions(
+                        communityId,
                         body.getPlantCode(),
                         body.getMonthEnum(),
                         body.getYear()
@@ -94,6 +100,7 @@ public class SyncMonthlyHuaweiProductionController {
                 // Specific plant, all months of year
                 for (Month month : Month.values()) {
                     aggregationService.aggregateMonthlyProductions(
+                            communityId,
                             body.getPlantCode(),
                             month,
                             body.getYear()
@@ -102,11 +109,11 @@ public class SyncMonthlyHuaweiProductionController {
             }
         } else {
             if (body.getMonth() != null) {
-                // All plants, specific month
-                aggregationService.aggregateMonthlyProductions(body.getMonthEnum(), body.getYear());
+                // All community plants, specific month
+                aggregationService.aggregateMonthlyProductions(communityId, body.getMonthEnum(), body.getYear());
             } else {
-                // All plants, all months
-                aggregationService.aggregateMonthlyProductions(body.getYear());
+                // All community plants, all months
+                aggregationService.aggregateMonthlyProductions(communityId, body.getYear());
             }
         }
     }

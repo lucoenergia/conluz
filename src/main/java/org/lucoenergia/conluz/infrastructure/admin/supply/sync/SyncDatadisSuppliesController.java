@@ -10,18 +10,19 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/supplies/datadis/sync")
+@RequestMapping("/api/v1/communities/{communityId}/supplies/datadis/sync")
 public class SyncDatadisSuppliesController {
 
     private final DatadisSuppliesSyncService datadisSuppliesSyncService;
@@ -34,13 +35,14 @@ public class SyncDatadisSuppliesController {
     @Operation(
             summary = "Synchronize supplies retrieving the information from datadis.es.",
             description = """
-                    This endpoint enables users to synchronize all active supplies retrieving the information from
-                    datadis.es.
-                    
+                    This endpoint enables users to synchronize the active supplies of the community identified by the
+                    path `communityId`, retrieving the information from datadis.es.
+
                     Proper authentication, through an authentication token, is required for secure access to this
                     endpoint.
-                    **Required Role: ADMIN**
-                    
+                    **Required: Community Admin of the community. Returns 404 if the community does not exist or the
+                    caller is not a member of it, or 403 if the caller is a member but not one of its admins.**
+
                     A successful request returns an HTTP status code of 200.
                     
                     In cases of errors, the server responds with an appropriate error status code accompanied by a
@@ -48,7 +50,7 @@ public class SyncDatadisSuppliesController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "syncDatadisSupplies",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -62,10 +64,10 @@ public class SyncDatadisSuppliesController {
     @ForbiddenErrorResponse
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
+    @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
-    public void syncDatadisConsumptions(
-            @RequestParam(value = "communityId", required = false) UUID communityId) {
-        datadisSuppliesSyncService.synchronizeSupplies();
+    public void syncDatadisSupplies(@PathVariable UUID communityId) {
+        datadisSuppliesSyncService.synchronizeSupplies(communityId);
     }
 }

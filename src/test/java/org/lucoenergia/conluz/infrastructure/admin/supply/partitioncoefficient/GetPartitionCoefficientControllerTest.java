@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
@@ -12,7 +11,6 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPar
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -43,7 +42,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
 
     @Test
     void getHistoryReturnsAllPeriodsOrdered() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
@@ -62,7 +61,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
 
     @Test
     void getActiveReturnsRowWithNullValidTo() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
@@ -79,7 +78,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
 
     @Test
     void getAtTimestampReturnsCoefficientActiveAtThatInstant() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
@@ -97,7 +96,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
 
     @Test
     void getAtTimestampReturns404WhenNoHistoryCoversTimestamp() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         // No coefficient seeded for this supply
 
@@ -113,8 +112,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         Supply supply = SupplyMother.random(user).build();
-        Community community = getCommunityRepository.findAll().stream().findFirst().get();
-        return createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), community.getId());
+        return createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), DEFAULT_COMMUNITY_ID);
     }
 
     private void persistCoefficient(UUID supplyId, BigDecimal coefficient, Instant validFrom, Instant validTo) {

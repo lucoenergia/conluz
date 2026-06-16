@@ -5,7 +5,6 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyPartitionRe
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.*;
-import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -81,7 +80,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -114,7 +113,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -145,7 +144,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -174,7 +173,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -204,7 +203,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                 MediaType.APPLICATION_OCTET_STREAM_VALUE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -233,7 +232,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -254,7 +253,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
         sharingAgreementRepository.save(sharingAgreement);
         UUID sharingAgreementId = sharingAgreement.getId();
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .param("sharingAgreementId", sharingAgreementId.toString())
@@ -277,7 +276,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -302,7 +301,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                 TEXT_CSV_MEDIA_TYPE,
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -350,7 +349,7 @@ class CreateSuppliesPartitionsWithFileControllerTest extends BaseControllerTest 
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("sharingAgreementId", sharingAgreementId.toString()))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

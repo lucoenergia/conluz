@@ -27,7 +27,6 @@ public class JwtAuthRepository implements AuthRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthRepository.class);
 
-    private static final String CUSTOM_CLAIM_ROLE = "role";
     private static final String CUSTOM_CLAIM_IS_PLATFORM_ADMIN = "is_platform_admin";
     private static final String CUSTOM_CLAIM_COMMUNITY_MEMBERSHIPS = "community_memberships";
 
@@ -57,7 +56,6 @@ public class JwtAuthRepository implements AuthRepository {
 
     private Map<String, Object> getCustomClaims(User user) {
         Map<String, Object> claims = new HashedMap<>();
-        claims.put(CUSTOM_CLAIM_ROLE, user.getRole().name());
         claims.put(CUSTOM_CLAIM_IS_PLATFORM_ADMIN, user.isPlatformAdmin());
         Map<String, String> membershipMap = new HashMap<>();
         if (user.getMemberships() != null) {
@@ -113,11 +111,6 @@ public class JwtAuthRepository implements AuthRepository {
     @Override
     public Date getExpirationDate(Token token) {
         return getClaim(token, Claims::getExpiration);
-    }
-
-    @Override
-    public String getRole(Token token) {
-        return (String) getAllClaims(token).get(CUSTOM_CLAIM_ROLE);
     }
 
     private Duration getExpirationDuration() {

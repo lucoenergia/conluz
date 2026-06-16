@@ -49,7 +49,7 @@ public class CreateUserServiceImpl implements CreateUserService {
 
         if (targetCommunityId == null) {
             User caller = authService.getCurrentUser().orElse(null);
-            if (caller != null && !caller.isPlatformAdmin() && caller.getRole() != org.lucoenergia.conluz.domain.admin.user.Role.ADMIN) {
+            if (caller != null && !caller.isPlatformAdmin()) {
                 targetCommunityId = communityContext.getActiveCommunityId().orElse(null);
             }
         }

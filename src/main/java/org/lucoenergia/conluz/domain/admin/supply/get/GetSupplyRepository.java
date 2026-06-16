@@ -18,10 +18,18 @@ public interface GetSupplyRepository {
     Optional<Supply> findById(SupplyId id);
     Optional<Supply> findByCode(SupplyCode code);
 
-    boolean existsById(SupplyId id);
-
     PagedResult<Supply> findAll(PagedRequest pagedRequest);
     List<Supply> findAll();
+
+    /**
+     * All supplies belonging to the given community (paginated).
+     */
+    PagedResult<Supply> findByCommunity(PagedRequest pagedRequest, UUID communityId);
+
+    /**
+     * Supplies owned by {@code ownerId} that belong to the given community (paginated).
+     */
+    PagedResult<Supply> findByOwnerAndCommunity(PagedRequest pagedRequest, UserId ownerId, UUID communityId);
 
     List<Supply> findByUserId(UserId userId);
 

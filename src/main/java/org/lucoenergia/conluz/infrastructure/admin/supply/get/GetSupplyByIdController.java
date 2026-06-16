@@ -33,7 +33,10 @@ public class GetSupplyByIdController {
     @GetMapping("/{id}")
     @Operation(
             summary = "Gets a supply by ID",
-            description = "This endpoint retrieves a supply by its unique identifier.",
+            description = """
+                    This endpoint retrieves a supply by its unique identifier.
+
+                    **Required: Community Admin of the supply's community, or the supply owner.**""",
             tags = ApiTag.SUPPLIES,
             operationId = "getSupply"
     )
@@ -49,7 +52,7 @@ public class GetSupplyByIdController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canReadSupply(#id)")
     public SupplyResponse getSupply(@PathVariable("id") UUID id) {
         Supply supply = service.getById(SupplyId.of(id));
         return new SupplyResponse(supply);

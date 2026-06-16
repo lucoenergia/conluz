@@ -16,7 +16,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -25,11 +25,12 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/production/huawei/sync/yearly";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/huawei/sync/yearly";
 
     @MockitoBean
     private HuaweiProductionYearlyAggregationService aggregationService;
@@ -54,7 +55,7 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testAggregateYearlyForAllPlants() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyHuaweiProductionBody body = new SyncYearlyHuaweiProductionBody(2024);
 
@@ -66,13 +67,13 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateYearlyProductions(eq(2024));
+                .aggregateYearlyProductions(eq(DEFAULT_COMMUNITY_ID), eq(2024));
     }
 
     @Test
     void testAggregateYearlyForSpecificPlant() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyHuaweiProductionBody body = new SyncYearlyHuaweiProductionBody(2024, "PLANT001");
 
@@ -84,7 +85,7 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateYearlyProductions(eq("PLANT001"), eq(2024));
+                .aggregateYearlyProductions(eq(DEFAULT_COMMUNITY_ID), eq("PLANT001"), eq(2024));
     }
 
     @Test
@@ -92,7 +93,7 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
 
         when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(Collections.emptyList());
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyHuaweiProductionBody body = new SyncYearlyHuaweiProductionBody(2024);
 
@@ -119,7 +120,7 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+    void testAuthenticatedUserWithoutAdminRoleGetsNotFound() throws Exception {
 
         String authHeader = loginAsPartner();
 
@@ -130,14 +131,14 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 
     @Test
     void testWithInvalidYearTooLow() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyHuaweiProductionBody body = new SyncYearlyHuaweiProductionBody(1999);
 
@@ -153,7 +154,7 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidYearTooHigh() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyHuaweiProductionBody body = new SyncYearlyHuaweiProductionBody(2101);
 
@@ -169,7 +170,7 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testWithNullYear() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": null}";
 
@@ -185,13 +186,13 @@ class SyncYearlyHuaweiProductionControllerTest extends BaseControllerTest {
     @Test
     void testWithInvalidPlantCode() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncYearlyHuaweiProductionBody body = new SyncYearlyHuaweiProductionBody(2024, "INVALID");
 
         doThrow(new PlantNotFoundException("INVALID"))
                 .when(aggregationService)
-                .aggregateYearlyProductions(anyString(), any(Integer.class));
+                .aggregateYearlyProductions(any(UUID.class), anyString(), any(Integer.class));
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Remove the obsolete users.role column. Authorization is now sourced exclusively from
+         users.is_platform_admin (platform privilege) and community_memberships.role (community
+         privilege). This must run after backfill_default_community.xml, which derives memberships
+         from the old role. -->
+    <changeSet id="drop_role_from_users" author="Víctor Cañizares">
+        <dropColumn tableName="users" columnName="role"/>
+    </changeSet>
+
+</databaseChangeLog>

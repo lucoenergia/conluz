@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggregationService {
@@ -42,19 +42,31 @@ public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggrega
     }
 
     @Override
-    public void aggregateYearlyConsumptions(SupplyCode supplyCode, int year) {
-        Optional<Supply> supplyOptional = getSupplyRepository.findByCode(supplyCode);
-        if (supplyOptional.isEmpty()) {
+    public void aggregateYearlyConsumptions(UUID communityId, int year) {
+        for (Supply supply : getSupplyRepository.findAllByCommunityId(communityId)) {
+            if (hasNoDistributorCode(supply)) {
+                continue;
+            }
+            aggregateForSupplyYear(supply, year);
+        }
+    }
+
+    @Override
+    public void aggregateYearlyConsumptions(UUID communityId, SupplyCode supplyCode, int year) {
+        Supply supply = getSupplyRepository.findByCode(supplyCode)
+                .orElseThrow(() -> new SupplyNotFoundException(supplyCode));
+        if (supply.getCommunity() == null || !communityId.equals(supply.getCommunity().getId())) {
             throw new SupplyNotFoundException(supplyCode);
         }
-
-        Supply supply = supplyOptional.get();
-        if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isBlank()) {
-            LOGGER.warn("Skipping supply with ID: {} because it does not have distributor code", supply.getId());
+        if (hasNoDistributorCode(supply)) {
             return;
         }
-
         aggregateForSupplyYear(supply, year);
+    }
+
+    private boolean hasNoDistributorCode(Supply supply) {
+        return supply.getDistributor() == null || supply.getDistributor().getCode() == null
+                || supply.getDistributor().getCode().isBlank();
     }
 
     private void aggregateForSupplyYear(Supply supply, int year) {

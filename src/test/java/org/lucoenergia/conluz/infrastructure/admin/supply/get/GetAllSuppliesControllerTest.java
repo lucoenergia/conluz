@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -24,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class GetAllSuppliesControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/supplies";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/supplies";
 
     @Autowired
     private CreateUserRepository createUserRepository;
@@ -48,7 +49,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -78,7 +79,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -110,7 +111,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -128,7 +129,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -158,7 +159,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -188,7 +189,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -218,7 +219,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).withName("Third").build();
         supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -252,7 +253,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).withName("Third").withCode("C").build();
         supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -287,7 +288,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).withName("Third").build();
         supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

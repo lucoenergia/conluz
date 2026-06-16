@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserService;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
@@ -37,12 +38,14 @@ public class GetAllUsersController {
     private final GetUserService service;
     private final PaginationRequestMapper paginationRequestMapper;
     private final CommunityAccessGuard communityAccessGuard;
+    private final AuthService authService;
 
     public GetAllUsersController(GetUserService service, PaginationRequestMapper paginationRequestMapper,
-                                 CommunityAccessGuard communityAccessGuard) {
+                                 CommunityAccessGuard communityAccessGuard, AuthService authService) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
         this.communityAccessGuard = communityAccessGuard;
+        this.authService = authService;
     }
 
     @GetMapping
@@ -52,7 +55,7 @@ public class GetAllUsersController {
                     This endpoint facilitates the retrieval of all users within the system, allowing clients to access a
                     comprehensive list of user details.
 
-                    **Required Role: ADMIN or COMMUNITY_ADMIN**
+                    **Required: Platform Admin or Community Admin**
                     Platform admins see all users; community admins see only users belonging to their communities.
 
                     Features:
@@ -65,7 +68,7 @@ public class GetAllUsersController {
                     """,
             tags = ApiTag.USERS,
             operationId = "getAllUsers",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -81,8 +84,16 @@ public class GetAllUsersController {
     @PageableAsQueryParam
     @PreAuthorize("@communityAccessGuard.canListUsers()")
     public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) Pageable page) {
+        User currentUser = authService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
         Set<UUID> visibleCommunityIds = communityAccessGuard.visibleCommunityIds();
-        PagedResult<User> users = service.findAllByCommunities(paginationRequestMapper.mapRequest(page), visibleCommunityIds);
+
+        PagedResult<User> users;
+        if (Boolean.TRUE.equals(currentUser.isPlatformAdmin())) {
+            users = service.findAll(paginationRequestMapper.mapRequest(page));
+        } else {
+            users = service.findAllByCommunities(paginationRequestMapper.mapRequest(page), visibleCommunityIds);
+        }
 
         List<UserResponse> responseUsers = users.getItems().stream()
                 .map(UserResponse::new).toList();

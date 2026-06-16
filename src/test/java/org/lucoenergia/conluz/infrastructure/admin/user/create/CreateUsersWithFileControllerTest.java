@@ -40,7 +40,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -64,7 +64,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -89,7 +89,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "application/octet-stream",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -113,7 +113,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -137,7 +137,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -161,7 +161,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -177,7 +177,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
     @Test
     void
     testWithoutFile() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -236,7 +236,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 csvContent.getBytes());
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(multipart(URL)
                         .file(file)

@@ -39,7 +39,6 @@ public class UpdateUserRepositoryDatabase implements UpdateUserRepository {
         currentUser.setEmail(user.getEmail());
         currentUser.setAddress(user.getAddress());
         currentUser.setPhoneNumber(user.getPhoneNumber());
-        currentUser.setRole(user.getRole());
 
         return mapper.map(repository.save(currentUser));
     }
