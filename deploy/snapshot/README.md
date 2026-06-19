@@ -18,7 +18,8 @@ A finished bundle (`snapshot-<UTC-timestamp>.tar.gz`) contains:
 The script runs **on a workstation on the Tailnet** and drives the production host over SSH:
 
 1. `pg_dump -Fc` the prod database (read-only). The raw PII dump never leaves the prod host.
-2. Start a **separate ephemeral Postgres container** on the prod host (distinct name/port).
+2. Start a **separate ephemeral Postgres container** on the prod host (distinct name, no
+   published port — accessed only via `docker exec`).
 3. `pg_restore` the raw dump into the ephemeral, then run `anonymize.sql` against it.
 4. `pg_dump -Fc` the **cleaned** ephemeral database — this anonymized dump is what ships.
 5. `influxd backup -portable` the prod InfluxDB (read-only) and copy it out.
@@ -81,11 +82,20 @@ ssh "$PROD_SSH_HOST" docker exec influxdb influx -execute 'SHOW DATABASES'      
 `anonymize.sql` (run against the ephemeral DB only), deterministically derived from each row's
 primary key so output is unique and stable across re-runs:
 
-- `users`: `personal_id`, `full_name`, `address`, `phone_number`, `email`.
+- `users`: `personal_id`, `full_name`, `address`, `phone_number`, `email` (identity PII).
 - `supplies`: `address` (but **not** `code` — the CUPS is retained).
 
-Consumption magnitudes and timestamps are untouched; nothing is nulled out. The script is
-idempotent: running it twice produces equivalent anonymized output.
+It also **scrubs secrets** so no usable credential leaves the host:
+
+- `users.password`: every account is reset to a known bcrypt hash of the literal string
+  `password`, so restored UAT/local environments stay loggable with a documented throwaway
+  credential instead of shipping production hashes.
+- `datadis_config` / `huawei_config` (`username`, `password`): these third-party portal
+  credentials are stored **without encryption at rest**, so they are overwritten with inert
+  placeholders. Restored environments must be reconfigured with their own credentials.
+
+Consumption magnitudes and timestamps are untouched. The script is idempotent: running it
+twice produces equivalent anonymized output.
 
 ## Exit codes
 
@@ -105,4 +115,6 @@ A failure of either store aborts the run and emits **no** bundle.
 - The ephemeral restore + anonymization runs **on the prod laptop**, costing CPU/RAM/disk for
   the duration of the run. In exchange, PII never leaves the host and prod stays read-only with
   **no downtime**. → **Do** run it during a quiet window if the laptop is resource-constrained
-  → **do not** point the ephemeral container at the prod volume/port.
+  → **do not** reuse a prod container name for the ephemeral container (the script aborts up
+  front if `EPHEMERAL_PG_CONTAINER` collides with a prod container, and `cleanup()` never
+  force-removes a prod container).

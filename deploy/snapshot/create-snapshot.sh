@@ -54,7 +54,7 @@ REQUIRED_VARS=(
   PROD_SSH_HOST
   PG_CONTAINER PG_USER PG_DB PG_VERSION
   INFLUX_CONTAINER INFLUX_DB INFLUX_BACKUP_HOST
-  EPHEMERAL_PG_CONTAINER EPHEMERAL_PG_PORT EPHEMERAL_PG_PASSWORD
+  EPHEMERAL_PG_CONTAINER EPHEMERAL_PG_PASSWORD
   OUTPUT_DIR
 )
 for var in "${REQUIRED_VARS[@]}"; do
@@ -66,6 +66,22 @@ done
 
 # Container running the app, used only to read the deployed image tag for the manifest.
 APP_CONTAINER="${APP_CONTAINER:-conluz}"
+
+# INVARIANT 1+2, fail-closed BEFORE any trap is installed: the ephemeral identifiers must
+# be distinct from the production ones. The per-write assert_ephemeral_target() guards the
+# main path, but the EXIT trap's "docker rm -f $EPHEMERAL_PG_CONTAINER" runs even when that
+# assert aborts -- so a misconfigured EPHEMERAL_PG_CONTAINER (e.g. a typo matching the prod
+# container) would otherwise let cleanup force-remove a production container. Validate here,
+# before 'trap cleanup EXIT' exists, so a config collision can never reach cleanup.
+# shellcheck disable=SC2153
+if [[ "$EPHEMERAL_PG_CONTAINER" == "$PG_CONTAINER" \
+   || "$EPHEMERAL_PG_CONTAINER" == "$INFLUX_CONTAINER" \
+   || "$EPHEMERAL_PG_CONTAINER" == "$APP_CONTAINER" ]]; then
+  echo "ERROR: EPHEMERAL_PG_CONTAINER ('$EPHEMERAL_PG_CONTAINER') must differ from the" >&2
+  echo "       production container names (PG_CONTAINER/INFLUX_CONTAINER/APP_CONTAINER)." >&2
+  exit 2
+fi
+
 # Superuser of the ephemeral throwaway instance (official postgres image default).
 EPHEMERAL_PG_USER="postgres"
 
@@ -112,7 +128,16 @@ LOCAL_STAGE=""
 cleanup() {
   # Tear down the ephemeral container so no clone of prod data lingers, and remove all temp
   # files on both hosts. Best-effort: never let cleanup itself abort the trap.
-  prod "docker rm -f '$EPHEMERAL_PG_CONTAINER'" >/dev/null 2>&1 || true
+  #
+  # Defence in depth: only force-remove the ephemeral container if its name is distinct
+  # from every production container. The up-front guard already rejects such collisions,
+  # but cleanup must never run "docker rm -f" against a prod container even if reached via
+  # an unexpected path.
+  if [[ "$EPHEMERAL_PG_CONTAINER" != "$PG_CONTAINER" \
+     && "$EPHEMERAL_PG_CONTAINER" != "$INFLUX_CONTAINER" \
+     && "$EPHEMERAL_PG_CONTAINER" != "$APP_CONTAINER" ]]; then
+    prod "docker rm -f '$EPHEMERAL_PG_CONTAINER'" >/dev/null 2>&1 || true
+  fi
   prod "docker exec '$INFLUX_CONTAINER' rm -rf /tmp/influx-backup" >/dev/null 2>&1 || true
   if [[ -n "$REMOTE_TMP" ]]; then
     prod "rm -rf '$REMOTE_TMP'" >/dev/null 2>&1 || true
@@ -144,8 +169,9 @@ prod "docker exec '$PG_CONTAINER' pg_dump -Fc -U '$PG_USER' '$PG_DB' > '$REMOTE_
 
 # =============================================================================================
 # Step 2: Spin the EPHEMERAL Postgres  (on the prod host)
-# Why (invariant 2): isolates ALL writes from prod. Distinct name/port; the image major version
-# matches prod so pg_restore is compatible. Binds to loopback only.
+# Why (invariant 2): isolates ALL writes from prod. Distinct name; the image major version
+# matches prod so pg_restore is compatible. No port is published: every interaction uses
+# "docker exec", so the transient un-anonymized clone is never reachable over TCP.
 # =============================================================================================
 # PG_VERSION is sourced from .env (SC2153 is a false positive here).
 # shellcheck disable=SC2153
@@ -155,7 +181,6 @@ prod "docker rm -f '$EPHEMERAL_PG_CONTAINER'" >/dev/null 2>&1 || true
 prod "docker run -d --name '$EPHEMERAL_PG_CONTAINER' \
         -e POSTGRES_PASSWORD='$EPHEMERAL_PG_PASSWORD' \
         -e POSTGRES_DB='$PG_DB' \
-        -p 127.0.0.1:'$EPHEMERAL_PG_PORT':5432 \
         'postgres:$PG_VERSION'" >/dev/null \
   || die 11 "could not start ephemeral Postgres container"
 
