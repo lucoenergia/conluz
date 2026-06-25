@@ -47,4 +47,11 @@ deploy/telegraf.conf
 deploy/snapshot/.env
 deploy/snapshot/snapshots/
 
+### Local data-clone workflow ###
+# Local config (covered by *.env too) and downloaded bundles must never be committed.
+deploy/local/.env
+deploy/local/bundles/
+# Transient dump copied into deploy/ by the restore orchestrator.
+deploy/deploy-local-restore-*.dump
+
 .junie
