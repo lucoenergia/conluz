@@ -1,0 +1,41 @@
+# Isolated Postgres + InfluxDB stack for the local data-clone workflow.
+#
+# This is a SEPARATE stack from deploy/docker-compose.yaml: distinct container names, distinct
+# host ports and NAMED volumes — so the destructive snapshot restore can never touch the data of
+# your normal `postgres` / `influxdb` services. It contains only the two databases (never the app).
+#
+# Credentials are inherited from deploy/.env (env_file: ../.env) so the shared restore scripts,
+# which source deploy/.env, authenticate against these isolated containers. Container names and
+# host ports are interpolated from deploy/local/.env (with the defaults below).
+
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: ${LOCAL_POSTGRES_CONTAINER:-conluz-local-postgres}
+    ports:
+      - "${LOCAL_POSTGRES_PORT:-5433}:5432"
+    env_file:
+      - ../.env
+    volumes:
+      - conluz-local-postgres-data:/var/lib/postgresql/data
+      - ../conluz-postgres-init.sh:/docker-entrypoint-initdb.d/conluz-postgres-init.sh
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: ${LOCAL_INFLUX_CONTAINER:-conluz-local-influxdb}
+    ports:
+      - "${LOCAL_INFLUX_PORT:-8087}:8086"
+    env_file:
+      - ../.env
+    environment:
+      - INFLUXDB_HTTP_AUTH_ENABLED=true
+    volumes:
+      - conluz-local-influxdb-data:/var/lib/influxdb
+      - ../conluz-influxdb-init.sh:/docker-entrypoint-initdb.d/conluz-influxdb-init.sh
+    restart: unless-stopped
+
+volumes:
+  conluz-local-postgres-data:
+  conluz-local-influxdb-data:

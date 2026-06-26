@@ -72,6 +72,7 @@ require POSTGRES_DB
 require APP_DB_USER
 
 CONLUZ_PROD_HOST_DENYLIST="${CONLUZ_PROD_HOST_DENYLIST:-lucobot1 conluz-prod}"
+CONLUZ_SHARED_CONTAINER_DENYLIST="${CONLUZ_SHARED_CONTAINER_DENYLIST:-postgres influxdb}"
 POSTGRES_MAJOR_EXPECTED="${POSTGRES_MAJOR_EXPECTED:-16}"
 ALLOWED_DOCKER_CONTEXTS="${ALLOWED_DOCKER_CONTEXTS:-default desktop-linux}"
 
@@ -126,6 +127,15 @@ guardrails() {
     case "$hay" in
       *"$token"*) die 10 "Target matches production denylist entry '$token'. Aborting." ;;
     esac
+  done
+
+  # Isolation — never target the developer's shared/main containers (the destructive restore must
+  # only touch the dedicated isolated stack).
+  local shared
+  for shared in $CONLUZ_SHARED_CONTAINER_DENYLIST; do
+    [[ -z "$shared" ]] && continue
+    [[ "$LOCAL_POSTGRES_CONTAINER" == "$shared" || "$LOCAL_INFLUX_CONTAINER" == "$shared" ]] \
+      && die 10 "Target container matches shared-stack name '$shared'. Use the isolated stack (conluz-local-*)."
   done
 
   # Invariant 3 — no remote Docker context / no SSH.
@@ -221,8 +231,14 @@ SQL
 
   info "Restoring Postgres via deploy/restore_postgres.sh ..."
   # pg_restore --clean (without --if-exists) emits benign "does not exist" errors on a fresh DB and
-  # may exit non-zero; we verify success below instead of trusting the exit code.
-  ( cd "$DEPLOY_DIR" && ./restore_postgres.sh "$SENTINEL_DUMP" ) || true
+  # may exit non-zero; we verify success below instead of trusting the exit code. The shared script
+  # is pointed at the isolated container/DB via POSTGRES_CONTAINER/POSTGRES_DB.
+  (
+    cd "$DEPLOY_DIR" &&
+    POSTGRES_CONTAINER="$LOCAL_POSTGRES_CONTAINER" \
+    POSTGRES_DB="$POSTGRES_DB" \
+    ./restore_postgres.sh "$SENTINEL_DUMP"
+  ) || true
 
   docker exec -i "$LOCAL_POSTGRES_CONTAINER" psql -U "$POSTGRES_SUPERUSER" -d "$POSTGRES_DB" \
     -c "GRANT ALL ON SCHEMA public TO \"$APP_DB_USER\";" >/dev/null 2>&1 || true

@@ -1,6 +1,6 @@
 # Local data-clone workflow
 
-Restore a snapshot **bundle** (anonymized production data) into a **local throwaway**
+Restore a snapshot **bundle** (anonymized production data) into a **dedicated, isolated**
 Postgres + InfluxDB stack, then run the **currently checked-out branch** with `./gradlew bootRun`
 so **Liquibase applies the branch's pending changesets on startup**.
 
@@ -8,8 +8,20 @@ Purpose: validate a branch's code against prod-like (anonymized) data **before**
 production. The bundle carries production's (older) schema state, so starting the branch on top
 reproduces the production migration.
 
-> This restore is **destructive** — it drops and recreates databases. It is fenced behind a
-> local-only guardrail gate and only ever acts on the **local Docker engine**.
+> This restore is **destructive** — it drops and recreates databases. It runs on a **separate
+> isolated stack** (`conluz-local-*`, ports 5433/8087, named volumes) → it does **not** touch your
+> normal `postgres`/`influxdb` services. It is also fenced behind a local-only guardrail gate and
+> only ever acts on the **local Docker engine**.
+
+## Isolation (run it alongside your dev stack)
+
+`make up` starts a **second** Postgres + InfluxDB defined in `docker-compose.local.yml` under its
+own compose project (`conluz-local`): distinct container names (`conluz-local-postgres` /
+`conluz-local-influxdb`), distinct host ports (default **5433** / **8087**, set via
+`LOCAL_POSTGRES_PORT` / `LOCAL_INFLUX_PORT`), and **named Docker volumes**. Do keep your usual
+`postgres`/`influxdb` running on 5432/8086 → this workflow never reads or writes them. `make reset`
+runs `down -v`, wiping **only** the isolated `conluz-local_*` volumes → **not** your dev data. A
+guardrail refuses to run if you point the target at the shared `postgres`/`influxdb` names.
 
 ## Prerequisites
 
@@ -27,7 +39,7 @@ reproduces the production migration.
 cd deploy/local
 cp .env.example .env            # once; edit CONLUZ_JWT_SECRET_KEY
 
-make up                         # start Postgres + InfluxDB services ONLY
+make up                         # start the ISOLATED Postgres + InfluxDB stack (5433/8087)
 make restore                    # dry-run: prints the resolved target + bundle identity
 make restore EXECUTE=1          # perform the destructive restore
 make run                        # ./gradlew bootRun -> Liquibase migrates on startup
@@ -41,9 +53,9 @@ make loop EXECUTE=1             # restore (execute) then run
 
 | Target | Does X → not Y |
 | --- | --- |
-| `make up` | Starts **postgres + influxdb only** → **not** the app/`conluz` container. |
-| `make down` | Stops & removes those two service containers → **not** the whole stack. |
-| `make reset` | `down` + clears the local DB data dirs for a fresh stack → **not** any remote volume. |
+| `make up` | Starts the **isolated** `conluz-local-*` stack → **not** your dev `postgres`/`influxdb`. |
+| `make down` | Stops & removes the isolated stack containers → **not** your dev containers. |
+| `make reset` | `down -v` wiping only the **isolated** named volumes → **not** your dev data. |
 | `make restore` | Defaults to a **dry-run** (no changes) → **not** destructive unless `EXECUTE=1`. |
 | `make restore BUNDLE=path` | Restores a specific bundle → otherwise picks the **newest** in `BUNDLE_DIR`. |
 | `make run` | Runs the **checked-out branch** via `bootRun` → **not** the packaged prod image. |
@@ -87,12 +99,14 @@ restore → do **not** rely on any pre-existing local InfluxDB data surviving.
 
 ## How shared scripts are reused (no parallel restore logic)
 
-- `deploy/restore_postgres.sh` is reused **unchanged**; the orchestrator only feeds it the
-  uncompressed `postgres.dump` (as a bare filename, run from `deploy/`) and verifies the result.
-- `deploy/restore_influxdb.sh` was made **backward-compatible-configurable** (overridable
-  container/DB names, tolerant stop/start). With no overrides it behaves **identically** for the
-  disaster-recovery path; the local workflow passes sentinel container names so it never touches a
-  real app container.
+- Both `deploy/restore_postgres.sh` and `deploy/restore_influxdb.sh` were made
+  **backward-compatible-configurable** (overridable container/DB names; tolerant stop/start in the
+  Influx one). With **no overrides set they behave identically** for the disaster-recovery path.
+- The local workflow points them at the isolated stack via env overrides
+  (`POSTGRES_CONTAINER`/`POSTGRES_DB`, `INFLUX_CONTAINER`) and passes **sentinel** container names
+  to `restore_influxdb.sh` (`CONLUZ_CONTAINER`/`TELEGRAF_CONTAINER`) so it never touches a real app
+  container. The orchestrator feeds Postgres the uncompressed `postgres.dump` as a bare filename
+  (run from `deploy/`) and verifies the result rather than trusting `pg_restore`'s exit code.
 
 ## Idempotency
 
