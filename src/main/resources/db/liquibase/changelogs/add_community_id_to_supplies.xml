@@ -8,7 +8,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
     <changeSet id="add_community_id_to_supplies" author="Víctor Cañizares">
         <addColumn tableName="supplies">
             <column name="community_id" type="UUID">
-                <constraints nullable="false"
+                <constraints nullable="true"
                              foreignKeyName="supplies_community_id_fk"
                              referencedTableName="communities" referencedColumnNames="id"/>
             </column>

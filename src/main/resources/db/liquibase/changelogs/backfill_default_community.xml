@@ -25,6 +25,11 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
         </sql>
     </changeSet>
 
+    <!-- Now that every supply has a community, enforce the NOT NULL constraint. -->
+    <changeSet id="backfill_default_community_supplies_not_null" author="Víctor Cañizares">
+        <addNotNullConstraint tableName="supplies" columnName="community_id" columnDataType="UUID"/>
+    </changeSet>
+
     <!-- Derive community memberships from existing supplies.
          PARTNER -> COMMUNITY_MEMBER, ADMIN -> COMMUNITY_ADMIN.
          Each user gets at most one membership per community (guarded by NOT EXISTS). -->
