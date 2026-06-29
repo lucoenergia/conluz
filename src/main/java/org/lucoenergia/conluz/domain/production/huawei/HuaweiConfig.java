@@ -9,7 +9,7 @@ public class HuaweiConfig {
     public static final String HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT = "huawei_production_kwh_month";
     public static final String HUAWEI_YEARLY_PRODUCTION_MEASUREMENT = "huawei_production_kwh_year";
 
-    public static final String DEFAULT_BASE_URL = "https://eu5.fusionsolar.huawei.com/thirdData";
+    public static final String DEFAULT_BASE_URL = "http://localhost:8000/thirdData";
 
     private UUID id;
     private String username;
