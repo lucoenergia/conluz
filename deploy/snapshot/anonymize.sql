@@ -57,4 +57,25 @@ UPDATE huawei_config SET
     username = 'anon-huawei',
     password = 'anonymized';
 
+-- DISABLE INTEGRATIONS: production may have these integrations enabled, but a restored
+-- local/UAT environment must never call the third-party services (Datadis, Huawei
+-- FusionSolar, Shelly). Force every integration off so restored stacks start inert;
+-- operators re-enable explicitly after configuring their own credentials.
+--
+-- The snapshot reproduces production's schema, which may predate the changesets that added
+-- the `enabled` column (or the config table). Guard each UPDATE on column existence so a
+-- pre-`enabled` snapshot does not abort anonymization (psql runs with ON_ERROR_STOP=1). When
+-- the column is absent the integration is off regardless: Liquibase creates `enabled` with a
+-- DEFAULT false when the restored branch migrates on startup.
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['datadis_config','huawei_config','shelly_config'] LOOP
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema = 'public' AND table_name = t AND column_name = 'enabled') THEN
+      EXECUTE format('UPDATE %I SET enabled = false', t);
+    END IF;
+  END LOOP;
+END $$;
+
 COMMIT;

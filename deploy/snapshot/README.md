@@ -104,6 +104,16 @@ It also **scrubs secrets** so no usable credential leaves the host:
   credentials are stored **without encryption at rest**, so they are overwritten with inert
   placeholders. Restored environments must be reconfigured with their own credentials.
 
+It also **disables every third-party integration** so a restored local/UAT stack can never
+call out to the real services by mistake:
+
+- `datadis_config`, `huawei_config`, `shelly_config` (`enabled`): forced to `false`. The
+  update is guarded on column existence, so a snapshot from a production install that predates
+  the `enabled` column is left untouched — Liquibase recreates the column with a `false`
+  default when the restored branch migrates on startup, so the integration is off either way.
+  Restored environments must explicitly re-enable each integration after configuring their own
+  credentials.
+
 Consumption magnitudes and timestamps are untouched. The script is idempotent: running it
 twice produces equivalent anonymized output.
 
