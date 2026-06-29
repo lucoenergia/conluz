@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Remove the obsolete supplies_datadis table. Whether a Datadis request must include an
+         authorizedNif is now derived at runtime from the supply owner's NIF compared to the
+         Datadis configuration username (see DatadisAuthorizer.requiresAuthorizedNif), so the
+         persisted third_party flag is no longer needed. -->
+    <changeSet id="drop_supplies_datadis_table" author="Víctor Cañizares">
+        <dropTable tableName="supplies_datadis"/>
+        <rollback>
+            <createTable tableName="supplies_datadis">
+                <column name="supply_id" type="UUID">
+                    <constraints primaryKey="true" primaryKeyName="supplies_datadis_pk"
+                                 foreignKeyName="supplies_datadis_supply_id_fk"
+                                 referencedTableName="supplies" referencedColumnNames="id" deleteCascade="true"/>
+                </column>
+                <column name="third_party" type="bool">
+                    <constraints nullable="true"/>
+                </column>
+            </createTable>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
