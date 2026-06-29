@@ -77,7 +77,7 @@ public class DatadisAuthorizer implements Authorizer {
         return config.getUsername().equals(id.getPersonalId());
     }
 
-    public boolean isAuthorizedNif(UserPersonalId id) {
+    public boolean requiresAuthorizedNif(UserPersonalId id) {
         return !isOwner(id);
     }
 }
