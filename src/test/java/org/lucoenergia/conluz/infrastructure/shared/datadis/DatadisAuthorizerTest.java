@@ -69,7 +69,7 @@ class DatadisAuthorizerTest {
         // Act and Assert
         final Throwable exception = assertThrows(DatadisException.class, () -> datadisAuthorizer.getAuthToken());
         Assertions.assertTrue(exception.getMessage().startsWith("""
-                Unable to get auth token from datadis.es. Code: 500, message: {
+                Unable to get auth token from datadis. Code: 500, message: {
                     "timestamp": "2024-02-14T13:49:09.918Z",
                     "status": 500,
                     "error": "Internal Server Error",

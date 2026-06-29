@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public class DatadisConfig {
 
-    public static final String DEFAULT_BASE_URL = "https://datadis.es";
+    public static final String DEFAULT_BASE_URL = "http://localhost:5555";
 
     private String username;
     private String password;

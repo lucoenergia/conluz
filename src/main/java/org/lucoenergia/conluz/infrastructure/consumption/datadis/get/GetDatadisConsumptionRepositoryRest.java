@@ -125,7 +125,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
                         supply.getId(), month, year, response.code(), response.body() != null ? response.body().string() : response.message());
             }
         } catch (IOException e) {
-            LOGGER.error("Unable to get consumptions from datadis.es", e);
+            LOGGER.error("Unable to get consumptions from datadis", e);
         }
 
         LOGGER.info("Supply processed.");

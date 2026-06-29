@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Transactional
-@Disabled("These tests should not be included in a CI pipeline because connects with datadis.es, so, needs real data.")
+@Disabled("These tests should not be included in a CI pipeline because connects with datadis, so, needs real data.")
 class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegrationTest {
 
     @Autowired

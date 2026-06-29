@@ -57,7 +57,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(60));
 
-        LOGGER.info("Getting all supplies from datadis.es of user {}", user.getId());
+        LOGGER.info("Getting all supplies from datadis of user {}", user.getId());
 
         final String baseUrl = getDatadisConfigRepository.getDatadisConfig()
                 .map(DatadisConfig::getBaseUrl)
@@ -96,7 +96,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
                 return result;
             }
         } catch (IOException e) {
-            LOGGER.error(String.format("Unable to get supplies from datadis.es for user %s", user.getId()), e);
+            LOGGER.error(String.format("Unable to get supplies from datadis for user %s", user.getId()), e);
             return result;
         }
 

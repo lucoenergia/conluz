@@ -15,7 +15,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Disabled("These tests should not be included in a CI pipeline because connects with datadis.es, so, needs real data.")
+@Disabled("These tests should not be included in a CI pipeline because connects with datadis, so, needs real data.")
 @Transactional
 class GetSupplyRepositoryDatadisRestIntegrationTest extends BaseIntegrationTest {
 

@@ -58,12 +58,12 @@ public class DatadisAuthorizer implements Authorizer {
                 return response.body().string();
             } else {
                 throw new DatadisException(String.format(
-                        "Unable to get auth token from datadis.es. Code: %s, message: %s",
+                        "Unable to get auth token from datadis. Code: %s, message: %s",
                         response.code(), response.body() != null ? response.body().string() : response.message()
                 ));
             }
         } catch (IOException e) {
-            throw new DatadisException("Unable to make the request to datadis.es", e);
+            throw new DatadisException("Unable to make the request to datadis", e);
         }
     }
 

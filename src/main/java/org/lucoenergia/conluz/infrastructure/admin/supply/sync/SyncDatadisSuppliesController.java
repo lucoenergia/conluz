@@ -33,10 +33,10 @@ public class SyncDatadisSuppliesController {
 
     @PostMapping
     @Operation(
-            summary = "Synchronize supplies retrieving the information from datadis.es.",
+            summary = "Synchronize supplies retrieving the information from datadis.",
             description = """
                     This endpoint enables users to synchronize the active supplies of the community identified by the
-                    path `communityId`, retrieving the information from datadis.es.
+                    path `communityId`, retrieving the information from datadis.
 
                     Proper authentication, through an authentication token, is required for secure access to this
                     endpoint.

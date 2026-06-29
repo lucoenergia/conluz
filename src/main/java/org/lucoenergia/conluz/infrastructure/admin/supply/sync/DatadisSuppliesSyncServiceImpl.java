@@ -44,7 +44,7 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
     }
 
     /**
-     * Synchronizes the supplies for all users retrieving data from datadis.es
+     * Synchronizes the supplies for all users retrieving data from datadis
      */
     public void synchronizeSupplies() {
         // Get all users with at least one supply
@@ -98,7 +98,7 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
                     supply.setContract(contract);
 
                     updateSupplyRepository.update(supply);
-                    LOGGER.info("Supply with code {} synchronized with datadis.es.", datadisSupply.getCups());
+                    LOGGER.info("Supply with code {} synchronized with datadis.", datadisSupply.getCups());
                 } else {
                     LOGGER.warn("Datadis supply with CUPS {} not found as registered supply.", datadisSupply.getCups());
                 }

@@ -19,7 +19,7 @@ public class DatadisSuppliesSyncDailyJob implements Job {
     }
 
     /**
-     * Synchronize supplies from datadis.es at 2:00 AM every day.
+     * Synchronize supplies from datadis at 2:00 AM every day.
      * 0 seconds (at the start of the minute)
      * 0 minutes (at the start of the hour)
      * 2 (at 2 AM)

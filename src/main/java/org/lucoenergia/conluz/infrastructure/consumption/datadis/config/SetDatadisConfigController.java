@@ -36,9 +36,9 @@ public class SetDatadisConfigController {
     @Operation(
             summary = "Sets up the Datadis configuration for the specified community.",
             description = """
-                    This endpoint allows to configure the app to connect with datadis.es for a specific community.
+                    This endpoint allows to configure the app to connect with datadis for a specific community.
 
-                    This configuration is a mandatory step to be able to retrieve consumption data from datadis.es.
+                    This configuration is a mandatory step to be able to retrieve consumption data from datadis.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
                     **Required: Community Admin**

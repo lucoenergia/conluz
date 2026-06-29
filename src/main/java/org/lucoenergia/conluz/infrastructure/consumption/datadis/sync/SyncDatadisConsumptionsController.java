@@ -43,9 +43,9 @@ public class SyncDatadisConsumptionsController {
 
     @PostMapping
     @Operation(
-            summary = "Synchronize the consumptions for a specific year from datadis.es, optionally filtering by supply code.",
+            summary = "Synchronize the consumptions for a specific year from datadis, optionally filtering by supply code.",
             description = """
-                    This endpoint enables users to synchronize consumption data from datadis.es for a specific year.
+                    This endpoint enables users to synchronize consumption data from datadis for a specific year.
 
                     The request body must contain:
                     - **year** (required, integer): The year for which to synchronize consumption data
