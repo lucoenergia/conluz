@@ -15,16 +15,21 @@ A finished bundle (`snapshot-<UTC-timestamp>.tar.gz`) contains:
 
 ## How it works
 
-The script runs **on a workstation on the Tailnet** and drives the production host over SSH:
+The script runs **on a workstation on the Tailnet** and drives the production host over SSH.
+All data crosses container boundaries via `docker exec` pipes — never `docker cp` or host temp
+files — so it works with the production host's confined snap Docker (see *Prerequisites*):
 
-1. `pg_dump -Fc` the prod database (read-only). The raw PII dump never leaves the prod host.
-2. Start a **separate ephemeral Postgres container** on the prod host (distinct name, no
+1. Start a **separate ephemeral Postgres container** on the prod host (distinct name, no
    published port — accessed only via `docker exec`).
-3. `pg_restore` the raw dump into the ephemeral, then run `anonymize.sql` against it.
-4. `pg_dump -Fc` the **cleaned** ephemeral database — this anonymized dump is what ships.
-5. `influxd backup -portable` the prod InfluxDB (read-only) and copy it out.
-6. Write `manifest.json`.
-7. Assemble the bundle in a temp dir and finalize it into `OUTPUT_DIR` only on full success.
+2. Stream `pg_dump -Fc` of the prod database (read-only) **straight into `pg_restore`** on the
+   ephemeral container, then run `anonymize.sql` against it. The raw PII dump is never written
+   to disk — it only flows through the pipe between the two prod containers.
+3. `pg_dump -Fc` the **cleaned** ephemeral database, streamed over SSH stdout — this anonymized
+   dump is what ships.
+4. `influxd backup -portable` the prod InfluxDB (read-only) and stream it out of the container
+   with `docker exec … tar -cf -` piped to the workstation.
+5. Write `manifest.json`.
+6. Assemble the bundle in a temp dir and finalize it into `OUTPUT_DIR` only on full success.
 
 ```
 workstation ──ssh──> prod host
@@ -37,8 +42,11 @@ workstation ──ssh──> prod host
 
 - **SSH over Tailscale** to the prod laptop, key-based (the script is non-interactive).
   Verify: `ssh "$PROD_SSH_HOST" docker ps`.
-- `docker` available on the prod host for the user you SSH as.
-- On the workstation: `bash`, `ssh`, `scp`, `tar`.
+- `docker` available on the prod host for the user you SSH as. The prod Docker is the confined
+  **snap** package, whose daemon cannot access the host's `/tmp` (so `docker cp <hostpath> …`
+  fails with `lstat …: no such file or directory`). The script therefore avoids `docker cp`
+  and host temp files entirely, streaming over `docker exec` pipes instead.
+- On the workstation: `bash`, `ssh`, `tar`.
 - A populated `.env` (copy from `.env.example`).
 
 ## Invocation
@@ -70,8 +78,10 @@ ssh "$PROD_SSH_HOST" docker exec influxdb influx -execute 'SHOW DATABASES'      
   the prod container. `assert_ephemeral_target()` enforces this before each write and aborts
   otherwise.
 - **Do** keep data one-directional, prod → workstation → **do not** push anything back to prod.
-- **Do** pseudonymize PII on the prod host before transfer → **do not** transfer the raw dump;
-  only the cleaned `postgres.dump` leaves the prod host.
+- **Do** pseudonymize PII on the prod host before transfer → **do not** transfer the raw dump.
+  The raw PII dump is never even written to the prod disk — it is streamed straight from the
+  prod Postgres container into the ephemeral one; only the cleaned `postgres.dump` leaves the
+  prod host.
 - **Do** keep the **CUPS** intact (`supplies.code` and the InfluxDB tags) → **do not** rewrite
   it; it is the join key between the two stores.
 - **Do** finalize the bundle only on full success → **do not** leave partial bundles; the
@@ -103,8 +113,7 @@ twice produces equivalent anonymized output.
 | ---- | ---------------------------------------------------------------- |
 | 0    | Success — bundle written to `OUTPUT_DIR`                         |
 | 2    | Usage / missing configuration (no `.env`, or a required var unset) |
-| 10   | PostgreSQL dump (prod, read-only) failed                        |
-| 11   | Ephemeral restore / anonymization / re-dump failed              |
+| 11   | Ephemeral restore / anonymization / re-dump failed (incl. the prod read-only `pg_dump` that feeds the restore stream) |
 | 20   | InfluxDB backup failed                                          |
 | 30   | Bundle assembly / transfer failed                               |
 
