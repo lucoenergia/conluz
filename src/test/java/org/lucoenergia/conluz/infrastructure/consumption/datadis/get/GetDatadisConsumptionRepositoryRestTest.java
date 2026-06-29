@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
@@ -14,15 +13,20 @@ import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisParams;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Month;
 import java.util.List;
+import java.util.Optional;
 
 class GetDatadisConsumptionRepositoryRestTest {
+
+    private static final String ACCOUNT_NIF = "accountNif";
 
     private DatadisAuthorizer datadisAuthorizer;
     private ConluzRestClientBuilder conluzRestClientBuilder;
@@ -31,38 +35,82 @@ class GetDatadisConsumptionRepositoryRestTest {
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
-        datadisAuthorizer = Mockito.mock(DatadisAuthorizer.class);
+        // Spy on a real authorizer so requiresAuthorizedNif uses the real NIF comparison,
+        // while getAuthToken is stubbed to avoid any HTTP call.
+        datadisAuthorizer = Mockito.spy(new DatadisAuthorizer(Mockito.mock(GetDatadisConfigRepository.class),
+                Mockito.mock(ConluzRestClientBuilder.class)));
         conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
         DatadisDateTimeConverter datadisDateTimeConverter = Mockito.mock(DatadisDateTimeConverter.class);
         GetDatadisConfigRepository getDatadisConfigRepository = Mockito.mock(GetDatadisConfigRepository.class);
         DatadisConfig config = new DatadisConfig.Builder()
+                .setUsername(ACCOUNT_NIF)
                 .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
                 .build();
-        Mockito.when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(java.util.Optional.of(config));
-        Mockito.when(datadisAuthorizer.getAuthToken(Mockito.any(DatadisConfig.class))).thenReturn("testToken");
+        Mockito.when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
+        Mockito.doReturn("testToken").when(datadisAuthorizer).getAuthToken(Mockito.any(DatadisConfig.class));
         repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
                 datadisDateTimeConverter, getDatadisConfigRepository);
+    }
+
+    private Supply supplyOwnedBy(String personalId) {
+        return new Supply.Builder()
+                .withCode("ES0031300329693002BQ0F")
+                .withUser(new User.Builder().personalId(personalId).build())
+                .withDistributor(new SupplyDistributor.Builder()
+                        .withCode("distributorCode")
+                        .withPointType(5)
+                        .build())
+                .build();
+    }
+
+    /**
+     * Captures the URL of the request issued to Datadis for the given supply. The response is
+     * stubbed as an empty successful body so the flow reaches the HTTP client.
+     */
+    private String captureRequestUrl(Supply supply) throws IOException {
+        OkHttpClient client = Mockito.mock(OkHttpClient.class);
+        Call call = Mockito.mock(Call.class);
+        Response response = Mockito.mock(Response.class);
+        ResponseBody body = Mockito.mock(ResponseBody.class);
+        Mockito.when(conluzRestClientBuilder.build(false, Duration.ofSeconds(60))).thenReturn(client);
+        Mockito.when(client.newCall(Mockito.any(Request.class))).thenReturn(call);
+        Mockito.when(call.execute()).thenReturn(response);
+        Mockito.when(response.isSuccessful()).thenReturn(true);
+        Mockito.when(response.code()).thenReturn(200);
+        Mockito.when(response.body()).thenReturn(body);
+        Mockito.when(body.string()).thenReturn("[]");
+
+        repository.getHourlyConsumptionsByMonth(supply, Month.APRIL, 2023);
+
+        ArgumentCaptor<Request> requestCaptor = ArgumentCaptor.forClass(Request.class);
+        Mockito.verify(client).newCall(requestCaptor.capture());
+        return requestCaptor.getValue().url().toString();
+    }
+
+    @Test
+    void testAuthorizedNifIsOmittedWhenSupplyOwnerMatchesDatadisAccount() throws IOException {
+        // The supply owner NIF equals the Datadis account username, so no authorizedNif is sent.
+        String url = captureRequestUrl(supplyOwnedBy(ACCOUNT_NIF));
+
+        Assertions.assertFalse(url.contains(DatadisParams.AUTHORIZED_NIF));
+    }
+
+    @Test
+    void testAuthorizedNifIsAddedWhenSupplyOwnerDiffersFromDatadisAccount() throws IOException {
+        // The supply owner NIF differs from the Datadis account username, so authorizedNif is sent
+        // and equals the owner NIF.
+        String ownerNif = "differentOwnerNif";
+        String url = captureRequestUrl(supplyOwnedBy(ownerNif));
+
+        Assertions.assertTrue(url.contains(DatadisParams.AUTHORIZED_NIF + "=" + ownerNif));
     }
 
     @Test
     void testGetMonthlyConsumptionWithUnsuccessfulResponseAndEmptyBody() throws IOException {
         // Assemble
-        final User user = new User.Builder().personalId("authorizedNif").build();
-        final Supply supply = new Supply.Builder()
-                .withCode("cups")
-                .withUser(user)
-                .withDistributor(new SupplyDistributor.Builder()
-                        .withCode("distributorCode")
-                        .withPointType(5)
-                        .build())
-                .withDatadis(new SupplyDatadis.Builder()
-                        .withThirdParty(true)
-                        .build())
-                .build();
+        final Supply supply = supplyOwnedBy("differentOwnerNif");
         final Month month = Month.APRIL;
         final int year = 2023;
-
-        // auth token is resolved from config in setUp()
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -85,22 +133,9 @@ class GetDatadisConsumptionRepositoryRestTest {
     @Test
     void testGetMonthlyConsumptionWithSuccessfulResponse() throws IOException {
         // Assemble
-        final User user = new User.Builder().personalId("authorizedNif").build();
-        final Supply supply = new Supply.Builder()
-                .withCode("ES0031300329693002BQ0F")
-                .withUser(user)
-                .withDistributor(new SupplyDistributor.Builder()
-                        .withCode("distributorCode")
-                        .withPointType(5)
-                        .build())
-                .withDatadis(new SupplyDatadis.Builder()
-                        .withThirdParty(false)
-                        .build())
-                .build();
+        final Supply supply = supplyOwnedBy(ACCOUNT_NIF);
         final Month month = Month.APRIL;
         final int year = 2023;
-
-        // auth token is resolved from config in setUp()
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -174,22 +209,9 @@ class GetDatadisConsumptionRepositoryRestTest {
     @Test
     void testGetHourlyConsumptionWithUnsuccessfulResponse() throws IOException {
         // Assemble
-        final User user = new User.Builder().personalId("authorizedNif").build();
-        final Supply supply = new Supply.Builder()
-                .withCode("ES0031300329693002BQ0F")
-                .withUser(user)
-                .withDistributor(new SupplyDistributor.Builder()
-                        .withCode("distributorCode")
-                        .withPointType(5)
-                        .build())
-                .withDatadis(new SupplyDatadis.Builder()
-                        .withThirdParty(false)
-                        .build())
-                .build();
+        final Supply supply = supplyOwnedBy(ACCOUNT_NIF);
         final Month month = Month.APRIL;
         final int year = 2023;
-
-        // auth token is resolved from config in setUp()
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisException;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
@@ -91,5 +92,31 @@ class DatadisAuthorizerTest {
 
         // verification and assertion
         Assertions.assertThrows(DatadisException.class, datadisAuthorizer::getAuthToken);
+    }
+
+    @Test
+    void testRequiresAuthorizedNifResolvesConfigFromRepository() {
+        final DatadisConfig config = new DatadisConfig.Builder()
+                .setUsername("accountNif")
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .build();
+        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
+
+        // The owner NIF matches the account, so no authorizedNif is required.
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("accountNif")));
+        // A different owner NIF requires the authorizedNif.
+        Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("otherNif")));
+    }
+
+    @Test
+    void testRequiresAuthorizedNifWithExplicitConfig() {
+        final DatadisConfig config = new DatadisConfig.Builder()
+                .setUsername("accountNif")
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .build();
+
+        // The (config, id) overload does not touch the repository.
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(config, UserPersonalId.of("accountNif")));
+        Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(config, UserPersonalId.of("otherNif")));
     }
 }

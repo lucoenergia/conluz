@@ -2,7 +2,6 @@ package org.lucoenergia.conluz.domain.admin.supply;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
-import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -33,9 +32,6 @@ public class SupplyMother {
                         .withMacAddress(RandomStringUtils.random(10, true, true))
                         .withMqttPrefix(RandomStringUtils.random(10, true, true))
                         .build())
-                .withDatadis(new org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity.Builder()
-                        .withThirdParty(new Random().nextBoolean())
-                        .build())
                 .withDistributor(new org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity.Builder()
                         .withName(RandomStringUtils.random(10, true, false))
                         .withCode(RandomStringUtils.random(1, false, true))
@@ -59,9 +55,6 @@ public class SupplyMother {
                         .withId(RandomStringUtils.random(10, true, true))
                         .withMacAddress(RandomStringUtils.random(10, true, true))
                         .withMqttPrefix(RandomStringUtils.random(10, true, true))
-                        .build())
-                .withDatadis(new SupplyDatadis.Builder()
-                        .withThirdParty(new Random().nextBoolean())
                         .build())
                 .withDistributor(new SupplyDistributor.Builder()
                         .withName(RandomStringUtils.random(10, true, false))
