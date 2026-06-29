@@ -8,7 +8,6 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.springframework.stereotype.Repository;
@@ -57,13 +56,6 @@ public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
             currentSupply.getDistributor().setName(supply.getDistributor().getName());
             currentSupply.getDistributor().setCode(supply.getDistributor().getCode());
             currentSupply.getDistributor().setPointType(supply.getDistributor().getPointType());
-        }
-
-        if (supply.getDatadis() != null) {
-            if (currentSupply.getDatadis() == null) {
-                currentSupply.setDatadis(new SupplyDatadisEntity());
-            }
-            currentSupply.getDatadis().setThirdParty(supply.getDatadis().isThirdParty());
         }
 
         if (supply.getShelly() != null) {
