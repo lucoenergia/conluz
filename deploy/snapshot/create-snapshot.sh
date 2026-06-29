@@ -23,11 +23,18 @@
 #   5. No partial bundles: assemble in a temp location, finalize only on full success, and tear
 #      everything down on any exit (trap cleanup EXIT).
 #
+# IMPLEMENTATION NOTE: all data crosses host<->container boundaries via "docker exec" pipes,
+# never via "docker cp" or host temp files. The production Docker is a confined snap whose
+# daemon cannot access the host's /tmp, so "docker cp <hostpath> ..." fails with
+# "lstat <path>: no such file or directory". Streaming over docker exec sidesteps this and is
+# portable across snap/rootless/PrivateTmp daemons. As a bonus the raw PII dump never touches
+# the prod disk -- it is streamed straight from the prod container into the ephemeral one.
+#
 # Exit codes:
 #   0  success
 #   2  usage / missing configuration
-#   10 PostgreSQL dump (prod, read-only) failed
-#   11 ephemeral restore / anonymization / re-dump failed
+#   11 ephemeral restore / anonymization / re-dump failed (incl. the prod read-only pg_dump
+#      that feeds the restore stream)
 #   20 InfluxDB backup failed
 #   30 bundle assembly / transfer failed
 
@@ -53,7 +60,7 @@ set +o allexport
 REQUIRED_VARS=(
   PROD_SSH_HOST
   PG_CONTAINER PG_USER PG_DB PG_VERSION
-  INFLUX_CONTAINER INFLUX_DB INFLUX_BACKUP_HOST
+  INFLUX_CONTAINER INFLUX_DB
   EPHEMERAL_PG_CONTAINER EPHEMERAL_PG_PASSWORD
   OUTPUT_DIR
 )
@@ -120,7 +127,6 @@ assert_ephemeral_target() {
 
 # --- Cleanup (runs on ANY exit: success or failure) ------------------------------------------
 
-REMOTE_TMP=""
 LOCAL_STAGE=""
 
 # Invoked indirectly via 'trap cleanup EXIT' (SC2329 false positive).
@@ -139,9 +145,6 @@ cleanup() {
     prod "docker rm -f '$EPHEMERAL_PG_CONTAINER'" >/dev/null 2>&1 || true
   fi
   prod "docker exec '$INFLUX_CONTAINER' rm -rf /tmp/influx-backup" >/dev/null 2>&1 || true
-  if [[ -n "$REMOTE_TMP" ]]; then
-    prod "rm -rf '$REMOTE_TMP'" >/dev/null 2>&1 || true
-  fi
   if [[ -n "$LOCAL_STAGE" && -d "$LOCAL_STAGE" ]]; then
     rm -rf "$LOCAL_STAGE" || true
   fi
@@ -150,32 +153,22 @@ trap cleanup EXIT
 
 # --- Workspace -------------------------------------------------------------------------------
 
-# Temp working directory on the PROD host (raw PII dump and influx backup live here; never
-# transferred as-is).
-REMOTE_TMP="$(prod 'mktemp -d /tmp/conluz-snapshot.XXXXXX')" \
-  || die 30 "could not create remote temp directory on prod host"
 # Local staging directory; the bundle is assembled here and only moved to OUTPUT_DIR on success.
+# Nothing is staged on the prod host: data is streamed prod-container -> ephemeral-container or
+# prod-container -> workstation via "docker exec" pipes (see the IMPLEMENTATION NOTE above).
 LOCAL_STAGE="$(mktemp -d "${TMPDIR:-/tmp}/conluz-snapshot.XXXXXX")"
 mkdir -p "$LOCAL_STAGE/bundle"
 
 # =============================================================================================
-# Step 1: PostgreSQL dump  (READ-ONLY on prod)
-# Why: a custom-format (-Fc) dump enables selective/parallel restore later and is the source of
-# truth for the relational clone. The raw dump still contains PII, so it stays on the prod host.
-# =============================================================================================
-echo ">> [1/7] Dumping production PostgreSQL (read-only)..."
-prod "docker exec '$PG_CONTAINER' pg_dump -Fc -U '$PG_USER' '$PG_DB' > '$REMOTE_TMP/raw.dump'" \
-  || die 10 "pg_dump of production database failed"
-
-# =============================================================================================
-# Step 2: Spin the EPHEMERAL Postgres  (on the prod host)
+# Step 1: Spin the EPHEMERAL Postgres  (on the prod host)
 # Why (invariant 2): isolates ALL writes from prod. Distinct name; the image major version
 # matches prod so pg_restore is compatible. No port is published: every interaction uses
-# "docker exec", so the transient un-anonymized clone is never reachable over TCP.
+# "docker exec", so the transient un-anonymized clone is never reachable over TCP. It is
+# started first so the prod dump can be piped straight into it (no host temp file).
 # =============================================================================================
 # PG_VERSION is sourced from .env (SC2153 is a false positive here).
 # shellcheck disable=SC2153
-echo ">> [2/7] Starting ephemeral Postgres ($EPHEMERAL_PG_CONTAINER, postgres:$PG_VERSION)..."
+echo ">> [1/6] Starting ephemeral Postgres ($EPHEMERAL_PG_CONTAINER, postgres:$PG_VERSION)..."
 assert_ephemeral_target "$EPHEMERAL_PG_CONTAINER"
 prod "docker rm -f '$EPHEMERAL_PG_CONTAINER'" >/dev/null 2>&1 || true
 prod "docker run -d --name '$EPHEMERAL_PG_CONTAINER' \
@@ -197,17 +190,20 @@ done
 [[ "$ready" == true ]] || die 11 "ephemeral Postgres did not become ready in time"
 
 # =============================================================================================
-# Step 3: Restore + anonymize  (EPHEMERAL ONLY)
-# Why: pseudonymize before anything leaves the prod host. The PII dump is restored into the
-# isolated clone, then anonymize.sql overwrites member identity columns in place.
+# Step 2: Stream prod pg_dump -> ephemeral pg_restore, then anonymize  (EPHEMERAL ONLY writes)
+# Why: a custom-format (-Fc) dump is the source of truth for the relational clone, and we
+# pseudonymize before anything leaves the prod host. The dump (READ-ONLY on prod) is piped
+# straight into pg_restore on the ephemeral container -- both on the prod host, so the raw PII
+# dump never touches the prod filesystem and we avoid "docker cp" (blocked by the confined snap
+# Docker). "set -o pipefail" on the remote pipeline makes a pg_dump failure abort the run too,
+# not just a pg_restore failure.
 # =============================================================================================
-echo ">> [3/7] Restoring into ephemeral and anonymizing..."
+echo ">> [2/6] Streaming prod pg_dump -> ephemeral pg_restore, then anonymizing..."
 assert_ephemeral_target "$EPHEMERAL_PG_CONTAINER"
-prod "docker cp '$REMOTE_TMP/raw.dump' '$EPHEMERAL_PG_CONTAINER:/tmp/raw.dump'" \
-  || die 11 "could not copy raw dump into ephemeral container"
-prod "docker exec '$EPHEMERAL_PG_CONTAINER' pg_restore --no-owner --no-privileges \
-        -U '$EPHEMERAL_PG_USER' -d '$PG_DB' /tmp/raw.dump" \
-  || die 11 "pg_restore into ephemeral database failed"
+prod "set -o pipefail; docker exec '$PG_CONTAINER' pg_dump -Fc -U '$PG_USER' '$PG_DB' \
+        | docker exec -i '$EPHEMERAL_PG_CONTAINER' pg_restore --no-owner --no-privileges \
+            -U '$EPHEMERAL_PG_USER' -d '$PG_DB'" \
+  || die 11 "stream pg_dump | pg_restore into ephemeral failed"
 
 # Stream anonymize.sql straight into psql with ON_ERROR_STOP so any failure aborts the run
 # (no half-anonymized data is ever bundled). No temp file/copy needed.
@@ -217,35 +213,43 @@ prod "docker exec -i '$EPHEMERAL_PG_CONTAINER' psql -v ON_ERROR_STOP=1 \
   || die 11 "anonymization (anonymize.sql) failed"
 
 # =============================================================================================
-# Step 4: Re-dump the CLEANED database  (this is the shippable artifact)
-# Why: the raw PII dump never leaves the prod host; only this anonymized dump is transferred.
+# Step 3: Re-dump the CLEANED database  (this is the shippable artifact)
+# Why: only this anonymized dump is transferred; it is streamed over SSH stdout to the
+# workstation (no host temp file, no "docker cp").
 # =============================================================================================
-echo ">> [4/7] Re-dumping anonymized database -> postgres.dump..."
+echo ">> [3/6] Re-dumping anonymized database -> postgres.dump..."
 prod "docker exec '$EPHEMERAL_PG_CONTAINER' pg_dump -Fc \
         -U '$EPHEMERAL_PG_USER' '$PG_DB'" > "$LOCAL_STAGE/bundle/postgres.dump" \
   || die 11 "re-dump of anonymized database failed"
 [[ -s "$LOCAL_STAGE/bundle/postgres.dump" ]] || die 11 "anonymized dump is empty"
 
 # =============================================================================================
-# Step 5: InfluxDB 1.8 backup  (READ-ONLY on prod)
+# Step 4: InfluxDB 1.8 backup  (READ-ONLY on prod)
 # Why: time-series telemetry keyed by the CUPS tag. Portable backup; tags are NOT rewritten so
 # the CUPS join key stays aligned with the (retained) CUPS in postgres.
+# "influxd backup" must write to a directory, so it writes to the container's OWN /tmp (a
+# container path -- the snap confinement only restricts HOST paths, so this is fine). The
+# backup directory is then streamed out of the container via "tar -cf -" piped over SSH to a
+# matching "tar -xf -" on the workstation -- no "docker cp", no host temp file, no scp.
 # =============================================================================================
-echo ">> [5/7] Backing up production InfluxDB (read-only)..."
+echo ">> [4/6] Backing up production InfluxDB (read-only) and streaming it out..."
 prod "docker exec '$INFLUX_CONTAINER' rm -rf /tmp/influx-backup" >/dev/null 2>&1 || true
+# No -host flag: let influxd backup use its built-in default RPC endpoint (localhost:8088), the
+# same way deploy/backup_influxdb.sh does. Passing -host explicitly (even the default value) is
+# rejected by the 1.8 RPC service with "invalid metadata blob".
 prod "docker exec '$INFLUX_CONTAINER' influxd backup -portable \
-        -host '$INFLUX_BACKUP_HOST' -database '$INFLUX_DB' /tmp/influx-backup" \
+        -database '$INFLUX_DB' /tmp/influx-backup" \
   || die 20 "influxd backup failed"
-prod "docker cp '$INFLUX_CONTAINER:/tmp/influx-backup' '$REMOTE_TMP/influx'" \
-  || die 20 "could not copy InfluxDB backup out of container"
-scp -q -r "$PROD_SSH_HOST:$REMOTE_TMP/influx" "$LOCAL_STAGE/bundle/" \
-  || die 20 "could not transfer InfluxDB backup to workstation"
+mkdir -p "$LOCAL_STAGE/bundle/influx"
+prod "docker exec '$INFLUX_CONTAINER' tar -C /tmp/influx-backup -cf - ." \
+  | tar -C "$LOCAL_STAGE/bundle/influx" -xf - \
+  || die 20 "could not stream InfluxDB backup to workstation"
 
 # =============================================================================================
-# Step 6: Manifest
+# Step 5: Manifest
 # Why: provenance for the bundle so consumers know what they restored.
 # =============================================================================================
-echo ">> [6/7] Writing manifest.json..."
+echo ">> [5/6] Writing manifest.json..."
 APP_IMAGE="$(prod "docker inspect --format '{{.Config.Image}}' '$APP_CONTAINER'" 2>/dev/null || echo "unknown")"
 APP_VERSION="${APP_IMAGE#*:}"
 [[ "$APP_VERSION" == "$APP_IMAGE" ]] && APP_VERSION="unknown"
@@ -280,11 +284,11 @@ cat > "$LOCAL_STAGE/bundle/manifest.json" <<EOF
 EOF
 
 # =============================================================================================
-# Step 7: Assemble + transfer  (finalize only on full success)
+# Step 6: Assemble + transfer  (finalize only on full success)
 # Why (invariant 5): no partial bundles. The tarball appears in OUTPUT_DIR only if every prior
 # step succeeded.
 # =============================================================================================
-echo ">> [7/7] Assembling bundle..."
+echo ">> [6/6] Assembling bundle..."
 tar -czf "$LOCAL_STAGE/$BUNDLE_NAME.tar.gz" -C "$LOCAL_STAGE/bundle" . \
   || die 30 "could not create bundle tarball"
 

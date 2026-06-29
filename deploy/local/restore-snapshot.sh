@@ -243,6 +243,34 @@ SQL
   docker exec -i "$LOCAL_POSTGRES_CONTAINER" psql -U "$POSTGRES_SUPERUSER" -d "$POSTGRES_DB" \
     -c "GRANT ALL ON SCHEMA public TO \"$APP_DB_USER\";" >/dev/null 2>&1 || true
 
+  # The dump restores every object owned by the superuser ($POSTGRES_SUPERUSER), but the app
+  # connects as $APP_DB_USER and Liquibase must read/write databasechangelog and may ALTER/DROP
+  # existing tables for the branch's new changesets — which only the owner may do. Schema-level
+  # grants do NOT cover pre-existing tables, so transfer ownership of every restored object to the
+  # app user. REASSIGN OWNED can't be used here: $POSTGRES_SUPERUSER is the bootstrap superuser and
+  # owns system-required objects (the database, public schema), so Postgres refuses it — instead we
+  # alter ownership of just the application tables/sequences/views in the public schema. Unlike the
+  # best-effort grant above, this is critical: fail loudly so a silent failure can't reproduce the
+  # permission-denied bug.
+  info "Reassigning ownership of restored objects to '$APP_DB_USER'..."
+  docker exec -i "$LOCAL_POSTGRES_CONTAINER" psql -U "$POSTGRES_SUPERUSER" -d "$POSTGRES_DB" \
+    -v ON_ERROR_STOP=1 <<SQL || die 30 "Failed to reassign object ownership to $APP_DB_USER"
+DO \$\$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN SELECT format('ALTER TABLE public.%I OWNER TO %I', tablename, '$APP_DB_USER') AS cmd
+           FROM pg_tables WHERE schemaname = 'public'
+  LOOP EXECUTE r.cmd; END LOOP;
+  FOR r IN SELECT format('ALTER SEQUENCE public.%I OWNER TO %I', sequencename, '$APP_DB_USER') AS cmd
+           FROM pg_sequences WHERE schemaname = 'public'
+  LOOP EXECUTE r.cmd; END LOOP;
+  FOR r IN SELECT format('ALTER VIEW public.%I OWNER TO %I', viewname, '$APP_DB_USER') AS cmd
+           FROM pg_views WHERE schemaname = 'public'
+  LOOP EXECUTE r.cmd; END LOOP;
+END
+\$\$;
+SQL
+
   local tables
   tables="$(docker exec -i "$LOCAL_POSTGRES_CONTAINER" psql -U "$POSTGRES_SUPERUSER" -d "$POSTGRES_DB" \
     -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';" | tr -d '[:space:]')"
