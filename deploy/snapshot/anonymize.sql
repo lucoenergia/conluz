@@ -27,16 +27,17 @@ BEGIN;
 --
 -- SECRET SCRUB: password is a bcrypt hash. Exporting the real hashes enables offline
 -- cracking and password-reuse pivoting, so every account is reset to a single known
--- bcrypt hash of the literal string "password" (the classic Spring Security docs value).
--- This keeps restored UAT/local environments loggable with a documented throwaway
--- credential instead of shipping production hashes.
+-- bcrypt hash of the literal string "password". The hash below was generated with the
+-- $2a$/cost-10 scheme used by the app's BCryptPasswordEncoder and verified to encode
+-- "password". This keeps restored UAT/local environments loggable with a documented
+-- throwaway credential instead of shipping production hashes.
 UPDATE users SET
     full_name    = 'Member ' || number,
     email        = 'member-' || id || '@example.invalid',
     phone_number = '+34' || lpad((number)::text, 9, '0'),
     address      = 'Test address ' || number,
     personal_id  = 'ANON-' || id,
-    password     = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
+    password     = '$2a$10$KwbiT39JAHdpOn9BFnt5fexF3ud4pHZjBg5NbBgVMICDWWDCvSc0G';
 
 -- Supplies: pseudonymize the address but KEEP the CUPS (code) intact.
 -- Do overwrite supplies.address -> do not touch supplies.code.
