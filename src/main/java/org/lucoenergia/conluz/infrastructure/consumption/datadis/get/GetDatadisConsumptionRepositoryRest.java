@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.MeasurementType;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
@@ -98,7 +99,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
                 .queryParam(DatadisParams.END_DATE, monthDate)
                 .queryParam(DatadisParams.MEASUREMENT_TYPE, MeasurementType.PER_HOUR)
                 .queryParam(DatadisParams.POINT_TYPE, supply.getDistributor().getPointType());
-        if (Boolean.TRUE.equals(supply.getDatadis().isThirdParty())) {
+        if (datadisAuthorizer.requiresAuthorizedNif(config, UserPersonalId.of(supply.getUser().getPersonalId()))) {
             urlBuilder = urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId());
         }
         final String url = urlBuilder.build().toUriString();

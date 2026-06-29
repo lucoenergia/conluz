@@ -80,4 +80,8 @@ public class DatadisAuthorizer implements Authorizer {
     public boolean requiresAuthorizedNif(UserPersonalId id) {
         return !isOwner(id);
     }
+
+    public boolean requiresAuthorizedNif(DatadisConfig config, UserPersonalId id) {
+        return !isOwner(config, id);
+    }
 }
