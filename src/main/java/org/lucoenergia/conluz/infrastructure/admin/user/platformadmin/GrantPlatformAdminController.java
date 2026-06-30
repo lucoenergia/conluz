@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccess;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccessService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -24,9 +24,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1")
 public class GrantPlatformAdminController {
 
-    private final ManagePlatformAdminAccess service;
+    private final ManagePlatformAdminAccessService service;
 
-    public GrantPlatformAdminController(ManagePlatformAdminAccess service) {
+    public GrantPlatformAdminController(ManagePlatformAdminAccessService service) {
         this.service = service;
     }
 

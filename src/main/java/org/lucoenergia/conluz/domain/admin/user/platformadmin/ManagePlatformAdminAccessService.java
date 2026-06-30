@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.domain.shared.UserId;
  * (the system can never be left with zero platform admins). The self-revocation rail (a platform admin
  * cannot revoke their own flag) is enforced at the controller layer, mirroring the enable/disable idiom.
  */
-public interface ManagePlatformAdminAccess {
+public interface ManagePlatformAdminAccessService {
 
     void grant(UserId id);
 

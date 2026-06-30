@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccess;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccessService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -27,9 +27,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1")
 public class RevokePlatformAdminController {
 
-    private final ManagePlatformAdminAccess service;
+    private final ManagePlatformAdminAccessService service;
 
-    public RevokePlatformAdminController(ManagePlatformAdminAccess service) {
+    public RevokePlatformAdminController(ManagePlatformAdminAccessService service) {
         this.service = service;
     }
 

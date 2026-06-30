@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.domain.admin.user.platformadmin;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.infrastructure.admin.user.platformadmin.ManagePlatformAdminAccessImpl;
+import org.lucoenergia.conluz.infrastructure.admin.user.platformadmin.ManagePlatformAdminAccessServiceImpl;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -13,13 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ManagePlatformAdminAccessTest {
+class ManagePlatformAdminAccessServiceTest {
 
     @Mock
     private ManagePlatformAdminRepository repository;
 
-    private ManagePlatformAdminAccess service() {
-        return new ManagePlatformAdminAccessImpl(repository);
+    private ManagePlatformAdminAccessService service() {
+        return new ManagePlatformAdminAccessServiceImpl(repository);
     }
 
     @Test
