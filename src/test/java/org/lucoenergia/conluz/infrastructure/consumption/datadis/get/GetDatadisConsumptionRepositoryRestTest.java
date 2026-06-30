@@ -35,10 +35,6 @@ class GetDatadisConsumptionRepositoryRestTest {
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
-        // Spy on a real authorizer so requiresAuthorizedNif uses the real NIF comparison,
-        // while getAuthToken is stubbed to avoid any HTTP call.
-        datadisAuthorizer = Mockito.spy(new DatadisAuthorizer(Mockito.mock(GetDatadisConfigRepository.class),
-                Mockito.mock(ConluzRestClientBuilder.class)));
         conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
         DatadisDateTimeConverter datadisDateTimeConverter = Mockito.mock(DatadisDateTimeConverter.class);
         GetDatadisConfigRepository getDatadisConfigRepository = Mockito.mock(GetDatadisConfigRepository.class);
@@ -47,6 +43,10 @@ class GetDatadisConsumptionRepositoryRestTest {
                 .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
                 .build();
         Mockito.when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
+        // Spy on a real authorizer so requiresAuthorizedNif uses the real NIF comparison,
+        // while getAuthToken is stubbed to avoid any HTTP call.
+        datadisAuthorizer = Mockito.spy(new DatadisAuthorizer(getDatadisConfigRepository,
+                Mockito.mock(ConluzRestClientBuilder.class)));
         Mockito.doReturn("testToken").when(datadisAuthorizer).getAuthToken(Mockito.any(DatadisConfig.class));
         repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
                 datadisDateTimeConverter, getDatadisConfigRepository);
