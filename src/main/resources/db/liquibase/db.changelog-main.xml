@@ -40,4 +40,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/add_plant_id_to_huawei_config.xml" relativeToChangelogFile="true" />
     <include file="changelogs/drop_role_from_users.xml" relativeToChangelogFile="true" />
     <include file="changelogs/drop_supplies_datadis_table.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/backfill_platform_admins.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

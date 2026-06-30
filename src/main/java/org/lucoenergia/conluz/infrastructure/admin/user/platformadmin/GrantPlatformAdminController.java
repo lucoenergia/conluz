@@ -1,15 +1,16 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.enable;
+package org.lucoenergia.conluz.infrastructure.admin.user.platformadmin;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.admin.user.enable.EnableUserService;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccessService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,44 +22,45 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
-public class EnableUserController {
+public class GrantPlatformAdminController {
 
-    private final EnableUserService service;
+    private final ManagePlatformAdminAccessService service;
 
-    public EnableUserController(EnableUserService service) {
+    public GrantPlatformAdminController(ManagePlatformAdminAccessService service) {
         this.service = service;
     }
 
-    @PostMapping(path = "/users/{id}/enable")
+    @PostMapping(path = "/users/{id}/grant-platform-admin")
     @Operation(
-            summary = "Enables a user by ID",
+            summary = "Grants platform-admin privileges to a user by ID",
             description = """
-                    This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path.
-                    
+                    This endpoint promotes the user identified in the endpoint path to platform administrator.
+
                     Proper authentication, through an authentication token, is required for secure access.
-                    **Required: Platform Admin or Community Admin. You cannot enable your own account.**
-                    
-                    Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled.
-                    
-                    This endpoint provides a crucial mechanism for restoring user access or lifting restrictions, supporting effective user management.
-                    
-                    In situations where the enabling process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.""",
+                    **Required: Platform Admin.**
+
+                    The operation is idempotent: granting the flag to a user who is already a platform admin has no effect.
+
+                    Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user is now a platform administrator.
+
+                    In situations where the operation encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.""",
             tags = ApiTag.USERS,
-            operationId = "enableUser",
+            operationId = "grantPlatformAdmin",
             security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User disabled successfully"
+                    description = "Platform-admin privileges granted successfully"
             )
     })
     @ForbiddenErrorResponse
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
+    @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
-    public void enableUser(@PathVariable("id") UUID userId) {
-        service.enable(UserId.of(userId));
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public void grantPlatformAdmin(@PathVariable("id") UUID userId) {
+        service.grant(UserId.of(userId));
     }
 }

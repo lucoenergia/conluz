@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.create.DefaultAdminUserAlreadyInitializedException;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.context.MessageSource;
@@ -56,5 +57,16 @@ public class UserExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(LastPlatformAdminException.class)
+    public ResponseEntity<RestError> handleException(LastPlatformAdminException e) {
+
+        String message = messageSource.getMessage(
+                "error.user.last.platform.admin",
+                List.of().toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, HttpStatus.CONFLICT);
     }
 }
