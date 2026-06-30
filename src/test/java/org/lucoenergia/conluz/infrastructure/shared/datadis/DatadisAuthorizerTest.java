@@ -107,16 +107,4 @@ class DatadisAuthorizerTest {
         // A different owner NIF requires the authorizedNif.
         Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("otherNif")));
     }
-
-    @Test
-    void testRequiresAuthorizedNifWithExplicitConfig() {
-        final DatadisConfig config = new DatadisConfig.Builder()
-                .setUsername("accountNif")
-                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
-                .build();
-
-        // The (config, id) overload does not touch the repository.
-        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(config, UserPersonalId.of("accountNif")));
-        Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(config, UserPersonalId.of("otherNif")));
-    }
 }
