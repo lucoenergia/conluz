@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractResponse;
-import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyResponse;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
@@ -32,8 +31,6 @@ public class SupplyResponse {
     private final SupplyContractResponse contract;
     @Schema(description = "Distributor information of the supply")
     private final SupplyDistributorResponse distributor;
-    @Schema(description = "Datadis integration information of the supply")
-    private final SupplyDatadisResponse datadis;
     @Schema(description = "Shelly device information of the supply")
     private final SupplyShellyResponse shelly;
 
@@ -48,7 +45,6 @@ public class SupplyResponse {
         this.user = supply.getUser() != null ? new UserResponse(supply.getUser()) : null;
         this.contract = supply.getContract() != null ? new SupplyContractResponse(supply.getContract()) : null;
         this.distributor = supply.getDistributor() != null ? new SupplyDistributorResponse(supply.getDistributor()) : null;
-        this.datadis = supply.getDatadis() != null ? new SupplyDatadisResponse(supply.getDatadis()) : null;
         this.shelly = supply.getShelly() != null ? new SupplyShellyResponse(supply.getShelly()) : null;
     }
 
@@ -90,10 +86,6 @@ public class SupplyResponse {
 
     public SupplyDistributorResponse getDistributor() {
         return distributor;
-    }
-
-    public SupplyDatadisResponse getDatadis() {
-        return datadis;
     }
 
     public SupplyShellyResponse getShelly() {

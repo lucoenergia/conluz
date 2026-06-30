@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
-import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -35,7 +34,6 @@ public class Supply {
 
     private SupplyContract contract;
     private SupplyDistributor distributor;
-    private SupplyDatadis datadis;
     private SupplyShelly shelly;
     private Community community;
 
@@ -50,7 +48,6 @@ public class Supply {
         this.enabled = builder.enabled != null && builder.enabled;
         this.contract = builder.contract;
         this.distributor = builder.distributor;
-        this.datadis = builder.datadis;
         this.shelly = builder.shelly;
         this.community = builder.community;
     }
@@ -74,7 +71,6 @@ public class Supply {
         private Boolean enabled;
         private SupplyContract contract;
         private SupplyDistributor distributor;
-        private SupplyDatadis datadis;
         private SupplyShelly shelly;
         private Community community;
 
@@ -125,11 +121,6 @@ public class Supply {
 
         public Builder withDistributor(SupplyDistributor distributor) {
             this.distributor = distributor;
-            return this;
-        }
-
-        public Builder withDatadis(SupplyDatadis datadis) {
-            this.datadis = datadis;
             return this;
         }
 
@@ -200,14 +191,6 @@ public class Supply {
         this.distributor = distributor;
     }
 
-    public SupplyDatadis getDatadis() {
-        return datadis;
-    }
-
-    public void setDatadis(SupplyDatadis datadis) {
-        this.datadis = datadis;
-    }
-
     public SupplyShelly getShelly() {
         return shelly;
     }
@@ -256,7 +239,6 @@ public class Supply {
                 .withEnabled(this.enabled)
                 .withContract(this.contract)
                 .withDistributor(this.distributor)
-                .withDatadis(this.datadis)
                 .withShelly(this.shelly)
                 .withCommunity(this.community);
     }
