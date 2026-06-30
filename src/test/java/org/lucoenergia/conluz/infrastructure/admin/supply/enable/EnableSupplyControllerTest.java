@@ -58,7 +58,6 @@ class EnableSupplyControllerTest extends BaseControllerTest {
                 .withEnabled(false)
                 .withContract(supply.getContract())
                 .withDistributor(supply.getDistributor())
-                .withDatadis(supply.getDatadis())
                 .withShelly(supply.getShelly())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
@@ -94,7 +93,6 @@ class EnableSupplyControllerTest extends BaseControllerTest {
                 .withEnabled(true)
                 .withContract(supply.getContract())
                 .withDistributor(supply.getDistributor())
-                .withDatadis(supply.getDatadis())
                 .withShelly(supply.getShelly())
                 .build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));

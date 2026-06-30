@@ -65,7 +65,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         // Create the complete URL with the query parameter
         UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(baseUrl + API_PATH + GET_SUPPLIES_PATH);
-        if (datadisAuthorizer.isAuthorizedNif(UserPersonalId.of(user.getPersonalId()))) {
+        if (datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of(user.getPersonalId()))) {
             urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, user.getPersonalId());
         }
         String url = urlBuilder.build().toUriString();

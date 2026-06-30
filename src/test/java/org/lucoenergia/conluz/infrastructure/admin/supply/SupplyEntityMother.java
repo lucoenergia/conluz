@@ -4,7 +4,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
@@ -36,9 +35,6 @@ public class SupplyEntityMother {
                         .build())
                 .withContract(new SupplyContractEntity.Builder()
                         .withValidDateFrom(LocalDate.now())
-                        .build())
-                .withDatadis(new SupplyDatadisEntity.Builder()
-                        .withThirdParty(new Random().nextBoolean())
                         .build())
                 .withShelly(new SupplyShellyEntity.Builder()
                         .withId(RandomStringUtils.random(20, true, true))

@@ -7,7 +7,6 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.supply.datadis.SupplyDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -59,9 +58,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         assertEquals(supply.getShelly().getMacAddress(), result.getShelly().getMacAddress());
         assertEquals(supply.getShelly().getMqttPrefix(), result.getShelly().getMqttPrefix());
 
-        assertNotNull(result.getDatadis());
-        assertEquals(supply.getDatadis().isThirdParty(), result.getDatadis().isThirdParty());
-
         assertNotNull(result.getDistributor());
         assertEquals(supply.getDistributor().getName(), result.getDistributor().getName());
         assertEquals(supply.getDistributor().getCode(), result.getDistributor().getCode());
@@ -77,7 +73,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = SupplyMother.random(user)
                 .withShelly(null)
-                .withDatadis(null)
                 .withDistributor(null)
                 .withContract(null)
                 .build();
@@ -90,7 +85,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         assertNotNull(result.getId());
         assertEquals(supply.getCode(), result.getCode());
         assertNull(result.getShelly());
-        assertNull(result.getDatadis());
         assertNull(result.getDistributor());
         assertNull(result.getContract());
     }
@@ -106,7 +100,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
                 .build();
         Supply supply = SupplyMother.random(user)
                 .withShelly(shelly)
-                .withDatadis(null)
                 .withDistributor(null)
                 .withContract(null)
                 .build();
@@ -119,32 +112,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         assertEquals("shelly-id-01", result.getShelly().getId());
         assertEquals("AA:BB:CC:DD:EE:FF", result.getShelly().getMacAddress());
         assertEquals("shellyplus1pm", result.getShelly().getMqttPrefix());
-        assertNull(result.getDatadis());
-        assertNull(result.getDistributor());
-        assertNull(result.getContract());
-    }
-
-    @Test
-    void shouldCreateSupplyWithOnlyDatadis() {
-        // Arrange
-        User user = createUserRepository.create(UserMother.randomUser());
-        SupplyDatadis datadis = new SupplyDatadis.Builder()
-                .withThirdParty(true)
-                .build();
-        Supply supply = SupplyMother.random(user)
-                .withShelly(null)
-                .withDatadis(datadis)
-                .withDistributor(null)
-                .withContract(null)
-                .build();
-
-        // Act
-        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()));
-
-        // Assert
-        assertNull(result.getShelly());
-        assertNotNull(result.getDatadis());
-        assertTrue(result.getDatadis().isThirdParty());
         assertNull(result.getDistributor());
         assertNull(result.getContract());
     }
@@ -160,7 +127,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
                 .build();
         Supply supply = SupplyMother.random(user)
                 .withShelly(null)
-                .withDatadis(null)
                 .withDistributor(distributor)
                 .withContract(null)
                 .build();
@@ -170,7 +136,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
 
         // Assert
         assertNull(result.getShelly());
-        assertNull(result.getDatadis());
         assertNotNull(result.getDistributor());
         assertEquals("EDISTRIBUCION", result.getDistributor().getName());
         assertEquals("2", result.getDistributor().getCode());
@@ -188,7 +153,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
                 .build();
         Supply supply = SupplyMother.random(user)
                 .withShelly(null)
-                .withDatadis(null)
                 .withDistributor(null)
                 .withContract(contract)
                 .build();
@@ -198,7 +162,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
 
         // Assert
         assertNull(result.getShelly());
-        assertNull(result.getDatadis());
         assertNull(result.getDistributor());
         assertNotNull(result.getContract());
         assertEquals(validDateFrom, result.getContract().getValidDateFrom());
@@ -228,7 +191,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         assertEquals(result.getPartitionCoefficient(), 0F);
         assertNull(result.getAddressRef());
         assertNull(result.getShelly());
-        assertNull(result.getDatadis());
         assertNull(result.getDistributor());
         assertNull(result.getContract());
     }
