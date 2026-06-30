@@ -107,4 +107,44 @@ class DatadisAuthorizerTest {
         // A different owner NIF requires the authorizedNif.
         Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("otherNif")));
     }
+
+    @Test
+    void testRequiresAuthorizedNifIgnoresCase() {
+        givenConfigWithUsername("12345678Z");
+
+        // Same NIF differing only by letter case is still the owner.
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("12345678z")));
+    }
+
+    @Test
+    void testRequiresAuthorizedNifIgnoresSurroundingWhitespace() {
+        givenConfigWithUsername("12345678Z");
+
+        // Same NIF with leading/trailing whitespace is still the owner.
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of(" 12345678Z ")));
+    }
+
+    @Test
+    void testRequiresAuthorizedNifIgnoresCaseAndWhitespace() {
+        givenConfigWithUsername("12345678Z");
+
+        // Same NIF differing by both case and surrounding whitespace is still the owner.
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("  12345678z  ")));
+    }
+
+    @Test
+    void testRequiresAuthorizedNifForDifferentNif() {
+        givenConfigWithUsername("12345678Z");
+
+        // A genuinely different NIF still requires the authorizedNif.
+        Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("87654321X")));
+    }
+
+    private void givenConfigWithUsername(String username) {
+        final DatadisConfig config = new DatadisConfig.Builder()
+                .setUsername(username)
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .build();
+        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
+    }
 }

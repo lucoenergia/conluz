@@ -70,7 +70,11 @@ public class DatadisAuthorizer implements Authorizer {
     private boolean isOwner(UserPersonalId id) {
         DatadisConfig config = getDatadisConfigRepository.getDatadisConfig()
                 .orElseThrow(() -> new DatadisException("Datadis configuration not found"));
-        return config.getUsername().equals(id.getPersonalId());
+        return normalize(config.getUsername()).equals(normalize(id.getPersonalId()));
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toUpperCase();
     }
 
     public boolean requiresAuthorizedNif(UserPersonalId id) {
