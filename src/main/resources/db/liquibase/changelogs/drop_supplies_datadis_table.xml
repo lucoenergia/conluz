@@ -11,18 +11,6 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
          persisted third_party flag is no longer needed. -->
     <changeSet id="drop_supplies_datadis_table" author="Víctor Cañizares">
         <dropTable tableName="supplies_datadis"/>
-        <rollback>
-            <createTable tableName="supplies_datadis">
-                <column name="supply_id" type="UUID">
-                    <constraints primaryKey="true" primaryKeyName="supplies_datadis_pk"
-                                 foreignKeyName="supplies_datadis_supply_id_fk"
-                                 referencedTableName="supplies" referencedColumnNames="id" deleteCascade="true"/>
-                </column>
-                <column name="third_party" type="bool">
-                    <constraints nullable="true"/>
-                </column>
-            </createTable>
-        </rollback>
     </changeSet>
 
 </databaseChangeLog>
