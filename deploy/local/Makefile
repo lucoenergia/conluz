@@ -17,7 +17,7 @@ ENV_FILE   := $(LOCAL_DIR)/.env
 EXECUTE ?= 0
 BUNDLE  ?=
 
-.PHONY: help up down reset restore run loop
+.PHONY: help up down reset restore run debug loop
 
 help:
 	@echo "conluz local data-clone workflow (isolated stack)"
@@ -29,6 +29,7 @@ help:
 	@echo "  make restore EXECUTE=1        Perform the destructive restore"
 	@echo "  make restore BUNDLE=path.tgz  Restore a specific bundle (else newest in BUNDLE_DIR)"
 	@echo "  make run                      ./gradlew bootRun against the isolated stack"
+	@echo "  make debug                    ./gradlew bootRun in debug mode (JDWP on :5005)"
 	@echo "  make loop EXECUTE=1           restore (execute) then run"
 
 up:
@@ -49,6 +50,9 @@ restore:
 
 run:
 	cd "$(REPO_ROOT)" && set -a && . "$(ENV_FILE)" && set +a && ./gradlew bootRun
+
+debug:
+	cd "$(REPO_ROOT)" && set -a && . "$(ENV_FILE)" && set +a && ./gradlew bootRun --debug-jvm
 
 loop:
 ifneq ($(EXECUTE),1)
