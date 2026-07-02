@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis.aggregate;
 
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
-import org.lucoenergia.conluz.domain.consumption.datadis.config.GetDatadisConfigurationService;
+import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.mockito.Mockito;
 
 import java.time.LocalDate;

@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,7 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/consumption/datadis/sync";
 
     @MockitoBean
-    private DatadisConsumptionSyncService datadisConsumptionSyncService;
+    private DatadisSyncService datadisSyncService;
 
     @MockitoBean
     private GetDatadisConfigRepository getDatadisConfigRepository;
@@ -66,8 +66,8 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        verify(datadisConsumptionSyncService, times(1))
-                .synchronizeConsumptions(
+        verify(datadisSyncService, times(1))
+                .synchronize(
                         eq(DEFAULT_COMMUNITY_ID),
                         eq(LocalDate.of(2024, 1, 1)),
                         eq(LocalDate.of(2024, 12, 31))
@@ -197,16 +197,16 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        verify(datadisConsumptionSyncService, times(1))
-                .synchronizeConsumptions(
+        verify(datadisSyncService, times(1))
+                .synchronize(
                         eq(DEFAULT_COMMUNITY_ID),
                         eq(LocalDate.of(2024, 1, 1)),
                         eq(LocalDate.of(2024, 12, 31)),
                         eq(SupplyCode.of("SUPPLY001"))
                 );
 
-        verify(datadisConsumptionSyncService, never())
-                .synchronizeConsumptions(any(UUID.class), any(LocalDate.class), any(LocalDate.class));
+        verify(datadisSyncService, never())
+                .synchronize(any(UUID.class), any(LocalDate.class), any(LocalDate.class));
     }
 
     @Test
@@ -217,8 +217,8 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
         SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2024, "INVALID");
 
         doThrow(new SupplyNotFoundException(SupplyCode.of("INVALID")))
-                .when(datadisConsumptionSyncService)
-                .synchronizeConsumptions(
+                .when(datadisSyncService)
+                .synchronize(
                         any(UUID.class),
                         any(LocalDate.class),
                         any(LocalDate.class),
@@ -249,15 +249,15 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        verify(datadisConsumptionSyncService, times(1))
-                .synchronizeConsumptions(
+        verify(datadisSyncService, times(1))
+                .synchronize(
                         eq(DEFAULT_COMMUNITY_ID),
                         eq(LocalDate.of(2024, 1, 1)),
                         eq(LocalDate.of(2024, 12, 31))
                 );
 
-        verify(datadisConsumptionSyncService, never())
-                .synchronizeConsumptions(any(UUID.class), any(LocalDate.class), any(LocalDate.class), any(SupplyCode.class));
+        verify(datadisSyncService, never())
+                .synchronize(any(UUID.class), any(LocalDate.class), any(LocalDate.class), any(SupplyCode.class));
     }
 
     @Test
@@ -274,15 +274,15 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        verify(datadisConsumptionSyncService, times(1))
-                .synchronizeConsumptions(
+        verify(datadisSyncService, times(1))
+                .synchronize(
                         eq(DEFAULT_COMMUNITY_ID),
                         eq(LocalDate.of(2024, 1, 1)),
                         eq(LocalDate.of(2024, 12, 31))
                 );
 
-        verify(datadisConsumptionSyncService, never())
-                .synchronizeConsumptions(any(UUID.class), any(LocalDate.class), any(LocalDate.class), any(SupplyCode.class));
+        verify(datadisSyncService, never())
+                .synchronize(any(UUID.class), any(LocalDate.class), any(LocalDate.class), any(SupplyCode.class));
     }
 
     @Test
@@ -299,14 +299,14 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        verify(datadisConsumptionSyncService, times(1))
-                .synchronizeConsumptions(
+        verify(datadisSyncService, times(1))
+                .synchronize(
                         eq(DEFAULT_COMMUNITY_ID),
                         eq(LocalDate.of(2024, 1, 1)),
                         eq(LocalDate.of(2024, 12, 31))
                 );
 
-        verify(datadisConsumptionSyncService, never())
-                .synchronizeConsumptions(any(UUID.class), any(LocalDate.class), any(LocalDate.class), any(SupplyCode.class));
+        verify(datadisSyncService, never())
+                .synchronize(any(UUID.class), any(LocalDate.class), any(LocalDate.class), any(SupplyCode.class));
     }
 }

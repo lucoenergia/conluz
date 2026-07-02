@@ -5,7 +5,7 @@ import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Repository;
@@ -27,27 +27,13 @@ public class PersistDatadisConsumptionRepositoryInflux implements PersistDatadis
 
     @Override
     public void persistHourlyConsumptions(List<DatadisConsumption> consumptions) {
-        persistConsumptions(consumptions, DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT);
-    }
-
-    @Override
-    public void persistMonthlyConsumptions(List<DatadisConsumption> consumptions) {
-        persistConsumptions(consumptions, DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT);
-    }
-
-    @Override
-    public void persistYearlyConsumptions(List<DatadisConsumption> consumptions) {
-        persistConsumptions(consumptions, DatadisConfigEntity.CONSUMPTION_KWH_YEAR_MEASUREMENT);
-    }
-
-    private void persistConsumptions(List<DatadisConsumption> consumptions, String measurementName) {
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
             for (DatadisConsumption consumption : consumptions) {
-                Point point = Point.measurement(measurementName)
+                Point point = Point.measurement(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT)
                         .time(dateConverter.convertStringDateToMilliseconds(mergeDateAndTime(consumption)), TimeUnit.MILLISECONDS)
                         .tag("cups", consumption.getCups())
                         .addField("consumption_kwh", consumption.getConsumptionKWh())
