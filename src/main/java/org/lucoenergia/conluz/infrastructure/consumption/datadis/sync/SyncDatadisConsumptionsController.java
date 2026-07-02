@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -32,12 +32,12 @@ import java.util.UUID;
 @RequestMapping("/api/v1/communities/{communityId}/consumption/datadis/sync")
 public class SyncDatadisConsumptionsController {
 
-    private final DatadisConsumptionSyncService datadisConsumptionSyncService;
+    private final DatadisSyncService datadisSyncService;
     private final GetDatadisConfigRepository getDatadisConfigRepository;
 
-    public SyncDatadisConsumptionsController(DatadisConsumptionSyncService datadisConsumptionSyncService,
+    public SyncDatadisConsumptionsController(DatadisSyncService datadisSyncService,
                                              GetDatadisConfigRepository getDatadisConfigRepository) {
-        this.datadisConsumptionSyncService = datadisConsumptionSyncService;
+        this.datadisSyncService = datadisSyncService;
         this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
@@ -96,14 +96,14 @@ public class SyncDatadisConsumptionsController {
         }
 
         if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
-            datadisConsumptionSyncService.synchronizeConsumptions(
+            datadisSyncService.synchronize(
                     communityId,
                     body.getStartDate(),
                     body.getEndDate(),
                     SupplyCode.of(body.getSupplyCode())
             );
         } else {
-            datadisConsumptionSyncService.synchronizeConsumptions(communityId, body.getStartDate(), body.getEndDate());
+            datadisSyncService.synchronize(communityId, body.getStartDate(), body.getEndDate());
         }
     }
 }

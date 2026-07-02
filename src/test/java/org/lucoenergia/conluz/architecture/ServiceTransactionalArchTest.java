@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
-import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
@@ -55,7 +55,7 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
     static {
         // Add classes that are exempt from the @Transactional requirement
         // For example, services that don't modify data or have custom transaction handling
-        addException(DatadisConsumptionSyncService.class.getSimpleName());
+        addException(DatadisSyncService.class.getSimpleName());
         addException(SyncDailyPricesService.class.getSimpleName());
         addException(SyncHuaweiProductionService.class.getSimpleName());
         addException(ShellyConsumptionsHourlyAggregatorService.class.getSimpleName());

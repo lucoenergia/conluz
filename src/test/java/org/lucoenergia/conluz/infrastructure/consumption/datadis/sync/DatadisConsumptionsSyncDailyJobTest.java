@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.GetDatadisConfigurationService;
-import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.mockito.Mockito;
 
 import java.time.LocalDate;
@@ -17,7 +17,7 @@ class DatadisConsumptionsSyncDailyJobTest {
 
     @Test
     void testRun_ShouldCallSynchronizeConsumptionsPerCommunity() {
-        DatadisConsumptionSyncService mockSyncService = Mockito.mock(DatadisConsumptionSyncService.class);
+        DatadisSyncService mockSyncService = Mockito.mock(DatadisSyncService.class);
         GetDatadisConfigurationService mockConfigService = Mockito.mock(GetDatadisConfigurationService.class);
         UUID communityId = UUID.randomUUID();
         DatadisConfig enabledConfig = new DatadisConfig.Builder()
@@ -32,12 +32,12 @@ class DatadisConsumptionsSyncDailyJobTest {
 
         job.run();
 
-        verify(mockSyncService, times(1)).synchronizeConsumptions(communityId, oneYearAgo, today);
+        verify(mockSyncService, times(1)).synchronize(communityId, oneYearAgo, today);
     }
 
     @Test
     void testRun_ShouldSkipSyncWhenNoEnabledConfigs() {
-        DatadisConsumptionSyncService mockSyncService = Mockito.mock(DatadisConsumptionSyncService.class);
+        DatadisSyncService mockSyncService = Mockito.mock(DatadisSyncService.class);
         GetDatadisConfigurationService mockConfigService = Mockito.mock(GetDatadisConfigurationService.class);
         when(mockConfigService.findAllEnabled()).thenReturn(Collections.emptyList());
 
@@ -45,6 +45,6 @@ class DatadisConsumptionsSyncDailyJobTest {
 
         job.run();
 
-        verify(mockSyncService, never()).synchronizeConsumptions(any(UUID.class), any(), any());
+        verify(mockSyncService, never()).synchronize(any(UUID.class), any(), any());
     }
 }

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
+package org.lucoenergia.conluz.infrastructure.datadis.sync;
 
 import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.slf4j.Logger;
@@ -21,24 +21,24 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSyncService {
+public class DatadisSyncServiceImpl implements DatadisSyncService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DatadisConsumptionSyncServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DatadisSyncServiceImpl.class);
 
     private final GetDatadisConsumptionRepository getDatadisConsumptionRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository;
 
-    public DatadisConsumptionSyncServiceImpl(@Qualifier("getDatadisConsumptionRepositoryRest") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
-                                             GetSupplyRepository getSupplyRepository,
-                                             PersistDatadisConsumptionRepository persistDatadisConsumptionRepository) {
+    public DatadisSyncServiceImpl(@Qualifier("getDatadisConsumptionRepositoryRest") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
+                                  GetSupplyRepository getSupplyRepository,
+                                  PersistDatadisConsumptionRepository persistDatadisConsumptionRepository) {
         this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.persistDatadisConsumptionRepository = persistDatadisConsumptionRepository;
     }
 
     @Override
-    public void synchronizeConsumptions(UUID communityId, LocalDate startDate, LocalDate endDate) {
+    public void synchronize(UUID communityId, LocalDate startDate, LocalDate endDate) {
         List<Supply> communitySupplies = getSupplyRepository.findAllByCommunityId(communityId);
         for (Supply supply : communitySupplies) {
             processSingleSupply(supply, startDate, endDate);
@@ -46,7 +46,7 @@ public class DatadisConsumptionSyncServiceImpl implements DatadisConsumptionSync
     }
 
     @Override
-    public void synchronizeConsumptions(UUID communityId, LocalDate startDate, LocalDate endDate, SupplyCode supplyCode) {
+    public void synchronize(UUID communityId, LocalDate startDate, LocalDate endDate, SupplyCode supplyCode) {
         Supply supply = getSupplyRepository.findByCode(supplyCode)
                 .orElseThrow(() -> new SupplyNotFoundException(supplyCode));
         if (supply.getCommunity() == null || !communityId.equals(supply.getCommunity().getId())) {

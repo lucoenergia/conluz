@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
 import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
 import org.lucoenergia.conluz.domain.consumption.datadis.config.GetDatadisConfigurationService;
-import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,12 +17,12 @@ public class DatadisConsumptionsSyncDailyJob implements Job {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatadisConsumptionsSyncDailyJob.class);
 
-    private final DatadisConsumptionSyncService datadisConsumptionSyncService;
+    private final DatadisSyncService datadisSyncService;
     private final GetDatadisConfigurationService getDatadisConfigurationService;
 
-    public DatadisConsumptionsSyncDailyJob(DatadisConsumptionSyncService datadisConsumptionSyncService,
+    public DatadisConsumptionsSyncDailyJob(DatadisSyncService datadisSyncService,
                                            GetDatadisConfigurationService getDatadisConfigurationService) {
-        this.datadisConsumptionSyncService = datadisConsumptionSyncService;
+        this.datadisSyncService = datadisSyncService;
         this.getDatadisConfigurationService = getDatadisConfigurationService;
     }
 
@@ -43,7 +43,7 @@ public class DatadisConsumptionsSyncDailyJob implements Job {
         for (DatadisConfig config : enabledConfigs) {
             LOGGER.info("Syncing community {}", config.getCommunityId());
             try {
-                datadisConsumptionSyncService.synchronizeConsumptions(config.getCommunityId(), oneYearAgo, today);
+                datadisSyncService.synchronize(config.getCommunityId(), oneYearAgo, today);
             } catch (Exception e) {
                 LOGGER.error("Failed to sync community {}", config.getCommunityId(), e);
             }
