@@ -192,4 +192,41 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
 
         assertTrue(codes.isEmpty());
     }
+
+    @Test
+    void testFindSupplyCodesByCommunityReturnsCupsOfPlantsOfThatCommunity() {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        Community otherCommunity = createCommunityRepository.create(CommunityMother.random().build());
+
+        User user = createUserRepository.create(UserMother.randomUser());
+
+        Supply supplyInCommunity = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), community.getId());
+        Supply supplyInOtherCommunity = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), otherCommunity.getId());
+
+        Plant plantInCommunity = createPlantRepository.create(PlantMother.random(supplyInCommunity).build(),
+                SupplyId.of(supplyInCommunity.getId()));
+        createPlantRepository.create(PlantMother.random(supplyInOtherCommunity).build(),
+                SupplyId.of(supplyInOtherCommunity.getId()));
+
+        Set<String> codes = getPlantRepositoryDatabase.findSupplyCodesByCommunity(community.getId());
+
+        assertEquals(1, codes.size());
+        // The CUPS (supply code) is returned, not the plant/station code.
+        assertTrue(codes.contains(supplyInCommunity.getCode()));
+        assertFalse(codes.contains(plantInCommunity.getCode()));
+        assertFalse(codes.contains(supplyInOtherCommunity.getCode()));
+    }
+
+    @Test
+    void testFindSupplyCodesByCommunityReturnsEmptyWhenCommunityHasNoPlants() {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+
+        Set<String> codes = getPlantRepositoryDatabase.findSupplyCodesByCommunity(community.getId());
+
+        assertTrue(codes.isEmpty());
+    }
 }

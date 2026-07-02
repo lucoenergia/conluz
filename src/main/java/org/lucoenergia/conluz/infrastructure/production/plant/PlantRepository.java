@@ -31,4 +31,12 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
      */
     @Query("SELECT p.code FROM plants p WHERE p.supply.community.id = :communityId")
     List<String> findCodesByCommunityId(@Param("communityId") UUID communityId);
+
+    /**
+     * Supply codes (CUPS) of the plants whose supply belongs to the given community. Unlike
+     * {@link #findCodesByCommunityId(UUID)} (the plant/station code), this returns the CUPS used
+     * as the {@code cups} tag in the Datadis measurements.
+     */
+    @Query("SELECT p.supply.code FROM plants p WHERE p.supply.community.id = :communityId")
+    List<String> findSupplyCodesByCommunityId(@Param("communityId") UUID communityId);
 }
