@@ -12,8 +12,11 @@ import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembership
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Transactional(readOnly = true)
 @Repository
@@ -47,6 +50,20 @@ public class GetMembershipsRepositoryDatabase implements GetMembershipsRepositor
         return membershipJpaRepository.findByUserId(userId).stream()
                 .map(e -> toDomain(e, e.getCommunity() != null ? communityEntityMapper.map(e.getCommunity()) : null))
                 .toList();
+    }
+
+    @Override
+    public Map<UUID, List<CommunityMembership>> findByUserIds(Collection<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        return membershipJpaRepository.findByUserIdInWithCommunityAndUser(userIds).stream()
+                .filter(e -> e.getUser() != null)
+                .collect(Collectors.groupingBy(
+                        e -> e.getUser().getId(),
+                        Collectors.mapping(
+                                e -> toDomain(e, e.getCommunity() != null ? communityEntityMapper.map(e.getCommunity()) : null),
+                                Collectors.toList())));
     }
 
     private CommunityMembership toDomain(CommunityMembershipEntity entity, Community community) {
