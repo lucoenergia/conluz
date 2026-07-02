@@ -26,17 +26,13 @@ public class PersistDatadisProductionRepositoryInflux implements PersistDatadisP
 
     @Override
     public void persistHourlyProductions(List<DatadisProduction> productions) {
-        persistProductions(productions, DatadisProductionMeasurements.PRODUCTION_KWH_MEASUREMENT);
-    }
-
-    private void persistProductions(List<DatadisProduction> productions, String measurementName) {
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
             for (DatadisProduction production : productions) {
-                Point point = Point.measurement(measurementName)
+                Point point = Point.measurement(DatadisProductionMeasurements.PRODUCTION_KWH_MEASUREMENT)
                         .time(dateConverter.convertStringDateToMilliseconds(mergeDateAndTime(production)), TimeUnit.MILLISECONDS)
                         .tag("cups", production.getCups())
                         .addField("production_kwh", production.getProductionKWh())
