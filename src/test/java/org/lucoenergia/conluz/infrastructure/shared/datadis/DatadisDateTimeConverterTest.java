@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.shared.datadis;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 
 import java.time.Instant;

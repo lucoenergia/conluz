@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis;
 
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
 
 import java.time.Instant;
 

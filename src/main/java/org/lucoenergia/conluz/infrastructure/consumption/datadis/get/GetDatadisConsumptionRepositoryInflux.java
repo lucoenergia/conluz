@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumpti
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionMonthlyPoint;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionYearlyPoint;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDuration;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
