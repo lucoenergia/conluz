@@ -11,8 +11,13 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
+import org.lucoenergia.conluz.domain.production.datadis.DatadisProduction;
+import org.lucoenergia.conluz.domain.production.datadis.PersistDatadisProductionRepository;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
+import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionMapper;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.time.LocalDate;
@@ -20,8 +25,10 @@ import java.time.Month;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -33,8 +40,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link DatadisSyncServiceImpl}. The service iterates over the supplies
- * in scope and delegates retrieval/persistence to the Datadis repositories. Authorization is
+ * Unit tests for {@link DatadisSyncServiceImpl}. The service iterates over the supplies in scope,
+ * derives production from surplus for plant supplies (zeroing the surplus on the persisted
+ * consumption), and delegates retrieval/persistence to the Datadis repositories. Authorization is
  * enforced at the controller layer, so the service performs orchestration only.
  */
 class DatadisSyncServiceImplTest {
@@ -44,9 +52,14 @@ class DatadisSyncServiceImplTest {
     private final GetSupplyRepository getSupplyRepository = Mockito.mock(GetSupplyRepository.class);
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository =
             Mockito.mock(PersistDatadisConsumptionRepository.class);
+    private final GetPlantRepository getPlantRepository = Mockito.mock(GetPlantRepository.class);
+    private final DatadisProductionMapper datadisProductionMapper = new DatadisProductionMapper();
+    private final PersistDatadisProductionRepository persistDatadisProductionRepository =
+            Mockito.mock(PersistDatadisProductionRepository.class);
 
     private final DatadisSyncService service = new DatadisSyncServiceImpl(
-            getDatadisConsumptionRepository, getSupplyRepository, persistDatadisConsumptionRepository);
+            getDatadisConsumptionRepository, getSupplyRepository, persistDatadisConsumptionRepository,
+            getPlantRepository, datadisProductionMapper, persistDatadisProductionRepository);
 
     // ---------------------------------------------------------------------
     // synchronize(communityId, startDate, endDate)
@@ -70,6 +83,7 @@ class DatadisSyncServiceImplTest {
         verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supplyOne, Month.JANUARY, 2024);
         verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supplyTwo, Month.JANUARY, 2024);
         verify(persistDatadisConsumptionRepository, times(2)).persistHourlyConsumptions(consumptions);
+        verifyNoInteractions(persistDatadisProductionRepository);
     }
 
     @Test
@@ -103,6 +117,7 @@ class DatadisSyncServiceImplTest {
         service.synchronize(communityId, date, date);
 
         verify(persistDatadisConsumptionRepository, never()).persistHourlyConsumptions(any());
+        verifyNoInteractions(persistDatadisProductionRepository);
     }
 
     @Test
@@ -117,6 +132,7 @@ class DatadisSyncServiceImplTest {
 
         verifyNoInteractions(getDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisConsumptionRepository);
+        verifyNoInteractions(persistDatadisProductionRepository);
     }
 
     @Test
@@ -130,6 +146,7 @@ class DatadisSyncServiceImplTest {
 
         verifyNoInteractions(getDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisConsumptionRepository);
+        verifyNoInteractions(persistDatadisProductionRepository);
     }
 
     @Test
@@ -154,6 +171,66 @@ class DatadisSyncServiceImplTest {
     }
 
     // ---------------------------------------------------------------------
+    // Plant supplies: production derivation + zeroed consumption
+    // ---------------------------------------------------------------------
+
+    @Test
+    void synchronizeByCommunity_forPlantSupply_persistsProductionFromSurplusAndZeroesConsumptionSurplus() {
+        UUID communityId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2024, 1, 10);
+
+        Supply plantSupply = SupplyMother.random().build();
+        when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(plantSupply));
+        when(getPlantRepository.findSupplyCodesByCommunity(communityId)).thenReturn(Set.of(plantSupply.getCode()));
+
+        DatadisConsumption original = consumption(plantSupply.getCode(), 3.5f);
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(plantSupply), any(Month.class), anyInt()))
+                .thenReturn(List.of(original));
+
+        service.synchronize(communityId, date, date);
+
+        // Production is derived from the original surplus.
+        ArgumentCaptor<List<DatadisProduction>> productionCaptor = ArgumentCaptor.forClass(List.class);
+        verify(persistDatadisProductionRepository).persistHourlyProductions(productionCaptor.capture());
+        List<DatadisProduction> productions = productionCaptor.getValue();
+        assertEquals(1, productions.size());
+        assertEquals(3.5f, productions.get(0).getProductionKWh());
+        assertEquals(plantSupply.getCode(), productions.get(0).getCups());
+
+        // Consumption is persisted from a copy whose surplus is zeroed.
+        ArgumentCaptor<List<DatadisConsumption>> consumptionCaptor = ArgumentCaptor.forClass(List.class);
+        verify(persistDatadisConsumptionRepository).persistHourlyConsumptions(consumptionCaptor.capture());
+        List<DatadisConsumption> persisted = consumptionCaptor.getValue();
+        assertEquals(1, persisted.size());
+        assertEquals(0f, persisted.get(0).getSurplusEnergyKWh());
+
+        // The original DTO must not be mutated.
+        assertEquals(3.5f, original.getSurplusEnergyKWh());
+    }
+
+    @Test
+    void synchronizeByCommunity_forNonPlantSupply_neverTouchesProductionAndKeepsSurplus() {
+        UUID communityId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2024, 1, 10);
+
+        Supply supply = SupplyMother.random().build();
+        when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
+        // Community has a plant, but for a different supply code.
+        when(getPlantRepository.findSupplyCodesByCommunity(communityId)).thenReturn(Set.of("OTHER_CUPS"));
+
+        DatadisConsumption original = consumption(supply.getCode(), 2.0f);
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt()))
+                .thenReturn(List.of(original));
+
+        service.synchronize(communityId, date, date);
+
+        verify(persistDatadisConsumptionRepository).persistHourlyConsumptions(List.of(original));
+        verifyNoInteractions(persistDatadisProductionRepository);
+        // Surplus is untouched.
+        assertEquals(2.0f, original.getSurplusEnergyKWh());
+    }
+
+    // ---------------------------------------------------------------------
     // synchronize(communityId, startDate, endDate, supplyCode)
     // ---------------------------------------------------------------------
 
@@ -175,6 +252,34 @@ class DatadisSyncServiceImplTest {
 
         verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supply, Month.JANUARY, 2024);
         verify(persistDatadisConsumptionRepository).persistHourlyConsumptions(consumptions);
+        verifyNoInteractions(persistDatadisProductionRepository);
+    }
+
+    @Test
+    void synchronizeBySupplyCode_forPlantSupply_persistsProductionAndZeroedConsumption() {
+        UUID communityId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2024, 1, 10);
+        SupplyCode supplyCode = SupplyCode.of("ES001");
+
+        Community community = CommunityMother.random().withId(communityId).build();
+        Supply plantSupply = SupplyMother.random().withCommunity(community).build();
+        when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(plantSupply));
+        when(getPlantRepository.findSupplyCodesByCommunity(communityId)).thenReturn(Set.of(plantSupply.getCode()));
+
+        DatadisConsumption original = consumption(plantSupply.getCode(), 4.0f);
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(plantSupply), any(Month.class), anyInt()))
+                .thenReturn(List.of(original));
+
+        service.synchronize(communityId, date, date, supplyCode);
+
+        ArgumentCaptor<List<DatadisProduction>> productionCaptor = ArgumentCaptor.forClass(List.class);
+        verify(persistDatadisProductionRepository).persistHourlyProductions(productionCaptor.capture());
+        assertEquals(4.0f, productionCaptor.getValue().get(0).getProductionKWh());
+
+        ArgumentCaptor<List<DatadisConsumption>> consumptionCaptor = ArgumentCaptor.forClass(List.class);
+        verify(persistDatadisConsumptionRepository).persistHourlyConsumptions(consumptionCaptor.capture());
+        assertEquals(0f, consumptionCaptor.getValue().get(0).getSurplusEnergyKWh());
+        assertEquals(4.0f, original.getSurplusEnergyKWh());
     }
 
     @Test
@@ -190,6 +295,7 @@ class DatadisSyncServiceImplTest {
 
         verifyNoInteractions(getDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisConsumptionRepository);
+        verifyNoInteractions(persistDatadisProductionRepository);
     }
 
     @Test
@@ -206,6 +312,7 @@ class DatadisSyncServiceImplTest {
 
         verifyNoInteractions(getDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisConsumptionRepository);
+        verifyNoInteractions(persistDatadisProductionRepository);
     }
 
     @Test
@@ -223,5 +330,17 @@ class DatadisSyncServiceImplTest {
 
         verifyNoInteractions(getDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisConsumptionRepository);
+        verifyNoInteractions(persistDatadisProductionRepository);
+    }
+
+    private DatadisConsumption consumption(String cups, Float surplus) {
+        DatadisConsumption consumption = new DatadisConsumption();
+        consumption.setCups(cups);
+        consumption.setDate("2024/01/10");
+        consumption.setTime("10:00");
+        consumption.setConsumptionKWh(1.0f);
+        consumption.setObtainMethod("Real");
+        consumption.setSurplusEnergyKWh(surplus);
+        return consumption;
     }
 }
