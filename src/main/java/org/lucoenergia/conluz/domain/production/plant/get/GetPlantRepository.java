@@ -26,4 +26,10 @@ public interface GetPlantRepository {
      * {@code station_code} tag, so they can be used to scope time-series production queries.
      */
     List<String> findPlantCodesByCommunity(UUID communityId);
+
+    /**
+     * Supply codes (CUPS) of the plants belonging to the given community. Used to detect which
+     * supplies back a plant so their Datadis surplus can be derived into production.
+     */
+    Set<String> findSupplyCodesByCommunity(UUID communityId);
 }
