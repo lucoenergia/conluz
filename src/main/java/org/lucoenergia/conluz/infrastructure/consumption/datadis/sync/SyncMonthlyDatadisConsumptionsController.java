@@ -7,10 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
-import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
-import org.lucoenergia.conluz.domain.shared.SupplyCode;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -25,8 +21,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Month;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -34,12 +28,9 @@ import java.util.UUID;
 public class SyncMonthlyDatadisConsumptionsController {
 
     private final DatadisMonthlyAggregationService aggregationService;
-    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
-    public SyncMonthlyDatadisConsumptionsController(DatadisMonthlyAggregationService aggregationService,
-                                                    GetDatadisConfigRepository getDatadisConfigRepository) {
+    public SyncMonthlyDatadisConsumptionsController(DatadisMonthlyAggregationService aggregationService) {
         this.aggregationService = aggregationService;
-        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @PostMapping
@@ -86,39 +77,6 @@ public class SyncMonthlyDatadisConsumptionsController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncMonthlyDatadisConsumptions(@PathVariable UUID communityId,
                                                @Valid @RequestBody SyncMonthlyDatadisConsumptionsBody body) {
-        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
-        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
-            throw new DatadisDisabledException();
-        }
-
-        if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
-            if (body.getMonth() != null) {
-                // Specific supply, specific month
-                aggregationService.aggregateMonthlyConsumptions(
-                        communityId,
-                        SupplyCode.of(body.getSupplyCode()),
-                        body.getMonthEnum(),
-                        body.getYear()
-                );
-            } else {
-                // Specific supply, all months of year
-                for (Month month : Month.values()) {
-                    aggregationService.aggregateMonthlyConsumptions(
-                            communityId,
-                            SupplyCode.of(body.getSupplyCode()),
-                            month,
-                            body.getYear()
-                    );
-                }
-            }
-        } else {
-            if (body.getMonth() != null) {
-                // All community supplies, specific month
-                aggregationService.aggregateMonthlyConsumptions(communityId, body.getMonthEnum(), body.getYear());
-            } else {
-                // All community supplies, all months
-                aggregationService.aggregateMonthlyConsumptions(communityId, body.getYear());
-            }
-        }
+        aggregationService.syncMonthlyConsumptions(communityId, body.getSupplyCode(), body.getMonth(), body.getYear());
     }
 }

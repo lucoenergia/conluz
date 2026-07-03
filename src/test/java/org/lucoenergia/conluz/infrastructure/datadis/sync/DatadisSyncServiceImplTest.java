@@ -10,12 +10,15 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.production.datadis.DatadisProduction;
 import org.lucoenergia.conluz.domain.production.datadis.PersistDatadisProductionRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionMapper;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -56,10 +59,22 @@ class DatadisSyncServiceImplTest {
     private final DatadisProductionMapper datadisProductionMapper = new DatadisProductionMapper();
     private final PersistDatadisProductionRepository persistDatadisProductionRepository =
             Mockito.mock(PersistDatadisProductionRepository.class);
+    private final GetDatadisConfigRepository getDatadisConfigRepository =
+            Mockito.mock(GetDatadisConfigRepository.class);
 
     private final DatadisSyncService service = new DatadisSyncServiceImpl(
             getDatadisConsumptionRepository, getSupplyRepository, persistDatadisConsumptionRepository,
-            getPlantRepository, datadisProductionMapper, persistDatadisProductionRepository);
+            getPlantRepository, datadisProductionMapper, persistDatadisProductionRepository,
+            getDatadisConfigRepository);
+
+    private static DatadisConfig config(boolean enabled) {
+        return new DatadisConfig.Builder()
+                .setUsername("u")
+                .setPassword("p")
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .setEnabled(enabled)
+                .build();
+    }
 
     // ---------------------------------------------------------------------
     // synchronize(communityId, startDate, endDate)
@@ -331,6 +346,67 @@ class DatadisSyncServiceImplTest {
         verifyNoInteractions(getDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisProductionRepository);
+    }
+
+    // ---------------------------------------------------------------------
+    // synchronize(communityId, startDate, endDate, String supplyCode): config gating + dispatch
+    // (moved out of the controller)
+    // ---------------------------------------------------------------------
+
+    @Test
+    void synchronizeManual_throwsWhenDatadisConfigIsMissing() {
+        UUID communityId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2024, 1, 10);
+        when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.empty());
+
+        assertThrows(DatadisDisabledException.class,
+                () -> service.synchronize(communityId, date, date, (String) null));
+
+        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository,
+                persistDatadisConsumptionRepository, persistDatadisProductionRepository);
+    }
+
+    @Test
+    void synchronizeManual_throwsWhenDatadisConfigIsDisabled() {
+        UUID communityId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2024, 1, 10);
+        when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(false)));
+
+        assertThrows(DatadisDisabledException.class,
+                () -> service.synchronize(communityId, date, date, "ES001"));
+
+        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository,
+                persistDatadisConsumptionRepository, persistDatadisProductionRepository);
+    }
+
+    @Test
+    void synchronizeManual_withNoSupplyCode_dispatchesToWholeCommunity() {
+        UUID communityId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2024, 1, 10);
+        when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(true)));
+        when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(Collections.emptyList());
+
+        service.synchronize(communityId, date, date, (String) null);
+
+        verify(getSupplyRepository).findAllByCommunityId(communityId);
+        verify(getSupplyRepository, never()).findByCode(any(SupplyCode.class));
+    }
+
+    @Test
+    void synchronizeManual_withSupplyCode_dispatchesToSingleSupply() {
+        UUID communityId = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2024, 1, 10);
+        Community community = CommunityMother.random().withId(communityId).build();
+        Supply supply = SupplyMother.random().withCommunity(community).build();
+        when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(true)));
+        when(getSupplyRepository.findByCode(SupplyCode.of("ES001"))).thenReturn(Optional.of(supply));
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt()))
+                .thenReturn(Collections.emptyList());
+
+        service.synchronize(communityId, date, date, "ES001");
+
+        verify(getSupplyRepository).findByCode(SupplyCode.of("ES001"));
+        verify(getSupplyRepository, never()).findAllByCommunityId(any(UUID.class));
     }
 
     private DatadisConsumption consumption(String cups, Float surplus) {

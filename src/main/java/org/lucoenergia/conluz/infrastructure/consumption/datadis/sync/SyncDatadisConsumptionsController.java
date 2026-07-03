@@ -6,11 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
-import org.lucoenergia.conluz.domain.shared.SupplyCode;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -25,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -33,12 +28,9 @@ import java.util.UUID;
 public class SyncDatadisConsumptionsController {
 
     private final DatadisSyncService datadisSyncService;
-    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
-    public SyncDatadisConsumptionsController(DatadisSyncService datadisSyncService,
-                                             GetDatadisConfigRepository getDatadisConfigRepository) {
+    public SyncDatadisConsumptionsController(DatadisSyncService datadisSyncService) {
         this.datadisSyncService = datadisSyncService;
-        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @PostMapping
@@ -90,20 +82,6 @@ public class SyncDatadisConsumptionsController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncDatadisConsumptions(@PathVariable UUID communityId,
                                         @Valid @RequestBody SyncDatadisConsumptionsBody body) {
-        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
-        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
-            throw new DatadisDisabledException();
-        }
-
-        if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
-            datadisSyncService.synchronize(
-                    communityId,
-                    body.getStartDate(),
-                    body.getEndDate(),
-                    SupplyCode.of(body.getSupplyCode())
-            );
-        } else {
-            datadisSyncService.synchronize(communityId, body.getStartDate(), body.getEndDate());
-        }
+        datadisSyncService.synchronize(communityId, body.getStartDate(), body.getEndDate(), body.getSupplyCode());
     }
 }

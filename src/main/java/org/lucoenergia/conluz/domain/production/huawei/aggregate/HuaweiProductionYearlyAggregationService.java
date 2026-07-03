@@ -25,4 +25,16 @@ public interface HuaweiProductionYearlyAggregationService {
      * community cannot aggregate another community's plant.
      */
     void aggregateYearlyProductions(UUID communityId, String plantCode, int year);
+
+    /**
+     * Entry point for the manual community sync endpoint. Verifies that Huawei is enabled and then
+     * dispatches to the appropriate aggregation depending on whether a specific plant was requested.
+     * All the sync orchestration (config gating and dispatch) lives here so the controller does not
+     * embed domain logic.
+     *
+     * @param communityId the community whose plants are aggregated
+     * @param plantCode   optional plant code; when null/blank, all the community's plants are aggregated
+     * @param year        the year to aggregate
+     */
+    void syncYearlyProductions(UUID communityId, String plantCode, int year);
 }

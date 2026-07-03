@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.aggregate.DatadisYearlyAggregationServiceImpl;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
@@ -31,12 +32,14 @@ class DatadisYearlyAggregationServiceTest extends BaseIntegrationTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private CreateUserRepository createUserRepository;
+    @Autowired
+    private GetDatadisConfigRepository getDatadisConfigRepository;
 
     private DatadisYearlyAggregationService service;
 
     @BeforeEach
     void setUp() {
-        service = new DatadisYearlyAggregationServiceImpl(getSupplyRepository, aggregationRepository);
+        service = new DatadisYearlyAggregationServiceImpl(getSupplyRepository, aggregationRepository, getDatadisConfigRepository);
     }
 
     @Test

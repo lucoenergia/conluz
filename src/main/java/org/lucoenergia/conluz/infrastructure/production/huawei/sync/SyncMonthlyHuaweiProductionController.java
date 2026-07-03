@@ -7,8 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
-import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
-import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -23,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Month;
 import java.util.UUID;
 
 @RestController
@@ -31,12 +28,9 @@ import java.util.UUID;
 public class SyncMonthlyHuaweiProductionController {
 
     private final HuaweiProductionMonthlyAggregationService aggregationService;
-    private final GetHuaweiConfigRepository getHuaweiConfigRepository;
 
-    public SyncMonthlyHuaweiProductionController(HuaweiProductionMonthlyAggregationService aggregationService,
-                                                 GetHuaweiConfigRepository getHuaweiConfigRepository) {
+    public SyncMonthlyHuaweiProductionController(HuaweiProductionMonthlyAggregationService aggregationService) {
         this.aggregationService = aggregationService;
-        this.getHuaweiConfigRepository = getHuaweiConfigRepository;
     }
 
     @PostMapping
@@ -83,38 +77,6 @@ public class SyncMonthlyHuaweiProductionController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncMonthlyHuaweiProduction(@PathVariable UUID communityId,
                                             @Valid @RequestBody SyncMonthlyHuaweiProductionBody body) {
-        if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
-            throw new HuaweiDisabledException();
-        }
-
-        if (body.getPlantCode() != null && !body.getPlantCode().isBlank()) {
-            if (body.getMonth() != null) {
-                // Specific plant, specific month
-                aggregationService.aggregateMonthlyProductions(
-                        communityId,
-                        body.getPlantCode(),
-                        body.getMonthEnum(),
-                        body.getYear()
-                );
-            } else {
-                // Specific plant, all months of year
-                for (Month month : Month.values()) {
-                    aggregationService.aggregateMonthlyProductions(
-                            communityId,
-                            body.getPlantCode(),
-                            month,
-                            body.getYear()
-                    );
-                }
-            }
-        } else {
-            if (body.getMonth() != null) {
-                // All community plants, specific month
-                aggregationService.aggregateMonthlyProductions(communityId, body.getMonthEnum(), body.getYear());
-            } else {
-                // All community plants, all months
-                aggregationService.aggregateMonthlyProductions(communityId, body.getYear());
-            }
-        }
+        aggregationService.syncMonthlyProductions(communityId, body.getPlantCode(), body.getMonth(), body.getYear());
     }
 }

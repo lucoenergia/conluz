@@ -7,25 +7,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
-import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
-import org.lucoenergia.conluz.domain.shared.SupplyCode;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -33,12 +20,9 @@ import java.util.UUID;
 public class SyncYearlyDatadisConsumptionsController {
 
     private final DatadisYearlyAggregationService aggregationService;
-    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
-    public SyncYearlyDatadisConsumptionsController(DatadisYearlyAggregationService aggregationService,
-                                                   GetDatadisConfigRepository getDatadisConfigRepository) {
+    public SyncYearlyDatadisConsumptionsController(DatadisYearlyAggregationService aggregationService) {
         this.aggregationService = aggregationService;
-        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @PostMapping
@@ -85,19 +69,6 @@ public class SyncYearlyDatadisConsumptionsController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncYearlyDatadisConsumptions(@PathVariable UUID communityId,
                                               @Valid @RequestBody SyncYearlyDatadisConsumptionsBody body) {
-        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
-        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
-            throw new DatadisDisabledException();
-        }
-
-        if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
-            aggregationService.aggregateYearlyConsumptions(
-                    communityId,
-                    SupplyCode.of(body.getSupplyCode()),
-                    body.getYear()
-            );
-        } else {
-            aggregationService.aggregateYearlyConsumptions(communityId, body.getYear());
-        }
+        aggregationService.syncYearlyConsumptions(communityId, body.getSupplyCode(), body.getYear());
     }
 }

@@ -7,12 +7,15 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.production.datadis.DatadisProduction;
 import org.lucoenergia.conluz.domain.production.datadis.PersistDatadisProductionRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +26,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,19 +41,36 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
     private final GetPlantRepository getPlantRepository;
     private final DatadisProductionMapper datadisProductionMapper;
     private final PersistDatadisProductionRepository persistDatadisProductionRepository;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
     public DatadisSyncServiceImpl(@Qualifier("getDatadisConsumptionRepositoryRest") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
                                   GetSupplyRepository getSupplyRepository,
                                   PersistDatadisConsumptionRepository persistDatadisConsumptionRepository,
                                   GetPlantRepository getPlantRepository,
                                   DatadisProductionMapper datadisProductionMapper,
-                                  PersistDatadisProductionRepository persistDatadisProductionRepository) {
+                                  PersistDatadisProductionRepository persistDatadisProductionRepository,
+                                  GetDatadisConfigRepository getDatadisConfigRepository) {
         this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.persistDatadisConsumptionRepository = persistDatadisConsumptionRepository;
         this.getPlantRepository = getPlantRepository;
         this.datadisProductionMapper = datadisProductionMapper;
         this.persistDatadisProductionRepository = persistDatadisProductionRepository;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
+    }
+
+    @Override
+    public void synchronize(UUID communityId, LocalDate startDate, LocalDate endDate, String supplyCode) {
+        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
+        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
+            throw new DatadisDisabledException();
+        }
+
+        if (supplyCode != null && !supplyCode.isBlank()) {
+            synchronize(communityId, startDate, endDate, SupplyCode.of(supplyCode));
+        } else {
+            synchronize(communityId, startDate, endDate);
+        }
     }
 
     @Override

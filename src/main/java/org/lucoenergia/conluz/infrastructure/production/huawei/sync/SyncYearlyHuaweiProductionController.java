@@ -7,8 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
-import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
-import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -30,12 +28,9 @@ import java.util.UUID;
 public class SyncYearlyHuaweiProductionController {
 
     private final HuaweiProductionYearlyAggregationService aggregationService;
-    private final GetHuaweiConfigRepository getHuaweiConfigRepository;
 
-    public SyncYearlyHuaweiProductionController(HuaweiProductionYearlyAggregationService aggregationService,
-                                                GetHuaweiConfigRepository getHuaweiConfigRepository) {
+    public SyncYearlyHuaweiProductionController(HuaweiProductionYearlyAggregationService aggregationService) {
         this.aggregationService = aggregationService;
-        this.getHuaweiConfigRepository = getHuaweiConfigRepository;
     }
 
     @PostMapping
@@ -82,14 +77,6 @@ public class SyncYearlyHuaweiProductionController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncYearlyHuaweiProduction(@PathVariable UUID communityId,
                                            @Valid @RequestBody SyncYearlyHuaweiProductionBody body) {
-        if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
-            throw new HuaweiDisabledException();
-        }
-
-        if (body.getPlantCode() != null && !body.getPlantCode().isBlank()) {
-            aggregationService.aggregateYearlyProductions(communityId, body.getPlantCode(), body.getYear());
-        } else {
-            aggregationService.aggregateYearlyProductions(communityId, body.getYear());
-        }
+        aggregationService.syncYearlyProductions(communityId, body.getPlantCode(), body.getYear());
     }
 }
