@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigReposi
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -79,6 +80,29 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
             throw new PlantNotFoundException(plantCode);
         }
         aggregateForPlantMonthYear(plant, month, year);
+    }
+
+    @Override
+    public void syncMonthlyProductions(UUID communityId, String plantCode, Integer month, int year) {
+        if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
+            throw new HuaweiDisabledException();
+        }
+
+        if (plantCode != null && !plantCode.isBlank()) {
+            if (month != null) {
+                aggregateMonthlyProductions(communityId, plantCode, Month.of(month), year);
+            } else {
+                for (Month everyMonth : Month.values()) {
+                    aggregateMonthlyProductions(communityId, plantCode, everyMonth, year);
+                }
+            }
+        } else {
+            if (month != null) {
+                aggregateMonthlyProductions(communityId, Month.of(month), year);
+            } else {
+                aggregateMonthlyProductions(communityId, year);
+            }
+        }
     }
 
     /**

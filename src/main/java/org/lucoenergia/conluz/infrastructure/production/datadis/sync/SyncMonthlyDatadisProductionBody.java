@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
+package org.lucoenergia.conluz.infrastructure.production.datadis.sync;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 @Schema(requiredProperties = {"year"})
-public class SyncMonthlyHuaweiProductionBody {
+public class SyncMonthlyDatadisProductionBody {
 
     @NotNull
     @Min(value = 2000)
@@ -17,24 +17,24 @@ public class SyncMonthlyHuaweiProductionBody {
     @Max(value = 12)
     private Integer month;
 
-    private String plantCode;
+    private String supplyCode;
 
-    public SyncMonthlyHuaweiProductionBody() {
+    public SyncMonthlyDatadisProductionBody() {
     }
 
-    public SyncMonthlyHuaweiProductionBody(Integer year) {
+    public SyncMonthlyDatadisProductionBody(Integer year) {
         this.year = year;
     }
 
-    public SyncMonthlyHuaweiProductionBody(Integer year, Integer month) {
-        this.year = year;
-        this.month = month;
-    }
-
-    public SyncMonthlyHuaweiProductionBody(Integer year, Integer month, String plantCode) {
+    public SyncMonthlyDatadisProductionBody(Integer year, Integer month) {
         this.year = year;
         this.month = month;
-        this.plantCode = plantCode;
+    }
+
+    public SyncMonthlyDatadisProductionBody(Integer year, Integer month, String supplyCode) {
+        this.year = year;
+        this.month = month;
+        this.supplyCode = supplyCode;
     }
 
     public Integer getYear() {
@@ -53,11 +53,11 @@ public class SyncMonthlyHuaweiProductionBody {
         this.month = month;
     }
 
-    public String getPlantCode() {
-        return plantCode;
+    public String getSupplyCode() {
+        return supplyCode;
     }
 
-    public void setPlantCode(String plantCode) {
-        this.plantCode = plantCode;
+    public void setSupplyCode(String supplyCode) {
+        this.supplyCode = supplyCode;
     }
 }

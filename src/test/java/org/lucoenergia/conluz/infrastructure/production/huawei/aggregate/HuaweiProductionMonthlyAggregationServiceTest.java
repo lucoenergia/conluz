@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -191,5 +192,45 @@ class HuaweiProductionMonthlyAggregationServiceTest {
 
         verify(aggregationRepository, never())
                 .aggregateMonthlyProduction(any(Plant.class), any(Month.class), anyInt());
+    }
+
+    // -----------------------------------------------------------------------
+    // syncMonthlyProductions: config gating + dispatch (moved out of the controller)
+    // -----------------------------------------------------------------------
+
+    @Test
+    void testSyncMonthlyThrowsWhenHuaweiDisabled() {
+        when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(Collections.emptyList());
+
+        assertThrows(HuaweiDisabledException.class,
+                () -> service.syncMonthlyProductions(UUID.randomUUID(), null, null, 2024));
+
+        verifyNoInteractions(getEnergyStationRepository, getPlantRepository, aggregationRepository);
+    }
+
+    @Test
+    void testSyncMonthlyWithNoPlantNoMonthAggregatesWholeCommunityYear() {
+        UUID communityId = UUID.randomUUID();
+        Plant plant = PlantMother.random().build();
+        when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(List.of(configForPlant(UUID.randomUUID())));
+        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
+        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
+
+        service.syncMonthlyProductions(communityId, null, null, 2024);
+
+        verify(aggregationRepository, times(12)).aggregateMonthlyProduction(eq(plant), any(Month.class), eq(2024));
+    }
+
+    @Test
+    void testSyncMonthlyWithPlantAndMonthAggregatesThatPlantForThatMonth() {
+        UUID communityId = UUID.randomUUID();
+        Plant plant = PlantMother.random().build();
+        when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(List.of(configForPlant(UUID.randomUUID())));
+        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
+
+        service.syncMonthlyProductions(communityId, plant.getCode(), 6, 2024);
+
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(plant), eq(Month.JUNE), eq(2024));
     }
 }

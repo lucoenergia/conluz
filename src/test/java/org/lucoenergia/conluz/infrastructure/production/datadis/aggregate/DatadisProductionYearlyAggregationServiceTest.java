@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis.aggregate;
+package org.lucoenergia.conluz.infrastructure.production.datadis.aggregate;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,9 +9,9 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.mockito.InjectMocks;
@@ -27,19 +27,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class DatadisYearlyAggregationServiceImplTest {
+class DatadisProductionYearlyAggregationServiceTest {
 
     @Mock
     private GetSupplyRepository getSupplyRepository;
 
     @Mock
-    private DatadisYearlyAggregationRepository aggregationRepository;
+    private DatadisProductionYearlyAggregationRepository aggregationRepository;
 
     @Mock
     private GetDatadisConfigRepository getDatadisConfigRepository;
 
     @InjectMocks
-    private DatadisYearlyAggregationServiceImpl service;
+    private DatadisProductionYearlyAggregationServiceImpl service;
 
     private static DatadisConfig config(boolean enabled) {
         return new DatadisConfig.Builder()
@@ -59,11 +59,11 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findAll()).thenReturn(List.of(supply1, supply2));
 
         // When
-        service.aggregateYearlyConsumptions(2024);
+        service.aggregateYearlyProductions(2024);
 
         // Then - one call per supply
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply1), eq(2024));
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply2), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply1), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply2), eq(2024));
     }
 
     @Test
@@ -75,11 +75,11 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
 
         // When
-        service.aggregateYearlyConsumptions(2024);
+        service.aggregateYearlyProductions(2024);
 
         // Then - only supply with distributor code is processed
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supplyWithCode), eq(2024));
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(eq(supplyWithoutCode), anyInt());
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supplyWithCode), eq(2024));
+        verify(aggregationRepository, never()).aggregateYearlyProduction(eq(supplyWithoutCode), anyInt());
     }
 
     @Test
@@ -90,10 +90,10 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithBlankCode));
 
         // When
-        service.aggregateYearlyConsumptions(2024);
+        service.aggregateYearlyProductions(2024);
 
         // Then
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
+        verify(aggregationRepository, never()).aggregateYearlyProduction(any(Supply.class), anyInt());
     }
 
     @Test
@@ -104,13 +104,13 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findAll()).thenReturn(List.of(supply));
         doThrow(new RuntimeException("InfluxDB connection error"))
                 .when(aggregationRepository)
-                .aggregateYearlyConsumption(any(Supply.class), anyInt());
+                .aggregateYearlyProduction(any(Supply.class), anyInt());
 
         // When - should not throw, just log error
-        service.aggregateYearlyConsumptions(2024);
+        service.aggregateYearlyProductions(2024);
 
         // Then - attempted the call
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply), eq(2024));
     }
 
     @Test
@@ -120,10 +120,10 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findAll()).thenReturn(Collections.emptyList());
 
         // When
-        service.aggregateYearlyConsumptions(2024);
+        service.aggregateYearlyProductions(2024);
 
         // Then
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
+        verify(aggregationRepository, never()).aggregateYearlyProduction(any(Supply.class), anyInt());
     }
 
     @Test
@@ -136,13 +136,13 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply1, supply2));
 
         // When
-        service.aggregateYearlyConsumptions(communityId, 2024);
+        service.aggregateYearlyProductions(communityId, 2024);
 
         // Then - one call per supply, using the community-scoped lookup
         verify(getSupplyRepository).findAllByCommunityId(communityId);
         verify(getSupplyRepository, never()).findAll();
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply1), eq(2024));
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply2), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply1), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply2), eq(2024));
     }
 
     @Test
@@ -155,11 +155,11 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
 
         // When
-        service.aggregateYearlyConsumptions(communityId, 2024);
+        service.aggregateYearlyProductions(communityId, 2024);
 
         // Then - only the supply with a distributor code is processed
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supplyWithCode), eq(2024));
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(eq(supplyWithoutCode), anyInt());
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supplyWithCode), eq(2024));
+        verify(aggregationRepository, never()).aggregateYearlyProduction(eq(supplyWithoutCode), anyInt());
     }
 
     @Test
@@ -171,13 +171,13 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
         doThrow(new RuntimeException("InfluxDB connection error"))
                 .when(aggregationRepository)
-                .aggregateYearlyConsumption(any(Supply.class), anyInt());
+                .aggregateYearlyProduction(any(Supply.class), anyInt());
 
         // When - should not throw, just log the error
-        service.aggregateYearlyConsumptions(communityId, 2024);
+        service.aggregateYearlyProductions(communityId, 2024);
 
         // Then - attempted the call
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply), eq(2024));
     }
 
     @Test
@@ -193,10 +193,10 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
         // When
-        service.aggregateYearlyConsumptions(community.getId(), supplyCode, 2024);
+        service.aggregateYearlyProductions(community.getId(), supplyCode, 2024);
 
         // Then
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply), eq(2024));
     }
 
     @Test
@@ -209,8 +209,8 @@ class DatadisYearlyAggregationServiceImplTest {
 
         // When / Then
         assertThrows(SupplyNotFoundException.class,
-                () -> service.aggregateYearlyConsumptions(communityId, supplyCode, 2024));
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
+                () -> service.aggregateYearlyProductions(communityId, supplyCode, 2024));
+        verify(aggregationRepository, never()).aggregateYearlyProduction(any(Supply.class), anyInt());
     }
 
     @Test
@@ -227,8 +227,8 @@ class DatadisYearlyAggregationServiceImplTest {
 
         // When / Then - the requested community differs from the supply's community
         assertThrows(SupplyNotFoundException.class,
-                () -> service.aggregateYearlyConsumptions(UUID.randomUUID(), supplyCode, 2024));
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
+                () -> service.aggregateYearlyProductions(UUID.randomUUID(), supplyCode, 2024));
+        verify(aggregationRepository, never()).aggregateYearlyProduction(any(Supply.class), anyInt());
     }
 
     @Test
@@ -244,8 +244,8 @@ class DatadisYearlyAggregationServiceImplTest {
 
         // When / Then
         assertThrows(SupplyNotFoundException.class,
-                () -> service.aggregateYearlyConsumptions(UUID.randomUUID(), supplyCode, 2024));
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
+                () -> service.aggregateYearlyProductions(UUID.randomUUID(), supplyCode, 2024));
+        verify(aggregationRepository, never()).aggregateYearlyProduction(any(Supply.class), anyInt());
     }
 
     @Test
@@ -261,51 +261,63 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
         // When - the supply belongs to the community but has no distributor code
-        service.aggregateYearlyConsumptions(community.getId(), supplyCode, 2024);
+        service.aggregateYearlyProductions(community.getId(), supplyCode, 2024);
 
         // Then - no aggregation is attempted and no exception is thrown
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
+        verify(aggregationRepository, never()).aggregateYearlyProduction(any(Supply.class), anyInt());
     }
 
     // -----------------------------------------------------------------------
-    // syncYearlyConsumptions: config gating + dispatch (moved out of the controller)
+    // syncYearlyProductions: config gating + dispatch (moved out of the controller)
     // -----------------------------------------------------------------------
 
     @Test
     void testSyncYearlyThrowsWhenDatadisConfigIsMissing() {
+
+        // Given
         UUID communityId = UUID.randomUUID();
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.empty());
 
+        // When / Then
         assertThrows(DatadisDisabledException.class,
-                () -> service.syncYearlyConsumptions(communityId, null, 2024));
+                () -> service.syncYearlyProductions(communityId, null, 2024));
         verifyNoInteractions(getSupplyRepository, aggregationRepository);
     }
 
     @Test
     void testSyncYearlyThrowsWhenDatadisConfigIsDisabled() {
+
+        // Given
         UUID communityId = UUID.randomUUID();
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(false)));
 
+        // When / Then
         assertThrows(DatadisDisabledException.class,
-                () -> service.syncYearlyConsumptions(communityId, null, 2024));
+                () -> service.syncYearlyProductions(communityId, null, 2024));
         verifyNoInteractions(getSupplyRepository, aggregationRepository);
     }
 
     @Test
     void testSyncYearlyWithNoSupplyAggregatesWholeCommunity() {
+
+        // Given
         UUID communityId = UUID.randomUUID();
         Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
 
-        service.syncYearlyConsumptions(communityId, null, 2024);
+        // When
+        service.syncYearlyProductions(communityId, null, 2024);
 
+        // Then - community path, no single-supply lookup
         verify(getSupplyRepository, never()).findByCode(any(SupplyCode.class));
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply), eq(2024));
     }
 
     @Test
     void testSyncYearlyWithSupplyAggregatesThatSupply() {
+
+        // Given
         Community community = CommunityMother.random().build();
         Supply supply = SupplyMother.random()
                 .withCommunity(community)
@@ -314,9 +326,11 @@ class DatadisYearlyAggregationServiceImplTest {
         when(getDatadisConfigRepository.findByCommunityId(community.getId())).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findByCode(SupplyCode.of("CUPS001"))).thenReturn(Optional.of(supply));
 
-        service.syncYearlyConsumptions(community.getId(), "CUPS001", 2024);
+        // When
+        service.syncYearlyProductions(community.getId(), "CUPS001", 2024);
 
+        // Then - single supply path, no community-wide lookup
         verify(getSupplyRepository, never()).findAllByCommunityId(any(UUID.class));
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply), eq(2024));
     }
 }

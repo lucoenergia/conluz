@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
+package org.lucoenergia.conluz.infrastructure.production.datadis.sync;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -24,33 +24,33 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/communities/{communityId}/production/huawei/sync/monthly")
-public class SyncMonthlyHuaweiProductionController {
+@RequestMapping("/api/v1/communities/{communityId}/production/datadis/sync/monthly")
+public class SyncMonthlyDatadisProductionController {
 
-    private final HuaweiProductionMonthlyAggregationService aggregationService;
+    private final DatadisProductionMonthlyAggregationService aggregationService;
 
-    public SyncMonthlyHuaweiProductionController(HuaweiProductionMonthlyAggregationService aggregationService) {
+    public SyncMonthlyDatadisProductionController(DatadisProductionMonthlyAggregationService aggregationService) {
         this.aggregationService = aggregationService;
     }
 
     @PostMapping
     @Operation(
-            summary = "Aggregate hourly Huawei production data into monthly totals",
+            summary = "Aggregate hourly Datadis production data into monthly totals",
             description = """
                     This endpoint enables admins to aggregate hourly production data into monthly totals.
 
                     The request body must contain:
                     - **year** (required, integer): The year for which to aggregate data
                     - **month** (optional, integer 1-12): The month to aggregate. If not provided, all months of the year will be aggregated.
-                    - **plantCode** (optional, string): The plant code to aggregate. If not provided, all plants will be aggregated.
+                    - **supplyCode** (optional, string): The supply code (CUPS) to aggregate. If not provided, all active supplies will be aggregated.
 
                     **Behavior:**
-                    - If both month and plantCode are provided: Aggregates only that specific plant for that month
-                    - If only month is provided: Aggregates all plants for that specific month
-                    - If only plantCode is provided: Aggregates that plant for all months of the year
-                    - If neither month nor plantCode is provided: Aggregates all plants for all months of the year
+                    - If both month and supplyCode are provided: Aggregates only that specific supply for that month
+                    - If only month is provided: Aggregates all supplies for that specific month
+                    - If only supplyCode is provided: Aggregates that supply for all months of the year
+                    - If neither month nor supplyCode is provided: Aggregates all supplies for all months of the year
 
-                    The community is taken from the path and only that community's plants are aggregated.
+                    The community is taken from the path and only that community's supplies are aggregated.
 
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
                     **Required: Community Admin of the community. Returns 404 if the community does not exist or the
@@ -59,7 +59,7 @@ public class SyncMonthlyHuaweiProductionController {
                     A successful request returns an HTTP status code of 200.
                     """,
             tags = ApiTag.PRODUCTION,
-            operationId = "syncMonthlyHuaweiProduction",
+            operationId = "syncMonthlyDatadisProduction",
             security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
@@ -75,8 +75,8 @@ public class SyncMonthlyHuaweiProductionController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
-    public void syncMonthlyHuaweiProduction(@PathVariable UUID communityId,
-                                            @Valid @RequestBody SyncMonthlyHuaweiProductionBody body) {
-        aggregationService.syncMonthlyProductions(communityId, body.getPlantCode(), body.getMonth(), body.getYear());
+    public void syncMonthlyDatadisProduction(@PathVariable UUID communityId,
+                                             @Valid @RequestBody SyncMonthlyDatadisProductionBody body) {
+        aggregationService.syncMonthlyProductions(communityId, body.getSupplyCode(), body.getMonth(), body.getYear());
     }
 }

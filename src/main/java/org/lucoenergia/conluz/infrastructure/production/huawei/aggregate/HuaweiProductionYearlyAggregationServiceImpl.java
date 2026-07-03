@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigReposi
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -69,6 +70,19 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
             throw new PlantNotFoundException(plantCode);
         }
         aggregateForPlantYear(plant, year);
+    }
+
+    @Override
+    public void syncYearlyProductions(UUID communityId, String plantCode, int year) {
+        if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
+            throw new HuaweiDisabledException();
+        }
+
+        if (plantCode != null && !plantCode.isBlank()) {
+            aggregateYearlyProductions(communityId, plantCode, year);
+        } else {
+            aggregateYearlyProductions(communityId, year);
+        }
     }
 
     /**

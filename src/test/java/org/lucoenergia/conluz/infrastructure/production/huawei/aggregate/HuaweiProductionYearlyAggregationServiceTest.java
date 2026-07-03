@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -163,5 +164,45 @@ class HuaweiProductionYearlyAggregationServiceTest {
                 () -> service.aggregateYearlyProductions(communityId, plant.getCode(), 2024));
 
         verify(aggregationRepository, never()).aggregateYearlyProduction(any(Plant.class), anyInt());
+    }
+
+    // -----------------------------------------------------------------------
+    // syncYearlyProductions: config gating + dispatch (moved out of the controller)
+    // -----------------------------------------------------------------------
+
+    @Test
+    void testSyncYearlyThrowsWhenHuaweiDisabled() {
+        when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(Collections.emptyList());
+
+        assertThrows(HuaweiDisabledException.class,
+                () -> service.syncYearlyProductions(UUID.randomUUID(), null, 2024));
+
+        verifyNoInteractions(getEnergyStationRepository, getPlantRepository, aggregationRepository);
+    }
+
+    @Test
+    void testSyncYearlyWithNoPlantAggregatesWholeCommunity() {
+        UUID communityId = UUID.randomUUID();
+        Plant plant = PlantMother.random().build();
+        when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(List.of(configForPlant(UUID.randomUUID())));
+        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
+        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
+
+        service.syncYearlyProductions(communityId, null, 2024);
+
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(plant), eq(2024));
+    }
+
+    @Test
+    void testSyncYearlyWithPlantAggregatesThatPlant() {
+        UUID communityId = UUID.randomUUID();
+        Plant plant = PlantMother.random().build();
+        when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(List.of(configForPlant(UUID.randomUUID())));
+        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
+
+        service.syncYearlyProductions(communityId, plant.getCode(), 2024);
+
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(plant), eq(2024));
     }
 }

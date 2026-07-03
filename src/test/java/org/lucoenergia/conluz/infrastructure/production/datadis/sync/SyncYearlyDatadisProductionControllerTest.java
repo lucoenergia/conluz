@@ -1,10 +1,11 @@
-package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
+package org.lucoenergia.conluz.infrastructure.production.datadis.sync;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
-import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
-import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -20,22 +21,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
+class SyncYearlyDatadisProductionControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/huawei/sync/monthly";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/datadis/sync/yearly";
 
     @MockitoBean
-    private HuaweiProductionMonthlyAggregationService aggregationService;
+    private DatadisProductionYearlyAggregationService aggregationService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Test
-    void testAggregateMonthlyForAllPlantsAllMonths() throws Exception {
+    void testAggregateYearlyForAllSupplies() throws Exception {
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
-        SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024);
+        SyncYearlyDatadisProductionBody body = new SyncYearlyDatadisProductionBody(2024);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -46,15 +47,15 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
 
         // Controller only forwards the request to the service, which owns all the dispatch logic
         verify(aggregationService, times(1))
-                .syncMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), isNull(), isNull(), eq(2024));
+                .syncYearlyProductions(eq(DEFAULT_COMMUNITY_ID), isNull(), eq(2024));
     }
 
     @Test
-    void testAggregateMonthlyForSpecificPlantSpecificMonth() throws Exception {
+    void testAggregateYearlyForSpecificSupply() throws Exception {
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
-        SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024, 6, "PLANT001");
+        SyncYearlyDatadisProductionBody body = new SyncYearlyDatadisProductionBody(2024, "SUPPLY001");
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -64,33 +65,13 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .syncMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq("PLANT001"), eq(6), eq(2024));
-    }
-
-    @Test
-    void testWhenHuaweiDisabled_thenConflict() throws Exception {
-
-        doThrow(new HuaweiDisabledException())
-                .when(aggregationService)
-                .syncMonthlyProductions(any(), any(), any(), anyInt());
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-
-        SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024);
-
-        mockMvc.perform(post(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andDo(print())
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()));
+                .syncYearlyProductions(eq(DEFAULT_COMMUNITY_ID), eq("SUPPLY001"), eq(2024));
     }
 
     @Test
     void testWithoutTokenReturnsUnauthorized() throws Exception {
 
-        SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024);
+        SyncYearlyDatadisProductionBody body = new SyncYearlyDatadisProductionBody(2024);
 
         mockMvc.perform(post(URL)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -107,7 +88,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
-        SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024);
+        SyncYearlyDatadisProductionBody body = new SyncYearlyDatadisProductionBody(2024);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -125,7 +106,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsPartner();
 
-        SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024);
+        SyncYearlyDatadisProductionBody body = new SyncYearlyDatadisProductionBody(2024);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -139,11 +120,30 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testWithInvalidYearTooLow() throws Exception {
+    void testWithDatadisDisabledReturnsConflict() throws Exception {
+
+        doThrow(new DatadisDisabledException())
+                .when(aggregationService)
+                .syncYearlyProductions(any(), any(), anyInt());
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
-        SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(1999);
+        SyncYearlyDatadisProductionBody body = new SyncYearlyDatadisProductionBody(2024);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andDo(print())
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void testWithInvalidYearTooHigh() throws Exception {
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        SyncYearlyDatadisProductionBody body = new SyncYearlyDatadisProductionBody(2101);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -157,11 +157,11 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testWithInvalidMonthTooHigh() throws Exception {
+    void testWithNullYear() throws Exception {
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
-        String jsonBody = "{\"year\": 2024, \"month\": 13}";
+        String jsonBody = "{\"year\": null}";
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -175,15 +175,15 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testWithInvalidPlantCodeReturnsNotFound() throws Exception {
+    void testWithInvalidSupplyCodeReturnsNotFound() throws Exception {
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
-        SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024, 1, "INVALID");
+        SyncYearlyDatadisProductionBody body = new SyncYearlyDatadisProductionBody(2024, "INVALID");
 
-        doThrow(new PlantNotFoundException("INVALID"))
+        doThrow(new SupplyNotFoundException(SupplyCode.of("INVALID")))
                 .when(aggregationService)
-                .syncMonthlyProductions(any(), any(), any(), anyInt());
+                .syncYearlyProductions(any(), any(), anyInt());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

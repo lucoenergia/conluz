@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis.aggregate;
+package org.lucoenergia.conluz.infrastructure.production.datadis.aggregate;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,9 +9,9 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.mockito.InjectMocks;
@@ -27,19 +27,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class DatadisMonthlyAggregationServiceImplTest {
+class DatadisProductionMonthlyAggregationServiceTest {
 
     @Mock
     private GetSupplyRepository getSupplyRepository;
 
     @Mock
-    private DatadisMonthlyAggregationRepository aggregationRepository;
+    private DatadisProductionMonthlyAggregationRepository aggregationRepository;
 
     @Mock
     private GetDatadisConfigRepository getDatadisConfigRepository;
 
     @InjectMocks
-    private DatadisMonthlyAggregationServiceImpl service;
+    private DatadisProductionMonthlyAggregationServiceImpl service;
 
     private static DatadisConfig config(boolean enabled) {
         return new DatadisConfig.Builder()
@@ -59,11 +59,11 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findAll()).thenReturn(List.of(supply1, supply2));
 
         // When
-        service.aggregateMonthlyConsumptions(Month.DECEMBER, 2024);
+        service.aggregateMonthlyProductions(Month.DECEMBER, 2024);
 
         // Then - 2 supplies × 1 month = 2 calls
         verify(aggregationRepository, times(2))
-                .aggregateMonthlyConsumption(any(Supply.class), eq(Month.DECEMBER), eq(2024));
+                .aggregateMonthlyProduction(any(Supply.class), eq(Month.DECEMBER), eq(2024));
     }
 
     @Test
@@ -75,13 +75,13 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
 
         // When
-        service.aggregateMonthlyConsumptions(Month.JANUARY, 2024);
+        service.aggregateMonthlyProductions(Month.JANUARY, 2024);
 
         // Then - only the supply with a distributor code is processed
         verify(aggregationRepository, times(1))
-                .aggregateMonthlyConsumption(eq(supplyWithCode), eq(Month.JANUARY), eq(2024));
+                .aggregateMonthlyProduction(eq(supplyWithCode), eq(Month.JANUARY), eq(2024));
         verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(eq(supplyWithoutCode), any(Month.class), anyInt());
+                .aggregateMonthlyProduction(eq(supplyWithoutCode), any(Month.class), anyInt());
     }
 
     @Test
@@ -92,11 +92,11 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithBlankCode));
 
         // When
-        service.aggregateMonthlyConsumptions(Month.MARCH, 2024);
+        service.aggregateMonthlyProductions(Month.MARCH, 2024);
 
         // Then
         verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
+                .aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
     }
 
     @Test
@@ -107,14 +107,14 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findAll()).thenReturn(List.of(supply));
         doThrow(new RuntimeException("InfluxDB connection error"))
                 .when(aggregationRepository)
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
+                .aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
 
         // When - should not throw, just log error
-        service.aggregateMonthlyConsumptions(Month.JUNE, 2024);
+        service.aggregateMonthlyProductions(Month.JUNE, 2024);
 
         // Then - attempted the call
         verify(aggregationRepository, times(1))
-                .aggregateMonthlyConsumption(eq(supply), eq(Month.JUNE), eq(2024));
+                .aggregateMonthlyProduction(eq(supply), eq(Month.JUNE), eq(2024));
     }
 
     @Test
@@ -127,17 +127,17 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply1, supply2));
 
         // When
-        service.aggregateMonthlyConsumptions(communityId, 2024);
+        service.aggregateMonthlyProductions(communityId, 2024);
 
         // Then - 2 supplies × 12 months
         verify(getSupplyRepository).findAllByCommunityId(communityId);
         verify(getSupplyRepository, never()).findAll();
         for (Month month : Month.values()) {
-            verify(aggregationRepository).aggregateMonthlyConsumption(eq(supply1), eq(month), eq(2024));
-            verify(aggregationRepository).aggregateMonthlyConsumption(eq(supply2), eq(month), eq(2024));
+            verify(aggregationRepository).aggregateMonthlyProduction(eq(supply1), eq(month), eq(2024));
+            verify(aggregationRepository).aggregateMonthlyProduction(eq(supply2), eq(month), eq(2024));
         }
         verify(aggregationRepository, times(24))
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), eq(2024));
+                .aggregateMonthlyProduction(any(Supply.class), any(Month.class), eq(2024));
     }
 
     @Test
@@ -150,13 +150,13 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
 
         // When
-        service.aggregateMonthlyConsumptions(communityId, 2024);
+        service.aggregateMonthlyProductions(communityId, 2024);
 
         // Then - only the supply with a distributor code is processed, across all 12 months
         verify(aggregationRepository, times(12))
-                .aggregateMonthlyConsumption(eq(supplyWithCode), any(Month.class), eq(2024));
+                .aggregateMonthlyProduction(eq(supplyWithCode), any(Month.class), eq(2024));
         verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(eq(supplyWithoutCode), any(Month.class), anyInt());
+                .aggregateMonthlyProduction(eq(supplyWithoutCode), any(Month.class), anyInt());
     }
 
     @Test
@@ -169,13 +169,13 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply1, supply2));
 
         // When
-        service.aggregateMonthlyConsumptions(communityId, Month.APRIL, 2024);
+        service.aggregateMonthlyProductions(communityId, Month.APRIL, 2024);
 
         // Then - one call per supply for the requested month
         verify(getSupplyRepository).findAllByCommunityId(communityId);
         verify(getSupplyRepository, never()).findAll();
-        verify(aggregationRepository, times(1)).aggregateMonthlyConsumption(eq(supply1), eq(Month.APRIL), eq(2024));
-        verify(aggregationRepository, times(1)).aggregateMonthlyConsumption(eq(supply2), eq(Month.APRIL), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(supply1), eq(Month.APRIL), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(supply2), eq(Month.APRIL), eq(2024));
     }
 
     @Test
@@ -188,13 +188,13 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
 
         // When
-        service.aggregateMonthlyConsumptions(communityId, Month.JANUARY, 2024);
+        service.aggregateMonthlyProductions(communityId, Month.JANUARY, 2024);
 
         // Then - only the supply with a distributor code is processed
         verify(aggregationRepository, times(1))
-                .aggregateMonthlyConsumption(eq(supplyWithCode), eq(Month.JANUARY), eq(2024));
+                .aggregateMonthlyProduction(eq(supplyWithCode), eq(Month.JANUARY), eq(2024));
         verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(eq(supplyWithoutCode), any(Month.class), anyInt());
+                .aggregateMonthlyProduction(eq(supplyWithoutCode), any(Month.class), anyInt());
     }
 
     @Test
@@ -210,10 +210,10 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
         // When
-        service.aggregateMonthlyConsumptions(community.getId(), supplyCode, Month.MAY, 2024);
+        service.aggregateMonthlyProductions(community.getId(), supplyCode, Month.MAY, 2024);
 
         // Then
-        verify(aggregationRepository, times(1)).aggregateMonthlyConsumption(eq(supply), eq(Month.MAY), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(supply), eq(Month.MAY), eq(2024));
     }
 
     @Test
@@ -226,9 +226,9 @@ class DatadisMonthlyAggregationServiceImplTest {
 
         // When / Then
         assertThrows(SupplyNotFoundException.class,
-                () -> service.aggregateMonthlyConsumptions(communityId, supplyCode, Month.MAY, 2024));
+                () -> service.aggregateMonthlyProductions(communityId, supplyCode, Month.MAY, 2024));
         verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
+                .aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
     }
 
     @Test
@@ -245,9 +245,9 @@ class DatadisMonthlyAggregationServiceImplTest {
 
         // When / Then - the requested community differs from the supply's community
         assertThrows(SupplyNotFoundException.class,
-                () -> service.aggregateMonthlyConsumptions(UUID.randomUUID(), supplyCode, Month.MAY, 2024));
+                () -> service.aggregateMonthlyProductions(UUID.randomUUID(), supplyCode, Month.MAY, 2024));
         verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
+                .aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
     }
 
     @Test
@@ -263,9 +263,9 @@ class DatadisMonthlyAggregationServiceImplTest {
 
         // When / Then
         assertThrows(SupplyNotFoundException.class,
-                () -> service.aggregateMonthlyConsumptions(UUID.randomUUID(), supplyCode, Month.MAY, 2024));
+                () -> service.aggregateMonthlyProductions(UUID.randomUUID(), supplyCode, Month.MAY, 2024));
         verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
+                .aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
     }
 
     @Test
@@ -281,66 +281,82 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
         // When - the supply belongs to the community but has no distributor code
-        service.aggregateMonthlyConsumptions(community.getId(), supplyCode, Month.MAY, 2024);
+        service.aggregateMonthlyProductions(community.getId(), supplyCode, Month.MAY, 2024);
 
         // Then - no aggregation is attempted and no exception is thrown
         verify(aggregationRepository, never())
-                .aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
+                .aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
     }
 
     // -----------------------------------------------------------------------
-    // syncMonthlyConsumptions: config gating + dispatch (moved out of the controller)
+    // syncMonthlyProductions: config gating + dispatch (moved out of the controller)
     // -----------------------------------------------------------------------
 
     @Test
     void testSyncMonthlyThrowsWhenDatadisConfigIsMissing() {
+
+        // Given
         UUID communityId = UUID.randomUUID();
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.empty());
 
+        // When / Then
         assertThrows(DatadisDisabledException.class,
-                () -> service.syncMonthlyConsumptions(communityId, null, null, 2024));
+                () -> service.syncMonthlyProductions(communityId, null, null, 2024));
         verifyNoInteractions(getSupplyRepository, aggregationRepository);
     }
 
     @Test
     void testSyncMonthlyThrowsWhenDatadisConfigIsDisabled() {
+
+        // Given
         UUID communityId = UUID.randomUUID();
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(false)));
 
+        // When / Then
         assertThrows(DatadisDisabledException.class,
-                () -> service.syncMonthlyConsumptions(communityId, null, null, 2024));
+                () -> service.syncMonthlyProductions(communityId, null, null, 2024));
         verifyNoInteractions(getSupplyRepository, aggregationRepository);
     }
 
     @Test
     void testSyncMonthlyWithNoSupplyNoMonthAggregatesWholeCommunityYear() {
+
+        // Given
         UUID communityId = UUID.randomUUID();
         Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
 
-        service.syncMonthlyConsumptions(communityId, null, null, 2024);
+        // When
+        service.syncMonthlyProductions(communityId, null, null, 2024);
 
+        // Then - community whole-year path: all 12 months, no single-supply lookup
         verify(getSupplyRepository, never()).findByCode(any(SupplyCode.class));
         verify(aggregationRepository, times(12))
-                .aggregateMonthlyConsumption(eq(supply), any(Month.class), eq(2024));
+                .aggregateMonthlyProduction(eq(supply), any(Month.class), eq(2024));
     }
 
     @Test
     void testSyncMonthlyWithNoSupplySpecificMonthAggregatesCommunityForThatMonth() {
+
+        // Given
         UUID communityId = UUID.randomUUID();
         Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
 
-        service.syncMonthlyConsumptions(communityId, null, 4, 2024);
+        // When
+        service.syncMonthlyProductions(communityId, null, 4, 2024);
 
-        verify(aggregationRepository, times(1)).aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
-        verify(aggregationRepository, times(1)).aggregateMonthlyConsumption(eq(supply), eq(Month.APRIL), eq(2024));
+        // Then - only the requested month
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(supply), eq(Month.APRIL), eq(2024));
     }
 
     @Test
     void testSyncMonthlyWithSupplyNoMonthAggregatesThatSupplyAllMonths() {
+
+        // Given
         Community community = CommunityMother.random().build();
         Supply supply = SupplyMother.random()
                 .withCommunity(community)
@@ -349,15 +365,19 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getDatadisConfigRepository.findByCommunityId(community.getId())).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findByCode(SupplyCode.of("CUPS001"))).thenReturn(Optional.of(supply));
 
-        service.syncMonthlyConsumptions(community.getId(), "CUPS001", null, 2024);
+        // When
+        service.syncMonthlyProductions(community.getId(), "CUPS001", null, 2024);
 
+        // Then - single supply across all 12 months, no community-wide lookup
         verify(getSupplyRepository, never()).findAllByCommunityId(any(UUID.class));
         verify(aggregationRepository, times(12))
-                .aggregateMonthlyConsumption(eq(supply), any(Month.class), eq(2024));
+                .aggregateMonthlyProduction(eq(supply), any(Month.class), eq(2024));
     }
 
     @Test
     void testSyncMonthlyWithSupplyAndMonthAggregatesThatSupplyForThatMonth() {
+
+        // Given
         Community community = CommunityMother.random().build();
         Supply supply = SupplyMother.random()
                 .withCommunity(community)
@@ -366,9 +386,11 @@ class DatadisMonthlyAggregationServiceImplTest {
         when(getDatadisConfigRepository.findByCommunityId(community.getId())).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findByCode(SupplyCode.of("CUPS001"))).thenReturn(Optional.of(supply));
 
-        service.syncMonthlyConsumptions(community.getId(), "CUPS001", 6, 2024);
+        // When
+        service.syncMonthlyProductions(community.getId(), "CUPS001", 6, 2024);
 
-        verify(aggregationRepository, times(1)).aggregateMonthlyConsumption(any(Supply.class), any(Month.class), anyInt());
-        verify(aggregationRepository, times(1)).aggregateMonthlyConsumption(eq(supply), eq(Month.JUNE), eq(2024));
+        // Then
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(supply), eq(Month.JUNE), eq(2024));
     }
 }
