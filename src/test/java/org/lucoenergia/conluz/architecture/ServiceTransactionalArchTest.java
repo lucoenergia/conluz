@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearly
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
@@ -63,6 +64,7 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
         addException(DatadisMonthlyAggregationService.class.getSimpleName());
         addException(DatadisYearlyAggregationService.class.getSimpleName());
         addException(DatadisProductionMonthlyAggregationService.class.getSimpleName());
+        addException(DatadisProductionYearlyAggregationService.class.getSimpleName());
         addException(HuaweiProductionMonthlyAggregationService.class.getSimpleName());
         addException(HuaweiProductionYearlyAggregationService.class.getSimpleName());
         addException(CommunityAccessGuard.class.getSimpleName());
