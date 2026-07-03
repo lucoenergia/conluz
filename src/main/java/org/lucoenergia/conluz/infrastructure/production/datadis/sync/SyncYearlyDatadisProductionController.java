@@ -6,11 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
-import org.lucoenergia.conluz.domain.shared.SupplyCode;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -25,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -33,12 +28,9 @@ import java.util.UUID;
 public class SyncYearlyDatadisProductionController {
 
     private final DatadisProductionYearlyAggregationService aggregationService;
-    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
-    public SyncYearlyDatadisProductionController(DatadisProductionYearlyAggregationService aggregationService,
-                                                 GetDatadisConfigRepository getDatadisConfigRepository) {
+    public SyncYearlyDatadisProductionController(DatadisProductionYearlyAggregationService aggregationService) {
         this.aggregationService = aggregationService;
-        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @PostMapping
@@ -85,19 +77,6 @@ public class SyncYearlyDatadisProductionController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncYearlyDatadisProduction(@PathVariable UUID communityId,
                                             @Valid @RequestBody SyncYearlyDatadisProductionBody body) {
-        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
-        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
-            throw new DatadisDisabledException();
-        }
-
-        if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
-            aggregationService.aggregateYearlyProductions(
-                    communityId,
-                    SupplyCode.of(body.getSupplyCode()),
-                    body.getYear()
-            );
-        } else {
-            aggregationService.aggregateYearlyProductions(communityId, body.getYear());
-        }
+        aggregationService.syncYearlyProductions(communityId, body.getSupplyCode(), body.getYear());
     }
 }

@@ -9,8 +9,11 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,8 +35,20 @@ class DatadisProductionYearlyAggregationServiceTest {
     @Mock
     private DatadisProductionYearlyAggregationRepository aggregationRepository;
 
+    @Mock
+    private GetDatadisConfigRepository getDatadisConfigRepository;
+
     @InjectMocks
     private DatadisProductionYearlyAggregationServiceImpl service;
+
+    private static DatadisConfig config(boolean enabled) {
+        return new DatadisConfig.Builder()
+                .setUsername("u")
+                .setPassword("p")
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .setEnabled(enabled)
+                .build();
+    }
 
     @Test
     void testAggregateYearlyForAllSupplies() {
@@ -250,5 +265,72 @@ class DatadisProductionYearlyAggregationServiceTest {
 
         // Then - no aggregation is attempted and no exception is thrown
         verify(aggregationRepository, never()).aggregateYearlyProduction(any(Supply.class), anyInt());
+    }
+
+    // -----------------------------------------------------------------------
+    // syncYearlyProductions: config gating + dispatch (moved out of the controller)
+    // -----------------------------------------------------------------------
+
+    @Test
+    void testSyncYearlyThrowsWhenDatadisConfigIsMissing() {
+
+        // Given
+        UUID communityId = UUID.randomUUID();
+        when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThrows(DatadisDisabledException.class,
+                () -> service.syncYearlyProductions(communityId, null, 2024));
+        verifyNoInteractions(getSupplyRepository, aggregationRepository);
+    }
+
+    @Test
+    void testSyncYearlyThrowsWhenDatadisConfigIsDisabled() {
+
+        // Given
+        UUID communityId = UUID.randomUUID();
+        when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(false)));
+
+        // When / Then
+        assertThrows(DatadisDisabledException.class,
+                () -> service.syncYearlyProductions(communityId, null, 2024));
+        verifyNoInteractions(getSupplyRepository, aggregationRepository);
+    }
+
+    @Test
+    void testSyncYearlyWithNoSupplyAggregatesWholeCommunity() {
+
+        // Given
+        UUID communityId = UUID.randomUUID();
+        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
+        when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(true)));
+        when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
+
+        // When
+        service.syncYearlyProductions(communityId, null, 2024);
+
+        // Then - community path, no single-supply lookup
+        verify(getSupplyRepository, never()).findByCode(any(SupplyCode.class));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply), eq(2024));
+    }
+
+    @Test
+    void testSyncYearlyWithSupplyAggregatesThatSupply() {
+
+        // Given
+        Community community = CommunityMother.random().build();
+        Supply supply = SupplyMother.random()
+                .withCommunity(community)
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build())
+                .build();
+        when(getDatadisConfigRepository.findByCommunityId(community.getId())).thenReturn(Optional.of(config(true)));
+        when(getSupplyRepository.findByCode(SupplyCode.of("CUPS001"))).thenReturn(Optional.of(supply));
+
+        // When
+        service.syncYearlyProductions(community.getId(), "CUPS001", 2024);
+
+        // Then - single supply path, no community-wide lookup
+        verify(getSupplyRepository, never()).findAllByCommunityId(any(UUID.class));
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply), eq(2024));
     }
 }

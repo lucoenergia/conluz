@@ -3,14 +3,18 @@ package org.lucoenergia.conluz.infrastructure.production.datadis.aggregate;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -20,11 +24,28 @@ public class DatadisProductionYearlyAggregationServiceImpl implements DatadisPro
 
     private final GetSupplyRepository getSupplyRepository;
     private final DatadisProductionYearlyAggregationRepository aggregationRepository;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
     public DatadisProductionYearlyAggregationServiceImpl(GetSupplyRepository getSupplyRepository,
-                                                        DatadisProductionYearlyAggregationRepository aggregationRepository) {
+                                                        DatadisProductionYearlyAggregationRepository aggregationRepository,
+                                                        GetDatadisConfigRepository getDatadisConfigRepository) {
         this.getSupplyRepository = getSupplyRepository;
         this.aggregationRepository = aggregationRepository;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
+    }
+
+    @Override
+    public void syncYearlyProductions(UUID communityId, String supplyCode, int year) {
+        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
+        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
+            throw new DatadisDisabledException();
+        }
+
+        if (supplyCode != null && !supplyCode.isBlank()) {
+            aggregateYearlyProductions(communityId, SupplyCode.of(supplyCode), year);
+        } else {
+            aggregateYearlyProductions(communityId, year);
+        }
     }
 
     @Override

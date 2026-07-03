@@ -1,13 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.production.datadis.sync;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -15,13 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.time.Month;
-import java.util.Optional;
-import java.util.UUID;
-
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -35,22 +28,8 @@ class SyncMonthlyDatadisProductionControllerTest extends BaseControllerTest {
     @MockitoBean
     private DatadisProductionMonthlyAggregationService aggregationService;
 
-    @MockitoBean
-    private GetDatadisConfigRepository getDatadisConfigRepository;
-
     @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setupEnabledConfig() {
-        DatadisConfig enabledConfig = new DatadisConfig.Builder()
-                .setUsername("u")
-                .setPassword("p")
-                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
-                .setEnabled(Boolean.TRUE)
-                .build();
-        when(getDatadisConfigRepository.findByCommunityId(DEFAULT_COMMUNITY_ID)).thenReturn(Optional.of(enabledConfig));
-    }
 
     @Test
     void testAggregateMonthlyForAllSuppliesAllMonths() throws Exception {
@@ -66,8 +45,9 @@ class SyncMonthlyDatadisProductionControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
+        // Controller only forwards the request to the service, which owns all the dispatch logic
         verify(aggregationService, times(1))
-                .aggregateMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq(2024));
+                .syncMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), isNull(), isNull(), eq(2024));
     }
 
     @Test
@@ -85,26 +65,7 @@ class SyncMonthlyDatadisProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq(Month.JANUARY), eq(2024));
-    }
-
-    @Test
-    void testAggregateMonthlyForSpecificSupplyAllMonths() throws Exception {
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-
-        SyncMonthlyDatadisProductionBody body = new SyncMonthlyDatadisProductionBody(2024, null, "SUPPLY001");
-
-        mockMvc.perform(post(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andDo(print())
-                .andExpect(status().isOk());
-
-        // Should call for all 12 months
-        verify(aggregationService, times(12))
-                .aggregateMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), any(SupplyCode.class), any(Month.class), eq(2024));
+                .syncMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), isNull(), eq(1), eq(2024));
     }
 
     @Test
@@ -122,7 +83,7 @@ class SyncMonthlyDatadisProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq(SupplyCode.of("SUPPLY001")), eq(Month.JUNE), eq(2024));
+                .syncMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq("SUPPLY001"), eq(6), eq(2024));
     }
 
     @Test
@@ -179,7 +140,9 @@ class SyncMonthlyDatadisProductionControllerTest extends BaseControllerTest {
     @Test
     void testWithDatadisDisabledReturnsConflict() throws Exception {
 
-        when(getDatadisConfigRepository.findByCommunityId(DEFAULT_COMMUNITY_ID)).thenReturn(Optional.empty());
+        doThrow(new DatadisDisabledException())
+                .when(aggregationService)
+                .syncMonthlyProductions(any(), any(), any(), anyInt());
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -191,8 +154,6 @@ class SyncMonthlyDatadisProductionControllerTest extends BaseControllerTest {
                         .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isConflict());
-
-        verifyNoInteractions(aggregationService);
     }
 
     @Test
@@ -209,6 +170,8 @@ class SyncMonthlyDatadisProductionControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+
+        verifyNoInteractions(aggregationService);
     }
 
     @Test
@@ -225,6 +188,8 @@ class SyncMonthlyDatadisProductionControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+
+        verifyNoInteractions(aggregationService);
     }
 
     @Test
@@ -236,7 +201,7 @@ class SyncMonthlyDatadisProductionControllerTest extends BaseControllerTest {
 
         doThrow(new SupplyNotFoundException(SupplyCode.of("INVALID")))
                 .when(aggregationService)
-                .aggregateMonthlyProductions(any(UUID.class), any(SupplyCode.class), any(Month.class), any(Integer.class));
+                .syncMonthlyProductions(any(), any(), any(), anyInt());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

@@ -6,11 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
-import org.lucoenergia.conluz.domain.shared.SupplyCode;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -25,8 +21,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Month;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -34,12 +28,9 @@ import java.util.UUID;
 public class SyncMonthlyDatadisProductionController {
 
     private final DatadisProductionMonthlyAggregationService aggregationService;
-    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
-    public SyncMonthlyDatadisProductionController(DatadisProductionMonthlyAggregationService aggregationService,
-                                                  GetDatadisConfigRepository getDatadisConfigRepository) {
+    public SyncMonthlyDatadisProductionController(DatadisProductionMonthlyAggregationService aggregationService) {
         this.aggregationService = aggregationService;
-        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @PostMapping
@@ -86,39 +77,6 @@ public class SyncMonthlyDatadisProductionController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncMonthlyDatadisProduction(@PathVariable UUID communityId,
                                              @Valid @RequestBody SyncMonthlyDatadisProductionBody body) {
-        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
-        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
-            throw new DatadisDisabledException();
-        }
-
-        if (body.getSupplyCode() != null && !body.getSupplyCode().isBlank()) {
-            if (body.getMonth() != null) {
-                // Specific supply, specific month
-                aggregationService.aggregateMonthlyProductions(
-                        communityId,
-                        SupplyCode.of(body.getSupplyCode()),
-                        body.getMonthEnum(),
-                        body.getYear()
-                );
-            } else {
-                // Specific supply, all months of year
-                for (Month month : Month.values()) {
-                    aggregationService.aggregateMonthlyProductions(
-                            communityId,
-                            SupplyCode.of(body.getSupplyCode()),
-                            month,
-                            body.getYear()
-                    );
-                }
-            }
-        } else {
-            if (body.getMonth() != null) {
-                // All community supplies, specific month
-                aggregationService.aggregateMonthlyProductions(communityId, body.getMonthEnum(), body.getYear());
-            } else {
-                // All community supplies, all months
-                aggregationService.aggregateMonthlyProductions(communityId, body.getYear());
-            }
-        }
+        aggregationService.syncMonthlyProductions(communityId, body.getSupplyCode(), body.getMonth(), body.getYear());
     }
 }

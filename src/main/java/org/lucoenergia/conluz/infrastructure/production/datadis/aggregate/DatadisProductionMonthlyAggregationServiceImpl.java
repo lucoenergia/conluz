@@ -3,15 +3,19 @@ package org.lucoenergia.conluz.infrastructure.production.datadis.aggregate;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Month;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -21,11 +25,38 @@ public class DatadisProductionMonthlyAggregationServiceImpl implements DatadisPr
 
     private final GetSupplyRepository getSupplyRepository;
     private final DatadisProductionMonthlyAggregationRepository aggregationRepository;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
     public DatadisProductionMonthlyAggregationServiceImpl(GetSupplyRepository getSupplyRepository,
-                                                          DatadisProductionMonthlyAggregationRepository aggregationRepository) {
+                                                          DatadisProductionMonthlyAggregationRepository aggregationRepository,
+                                                          GetDatadisConfigRepository getDatadisConfigRepository) {
         this.getSupplyRepository = getSupplyRepository;
         this.aggregationRepository = aggregationRepository;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
+    }
+
+    @Override
+    public void syncMonthlyProductions(UUID communityId, String supplyCode, Integer month, int year) {
+        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
+        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
+            throw new DatadisDisabledException();
+        }
+
+        if (supplyCode != null && !supplyCode.isBlank()) {
+            if (month != null) {
+                aggregateMonthlyProductions(communityId, SupplyCode.of(supplyCode), Month.of(month), year);
+            } else {
+                for (Month everyMonth : Month.values()) {
+                    aggregateMonthlyProductions(communityId, SupplyCode.of(supplyCode), everyMonth, year);
+                }
+            }
+        } else {
+            if (month != null) {
+                aggregateMonthlyProductions(communityId, Month.of(month), year);
+            } else {
+                aggregateMonthlyProductions(communityId, year);
+            }
+        }
     }
 
     @Override

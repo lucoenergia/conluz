@@ -30,4 +30,17 @@ public interface DatadisProductionMonthlyAggregationService {
      * community cannot aggregate another community's supply.
      */
     void aggregateMonthlyProductions(UUID communityId, SupplyCode supplyCode, Month month, int year);
+
+    /**
+     * Entry point for the manual community sync endpoint. Verifies that Datadis is enabled for the
+     * community and then dispatches to the appropriate aggregation depending on whether a specific
+     * supply and/or month were requested. All the sync orchestration (config gating and dispatch)
+     * lives here so the controller does not embed domain logic.
+     *
+     * @param communityId the community whose supplies are aggregated
+     * @param supplyCode  optional CUPS; when null/blank, all the community's supplies are aggregated
+     * @param month       optional month (1-12); when null, every month of the year is aggregated
+     * @param year        the year to aggregate
+     */
+    void syncMonthlyProductions(UUID communityId, String supplyCode, Integer month, int year);
 }
