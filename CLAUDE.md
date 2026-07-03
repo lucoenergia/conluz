@@ -203,3 +203,16 @@ How this is enforced (centralized in the guard — no controller boilerplate):
 - Object-scoped `@communityAccessGuard` methods perform a **visibility gate then an authorization check**: they **throw the matching `*NotFoundException`** (`CommunityNotFoundException`, `SupplyNotFoundException`, `PlantNotFoundException`, `UserNotFoundException`, `SharingAgreementNotFoundException`) when the caller cannot see the object, and otherwise **return** whether the action is allowed (`false` → 403). They return `false` (never throw) only when the caller is unauthenticated, so anonymous requests become 401.
 - Controllers reference the guard directly in `@PreAuthorize` (e.g. `@PreAuthorize("@communityAccessGuard.canReadSupply(#id)")`); they add **no** not-found/forbidden boilerplate. A `*NotFoundException` thrown during `@PreAuthorize` evaluation is mapped to 404 by the global `@RestControllerAdvice` handlers; a `false` result is mapped to 403 by `ConluzAccessDeniedHandler` (or 401 for anonymous callers).
 - This is why an object-scoped denial must NEVER be left to fall through to a 403 when the caller cannot see the object — the guard decides 404 vs 403. Throwing a domain `*NotFoundException` from the guard does not violate the "only `ConluzAccessDeniedHandler` references `AccessDeniedException`" rule (it is a different exception type).
+
+### State conflicts (409)
+
+`409 Conflict` is **not** an authorization outcome — it signals that a request which is authenticated, authorized and well-formed cannot be applied because it **conflicts with the current state of the resource** (a precondition/invariant violation, not a missing permission or a malformed body). Use it — never 400, 403 or 422 — whenever the operation is legal for this caller but the target's state forbids it right now.
+
+Established uses in this codebase:
+- **Integration disabled** — hitting a manual sync / config-dependent endpoint while the integration is turned off: `DatadisDisabledException`, `ShellyDisabledException`, `HuaweiDisabledException` (e.g. auto-sync is enabled, so the Huawei manual sync endpoints respond `409`).
+- **Invariant would be broken** — an action that would violate a domain invariant, e.g. revoking the last platform admin (`LastPlatformAdminException`).
+
+Enforcement rules for developers and AI agents:
+- Model each conflict as a dedicated domain exception thrown by the **service** (not the controller), and map it to `HttpStatus.CONFLICT` in the module's `@RestControllerAdvice` `*ExceptionHandler` via `errorBuilder.build(message, HttpStatus.CONFLICT)`, with an i18n message key. Do not build the `ResponseEntity` in the controller.
+- Document the `409` response on the endpoint's `@Operation`/`@ApiResponse` so Swagger matches the behavior.
+- Add a controller test asserting **409** for the conflicting-state case (alongside the 401/403/404 tests required above).
