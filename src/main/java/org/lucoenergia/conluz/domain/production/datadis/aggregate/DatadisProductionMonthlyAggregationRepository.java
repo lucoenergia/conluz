@@ -6,14 +6,13 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import java.time.Month;
 
 /**
- * Repository for aggregating hourly Datadis production data into monthly totals
- * using InfluxDB aggregation queries.
+ * Repository for aggregating hourly Datadis production data into monthly totals.
  */
 public interface DatadisProductionMonthlyAggregationRepository {
 
     /**
      * Aggregates hourly production data into a monthly total for a specific supply,
-     * month, and year using InfluxQL SUM queries.
+     * month, and year.
      *
      * @param supply the supply to aggregate
      * @param month the month to aggregate

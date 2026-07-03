@@ -7,7 +7,6 @@ import java.util.UUID;
 
 /**
  * Service for aggregating Datadis hourly production data into monthly totals.
- * Uses InfluxQL queries to aggregate data directly in the database.
  */
 public interface DatadisProductionMonthlyAggregationService {
 

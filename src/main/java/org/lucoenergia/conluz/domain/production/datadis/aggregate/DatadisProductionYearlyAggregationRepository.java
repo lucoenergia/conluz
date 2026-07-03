@@ -4,8 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 
 /**
- * Repository for aggregating monthly Datadis production data into yearly totals
- * using InfluxDB aggregation queries.
+ * Repository for aggregating monthly Datadis production data into yearly totals.
  */
 public interface DatadisProductionYearlyAggregationRepository {
 

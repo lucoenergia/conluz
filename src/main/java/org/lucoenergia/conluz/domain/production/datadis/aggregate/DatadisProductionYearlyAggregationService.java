@@ -6,7 +6,6 @@ import java.util.UUID;
 
 /**
  * Service for aggregating Datadis monthly production data into yearly totals.
- * Uses InfluxQL queries to aggregate data directly in the database.
  */
 public interface DatadisProductionYearlyAggregationService {
 
