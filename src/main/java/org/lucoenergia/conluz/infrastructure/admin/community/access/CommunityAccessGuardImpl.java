@@ -61,6 +61,18 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean isMemberOfCommunity(UUID communityId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        if (!helper.canSeeCommunity(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
+        }
+        return helper.hasMembershipInCommunity(user, communityId);
+    }
+
+    @Override
     public boolean canManageCommunity(UUID communityId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {

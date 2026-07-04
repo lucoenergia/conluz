@@ -77,6 +77,66 @@ class CommunityAccessGuardImplTest {
         assertThrows(CommunityNotFoundException.class, () -> guard().canReadCommunity(UUID.randomUUID()));
     }
 
+    // --- isMemberOfCommunity ---
+
+    @Test
+    void isMemberOfCommunity_returnsFalse_whenNoAuthenticatedUser() {
+        // No authenticated caller -> false, which the guard chain maps to a 401.
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().isMemberOfCommunity(UUID.randomUUID()));
+    }
+
+    @Test
+    void isMemberOfCommunity_returnsTrue_whenUserIsEnabledMember() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertTrue(guard().isMemberOfCommunity(community.getId()));
+    }
+
+    @Test
+    void isMemberOfCommunity_returnsTrue_whenUserIsEnabledAdminMember() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertTrue(guard().isMemberOfCommunity(community.getId()));
+    }
+
+    @Test
+    void isMemberOfCommunity_returnsFalse_whenUserIsPlatformAdminButNotMember() {
+        // A platform admin can see every community (so no 404) but is not a member -> false (403).
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        admin.setMemberships(List.of());
+        when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+
+        assertFalse(guard().isMemberOfCommunity(UUID.randomUUID()));
+    }
+
+    @Test
+    void isMemberOfCommunity_throwsNotFound_whenUserIsNotMember() {
+        // A non-member cannot see the community -> 404 to avoid leaking its existence.
+        User user = UserMother.randomUser();
+        user.setPlatformAdmin(false);
+        user.setMemberships(List.of());
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertThrows(CommunityNotFoundException.class, () -> guard().isMemberOfCommunity(UUID.randomUUID()));
+    }
+
+    @Test
+    void isMemberOfCommunity_throwsNotFound_whenMembershipIsDisabled() {
+        // A disabled membership does not let the user see the community -> 404.
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, false);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertThrows(CommunityNotFoundException.class, () -> guard().isMemberOfCommunity(community.getId()));
+    }
+
     // --- canManageCommunity ---
 
     @Test
