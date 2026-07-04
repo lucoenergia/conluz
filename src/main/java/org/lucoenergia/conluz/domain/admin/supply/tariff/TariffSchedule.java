@@ -4,6 +4,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Immutable aggregate describing the tariff applicable to a supply point across
+ * a period of time, expressed as an ordered list of {@link TariffSegment}s.
+ *
+ * <p>Each segment covers a sub-range with its own plan and VAT, so a schedule
+ * captures how a supply's pricing evolves over time (e.g. a tariff change
+ * mid-period). It is the result returned by {@link SupplyTariffResolver}.
+ */
 public class TariffSchedule {
 
     private final List<TariffSegment> segments;

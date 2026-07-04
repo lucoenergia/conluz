@@ -3,6 +3,15 @@ package org.lucoenergia.conluz.domain.admin.supply.tariff;
 import java.math.BigDecimal;
 import java.util.Objects;
 
+/**
+ * Immutable value object binding a {@link TariffPlan} to a specific
+ * {@link DateRange}, together with the VAT rate that applies and the
+ * {@link TariffSource} indicating whether the data is real or estimated.
+ *
+ * <p>It is the building block of a {@link TariffSchedule}: a schedule is a
+ * sequence of these segments, each answering "which plan, at which VAT, from
+ * which source, over which dates".
+ */
 public class TariffSegment {
 
     private final DateRange range;
