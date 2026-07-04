@@ -1,17 +1,17 @@
 package org.lucoenergia.conluz.architecture;
 
-import com.tngtech.archunit.core.domain.JavaClasses;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
-import org.lucoenergia.conluz.domain.consumption.datadis.sync.DatadisConsumptionSyncService;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
@@ -57,22 +57,22 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
     static {
         // Add classes that are exempt from the @Transactional requirement
         // For example, services that don't modify data or have custom transaction handling
-        addException(DatadisConsumptionSyncService.class.getSimpleName());
+        addException(DatadisSyncService.class.getSimpleName());
         addException(SyncDailyPricesService.class.getSimpleName());
         addException(SyncHuaweiProductionService.class.getSimpleName());
         addException(ShellyConsumptionsHourlyAggregatorService.class.getSimpleName());
         addException(DatadisMonthlyAggregationService.class.getSimpleName());
         addException(DatadisYearlyAggregationService.class.getSimpleName());
+        addException(DatadisProductionMonthlyAggregationService.class.getSimpleName());
+        addException(DatadisProductionYearlyAggregationService.class.getSimpleName());
         addException(HuaweiProductionMonthlyAggregationService.class.getSimpleName());
         addException(HuaweiProductionYearlyAggregationService.class.getSimpleName());
+        addException(CommunityAccessGuard.class.getSimpleName());
         // Add more exceptions as needed
     }
 
     @Test
     void servicesAreTransactional() {
-        JavaClasses importedClasses = new ClassFileImporter()
-                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-                .importPackages(BASE_PACKAGE);
 
         ArchRule rule;
 
@@ -87,7 +87,7 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
                     .should(beAnnotatedWithTransactional());
         }
 
-        rule.check(importedClasses);
+        rule.check(IMPORTED_CLASSES);
     }
 
     private ArchCondition<com.tngtech.archunit.core.domain.JavaClass> beAnnotatedWithTransactional() {

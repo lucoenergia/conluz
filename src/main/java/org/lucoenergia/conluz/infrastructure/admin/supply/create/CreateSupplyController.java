@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,16 +47,20 @@ public class CreateSupplyController {
                     
                     To utilize this endpoint, a client sends a request containing essential details such as the supply's address, partition coefficient, and any relevant parameters.
                     
+                    The supply's community is provided in the body via the required `communityId` field.
+
                     Proper authentication, through authentication tokens, is required to access this endpoint.
-                    **Required Role: ADMIN**
-                    
+                    **Required: Community Admin of the community. Returns 400 if `communityId` is missing, 404 if the
+                    community does not exist or the caller is not a member of it, or 403 if the caller is a member but
+                    not one of its admins.**
+
                     Upon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.
                     
                     In case of failure, the server returns an appropriate error status code along with a descriptive error message, aiding the client in diagnosing and addressing the issue. This endpoint plays a pivotal role in dynamically expanding the system's repertoire of energy supplies.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "createSupply",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -68,6 +73,7 @@ public class CreateSupplyController {
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
+    @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
     public SupplyResponse createSupply(@Valid @RequestBody CreateSupplyBody body) {
         Supply newSupply = service.create(body.mapToSupply(), UserPersonalId.of(body.getPersonalId()), body.getCommunityId());

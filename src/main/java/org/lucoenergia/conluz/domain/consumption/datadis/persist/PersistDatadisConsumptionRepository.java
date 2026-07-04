@@ -8,8 +8,4 @@ import java.util.List;
 public interface PersistDatadisConsumptionRepository {
 
     void persistHourlyConsumptions(@NotNull List<DatadisConsumption> consumptions);
-
-    void persistMonthlyConsumptions(@NotNull List<DatadisConsumption> consumptions);
-
-    void persistYearlyConsumptions(@NotNull List<DatadisConsumption> consumptions);
 }

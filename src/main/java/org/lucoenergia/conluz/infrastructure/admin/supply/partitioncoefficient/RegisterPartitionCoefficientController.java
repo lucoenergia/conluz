@@ -47,11 +47,11 @@ public class RegisterPartitionCoefficientController {
                     The response includes a communityCoefficientSumWarning field if the total sum of active
                     coefficients across all supplies at effectiveAt deviates from 100 by more than 0.0001.
                     This warning is informational only — the change is always persisted.
-                    **Required Role: ADMIN**
+                    **Required: Community Admin**
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "registerPartitionCoefficient",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Coefficient registered successfully.", useReturnTypeSchema = true)

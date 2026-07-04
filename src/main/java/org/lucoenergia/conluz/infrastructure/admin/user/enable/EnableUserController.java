@@ -36,7 +36,7 @@ public class EnableUserController {
                     This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path.
                     
                     Proper authentication, through an authentication token, is required for secure access.
-                    **Required Role: ADMIN**
+                    **Required: Platform Admin or Community Admin. You cannot enable your own account.**
                     
                     Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled.
                     
@@ -44,8 +44,8 @@ public class EnableUserController {
                     
                     In situations where the enabling process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.""",
             tags = ApiTag.USERS,
-            operationId = "disableUser",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            operationId = "enableUser",
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -57,7 +57,7 @@ public class EnableUserController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
+    @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
     public void enableUser(@PathVariable("id") UUID userId) {
         service.enable(UserId.of(userId));
     }

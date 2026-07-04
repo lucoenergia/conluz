@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -9,7 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import java.util.UUID;
 
 @Schema(requiredProperties = {
-        "code", "personalId", "address"
+        "code", "personalId", "address", "communityId"
 })
 public class CreateSupplyBody {
 
@@ -24,6 +25,7 @@ public class CreateSupplyBody {
     @PositiveOrZero
     private Float partitionCoefficient;
     private String name;
+    @NotNull
     private UUID communityId;
 
     public String getCode() {

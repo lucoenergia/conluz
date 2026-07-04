@@ -83,7 +83,7 @@ public class CreateSuppliesPartitionsWithFileController {
                     coefficient for each supply.
                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required: Community Admin**
                     
                     Upon successful file processing, the server responds with an HTTP status code of 200, along with
                     comprehensive details about the result of the bulk operation, including what supplies partitions
@@ -95,7 +95,7 @@ public class CreateSuppliesPartitionsWithFileController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "importSuppliesPartitionsWithFile",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

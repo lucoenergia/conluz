@@ -22,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -42,7 +43,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     @Test
     void testUpdateSupplyModifyingAll() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         // Creates two users
         User userOne = UserMother.randomUser();
@@ -78,7 +79,6 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.distributor.name").value(supply.getDistributor().getName()))
                 .andExpect(jsonPath("$.distributor.code").value(supply.getDistributor().getCode()))
                 .andExpect(jsonPath("$.distributor.pointType").value(supply.getDistributor().getPointType()))
-                .andExpect(jsonPath("$.datadis.thirdParty").value(supply.getDatadis().isThirdParty()))
                 .andExpect(jsonPath("$.shelly.macAddress").value(supply.getShelly().getMacAddress()))
                 .andExpect(jsonPath("$.shelly.id").value(supply.getShelly().getId()))
                 .andExpect(jsonPath("$.shelly.mqttPrefix").value(supply.getShelly().getMqttPrefix()))
@@ -88,7 +88,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownSupply() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String supplyId = UUID.randomUUID().toString();
 
@@ -127,7 +127,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                         }
                 """;
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String supplyId = UUID.randomUUID().toString();
 
@@ -147,7 +147,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String supplyId = UUID.randomUUID().toString();
 
@@ -199,7 +199,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String supplyId = UUID.randomUUID().toString();
 
@@ -253,7 +253,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     @Test
     void
     testWithoutBody() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String supplyId = UUID.randomUUID().toString();
 
@@ -271,7 +271,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     @Test
     void
     testWithoutIdInPath() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(put(PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

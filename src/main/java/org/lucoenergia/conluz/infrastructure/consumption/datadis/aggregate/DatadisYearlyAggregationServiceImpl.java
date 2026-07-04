@@ -5,13 +5,17 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggregationService {
@@ -20,11 +24,28 @@ public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggrega
 
     private final GetSupplyRepository getSupplyRepository;
     private final DatadisYearlyAggregationRepository aggregationRepository;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
     public DatadisYearlyAggregationServiceImpl(GetSupplyRepository getSupplyRepository,
-                                               DatadisYearlyAggregationRepository aggregationRepository) {
+                                               DatadisYearlyAggregationRepository aggregationRepository,
+                                               GetDatadisConfigRepository getDatadisConfigRepository) {
         this.getSupplyRepository = getSupplyRepository;
         this.aggregationRepository = aggregationRepository;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
+    }
+
+    @Override
+    public void syncYearlyConsumptions(UUID communityId, String supplyCode, int year) {
+        Optional<DatadisConfig> config = getDatadisConfigRepository.findByCommunityId(communityId);
+        if (config.isEmpty() || !Boolean.TRUE.equals(config.get().getEnabled())) {
+            throw new DatadisDisabledException();
+        }
+
+        if (supplyCode != null && !supplyCode.isBlank()) {
+            aggregateYearlyConsumptions(communityId, SupplyCode.of(supplyCode), year);
+        } else {
+            aggregateYearlyConsumptions(communityId, year);
+        }
     }
 
     @Override
@@ -42,19 +63,31 @@ public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggrega
     }
 
     @Override
-    public void aggregateYearlyConsumptions(SupplyCode supplyCode, int year) {
-        Optional<Supply> supplyOptional = getSupplyRepository.findByCode(supplyCode);
-        if (supplyOptional.isEmpty()) {
+    public void aggregateYearlyConsumptions(UUID communityId, int year) {
+        for (Supply supply : getSupplyRepository.findAllByCommunityId(communityId)) {
+            if (hasNoDistributorCode(supply)) {
+                continue;
+            }
+            aggregateForSupplyYear(supply, year);
+        }
+    }
+
+    @Override
+    public void aggregateYearlyConsumptions(UUID communityId, SupplyCode supplyCode, int year) {
+        Supply supply = getSupplyRepository.findByCode(supplyCode)
+                .orElseThrow(() -> new SupplyNotFoundException(supplyCode));
+        if (supply.getCommunity() == null || !communityId.equals(supply.getCommunity().getId())) {
             throw new SupplyNotFoundException(supplyCode);
         }
-
-        Supply supply = supplyOptional.get();
-        if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isBlank()) {
-            LOGGER.warn("Skipping supply with ID: {} because it does not have distributor code", supply.getId());
+        if (hasNoDistributorCode(supply)) {
             return;
         }
-
         aggregateForSupplyYear(supply, year);
+    }
+
+    private boolean hasNoDistributorCode(Supply supply) {
+        return supply.getDistributor() == null || supply.getDistributor().getCode() == null
+                || supply.getDistributor().getCode().isBlank();
     }
 
     private void aggregateForSupplyYear(Supply supply, int year) {

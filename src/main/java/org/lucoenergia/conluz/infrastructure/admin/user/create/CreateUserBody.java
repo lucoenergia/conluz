@@ -6,13 +6,12 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
 import java.util.UUID;
 
 @Schema(requiredProperties = {
-        "personalId", "number", "fullName", "email", "password", "role"
+        "personalId", "number", "fullName", "email", "password"
 })
 public class CreateUserBody {
 
@@ -30,8 +29,6 @@ public class CreateUserBody {
     private String phoneNumber;
     @NotBlank
     private String password;
-    @NotNull
-    private Role role;
 
     private UUID communityId;
 
@@ -93,14 +90,6 @@ public class CreateUserBody {
         this.password = password;
     }
 
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
     public UUID getCommunityId() {
         return communityId;
     }
@@ -126,7 +115,6 @@ public class CreateUserBody {
         user.setAddress(this.getAddress());
         user.setEmail(this.getEmail());
         user.setPhoneNumber(this.getPhoneNumber());
-        user.setRole(this.getRole());
         return user;
     }
 
@@ -139,7 +127,6 @@ public class CreateUserBody {
                 ", address='" + address + '\'' +
                 ", email='" + email + '\'' +
                 ", phoneNumber='" + phoneNumber + '\'' +
-                ", role=" + role +
                 ", communityId=" + communityId +
                 ", communityRole=" + communityRole +
                 '}';

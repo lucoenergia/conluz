@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConfigRepository;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigRepository;
+import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +15,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Disabled("These tests should not be included in a CI pipeline because connects with datadis.es, so, needs real data.")
+@Disabled("These tests should not be included in a CI pipeline because connects with datadis, so, needs real data.")
 @Transactional
 class GetSupplyRepositoryDatadisRestIntegrationTest extends BaseIntegrationTest {
 

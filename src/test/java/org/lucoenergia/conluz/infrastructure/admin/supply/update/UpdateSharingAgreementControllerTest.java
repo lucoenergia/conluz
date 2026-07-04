@@ -33,7 +33,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testUpdateSharingAgreement() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID);
 
         // Create a sharing agreement
         SharingAgreementEntity entity = new SharingAgreementEntity();
@@ -67,7 +67,9 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testUpdateNonExistentSharingAgreement() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        // A non-existent agreement cannot be seen by the caller, so the guard returns 404 before the
+        // controller runs, avoiding resource-existence leakage.
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         UUID nonExistentId = UUID.randomUUID();
 
@@ -83,9 +85,9 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andDo(print())
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
@@ -93,7 +95,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     @ParameterizedTest
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         UUID id = UUID.randomUUID();
 
@@ -126,7 +128,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     @ParameterizedTest
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         UUID id = UUID.randomUUID();
 
@@ -167,7 +169,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testWithInvalidId() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         String body = """
                 {
@@ -190,7 +192,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutBody() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         UUID id = UUID.randomUUID();
 
@@ -207,7 +209,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutIdInPath() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         String body = """
                 {
@@ -269,7 +271,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

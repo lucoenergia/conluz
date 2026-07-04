@@ -1,10 +1,20 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +22,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -25,6 +37,38 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
     @Autowired
     private CreateUserRepository createUserRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private CommunityJpaRepository communityJpaRepository;
+    @Autowired
+    private CommunityMembershipJpaRepository communityMembershipJpaRepository;
+
+    @Test
+    void testMembershipsArePopulatedForMembers() throws Exception {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+
+        User member = UserMother.randomUser();
+        createUserRepository.create(member);
+        createMembership(member, community, CommunityRole.COMMUNITY_MEMBER);
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        // Default sort is by number ASC: the default admin (number 0) is items[0],
+        // the newly created member is items[1].
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[1].id").value(member.getId().toString()))
+                .andExpect(jsonPath("$.items[1].memberships['" + community.getId() + "']")
+                        .value(CommunityRole.COMMUNITY_MEMBER.name()))
+                .andExpect(jsonPath("$.items[0].memberships").isMap())
+                .andExpect(jsonPath("$.items[0].memberships.length()").value(0));
+    }
 
     @Test
     void testWithDefaultPagination() throws Exception {
@@ -33,7 +77,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -51,7 +95,6 @@ class GetAllUsersControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[1].address").value(userOne.getAddress()))
                 .andExpect(jsonPath("$.items[1].email").value(userOne.getEmail()))
                 .andExpect(jsonPath("$.items[1].phoneNumber").value(userOne.getPhoneNumber()))
-                .andExpect(jsonPath("$.items[1].role").value(userOne.getRole().name()))
                 .andExpect(jsonPath("$.items[1].enabled").value(userOne.isEnabled()))
                 .andExpect(jsonPath("$.items[1].password").doesNotExist());
     }
@@ -67,7 +110,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         User userThree = UserMother.randomUser();
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -85,7 +128,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownParameter() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -103,7 +146,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -119,7 +162,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownField() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -135,7 +178,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownDirection() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -162,7 +205,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         userThree.setFullName("Rob Halford");
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -199,7 +242,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         userThree.setFullName("Rob Halford");
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -233,7 +276,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         userThree.setFullName("Rob Halford");
         createUserRepository.create(userThree);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -304,5 +347,21 @@ class GetAllUsersControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
+
+    private void createMembership(User user, Community community, CommunityRole role) {
+        UserEntity userEntity = userRepository.findByPersonalId(user.getPersonalId())
+                .orElseThrow(() -> new IllegalStateException("User not found: " + user.getPersonalId()));
+        CommunityEntity communityEntity = communityJpaRepository.findById(community.getId())
+                .orElseThrow(() -> new IllegalStateException("Community not found: " + community.getId()));
+
+        CommunityMembershipEntity membership = new CommunityMembershipEntity.Builder()
+                .withId(UUID.randomUUID())
+                .withUser(userEntity)
+                .withCommunity(communityEntity)
+                .withRole(role)
+                .withEnabled(true)
+                .build();
+        communityMembershipJpaRepository.save(membership);
     }
 }

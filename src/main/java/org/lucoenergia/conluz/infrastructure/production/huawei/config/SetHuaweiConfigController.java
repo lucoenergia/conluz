@@ -47,7 +47,7 @@ public class SetHuaweiConfigController {
                     - **username** (required, string): API user.
                     - **password** (required, string): API password / system code.
                     - **baseUrl** (required, string): Base URL of the Huawei FusionSolar API
-                      (for example `https://eu5.fusionsolar.huawei.com/thirdData`). Mock services
+                      (for example `https://localhost:8000/thirdData`). Mock services
                       that emulate the SmartPVMS V6 Northbound Interface can be targeted by
                       providing their base URL here.
                     - **enabled** (required, boolean): Master switch for every Huawei-related
@@ -59,7 +59,7 @@ public class SetHuaweiConfigController {
                     from the Huawei API.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required: Community Admin**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with details
                     about the configuration already set.
@@ -69,7 +69,7 @@ public class SetHuaweiConfigController {
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "configureHuawei",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

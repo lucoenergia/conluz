@@ -3,8 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.user.udpate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -35,7 +33,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testUpdateUser() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         // Creates a user
         User user = new User();
@@ -48,7 +46,6 @@ class UpdateUserControllerTest extends BaseControllerTest {
         user.setPhoneNumber("+34666555444");
         user.setPassword(UserMother.randomPassword());
         user.setEnabled(true);
-        user.setRole(Role.ADMIN);
         createUserRepository.create(user);
 
         // Modify data of the user
@@ -59,7 +56,6 @@ class UpdateUserControllerTest extends BaseControllerTest {
         userModified.setAddress("Fake Street 666");
         userModified.setEmail("alicesmith@email.com");
         userModified.setPhoneNumber("+34666555111");
-        userModified.setRole(Role.PARTNER);
 
         String bodyAsString = objectMapper.writeValueAsString(userModified);
 
@@ -76,14 +72,13 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.address").value(userModified.getAddress()))
                 .andExpect(jsonPath("$.email").value(userModified.getEmail()))
                 .andExpect(jsonPath("$.phoneNumber").value(userModified.getPhoneNumber()))
-                .andExpect(jsonPath("$.role").value(userModified.getRole().name()))
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
 
     @Test
     void testWithMissingNotRequiredFields() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         // Creates a user
         User user = new User();
@@ -96,7 +91,6 @@ class UpdateUserControllerTest extends BaseControllerTest {
         user.setPhoneNumber("+34666555444");
         user.setPassword(UserMother.randomPassword());
         user.setEnabled(true);
-        user.setRole(Role.ADMIN);
         createUserRepository.create(user);
 
         // Modify data of the user
@@ -104,7 +98,6 @@ class UpdateUserControllerTest extends BaseControllerTest {
         userModified.setNumber(2);
         userModified.setPersonalId("12345666A");
         userModified.setFullName("Alice Smith");
-        userModified.setRole(Role.PARTNER);
 
         String bodyAsString = objectMapper.writeValueAsString(userModified);
 
@@ -121,14 +114,13 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.address").isEmpty())
                 .andExpect(jsonPath("$.email").value(userModified.getEmail()))
                 .andExpect(jsonPath("$.phoneNumber").isEmpty())
-                .andExpect(jsonPath("$.role").value(userModified.getRole().name()))
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
 
     @Test
     void testWithUnknownUser() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -136,8 +128,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
                         {
                           "fullName": "John Doe",
                           "number": 1,
-                          "email": "johndoe@email.com",
-                          "role": "PARTNER"
+                          "email": "johndoe@email.com"
                         }
                 """;
 
@@ -159,12 +150,11 @@ class UpdateUserControllerTest extends BaseControllerTest {
         final String body = """
                         {
                           "unknown": 1,
-                          "email": "johndoe@email.com",
-                          "role": "PARTNER"
+                          "email": "johndoe@email.com"
                         }
                 """;
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -184,7 +174,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithMissingRequiredFields")
     void testMissingRequiredFields(String body) throws Exception {
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -205,22 +195,19 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 """
                                 {
                                   "number": 1,
-                                  "email": "johndoe@email.com",
-                                  "role": "PARTNER"
+                                  "email": "johndoe@email.com"
                                 }
                         """,
                 """
                                 {
                                   "fullName": "John Doe",
-                                  "email": "johndoe@email.com",
-                                  "role": "PARTNER"
+                                  "email": "johndoe@email.com"
                                 }
                         """,
                 """
                                 {
                                   "fullName": "John Doe",
-                                  "number": 1,
-                                  "role": "PARTNER"
+                                  "number": 1
                                 }
                         """,
                 """
@@ -236,7 +223,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @MethodSource("getBodyWithInvalidFormatValues")
     void testWithInvalidFormatValues(String body) throws Exception {
 
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -257,24 +244,14 @@ class UpdateUserControllerTest extends BaseControllerTest {
                             {
                                 "number": "invalid value",
                                 "fullName": "John Doe",
-                                "email": "johndoe@email.com",
-                                "role": "PARTNER"
+                                "email": "johndoe@email.com"
                             }
                         """,
                 """
                             {
                                 "number": 1,
                                 "fullName": "John Doe",
-                                "email": "invalid value",
-                                "role": "PARTNER"
-                            }
-                        """,
-                """
-                            {
-                                "number": 1,
-                                "fullName": "John Doe",
-                                "email": "johndoe@email.com",
-                                "role": "invalid value"
+                                "email": "invalid value"
                             }
                         """);
     }
@@ -282,7 +259,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void
     testWithoutBody() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 
@@ -300,7 +277,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void
     testWithoutIdInPath() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(put(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

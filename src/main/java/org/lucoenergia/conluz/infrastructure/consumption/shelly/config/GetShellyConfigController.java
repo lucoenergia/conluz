@@ -43,14 +43,14 @@ public class GetShellyConfigController {
                     This endpoint returns the Shelly integration configuration for a specific community.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN or COMMUNITY_ADMIN**
+                    **Required: Community Admin**
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with
                     the current configuration. If no configuration has been set yet, a 404 is returned.
                     """,
             tags = ApiTag.CONSUMPTION,
             operationId = "getShellyConfig",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

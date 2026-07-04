@@ -1,13 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
-import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -15,11 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.time.Month;
-import java.util.Optional;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -28,32 +23,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
 
-    private static final String URL = "/api/v1/consumption/datadis/sync/monthly";
+    private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/consumption/datadis/sync/monthly";
 
     @MockitoBean
     private DatadisMonthlyAggregationService aggregationService;
 
-    @MockitoBean
-    private GetDatadisConfigRepository getDatadisConfigRepository;
-
     @Autowired
     private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setupEnabledConfig() {
-        DatadisConfig enabledConfig = new DatadisConfig.Builder()
-                .setUsername("u")
-                .setPassword("p")
-                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
-                .setEnabled(Boolean.TRUE)
-                .build();
-        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(enabledConfig));
-    }
 
     @Test
     void testAggregateMonthlyForAllSuppliesAllMonths() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024);
 
@@ -64,14 +45,15 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
+        // Controller only forwards the request to the service, which owns all the dispatch logic
         verify(aggregationService, times(1))
-                .aggregateMonthlyConsumptions(eq(2024));
+                .syncMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), isNull(), isNull(), eq(2024));
     }
 
     @Test
     void testAggregateMonthlyForAllSuppliesSpecificMonth() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, 1);
 
@@ -83,32 +65,13 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyConsumptions(eq(Month.JANUARY), eq(2024));
-    }
-
-    @Test
-    void testAggregateMonthlyForSpecificSupplyAllMonths() throws Exception {
-
-        String authHeader = loginAsDefaultAdmin();
-
-        SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, null, "SUPPLY001");
-
-        mockMvc.perform(post(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andDo(print())
-                .andExpect(status().isOk());
-
-        // Should call for all 12 months
-        verify(aggregationService, times(12))
-                .aggregateMonthlyConsumptions(any(SupplyCode.class), any(Month.class), eq(2024));
+                .syncMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), isNull(), eq(1), eq(2024));
     }
 
     @Test
     void testAggregateMonthlyForSpecificSupplySpecificMonth() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, 6, "SUPPLY001");
 
@@ -120,11 +83,11 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         verify(aggregationService, times(1))
-                .aggregateMonthlyConsumptions(eq(SupplyCode.of("SUPPLY001")), eq(Month.JUNE), eq(2024));
+                .syncMonthlyConsumptions(eq(DEFAULT_COMMUNITY_ID), eq("SUPPLY001"), eq(6), eq(2024));
     }
 
     @Test
-    void testWithoutToken() throws Exception {
+    void testWithoutTokenReturnsUnauthorized() throws Exception {
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024);
 
@@ -134,12 +97,14 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()));
+
+        verifyNoInteractions(aggregationService);
     }
 
     @Test
-    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+    void testMemberWhoIsNotAdminGetsForbidden() throws Exception {
 
-        String authHeader = loginAsPartner();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024);
 
@@ -150,12 +115,51 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+
+        verifyNoInteractions(aggregationService);
+    }
+
+    @Test
+    void testUserWhoCannotSeeCommunityGetsNotFound() throws Exception {
+
+        String authHeader = loginAsPartner();
+
+        SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+
+        verifyNoInteractions(aggregationService);
+    }
+
+    @Test
+    void testWithDatadisDisabledReturnsConflict() throws Exception {
+
+        doThrow(new DatadisDisabledException())
+                .when(aggregationService)
+                .syncMonthlyConsumptions(any(), any(), any(), anyInt());
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andDo(print())
+                .andExpect(status().isConflict());
     }
 
     @Test
     void testWithInvalidYearTooLow() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(1999);
 
@@ -166,60 +170,14 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
-    }
 
-    @Test
-    void testWithInvalidYearTooHigh() throws Exception {
-
-        String authHeader = loginAsDefaultAdmin();
-
-        SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2101);
-
-        mockMvc.perform(post(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
-    }
-
-    @Test
-    void testWithNullYear() throws Exception {
-
-        String authHeader = loginAsDefaultAdmin();
-
-        String jsonBody = "{\"year\": null}";
-
-        mockMvc.perform(post(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonBody))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
-    }
-
-    @Test
-    void testWithInvalidMonthTooLow() throws Exception {
-
-        String authHeader = loginAsDefaultAdmin();
-
-        String jsonBody = "{\"year\": 2024, \"month\": 0}";
-
-        mockMvc.perform(post(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonBody))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+        verifyNoInteractions(aggregationService);
     }
 
     @Test
     void testWithInvalidMonthTooHigh() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         String jsonBody = "{\"year\": 2024, \"month\": 13}";
 
@@ -230,18 +188,20 @@ class SyncMonthlyDatadisConsumptionsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+
+        verifyNoInteractions(aggregationService);
     }
 
     @Test
-    void testWithInvalidSupplyCode() throws Exception {
+    void testWithInvalidSupplyCodeReturnsNotFound() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         SyncMonthlyDatadisConsumptionsBody body = new SyncMonthlyDatadisConsumptionsBody(2024, 1, "INVALID");
 
         doThrow(new SupplyNotFoundException(SupplyCode.of("INVALID")))
                 .when(aggregationService)
-                .aggregateMonthlyConsumptions(any(SupplyCode.class), any(Month.class), any(Integer.class));
+                .syncMonthlyConsumptions(any(), any(), any(), anyInt());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

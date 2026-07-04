@@ -20,7 +20,6 @@ class UserTest {
     @Test
     void partnerRoleEmitsNoAuthority() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
@@ -31,7 +30,6 @@ class UserTest {
     @Test
     void adminRoleEmitsNoAuthority() {
         User user = UserMother.randomUser();
-        user.setRole(Role.ADMIN);
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
 
@@ -42,7 +40,6 @@ class UserTest {
     @Test
     void platformAdminFlagGrantsPlatformAdminAuthority() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         user.setPlatformAdmin(true);
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
@@ -54,7 +51,6 @@ class UserTest {
     @Test
     void platformAdminFalseEmitsNoAuthority() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         user.setPlatformAdmin(false);
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
@@ -69,7 +65,6 @@ class UserTest {
     @Test
     void activeCommunityAdminMembershipDoesNotGrantCommunityAdminAuthority() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         user.setMemberships(List.of(membershipWith(user, CommunityRole.COMMUNITY_ADMIN, true)));
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
@@ -81,7 +76,6 @@ class UserTest {
     @Test
     void disabledCommunityAdminMembershipDoesNotGrantCommunityAdminAuthority() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         user.setMemberships(List.of(membershipWith(user, CommunityRole.COMMUNITY_ADMIN, false)));
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
@@ -93,7 +87,6 @@ class UserTest {
     @Test
     void communityMemberMembershipDoesNotGrantCommunityAdminAuthority() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         user.setMemberships(List.of(membershipWith(user, CommunityRole.COMMUNITY_MEMBER, true)));
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
@@ -105,7 +98,6 @@ class UserTest {
     @Test
     void nullMembershipsDoNotGrantCommunityAdminAuthority() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         user.setMemberships(null);
 
         Collection<? extends GrantedAuthority> authorities = user.getAuthorities();
@@ -117,7 +109,6 @@ class UserTest {
     @Test
     void onlyPlatformAdminFlagProducesAnAuthority() {
         User user = UserMother.randomUser();
-        user.setRole(Role.PARTNER);
         user.setPlatformAdmin(true);
         user.setMemberships(List.of(membershipWith(user, CommunityRole.COMMUNITY_ADMIN, true)));
 

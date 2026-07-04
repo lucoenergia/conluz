@@ -1,12 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.sync;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-
-import java.time.Month;
 
 @Schema(requiredProperties = {"year"})
 public class SyncMonthlyDatadisConsumptionsBody {
@@ -21,7 +18,6 @@ public class SyncMonthlyDatadisConsumptionsBody {
     private Integer month;
 
     private String supplyCode;
-    private java.util.UUID communityId;
 
     public SyncMonthlyDatadisConsumptionsBody() {
     }
@@ -53,11 +49,6 @@ public class SyncMonthlyDatadisConsumptionsBody {
         return month;
     }
 
-    @JsonIgnore
-    public Month getMonthEnum() {
-        return month != null ? Month.of(month) : null;
-    }
-
     public void setMonth(Integer month) {
         this.month = month;
     }
@@ -68,13 +59,5 @@ public class SyncMonthlyDatadisConsumptionsBody {
 
     public void setSupplyCode(String supplyCode) {
         this.supplyCode = supplyCode;
-    }
-
-    public java.util.UUID getCommunityId() {
-        return communityId;
-    }
-
-    public void setCommunityId(java.util.UUID communityId) {
-        this.communityId = communityId;
     }
 }

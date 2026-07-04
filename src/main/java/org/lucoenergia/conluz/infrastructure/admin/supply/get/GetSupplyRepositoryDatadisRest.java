@@ -8,11 +8,11 @@ import okhttp3.Response;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisParams;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisParams;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +57,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(60));
 
-        LOGGER.info("Getting all supplies from datadis.es of user {}", user.getId());
+        LOGGER.info("Getting all supplies from datadis of user {}", user.getId());
 
         final String baseUrl = getDatadisConfigRepository.getDatadisConfig()
                 .map(DatadisConfig::getBaseUrl)
@@ -65,7 +65,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
 
         // Create the complete URL with the query parameter
         UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(baseUrl + API_PATH + GET_SUPPLIES_PATH);
-        if (datadisAuthorizer.isAuthorizedNif(UserPersonalId.of(user.getPersonalId()))) {
+        if (datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of(user.getPersonalId()))) {
             urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, user.getPersonalId());
         }
         String url = urlBuilder.build().toUriString();
@@ -96,7 +96,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
                 return result;
             }
         } catch (IOException e) {
-            LOGGER.error(String.format("Unable to get supplies from datadis.es for user %s", user.getId()), e);
+            LOGGER.error(String.format("Unable to get supplies from datadis for user %s", user.getId()), e);
             return result;
         }
 

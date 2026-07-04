@@ -45,8 +45,8 @@ public class GetSupplyMonthlyConsumptionController {
                     This endpoint retrieves monthly consumption data from Datadis for a specific supply within a given date range.
 
                     **Authorization Rules:**
-                    - Users with role ADMIN can retrieve consumption data for any supply
-                    - Users with role PARTNER can only retrieve consumption data for their own supplies
+                    - Community Admins can retrieve consumption data for any supply they administer
+                    - Supply owners can only retrieve consumption data for their own supplies
 
                     The consumption data includes:
                     - Total consumption in kWh
@@ -72,7 +72,7 @@ public class GetSupplyMonthlyConsumptionController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@communityAccessGuard.canReadSupply(#id)")
     public List<DatadisConsumption> getSupplyMonthlyConsumption(
             @PathVariable("id") UUID id,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,

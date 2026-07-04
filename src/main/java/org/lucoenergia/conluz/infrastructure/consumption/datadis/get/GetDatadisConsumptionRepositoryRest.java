@@ -9,14 +9,15 @@ import okhttp3.Response;
 import org.apache.commons.lang3.NotImplementedException;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.MeasurementType;
-import org.lucoenergia.conluz.domain.consumption.datadis.config.DatadisConfig;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.datadis.MeasurementType;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisAuthorizer;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisDateTimeConverter;
-import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisParams;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDateTimeConverter;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisParams;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +99,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
                 .queryParam(DatadisParams.END_DATE, monthDate)
                 .queryParam(DatadisParams.MEASUREMENT_TYPE, MeasurementType.PER_HOUR)
                 .queryParam(DatadisParams.POINT_TYPE, supply.getDistributor().getPointType());
-        if (Boolean.TRUE.equals(supply.getDatadis().isThirdParty())) {
+        if (datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of(supply.getUser().getPersonalId()))) {
             urlBuilder = urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId());
         }
         final String url = urlBuilder.build().toUriString();
@@ -125,7 +126,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
                         supply.getId(), month, year, response.code(), response.body() != null ? response.body().string() : response.message());
             }
         } catch (IOException e) {
-            LOGGER.error("Unable to get consumptions from datadis.es", e);
+            LOGGER.error("Unable to get consumptions from datadis", e);
         }
 
         LOGGER.info("Supply processed.");

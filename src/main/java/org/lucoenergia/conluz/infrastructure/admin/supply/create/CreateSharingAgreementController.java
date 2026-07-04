@@ -43,7 +43,7 @@ public class CreateSharingAgreementController {
                     start and end dates.
                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required Role: ADMIN**
+                    **Required: Community Admin**
                     
                     Upon successful creation, the server responds with an HTTP status code of 200, providing comprehensive
                     details about the newly created sharing agreement.
@@ -55,7 +55,7 @@ public class CreateSharingAgreementController {
             description = "This endpoint creates a new sharing agreement with the specified start and end dates.",
             tags = ApiTag.SUPPLIES,
             operationId = "createSharingAgreement",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -68,6 +68,7 @@ public class CreateSharingAgreementController {
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
+    @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
     public SharingAgreementResponse createSharingAgreement(@Valid @RequestBody CreateSharingAgreementBody body) {
         SharingAgreement sharingAgreement = service.create(body.getStartDate(), body.getEndDate(), body.getCommunityId());

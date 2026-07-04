@@ -12,6 +12,9 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
+import java.util.UUID;
+
 @Transactional(readOnly = true)
 @Service
 public class GetPlantServiceImpl implements GetPlantService {
@@ -22,16 +25,26 @@ public class GetPlantServiceImpl implements GetPlantService {
         this.repository = repository;
     }
 
-    @Override
-    public PagedResult<Plant> findAll(PagedRequest pagedRequest) {
+    PagedResult<Plant> findAll(PagedRequest pagedRequest) {
+        applyDefaultSort(pagedRequest);
+        return repository.findAll(pagedRequest);
+    }
 
-        // If not sorting is provided, sort by descendant order by default
+    @Override
+    public PagedResult<Plant> findAllByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds) {
+        if (communityIds == null) {
+            return findAll(pagedRequest);
+        }
+        applyDefaultSort(pagedRequest);
+        return repository.findByCommunities(pagedRequest, communityIds);
+    }
+
+    private void applyDefaultSort(PagedRequest pagedRequest) {
+        // If no sorting is provided, sort by code ascending by default
         if (!pagedRequest.isSorted()) {
             final Order defaultOrder = new Order(Direction.ASC, "code");
             pagedRequest.addOrder(defaultOrder);
         }
-
-        return repository.findAll(pagedRequest);
     }
 
     @Override

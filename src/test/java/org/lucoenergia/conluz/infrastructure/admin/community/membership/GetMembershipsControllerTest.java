@@ -50,7 +50,7 @@ class GetMembershipsControllerTest extends BaseControllerTest {
         createMembership(admin, community, CommunityRole.COMMUNITY_ADMIN);
         createMembership(member, community, CommunityRole.COMMUNITY_MEMBER);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get("/api/v1/communities/{id}/memberships", community.getId())
                         .header("Authorization", authHeader)
@@ -75,7 +75,7 @@ class GetMembershipsControllerTest extends BaseControllerTest {
 
         createMembership(member, community, CommunityRole.COMMUNITY_MEMBER);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(get("/api/v1/communities/{id}/memberships", community.getId())
                         .header("Authorization", authHeader)

@@ -33,7 +33,7 @@ class GetShellyConfigControllerTest extends BaseControllerTest {
                 .setEnabled(Boolean.TRUE)
                 .build());
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                         get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
@@ -47,7 +47,7 @@ class GetShellyConfigControllerTest extends BaseControllerTest {
 
     @Test
     void testGetConfigWhenNotExists() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                         get(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
@@ -78,9 +78,9 @@ class GetShellyConfigControllerTest extends BaseControllerTest {
                                 .header(HttpHeaders.AUTHORIZATION, authHeader)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()))
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }

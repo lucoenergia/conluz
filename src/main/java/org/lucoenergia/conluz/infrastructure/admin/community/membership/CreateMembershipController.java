@@ -46,7 +46,7 @@ public class CreateMembershipController {
                     """,
             tags = ApiTag.MEMBERSHIPS,
             operationId = "createMembership",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"COMMUNITY_ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

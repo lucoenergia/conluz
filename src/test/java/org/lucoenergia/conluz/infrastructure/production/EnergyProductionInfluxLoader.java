@@ -21,6 +21,11 @@ public class EnergyProductionInfluxLoader implements InfluxLoader {
     private static final String MEASUREMENT = HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT;
     private static final String FIELD_INVERTER_POWER = ProductionPoint.INVERTER_POWER;
     /**
+     * Station code tagged on every seeded production point. Tests that want community-scoped
+     * production must register a plant with this code in the target community.
+     */
+    public static final String STATION_CODE = "PLANT001";
+    /**
      * Time interval is time >= '2023-09-01T00:00:00.000+02:00' and time <= '2023-09-01T23:00:00.000+02:00'
      */
     private static final List PRODUCTION_BY_HOUR = Arrays.asList(
@@ -66,6 +71,7 @@ public class EnergyProductionInfluxLoader implements InfluxLoader {
 
             PRODUCTION_BY_HOUR.stream().forEach(point -> batchPoints.point(Point.measurement(MEASUREMENT)
                     .time(((Long) ((List) point).get(0)), TimeUnit.NANOSECONDS)
+                    .tag("station_code", STATION_CODE)
                     .addField(FIELD_INVERTER_POWER, ((Double) ((List) point).get(1)))
                     .build()
             ));
@@ -73,14 +79,14 @@ public class EnergyProductionInfluxLoader implements InfluxLoader {
             // Seed monthly pre-aggregated measurement: 2023-09-01T00:00:00Z
             batchPoints.point(Point.measurement(HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT)
                     .time(1693526400000000000L, TimeUnit.NANOSECONDS)
-                    .tag("station_code", "PLANT001")
+                    .tag("station_code", STATION_CODE)
                     .addField(FIELD_INVERTER_POWER, 236.15d)
                     .build());
 
             // Seed yearly pre-aggregated measurement: 2023-01-01T00:00:00Z
             batchPoints.point(Point.measurement(HuaweiConfig.HUAWEI_YEARLY_PRODUCTION_MEASUREMENT)
                     .time(1672531200000000000L, TimeUnit.NANOSECONDS)
-                    .tag("station_code", "PLANT001")
+                    .tag("station_code", STATION_CODE)
                     .addField(FIELD_INVERTER_POWER, 1000.0d)
                     .build());
 

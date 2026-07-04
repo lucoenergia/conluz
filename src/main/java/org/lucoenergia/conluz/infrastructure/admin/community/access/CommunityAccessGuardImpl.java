@@ -1,234 +1,154 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
-import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.access.*;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreement;
-import org.lucoenergia.conluz.domain.admin.supply.SharingAgreementId;
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.Role;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
-import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
-import org.lucoenergia.conluz.domain.shared.PlantId;
-import org.lucoenergia.conluz.domain.shared.SupplyCode;
-import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service("communityAccessGuard")
-@Transactional(readOnly = true)
 public class CommunityAccessGuardImpl implements CommunityAccessGuard {
 
-    private final AuthService authService;
-    private final GetMembershipsRepository getMembershipsRepository;
-    private final GetSupplyRepository getSupplyRepository;
-    private final GetPlantRepository getPlantRepository;
-    private final GetSharingAgreementRepository getSharingAgreementRepository;
+    private final CommunityAccessGuardHelper helper;
+    private final SupplyAccessGuard supplyAccessGuard;
+    private final MembershipAccessGuard membershipAccessGuard;
+    private final UserAccessGuard userAccessGuard;
+    private final PlantAccessGuard plantAccessGuard;
+    private final SharingAgreementAccessGuard sharingAgreementAccessGuard;
 
     public CommunityAccessGuardImpl(AuthService authService,
+                                    GetCommunityRepository getCommunityRepository,
                                     GetMembershipsRepository getMembershipsRepository,
                                     GetSupplyRepository getSupplyRepository,
                                     GetPlantRepository getPlantRepository,
                                     GetSharingAgreementRepository getSharingAgreementRepository) {
-        this.authService = authService;
-        this.getMembershipsRepository = getMembershipsRepository;
-        this.getSupplyRepository = getSupplyRepository;
-        this.getPlantRepository = getPlantRepository;
-        this.getSharingAgreementRepository = getSharingAgreementRepository;
+        this.helper = new CommunityAccessGuardHelper(authService, getCommunityRepository);
+        this.supplyAccessGuard = new SupplyAccessGuardImpl(helper, getSupplyRepository);
+        this.membershipAccessGuard = new MembershipAccessGuardImpl(helper);
+        this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository);
+        this.plantAccessGuard = new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository);
+        this.sharingAgreementAccessGuard = new SharingAgreementAccessGuardImpl(helper, getSharingAgreementRepository);
     }
 
     @Override
-    public boolean canReadSupply(Supply supply) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.getRole() == Role.ADMIN) return true;
-        if (isOwner(supply, user)) return true;
-        return hasMembershipInCommunity(user, supply.getCommunity() != null ? supply.getCommunity().getId() : null);
+    public boolean canReadSupply(UUID supplyId) {
+        return supplyAccessGuard.canReadSupply(supplyId);
     }
 
     @Override
     public boolean canEditSupply(UUID supplyId) {
-        User user = authService.getCurrentUser().orElse(null);
-        Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
-        if (user == null) return false;
-        if (supply == null) return throwNotFoundIfAuthorized(supplyId);
-        if (user.getRole() == Role.ADMIN) return true;
-        if (isOwner(supply, user)) return true;
-        return hasCommunityAdminRoleIn(user, supply.getCommunity() != null ? supply.getCommunity().getId() : null);
+        return supplyAccessGuard.canEditSupply(supplyId);
     }
 
     @Override
     public boolean canReadCommunity(UUID communityId) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.getRole() == Role.ADMIN) return true;
-        return hasMembershipInCommunity(user, communityId);
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        if (!helper.canSeeCommunity(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean isMemberOfCommunity(UUID communityId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        if (!helper.canSeeCommunity(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
+        }
+        return helper.hasMembershipInCommunity(user, communityId);
     }
 
     @Override
     public boolean canManageCommunity(UUID communityId) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.getRole() == Role.ADMIN) return true;
-        return hasCommunityAdminRoleIn(user, communityId);
-    }
-
-    @Override
-    public boolean canManagePlatform() {
-        return authService.getCurrentUser()
-                .map(User::isPlatformAdmin)
-                .orElse(false);
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        if (!helper.canSeeCommunity(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
+        }
+        return helper.hasCommunityAdminRoleIn(user, communityId);
     }
 
     @Override
     public boolean canManageMemberships(UUID communityId) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.getRole() == Role.ADMIN) return true;
-        return hasCommunityAdminRoleIn(user, communityId);
+        return membershipAccessGuard.canManageMemberships(communityId);
     }
 
     @Override
     public boolean canReadUser(UUID userId) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.isPlatformAdmin()) return true;
-        if (user.getId().equals(userId)) return true;
-        return isCommunityAdminOfAnyCommunityOfTargetUser(user, userId);
+        return userAccessGuard.canReadUser(userId);
     }
 
     @Override
     public boolean canEditUser(UUID userId) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.isPlatformAdmin()) return true;
-        return isCommunityAdminOfAnyCommunityOfTargetUser(user, userId);
-    }
-
-    @Override
-    public Set<UUID> visibleCommunityIds() {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return Set.of();
-        if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) {
-            return null;
-        }
-        if (user.getMemberships() == null) return Set.of();
-        return user.getMemberships().stream()
-                .filter(m -> Boolean.TRUE.equals(m.isEnabled()))
-                .map(m -> m.getCommunity().getId())
-                .collect(Collectors.toSet());
+        return userAccessGuard.canEditUser(userId);
     }
 
     @Override
     public boolean canCreateUserIn(UUID communityId) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.isPlatformAdmin()) return true;
-        if (user.getRole() == Role.ADMIN) return true;
-        if (communityId == null) return false;
-        return hasCommunityAdminRoleIn(user, communityId);
+        return userAccessGuard.canCreateUserIn(communityId);
     }
 
     @Override
     public boolean canListUsers() {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        if (user.getMemberships() == null) return false;
-        return user.getMemberships().stream()
-                .anyMatch(m -> m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()));
+        return userAccessGuard.canListUsers();
     }
 
     @Override
     public boolean canManagePlant(UUID plantId) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        Optional<Plant> plant = getPlantRepository.findById(PlantId.of(plantId));
-        if (plant.isEmpty()) return false;
-        UUID communityId = plant.get().getSupply() != null && plant.get().getSupply().getCommunity() != null
-                ? plant.get().getSupply().getCommunity().getId() : null;
-        return hasCommunityAdminRoleIn(user, communityId);
+        return plantAccessGuard.canManagePlant(plantId);
     }
 
     @Override
-    public boolean canManagePlantCreate(String supplyCode) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        if (supplyCode == null) return false;
-        Optional<Supply> supply = getSupplyRepository.findByCode(SupplyCode.of(supplyCode));
-        if (supply.isEmpty()) return false;
-        UUID communityId = supply.get().getCommunity() != null ? supply.get().getCommunity().getId() : null;
-        return hasCommunityAdminRoleIn(user, communityId);
+    public boolean canReadPlant(UUID plantId) {
+        return plantAccessGuard.canReadPlant(plantId);
+    }
+
+    @Override
+    public boolean canCreatePlant(String supplyCode) {
+        return plantAccessGuard.canCreatePlant(supplyCode);
+    }
+
+    @Override
+    public boolean canListPlants(UUID communityId) {
+        return plantAccessGuard.canListPlants(communityId);
     }
 
     @Override
     public boolean canManageSharingAgreement(UUID agreementId) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user == null) return false;
-        if (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin())) return true;
-        Optional<SharingAgreement> agreement = getSharingAgreementRepository.findById(SharingAgreementId.of(agreementId));
-        if (agreement.isEmpty()) return false;
-        UUID communityId = agreement.get().getCommunityId();
-        return hasCommunityAdminRoleIn(user, communityId);
+        return sharingAgreementAccessGuard.canManageSharingAgreement(agreementId);
     }
 
-    private boolean isCommunityAdminOfAnyCommunityOfTargetUser(User caller, UUID targetUserId) {
-        Set<UUID> targetCommunityIds = getMembershipsRepository.findByUserId(targetUserId).stream()
-                .filter(m -> Boolean.TRUE.equals(m.isEnabled()))
-                .map(m -> m.getCommunity() != null ? m.getCommunity().getId() : null)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (targetCommunityIds.isEmpty()) return false;
-        if (caller.getMemberships() == null) return false;
-        return caller.getMemberships().stream()
-                .anyMatch(m -> targetCommunityIds.contains(m.getCommunity().getId())
-                        && m.getRole() == CommunityRole.COMMUNITY_ADMIN
-                        && Boolean.TRUE.equals(m.isEnabled()));
+    @Override
+    public Set<UUID> visibleCommunityIds() {
+        User user = helper.getCurrentUser().orElse(null);
+        return helper.visibleCommunityIds(user);
     }
 
-    private boolean isOwner(Supply supply, User user) {
-        return supply.getUser() != null && supply.getUser().getId() != null
-                && supply.getUser().getId().equals(user.getId());
+    @Override
+    public Set<UUID> adminCommunityIds() {
+        User user = helper.getCurrentUser().orElse(null);
+        return helper.adminCommunityIds(user);
     }
 
-    private boolean hasMembershipInCommunity(User user, UUID communityId) {
-        if (communityId == null || user.getMemberships() == null) return false;
-        return user.getMemberships().stream()
-                .anyMatch(m -> communityId.equals(m.getCommunity().getId())
-                        && Boolean.TRUE.equals(m.isEnabled()));
-    }
-
-    private boolean hasCommunityAdminRoleIn(User user, UUID communityId) {
-        if (communityId == null || user.getMemberships() == null) return false;
-        return user.getMemberships().stream()
-                .anyMatch(m -> communityId.equals(m.getCommunity().getId())
-                        && m.getRole() == CommunityRole.COMMUNITY_ADMIN
-                        && Boolean.TRUE.equals(m.isEnabled()));
-    }
-
-    /**
-     * Called when a supply lookup by UUID returns empty. Admins (who would otherwise have access)
-     * receive a honest 404; everyone else receives false so Spring Security issues 403, avoiding
-     * resource-existence leakage to unauthorized callers.
-     */
-    private boolean throwNotFoundIfAuthorized(UUID supplyId) {
-        User user = authService.getCurrentUser().orElse(null);
-        if (user != null && (user.getRole() == Role.ADMIN || Boolean.TRUE.equals(user.isPlatformAdmin()))) {
-            throw new SupplyNotFoundException(SupplyId.of(supplyId));
-        }
-        return false;
+    @Override
+    public boolean isCurrentUser(UUID userId) {
+        User user = helper.getCurrentUser().orElse(null);
+        return helper.isCurrentUser(user, userId);
     }
 }

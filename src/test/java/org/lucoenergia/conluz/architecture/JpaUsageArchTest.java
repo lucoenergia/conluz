@@ -1,8 +1,5 @@
 package org.lucoenergia.conluz.architecture;
 
-import com.tngtech.archunit.core.domain.JavaClasses;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.ImportOption;
 import jakarta.persistence.Entity;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -35,10 +32,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  * {@link #SERVICE_EXCEPTIONS}. All such entries should eventually be refactored.</p>
  */
 public class JpaUsageArchTest extends BaseArchTest {
-
-    private static final JavaClasses IMPORTED_CLASSES = new ClassFileImporter()
-            .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-            .importPackages(BASE_PACKAGE);
 
     private static final Set<String> SERVICE_EXCEPTIONS = Set.of();
 

@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import jakarta.persistence.*;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
@@ -34,9 +33,6 @@ public class SupplyEntity {
 
     @OneToOne(mappedBy = "supply", cascade = CascadeType.ALL, orphanRemoval = true)
     private SupplyShellyEntity shelly;
-
-    @OneToOne(mappedBy = "supply", cascade = CascadeType.ALL, orphanRemoval = true)
-    private SupplyDatadisEntity datadis;
 
     @OneToOne(mappedBy = "supply", cascade = CascadeType.ALL, orphanRemoval = true)
     private SupplyDistributorEntity distributor;
@@ -75,7 +71,6 @@ public class SupplyEntity {
         private Float partitionCoefficient;
         private Boolean enabled;
         private SupplyShellyEntity shelly;
-        private SupplyDatadisEntity datadis;
         private SupplyDistributorEntity distributor;
         private SupplyContractEntity contract;
 
@@ -129,11 +124,6 @@ public class SupplyEntity {
             return this;
         }
 
-        public Builder withDatadis(SupplyDatadisEntity datadis) {
-            this.datadis = datadis;
-            return this;
-        }
-
         public Builder withDistributor(SupplyDistributorEntity distributor) {
             this.distributor = distributor;
             return this;
@@ -158,10 +148,6 @@ public class SupplyEntity {
             if (shelly != null) {
                 entity.shelly = shelly;
                 shelly.setSupply(entity);
-            }
-            if (datadis != null) {
-                entity.datadis = datadis;
-                datadis.setSupply(entity);
             }
             if (distributor != null) {
                 entity.distributor = distributor;
@@ -267,17 +253,6 @@ public class SupplyEntity {
         this.shelly = shelly;
         if (shelly != null) {
             shelly.setSupply(this);
-        }
-    }
-
-    public SupplyDatadisEntity getDatadis() {
-        return datadis;
-    }
-
-    public void setDatadis(SupplyDatadisEntity datadis) {
-        this.datadis = datadis;
-        if (datadis != null) {
-            datadis.setSupply(this);
         }
     }
 

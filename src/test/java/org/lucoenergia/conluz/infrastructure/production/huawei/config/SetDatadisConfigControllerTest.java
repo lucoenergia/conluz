@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -54,7 +55,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
                 HuaweiConfig.DEFAULT_BASE_URL, Boolean.TRUE);
         String bodyAsString = objectMapper.writeValueAsString(body);
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(
                         put(String.format(URL_TEMPLATE, plant.getId()))
@@ -71,7 +72,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutBody() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(put(String.format(URL_TEMPLATE, UUID.randomUUID()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

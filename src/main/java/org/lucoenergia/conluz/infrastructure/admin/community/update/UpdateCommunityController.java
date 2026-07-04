@@ -47,7 +47,7 @@ public class UpdateCommunityController {
                     """,
             tags = ApiTag.COMMUNITIES,
             operationId = "updateCommunity",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"PLATFORM_ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

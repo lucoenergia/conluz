@@ -7,12 +7,15 @@ import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductio
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProductionYearlyAggregationService {
@@ -22,13 +25,16 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
     private final GetEnergyStationRepository getEnergyStationRepository;
     private final HuaweiProductionYearlyAggregationRepository aggregationRepository;
     private final GetHuaweiConfigRepository getHuaweiConfigRepository;
+    private final GetPlantRepository getPlantRepository;
 
     public HuaweiProductionYearlyAggregationServiceImpl(GetEnergyStationRepository getEnergyStationRepository,
                                                         HuaweiProductionYearlyAggregationRepository aggregationRepository,
-                                                        GetHuaweiConfigRepository getHuaweiConfigRepository) {
+                                                        GetHuaweiConfigRepository getHuaweiConfigRepository,
+                                                        GetPlantRepository getPlantRepository) {
         this.getEnergyStationRepository = getEnergyStationRepository;
         this.aggregationRepository = aggregationRepository;
         this.getHuaweiConfigRepository = getHuaweiConfigRepository;
+        this.getPlantRepository = getPlantRepository;
     }
 
     @Override
@@ -50,13 +56,43 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
     }
 
     @Override
-    public void aggregateYearlyProductions(String plantCode, int year) {
-        Optional<Plant> plantOptional = getEnergyStationRepository.findByCode(plantCode);
-        if (plantOptional.isEmpty()) {
+    public void aggregateYearlyProductions(UUID communityId, int year) {
+        for (Plant plant : communityPlants(communityId)) {
+            aggregateForPlantYear(plant, year);
+        }
+    }
+
+    @Override
+    public void aggregateYearlyProductions(UUID communityId, String plantCode, int year) {
+        Plant plant = getEnergyStationRepository.findByCode(plantCode)
+                .orElseThrow(() -> new PlantNotFoundException(plantCode));
+        if (!getPlantRepository.findPlantCodesByCommunity(communityId).contains(plantCode)) {
             throw new PlantNotFoundException(plantCode);
         }
+        aggregateForPlantYear(plant, year);
+    }
 
-        aggregateForPlantYear(plantOptional.get(), year);
+    @Override
+    public void syncYearlyProductions(UUID communityId, String plantCode, int year) {
+        if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
+            throw new HuaweiDisabledException();
+        }
+
+        if (plantCode != null && !plantCode.isBlank()) {
+            aggregateYearlyProductions(communityId, plantCode, year);
+        } else {
+            aggregateYearlyProductions(communityId, year);
+        }
+    }
+
+    /**
+     * Resolves the plants belonging to the given community from their codes.
+     */
+    private List<Plant> communityPlants(UUID communityId) {
+        return getPlantRepository.findPlantCodesByCommunity(communityId).stream()
+                .map(getEnergyStationRepository::findByCode)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     private void aggregateForPlantYear(Plant plant, int year) {

@@ -13,7 +13,6 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.datadis.SupplyDatadisEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
@@ -74,13 +73,6 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                     .build();
         }
 
-        SupplyDatadisEntity datadisEntity = null;
-        if (supply.getDatadis() != null) {
-            datadisEntity = new SupplyDatadisEntity.Builder()
-                    .withThirdParty(supply.getDatadis().isThirdParty())
-                    .build();
-        }
-
         SupplyDistributorEntity distributorEntity = null;
         if (supply.getDistributor() != null) {
             distributorEntity = new SupplyDistributorEntity.Builder()
@@ -110,7 +102,6 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                 .withEnabled(supply.getEnabled())
                 .withCommunity(communityEntity)
                 .withShelly(shellyEntity)
-                .withDatadis(datadisEntity)
                 .withDistributor(distributorEntity)
                 .withContract(contractEntity)
                 .build();

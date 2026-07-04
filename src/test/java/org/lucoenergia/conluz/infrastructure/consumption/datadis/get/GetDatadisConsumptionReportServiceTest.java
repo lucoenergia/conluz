@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,13 +40,14 @@ class GetDatadisConsumptionReportServiceTest {
 
     private static final OffsetDateTime START = OffsetDateTime.parse("2023-04-01T00:00:00Z");
     private static final OffsetDateTime END = OffsetDateTime.parse("2023-04-30T23:59:59Z");
+    private static final UUID COMMUNITY_ID = UUID.randomUUID();
 
     @Test
     void testWithNoSuppliesReturnsOnlyHeaderRow() {
         // when
-        when(getSupplyRepository.findAll()).thenReturn(Collections.emptyList());
+        when(getSupplyRepository.findAllByCommunityId(COMMUNITY_ID)).thenReturn(Collections.emptyList());
 
-        ByteArrayOutputStream result = service.getHourlyConsumptionReportAsCsv(START, END);
+        ByteArrayOutputStream result = service.getHourlyConsumptionReportAsCsv(START, END, COMMUNITY_ID);
         String csv = result.toString(StandardCharsets.UTF_8);
 
         // then
@@ -68,11 +70,11 @@ class GetDatadisConsumptionReportServiceTest {
                 0.75f, "Real", 0.10f, 0.20f, 0.15f);
 
         // when
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supply));
+        when(getSupplyRepository.findAllByCommunityId(COMMUNITY_ID)).thenReturn(List.of(supply));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(supply, START, END))
                 .thenReturn(List.of(consumption));
 
-        ByteArrayOutputStream result = service.getHourlyConsumptionReportAsCsv(START, END);
+        ByteArrayOutputStream result = service.getHourlyConsumptionReportAsCsv(START, END, COMMUNITY_ID);
         String csv = result.toString(StandardCharsets.UTF_8);
 
         // then
@@ -96,13 +98,13 @@ class GetDatadisConsumptionReportServiceTest {
         DatadisConsumption c2 = buildConsumption("CUPS2", "2023/04/01", "11:00", 0.6f, "Real", 0f, 0f, 0f);
 
         // when
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supply1, supply2));
+        when(getSupplyRepository.findAllByCommunityId(COMMUNITY_ID)).thenReturn(List.of(supply1, supply2));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(supply1, START, END))
                 .thenReturn(List.of(c1));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(supply2, START, END))
                 .thenReturn(List.of(c2));
 
-        ByteArrayOutputStream result = service.getHourlyConsumptionReportAsCsv(START, END);
+        ByteArrayOutputStream result = service.getHourlyConsumptionReportAsCsv(START, END, COMMUNITY_ID);
         String csv = result.toString(StandardCharsets.UTF_8);
 
         // then
@@ -122,11 +124,11 @@ class GetDatadisConsumptionReportServiceTest {
         // consumptionKWh, surplusEnergyKWh, generationEnergyKWh, selfConsumptionEnergyKWh left null
 
         // when
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supply));
+        when(getSupplyRepository.findAllByCommunityId(COMMUNITY_ID)).thenReturn(List.of(supply));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(supply, START, END))
                 .thenReturn(List.of(consumption));
 
-        ByteArrayOutputStream result = service.getHourlyConsumptionReportAsCsv(START, END);
+        ByteArrayOutputStream result = service.getHourlyConsumptionReportAsCsv(START, END, COMMUNITY_ID);
         String csv = result.toString(StandardCharsets.UTF_8);
 
         // then
@@ -143,11 +145,11 @@ class GetDatadisConsumptionReportServiceTest {
         Supply supply3 = SupplyMother.random().build();
 
         // when
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supply1, supply2, supply3));
+        when(getSupplyRepository.findAllByCommunityId(COMMUNITY_ID)).thenReturn(List.of(supply1, supply2, supply3));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(any(Supply.class), eq(START), eq(END)))
                 .thenReturn(Collections.emptyList());
 
-        service.getHourlyConsumptionReportAsCsv(START, END);
+        service.getHourlyConsumptionReportAsCsv(START, END, COMMUNITY_ID);
 
         // then
         verify(getDatadisConsumptionRepository, times(3))

@@ -9,6 +9,9 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -20,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,11 +39,20 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
+    private CreatePlantRepository createPlantRepository;
+    @Autowired
     private EnergyProductionInfluxLoader energyProductionInfluxLoader;
 
     @BeforeEach
     void beforeEach() {
         energyProductionInfluxLoader.loadData();
+        // Register a plant in the default community whose code matches the seeded InfluxDB station_code,
+        // so the community-scoped production query resolves data.
+        User plantOwner = createUserRepository.create(UserMother.randomUser());
+        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()));
+        createPlantRepository.create(
+                PlantMother.random(plantSupply).withCode(EnergyProductionInfluxLoader.STATION_CODE).build(),
+                SupplyId.of(plantSupply.getId()));
     }
 
     @AfterEach
@@ -49,9 +62,9 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetHourlyProduction() throws Exception {
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
-        mockMvc.perform(get("/api/v1/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
@@ -65,9 +78,9 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
         String invalidStartDate = "foo";
         String validEndDate = "2023-10-25T23:00:00.000+02:00";
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
-        mockMvc.perform(get("/api/v1/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", invalidStartDate)
                         .queryParam("endDate", validEndDate))
@@ -81,7 +94,7 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetHourlyProductionBySupply() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
 
@@ -90,7 +103,7 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
         createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
         createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
 
-        mockMvc.perform(get("/api/v1/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("supplyId", supply.getId().toString())
                         .queryParam("startDate", START_DATE)
@@ -102,10 +115,10 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetHourlyProductionByUnknownSupply() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
         UUID supplyId = UUID.randomUUID();
 
-        mockMvc.perform(get("/api/v1/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("supplyId", supplyId.toString())
                         .queryParam("startDate", START_DATE)
@@ -120,10 +133,10 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetHourlyProductionWithWrongSupplyParameterName() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
         String supplyId = "1";
 
-        mockMvc.perform(get("/api/v1/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("supply", supplyId)
                         .queryParam("startDate", START_DATE)
@@ -135,9 +148,9 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetHourlyProductionWithoutStartDate() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
-        mockMvc.perform(get("/api/v1/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isBadRequest())
@@ -150,9 +163,9 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetHourlyProductionWithoutEndDate() throws Exception {
 
-        String authHeader = loginAsDefaultAdmin();
+        String authHeader = loginAsDefaultPlatformAdmin();
 
-        mockMvc.perform(get("/api/v1/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", START_DATE))
                 .andExpect(status().isBadRequest())

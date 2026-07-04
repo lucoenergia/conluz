@@ -7,7 +7,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
     <changeSet id="add_base_url_and_enabled_to_datadis_config" author="Víctor Cañizares">
         <addColumn tableName="datadis_config">
-            <column name="base_url" type="TEXT" defaultValue="https://datadis.es">
+            <column name="base_url" type="TEXT" defaultValue="http://localhost:5555">
                 <constraints nullable="false"/>
             </column>
             <column name="enabled" type="BOOLEAN" defaultValueBoolean="false">

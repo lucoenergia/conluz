@@ -41,7 +41,7 @@ public class UpdateSharingAgreementController {
     
                     Clients send a request containing the updated agreement details, and authentication, through an
                     authentication token, is required for secure access.
-                    **Required Role: ADMIN**
+                    **Required: Community Admin**
     
                     A successful update results in an HTTP status code of 200, indicating that the sharing agreement
                     information has been successfully modified and returning the updated agreement details.
@@ -54,7 +54,7 @@ public class UpdateSharingAgreementController {
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "updateSharingAgreement",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(

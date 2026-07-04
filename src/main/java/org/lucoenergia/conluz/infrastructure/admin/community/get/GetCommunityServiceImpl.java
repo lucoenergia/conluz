@@ -2,7 +2,6 @@ package org.lucoenergia.conluz.infrastructure.admin.community.get;
 
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityWithStats;
-import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityService;
 import org.springframework.stereotype.Service;
@@ -20,11 +19,9 @@ import java.util.stream.Collectors;
 public class GetCommunityServiceImpl implements GetCommunityService {
 
     private final GetCommunityRepository repository;
-    private final CommunityAccessGuard guard;
 
-    public GetCommunityServiceImpl(GetCommunityRepository repository, CommunityAccessGuard guard) {
+    public GetCommunityServiceImpl(GetCommunityRepository repository) {
         this.repository = repository;
-        this.guard = guard;
     }
 
     @Override
@@ -33,8 +30,7 @@ public class GetCommunityServiceImpl implements GetCommunityService {
     }
 
     @Override
-    public List<Community> findAllVisible() {
-        Set<UUID> visibleIds = guard.visibleCommunityIds();
+    public List<Community> findAll(Set<UUID> visibleIds) {
         if (visibleIds == null) {
             return repository.findAll();
         }
@@ -51,8 +47,8 @@ public class GetCommunityServiceImpl implements GetCommunityService {
     }
 
     @Override
-    public List<CommunityWithStats> findAllVisibleWithStats() {
-        return enrichWithStats(findAllVisible());
+    public List<CommunityWithStats> findAllWithStats(Set<UUID> visibleIds) {
+        return enrichWithStats(findAll(visibleIds));
     }
 
     private List<CommunityWithStats> enrichWithStats(List<Community> communities) {

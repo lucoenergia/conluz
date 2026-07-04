@@ -2,21 +2,20 @@ package org.lucoenergia.conluz.infrastructure.consumption.datadis.aggregate;
 
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
-import org.lucoenergia.conluz.domain.consumption.datadis.config.GetDatadisConfigurationService;
 import org.mockito.Mockito;
 
 import java.time.LocalDate;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class DatadisYearlyAggregationJobTest {
 
     @Test
     void testRun_ShouldCallServiceWithCurrentYear() {
         DatadisYearlyAggregationService mockService = Mockito.mock(DatadisYearlyAggregationService.class);
-        GetDatadisConfigurationService mockConfigService = Mockito.mock(GetDatadisConfigurationService.class);
 
-        DatadisYearlyAggregationJob job = new DatadisYearlyAggregationJob(mockService, mockConfigService);
+        DatadisYearlyAggregationJob job = new DatadisYearlyAggregationJob(mockService);
 
         LocalDate today = LocalDate.now();
         int year = today.getYear();

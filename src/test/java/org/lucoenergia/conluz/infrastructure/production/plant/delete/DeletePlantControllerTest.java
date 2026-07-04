@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -63,8 +64,8 @@ class DeletePlantControllerTest extends BaseControllerTest {
         Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
-        // Login as default admin
-        String authHeader = loginAsDefaultAdmin();
+        // Login as an admin of the plant's community
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(delete(String.format("/api/v1/plants/%s", plantTwo.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -75,8 +76,9 @@ class DeletePlantControllerTest extends BaseControllerTest {
 
     @Test
     void testWithUnknown() throws Exception {
-
-        String authHeader = loginAsDefaultAdmin();
+        // A non-existent plant cannot be seen by the caller, so the access guard returns 404 before
+        // the controller runs, avoiding plant-existence leakage.
+        String authHeader = loginAsDefaultPlatformAdmin();
 
         final String plantId = UUID.randomUUID().toString();
 
@@ -93,7 +95,7 @@ class DeletePlantControllerTest extends BaseControllerTest {
 
     @Test
     void testWithoutIdInPath() throws Exception {
-        final String authHeader = loginAsDefaultAdmin();
+        final String authHeader = loginAsDefaultPlatformAdmin();
 
         mockMvc.perform(delete("/api/v1/plants")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -131,7 +133,7 @@ class DeletePlantControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
     }
 }

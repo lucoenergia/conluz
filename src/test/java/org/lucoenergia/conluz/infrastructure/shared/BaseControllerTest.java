@@ -1,7 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.shared;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.lucoenergia.conluz.domain.admin.user.Role;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -11,6 +12,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import java.util.UUID;
 
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -26,6 +29,8 @@ public class BaseControllerTest extends BaseIntegrationTest {
     protected ObjectMapper objectMapper;
     @Autowired
     private CreateUserRepository createUserRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
 
     protected MvcResult init() throws Exception {
 
@@ -47,9 +52,9 @@ public class BaseControllerTest extends BaseIntegrationTest {
                 .andReturn();
     }
 
-    protected String loginAsDefaultAdmin() throws Exception {
+    protected String loginAsDefaultPlatformAdmin() throws Exception {
 
-        // Initialize default admin user
+        // Initialize default platform admin user
         init();
 
         // Login to get the JWT token
@@ -73,11 +78,35 @@ public class BaseControllerTest extends BaseIntegrationTest {
 
         // Create a user with PARTNER role
         User defaultPartnerUser = UserMother.randomUser();
-        defaultPartnerUser.setRole(Role.PARTNER);
         defaultPartnerUser.enable();
         createUserRepository.create(defaultPartnerUser);
 
         return loginUser(defaultPartnerUser);
+    }
+
+    /**
+     * Creates an enabled user who is a {@code COMMUNITY_ADMIN} of the given community and returns
+     * their bearer token. Useful for tests that exercise endpoints scoped to a community admin.
+     */
+    protected String loginAsCommunityAdmin(UUID communityId) throws Exception {
+        User communityAdmin = UserMother.randomUser();
+        communityAdmin.enable();
+        createUserRepository.create(communityAdmin);
+        createMembershipService.create(communityId, communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        return loginUser(communityAdmin);
+    }
+
+    /**
+     * Creates an enabled user who is a {@code COMMUNITY_MEMBER} (regular, non-admin member) of the
+     * given community and returns their bearer token. Useful for tests that exercise endpoints any
+     * community member may access.
+     */
+    protected String loginAsCommunityMember(UUID communityId) throws Exception {
+        User communityMember = UserMother.randomUser();
+        communityMember.enable();
+        createUserRepository.create(communityMember);
+        createMembershipService.create(communityId, communityMember.getId(), CommunityRole.COMMUNITY_MEMBER);
+        return loginUser(communityMember);
     }
 
     protected String loginUser(User user) throws Exception {

@@ -41,13 +41,16 @@ public class GetPlantByIdController {
             description = """
                     This endpoint retrieves detailed information about a specific plant by its unique identifier.
 
-                    **Required Role: ADMIN**
+                    **Required: any member of the plant's community (any role).**
+
+                    Returns 404 if the plant does not exist OR if the caller is not a member of its
+                    community, to avoid leaking the existence of plants by ID.
 
                     Authentication is required using a Bearer token.
                     """,
             tags = ApiTag.PLANTS,
             operationId = "getPlantById",
-            security = @SecurityRequirement(name = "bearerToken", scopes = {"ADMIN"})
+            security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -61,7 +64,7 @@ public class GetPlantByIdController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
+    @PreAuthorize("@communityAccessGuard.canReadPlant(#plantId)")
     public PlantResponse getPlantById(@PathVariable("id") UUID plantId) {
         Plant plant = service.findById(PlantId.of(plantId));
         return new PlantResponse(plant);

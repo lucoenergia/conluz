@@ -15,8 +15,6 @@ public interface AuthRepository {
 
     UUID getUserIdFromToken(Token token);
 
-    String getRole(Token token);
-
     Date getExpirationDate(Token token);
 
     /**

@@ -33,6 +33,6 @@ public class SharingAgreementExceptionHandler {
                 Collections.singletonList(sharingAgreementId).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, HttpStatus.NOT_FOUND);
     }
 }

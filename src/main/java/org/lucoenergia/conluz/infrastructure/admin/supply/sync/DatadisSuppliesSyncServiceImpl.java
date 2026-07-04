@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Transactional
@@ -42,7 +44,7 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
     }
 
     /**
-     * Synchronizes the supplies for all users retrieving data from datadis.es
+     * Synchronizes the supplies for all users retrieving data from datadis
      */
     public void synchronizeSupplies() {
         // Get all users with at least one supply
@@ -50,13 +52,34 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
         Map<String, Supply> allSupplies = getSupplyRepository.findAll().stream()
                 .collect(Collectors.toMap(Supply::getCode, supply -> supply));
 
-        for (User user : allUsers) {
+        processUsers(allUsers, allSupplies);
+    }
+
+    @Override
+    public void synchronizeSupplies(UUID communityId) {
+        List<Supply> communitySupplies = getSupplyRepository.findAllByCommunityId(communityId);
+        Map<String, Supply> suppliesByCode = communitySupplies.stream()
+                .collect(Collectors.toMap(Supply::getCode, supply -> supply));
+        // Only the owners of this community's supplies are processed, and only this community's
+        // supplies can be updated, so the job never writes another community's supplies.
+        List<User> users = communitySupplies.stream()
+                .map(Supply::getUser)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(User::getId, user -> user, (a, b) -> a))
+                .values().stream()
+                .toList();
+
+        processUsers(users, suppliesByCode);
+    }
+
+    private void processUsers(List<User> users, Map<String, Supply> suppliesByCode) {
+        for (User user : users) {
 
             LOGGER.info("Processing users with ID {}", user.getId());
 
             List<DatadisSupply> datadisSupplies = getSupplyRepositoryDatadis.getSuppliesByUser(user);
             for (DatadisSupply datadisSupply : datadisSupplies) {
-                Supply supply = allSupplies.get(datadisSupply.getCups());
+                Supply supply = suppliesByCode.get(datadisSupply.getCups());
                 if (supply != null) {
                     supply.setAddress(datadisSupply.getAddress());
 
@@ -75,7 +98,7 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
                     supply.setContract(contract);
 
                     updateSupplyRepository.update(supply);
-                    LOGGER.info("Supply with code {} synchronized with datadis.es.", datadisSupply.getCups());
+                    LOGGER.info("Supply with code {} synchronized with datadis.", datadisSupply.getCups());
                 } else {
                     LOGGER.warn("Datadis supply with CUPS {} not found as registered supply.", datadisSupply.getCups());
                 }

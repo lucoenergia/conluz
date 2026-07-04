@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.consumption.datadis.aggregate;
 
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
-import org.lucoenergia.conluz.domain.consumption.datadis.config.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,12 +15,9 @@ public class DatadisYearlyAggregationJob implements Job {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatadisYearlyAggregationJob.class);
 
     private final DatadisYearlyAggregationService aggregationService;
-    private final GetDatadisConfigurationService getDatadisConfigurationService;
 
-    public DatadisYearlyAggregationJob(DatadisYearlyAggregationService aggregationService,
-                                       GetDatadisConfigurationService getDatadisConfigurationService) {
+    public DatadisYearlyAggregationJob(DatadisYearlyAggregationService aggregationService) {
         this.aggregationService = aggregationService;
-        this.getDatadisConfigurationService = getDatadisConfigurationService;
     }
 
     /**
