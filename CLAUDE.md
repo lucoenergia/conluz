@@ -38,6 +38,26 @@ docker compose -f docker-compose.example.yml up -d influxdb # Start only InfluxD
 docker stop conluz                                          # Stop the app
 ```
 
+## Deployment & infrastructure boundary
+
+This repository is **public and world-readable**. Environment-specific values — real
+hostnames, filesystem paths, real service/community names, CUPS codes, backup schedules, and
+any credential (JWT keys, DB/InfluxDB/MQTT passwords, `PGPASSWORD`, tokens) — **must never
+enter this repo**. They live in the **private `conluz-infra` repository**, which is the single
+source of truth for production topology and operational tooling (backups, restores, snapshots,
+monitoring, reverse proxy, host configuration).
+
+- `deploy/` here is a **sanitized reference example, not a mirror of any production setup**:
+  `docker-compose.example.yml` + `.env.example` use `${VAR}`/placeholder values only, plus the
+  two generic DB init scripts.
+- Real secret values live only in gitignored `.env` files on the host; committed files use
+  `${VAR}` interpolation and `*.env.example` templates. `.env`, `*.env`, `*.key`, `*.pem` are
+  gitignored (but `*.env.example` is allowed).
+- A **gitleaks `pre-commit` hook** is the backstop — install it once per clone
+  (`pre-commit install`); see `docs/gitleaks.md`. If a real secret is ever found committed
+  here, treat it as **compromised**: rotate it (a human decision), do not just delete the file
+  (deletion does not remove it from history).
+
 ## Architecture
 
 ### Package Structure
