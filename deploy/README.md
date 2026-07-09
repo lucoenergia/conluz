@@ -1,14 +1,8 @@
 # Deploy — sanitized reference example
 
-This directory is a **reference example, not a mirror of any production setup**. It shows the
+This directory is a **reference example**. It shows the
 minimal shape of a Conluz deployment (PostgreSQL + InfluxDB + the Conluz application) so you can
 bring up a single instance from scratch and adapt it to your own environment.
-
-> **Where the real deployment lives:** production topology and operational tooling — backups,
-> restores, snapshots, monitoring, reverse proxy, host-specific configuration — are maintained
-> in the **private `conluz-infra` repository**, not here. Nothing environment-specific (real
-> hostnames, service/community names, paths, schedules, credentials, CUPS codes) belongs in this
-> public repo.
 
 ## Contents
 
@@ -40,6 +34,5 @@ docker compose -f docker-compose.example.yml up -d      # start postgres + influ
 The app is then reachable at https://localhost:8443 (see the project `README.md` and `CLAUDE.md`
 for build and usage details).
 
-> The real `.env` is **gitignored and never committed** — it holds your local/secret values.
 > Validate the compose file without starting anything with:
 > `docker compose -f docker-compose.example.yml config`.
