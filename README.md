@@ -51,8 +51,8 @@ You don't need to do an extra effort of creating all the table manually, because
 
 > **Note:**
 >
-> To have a PostgreSQL database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
-> You just need to navigate to the `deploy` folder and execute the command `docker compose up -d`
+> To have a PostgreSQL database up and running in a few seconds, you can use the sanitized reference example `deploy/docker-compose.example.yml`. This file will do automatically all the configurations required transparently.
+> Navigate to the `deploy` folder, copy `.env.example` to `.env` and fill it in, then execute `docker compose -f docker-compose.example.yml up -d`
 
 2. **InfluxDB database**
 
@@ -77,8 +77,8 @@ Conluz uses InfluxDB as a time series database to store consumption, production 
 
 #### New Postgres installation
 
-To have a PostgreSQL database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
-You just need to execute the command `docker compose up -d postgres`
+To have a PostgreSQL database up and running in a few seconds, you can use the sanitized reference example `deploy/docker-compose.example.yml`. This file will do automatically all the configurations required transparently.
+From the `deploy` folder, copy `.env.example` to `.env` and fill it in, then execute `docker compose -f docker-compose.example.yml up -d postgres`
 
 #### Already existing Postgres installation
 
@@ -108,8 +108,8 @@ If you are running Postgres locally on `localhost:5432` you don't need to provid
 
 #### New InfluxDB installation
 
-To have an InfluxDB database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
-You just need to execute the command `docker compose up -d influxdb`
+To have an InfluxDB database up and running in a few seconds, you can use the sanitized reference example `deploy/docker-compose.example.yml`. This file will do automatically all the configurations required transparently.
+From the `deploy` folder, copy `.env.example` to `.env` and fill it in, then execute `docker compose -f docker-compose.example.yml up -d influxdb`
 
 #### Already existing InfluxDB installation
 If you already have an InfluxDB database up and running, you need to execute these commands:

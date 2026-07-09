@@ -1,0 +1,71 @@
+# Sanitized reference example — NOT a mirror of any production deployment.
+#
+# This brings up the minimal core stack (PostgreSQL + InfluxDB + the Conluz app) so you can
+# run one instance from scratch. Copy .env.example to .env, fill in your own values, then:
+#
+#   docker compose -f docker-compose.example.yml up -d
+#
+# The real .env is gitignored and MUST NOT be committed. Production topology and operational
+# tooling (backups, restores, snapshots, monitoring, proxy, ...) live in the private
+# conluz-infra repository, not here.
+
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    volumes:
+      - ${PATH_TO_POSTGRES_DATA}:/var/lib/postgresql/data
+      - ./conluz-postgres-init.sh:/docker-entrypoint-initdb.d/conluz-postgres-init.sh  # creates the databases/roles on first boot
+    restart: always
+    networks:
+      - conluz_network
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_HTTP_AUTH_ENABLED=true
+      - INFLUXDB_ADMIN_USER
+      - INFLUXDB_ADMIN_PASSWORD
+      - INFLUXDB_CONLUZ_USER
+      - INFLUXDB_CONLUZ_USER_PASSWORD
+    volumes:
+      - ${PATH_TO_INFLUXDB_DATA}:/var/lib/influxdb
+      - ./conluz-influxdb-init.sh:/docker-entrypoint-initdb.d/conluz-influxdb-init.sh  # creates the database/user/retention policies on first boot
+    restart: always
+    networks:
+      - conluz_network
+
+  conluz:
+    container_name: conluz
+    # Override with your own image/tag via CONLUZ_IMAGE in .env, or build locally from the repo root.
+    image: ${CONLUZ_IMAGE:-ghcr.io/lucoenergia/conluz:latest}
+    ports:
+      - "8443:8443"
+    environment:
+      - CONLUZ_JWT_SECRET_KEY
+      - SPRING_DATASOURCE_URL
+      - SPRING_INFLUXDB_URL
+      - SPRING_INFLUXDB_USERNAME
+      - SPRING_INFLUXDB_PASSWORD
+      - SPRING_INFLUXDB_DATABASE
+      - INFLUXDB_ADMIN_USER
+      - INFLUXDB_ADMIN_PASSWORD
+    restart: always
+    networks:
+      - conluz_network
+    depends_on:
+      - influxdb
+      - postgres
+
+networks:
+  conluz_network:
+    driver: bridge

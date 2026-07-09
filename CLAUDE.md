@@ -24,14 +24,18 @@ Conluz is an energy community management application built with Spring Boot 3. I
 Tests use Testcontainers for PostgreSQL and InfluxDB integration tests.
 
 ### Docker Deployment
+`deploy/` holds a **sanitized reference example** (`docker-compose.example.yml`), not the
+production deployment (see the "Deployment & infrastructure boundary" note below).
+
 ```bash
 # From project root:
 docker build -t conluz:1.0 -f Dockerfile .
 cd deploy
-docker compose up -d            # Start all services
-docker compose up -d postgres   # Start only PostgreSQL
-docker compose up -d influxdb   # Start only InfluxDB
-docker stop conluz              # Stop the app
+cp .env.example .env                                        # then edit .env with your own values
+docker compose -f docker-compose.example.yml up -d          # Start the core stack
+docker compose -f docker-compose.example.yml up -d postgres # Start only PostgreSQL
+docker compose -f docker-compose.example.yml up -d influxdb # Start only InfluxDB
+docker stop conluz                                          # Stop the app
 ```
 
 ## Architecture
@@ -106,7 +110,8 @@ For the complete schema with sample data, see `docs/db/timeseries/influxdb/influ
 
 ### Database Setup
 
-For new installations, use `deploy/docker-compose.yaml`. For existing databases:
+For new installations, use the sanitized reference example `deploy/docker-compose.example.yml`
+(copy `deploy/.env.example` to `deploy/.env` and fill it in first). For existing databases:
 
 **PostgreSQL:**
 ```sql
