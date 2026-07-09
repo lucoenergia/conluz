@@ -5,6 +5,9 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 *.env
+# backup.env holds no secrets (just container names and the /media/data mount); it is the
+# tracked default config for the Phase 1 backup engine, so exempt it from the *.env rule.
+!deploy/backup/backup.env
 deploy/postgres
 deploy/influxdb
 
