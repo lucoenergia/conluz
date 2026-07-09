@@ -4,9 +4,19 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-*.env
 deploy/postgres
 deploy/influxdb
+
+### Secrets — never commit ###
+# Real values live only in gitignored .env files on the host; committed files use ${VAR}
+# interpolation and *.env.example templates. A gitleaks pre-commit hook backs this up
+# (see docs/gitleaks.md). *.env.example templates are explicitly allowed.
+.env
+*.env
+*.key
+*.pem
+!*.env.example
+!**/*.env.example
 
 ### STS ###
 .apt_generated
