@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import static org.hamcrest.Matchers.hasItem;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -34,6 +35,8 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
 
     private static final String URL = "/api/v1/supplies/partition-coefficients/import";
     private static final String FIXTURE = "fixtures/supplies/CAU_2024.txt";
+    private static final String FIXTURE_SUM_OK = "fixtures/supplies/PARTITION_COEFFICIENTS_SUM_OK_2025.txt";
+    private static final String FIXTURE_SUM_WARN = "fixtures/supplies/PARTITION_COEFFICIENTS_SUM_WARN_2025.txt";
     private static final String TXT_CONTENT_TYPE = "text/plain";
     private static final String EFFECTIVE_AT = "2024-01-01T00:00:00Z";
 
@@ -82,6 +85,49 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.created", hasSize(1)))
                 .andExpect(jsonPath("$.errors", hasSize(2)));
+    }
+
+    @Test
+    void communitySumEqualToOneReturnsNoWarning() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        createSupplyWithCode("ES0031300TESTFILEA010A");
+        createSupplyWithCode("ES0031300TESTFILEA020B");
+        createSupplyWithCode("ES0031300TESTFILEA030C");
+
+        MockMultipartFile file = loadFixture(FIXTURE_SUM_OK, TXT_CONTENT_TYPE);
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", hasSize(3)))
+                .andExpect(jsonPath("$.errors", hasSize(0)))
+                .andExpect(jsonPath("$.communityCoefficientSumWarning").value(nullValue()));
+    }
+
+    @Test
+    void communitySumDeviatingFromOneReturnsWarning() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        createSupplyWithCode("ES0031300TESTFILEB010A");
+        createSupplyWithCode("ES0031300TESTFILEB020B");
+        createSupplyWithCode("ES0031300TESTFILEB030C");
+
+        MockMultipartFile file = loadFixture(FIXTURE_SUM_WARN, TXT_CONTENT_TYPE);
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", hasSize(3)))
+                .andExpect(jsonPath("$.errors", hasSize(0)))
+                .andExpect(jsonPath("$.communityCoefficientSumWarning")
+                        .value("Community coefficient sum is 0.766666, expected 1"));
     }
 
     @Test
