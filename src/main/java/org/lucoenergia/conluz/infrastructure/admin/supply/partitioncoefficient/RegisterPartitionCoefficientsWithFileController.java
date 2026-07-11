@@ -86,7 +86,7 @@ public class RegisterPartitionCoefficientsWithFileController {
                     as errors and the remaining rows continue to be processed.
 
                     The response includes a `communityCoefficientSumWarning` if the total sum of active
-                    coefficients across all supplies deviates from 100 by more than 0.0001 at `effectiveAt`.
+                    coefficients across all supplies deviates from 1 by more than 0.0001 at `effectiveAt`.
                     This warning is informational only.
 
                     **Required: Community Admin**

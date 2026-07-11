@@ -44,7 +44,7 @@ public class RegisterPartitionCoefficientController {
                     Closes the currently active coefficient period and opens a new one starting at effectiveAt.
                     Also updates the supply.partitionCoefficient denormalization field.
                     The response includes a communityCoefficientSumWarning field if the total sum of active
-                    coefficients across all supplies at effectiveAt deviates from 100 by more than 0.0001.
+                    coefficients across all supplies at effectiveAt deviates from 1 by more than 0.0001.
                     This warning is informational only — the change is always persisted.
                     **Required: Community Admin**
                     """,
