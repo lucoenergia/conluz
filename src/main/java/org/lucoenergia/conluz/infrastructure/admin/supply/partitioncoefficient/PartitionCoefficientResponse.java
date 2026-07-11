@@ -15,7 +15,7 @@ public class PartitionCoefficientResponse {
     @Schema(description = "Supply this coefficient belongs to", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
     private final UUID supplyId;
 
-    @Schema(description = "Partition coefficient value", example = "3.076300")
+    @Schema(description = "Partition coefficient value", example = "0.030763")
     private final BigDecimal coefficient;
 
     @Schema(description = "Start of the period during which this coefficient is active (inclusive)",

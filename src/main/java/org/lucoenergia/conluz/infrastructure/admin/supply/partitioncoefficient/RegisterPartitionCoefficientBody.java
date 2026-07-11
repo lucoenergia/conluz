@@ -13,7 +13,7 @@ public class RegisterPartitionCoefficientBody {
     @NotNull
     @PositiveOrZero
     @Schema(description = "New partition coefficient value",
-            example = "3.076300")
+            example = "0.030763")
     private BigDecimal coefficient;
 
     @NotNull

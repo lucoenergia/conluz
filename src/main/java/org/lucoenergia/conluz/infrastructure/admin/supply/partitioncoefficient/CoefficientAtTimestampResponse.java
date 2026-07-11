@@ -14,7 +14,7 @@ public class CoefficientAtTimestampResponse {
     @Schema(description = "Queried timestamp", example = "2025-01-15T12:00:00Z")
     private final Instant timestamp;
 
-    @Schema(description = "Coefficient active at the queried timestamp", example = "3.076300")
+    @Schema(description = "Coefficient active at the queried timestamp", example = "0.030763")
     private final BigDecimal coefficient;
 
     public CoefficientAtTimestampResponse(UUID supplyId, Instant timestamp, BigDecimal coefficient) {

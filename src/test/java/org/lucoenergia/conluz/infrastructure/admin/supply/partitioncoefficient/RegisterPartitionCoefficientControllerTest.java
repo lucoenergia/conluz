@@ -15,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -32,13 +33,15 @@ class RegisterPartitionCoefficientControllerTest extends BaseControllerTest {
     private GetCommunityRepository getCommunityRepository;
 
     @Test
-    void registersNewCoefficientAndReturnsWarning() throws Exception {
+    void registersNewCoefficientWithSumEqualToOneReturnsNoWarning() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         String url = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
 
+        // Only active coefficient in the community at this instant, so the community sum
+        // equals exactly 1 and no warning should be raised.
         String body = """
-                {"coefficient": 50.000000, "effectiveAt": "2025-06-01T00:00:00Z"}
+                {"coefficient": 1.000000, "effectiveAt": "2025-06-01T00:00:00Z"}
                 """;
 
         mockMvc.perform(post(url)
@@ -49,7 +52,32 @@ class RegisterPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supplyId").value(supply.getId().toString()))
                 .andExpect(jsonPath("$.coefficient").isNotEmpty())
-                .andExpect(jsonPath("$.validFrom").value("2025-06-01T00:00:00Z"));
+                .andExpect(jsonPath("$.validFrom").value("2025-06-01T00:00:00Z"))
+                .andExpect(jsonPath("$.communityCoefficientSumWarning").value(nullValue()));
+    }
+
+    @Test
+    void registersNewCoefficientWithSumDeviatingFromOneReturnsWarning() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        String url = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
+
+        // Only active coefficient in the community at this instant, sum = 0.512345, well below 1.
+        String body = """
+                {"coefficient": 0.512345, "effectiveAt": "2025-06-01T00:00:00Z"}
+                """;
+
+        mockMvc.perform(post(url)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.supplyId").value(supply.getId().toString()))
+                .andExpect(jsonPath("$.coefficient").isNotEmpty())
+                .andExpect(jsonPath("$.validFrom").value("2025-06-01T00:00:00Z"))
+                .andExpect(jsonPath("$.communityCoefficientSumWarning")
+                        .value("Community coefficient sum is 0.512345, expected 1"));
     }
 
     @Test
