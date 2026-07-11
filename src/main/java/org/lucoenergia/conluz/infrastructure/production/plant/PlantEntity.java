@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 import jakarta.persistence.*;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
 import java.time.LocalDate;
 import java.util.Objects;

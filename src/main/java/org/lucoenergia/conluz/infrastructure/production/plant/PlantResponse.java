@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
 import java.time.LocalDate;
 import java.util.UUID;

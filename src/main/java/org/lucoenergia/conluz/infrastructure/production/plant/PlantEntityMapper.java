@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import jakarta.persistence.*;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
-import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 
 import java.util.ArrayList;
 import java.util.List;

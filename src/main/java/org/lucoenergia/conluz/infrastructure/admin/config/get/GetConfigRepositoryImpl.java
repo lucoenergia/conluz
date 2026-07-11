@@ -6,7 +6,6 @@ import org.lucoenergia.conluz.infrastructure.admin.config.ConfigRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 
 @Transactional

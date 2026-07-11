@@ -8,7 +8,6 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementService
 import org.lucoenergia.conluz.infrastructure.admin.supply.SharingAgreementResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

@@ -3,8 +3,6 @@ package org.lucoenergia.conluz.domain.production.plant;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
-import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 
