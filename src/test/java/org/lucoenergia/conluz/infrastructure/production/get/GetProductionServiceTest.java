@@ -69,6 +69,22 @@ class GetProductionServiceTest {
     }
 
     @Test
+    void getHourlyProductionByRangeOfDatesAndSupply_supplyWithNoCommunityYieldsEmptyStationCodes() {
+        UUID supplyUuid = UUID.randomUUID();
+        SupplyId supplyId = SupplyId.of(supplyUuid);
+        Supply supply = SupplyMother.random().withId(supplyUuid).withCommunity(null).build();
+
+        when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
+        when(getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate,
+                supply.getPartitionCoefficient(), List.of())).thenReturn(List.of());
+
+        List<ProductionByTime> result = service.getHourlyProductionByRangeOfDatesAndSupply(startDate, endDate, supplyId);
+
+        assertEquals(List.of(), result);
+        verifyNoInteractions(getPlantRepository);
+    }
+
+    @Test
     void getHourlyProductionByRangeOfDatesAndSupply_throwsWhenSupplyNotFound() {
         SupplyId supplyId = SupplyId.of(UUID.randomUUID());
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.empty());
@@ -101,6 +117,22 @@ class GetProductionServiceTest {
     }
 
     @Test
+    void getDailyProductionByRangeOfDatesAndSupply_supplyWithNoCommunityYieldsEmptyStationCodes() {
+        UUID supplyUuid = UUID.randomUUID();
+        SupplyId supplyId = SupplyId.of(supplyUuid);
+        Supply supply = SupplyMother.random().withId(supplyUuid).withCommunity(null).build();
+
+        when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
+        when(getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate,
+                supply.getPartitionCoefficient(), List.of())).thenReturn(List.of());
+
+        List<ProductionByTime> result = service.getDailyProductionByRangeOfDatesAndSupply(startDate, endDate, supplyId);
+
+        assertEquals(List.of(), result);
+        verifyNoInteractions(getPlantRepository);
+    }
+
+    @Test
     void getDailyProductionByRangeOfDatesAndSupply_throwsWhenSupplyNotFound() {
         SupplyId supplyId = SupplyId.of(UUID.randomUUID());
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.empty());
@@ -130,6 +162,22 @@ class GetProductionServiceTest {
 
         assertSame(expected, result);
         verify(getProductionRepository).getMonthlyProductionByRangeOfDates(startDate, endDate, 0.75f, stationCodes);
+    }
+
+    @Test
+    void getMonthlyProductionByRangeOfDatesAndSupply_supplyWithNoCommunityYieldsEmptyStationCodes() {
+        UUID supplyUuid = UUID.randomUUID();
+        SupplyId supplyId = SupplyId.of(supplyUuid);
+        Supply supply = SupplyMother.random().withId(supplyUuid).withCommunity(null).build();
+
+        when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
+        when(getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate,
+                supply.getPartitionCoefficient(), List.of())).thenReturn(List.of());
+
+        List<ProductionByTime> result = service.getMonthlyProductionByRangeOfDatesAndSupply(startDate, endDate, supplyId);
+
+        assertEquals(List.of(), result);
+        verifyNoInteractions(getPlantRepository);
     }
 
     @Test
