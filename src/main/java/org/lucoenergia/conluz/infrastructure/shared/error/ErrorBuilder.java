@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.shared.error;
 
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorDetail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -9,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -59,5 +63,18 @@ public class ErrorBuilder {
         LOGGER.error("Error message: {}. Trace ID: {}.", message, traceId);
 
         return new ResponseEntity<>(new RestError(status.value(), message, traceId), status);
+    }
+
+    public ResponseEntity<RestError> build(String message, RestErrorCode code, Map<String, String> params,
+                                            HttpStatus status) {
+
+        final String traceId = UUID.randomUUID().toString();
+
+        LOGGER.error("Error message: {}. Trace ID: {}.", message, traceId);
+
+        final RestError restError = new RestError(status.value(), message, traceId,
+                List.of(new RestErrorDetail(message, code, params)));
+
+        return new ResponseEntity<>(restError, status);
     }
 }
