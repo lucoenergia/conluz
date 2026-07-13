@@ -22,14 +22,14 @@ public class ErrorBuilder {
         this.messageSource = messageSource;
     }
 
-    public ResponseEntity<RestError> build(Throwable exception, String code, Object[] args, HttpStatus status) {
+    public ResponseEntity<RestError> build(Throwable exception, String messageKey, Object[] args, HttpStatus status) {
 
         final String traceId = UUID.randomUUID().toString();
 
         LOGGER.error("Error: {}. Trace ID: {}.", exception.getMessage(), traceId, exception);
 
         final String message = messageSource.getMessage(
-                code,
+                messageKey,
                 args,
                 LocaleContextHolder.getLocale()
         );
@@ -37,14 +37,14 @@ public class ErrorBuilder {
         return new ResponseEntity<>(new RestError(status.value(), message, traceId), status);
     }
 
-    public ResponseEntity<RestError> build(String exceptionMessage, String code, Object[] args, HttpStatus status) {
+    public ResponseEntity<RestError> build(String exceptionMessage, String messageKey, Object[] args, HttpStatus status) {
 
         final String traceId = UUID.randomUUID().toString();
 
         LOGGER.error("Error message: {}. Trace ID: {}.", exceptionMessage, traceId);
 
         final String message = messageSource.getMessage(
-                code,
+                messageKey,
                 args,
                 LocaleContextHolder.getLocale()
         );
