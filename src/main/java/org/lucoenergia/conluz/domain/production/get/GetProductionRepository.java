@@ -15,9 +15,6 @@ public interface GetProductionRepository {
      */
     InstantProduction getInstantProduction(Collection<String> stationCodes);
 
-    List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                             Float partitionCoefficient);
-
     /**
      * Hourly production for the given station codes, multiplied by {@code partitionCoefficient}.
      * An empty {@code stationCodes} collection yields an empty list.
@@ -26,13 +23,7 @@ public interface GetProductionRepository {
                                                              Float partitionCoefficient, Collection<String> stationCodes);
 
     List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                             Float partitionCoefficient);
-
-    List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                             Float partitionCoefficient, Collection<String> stationCodes);
-
-    List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                            Float partitionCoefficient);
 
     List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                             Float partitionCoefficient, Collection<String> stationCodes);

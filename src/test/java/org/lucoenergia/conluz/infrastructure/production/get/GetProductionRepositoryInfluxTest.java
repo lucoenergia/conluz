@@ -42,7 +42,8 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
         Float partitionCoefficient = 1.0f;
 
-        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -91,7 +92,8 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
         Float partitionCoefficient = 0.5f; // 50% partition
 
-        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -116,7 +118,8 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
         Float partitionCoefficient = 1.0f;
 
-        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -135,7 +138,8 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
         Float partitionCoefficient = 0.5f;
 
-        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -188,7 +192,8 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
         Float partitionCoefficient = 1.0f;
 
-        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -205,7 +210,8 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
         Float partitionCoefficient = 0.5f;
 
-        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, partitionCoefficient);
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
