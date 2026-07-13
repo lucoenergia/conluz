@@ -75,12 +75,6 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     @Override
     public List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                                    Float partitionCoefficient) {
-        return queryHourly(startDate, endDate, partitionCoefficient, "");
-    }
-
-    @Override
-    public List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                     Float partitionCoefficient,
                                                                     Collection<String> stationCodes) {
         if (stationCodes == null || stationCodes.isEmpty()) {
@@ -91,6 +85,12 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     private List<ProductionByTime> queryHourly(OffsetDateTime startDate, OffsetDateTime endDate,
                                                Float partitionCoefficient, String stationClause) {
+        // Unreachable through the public API today — every public caller already guards on an empty
+        // stationCodes collection before building a non-blank clause. Kept as the actual invariant point
+        // so no future caller (public or private) can ever emit an unrestricted query.
+        if (stationClause == null || stationClause.isBlank()) {
+            return Collections.emptyList();
+        }
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
                     "SELECT time, \"%s\"*%s FROM \"%s\" WHERE time >= '%s' AND time <= '%s'%s",
@@ -113,13 +113,6 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     @Override
     public List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                                   Float partitionCoefficient) {
-        return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
-                partitionCoefficient, InfluxDuration.DAILY, "");
-    }
-
-    @Override
-    public List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
                                                                    Float partitionCoefficient,
                                                                    Collection<String> stationCodes) {
         if (stationCodes == null || stationCodes.isEmpty()) {
@@ -127,13 +120,6 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
         }
         return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
                 partitionCoefficient, InfluxDuration.DAILY, stationCodeAndClause(stationCodes));
-    }
-
-    @Override
-    public List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                                     Float partitionCoefficient) {
-        return queryAggregatedMeasurement(HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT,
-                startDate, endDate, partitionCoefficient, "", HuaweiHourlyProductionMonthlyPoint.class);
     }
 
     @Override
@@ -163,6 +149,12 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     private <T> List<ProductionByTime> queryAggregatedMeasurement(String measurement, OffsetDateTime startDate,
                                                                   OffsetDateTime endDate, Float partitionCoefficient,
                                                                   String stationClause, Class<T> pointType) {
+        // Unreachable through the public API today — every public caller already guards on an empty
+        // stationCodes collection before building a non-blank clause. Kept as the actual invariant point
+        // so no future caller (public or private) can ever emit an unrestricted query.
+        if (stationClause == null || stationClause.isBlank()) {
+            return Collections.emptyList();
+        }
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
                     "SELECT \"inverter_power\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s'%s",
@@ -211,6 +203,12 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
                                                                                 Float partitionCoefficient,
                                                                                 String duration,
                                                                                 String stationClause) {
+        // Unreachable through the public API today — every public caller already guards on an empty
+        // stationCodes collection before building a non-blank clause. Kept as the actual invariant point
+        // so no future caller (public or private) can ever emit an unrestricted query.
+        if (stationClause == null || stationClause.isBlank()) {
+            return Collections.emptyList();
+        }
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
                     "SELECT SUM(\"%s\")*%s AS \"%s\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s'%s GROUP BY time(%s)",
