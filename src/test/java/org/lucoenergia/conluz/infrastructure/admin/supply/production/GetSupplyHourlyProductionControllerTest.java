@@ -9,6 +9,9 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -41,11 +44,20 @@ class GetSupplyHourlyProductionControllerTest extends BaseControllerTest {
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
+    private CreatePlantRepository createPlantRepository;
+    @Autowired
     private EnergyProductionInfluxLoader energyProductionInfluxLoader;
 
     @BeforeEach
     void beforeEach() {
         energyProductionInfluxLoader.loadData();
+        // Register a plant in the default community whose code matches the seeded InfluxDB station_code,
+        // so the per-supply production query (scoped to the supply's community) resolves data.
+        User plantOwner = createUserRepository.create(UserMother.randomUser());
+        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()));
+        createPlantRepository.create(
+                PlantMother.random(plantSupply).withCode(EnergyProductionInfluxLoader.STATION_CODE).build(),
+                SupplyId.of(plantSupply.getId()));
     }
 
     @AfterEach

@@ -42,7 +42,7 @@ public class GetProductionServiceImpl implements GetProductionService {
         }
 
         return getProductionRepository.getHourlyProductionByRangeOfDates(startDate,
-                endDate, supply.get().getPartitionCoefficient());
+                endDate, supply.get().getPartitionCoefficient(), resolveStationCodes(supply.get()));
     }
 
     @Override
@@ -54,7 +54,7 @@ public class GetProductionServiceImpl implements GetProductionService {
         }
 
         return getProductionRepository.getDailyProductionByRangeOfDates(startDate,
-                endDate, supply.get().getPartitionCoefficient());
+                endDate, supply.get().getPartitionCoefficient(), resolveStationCodes(supply.get()));
     }
 
     @Override
@@ -66,7 +66,7 @@ public class GetProductionServiceImpl implements GetProductionService {
         }
 
         return getProductionRepository.getMonthlyProductionByRangeOfDates(startDate,
-                endDate, supply.get().getPartitionCoefficient());
+                endDate, supply.get().getPartitionCoefficient(), resolveStationCodes(supply.get()));
     }
 
     // --- Community-scoped variants ---
@@ -146,6 +146,22 @@ public class GetProductionServiceImpl implements GetProductionService {
         Supply supply = requireSupplyInCommunity(id, communityId);
         return getProductionRepository.getYearlyProductionByRangeOfDates(startDate, endDate,
                 supply.getPartitionCoefficient(), getPlantRepository.findPlantCodesByCommunity(communityId));
+    }
+
+    /**
+     * Resolves the InfluxDB station codes contributing to a supply's shared production.
+     * Approximation: production is shared across the whole community via partition coefficients,
+     * and most supplies own no plant of their own, so all plant codes of the supply's community are
+     * used. A supply with no community resolves to no station codes (empty result, never an
+     * unrestricted query) — defensive only; supplies.community_id is NOT NULL in the schema.
+     * Replace with an exact lookup once the (plant_id, supply_id) participation table exists
+     * (phase 2d of the Sharing Agreements epic) and the resolver that consumes it lands (phase 4).
+     */
+    private List<String> resolveStationCodes(Supply supply) {
+        if (supply.getCommunity() == null) {
+            return List.of();
+        }
+        return getPlantRepository.findPlantCodesByCommunity(supply.getCommunity().getId());
     }
 
     /**

@@ -49,18 +49,23 @@ class GetProductionServiceTest {
     @Test
     void getHourlyProductionByRangeOfDatesAndSupply_appliesSupplyPartitionCoefficient() {
         UUID supplyUuid = UUID.randomUUID();
+        UUID communityId = UUID.randomUUID();
         SupplyId supplyId = SupplyId.of(supplyUuid);
-        Supply supply = SupplyMother.random().withId(supplyUuid).withPartitionCoefficient(0.4f).build();
+        Community community = CommunityMother.random().withId(communityId).build();
+        Supply supply = SupplyMother.random().withId(supplyUuid).withPartitionCoefficient(0.4f)
+                .withCommunity(community).build();
+        List<String> stationCodes = List.of("PLANT001");
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 10d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate, 0.4f))
+        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate, 0.4f, stationCodes))
                 .thenReturn(expected);
 
         List<ProductionByTime> result = service.getHourlyProductionByRangeOfDatesAndSupply(startDate, endDate, supplyId);
 
         assertSame(expected, result);
-        verify(getProductionRepository).getHourlyProductionByRangeOfDates(startDate, endDate, 0.4f);
+        verify(getProductionRepository).getHourlyProductionByRangeOfDates(startDate, endDate, 0.4f, stationCodes);
     }
 
     @Test
@@ -76,18 +81,23 @@ class GetProductionServiceTest {
     @Test
     void getDailyProductionByRangeOfDatesAndSupply_appliesSupplyPartitionCoefficient() {
         UUID supplyUuid = UUID.randomUUID();
+        UUID communityId = UUID.randomUUID();
         SupplyId supplyId = SupplyId.of(supplyUuid);
-        Supply supply = SupplyMother.random().withId(supplyUuid).withPartitionCoefficient(0.25f).build();
+        Community community = CommunityMother.random().withId(communityId).build();
+        Supply supply = SupplyMother.random().withId(supplyUuid).withPartitionCoefficient(0.25f)
+                .withCommunity(community).build();
+        List<String> stationCodes = List.of("PLANT001");
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 5d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate, 0.25f))
+        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate, 0.25f, stationCodes))
                 .thenReturn(expected);
 
         List<ProductionByTime> result = service.getDailyProductionByRangeOfDatesAndSupply(startDate, endDate, supplyId);
 
         assertSame(expected, result);
-        verify(getProductionRepository).getDailyProductionByRangeOfDates(startDate, endDate, 0.25f);
+        verify(getProductionRepository).getDailyProductionByRangeOfDates(startDate, endDate, 0.25f, stationCodes);
     }
 
     @Test
@@ -103,18 +113,23 @@ class GetProductionServiceTest {
     @Test
     void getMonthlyProductionByRangeOfDatesAndSupply_appliesSupplyPartitionCoefficient() {
         UUID supplyUuid = UUID.randomUUID();
+        UUID communityId = UUID.randomUUID();
         SupplyId supplyId = SupplyId.of(supplyUuid);
-        Supply supply = SupplyMother.random().withId(supplyUuid).withPartitionCoefficient(0.75f).build();
+        Community community = CommunityMother.random().withId(communityId).build();
+        Supply supply = SupplyMother.random().withId(supplyUuid).withPartitionCoefficient(0.75f)
+                .withCommunity(community).build();
+        List<String> stationCodes = List.of("PLANT001");
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 100d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate, 0.75f))
+        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate, 0.75f, stationCodes))
                 .thenReturn(expected);
 
         List<ProductionByTime> result = service.getMonthlyProductionByRangeOfDatesAndSupply(startDate, endDate, supplyId);
 
         assertSame(expected, result);
-        verify(getProductionRepository).getMonthlyProductionByRangeOfDates(startDate, endDate, 0.75f);
+        verify(getProductionRepository).getMonthlyProductionByRangeOfDates(startDate, endDate, 0.75f, stationCodes);
     }
 
     @Test
