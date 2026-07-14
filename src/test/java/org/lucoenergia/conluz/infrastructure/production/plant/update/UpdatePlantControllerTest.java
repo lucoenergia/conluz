@@ -63,6 +63,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         // Modify data of the plant
         UpdatePlantBody plantModified = new UpdatePlantBody();
         plantModified.setProviderCode("TS-234123");
+        plantModified.setRegulatoryCode("ES0021000000000001JN0F");
         plantModified.setSupplyCode(supplyTwo.getCode());
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
@@ -81,12 +82,50 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(plantOne.getId().toString()))
                 .andExpect(jsonPath("$.providerCode").value(plantModified.getProviderCode()))
+                .andExpect(jsonPath("$.regulatoryCode").value(plantModified.getRegulatoryCode()))
                 .andExpect(jsonPath("$.supply.code").value(plantModified.getSupplyCode()))
                 .andExpect(jsonPath("$.name").value(plantModified.getName()))
                 .andExpect(jsonPath("$.description").value(plantModified.getDescription()))
                 .andExpect(jsonPath("$.connectionDate").value(plantModified.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.inverterProvider").value(plantModified.getInverterProvider().name()))
                 .andExpect(jsonPath("$.totalPower").value(plantModified.getTotalPower()));
+    }
+
+    @Test
+    void testOmittingRegulatoryCodeNullsItOut() throws Exception {
+
+        // PUT is a full replace: omitting an optional field in the body clears it, same as the
+        // existing behavior for description/connectionDate.
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
+        Supply supply = SupplyMother.random().build();
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+
+        Plant plant = PlantMother.random(supply)
+                .withProviderCode("TS-987654")
+                .withRegulatoryCode("ES0021000000000001JN0F")
+                .build();
+        plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        UpdatePlantBody plantModified = new UpdatePlantBody();
+        plantModified.setProviderCode("TS-987654");
+        plantModified.setSupplyCode(supply.getCode());
+        plantModified.setName("Main plant");
+        plantModified.setAddress("Fake Street 666");
+        plantModified.setTotalPower(25.6D);
+        plantModified.setInverterProvider(InverterProvider.HUAWEI);
+
+        String bodyAsString = objectMapper.writeValueAsString(plantModified);
+
+        mockMvc.perform(put(String.format("/api/v1/plants/%s", plant.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyAsString))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.regulatoryCode").isEmpty());
     }
 
     @Test

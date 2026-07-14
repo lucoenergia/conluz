@@ -16,6 +16,10 @@ public class PlantResponse {
             "PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the " +
             "regulator's code is regulatory_code.")
     private final String providerCode;
+    @Schema(description = "The identifier assigned by the regulator. In Spain this is the CAU " +
+            "(Codigo de Autoconsumo). It is not the provider's station code (provider_code) and " +
+            "not a CUPS.")
+    private final String regulatoryCode;
     private final SupplyResponse supply;
     private final String name;
     private final String address;
@@ -27,6 +31,7 @@ public class PlantResponse {
     public PlantResponse(Plant plant) {
         this.id = plant.getId();
         this.providerCode = plant.getProviderCode();
+        this.regulatoryCode = plant.getRegulatoryCode();
         this.supply = new SupplyResponse(plant.getSupply());
         this.name = plant.getName();
         this.address = plant.getAddress();
@@ -42,6 +47,10 @@ public class PlantResponse {
 
     public String getProviderCode() {
         return providerCode;
+    }
+
+    public String getRegulatoryCode() {
+        return regulatoryCode;
     }
 
     public SupplyResponse getSupply() {

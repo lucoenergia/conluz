@@ -22,6 +22,12 @@ public class PlantEntity {
      */
     @Column(name = "provider_code")
     private String providerCode;
+    /**
+     * The identifier assigned by the regulator. In Spain this is the CAU (Código de Autoconsumo).
+     * It is not the provider's station code ({@code provider_code}) and not a CUPS.
+     */
+    @Column(name = "regulatory_code")
+    private String regulatoryCode;
     @ManyToOne(fetch = FetchType.LAZY)
     private SupplyEntity supply;
     private String address;
@@ -56,6 +62,14 @@ public class PlantEntity {
 
     public void setProviderCode(String providerCode) {
         this.providerCode = providerCode;
+    }
+
+    public String getRegulatoryCode() {
+        return regulatoryCode;
+    }
+
+    public void setRegulatoryCode(String regulatoryCode) {
+        this.regulatoryCode = regulatoryCode;
     }
 
     public SupplyEntity getSupply() {
@@ -124,6 +138,7 @@ public class PlantEntity {
         private UUID id;
         private String name;
         private String providerCode;
+        private String regulatoryCode;
         private SupplyEntity supply;
         private String address;
         private String description;
@@ -143,6 +158,11 @@ public class PlantEntity {
 
         public Builder withProviderCode(String providerCode) {
             this.providerCode = providerCode;
+            return this;
+        }
+
+        public Builder withRegulatoryCode(String regulatoryCode) {
+            this.regulatoryCode = regulatoryCode;
             return this;
         }
 
@@ -182,6 +202,7 @@ public class PlantEntity {
             plantEntity.setId(id);
             plantEntity.setName(name);
             plantEntity.setProviderCode(providerCode);
+            plantEntity.setRegulatoryCode(regulatoryCode);
             plantEntity.setSupply(supply);
             plantEntity.setAddress(address);
             plantEntity.setDescription(description);
