@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.platformadmin;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -14,6 +15,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,13 +63,21 @@ public class RevokePlatformAdminController {
                     description = "The request conflicts with the current state: the last platform admin cannot be revoked.",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RestError.class),
                             examples = @ExampleObject(
                                     value = """
                                             {
                                                "timestamp": "2024-01-03T10:10:25.534035352+01:00",
                                                "status": 409,
                                                "message": "Cannot revoke the last platform administrator.",
-                                               "traceId": "6e602860-80f7-4802-b20f-8b53fb011013"
+                                               "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                               "errors": [
+                                                 {
+                                                   "message": "Cannot revoke the last platform administrator.",
+                                                   "code": "USER_LAST_PLATFORM_ADMIN",
+                                                   "params": null
+                                                 }
+                                               ]
                                             }
                                             """
                             )
