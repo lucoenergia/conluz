@@ -109,7 +109,7 @@ class GetPlantServiceTest {
     }
 
     @Test
-    void findAllByCommunitiesAppliesDefaultSortByCodeWhenRequestIsUnsorted() {
+    void findAllByCommunitiesAppliesDefaultSortByProviderCodeWhenRequestIsUnsorted() {
         // arrange
         PagedRequest pagedRequest = PagedRequest.of(0, 10);
         when(repository.findAll(any())).thenReturn(new PagedResult<>(Collections.emptyList(), 0, 0L, 0, 0));
@@ -122,7 +122,7 @@ class GetPlantServiceTest {
         verify(repository).findAll(captor.capture());
         List<Order> orders = captor.getValue().getOrders();
         assertEquals(1, orders.size());
-        assertEquals("code", orders.get(0).getProperty());
+        assertEquals("providerCode", orders.get(0).getProperty());
         assertEquals(Direction.ASC, orders.get(0).getDirection());
     }
 

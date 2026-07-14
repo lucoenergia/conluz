@@ -118,10 +118,10 @@ class HuaweiProductionYearlyAggregationServiceTest {
         UUID communityId = UUID.randomUUID();
         Plant plant1 = PlantMother.random().build();
         Plant plant2 = PlantMother.random().build();
-        when(getPlantRepository.findPlantCodesByCommunity(communityId))
-                .thenReturn(List.of(plant1.getCode(), plant2.getCode()));
-        when(getEnergyStationRepository.findByCode(plant1.getCode())).thenReturn(Optional.of(plant1));
-        when(getEnergyStationRepository.findByCode(plant2.getCode())).thenReturn(Optional.of(plant2));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId))
+                .thenReturn(List.of(plant1.getProviderCode(), plant2.getProviderCode()));
+        when(getEnergyStationRepository.findByProviderCode(plant1.getProviderCode())).thenReturn(Optional.of(plant1));
+        when(getEnergyStationRepository.findByProviderCode(plant2.getProviderCode())).thenReturn(Optional.of(plant2));
 
         service.aggregateYearlyProductions(communityId, 2024);
 
@@ -133,10 +133,10 @@ class HuaweiProductionYearlyAggregationServiceTest {
     void testAggregateYearlyForSpecificPlant() {
         UUID communityId = UUID.randomUUID();
         Plant plant = PlantMother.random().build();
-        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
+        when(getEnergyStationRepository.findByProviderCode(plant.getProviderCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(List.of(plant.getProviderCode()));
 
-        service.aggregateYearlyProductions(communityId, plant.getCode(), 2024);
+        service.aggregateYearlyProductions(communityId, plant.getProviderCode(), 2024);
 
         verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(plant), eq(2024));
     }
@@ -144,11 +144,11 @@ class HuaweiProductionYearlyAggregationServiceTest {
     @Test
     void testAggregateYearlyForSpecificPlant_whenPlantNotFound_thenThrows() {
         UUID communityId = UUID.randomUUID();
-        String plantCode = "UNKNOWN";
-        when(getEnergyStationRepository.findByCode(plantCode)).thenReturn(Optional.empty());
+        String plantProviderCode = "UNKNOWN";
+        when(getEnergyStationRepository.findByProviderCode(plantProviderCode)).thenReturn(Optional.empty());
 
         assertThrows(PlantNotFoundException.class,
-                () -> service.aggregateYearlyProductions(communityId, plantCode, 2024));
+                () -> service.aggregateYearlyProductions(communityId, plantProviderCode, 2024));
 
         verify(aggregationRepository, never()).aggregateYearlyProduction(any(Plant.class), anyInt());
     }
@@ -157,11 +157,11 @@ class HuaweiProductionYearlyAggregationServiceTest {
     void testAggregateYearlyForSpecificPlant_whenPlantNotInCommunity_thenThrows() {
         UUID communityId = UUID.randomUUID();
         Plant plant = PlantMother.random().build();
-        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(Collections.emptyList());
+        when(getEnergyStationRepository.findByProviderCode(plant.getProviderCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(Collections.emptyList());
 
         assertThrows(PlantNotFoundException.class,
-                () -> service.aggregateYearlyProductions(communityId, plant.getCode(), 2024));
+                () -> service.aggregateYearlyProductions(communityId, plant.getProviderCode(), 2024));
 
         verify(aggregationRepository, never()).aggregateYearlyProduction(any(Plant.class), anyInt());
     }
@@ -185,8 +185,8 @@ class HuaweiProductionYearlyAggregationServiceTest {
         UUID communityId = UUID.randomUUID();
         Plant plant = PlantMother.random().build();
         when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(List.of(configForPlant(UUID.randomUUID())));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
-        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(List.of(plant.getProviderCode()));
+        when(getEnergyStationRepository.findByProviderCode(plant.getProviderCode())).thenReturn(Optional.of(plant));
 
         service.syncYearlyProductions(communityId, null, 2024);
 
@@ -198,10 +198,10 @@ class HuaweiProductionYearlyAggregationServiceTest {
         UUID communityId = UUID.randomUUID();
         Plant plant = PlantMother.random().build();
         when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(List.of(configForPlant(UUID.randomUUID())));
-        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
+        when(getEnergyStationRepository.findByProviderCode(plant.getProviderCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(List.of(plant.getProviderCode()));
 
-        service.syncYearlyProductions(communityId, plant.getCode(), 2024);
+        service.syncYearlyProductions(communityId, plant.getProviderCode(), 2024);
 
         verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(plant), eq(2024));
     }

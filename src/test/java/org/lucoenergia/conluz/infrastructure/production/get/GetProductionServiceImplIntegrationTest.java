@@ -79,7 +79,7 @@ class GetProductionServiceImplIntegrationTest extends BaseIntegrationTest {
                 SupplyMother.random().withPartitionCoefficient(1.0f).build(),
                 UserId.of(user.getId()), community.getId());
         createPlantRepository.create(
-                PlantMother.random(supply).withCode(stationCode).build(), SupplyId.of(supply.getId()));
+                PlantMother.random(supply).withProviderCode(stationCode).build(), SupplyId.of(supply.getId()));
         return supply;
     }
 

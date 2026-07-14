@@ -20,7 +20,7 @@ public class PlantEntityMapper extends BaseMapper<PlantEntity, Plant> {
     public Plant map(PlantEntity entity) {
         return new Plant.Builder()
                 .withId(entity.getId())
-                .withCode(entity.getCode())
+                .withProviderCode(entity.getProviderCode())
                 .withAddress(entity.getAddress())
                 .withName(entity.getName())
                 .withSupply(supplyEntityMapper.map(entity.getSupply()))

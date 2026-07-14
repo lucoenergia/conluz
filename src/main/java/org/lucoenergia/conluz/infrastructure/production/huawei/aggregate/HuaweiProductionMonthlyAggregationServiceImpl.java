@@ -73,27 +73,27 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
     }
 
     @Override
-    public void aggregateMonthlyProductions(UUID communityId, String plantCode, Month month, int year) {
-        Plant plant = getEnergyStationRepository.findByCode(plantCode)
-                .orElseThrow(() -> new PlantNotFoundException(plantCode));
-        if (!getPlantRepository.findPlantCodesByCommunity(communityId).contains(plantCode)) {
-            throw new PlantNotFoundException(plantCode);
+    public void aggregateMonthlyProductions(UUID communityId, String plantProviderCode, Month month, int year) {
+        Plant plant = getEnergyStationRepository.findByProviderCode(plantProviderCode)
+                .orElseThrow(() -> new PlantNotFoundException(plantProviderCode));
+        if (!getPlantRepository.findPlantProviderCodesByCommunity(communityId).contains(plantProviderCode)) {
+            throw new PlantNotFoundException(plantProviderCode);
         }
         aggregateForPlantMonthYear(plant, month, year);
     }
 
     @Override
-    public void syncMonthlyProductions(UUID communityId, String plantCode, Integer month, int year) {
+    public void syncMonthlyProductions(UUID communityId, String plantProviderCode, Integer month, int year) {
         if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
             throw new HuaweiDisabledException();
         }
 
-        if (plantCode != null && !plantCode.isBlank()) {
+        if (plantProviderCode != null && !plantProviderCode.isBlank()) {
             if (month != null) {
-                aggregateMonthlyProductions(communityId, plantCode, Month.of(month), year);
+                aggregateMonthlyProductions(communityId, plantProviderCode, Month.of(month), year);
             } else {
                 for (Month everyMonth : Month.values()) {
-                    aggregateMonthlyProductions(communityId, plantCode, everyMonth, year);
+                    aggregateMonthlyProductions(communityId, plantProviderCode, everyMonth, year);
                 }
             }
         } else {
@@ -109,8 +109,8 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
      * Resolves the plants belonging to the given community from their codes.
      */
     private List<Plant> communityPlants(UUID communityId) {
-        return getPlantRepository.findPlantCodesByCommunity(communityId).stream()
-                .map(getEnergyStationRepository::findByCode)
+        return getPlantRepository.findPlantProviderCodesByCommunity(communityId).stream()
+                .map(getEnergyStationRepository::findByProviderCode)
                 .flatMap(Optional::stream)
                 .toList();
     }
@@ -120,7 +120,7 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
             aggregationRepository.aggregateMonthlyProduction(plant, month, year);
         } catch (Exception e) {
             LOGGER.error("Failed to aggregate monthly production for plant: {}, month: {}, year: {}",
-                    plant.getCode(), month, year, e);
+                    plant.getProviderCode(), month, year, e);
         }
     }
 }

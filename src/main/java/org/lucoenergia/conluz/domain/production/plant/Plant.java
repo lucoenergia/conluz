@@ -17,8 +17,14 @@ public class Plant {
     private UUID id;
     @NotBlank
     private String name;
+    /**
+     * The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as
+     * the {@code station_code} tag in InfluxDB: this is the join key between the PostgreSQL plant
+     * row and its time series. It is not a CUPS and not a CAU -- the regulator's code is
+     * {@code regulatory_code}.
+     */
     @NotBlank
-    private String code;
+    private String providerCode;
     @NotBlank
     private String address;
     @NotBlank
@@ -42,8 +48,8 @@ public class Plant {
         return name;
     }
 
-    public String getCode() {
-        return code;
+    public String getProviderCode() {
+        return providerCode;
     }
 
     public String getAddress() {
@@ -81,7 +87,7 @@ public class Plant {
     public static class Builder {
         private UUID id;
         private String name;
-        private String code;
+        private String providerCode;
         private String address;
         private String description;
         private InverterProvider inverterProvider;
@@ -99,8 +105,8 @@ public class Plant {
             return this;
         }
 
-        public Builder withCode(String code) {
-            this.code = code;
+        public Builder withProviderCode(String providerCode) {
+            this.providerCode = providerCode;
             return this;
         }
 
@@ -138,7 +144,7 @@ public class Plant {
             Plant station = new Plant();
             station.id = this.id;
             station.name = this.name;
-            station.code = this.code;
+            station.providerCode = this.providerCode;
             station.address = this.address;
             station.description = this.description;
             station.inverterProvider = this.inverterProvider;
@@ -153,19 +159,19 @@ public class Plant {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Plant plant)) return false;
-        return Objects.equals(getId(), plant.getId()) && Objects.equals(getName(), plant.getName()) && Objects.equals(getCode(), plant.getCode());
+        return Objects.equals(getId(), plant.getId()) && Objects.equals(getName(), plant.getName()) && Objects.equals(getProviderCode(), plant.getProviderCode());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getName(), getCode());
+        return Objects.hash(getId(), getName(), getProviderCode());
     }
 
     @Override
     public String toString() {
         return "Plant{" +
                 "name='" + name + '\'' +
-                ", code='" + code + '\'' +
+                ", providerCode='" + providerCode + '\'' +
                 ", id=" + id +
                 '}';
     }

@@ -22,10 +22,10 @@ public interface GetPlantRepository {
     PagedResult<Plant> findByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds);
 
     /**
-     * Codes of the plants belonging to the given community. These codes match the InfluxDB
+     * Provider codes of the plants belonging to the given community. These codes match the InfluxDB
      * {@code station_code} tag, so they can be used to scope time-series production queries.
      */
-    List<String> findPlantCodesByCommunity(UUID communityId);
+    List<String> findPlantProviderCodesByCommunity(UUID communityId);
 
     /**
      * Supply codes (CUPS) of the plants belonging to the given community. Used to detect which

@@ -64,8 +64,8 @@ class GetHuaweiRealTimeProductionRepositoryRestTest {
     void getRealTimeProduction_shouldReturnProductionWhenStationCodesIsNotEmpty() throws IOException {
         // Given
         List<Plant> stationCodes = Arrays.asList(
-                new Plant.Builder().withCode("BA4372D08E014822AB065017416F254C").build(),
-                new Plant.Builder().withCode("5D02E8B40AD342159AC8D8A2BCD4FAB5").build()
+                new Plant.Builder().withProviderCode("BA4372D08E014822AB065017416F254C").build(),
+                new Plant.Builder().withProviderCode("5D02E8B40AD342159AC8D8A2BCD4FAB5").build()
         );
 
         String responseBodyString = """

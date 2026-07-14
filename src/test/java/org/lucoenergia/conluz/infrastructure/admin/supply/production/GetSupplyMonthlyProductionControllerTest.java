@@ -56,7 +56,7 @@ class GetSupplyMonthlyProductionControllerTest extends BaseControllerTest {
         User plantOwner = createUserRepository.create(UserMother.randomUser());
         Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()));
         createPlantRepository.create(
-                PlantMother.random(plantSupply).withCode(EnergyProductionInfluxLoader.STATION_CODE).build(),
+                PlantMother.random(plantSupply).withProviderCode(EnergyProductionInfluxLoader.STATION_CODE).build(),
                 SupplyId.of(plantSupply.getId()));
     }
 

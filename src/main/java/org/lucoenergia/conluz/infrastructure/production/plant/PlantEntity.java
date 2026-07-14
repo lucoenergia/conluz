@@ -14,7 +14,14 @@ public class PlantEntity {
     @Id
     private UUID id;
     private String name;
-    private String code;
+    /**
+     * The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as
+     * the {@code station_code} tag in InfluxDB: this is the join key between the PostgreSQL plant
+     * row and its time series. It is not a CUPS and not a CAU -- the regulator's code is
+     * {@code regulatory_code}.
+     */
+    @Column(name = "provider_code")
+    private String providerCode;
     @ManyToOne(fetch = FetchType.LAZY)
     private SupplyEntity supply;
     private String address;
@@ -43,12 +50,12 @@ public class PlantEntity {
         this.name = name;
     }
 
-    public String getCode() {
-        return code;
+    public String getProviderCode() {
+        return providerCode;
     }
 
-    public void setCode(String code) {
-        this.code = code;
+    public void setProviderCode(String providerCode) {
+        this.providerCode = providerCode;
     }
 
     public SupplyEntity getSupply() {
@@ -103,12 +110,12 @@ public class PlantEntity {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof PlantEntity that)) return false;
-        return Objects.equals(getId(), that.getId()) && Objects.equals(getName(), that.getName()) && Objects.equals(getCode(), that.getCode());
+        return Objects.equals(getId(), that.getId()) && Objects.equals(getName(), that.getName()) && Objects.equals(getProviderCode(), that.getProviderCode());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getName(), getCode());
+        return Objects.hash(getId(), getName(), getProviderCode());
     }
 
 
@@ -116,7 +123,7 @@ public class PlantEntity {
 
         private UUID id;
         private String name;
-        private String code;
+        private String providerCode;
         private SupplyEntity supply;
         private String address;
         private String description;
@@ -134,8 +141,8 @@ public class PlantEntity {
             return this;
         }
 
-        public Builder withCode(String code) {
-            this.code = code;
+        public Builder withProviderCode(String providerCode) {
+            this.providerCode = providerCode;
             return this;
         }
 
@@ -174,7 +181,7 @@ public class PlantEntity {
 
             plantEntity.setId(id);
             plantEntity.setName(name);
-            plantEntity.setCode(code);
+            plantEntity.setProviderCode(providerCode);
             plantEntity.setSupply(supply);
             plantEntity.setAddress(address);
             plantEntity.setDescription(description);

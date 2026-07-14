@@ -11,12 +11,16 @@ import org.lucoenergia.conluz.domain.production.plant.Plant;
 import java.time.LocalDate;
 
 @Schema(requiredProperties = {
-        "code", "name", "address", "totalPower"
+        "providerCode", "name", "address", "totalPower"
 })
 public class CreatePlantBody {
 
+    @Schema(description = "The plant identifier assigned by the inverter provider (currently Huawei). " +
+            "Used verbatim as the station_code tag in InfluxDB: this is the join key between the " +
+            "PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the " +
+            "regulator's code is regulatory_code.")
     @NotBlank
-    private String code;
+    private String providerCode;
     @NotBlank
     private String name;
     private String description;
@@ -30,12 +34,12 @@ public class CreatePlantBody {
     @Positive
     private Double totalPower;
 
-    public String getCode() {
-        return code;
+    public String getProviderCode() {
+        return providerCode;
     }
 
-    public void setCode(String code) {
-        this.code = code;
+    public void setProviderCode(String providerCode) {
+        this.providerCode = providerCode;
     }
 
     public String getName() {
@@ -96,7 +100,7 @@ public class CreatePlantBody {
 
     public Plant mapToPlant() {
         Plant.Builder builder = new Plant.Builder();
-        builder.withCode(code)
+        builder.withProviderCode(providerCode)
                 .withAddress(address)
                 .withName(name)
                 .withDescription(description)

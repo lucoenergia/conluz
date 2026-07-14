@@ -58,8 +58,8 @@ public class GetPlantRepositoryDatabase implements GetPlantRepository {
     }
 
     @Override
-    public List<String> findPlantCodesByCommunity(UUID communityId) {
-        return plantRepository.findCodesByCommunityId(communityId);
+    public List<String> findPlantProviderCodesByCommunity(UUID communityId) {
+        return plantRepository.findProviderCodesByCommunityId(communityId);
     }
 
     @Override

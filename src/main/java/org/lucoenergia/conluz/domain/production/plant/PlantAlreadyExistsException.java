@@ -1,16 +1,16 @@
 package org.lucoenergia.conluz.domain.production.plant;
 
-import org.lucoenergia.conluz.domain.shared.PlantCode;
+import org.lucoenergia.conluz.domain.shared.PlantProviderCode;
 
 public class PlantAlreadyExistsException extends RuntimeException {
 
-    private final PlantCode code;
+    private final PlantProviderCode providerCode;
 
-    public PlantAlreadyExistsException(PlantCode code) {
-        this.code = code;
+    public PlantAlreadyExistsException(PlantProviderCode providerCode) {
+        this.providerCode = providerCode;
     }
 
-    public PlantCode getCode() {
-        return code;
+    public PlantProviderCode getProviderCode() {
+        return providerCode;
     }
 }

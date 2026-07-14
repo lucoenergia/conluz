@@ -73,14 +73,14 @@ public class GetProductionServiceImpl implements GetProductionService {
 
     @Override
     public InstantProduction getInstantProductionByCommunity(UUID communityId) {
-        return getProductionRepository.getInstantProduction(getPlantRepository.findPlantCodesByCommunity(communityId));
+        return getProductionRepository.getInstantProduction(getPlantRepository.findPlantProviderCodesByCommunity(communityId));
     }
 
     @Override
     public InstantProduction getInstantProductionByCommunityAndSupply(UUID communityId, SupplyId id) {
         Supply supply = requireSupplyInCommunity(id, communityId);
         InstantProduction total = getProductionRepository.getInstantProduction(
-                getPlantRepository.findPlantCodesByCommunity(communityId));
+                getPlantRepository.findPlantProviderCodesByCommunity(communityId));
         return new InstantProduction(total.getPower() * supply.getPartitionCoefficient());
     }
 
@@ -88,7 +88,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     public List<ProductionByTime> getHourlyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate,
                                                                                 OffsetDateTime endDate, UUID communityId) {
         return getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate, 1f,
-                getPlantRepository.findPlantCodesByCommunity(communityId));
+                getPlantRepository.findPlantProviderCodesByCommunity(communityId));
     }
 
     @Override
@@ -97,14 +97,14 @@ public class GetProductionServiceImpl implements GetProductionService {
                                                                                          UUID communityId, SupplyId id) {
         Supply supply = requireSupplyInCommunity(id, communityId);
         return getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate,
-                supply.getPartitionCoefficient(), getPlantRepository.findPlantCodesByCommunity(communityId));
+                supply.getPartitionCoefficient(), getPlantRepository.findPlantProviderCodesByCommunity(communityId));
     }
 
     @Override
     public List<ProductionByTime> getDailyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate,
                                                                                OffsetDateTime endDate, UUID communityId) {
         return getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate, 1f,
-                getPlantRepository.findPlantCodesByCommunity(communityId));
+                getPlantRepository.findPlantProviderCodesByCommunity(communityId));
     }
 
     @Override
@@ -113,14 +113,14 @@ public class GetProductionServiceImpl implements GetProductionService {
                                                                                         UUID communityId, SupplyId id) {
         Supply supply = requireSupplyInCommunity(id, communityId);
         return getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate,
-                supply.getPartitionCoefficient(), getPlantRepository.findPlantCodesByCommunity(communityId));
+                supply.getPartitionCoefficient(), getPlantRepository.findPlantProviderCodesByCommunity(communityId));
     }
 
     @Override
     public List<ProductionByTime> getMonthlyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate,
                                                                                  OffsetDateTime endDate, UUID communityId) {
         return getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate, 1f,
-                getPlantRepository.findPlantCodesByCommunity(communityId));
+                getPlantRepository.findPlantProviderCodesByCommunity(communityId));
     }
 
     @Override
@@ -129,14 +129,14 @@ public class GetProductionServiceImpl implements GetProductionService {
                                                                                           UUID communityId, SupplyId id) {
         Supply supply = requireSupplyInCommunity(id, communityId);
         return getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate,
-                supply.getPartitionCoefficient(), getPlantRepository.findPlantCodesByCommunity(communityId));
+                supply.getPartitionCoefficient(), getPlantRepository.findPlantProviderCodesByCommunity(communityId));
     }
 
     @Override
     public List<ProductionByTime> getYearlyProductionByRangeOfDatesAndCommunity(OffsetDateTime startDate,
                                                                                 OffsetDateTime endDate, UUID communityId) {
         return getProductionRepository.getYearlyProductionByRangeOfDates(startDate, endDate, 1f,
-                getPlantRepository.findPlantCodesByCommunity(communityId));
+                getPlantRepository.findPlantProviderCodesByCommunity(communityId));
     }
 
     @Override
@@ -145,7 +145,7 @@ public class GetProductionServiceImpl implements GetProductionService {
                                                                                          UUID communityId, SupplyId id) {
         Supply supply = requireSupplyInCommunity(id, communityId);
         return getProductionRepository.getYearlyProductionByRangeOfDates(startDate, endDate,
-                supply.getPartitionCoefficient(), getPlantRepository.findPlantCodesByCommunity(communityId));
+                supply.getPartitionCoefficient(), getPlantRepository.findPlantProviderCodesByCommunity(communityId));
     }
 
     /**
@@ -161,7 +161,7 @@ public class GetProductionServiceImpl implements GetProductionService {
         if (supply.getCommunity() == null) {
             return List.of();
         }
-        return getPlantRepository.findPlantCodesByCommunity(supply.getCommunity().getId());
+        return getPlantRepository.findPlantProviderCodesByCommunity(supply.getCommunity().getId());
     }
 
     /**

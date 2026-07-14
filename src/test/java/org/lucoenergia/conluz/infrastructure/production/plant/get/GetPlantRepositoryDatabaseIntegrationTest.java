@@ -86,7 +86,7 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
 
         assertTrue(result.isPresent());
         assertEquals(plant.getId(), result.get().getId());
-        assertEquals(plant.getCode(), result.get().getCode());
+        assertEquals(plant.getProviderCode(), result.get().getProviderCode());
     }
 
     @Test
@@ -160,7 +160,7 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void testFindPlantCodesByCommunityReturnsCodesOfPlantsOfThatCommunity() {
+    void testFindPlantProviderCodesByCommunityReturnsCodesOfPlantsOfThatCommunity() {
 
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         Community otherCommunity = createCommunityRepository.create(CommunityMother.random().build());
@@ -177,18 +177,18 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         createPlantRepository.create(PlantMother.random(supplyInOtherCommunity).build(),
                 SupplyId.of(supplyInOtherCommunity.getId()));
 
-        List<String> codes = getPlantRepositoryDatabase.findPlantCodesByCommunity(community.getId());
+        List<String> codes = getPlantRepositoryDatabase.findPlantProviderCodesByCommunity(community.getId());
 
         assertEquals(1, codes.size());
-        assertTrue(codes.contains(plantInCommunity.getCode()));
+        assertTrue(codes.contains(plantInCommunity.getProviderCode()));
     }
 
     @Test
-    void testFindPlantCodesByCommunityReturnsEmptyWhenCommunityHasNoPlants() {
+    void testFindPlantProviderCodesByCommunityReturnsEmptyWhenCommunityHasNoPlants() {
 
         Community community = createCommunityRepository.create(CommunityMother.random().build());
 
-        List<String> codes = getPlantRepositoryDatabase.findPlantCodesByCommunity(community.getId());
+        List<String> codes = getPlantRepositoryDatabase.findPlantProviderCodesByCommunity(community.getId());
 
         assertTrue(codes.isEmpty());
     }
@@ -216,7 +216,7 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         assertEquals(1, codes.size());
         // The CUPS (supply code) is returned, not the plant/station code.
         assertTrue(codes.contains(supplyInCommunity.getCode()));
-        assertFalse(codes.contains(plantInCommunity.getCode()));
+        assertFalse(codes.contains(plantInCommunity.getProviderCode()));
         assertFalse(codes.contains(supplyInOtherCommunity.getCode()));
     }
 
