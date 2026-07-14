@@ -41,11 +41,11 @@ public class SyncYearlyHuaweiProductionController {
 
                     The request body must contain:
                     - **year** (required, integer): The year for which to aggregate data
-                    - **plantCode** (optional, string): The plant code to aggregate. If not provided, all plants will be aggregated.
+                    - **plantProviderCode** (optional, string): The plant code to aggregate. If not provided, all plants will be aggregated.
 
                     **Behavior:**
-                    - If plantCode is provided: Aggregates only that specific plant
-                    - If plantCode is not provided or is empty: Aggregates all plants
+                    - If plantProviderCode is provided: Aggregates only that specific plant
+                    - If plantProviderCode is not provided or is empty: Aggregates all plants
 
                     **Note:** This aggregation requires that monthly aggregations have already been performed
                     for the specified year.
@@ -77,6 +77,6 @@ public class SyncYearlyHuaweiProductionController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncYearlyHuaweiProduction(@PathVariable UUID communityId,
                                            @Valid @RequestBody SyncYearlyHuaweiProductionBody body) {
-        aggregationService.syncYearlyProductions(communityId, body.getPlantCode(), body.getYear());
+        aggregationService.syncYearlyProductions(communityId, body.getPlantProviderCode(), body.getYear());
     }
 }

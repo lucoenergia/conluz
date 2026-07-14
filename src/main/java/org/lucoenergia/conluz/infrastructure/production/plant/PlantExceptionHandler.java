@@ -27,11 +27,11 @@ public class PlantExceptionHandler {
     @ExceptionHandler(PlantAlreadyExistsException.class)
     public ResponseEntity<RestError> handleException(PlantAlreadyExistsException e) {
 
-        String plantCode = e.getCode().toString();
+        String plantProviderCode = e.getProviderCode().toString();
 
         String message = messageSource.getMessage(
                 "error.plant.already.exists",
-                Collections.singletonList(plantCode).toArray(),
+                Collections.singletonList(plantProviderCode).toArray(),
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
@@ -40,7 +40,7 @@ public class PlantExceptionHandler {
     @ExceptionHandler(PlantNotFoundException.class)
     public ResponseEntity<RestError> handleException(PlantNotFoundException e) {
 
-        String plantIdentifier = e.getId() != null ? e.getId().toString() : e.getCode();
+        String plantIdentifier = e.getId() != null ? e.getId().toString() : e.getProviderCode();
 
         String message = messageSource.getMessage(
                 "error.plant.not.found",

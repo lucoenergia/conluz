@@ -10,12 +10,16 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Schema(requiredProperties = {
-        "code", "name", "address", "totalPower", "personalId", "inverterProvider"
+        "providerCode", "name", "address", "totalPower", "personalId", "inverterProvider"
 })
 public class UpdatePlantBody {
 
+    @Schema(description = "The plant identifier assigned by the inverter provider (currently Huawei). " +
+            "Used verbatim as the station_code tag in InfluxDB: this is the join key between the " +
+            "PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the " +
+            "regulator's code is regulatory_code.")
     @NotBlank
-    private String code;
+    private String providerCode;
     @NotBlank
     private String name;
     private String description;
@@ -29,12 +33,12 @@ public class UpdatePlantBody {
     @Positive
     private Double totalPower;
 
-    public String getCode() {
-        return code;
+    public String getProviderCode() {
+        return providerCode;
     }
 
-    public void setCode(String code) {
-        this.code = code;
+    public void setProviderCode(String providerCode) {
+        this.providerCode = providerCode;
     }
 
     public String getName() {
@@ -96,7 +100,7 @@ public class UpdatePlantBody {
     public Plant toPlant(UUID uuid) {
         Plant.Builder builder = new Plant.Builder();
         builder.withId(uuid)
-                .withCode(code)
+                .withProviderCode(providerCode)
                 .withName(name)
                 .withDescription(description)
                 .withInverterProvider(inverterProvider)

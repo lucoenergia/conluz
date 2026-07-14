@@ -31,7 +31,7 @@ class GetHuaweiHourlyProductionRepositoryRestIntegrationTest extends BaseIntegra
     void getHourlyProduction_shouldReturnProductionByDateIntervalWhenStationCodesIsNotEmpty() {
         // Given
         String stationCode = "code";
-        List<Plant> stationCodes = List.of(new Plant.Builder().withCode(stationCode).build());
+        List<Plant> stationCodes = List.of(new Plant.Builder().withProviderCode(stationCode).build());
 
         String username = "username";
         String password = "password";

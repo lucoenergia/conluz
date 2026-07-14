@@ -58,7 +58,7 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(plant.getId().toString()))
-                .andExpect(jsonPath("$.code").value(plant.getCode()))
+                .andExpect(jsonPath("$.providerCode").value(plant.getProviderCode()))
                 .andExpect(jsonPath("$.name").value(plant.getName()))
                 .andExpect(jsonPath("$.address").value(plant.getAddress()))
                 .andExpect(jsonPath("$.description").value(plant.getDescription()))
@@ -135,7 +135,7 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(plant.getId().toString()))
-                .andExpect(jsonPath("$.code").value(plant.getCode()));
+                .andExpect(jsonPath("$.providerCode").value(plant.getProviderCode()));
     }
 
     @Test

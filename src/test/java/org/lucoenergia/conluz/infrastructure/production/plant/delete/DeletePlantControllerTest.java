@@ -56,11 +56,11 @@ class DeletePlantControllerTest extends BaseControllerTest {
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
         // Create three supplies
-        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
         plantTwo = createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
-        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         // Login as an admin of the plant's community

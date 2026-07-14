@@ -5,7 +5,7 @@ import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
 import org.lucoenergia.conluz.domain.production.plant.PlantCannotBeCreatedException;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
-import org.lucoenergia.conluz.domain.shared.PlantCode;
+import org.lucoenergia.conluz.domain.shared.PlantProviderCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMapper;
@@ -42,14 +42,14 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
         if (result.isEmpty()) {
             throw new SupplyNotFoundException(id);
         }
-        if (plantRepository.countByCode(plant.getCode()) > 0) {
-            throw new PlantAlreadyExistsException(PlantCode.of(plant.getCode()));
+        if (plantRepository.countByProviderCode(plant.getProviderCode()) > 0) {
+            throw new PlantAlreadyExistsException(PlantProviderCode.of(plant.getProviderCode()));
         }
 
         SupplyEntity supplyEntity = result.get();
         PlantEntity plantEntity = new PlantEntity.Builder()
                 .withId(UUID.randomUUID())
-                .withCode(plant.getCode())
+                .withProviderCode(plant.getProviderCode())
                 .withName(plant.getName())
                 .withAddress(plant.getAddress())
                 .withDescription(plant.getDescription())
@@ -62,7 +62,7 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
 
         supplyRepository.save(supplyEntity);
 
-        Optional<PlantEntity> newPlantEntity = plantRepository.findByCode(plant.getCode());
+        Optional<PlantEntity> newPlantEntity = plantRepository.findByProviderCode(plant.getProviderCode());
         if (newPlantEntity.isEmpty()) {
             throw new PlantCannotBeCreatedException();
         }

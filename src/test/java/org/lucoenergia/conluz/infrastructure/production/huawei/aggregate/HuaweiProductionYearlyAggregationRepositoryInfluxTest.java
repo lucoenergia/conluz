@@ -51,7 +51,7 @@ class HuaweiProductionYearlyAggregationRepositoryInfluxTest extends BaseIntegrat
 
     @BeforeEach
     void setUp() {
-        plant = PlantMother.random().withCode(STATION_CODE).build();
+        plant = PlantMother.random().withProviderCode(STATION_CODE).build();
         clearMonthlyMeasurementForStation();
         loadMonthlyDataFor2023();
     }

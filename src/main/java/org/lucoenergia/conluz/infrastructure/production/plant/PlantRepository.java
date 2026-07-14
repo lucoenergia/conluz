@@ -16,9 +16,9 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
 
     List<PlantEntity> findAllByInverterProvider(InverterProvider provider);
 
-    int countByCode(String code);
+    int countByProviderCode(String providerCode);
 
-    Optional<PlantEntity> findByCode(String code);
+    Optional<PlantEntity> findByProviderCode(String providerCode);
 
     /**
      * Plants whose supply belongs to any of the given communities. An empty collection yields an empty page.
@@ -26,16 +26,16 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
     Page<PlantEntity> findBySupplyCommunityIdIn(Collection<UUID> communityIds, Pageable pageable);
 
     /**
-     * Codes of the plants whose supply belongs to the given community. These codes match the
-     * {@code station_code} tag used in InfluxDB, so they can be used to scope time-series queries.
+     * Provider codes of the plants whose supply belongs to the given community. These codes match
+     * the {@code station_code} tag used in InfluxDB, so they can be used to scope time-series queries.
      */
-    @Query("SELECT p.code FROM plants p WHERE p.supply.community.id = :communityId")
-    List<String> findCodesByCommunityId(@Param("communityId") UUID communityId);
+    @Query("SELECT p.providerCode FROM plants p WHERE p.supply.community.id = :communityId")
+    List<String> findProviderCodesByCommunityId(@Param("communityId") UUID communityId);
 
     /**
      * Supply codes (CUPS) of the plants whose supply belongs to the given community. Unlike
-     * {@link #findCodesByCommunityId(UUID)} (the plant/station code), this returns the CUPS used
-     * as the {@code cups} tag in the Datadis measurements.
+     * {@link #findProviderCodesByCommunityId(UUID)} (the plant/station provider code), this returns
+     * the CUPS used as the {@code cups} tag in the Datadis measurements.
      */
     @Query("SELECT p.supply.code FROM plants p WHERE p.supply.community.id = :communityId")
     List<String> findSupplyCodesByCommunityId(@Param("communityId") UUID communityId);

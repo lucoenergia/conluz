@@ -1,15 +1,15 @@
 package org.lucoenergia.conluz.domain.shared;
 
-public class PlantCode {
+public class PlantProviderCode {
 
     private final String code;
 
-    public PlantCode(String code) {
+    public PlantProviderCode(String code) {
         this.code = code;
     }
 
-    public static PlantCode of(String code) {
-        return new PlantCode(code);
+    public static PlantProviderCode of(String code) {
+        return new PlantProviderCode(code);
     }
 
     public String getCode() {

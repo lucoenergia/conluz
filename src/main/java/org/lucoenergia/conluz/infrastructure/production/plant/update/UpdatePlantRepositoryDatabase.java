@@ -40,7 +40,7 @@ public class UpdatePlantRepositoryDatabase implements UpdatePlantRepository {
             throw new PlantNotFoundException(PlantId.of(plantId));
         }
         PlantEntity currentPlant = result.get();
-        currentPlant.setCode(plant.getCode());
+        currentPlant.setProviderCode(plant.getProviderCode());
         currentPlant.setName(plant.getName());
         currentPlant.setDescription(plant.getDescription());
         currentPlant.setAddress(plant.getAddress());

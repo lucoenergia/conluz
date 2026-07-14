@@ -40,7 +40,7 @@ public class HuaweiProductionMonthlyAggregationRepositoryInflux implements Huawe
     public void aggregateMonthlyProduction(Plant plant, Month month, int year) {
 
         LOGGER.info("Aggregating monthly production for plant: {}, month: {}, year: {}",
-                plant.getCode(), month, year);
+                plant.getProviderCode(), month, year);
 
         final String startDate = dateConverter.convertToFirstDayOfTheMonthAsString(month, year);
         final String endDate = dateConverter.convertToLastDayOfTheMonthAsString(month, year);
@@ -62,7 +62,7 @@ public class HuaweiProductionMonthlyAggregationRepositoryInflux implements Huawe
                     GROUP BY station_code
                     """,
                     HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
-                    plant.getCode(),
+                    plant.getProviderCode(),
                     startDate,
                     endDate));
 
@@ -78,7 +78,7 @@ public class HuaweiProductionMonthlyAggregationRepositoryInflux implements Huawe
 
             if (aggregatedData.isEmpty()) {
                 LOGGER.warn("No hourly data found to aggregate for plant: {}, month: {}, year: {}",
-                        plant.getCode(), month, year);
+                        plant.getProviderCode(), month, year);
                 return;
             }
 
@@ -92,7 +92,7 @@ public class HuaweiProductionMonthlyAggregationRepositoryInflux implements Huawe
 
             Point point = Point.measurement(HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT)
                     .time(timestamp, TimeUnit.MILLISECONDS)
-                    .tag("station_code", plant.getCode())
+                    .tag("station_code", plant.getProviderCode())
                     .addField("inverter_power", aggregated.getInverterPower() != null ? aggregated.getInverterPower() : 0.0)
                     .addField("ongrid_power", aggregated.getOngridPower() != null ? aggregated.getOngridPower() : 0.0)
                     .addField("power_profit", aggregated.getPowerProfit() != null ? aggregated.getPowerProfit() : 0.0)
@@ -104,7 +104,7 @@ public class HuaweiProductionMonthlyAggregationRepositoryInflux implements Huawe
             connection.write(batchPoints);
 
             LOGGER.info("Successfully aggregated monthly production for plant: {}, month: {}, year: {}",
-                    plant.getCode(), month, year);
+                    plant.getProviderCode(), month, year);
         }
     }
 }

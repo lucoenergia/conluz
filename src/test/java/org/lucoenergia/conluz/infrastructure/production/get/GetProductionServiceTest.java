@@ -58,7 +58,7 @@ class GetProductionServiceTest {
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 10d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate, 0.4f, stationCodes))
                 .thenReturn(expected);
 
@@ -106,7 +106,7 @@ class GetProductionServiceTest {
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 5d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate, 0.25f, stationCodes))
                 .thenReturn(expected);
 
@@ -154,7 +154,7 @@ class GetProductionServiceTest {
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 100d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate, 0.75f, stationCodes))
                 .thenReturn(expected);
 
@@ -198,7 +198,7 @@ class GetProductionServiceTest {
         List<String> stationCodes = List.of("PLANT001", "PLANT002");
         InstantProduction expected = new InstantProduction(42d);
 
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getInstantProduction(stationCodes)).thenReturn(expected);
 
         InstantProduction result = service.getInstantProductionByCommunity(communityId);
@@ -218,7 +218,7 @@ class GetProductionServiceTest {
         List<String> stationCodes = List.of("PLANT001");
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getInstantProduction(stationCodes)).thenReturn(new InstantProduction(80d));
 
         InstantProduction result = service.getInstantProductionByCommunityAndSupply(communityId, supplyId);
@@ -260,7 +260,7 @@ class GetProductionServiceTest {
         List<String> stationCodes = List.of("PLANT001");
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 10d));
 
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate, 1f, stationCodes))
                 .thenReturn(expected);
 
@@ -282,7 +282,7 @@ class GetProductionServiceTest {
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 3d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getHourlyProductionByRangeOfDates(startDate, endDate, 0.3f, stationCodes))
                 .thenReturn(expected);
 
@@ -299,7 +299,7 @@ class GetProductionServiceTest {
         List<String> stationCodes = List.of("PLANT001");
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 11d));
 
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate, 1f, stationCodes))
                 .thenReturn(expected);
 
@@ -321,7 +321,7 @@ class GetProductionServiceTest {
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 6d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getDailyProductionByRangeOfDates(startDate, endDate, 0.6f, stationCodes))
                 .thenReturn(expected);
 
@@ -338,7 +338,7 @@ class GetProductionServiceTest {
         List<String> stationCodes = List.of("PLANT001");
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 12d));
 
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate, 1f, stationCodes))
                 .thenReturn(expected);
 
@@ -360,7 +360,7 @@ class GetProductionServiceTest {
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 2d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getMonthlyProductionByRangeOfDates(startDate, endDate, 0.2f, stationCodes))
                 .thenReturn(expected);
 
@@ -377,7 +377,7 @@ class GetProductionServiceTest {
         List<String> stationCodes = List.of("PLANT001");
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 13d));
 
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getYearlyProductionByRangeOfDates(startDate, endDate, 1f, stationCodes))
                 .thenReturn(expected);
 
@@ -399,7 +399,7 @@ class GetProductionServiceTest {
         List<ProductionByTime> expected = List.of(new ProductionByTime(startDate, 9d));
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(stationCodes);
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(stationCodes);
         when(getProductionRepository.getYearlyProductionByRangeOfDates(startDate, endDate, 0.9f, stationCodes))
                 .thenReturn(expected);
 

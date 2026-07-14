@@ -63,23 +63,23 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
     }
 
     @Override
-    public void aggregateYearlyProductions(UUID communityId, String plantCode, int year) {
-        Plant plant = getEnergyStationRepository.findByCode(plantCode)
-                .orElseThrow(() -> new PlantNotFoundException(plantCode));
-        if (!getPlantRepository.findPlantCodesByCommunity(communityId).contains(plantCode)) {
-            throw new PlantNotFoundException(plantCode);
+    public void aggregateYearlyProductions(UUID communityId, String plantProviderCode, int year) {
+        Plant plant = getEnergyStationRepository.findByProviderCode(plantProviderCode)
+                .orElseThrow(() -> new PlantNotFoundException(plantProviderCode));
+        if (!getPlantRepository.findPlantProviderCodesByCommunity(communityId).contains(plantProviderCode)) {
+            throw new PlantNotFoundException(plantProviderCode);
         }
         aggregateForPlantYear(plant, year);
     }
 
     @Override
-    public void syncYearlyProductions(UUID communityId, String plantCode, int year) {
+    public void syncYearlyProductions(UUID communityId, String plantProviderCode, int year) {
         if (getHuaweiConfigRepository.getEnabledHuaweiConfigs().isEmpty()) {
             throw new HuaweiDisabledException();
         }
 
-        if (plantCode != null && !plantCode.isBlank()) {
-            aggregateYearlyProductions(communityId, plantCode, year);
+        if (plantProviderCode != null && !plantProviderCode.isBlank()) {
+            aggregateYearlyProductions(communityId, plantProviderCode, year);
         } else {
             aggregateYearlyProductions(communityId, year);
         }
@@ -89,8 +89,8 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
      * Resolves the plants belonging to the given community from their codes.
      */
     private List<Plant> communityPlants(UUID communityId) {
-        return getPlantRepository.findPlantCodesByCommunity(communityId).stream()
-                .map(getEnergyStationRepository::findByCode)
+        return getPlantRepository.findPlantProviderCodesByCommunity(communityId).stream()
+                .map(getEnergyStationRepository::findByProviderCode)
                 .flatMap(Optional::stream)
                 .toList();
     }
@@ -100,7 +100,7 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
             aggregationRepository.aggregateYearlyProduction(plant, year);
         } catch (Exception e) {
             LOGGER.error("Failed to aggregate yearly production for plant: {}, year: {}",
-                    plant.getCode(), year, e);
+                    plant.getProviderCode(), year, e);
         }
     }
 }
