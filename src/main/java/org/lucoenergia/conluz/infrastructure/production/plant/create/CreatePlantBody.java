@@ -21,6 +21,10 @@ public class CreatePlantBody {
             "regulator's code is regulatory_code.")
     @NotBlank
     private String providerCode;
+    @Schema(description = "The identifier assigned by the regulator. In Spain this is the CAU " +
+            "(Codigo de Autoconsumo). It is not the provider's station code (provider_code) and " +
+            "not a CUPS.")
+    private String regulatoryCode;
     @NotBlank
     private String name;
     private String description;
@@ -40,6 +44,14 @@ public class CreatePlantBody {
 
     public void setProviderCode(String providerCode) {
         this.providerCode = providerCode;
+    }
+
+    public String getRegulatoryCode() {
+        return regulatoryCode;
+    }
+
+    public void setRegulatoryCode(String regulatoryCode) {
+        this.regulatoryCode = regulatoryCode;
     }
 
     public String getName() {
@@ -101,6 +113,7 @@ public class CreatePlantBody {
     public Plant mapToPlant() {
         Plant.Builder builder = new Plant.Builder();
         builder.withProviderCode(providerCode)
+                .withRegulatoryCode(regulatoryCode)
                 .withAddress(address)
                 .withName(name)
                 .withDescription(description)

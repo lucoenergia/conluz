@@ -62,10 +62,12 @@ class CreatePlantControllerTest extends BaseControllerTest {
         supplyRepository.save(supply);
 
         String plantCode = "PS-456798";
+        String regulatoryCode = "ES0021000000000001JN0F";
 
         String body = String.format("""
                         {
                           "providerCode": "%s",
+                          "regulatoryCode": "%s",
                           "name": "Plant one",
                           "supplyCode": "%s",
                           "address": "Fake Street 123",
@@ -74,7 +76,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                           "connectionDate": "2024-05-23",
                           "inverterProvider": "HUAWEI"
                         }
-                """, plantCode, supply.getCode());
+                """, plantCode, regulatoryCode, supply.getCode());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -84,6 +86,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.providerCode").value(plantCode))
+                .andExpect(jsonPath("$.regulatoryCode").value(regulatoryCode))
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
                 .andExpect(jsonPath("$.name").value("Plant one"))
                 .andExpect(jsonPath("$.description").value("Plant number one"))
@@ -132,6 +135,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.providerCode").value(plantCode))
+                .andExpect(jsonPath("$.regulatoryCode").isEmpty())
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
                 .andExpect(jsonPath("$.name").value("Plant one"))
                 .andExpect(jsonPath("$.description").isEmpty())

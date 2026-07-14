@@ -50,6 +50,7 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
         PlantEntity plantEntity = new PlantEntity.Builder()
                 .withId(UUID.randomUUID())
                 .withProviderCode(plant.getProviderCode())
+                .withRegulatoryCode(plant.getRegulatoryCode())
                 .withName(plant.getName())
                 .withAddress(plant.getAddress())
                 .withDescription(plant.getDescription())

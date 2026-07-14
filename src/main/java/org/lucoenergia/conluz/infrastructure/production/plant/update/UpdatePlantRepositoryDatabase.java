@@ -41,6 +41,7 @@ public class UpdatePlantRepositoryDatabase implements UpdatePlantRepository {
         }
         PlantEntity currentPlant = result.get();
         currentPlant.setProviderCode(plant.getProviderCode());
+        currentPlant.setRegulatoryCode(plant.getRegulatoryCode());
         currentPlant.setName(plant.getName());
         currentPlant.setDescription(plant.getDescription());
         currentPlant.setAddress(plant.getAddress());

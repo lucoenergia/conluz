@@ -21,6 +21,7 @@ public class PlantEntityMapper extends BaseMapper<PlantEntity, Plant> {
         return new Plant.Builder()
                 .withId(entity.getId())
                 .withProviderCode(entity.getProviderCode())
+                .withRegulatoryCode(entity.getRegulatoryCode())
                 .withAddress(entity.getAddress())
                 .withName(entity.getName())
                 .withSupply(supplyEntityMapper.map(entity.getSupply()))

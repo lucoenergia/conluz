@@ -25,6 +25,11 @@ public class Plant {
      */
     @NotBlank
     private String providerCode;
+    /**
+     * The identifier assigned by the regulator. In Spain this is the CAU (Código de Autoconsumo).
+     * It is not the provider's station code ({@code provider_code}) and not a CUPS.
+     */
+    private String regulatoryCode;
     @NotBlank
     private String address;
     @NotBlank
@@ -50,6 +55,10 @@ public class Plant {
 
     public String getProviderCode() {
         return providerCode;
+    }
+
+    public String getRegulatoryCode() {
+        return regulatoryCode;
     }
 
     public String getAddress() {
@@ -88,6 +97,7 @@ public class Plant {
         private UUID id;
         private String name;
         private String providerCode;
+        private String regulatoryCode;
         private String address;
         private String description;
         private InverterProvider inverterProvider;
@@ -107,6 +117,11 @@ public class Plant {
 
         public Builder withProviderCode(String providerCode) {
             this.providerCode = providerCode;
+            return this;
+        }
+
+        public Builder withRegulatoryCode(String regulatoryCode) {
+            this.regulatoryCode = regulatoryCode;
             return this;
         }
 
@@ -145,6 +160,7 @@ public class Plant {
             station.id = this.id;
             station.name = this.name;
             station.providerCode = this.providerCode;
+            station.regulatoryCode = this.regulatoryCode;
             station.address = this.address;
             station.description = this.description;
             station.inverterProvider = this.inverterProvider;
