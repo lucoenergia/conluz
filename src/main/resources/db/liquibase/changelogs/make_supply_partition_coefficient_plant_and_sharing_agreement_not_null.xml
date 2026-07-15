@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="make_supply_partition_coefficient_plant_and_sharing_agreement_not_null" author="Víctor Cañizares">
+        <addNotNullConstraint tableName="supply_partition_coefficient" columnName="plant_id" columnDataType="UUID"/>
+        <addNotNullConstraint tableName="supply_partition_coefficient" columnName="sharing_agreement_id" columnDataType="UUID"/>
+        <rollback>
+            <dropNotNullConstraint tableName="supply_partition_coefficient" columnName="plant_id" columnDataType="UUID"/>
+            <dropNotNullConstraint tableName="supply_partition_coefficient" columnName="sharing_agreement_id" columnDataType="UUID"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

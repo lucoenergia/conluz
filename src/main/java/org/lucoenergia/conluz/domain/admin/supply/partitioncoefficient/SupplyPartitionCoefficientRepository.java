@@ -20,7 +20,7 @@ public interface SupplyPartitionCoefficientRepository {
 
     SupplyPartitionCoefficient save(SupplyPartitionCoefficient coefficient);
 
-    void closeActivePeriod(UUID supplyId, Instant validTo);
+    void closeActivePeriod(UUID supplyId, UUID plantId, Instant validTo);
 
     void syncSupplyPartitionCoefficient(UUID supplyId, BigDecimal newCoefficient);
 }

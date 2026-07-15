@@ -9,7 +9,15 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementEntity;
+import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementStatus;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -19,6 +27,8 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Files;
+import java.time.Instant;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
@@ -46,6 +56,12 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
     private CreateSupplyService createSupplyService;
     @Autowired
     private GetCommunityRepository getCommunityRepository;
+    @Autowired
+    private SupplyRepository supplyJpaRepository;
+    @Autowired
+    private PlantRepository plantRepository;
+    @Autowired
+    private SharingAgreementRepository sharingAgreementRepository;
 
     @Test
     void importsCoefficientsSuccessfully() throws Exception {
@@ -211,7 +227,37 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
         createUserRepository.create(user);
         Supply supply = SupplyMother.random(user).withCode(code).build();
         Community community = getCommunityRepository.findAll().stream().findFirst().get();
-        return createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), community.getId());
+        Supply created = createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), community.getId());
+        ensurePlantAndPublishedAgreement(created, community.getId());
+        return created;
+    }
+
+    /**
+     * The bulk import path resolves plant/agreement from each supply's community (interim
+     * phase-2d inference), so the community needs a plant with a PUBLISHED agreement. Idempotent
+     * per community: createSupplyWithCode is called multiple times per test, and a second plant for
+     * the same community would violate the one-plant-per-community invariant the resolution relies on.
+     */
+    private void ensurePlantAndPublishedAgreement(Supply supply, UUID communityId) {
+        PlantEntity plant = plantRepository.findBySupplyCommunityId(communityId)
+                .orElseGet(() -> {
+                    SupplyEntity supplyEntity = supplyJpaRepository.getReferenceById(supply.getId());
+                    return plantRepository.save(PlantMother.randomPlantEntity().withSupply(supplyEntity).build());
+                });
+
+        boolean hasPublishedAgreement = sharingAgreementRepository
+                .findFirstByPlantIdAndStatusOrderByCreatedAtDesc(plant.getId(), SharingAgreementStatus.PUBLISHED)
+                .isPresent();
+        if (!hasPublishedAgreement) {
+            SharingAgreementEntity agreement = new SharingAgreementEntity();
+            agreement.setId(UUID.randomUUID());
+            agreement.setPlant(plant);
+            agreement.setName("Test agreement " + UUID.randomUUID());
+            agreement.setStatus(SharingAgreementStatus.PUBLISHED);
+            agreement.setCreatedAt(Instant.now());
+            agreement.setCreatedBy(null);
+            sharingAgreementRepository.save(agreement);
+        }
     }
 
     private MockMultipartFile loadFixture(String classPathLocation, String contentType) throws Exception {

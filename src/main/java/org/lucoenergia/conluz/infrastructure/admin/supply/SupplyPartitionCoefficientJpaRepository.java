@@ -15,6 +15,12 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
     @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.supply.id = :supplyId AND e.validTo IS NULL")
     Optional<SupplyPartitionCoefficientEntity> findActiveBySupplyId(@Param("supplyId") UUID supplyId);
 
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.supply.id = :supplyId " +
+            "AND e.plant.id = :plantId AND e.validTo IS NULL")
+    Optional<SupplyPartitionCoefficientEntity> findActiveBySupplyIdAndPlantId(
+            @Param("supplyId") UUID supplyId,
+            @Param("plantId") UUID plantId);
+
     // valid_from inclusive, valid_to exclusive
     @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.supply.id = :supplyId " +
             "AND e.validFrom <= :timestamp AND (e.validTo IS NULL OR e.validTo > :timestamp)")
@@ -40,6 +46,6 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE SupplyPartitionCoefficientEntity e SET e.validTo = :validTo " +
-            "WHERE e.supply.id = :supplyId AND e.validTo IS NULL")
-    void closeActivePeriod(@Param("supplyId") UUID supplyId, @Param("validTo") Instant validTo);
+            "WHERE e.supply.id = :supplyId AND e.plant.id = :plantId AND e.validTo IS NULL")
+    void closeActivePeriod(@Param("supplyId") UUID supplyId, @Param("plantId") UUID plantId, @Param("validTo") Instant validTo);
 }

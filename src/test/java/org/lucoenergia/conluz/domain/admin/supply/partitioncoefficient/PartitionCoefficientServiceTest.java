@@ -2,9 +2,13 @@ package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient.PartitionCoefficientServiceImpl;
 
@@ -25,14 +29,21 @@ class PartitionCoefficientServiceTest {
     private PartitionCoefficientService service;
     private SupplyPartitionCoefficientRepository repository;
     private GetSupplyRepository getSupplyRepository;
+    private GetPlantRepository getPlantRepository;
+    private GetSharingAgreementRepository getSharingAgreementRepository;
 
     private static final UUID SUPPLY_ID = UUID.randomUUID();
+    private static final UUID COMMUNITY_ID = UUID.randomUUID();
+    private static final UUID PLANT_ID = UUID.randomUUID();
+    private static final UUID SHARING_AGREEMENT_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
         repository = mock(SupplyPartitionCoefficientRepository.class);
         getSupplyRepository = mock(GetSupplyRepository.class);
-        service = new PartitionCoefficientServiceImpl(repository, getSupplyRepository);
+        getPlantRepository = mock(GetPlantRepository.class);
+        getSharingAgreementRepository = mock(GetSharingAgreementRepository.class);
+        service = new PartitionCoefficientServiceImpl(repository, getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
     }
 
     // --- resolveCoefficient ---
@@ -153,14 +164,24 @@ class PartitionCoefficientServiceTest {
         Instant effectiveAt = Instant.parse("2025-06-01T00:00:00Z");
         BigDecimal newCoefficient = BigDecimal.valueOf(7.000000);
 
-        when(getSupplyRepository.findById(SupplyId.of(SUPPLY_ID))).thenReturn(Optional.of(mock(Supply.class)));
+        Community community = mock(Community.class);
+        when(community.getId()).thenReturn(COMMUNITY_ID);
+        Supply supply = mock(Supply.class);
+        when(supply.getCommunity()).thenReturn(community);
+        when(getSupplyRepository.findById(SupplyId.of(SUPPLY_ID))).thenReturn(Optional.of(supply));
+
+        Plant plant = mock(Plant.class);
+        when(plant.getId()).thenReturn(PLANT_ID);
+        when(getPlantRepository.findByCommunityId(COMMUNITY_ID)).thenReturn(Optional.of(plant));
+        when(getSharingAgreementRepository.findCurrentPublishedAgreementIdByPlantId(PLANT_ID))
+                .thenReturn(Optional.of(SHARING_AGREEMENT_ID));
 
         SupplyPartitionCoefficient saved = buildRecord(effectiveAt, null, newCoefficient);
         when(repository.save(any())).thenReturn(saved);
 
         SupplyPartitionCoefficient result = service.registerCoefficientChange(SUPPLY_ID, newCoefficient, effectiveAt);
 
-        verify(repository).closeActivePeriod(SUPPLY_ID, effectiveAt);
+        verify(repository).closeActivePeriod(SUPPLY_ID, PLANT_ID, effectiveAt);
         verify(repository).save(argThat(c ->
                 c.getSupplyId().equals(SUPPLY_ID)
                         && c.getCoefficient().equals(newCoefficient)

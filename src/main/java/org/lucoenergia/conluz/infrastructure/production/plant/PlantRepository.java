@@ -26,6 +26,14 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
     Page<PlantEntity> findBySupplyCommunityIdIn(Collection<UUID> communityIds, Pageable pageable);
 
     /**
+     * The single plant whose supply belongs to the given community. Throws
+     * {@link org.springframework.dao.IncorrectResultSizeDataAccessException} if more than one plant
+     * matches, which should never happen under the one-plant-per-community invariant relied on by
+     * the phase 2d migration.
+     */
+    Optional<PlantEntity> findBySupplyCommunityId(UUID communityId);
+
+    /**
      * Provider codes of the plants whose supply belongs to the given community. These codes match
      * the {@code station_code} tag used in InfluxDB, so they can be used to scope time-series queries.
      */

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Required by the exclusion constraint added later in this phase
+         (add_supply_partition_coefficient_no_overlapping_exclusion_constraint.xml), which needs
+         GiST support for plain equality types (UUID) via btree_gist. Not installed anywhere yet. -->
+    <changeSet id="enable_btree_gist_extension" author="Víctor Cañizares">
+        <sql>CREATE EXTENSION IF NOT EXISTS btree_gist;</sql>
+        <rollback>
+            <sql>DROP EXTENSION IF EXISTS btree_gist;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
