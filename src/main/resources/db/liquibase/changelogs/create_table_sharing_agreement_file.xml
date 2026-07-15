@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- The distributor file is evidence for a sharing_agreement; the coefficients in
+         supply_partition_coefficient are the source of truth. An agreement may have zero files
+         (phase 2d's synthetic migration agreement has none) or several over time: the latest one
+         wins, but older ones are kept rather than overwritten. -->
+    <changeSet id="create_table_sharing_agreement_file" author="Víctor Cañizares">
+        <createTable tableName="sharing_agreement_file" remarks="Evidence file(s) uploaded for a sharing_agreement. Zero files is a valid state; when more than one exists, the most recently uploaded is authoritative.">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="sharing_agreement_file_id_pk"/>
+            </column>
+            <column name="sharing_agreement_id" type="UUID" remarks="The agreement this file is evidence for.">
+                <constraints foreignKeyName="sharing_agreement_file_sharing_agreement_id_fk"
+                             referencedTableName="sharing_agreement" referencedColumnNames="id"
+                             nullable="false"/>
+            </column>
+            <column name="filename" type="TEXT" remarks="Original filename as uploaded.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="BYTEA" remarks="The raw file bytes. Stored verbatim; this phase does not parse the distributor file.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content_hash" type="TEXT" remarks="Hash of content, to detect re-uploads of the same file.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uploaded_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uploaded_by" type="UUID" remarks="The user who uploaded this file. Unlike sharing_agreement.created_by, this is never NULL: every file was uploaded by a real person, even when the owning agreement was created by the system.">
+                <constraints foreignKeyName="sharing_agreement_file_uploaded_by_fk"
+                             referencedTableName="users" referencedColumnNames="id"
+                             nullable="false"/>
+            </column>
+        </createTable>
+        <rollback>
+            <dropTable tableName="sharing_agreement_file"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
