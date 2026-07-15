@@ -6,8 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * No domain object, mapper, service or controller exists for this entity yet -- those arrive in
- * phase 5, once there is a real consumer.
+ * No controller exists for this entity yet -- HTTP access arrives in phase 5.
  */
 @Entity(name = "sharing_agreement_file")
 public class SharingAgreementFileEntity {
@@ -18,7 +17,11 @@ public class SharingAgreementFileEntity {
     @JoinColumn(name = "sharing_agreement_id")
     private SharingAgreementEntity sharingAgreement;
     private String filename;
-    @Lob
+    /**
+     * Deliberately no {@code @Lob}: on Hibernate 6 + PostgreSQL, {@code @Lob byte[]} maps to an
+     * OID reference (a bigint), not {@code bytea}, which is the column's actual type. A plain
+     * {@code byte[]} field maps directly to {@code bytea}.
+     */
     private byte[] content;
     @Column(name = "content_hash")
     private String contentHash;
