@@ -45,4 +45,6 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/add_regulatory_code_to_plants.xml" relativeToChangelogFile="true" />
     <include file="changelogs/create_table_sharing_agreement.xml" relativeToChangelogFile="true" />
     <include file="changelogs/create_table_sharing_agreement_file.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/drop_table_supplies_partitions.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/drop_table_sharing_agreements.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>
