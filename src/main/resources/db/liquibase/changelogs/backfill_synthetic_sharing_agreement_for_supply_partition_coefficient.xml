@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- One PUBLISHED, created_by=NULL (system-created, see create_table_sharing_agreement.xml)
+         sharing_agreement per plant that currently has supply_partition_coefficient rows, so the
+         following changeset can attach every existing coefficient to a real agreement.
+
+         plant_id does not exist on supply_partition_coefficient yet at this point in the chain, so
+         the plant is derived transitively: plants -> supplies (the plant's own supply) ->
+         community_id -> supplies (the coefficient-owning supplies) -> supply_partition_coefficient.
+
+         The `name` value below is a reserved sentinel, not a description: it is also used by this
+         changeset's rollback and by backfill_plant_and_sharing_agreement_on_supply_partition_coefficient.xml
+         to identify exactly these rows. No future agreement-creation code (including phase 5) may
+         reuse this exact string. -->
+    <changeSet id="backfill_synthetic_sharing_agreement_for_supply_partition_coefficient" author="Víctor Cañizares">
+        <sql>
+            INSERT INTO sharing_agreement (id, plant_id, name, notes, status, installed_power_kw, created_at, created_by)
+            SELECT gen_random_uuid(),
+                   plant_id,
+                   '[phase-2d-migration] Synthetic agreement (pre-model coefficients)',
+                   'Synthetic agreement created by the phase 2d migration to anchor supply_partition_coefficient rows that predate the sharing-agreement model. Not authored by any user -- see create_table_sharing_agreement.xml for why created_by is NULL rather than a synthetic system user.',
+                   'PUBLISHED',
+                   total_power::numeric,
+                   NOW(),
+                   NULL
+            FROM (
+                SELECT DISTINCT p.id AS plant_id, p.total_power
+                FROM plants p
+                JOIN supplies plant_supply ON plant_supply.id = p.supply_id
+                JOIN supplies coefficient_supply ON coefficient_supply.community_id = plant_supply.community_id
+                JOIN supply_partition_coefficient spc ON spc.supply_id = coefficient_supply.id
+            ) plants_with_coefficients;
+        </sql>
+        <rollback>
+            <sql>
+                DELETE FROM sharing_agreement
+                WHERE created_by IS NULL
+                  AND status = 'PUBLISHED'
+                  AND name = '[phase-2d-migration] Synthetic agreement (pre-model coefficients)';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import jakarta.persistence.*;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
+import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementEntity;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,6 +19,14 @@ public class SupplyPartitionCoefficientEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supply_id", nullable = false)
     private SupplyEntity supply;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "plant_id", nullable = false)
+    private PlantEntity plant;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sharing_agreement_id", nullable = false)
+    private SharingAgreementEntity sharingAgreement;
 
     @Column(name = "coefficient", nullable = false, precision = 18, scale = 6)
     private BigDecimal coefficient;
@@ -44,6 +54,22 @@ public class SupplyPartitionCoefficientEntity {
 
     public void setSupply(SupplyEntity supply) {
         this.supply = supply;
+    }
+
+    public PlantEntity getPlant() {
+        return plant;
+    }
+
+    public void setPlant(PlantEntity plant) {
+        this.plant = plant;
+    }
+
+    public SharingAgreementEntity getSharingAgreement() {
+        return sharingAgreement;
+    }
+
+    public void setSharingAgreement(SharingAgreementEntity sharingAgreement) {
+        this.sharingAgreement = sharingAgreement;
     }
 
     public BigDecimal getCoefficient() {

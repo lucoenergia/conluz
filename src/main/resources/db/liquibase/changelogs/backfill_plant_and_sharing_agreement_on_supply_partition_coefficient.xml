@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Attaches every existing coefficient row to the plant of its supply's community and to the
+         synthetic agreement created for that plant by the previous changeset. Same community-derived
+         plant lookup as that changeset, since plant_id is still NULL on every row at this point. -->
+    <changeSet id="backfill_plant_and_sharing_agreement_on_supply_partition_coefficient" author="Víctor Cañizares">
+        <sql>
+            UPDATE supply_partition_coefficient spc
+            SET plant_id = plant_lookup.plant_id,
+                sharing_agreement_id = sa.id
+            FROM (
+                SELECT s.id AS supply_id, p.id AS plant_id
+                FROM supplies s
+                JOIN supplies plant_supply ON plant_supply.community_id = s.community_id
+                JOIN plants p ON p.supply_id = plant_supply.id
+            ) plant_lookup
+            JOIN sharing_agreement sa
+              ON sa.plant_id = plant_lookup.plant_id
+             AND sa.name = '[phase-2d-migration] Synthetic agreement (pre-model coefficients)'
+            WHERE spc.supply_id = plant_lookup.supply_id;
+        </sql>
+        <rollback>
+            <sql>UPDATE supply_partition_coefficient SET plant_id = NULL, sharing_agreement_id = NULL;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

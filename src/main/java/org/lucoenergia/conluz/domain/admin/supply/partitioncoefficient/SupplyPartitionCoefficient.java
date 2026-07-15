@@ -8,6 +8,8 @@ public class SupplyPartitionCoefficient {
 
     private final UUID id;
     private final UUID supplyId;
+    private final UUID plantId;
+    private final UUID sharingAgreementId;
     private final BigDecimal coefficient;
     private final Instant validFrom;
     private final Instant validTo;
@@ -16,6 +18,8 @@ public class SupplyPartitionCoefficient {
     private SupplyPartitionCoefficient(Builder builder) {
         this.id = builder.id;
         this.supplyId = builder.supplyId;
+        this.plantId = builder.plantId;
+        this.sharingAgreementId = builder.sharingAgreementId;
         this.coefficient = builder.coefficient;
         this.validFrom = builder.validFrom;
         this.validTo = builder.validTo;
@@ -28,6 +32,14 @@ public class SupplyPartitionCoefficient {
 
     public UUID getSupplyId() {
         return supplyId;
+    }
+
+    public UUID getPlantId() {
+        return plantId;
+    }
+
+    public UUID getSharingAgreementId() {
+        return sharingAgreementId;
     }
 
     public BigDecimal getCoefficient() {
@@ -53,6 +65,8 @@ public class SupplyPartitionCoefficient {
     public static class Builder {
         private UUID id;
         private UUID supplyId;
+        private UUID plantId;
+        private UUID sharingAgreementId;
         private BigDecimal coefficient;
         private Instant validFrom;
         private Instant validTo;
@@ -65,6 +79,16 @@ public class SupplyPartitionCoefficient {
 
         public Builder withSupplyId(UUID supplyId) {
             this.supplyId = supplyId;
+            return this;
+        }
+
+        public Builder withPlantId(UUID plantId) {
+            this.plantId = plantId;
+            return this;
+        }
+
+        public Builder withSharingAgreementId(UUID sharingAgreementId) {
+            this.sharingAgreementId = sharingAgreementId;
             return this;
         }
 
