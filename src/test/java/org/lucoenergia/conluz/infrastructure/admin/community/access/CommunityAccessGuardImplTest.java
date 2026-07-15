@@ -10,7 +10,6 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -40,12 +39,10 @@ class CommunityAccessGuardImplTest {
     private GetSupplyRepository getSupplyRepository;
     @Mock
     private GetPlantRepository getPlantRepository;
-    @Mock
-    private GetSharingAgreementRepository getSharingAgreementRepository;
 
     private CommunityAccessGuard guard() {
         return new CommunityAccessGuardImpl(authService, getCommunityRepository, getMembershipsRepository,
-                getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
+                getSupplyRepository, getPlantRepository);
     }
 
     // --- canReadCommunity ---

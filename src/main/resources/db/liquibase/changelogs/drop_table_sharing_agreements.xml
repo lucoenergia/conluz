@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Legacy table: backed the CRUD sharing-agreement API removed in the previous commit.
+         Replaced by sharing_agreement (singular). Must run after drop_table_supplies_partitions,
+         which has a foreign key into this table. -->
+    <changeSet id="drop_table_sharing_agreements" author="Víctor Cañizares">
+        <preConditions onFail="HALT">
+            <sqlCheck expectedResult="0">SELECT count(*) FROM sharing_agreements</sqlCheck>
+        </preConditions>
+        <dropTable tableName="sharing_agreements"/>
+        <rollback>
+            <createTable tableName="sharing_agreements">
+                <column name="id" type="uuid">
+                    <constraints primaryKey="true" nullable="false"/>
+                </column>
+                <column name="start_date" type="DATE">
+                    <constraints nullable="false"/>
+                </column>
+                <column name="end_date" type="DATE">
+                    <constraints nullable="true"/>
+                </column>
+                <column name="community_id" type="UUID">
+                    <constraints nullable="false"
+                                 foreignKeyName="sharing_agreements_community_id_fk"
+                                 referencedTableName="communities" referencedColumnNames="id"/>
+                </column>
+            </createTable>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -48,14 +48,6 @@ public class SupplyEntity {
     )
     private List<PlantEntity> plants = new ArrayList<>();
 
-    @OneToMany(
-            mappedBy = "supply",
-            fetch = FetchType.LAZY,
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<SupplyPartitionEntity> partitions;
-
     public SupplyEntity() {
         enabled = true;
     }
@@ -292,17 +284,4 @@ public class SupplyEntity {
         plant.setSupply(null);
     }
 
-    public List<SupplyPartitionEntity> getPartitions() {
-        return partitions;
-    }
-
-    public void addPartition(SupplyPartitionEntity partition) {
-        partitions.add(partition);
-        partition.setSupply(this);
-    }
-
-    public void removePartition(SupplyPartitionEntity partition) {
-        partitions.remove(partition);
-        partition.setSupply(null);
-    }
 }
