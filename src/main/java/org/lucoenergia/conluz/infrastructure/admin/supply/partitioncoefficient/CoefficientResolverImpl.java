@@ -4,7 +4,7 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.Coefficie
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSegment;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -15,13 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Repository
+@Service
 @Transactional(readOnly = true)
-public class CoefficientResolverDatabase implements CoefficientResolver {
+public class CoefficientResolverImpl implements CoefficientResolver {
 
     private final SupplyPartitionCoefficientRepository repository;
 
-    public CoefficientResolverDatabase(SupplyPartitionCoefficientRepository repository) {
+    public CoefficientResolverImpl(SupplyPartitionCoefficientRepository repository) {
         this.repository = repository;
     }
 

@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class CoefficientResolverDatabaseTest {
+class CoefficientResolverImplTest {
 
     private static final UUID SUPPLY_ID = UUID.randomUUID();
     private static final UUID PLANT_ID = UUID.randomUUID();
@@ -32,7 +32,7 @@ class CoefficientResolverDatabaseTest {
     @BeforeEach
     void setUp() {
         repository = mock(SupplyPartitionCoefficientRepository.class);
-        resolver = new CoefficientResolverDatabase(repository);
+        resolver = new CoefficientResolverImpl(repository);
     }
 
     private SupplyPartitionCoefficient record(UUID plantId, BigDecimal coefficient, Instant validFrom, Instant validTo) {
