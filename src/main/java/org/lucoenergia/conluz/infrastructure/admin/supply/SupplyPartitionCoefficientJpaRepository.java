@@ -28,6 +28,22 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
             @Param("supplyId") UUID supplyId,
             @Param("timestamp") Instant timestamp);
 
+    // valid_from inclusive, valid_to exclusive; scoped to a single plant, unambiguous when a supply
+    // has concurrently-active coefficients across multiple plants
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId " +
+            "AND e.supply.id = :supplyId AND e.validFrom <= :timestamp AND (e.validTo IS NULL OR e.validTo > :timestamp)")
+    Optional<SupplyPartitionCoefficientEntity> findByPlantIdAndSupplyIdAtTimestamp(
+            @Param("plantId") UUID plantId,
+            @Param("supplyId") UUID supplyId,
+            @Param("timestamp") Instant timestamp);
+
+    // Every plant's coefficient for this supply active at timestamp (valid_from inclusive, valid_to exclusive)
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.supply.id = :supplyId " +
+            "AND e.validFrom <= :timestamp AND (e.validTo IS NULL OR e.validTo > :timestamp)")
+    List<SupplyPartitionCoefficientEntity> findAllBySupplyIdAtTimestamp(
+            @Param("supplyId") UUID supplyId,
+            @Param("timestamp") Instant timestamp);
+
     // Periods overlapping [from, to): period starts before to AND (period is open OR ends after from)
     @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.supply.id = :supplyId " +
             "AND e.validFrom < :to AND (e.validTo IS NULL OR e.validTo > :from) " +

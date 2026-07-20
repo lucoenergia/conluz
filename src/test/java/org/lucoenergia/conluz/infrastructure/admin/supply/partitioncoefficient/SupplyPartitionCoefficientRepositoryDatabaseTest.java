@@ -220,6 +220,79 @@ class SupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrationTe
         assertEquals(t2, history.get(2).getValidFrom());
     }
 
+    // --- Plant-scoped lookups (CoefficientResolver support) ---
+
+    @Test
+    void findByPlantIdAndSupplyIdAtTimestampDisambiguatesConcurrentPlants() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement1 = persistPlantAndPublishedAgreement(supply);
+        SharingAgreementEntity agreement2 = persistPlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        Instant queryAt = Instant.parse("2024-06-01T00:00:00Z");
+        // Same supply, concurrently active on two different plants -- only the exclusion constraint's
+        // (plant_id, supply_id) scoping (not supply_id alone) allows this.
+        persist(supply.getId(), agreement1.getPlant().getId(), agreement1.getId(), BigDecimal.valueOf(0.4), t0, null);
+        persist(supply.getId(), agreement2.getPlant().getId(), agreement2.getId(), BigDecimal.valueOf(0.6), t0, null);
+
+        Optional<SupplyPartitionCoefficient> onPlant1 = repository.findByPlantIdAndSupplyIdAtTimestamp(
+                agreement1.getPlant().getId(), supply.getId(), queryAt);
+        Optional<SupplyPartitionCoefficient> onPlant2 = repository.findByPlantIdAndSupplyIdAtTimestamp(
+                agreement2.getPlant().getId(), supply.getId(), queryAt);
+
+        assertTrue(onPlant1.isPresent());
+        assertEquals(0, BigDecimal.valueOf(0.4).compareTo(onPlant1.get().getCoefficient()));
+        assertTrue(onPlant2.isPresent());
+        assertEquals(0, BigDecimal.valueOf(0.6).compareTo(onPlant2.get().getCoefficient()));
+    }
+
+    @Test
+    void findByPlantIdAndSupplyIdAtTimestampRespectsHalfOpenBoundary() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        Instant changeAt = Instant.parse("2025-03-01T00:00:00Z");
+        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(),
+                BigDecimal.valueOf(1.0), Instant.parse("2024-01-01T00:00:00Z"), changeAt);
+        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(),
+                BigDecimal.valueOf(2.0), changeAt, null);
+
+        Optional<SupplyPartitionCoefficient> atChange = repository.findByPlantIdAndSupplyIdAtTimestamp(
+                agreement.getPlant().getId(), supply.getId(), changeAt);
+
+        assertTrue(atChange.isPresent());
+        assertEquals(0, BigDecimal.valueOf(2.0).compareTo(atChange.get().getCoefficient()));
+    }
+
+    @Test
+    void findAllBySupplyIdAtTimestampReturnsEveryPlantActiveForThatSupply() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement1 = persistPlantAndPublishedAgreement(supply);
+        SharingAgreementEntity agreement2 = persistPlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        Instant queryAt = Instant.parse("2024-06-01T00:00:00Z");
+        persist(supply.getId(), agreement1.getPlant().getId(), agreement1.getId(), BigDecimal.valueOf(0.4), t0, null);
+        persist(supply.getId(), agreement2.getPlant().getId(), agreement2.getId(), BigDecimal.valueOf(0.6), t0, null);
+
+        List<SupplyPartitionCoefficient> result = repository.findAllBySupplyIdAtTimestamp(supply.getId(), queryAt);
+
+        assertEquals(2, result.size());
+        assertTrue(result.stream().anyMatch(c -> c.getPlantId().equals(agreement1.getPlant().getId())));
+        assertTrue(result.stream().anyMatch(c -> c.getPlantId().equals(agreement2.getPlant().getId())));
+    }
+
+    @Test
+    void findAllBySupplyIdAtTimestampExcludesClosedPeriods() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        Instant t1 = Instant.parse("2024-06-01T00:00:00Z");
+        Instant queryAt = Instant.parse("2025-01-01T00:00:00Z");
+        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(0.4), t0, t1);
+
+        List<SupplyPartitionCoefficient> result = repository.findAllBySupplyIdAtTimestamp(supply.getId(), queryAt);
+
+        assertTrue(result.isEmpty());
+    }
+
     // --- Commit 2: exclusion constraint coverage ---
 
     @Test

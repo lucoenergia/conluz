@@ -65,6 +65,18 @@ public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyParti
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<SupplyPartitionCoefficient> findByPlantIdAndSupplyIdAtTimestamp(UUID plantId, UUID supplyId, Instant timestamp) {
+        return jpaRepository.findByPlantIdAndSupplyIdAtTimestamp(plantId, supplyId, timestamp).map(mapper::map);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SupplyPartitionCoefficient> findAllBySupplyIdAtTimestamp(UUID supplyId, Instant timestamp) {
+        return mapper.mapList(jpaRepository.findAllBySupplyIdAtTimestamp(supplyId, timestamp));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<SupplyPartitionCoefficient> findBySupplyIdInRange(UUID supplyId, Instant from, Instant to) {
         return mapper.mapList(jpaRepository.findBySupplyIdInRange(supplyId, from, to));
     }
