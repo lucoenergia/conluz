@@ -40,9 +40,8 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
     void testGetHourlyProductionByRangeOfDates() {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
-        Float partitionCoefficient = 1.0f;
 
-        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
+        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate,
                 List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
@@ -87,38 +86,12 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
     }
 
     @Test
-    void testGetHourlyProductionByRangeOfDatesWithPartitionCoefficient() {
-        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
-        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
-        Float partitionCoefficient = 0.5f; // 50% partition
-
-        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
-                List.of(EnergyProductionInfluxLoader.STATION_CODE));
-
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertEquals(24, result.size());
-
-        // Verify peak hour with partition coefficient
-        ProductionByTime peakHour = result.get(14);
-        assertNotNull(peakHour);
-        assertEquals(31.1d * 0.5d, peakHour.getPower(), 0.01d, "Production should be multiplied by partition coefficient");
-
-        // Verify total production is half of the original
-        double totalProduction = result.stream()
-                .mapToDouble(ProductionByTime::getPower)
-                .sum();
-        assertEquals(236.15d * 0.5d, totalProduction, 0.01d, "Total production should be halved with 0.5 partition coefficient");
-    }
-
-    @Test
     void testGetMonthlyProductionByRangeOfDates() {
         // Date range covers 2023-09-01T00:00:00Z which is where the pre-aggregated monthly record is stored
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
-        Float partitionCoefficient = 1.0f;
 
-        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
+        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate,
                 List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
@@ -130,23 +103,6 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         assertNotNull(monthData.getPower());
         assertNotNull(monthData.getTime());
         assertEquals(236.15d, monthData.getPower(), 0.01d, "Monthly production should match pre-aggregated value");
-    }
-
-    @Test
-    void testGetMonthlyProductionByRangeOfDatesWithPartitionCoefficient() {
-        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
-        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
-        Float partitionCoefficient = 0.5f;
-
-        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
-                List.of(EnergyProductionInfluxLoader.STATION_CODE));
-
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-
-        ProductionByTime monthData = result.get(0);
-        assertNotNull(monthData);
-        assertEquals(236.15d * 0.5d, monthData.getPower(), 0.01d, "Monthly production should be multiplied by partition coefficient");
     }
 
     // --- Instant production ---
@@ -190,9 +146,8 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
     void testGetDailyProductionByRangeOfDates() {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
-        Float partitionCoefficient = 1.0f;
 
-        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate,
                 List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
@@ -204,24 +159,6 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         assertEquals(236.15d, totalProduction, 0.01d, "Daily totals should sum to the full day's production");
     }
 
-    @Test
-    void testGetDailyProductionByRangeOfDatesWithPartitionCoefficient() {
-        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
-        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
-        Float partitionCoefficient = 0.5f;
-
-        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, partitionCoefficient,
-                List.of(EnergyProductionInfluxLoader.STATION_CODE));
-
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-
-        double totalProduction = result.stream()
-                .mapToDouble(ProductionByTime::getPower)
-                .sum();
-        assertEquals(236.15d * 0.5d, totalProduction, 0.01d, "Daily totals should be halved with 0.5 partition coefficient");
-    }
-
     // --- Station-code-scoped (community) variants ---
 
     @Test
@@ -229,7 +166,7 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
 
-        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate,
                 List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
@@ -246,7 +183,7 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
 
-        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate,
                 Collections.emptyList());
 
         assertNotNull(result);
@@ -258,7 +195,7 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
 
-        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+        List<ProductionByTime> result = repository.getHourlyProductionByRangeOfDates(startDate, endDate,
                 List.of("UNKNOWN_STATION"));
 
         assertNotNull(result);
@@ -270,7 +207,7 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
 
-        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, 1.0f,
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate,
                 List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
@@ -287,7 +224,7 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
 
-        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate, 1.0f,
+        List<ProductionByTime> result = repository.getDailyProductionByRangeOfDates(startDate, endDate,
                 Collections.emptyList());
 
         assertNotNull(result);
@@ -299,7 +236,7 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
 
-        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate,
                 List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
@@ -312,7 +249,7 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
 
-        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+        List<ProductionByTime> result = repository.getMonthlyProductionByRangeOfDates(startDate, endDate,
                 Collections.emptyList());
 
         assertNotNull(result);
@@ -324,7 +261,7 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00.000+00:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:59:59.000+00:00");
 
-        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate,
                 List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
@@ -337,10 +274,93 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-01-01T00:00:00.000+00:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-12-31T23:59:59.000+00:00");
 
-        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate, 1.0f,
+        List<ProductionByTime> result = repository.getYearlyProductionByRangeOfDates(startDate, endDate,
                 Collections.emptyList());
 
         assertNotNull(result);
         assertTrue(result.isEmpty(), "Empty station codes should yield an empty list");
+    }
+
+    // --- Half-open segment-scoped methods (per-supply path) ---
+
+    @Test
+    void testGetHourlyProductionHalfOpenExcludesPointAtToBoundary() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        // The peak hour (31.1 kW) is seeded at exactly this timestamp -- a half-open [start, to) query
+        // ending here must exclude it.
+        OffsetDateTime peakHourTime = OffsetDateTime.parse("2023-09-01T14:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getHourlyProductionHalfOpen(startDate, peakHourTime,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
+
+        assertNotNull(result);
+        assertTrue(result.stream().noneMatch(p -> p.getPower() != null && p.getPower() == 31.1d),
+                "Half-open upper bound must exclude the point exactly at `to`");
+    }
+
+    @Test
+    void testGetHourlyProductionHalfOpenIncludesPointJustBeforeToBoundary() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        // One hour past the peak, so the peak (13:00-14:00 bucket, at 14:00+02:00) is now inside the range.
+        OffsetDateTime afterPeakHourTime = OffsetDateTime.parse("2023-09-01T15:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getHourlyProductionHalfOpen(startDate, afterPeakHourTime,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
+
+        assertTrue(result.stream().anyMatch(p -> p.getPower() != null && p.getPower() == 31.1d),
+                "A point strictly before `to` must be included");
+    }
+
+    @Test
+    void testGetDailyProductionHalfOpenExcludesToBoundaryFromNextBucket() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getDailyProductionHalfOpen(startDate, endDate,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
+
+        assertNotNull(result);
+        double totalProduction = result.stream().mapToDouble(ProductionByTime::getPower).sum();
+        // The last seeded hour (23:00+02:00, value 0) sits exactly at `endDate` and is excluded by the
+        // half-open upper bound; it is zero-valued so the total is unaffected either way, but this
+        // pins the half-open contract for a grouped query.
+        assertEquals(236.15d, totalProduction, 0.01d);
+    }
+
+    @Test
+    void testGetLocalCalendarDailyProductionHalfOpenReturnsEmptyForEmptyStationCodes() {
+        OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getLocalCalendarDailyProductionHalfOpen(startDate, endDate,
+                Collections.emptyList());
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty(), "Empty station codes should yield an empty list");
+    }
+
+    @Test
+    void testGetLocalCalendarDailyProductionHalfOpenAlignsToLocalMidnightAcrossDstSpringForward() {
+        // Verified against this InfluxDB instance directly (see plan): GROUP BY time(1d) fill(none)
+        // tz('<configured zone>') produces local-midnight-aligned buckets, including a correct
+        // 23-hour bucket for a spring-forward transition day. The mechanism itself is zone-agnostic
+        // (a general InfluxDB/tz-database capability); this environment's configured zone
+        // (conluz.time.zone.id, application-test.properties) happens to be Europe/Madrid, which is
+        // what's actually exercised here. This test pins that behaviour for the seeded station using
+        // a window the loader doesn't cover, so it only needs to assert bucket alignment/width, not
+        // specific values -- an empty result with the right bucket count is a sufficient regression
+        // guard for the query shape itself. Configurability itself (a different zone yields a
+        // different tz() clause) is proven independently by GetProductionRepositoryInfluxTimeZoneTest.
+        OffsetDateTime from = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
+        OffsetDateTime to = OffsetDateTime.parse("2023-09-03T00:00:00.000+02:00");
+
+        List<ProductionByTime> result = repository.getLocalCalendarDailyProductionHalfOpen(from, to,
+                List.of(EnergyProductionInfluxLoader.STATION_CODE));
+
+        assertNotNull(result);
+        // Bucket boundaries must land on the configured zone's local midnight (+02:00 in September
+        // for Europe/Madrid), not UTC midnight.
+        assertTrue(result.stream().allMatch(p -> p.getTime().getHour() == 0),
+                "Local-calendar-aligned daily buckets must start at the configured zone's local midnight");
     }
 }

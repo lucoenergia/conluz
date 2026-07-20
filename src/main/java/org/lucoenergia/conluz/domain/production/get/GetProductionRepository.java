@@ -16,18 +16,56 @@ public interface GetProductionRepository {
     InstantProduction getInstantProduction(Collection<String> stationCodes);
 
     /**
-     * Hourly production for the given station codes, multiplied by {@code partitionCoefficient}.
+     * Raw (unscaled) hourly production for the given station codes, inclusive of both bounds.
      * An empty {@code stationCodes} collection yields an empty list.
      */
     List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                             Float partitionCoefficient, Collection<String> stationCodes);
+                                                             Collection<String> stationCodes);
 
+    /**
+     * Raw (unscaled) daily production sums, UTC-day-aligned, inclusive of both bounds. An empty
+     * {@code stationCodes} collection yields an empty list.
+     */
     List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                            Float partitionCoefficient, Collection<String> stationCodes);
+                                                            Collection<String> stationCodes);
 
+    /**
+     * Raw (unscaled) monthly production, read from the {@code huawei_production_kwh_month} pre-aggregate,
+     * inclusive of both bounds. An empty {@code stationCodes} collection yields an empty list.
+     */
     List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                            Float partitionCoefficient, Collection<String> stationCodes);
+                                                            Collection<String> stationCodes);
 
+    /**
+     * Raw (unscaled) yearly production, read from the {@code huawei_production_kwh_year} pre-aggregate,
+     * inclusive of both bounds. An empty {@code stationCodes} collection yields an empty list.
+     */
     List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                              Float partitionCoefficient, Collection<String> stationCodes);
+                                                              Collection<String> stationCodes);
+
+    /**
+     * Raw (unscaled) hourly points, HALF-OPEN {@code [from, to)}. Used only by the per-supply Hourly
+     * granularity's single whole-range fetch per plant, so the fetched point set and the coefficient
+     * segment coverage set are the same set of instants by construction. Callers must normalise their
+     * (inclusive) API range to an exclusive {@code to} once, at the top of the request -- see
+     * {@code GetProductionServiceImpl}.
+     */
+    List<ProductionByTime> getHourlyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to, Collection<String> stationCodes);
+
+    /**
+     * Raw (unscaled) daily sums, UTC-day-aligned ({@code GROUP BY time(1d)}), HALF-OPEN {@code [from, to)}.
+     * Used only by the per-supply Daily granularity, called once per coefficient segment.
+     */
+    List<ProductionByTime> getDailyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to, Collection<String> stationCodes);
+
+    /**
+     * Raw (unscaled) daily sums, aligned to the application's configured local timezone
+     * ({@code conluz.time.zone.id}, currently Europe/Madrid; {@code GROUP BY time(1d) tz(...)}),
+     * HALF-OPEN {@code [from, to)}. Used only by the per-supply Monthly/Yearly granularities, called
+     * once per coefficient segment; each returned day is already an exact local calendar day
+     * (DST-correct: a 23-hour spring-forward day and a 25-hour fall-back day both resolve to exactly
+     * one bucket of the right width, where the configured zone observes DST) and is folded into its
+     * {@code YearMonth}/{@code Year} bucket in Java by the caller.
+     */
+    List<ProductionByTime> getLocalCalendarDailyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to, Collection<String> stationCodes);
 }

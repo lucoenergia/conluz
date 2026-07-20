@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDuration;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -34,16 +35,19 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     private final InfluxDbConnectionManager influxDbConnectionManager;
 
     private final DateConverter dateConverter;
+    private final TimeConfiguration timeConfiguration;
 
     private final InstantProductionInfluxMapper instantProductionInfluxMapper;
     private final ProductionByHourInfluxMapper productionByHourInfluxMapper;
 
     public GetProductionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
                                          DateConverter dateConverter,
+                                         TimeConfiguration timeConfiguration,
                                          InstantProductionInfluxMapper instantProductionInfluxMapper,
                                          ProductionByHourInfluxMapper productionByHourInfluxMapper) {
         this.influxDbConnectionManager = influxDbConnectionManager;
         this.dateConverter = dateConverter;
+        this.timeConfiguration = timeConfiguration;
         this.instantProductionInfluxMapper = instantProductionInfluxMapper;
         this.productionByHourInfluxMapper = productionByHourInfluxMapper;
     }
@@ -75,16 +79,24 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     @Override
     public List<ProductionByTime> getHourlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                                    Float partitionCoefficient,
                                                                     Collection<String> stationCodes) {
         if (stationCodes == null || stationCodes.isEmpty()) {
             return Collections.emptyList();
         }
-        return queryHourly(startDate, endDate, partitionCoefficient, stationCodeAndClause(stationCodes));
+        return queryHourly(startDate, endDate, stationCodeAndClause(stationCodes), false);
+    }
+
+    @Override
+    public List<ProductionByTime> getHourlyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to,
+                                                               Collection<String> stationCodes) {
+        if (stationCodes == null || stationCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return queryHourly(from, to, stationCodeAndClause(stationCodes), true);
     }
 
     private List<ProductionByTime> queryHourly(OffsetDateTime startDate, OffsetDateTime endDate,
-                                               Float partitionCoefficient, String stationClause) {
+                                               String stationClause, boolean exclusiveEnd) {
         // Unreachable through the public API today — every public caller already guards on an empty
         // stationCodes collection before building a non-blank clause. Kept as the actual invariant point
         // so no future caller (public or private) can ever emit an unrestricted query.
@@ -93,11 +105,11 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
         }
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             Query query = new Query(String.format(
-                    "SELECT time, \"%s\"*%s FROM \"%s\" WHERE time >= '%s' AND time <= '%s'%s",
+                    "SELECT time, \"%s\" FROM \"%s\" WHERE time >= '%s' AND time %s '%s'%s",
                     ProductionPoint.INVERTER_POWER,
-                    partitionCoefficient,
                     HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
                     dateConverter.convertToString(startDate),
+                    exclusiveEnd ? "<" : "<=",
                     dateConverter.convertToString(endDate),
                     stationClause));
 
@@ -113,41 +125,58 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
 
     @Override
     public List<ProductionByTime> getDailyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                                   Float partitionCoefficient,
                                                                    Collection<String> stationCodes) {
         if (stationCodes == null || stationCodes.isEmpty()) {
             return Collections.emptyList();
         }
         return getProductionByRangeOfDatesGroupedByDuration(startDate, endDate,
-                partitionCoefficient, InfluxDuration.DAILY, stationCodeAndClause(stationCodes));
+                InfluxDuration.DAILY, stationCodeAndClause(stationCodes), false, false);
+    }
+
+    @Override
+    public List<ProductionByTime> getDailyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to,
+                                                              Collection<String> stationCodes) {
+        if (stationCodes == null || stationCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return getProductionByRangeOfDatesGroupedByDuration(from, to,
+                InfluxDuration.DAILY, stationCodeAndClause(stationCodes), true, false);
+    }
+
+    @Override
+    public List<ProductionByTime> getLocalCalendarDailyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to,
+                                                                           Collection<String> stationCodes) {
+        if (stationCodes == null || stationCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return getProductionByRangeOfDatesGroupedByDuration(from, to,
+                InfluxDuration.DAILY, stationCodeAndClause(stationCodes), true, true);
     }
 
     @Override
     public List<ProductionByTime> getMonthlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                                     Float partitionCoefficient,
                                                                      Collection<String> stationCodes) {
         if (stationCodes == null || stationCodes.isEmpty()) {
             return Collections.emptyList();
         }
         return queryAggregatedMeasurement(HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT,
-                startDate, endDate, partitionCoefficient, stationCodeAndClause(stationCodes),
+                startDate, endDate, stationCodeAndClause(stationCodes),
                 HuaweiHourlyProductionMonthlyPoint.class);
     }
 
     @Override
     public List<ProductionByTime> getYearlyProductionByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate,
-                                                                    Float partitionCoefficient,
                                                                     Collection<String> stationCodes) {
         if (stationCodes == null || stationCodes.isEmpty()) {
             return Collections.emptyList();
         }
         return queryAggregatedMeasurement(HuaweiConfig.HUAWEI_YEARLY_PRODUCTION_MEASUREMENT,
-                startDate, endDate, partitionCoefficient, stationCodeAndClause(stationCodes),
+                startDate, endDate, stationCodeAndClause(stationCodes),
                 HuaweiHourlyProductionYearlyPoint.class);
     }
 
     private <T> List<ProductionByTime> queryAggregatedMeasurement(String measurement, OffsetDateTime startDate,
-                                                                  OffsetDateTime endDate, Float partitionCoefficient,
+                                                                  OffsetDateTime endDate,
                                                                   String stationClause, Class<T> pointType) {
         // Unreachable through the public API today — every public caller already guards on an empty
         // stationCodes collection before building a non-blank clause. Kept as the actual invariant point
@@ -168,11 +197,11 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
             List<T> points = resultMapper.toPOJO(queryResult, pointType);
 
-            return groupByTimeAndApplyCoefficient(points, partitionCoefficient);
+            return groupByTime(points);
         }
     }
 
-    private <T> List<ProductionByTime> groupByTimeAndApplyCoefficient(List<T> points, Float partitionCoefficient) {
+    private <T> List<ProductionByTime> groupByTime(List<T> points) {
         TreeMap<Instant, Double> grouped = new TreeMap<>();
         for (T point : points) {
             Instant time;
@@ -193,16 +222,34 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
         for (Map.Entry<Instant, Double> entry : grouped.entrySet()) {
             result.add(new ProductionByTime(
                     dateConverter.convertInstantToOffsetDateTime(entry.getKey()),
-                    entry.getValue() * partitionCoefficient));
+                    entry.getValue()));
         }
         return result;
     }
 
+    /**
+     * Grouped daily sums. {@code exclusiveEnd} selects half-open {@code [startDate, endDate)} (used by
+     * the per-supply segment-scoped queries, each paired with an explicit {@code fill(none)} so an
+     * empty segment doesn't return a null-filled bucket) versus the existing inclusive
+     * {@code [startDate, endDate]} (community-total, unchanged). {@code localCalendarAligned} appends
+     * {@code tz('<configured zone>')} (the application's configured local timezone,
+     * {@code conluz.time.zone.id} -- currently Europe/Madrid) so buckets align to local calendar days
+     * (including correct 23-/25-hour DST transition days where the configured zone observes DST)
+     * instead of UTC days. InfluxQL's {@code tz()} clause was verified against a live InfluxDB 1.8
+     * instance using Europe/Madrid as the zone under test -- the mechanism itself is zone-agnostic (a
+     * general InfluxDB capability keyed off the standard IANA tz database), not something that needs
+     * re-verification if the configured zone changes; note the clause order is significant,
+     * {@code tz()} must come after {@code fill()}. Assumes {@code conluz.time.zone.id} is a named IANA
+     * zone (as it is today) -- whether InfluxDB's {@code tz()} accepts a fixed-offset value (e.g.
+     * {@code "+02:00"}) instead is unverified, consistent with the rest of this codebase not
+     * special-casing that form of the property either.
+     */
     private List<ProductionByTime> getProductionByRangeOfDatesGroupedByDuration(OffsetDateTime startDate,
                                                                                 OffsetDateTime endDate,
-                                                                                Float partitionCoefficient,
                                                                                 String duration,
-                                                                                String stationClause) {
+                                                                                String stationClause,
+                                                                                boolean exclusiveEnd,
+                                                                                boolean localCalendarAligned) {
         // Unreachable through the public API today — every public caller already guards on an empty
         // stationCodes collection before building a non-blank clause. Kept as the actual invariant point
         // so no future caller (public or private) can ever emit an unrestricted query.
@@ -210,16 +257,20 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
             return Collections.emptyList();
         }
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            String fillAndTzClause = exclusiveEnd
+                    ? (localCalendarAligned ? String.format(" fill(none) tz('%s')", timeConfiguration.getZoneId().getId()) : " fill(none)")
+                    : "";
             Query query = new Query(String.format(
-                    "SELECT SUM(\"%s\")*%s AS \"%s\" FROM \"%s\" WHERE time >= '%s' AND time <= '%s'%s GROUP BY time(%s)",
+                    "SELECT SUM(\"%s\") AS \"%s\" FROM \"%s\" WHERE time >= '%s' AND time %s '%s'%s GROUP BY time(%s)%s",
                     ProductionPoint.INVERTER_POWER,
-                    partitionCoefficient,
                     ProductionPoint.INVERTER_POWER,
                     HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT,
                     dateConverter.convertToString(startDate),
+                    exclusiveEnd ? "<" : "<=",
                     dateConverter.convertToString(endDate),
                     stationClause,
-                    duration));
+                    duration,
+                    fillAndTzClause));
 
             QueryResult queryResult = connection.query(query);
 
