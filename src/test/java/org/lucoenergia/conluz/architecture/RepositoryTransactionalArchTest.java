@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.architecture;
 
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
@@ -15,6 +16,16 @@ public class RepositoryTransactionalArchTest extends BaseArchTest {
 
     private static final Set<String> EXCEPTIONS = new HashSet<>();
 
+    // Classes with a class-level @Transactional default that is also flipped per-method purely
+    // to toggle readOnly (rather than being split into separate read/write classes). Tracked
+    // follow-up debt — do not add new entries; split the class instead.
+    private static final Set<String> MIXING_EXCEPTIONS = Set.of(
+            "SupplyPartitionCoefficientRepositoryDatabase",
+            "ManagePlatformAdminRepositoryDatabase",
+            "GetSharingAgreementRepositoryDatabase",
+            "GetSharingAgreementFileRepositoryDatabase"
+    );
+
     @Test
     void repositoryDatabaseClassesAreTransactional() {
         classes()
@@ -24,10 +35,20 @@ public class RepositoryTransactionalArchTest extends BaseArchTest {
                 .check(IMPORTED_CLASSES);
     }
 
-    private ArchCondition<com.tngtech.archunit.core.domain.JavaClass> beAnnotatedWithTransactional() {
+    @Test
+    void repositoryDatabaseClassesDoNotMixTransactionalModes() {
+        classes()
+                .that().haveSimpleNameEndingWith("RepositoryDatabase")
+                .and().areAnnotatedWith(Transactional.class)
+                .and().haveNameNotMatching(nameMatching(MIXING_EXCEPTIONS))
+                .should(TransactionalMixingCondition.notMixReadOnlyAndWriteMethods())
+                .check(IMPORTED_CLASSES);
+    }
+
+    private ArchCondition<JavaClass> beAnnotatedWithTransactional() {
         return new ArchCondition<>("be annotated with @Transactional") {
             @Override
-            public void check(com.tngtech.archunit.core.domain.JavaClass javaClass, ConditionEvents events) {
+            public void check(JavaClass javaClass, ConditionEvents events) {
                 boolean hasTransactional = javaClass.isAnnotatedWith(Transactional.class);
 
                 if (!hasTransactional) {
