@@ -328,11 +328,11 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
     }
 
     @Test
-    void testGetMadridAlignedDailyProductionHalfOpenReturnsEmptyForEmptyStationCodes() {
+    void testGetLocalCalendarDailyProductionHalfOpenReturnsEmptyForEmptyStationCodes() {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-09-01T23:00:00.000+02:00");
 
-        List<ProductionByTime> result = repository.getMadridAlignedDailyProductionHalfOpen(startDate, endDate,
+        List<ProductionByTime> result = repository.getLocalCalendarDailyProductionHalfOpen(startDate, endDate,
                 Collections.emptyList());
 
         assertNotNull(result);
@@ -340,22 +340,27 @@ class GetProductionRepositoryInfluxTest extends BaseIntegrationTest {
     }
 
     @Test
-    void testGetMadridAlignedDailyProductionHalfOpenAlignsToMadridMidnightAcrossDstSpringForward() {
+    void testGetLocalCalendarDailyProductionHalfOpenAlignsToLocalMidnightAcrossDstSpringForward() {
         // Verified against this InfluxDB instance directly (see plan): GROUP BY time(1d) fill(none)
-        // tz('Europe/Madrid') produces Madrid-midnight-aligned buckets, including a correct 23-hour
-        // bucket for the spring-forward transition day. This test pins that behaviour for the seeded
-        // station using a window the loader doesn't cover, so it only needs to assert bucket
-        // alignment/width, not specific values -- an empty result with the right bucket count is a
-        // sufficient regression guard for the query shape itself.
+        // tz('<configured zone>') produces local-midnight-aligned buckets, including a correct
+        // 23-hour bucket for a spring-forward transition day. The mechanism itself is zone-agnostic
+        // (a general InfluxDB/tz-database capability); this environment's configured zone
+        // (conluz.time.zone.id, application-test.properties) happens to be Europe/Madrid, which is
+        // what's actually exercised here. This test pins that behaviour for the seeded station using
+        // a window the loader doesn't cover, so it only needs to assert bucket alignment/width, not
+        // specific values -- an empty result with the right bucket count is a sufficient regression
+        // guard for the query shape itself. Configurability itself (a different zone yields a
+        // different tz() clause) is proven independently by GetProductionRepositoryInfluxTimeZoneTest.
         OffsetDateTime from = OffsetDateTime.parse("2023-09-01T00:00:00.000+02:00");
         OffsetDateTime to = OffsetDateTime.parse("2023-09-03T00:00:00.000+02:00");
 
-        List<ProductionByTime> result = repository.getMadridAlignedDailyProductionHalfOpen(from, to,
+        List<ProductionByTime> result = repository.getLocalCalendarDailyProductionHalfOpen(from, to,
                 List.of(EnergyProductionInfluxLoader.STATION_CODE));
 
         assertNotNull(result);
-        // Bucket boundaries must land on Madrid midnight (+02:00 in September), not UTC midnight.
+        // Bucket boundaries must land on the configured zone's local midnight (+02:00 in September
+        // for Europe/Madrid), not UTC midnight.
         assertTrue(result.stream().allMatch(p -> p.getTime().getHour() == 0),
-                "Madrid-aligned daily buckets must start at Madrid local midnight");
+                "Local-calendar-aligned daily buckets must start at the configured zone's local midnight");
     }
 }

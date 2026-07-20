@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.infrastructure.production.ProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDuration;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -34,16 +35,19 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     private final InfluxDbConnectionManager influxDbConnectionManager;
 
     private final DateConverter dateConverter;
+    private final TimeConfiguration timeConfiguration;
 
     private final InstantProductionInfluxMapper instantProductionInfluxMapper;
     private final ProductionByHourInfluxMapper productionByHourInfluxMapper;
 
     public GetProductionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
                                          DateConverter dateConverter,
+                                         TimeConfiguration timeConfiguration,
                                          InstantProductionInfluxMapper instantProductionInfluxMapper,
                                          ProductionByHourInfluxMapper productionByHourInfluxMapper) {
         this.influxDbConnectionManager = influxDbConnectionManager;
         this.dateConverter = dateConverter;
+        this.timeConfiguration = timeConfiguration;
         this.instantProductionInfluxMapper = instantProductionInfluxMapper;
         this.productionByHourInfluxMapper = productionByHourInfluxMapper;
     }
@@ -140,7 +144,7 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
     }
 
     @Override
-    public List<ProductionByTime> getMadridAlignedDailyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to,
+    public List<ProductionByTime> getLocalCalendarDailyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to,
                                                                            Collection<String> stationCodes) {
         if (stationCodes == null || stationCodes.isEmpty()) {
             return Collections.emptyList();
@@ -227,17 +231,25 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
      * Grouped daily sums. {@code exclusiveEnd} selects half-open {@code [startDate, endDate)} (used by
      * the per-supply segment-scoped queries, each paired with an explicit {@code fill(none)} so an
      * empty segment doesn't return a null-filled bucket) versus the existing inclusive
-     * {@code [startDate, endDate]} (community-total, unchanged). {@code madridAligned} appends
-     * {@code tz('Europe/Madrid')} so buckets align to Madrid calendar days (including correct
-     * 23-/25-hour DST transition days) instead of UTC days -- verified against a live InfluxDB 1.8
-     * instance; note the clause order is significant, {@code tz()} must come after {@code fill()}.
+     * {@code [startDate, endDate]} (community-total, unchanged). {@code localCalendarAligned} appends
+     * {@code tz('<configured zone>')} (the application's configured local timezone,
+     * {@code conluz.time.zone.id} -- currently Europe/Madrid) so buckets align to local calendar days
+     * (including correct 23-/25-hour DST transition days where the configured zone observes DST)
+     * instead of UTC days. InfluxQL's {@code tz()} clause was verified against a live InfluxDB 1.8
+     * instance using Europe/Madrid as the zone under test -- the mechanism itself is zone-agnostic (a
+     * general InfluxDB capability keyed off the standard IANA tz database), not something that needs
+     * re-verification if the configured zone changes; note the clause order is significant,
+     * {@code tz()} must come after {@code fill()}. Assumes {@code conluz.time.zone.id} is a named IANA
+     * zone (as it is today) -- whether InfluxDB's {@code tz()} accepts a fixed-offset value (e.g.
+     * {@code "+02:00"}) instead is unverified, consistent with the rest of this codebase not
+     * special-casing that form of the property either.
      */
     private List<ProductionByTime> getProductionByRangeOfDatesGroupedByDuration(OffsetDateTime startDate,
                                                                                 OffsetDateTime endDate,
                                                                                 String duration,
                                                                                 String stationClause,
                                                                                 boolean exclusiveEnd,
-                                                                                boolean madridAligned) {
+                                                                                boolean localCalendarAligned) {
         // Unreachable through the public API today — every public caller already guards on an empty
         // stationCodes collection before building a non-blank clause. Kept as the actual invariant point
         // so no future caller (public or private) can ever emit an unrestricted query.
@@ -245,7 +257,9 @@ public class GetProductionRepositoryInflux implements GetProductionRepository {
             return Collections.emptyList();
         }
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
-            String fillAndTzClause = exclusiveEnd ? (madridAligned ? " fill(none) tz('Europe/Madrid')" : " fill(none)") : "";
+            String fillAndTzClause = exclusiveEnd
+                    ? (localCalendarAligned ? String.format(" fill(none) tz('%s')", timeConfiguration.getZoneId().getId()) : " fill(none)")
+                    : "";
             Query query = new Query(String.format(
                     "SELECT SUM(\"%s\") AS \"%s\" FROM \"%s\" WHERE time >= '%s' AND time %s '%s'%s GROUP BY time(%s)%s",
                     ProductionPoint.INVERTER_POWER,

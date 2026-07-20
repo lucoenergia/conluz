@@ -215,7 +215,7 @@ class GetProductionServiceImplIntegrationTest extends BaseIntegrationTest {
         assertEquals(31.1d * 0.4d + 100.0d * 0.6d, peakHour.getPower(), 0.01d);
     }
 
-    // --- Case 5: monthly across a transition (Madrid-day-fold, real DB) ---
+    // --- Case 5: monthly across a transition (local-calendar-day-fold, real DB) ---
 
     @Test
     void monthlyProductionEqualsSumOfCorrectlyScaledHourlyAcrossATransition() {

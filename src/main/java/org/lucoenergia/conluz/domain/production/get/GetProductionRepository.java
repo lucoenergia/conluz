@@ -59,12 +59,13 @@ public interface GetProductionRepository {
     List<ProductionByTime> getDailyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to, Collection<String> stationCodes);
 
     /**
-     * Raw (unscaled) daily sums, Europe/Madrid-calendar-day-aligned ({@code GROUP BY time(1d) tz('Europe/Madrid')}),
+     * Raw (unscaled) daily sums, aligned to the application's configured local timezone
+     * ({@code conluz.time.zone.id}, currently Europe/Madrid; {@code GROUP BY time(1d) tz(...)}),
      * HALF-OPEN {@code [from, to)}. Used only by the per-supply Monthly/Yearly granularities, called
-     * once per coefficient segment; each returned day is already an exact Madrid calendar day
+     * once per coefficient segment; each returned day is already an exact local calendar day
      * (DST-correct: a 23-hour spring-forward day and a 25-hour fall-back day both resolve to exactly
-     * one bucket of the right width) and is folded into its {@code YearMonth}/{@code Year} bucket in
-     * Java by the caller.
+     * one bucket of the right width, where the configured zone observes DST) and is folded into its
+     * {@code YearMonth}/{@code Year} bucket in Java by the caller.
      */
-    List<ProductionByTime> getMadridAlignedDailyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to, Collection<String> stationCodes);
+    List<ProductionByTime> getLocalCalendarDailyProductionHalfOpen(OffsetDateTime from, OffsetDateTime to, Collection<String> stationCodes);
 }

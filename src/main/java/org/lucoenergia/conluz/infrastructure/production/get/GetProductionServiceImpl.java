@@ -164,10 +164,11 @@ public class GetProductionServiceImpl implements GetProductionService {
     // community filter here.
     //
     // GRANULARITY BOUNDARY NOTE: daily stays UTC-day-aligned (matching today's behaviour) while
-    // monthly/yearly use Europe/Madrid calendar boundaries (see monthlyProductionForSupply /
+    // monthly/yearly use the application's configured local timezone's calendar boundaries
+    // (conluz.time.zone.id, currently Europe/Madrid -- see monthlyProductionForSupply /
     // yearlyProductionForSupply). A month's 31 daily (UTC) totals will therefore NOT sum to that
-    // month's (Madrid) total -- tracked as a follow-up (reconcile daily to Madrid-day alignment); do
-    // not "fix" this as a drive-by change here.
+    // month's (local-timezone) total -- tracked as a follow-up (reconcile daily to local-day
+    // alignment); do not "fix" this as a drive-by change here.
 
     private InstantProduction instantProductionForSupply(UUID supplyId) {
         Instant now = timeConfiguration.now().toInstant();
@@ -245,7 +246,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     private List<ProductionByTime> monthlyProductionForSupply(OffsetDateTime startDate, OffsetDateTime endDate, UUID supplyId) {
         ZoneId zone = timeConfiguration.getZoneId();
         TreeMap<YearMonth, Double> merged = new TreeMap<>();
-        forEachMadridAlignedSegmentDay(startDate, endDate, supplyId, (dayBucket, contribution) ->
+        forEachLocalCalendarSegmentDay(startDate, endDate, supplyId, (dayBucket, contribution) ->
                 merged.merge(YearMonth.from(dayBucket.getTime()), contribution, Double::sum));
 
         List<ProductionByTime> result = new ArrayList<>();
@@ -259,7 +260,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     private List<ProductionByTime> yearlyProductionForSupply(OffsetDateTime startDate, OffsetDateTime endDate, UUID supplyId) {
         ZoneId zone = timeConfiguration.getZoneId();
         TreeMap<Year, Double> merged = new TreeMap<>();
-        forEachMadridAlignedSegmentDay(startDate, endDate, supplyId, (dayBucket, contribution) ->
+        forEachLocalCalendarSegmentDay(startDate, endDate, supplyId, (dayBucket, contribution) ->
                 merged.merge(Year.from(dayBucket.getTime()), contribution, Double::sum));
 
         List<ProductionByTime> result = new ArrayList<>();
@@ -272,12 +273,12 @@ public class GetProductionServiceImpl implements GetProductionService {
 
     /**
      * Shared plant/segment iteration for monthly and yearly: resolves segments once, fetches one
-     * Madrid-calendar-day-aligned, half-open query per segment (one query per segment, not per output
-     * bucket), and hands each returned day -- already an exact Madrid calendar day -- to
-     * {@code accumulator} with its β-scaled contribution, for the caller to fold into its own
-     * YearMonth/Year bucket map.
+     * local-calendar-day-aligned (the configured {@code conluz.time.zone.id}, currently Europe/Madrid)
+     * half-open query per segment (one query per segment, not per output bucket), and hands each
+     * returned day -- already an exact local calendar day -- to {@code accumulator} with its
+     * β-scaled contribution, for the caller to fold into its own YearMonth/Year bucket map.
      */
-    private void forEachMadridAlignedSegmentDay(OffsetDateTime startDate, OffsetDateTime endDate, UUID supplyId,
+    private void forEachLocalCalendarSegmentDay(OffsetDateTime startDate, OffsetDateTime endDate, UUID supplyId,
                                                  BiConsumer<ProductionByTime, Double> accumulator) {
         Instant exclusiveTo = exclusiveTo(endDate);
         Map<UUID, List<CoefficientSegment>> segmentsByPlant =
@@ -289,7 +290,7 @@ public class GetProductionServiceImpl implements GetProductionService {
                 continue;
             }
             for (CoefficientSegment segment : entry.getValue()) {
-                List<ProductionByTime> segmentDaily = getProductionRepository.getMadridAlignedDailyProductionHalfOpen(
+                List<ProductionByTime> segmentDaily = getProductionRepository.getLocalCalendarDailyProductionHalfOpen(
                         toOffsetDateTime(segment.from()), toOffsetDateTime(segment.to()), List.of(stationCode.get()));
                 double coefficient = segment.coefficient().doubleValue();
                 for (ProductionByTime dayBucket : segmentDaily) {

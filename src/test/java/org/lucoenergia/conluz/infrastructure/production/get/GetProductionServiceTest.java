@@ -295,10 +295,10 @@ class GetProductionServiceTest {
                 .getDailyProductionHalfOpen(toOffsetDateTime(midDay), toOffsetDateTime(exclusiveTo), List.of(STATION_CODE));
     }
 
-    // --- Monthly: Madrid-aligned days folded into YearMonth, one query per segment ---
+    // --- Monthly: configured-local-timezone-aligned days folded into YearMonth, one query per segment ---
 
     @Test
-    void getMonthlyProductionByRangeOfDatesAndSupply_foldsMadridDaysIntoYearMonth() {
+    void getMonthlyProductionByRangeOfDatesAndSupply_foldsLocalCalendarDaysIntoYearMonth() {
         UUID supplyUuid = UUID.randomUUID();
         SupplyId supplyId = SupplyId.of(supplyUuid);
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(SupplyMother.random().withId(supplyUuid).build()));
@@ -312,7 +312,7 @@ class GetProductionServiceTest {
 
         OffsetDateTime day1 = OffsetDateTime.parse("2023-09-01T00:00:00+02:00");
         OffsetDateTime day2 = OffsetDateTime.parse("2023-09-02T00:00:00+02:00");
-        when(getProductionRepository.getMadridAlignedDailyProductionHalfOpen(
+        when(getProductionRepository.getLocalCalendarDailyProductionHalfOpen(
                 toOffsetDateTime(startDate.toInstant()), toOffsetDateTime(exclusiveTo), List.of(STATION_CODE)))
                 .thenReturn(List.of(new ProductionByTime(day1, 100d), new ProductionByTime(day2, 50d)));
 
@@ -331,21 +331,22 @@ class GetProductionServiceTest {
         when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
 
         Instant exclusiveTo = exclusiveTo(endDate);
-        // Transition lands mid-day (not on a Madrid day boundary) -- exercises the partial-bucket
-        // merge: two segment-scoped queries can return the SAME Madrid day with complementary sums.
+        // Transition lands mid-day (not on a local calendar day boundary) -- exercises the
+        // partial-bucket merge: two segment-scoped queries can return the SAME local calendar day
+        // with complementary sums.
         Instant midDay = startDate.toInstant().plusSeconds(3600 * 12);
         CoefficientSegment before = new CoefficientSegment(startDate.toInstant(), midDay, BigDecimal.valueOf(0.3));
         CoefficientSegment after = new CoefficientSegment(midDay, exclusiveTo, BigDecimal.valueOf(0.7));
         when(coefficientResolver.resolveSegmentsBySupply(supplyUuid, startDate.toInstant(), exclusiveTo))
                 .thenReturn(Map.of(PLANT_ID, List.of(before, after)));
 
-        OffsetDateTime sameMadridDay = OffsetDateTime.parse("2023-09-01T00:00:00+02:00");
-        when(getProductionRepository.getMadridAlignedDailyProductionHalfOpen(
+        OffsetDateTime sameLocalDay = OffsetDateTime.parse("2023-09-01T00:00:00+02:00");
+        when(getProductionRepository.getLocalCalendarDailyProductionHalfOpen(
                 toOffsetDateTime(startDate.toInstant()), toOffsetDateTime(midDay), List.of(STATION_CODE)))
-                .thenReturn(List.of(new ProductionByTime(sameMadridDay, 100d)));
-        when(getProductionRepository.getMadridAlignedDailyProductionHalfOpen(
+                .thenReturn(List.of(new ProductionByTime(sameLocalDay, 100d)));
+        when(getProductionRepository.getLocalCalendarDailyProductionHalfOpen(
                 toOffsetDateTime(midDay), toOffsetDateTime(exclusiveTo), List.of(STATION_CODE)))
-                .thenReturn(List.of(new ProductionByTime(sameMadridDay, 200d)));
+                .thenReturn(List.of(new ProductionByTime(sameLocalDay, 200d)));
 
         List<ProductionByTime> result = service.getMonthlyProductionByRangeOfDatesAndSupply(startDate, endDate, supplyId);
 
