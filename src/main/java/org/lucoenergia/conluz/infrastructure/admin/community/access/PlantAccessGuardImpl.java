@@ -39,7 +39,7 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        UUID communityId = communityIdOfVisiblePlant(user, plantId);
+        UUID communityId = getCommunityIdOfVisiblePlant(user, plantId);
         // A member of the plant's community can see it but only community admins may manage it
         // (member-non-admin -> 403). Non-members never get here (they received a 404 above).
         return helper.hasCommunityAdminRoleIn(user, communityId);
@@ -51,7 +51,7 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        communityIdOfVisiblePlant(user, plantId);
+        getCommunityIdOfVisiblePlant(user, plantId);
         return true;
     }
 
@@ -95,7 +95,7 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        communityIdOfVisiblePlant(user, plantId);
+        getCommunityIdOfVisiblePlant(user, plantId);
         // The agreement is the resource whose existence must not leak: a caller who cannot see the
         // plant already got a 404 above; one who can see the plant but targets an agreement that
         // does not exist or belongs to a different plant must not be told it exists elsewhere.
@@ -111,7 +111,7 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
      * {@link PlantNotFoundException} (404) when the plant does not exist or the user is not a
      * member of its community — so the plant's existence is never leaked to non-members.
      */
-    private UUID communityIdOfVisiblePlant(User user, UUID plantId) {
+    private UUID getCommunityIdOfVisiblePlant(User user, UUID plantId) {
         Plant plant = getPlantRepository.findById(PlantId.of(plantId)).orElse(null);
         if (plant == null) {
             throw new PlantNotFoundException(PlantId.of(plantId));
