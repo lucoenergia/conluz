@@ -63,6 +63,17 @@ public class SharingAgreement {
         return createdBy;
     }
 
+    /**
+     * Throws {@link SharingAgreementNotDraftException} unless this agreement is still DRAFT. Used
+     * by patch/delete/publish to keep a PUBLISHED agreement's data (including the installed-power
+     * snapshot) an immutable historical record.
+     */
+    public void assertDraft() {
+        if (status != SharingAgreementStatus.DRAFT) {
+            throw new SharingAgreementNotDraftException(id, status);
+        }
+    }
+
     public static class Builder {
         private UUID id;
         private UUID plantId;

@@ -134,6 +134,16 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canManageSharingAgreement(UUID plantId) {
+        return plantAccessGuard.canManageSharingAgreement(plantId);
+    }
+
+    @Override
+    public boolean canManageSharingAgreement(UUID plantId, UUID sharingAgreementId) {
+        return plantAccessGuard.canManageSharingAgreement(plantId, sharingAgreementId);
+    }
+
+    @Override
     public Set<UUID> visibleCommunityIds() {
         User user = helper.getCurrentUser().orElse(null);
         return helper.visibleCommunityIds(user);

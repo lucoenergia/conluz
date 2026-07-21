@@ -64,4 +64,11 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
     @Query("UPDATE SupplyPartitionCoefficientEntity e SET e.validTo = :validTo " +
             "WHERE e.supply.id = :supplyId AND e.plant.id = :plantId AND e.validTo IS NULL")
     void closeActivePeriod(@Param("supplyId") UUID supplyId, @Param("plantId") UUID plantId, @Param("validTo") Instant validTo);
+
+    /**
+     * Read-only existence check used by the sharing-agreement publish precondition. Phase 5c's
+     * coefficient-materialization work should extend this repository rather than adding a
+     * parallel one.
+     */
+    boolean existsBySharingAgreementId(UUID sharingAgreementId);
 }
