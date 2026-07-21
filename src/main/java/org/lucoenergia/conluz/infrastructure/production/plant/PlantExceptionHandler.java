@@ -2,6 +2,8 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementFileNotFoundException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.context.MessageSource;
@@ -45,6 +47,28 @@ public class PlantExceptionHandler {
         String message = messageSource.getMessage(
                 "error.plant.not.found",
                 Collections.singletonList(plantIdentifier).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(SharingAgreementNotFoundException.class)
+    public ResponseEntity<RestError> handleException(SharingAgreementNotFoundException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.not.found",
+                Collections.singletonList(e.getId()).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(SharingAgreementFileNotFoundException.class)
+    public ResponseEntity<RestError> handleException(SharingAgreementFileNotFoundException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.file.not.found",
+                Collections.singletonList(e.getId()).toArray(),
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);

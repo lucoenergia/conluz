@@ -20,7 +20,7 @@ import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLo
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.plant.SharingAgreementStatus;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -15,6 +15,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementRepository;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,10 +40,12 @@ class CommunityAccessGuardImplTest {
     private GetSupplyRepository getSupplyRepository;
     @Mock
     private GetPlantRepository getPlantRepository;
+    @Mock
+    private GetSharingAgreementRepository getSharingAgreementRepository;
 
     private CommunityAccessGuard guard() {
         return new CommunityAccessGuardImpl(authService, getCommunityRepository, getMembershipsRepository,
-                getSupplyRepository, getPlantRepository);
+                getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
     }
 
     // --- canReadCommunity ---

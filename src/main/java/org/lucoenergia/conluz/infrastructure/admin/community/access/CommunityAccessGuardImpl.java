@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -26,12 +27,14 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
                                     GetCommunityRepository getCommunityRepository,
                                     GetMembershipsRepository getMembershipsRepository,
                                     GetSupplyRepository getSupplyRepository,
-                                    GetPlantRepository getPlantRepository) {
+                                    GetPlantRepository getPlantRepository,
+                                    GetSharingAgreementRepository getSharingAgreementRepository) {
         this.helper = new CommunityAccessGuardHelper(authService, getCommunityRepository);
         this.supplyAccessGuard = new SupplyAccessGuardImpl(helper, getSupplyRepository);
         this.membershipAccessGuard = new MembershipAccessGuardImpl(helper);
         this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository);
-        this.plantAccessGuard = new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository);
+        this.plantAccessGuard = new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository,
+                getSharingAgreementRepository);
     }
 
     @Override
@@ -123,6 +126,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canListPlants(UUID communityId) {
         return plantAccessGuard.canListPlants(communityId);
+    }
+
+    @Override
+    public boolean canReadSharingAgreement(UUID plantId, UUID sharingAgreementId) {
+        return plantAccessGuard.canReadSharingAgreement(plantId, sharingAgreementId);
     }
 
     @Override

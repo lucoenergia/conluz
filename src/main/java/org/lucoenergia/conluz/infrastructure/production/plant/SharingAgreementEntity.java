@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import jakarta.persistence.*;
+import org.lucoenergia.conluz.domain.production.plant.SharingAgreementStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;

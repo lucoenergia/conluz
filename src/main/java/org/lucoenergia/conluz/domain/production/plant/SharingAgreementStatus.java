@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production.plant;
+package org.lucoenergia.conluz.domain.production.plant;
 
 public enum SharingAgreementStatus {
     DRAFT,

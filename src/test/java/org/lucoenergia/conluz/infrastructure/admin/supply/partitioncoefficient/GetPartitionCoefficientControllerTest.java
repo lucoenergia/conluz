@@ -18,7 +18,7 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.plant.SharingAgreementStatus;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
