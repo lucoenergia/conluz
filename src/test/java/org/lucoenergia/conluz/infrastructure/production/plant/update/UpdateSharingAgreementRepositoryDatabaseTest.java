@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.plant.update.UpdateSharingAgreement;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
@@ -63,13 +64,21 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         return sharingAgreementRepository.save(agreement);
     }
 
+    private UpdateSharingAgreement anUpdate(String name, String notes, BigDecimal installedPowerKw) {
+        return new UpdateSharingAgreement.Builder()
+                .withName(name)
+                .withNotes(notes)
+                .withInstalledPowerKw(installedPowerKw)
+                .build();
+    }
+
     @Test
     void update_changesOnlyDescriptiveFields() {
         PlantEntity plant = persistPlant();
         SharingAgreementEntity entity = persistAgreement(plant);
 
-        SharingAgreement result = repository.update(plant.getId(), entity.getId(), "New name", "New notes",
-                BigDecimal.valueOf(9.5));
+        SharingAgreement result = repository.update(plant.getId(), entity.getId(),
+                anUpdate("New name", "New notes", BigDecimal.valueOf(9.5)));
 
         assertEquals("New name", result.getName());
         assertEquals("New notes", result.getNotes());
@@ -85,7 +94,8 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         SharingAgreementEntity entity = persistAgreement(plantA);
 
         assertThrows(SharingAgreementNotFoundException.class,
-                () -> repository.update(plantB.getId(), entity.getId(), "New name", "New notes", BigDecimal.ONE));
+                () -> repository.update(plantB.getId(), entity.getId(),
+                        anUpdate("New name", "New notes", BigDecimal.ONE)));
     }
 
     @Test
@@ -93,6 +103,7 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         PlantEntity plant = persistPlant();
 
         assertThrows(SharingAgreementNotFoundException.class,
-                () -> repository.update(plant.getId(), UUID.randomUUID(), "New name", "New notes", BigDecimal.ONE));
+                () -> repository.update(plant.getId(), UUID.randomUUID(),
+                        anUpdate("New name", "New notes", BigDecimal.ONE)));
     }
 }

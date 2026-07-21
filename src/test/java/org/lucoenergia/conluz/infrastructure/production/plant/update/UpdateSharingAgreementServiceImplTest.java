@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementSer
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotDraftException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.plant.update.UpdateSharingAgreement;
 import org.lucoenergia.conluz.domain.production.plant.update.UpdateSharingAgreementRepository;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,6 +31,14 @@ class UpdateSharingAgreementServiceImplTest {
         return new UpdateSharingAgreementServiceImpl(getSharingAgreementService, repository);
     }
 
+    private UpdateSharingAgreement anUpdate() {
+        return new UpdateSharingAgreement.Builder()
+                .withName("name")
+                .withNotes("notes")
+                .withInstalledPowerKw(BigDecimal.TEN)
+                .build();
+    }
+
     @Test
     void update_throwsNotDraft_whenAgreementIsPublished() {
         UUID agreementId = UUID.randomUUID();
@@ -40,7 +49,7 @@ class UpdateSharingAgreementServiceImplTest {
         when(getSharingAgreementService.findById(agreementId)).thenReturn(published);
 
         assertThrows(SharingAgreementNotDraftException.class,
-                () -> service().update(UUID.randomUUID(), agreementId, "name", "notes", BigDecimal.TEN));
+                () -> service().update(UUID.randomUUID(), agreementId, anUpdate()));
     }
 
     @Test
@@ -52,12 +61,13 @@ class UpdateSharingAgreementServiceImplTest {
                 .withStatus(SharingAgreementStatus.DRAFT)
                 .build();
         when(getSharingAgreementService.findById(agreementId)).thenReturn(draft);
+        UpdateSharingAgreement update = anUpdate();
         SharingAgreement updated = new SharingAgreement.Builder().withId(agreementId).build();
-        when(repository.update(plantId, agreementId, "name", "notes", BigDecimal.TEN)).thenReturn(updated);
+        when(repository.update(plantId, agreementId, update)).thenReturn(updated);
 
-        SharingAgreement result = service().update(plantId, agreementId, "name", "notes", BigDecimal.TEN);
+        SharingAgreement result = service().update(plantId, agreementId, update);
 
         assertEquals(updated, result);
-        verify(repository).update(plantId, agreementId, "name", "notes", BigDecimal.TEN);
+        verify(repository).update(plantId, agreementId, update);
     }
 }

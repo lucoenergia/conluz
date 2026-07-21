@@ -21,8 +21,8 @@ import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,12 +44,14 @@ public class UpdateSharingAgreementController {
         this.service = service;
     }
 
-    @PatchMapping
+    @PutMapping
     @Operation(
-            summary = "Updates a DRAFT sharing agreement's name, notes and installed power",
+            summary = "Replaces a DRAFT sharing agreement's name, notes and installed power",
             description = """
-                    This endpoint updates the name, notes and installed power of a sharing agreement.
-                    Its status, plant and creation metadata can never be changed through this endpoint.
+                    This endpoint replaces the name, notes and installed power of a sharing agreement.
+                    All three fields must be provided; this is a full replacement of the updatable
+                    fields, not a partial update. Its status, plant and creation metadata can never be
+                    changed through this endpoint.
 
                     **Required: Community Admin**
 
@@ -97,8 +99,7 @@ public class UpdateSharingAgreementController {
     @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
     public SharingAgreementResponse updateSharingAgreement(@PathVariable UUID plantId, @PathVariable UUID id,
                                                             @Valid @RequestBody UpdateSharingAgreementBody body) {
-        SharingAgreement agreement = service.update(plantId, id, body.getName(), body.getNotes(),
-                body.getInstalledPowerKw());
+        SharingAgreement agreement = service.update(plantId, id, body.mapToUpdateSharingAgreement());
         return new SharingAgreementResponse(agreement);
     }
 }

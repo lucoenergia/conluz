@@ -30,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -68,7 +68,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
 
     @Test
     void returnsUnauthorizedWithoutToken() throws Exception {
-        mockMvc.perform(patch(url(plantA.getId(), draftAgreement.getId()))
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body("New name", "5.5")))
                 .andDo(print())
@@ -79,7 +79,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     void returnsForbiddenForCommunityMember() throws Exception {
         String authHeader = loginAsCommunityMember(communityA.getId());
 
-        mockMvc.perform(patch(url(plantA.getId(), draftAgreement.getId()))
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body("New name", "5.5")))
@@ -91,7 +91,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     void returnsNotFoundForCrossCommunityAdmin() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityB.getId());
 
-        mockMvc.perform(patch(url(plantA.getId(), draftAgreement.getId()))
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body("New name", "5.5")))
@@ -103,7 +103,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     void returnsNotFoundWhenAgreementBelongsToAnotherPlantOfTheSameCommunity() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
 
-        mockMvc.perform(patch(url(otherPlantInCommunityA.getId(), draftAgreement.getId()))
+        mockMvc.perform(put(url(otherPlantInCommunityA.getId(), draftAgreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body("New name", "5.5")))
@@ -112,11 +112,23 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void returnsBadRequestWhenInstalledPowerKwIsMissing() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"New name\"}"))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void returnsConflictWhenAgreementIsNotDraft() throws Exception {
         SharingAgreementEntity published = createAgreement(plantA, SharingAgreementStatus.PUBLISHED);
         String authHeader = loginAsCommunityAdmin(communityA.getId());
 
-        mockMvc.perform(patch(url(plantA.getId(), published.getId()))
+        mockMvc.perform(put(url(plantA.getId(), published.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body("New name", "5.5")))
@@ -129,7 +141,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
         Instant originalCreatedAt = draftAgreement.getCreatedAt();
 
-        mockMvc.perform(patch(url(plantA.getId(), draftAgreement.getId()))
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body("Updated name", "9.75")))
