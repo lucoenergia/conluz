@@ -37,4 +37,11 @@ public interface SupplyPartitionCoefficientRepository {
     void closeActivePeriod(UUID supplyId, UUID plantId, Instant validTo);
 
     void syncSupplyPartitionCoefficient(UUID supplyId, BigDecimal newCoefficient);
+
+    /**
+     * Read-only existence check used by the sharing-agreement publish precondition. Phase 5c's
+     * coefficient-materialization work should extend this repository rather than adding a
+     * parallel one.
+     */
+    boolean existsBySharingAgreementId(UUID sharingAgreementId);
 }

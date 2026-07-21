@@ -106,6 +106,31 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         return true;
     }
 
+    @Override
+    public boolean canManageSharingAgreement(UUID plantId) {
+        // Same precondition as managing the plant itself; kept as a separate method so the
+        // @PreAuthorize SpEL at the sharing-agreement endpoints reads correctly and the two rules
+        // can diverge later without touching call sites.
+        return canManagePlant(plantId);
+    }
+
+    @Override
+    public boolean canManageSharingAgreement(UUID plantId, UUID sharingAgreementId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        UUID communityId = getCommunityIdOfVisiblePlant(user, plantId);
+        // The agreement is the resource whose existence must not leak, same as canReadSharingAgreement.
+        SharingAgreement agreement = getSharingAgreementRepository.findById(sharingAgreementId).orElse(null);
+        if (agreement == null || !plantId.equals(agreement.getPlantId())) {
+            throw new SharingAgreementNotFoundException(sharingAgreementId);
+        }
+        // A member of the plant's community can see the agreement but only community admins may
+        // manage it (member-non-admin -> 403).
+        return helper.hasCommunityAdminRoleIn(user, communityId);
+    }
+
     /**
      * Resolves the community of the plant the user is allowed to see, throwing
      * {@link PlantNotFoundException} (404) when the plant does not exist or the user is not a

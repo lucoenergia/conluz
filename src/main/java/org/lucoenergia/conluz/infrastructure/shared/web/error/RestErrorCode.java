@@ -18,5 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Stable machine-readable error code.")
 public enum RestErrorCode {
 
-    USER_LAST_PLATFORM_ADMIN
+    USER_LAST_PLATFORM_ADMIN,
+    SHARING_AGREEMENT_NOT_DRAFT,
+    SHARING_AGREEMENT_HAS_NO_COEFFICIENTS
 }

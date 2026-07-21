@@ -135,4 +135,10 @@ public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyParti
         supply.setPartitionCoefficient(newCoefficient.floatValue());
         supplyRepository.save(supply);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsBySharingAgreementId(UUID sharingAgreementId) {
+        return jpaRepository.existsBySharingAgreementId(sharingAgreementId);
+    }
 }
