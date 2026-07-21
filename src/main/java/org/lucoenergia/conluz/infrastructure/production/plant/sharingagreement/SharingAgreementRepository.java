@@ -1,6 +1,6 @@
-package org.lucoenergia.conluz.infrastructure.production.plant;
+package org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement;
 
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

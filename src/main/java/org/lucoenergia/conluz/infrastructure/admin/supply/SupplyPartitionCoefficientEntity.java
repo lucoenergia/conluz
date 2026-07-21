@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import jakarta.persistence.*;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
-import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementEntity;
+import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementEntity;
 
 import java.math.BigDecimal;
 import java.time.Instant;

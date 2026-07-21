@@ -1,6 +1,6 @@
-package org.lucoenergia.conluz.infrastructure.production.plant;
+package org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement;
 
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreement;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
 import org.springframework.stereotype.Component;
 

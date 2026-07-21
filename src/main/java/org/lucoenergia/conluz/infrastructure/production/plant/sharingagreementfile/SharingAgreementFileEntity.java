@@ -1,9 +1,11 @@
-package org.lucoenergia.conluz.infrastructure.production.plant;
+package org.lucoenergia.conluz.infrastructure.production.plant.sharingagreementfile;
 
 import jakarta.persistence.*;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementEntity;
 
 /**
  * No controller exists for this entity yet -- HTTP access arrives in phase 5.

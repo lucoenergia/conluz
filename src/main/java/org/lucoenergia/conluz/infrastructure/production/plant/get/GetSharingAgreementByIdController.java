@@ -4,9 +4,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreement;
+
 import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementService;
-import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementResponse;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;

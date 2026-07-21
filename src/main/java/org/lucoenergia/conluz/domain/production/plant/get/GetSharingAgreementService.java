@@ -1,10 +1,10 @@
 package org.lucoenergia.conluz.domain.production.plant.get;
 
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreement;
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreementStatus;
-
 import java.util.List;
 import java.util.UUID;
+
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementStatus;
 
 /**
  * Service for retrieving sharing agreement information.
@@ -19,7 +19,7 @@ public interface GetSharingAgreementService {
     /**
      * Find a sharing agreement by its ID.
      *
-     * @throws org.lucoenergia.conluz.domain.production.plant.SharingAgreementNotFoundException if no such agreement exists
+     * @throws org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotFoundException if no such agreement exists
      */
     SharingAgreement findById(UUID id);
 }

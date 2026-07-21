@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementFileNotFoundException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;

@@ -1,11 +1,13 @@
-package org.lucoenergia.conluz.infrastructure.production.plant;
+package org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement;
 
 import jakarta.persistence.*;
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreementStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 
 /**
  * No domain object, mapper, service or controller exists for this entity yet -- those arrive in

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.domain.production.plant;
+package org.lucoenergia.conluz.domain.production.plant.sharingagreement;
 
 import java.math.BigDecimal;
 import java.time.Instant;

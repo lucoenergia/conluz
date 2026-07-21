@@ -1,11 +1,11 @@
 package org.lucoenergia.conluz.domain.production.plant.get;
 
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreement;
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreementStatus;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementStatus;
 
 public interface GetSharingAgreementRepository {
 

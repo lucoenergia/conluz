@@ -1,12 +1,13 @@
-package org.lucoenergia.conluz.infrastructure.production.plant;
+package org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreement;
-import org.lucoenergia.conluz.domain.production.plant.SharingAgreementStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementStatus;
 
 public class SharingAgreementResponse {
 
