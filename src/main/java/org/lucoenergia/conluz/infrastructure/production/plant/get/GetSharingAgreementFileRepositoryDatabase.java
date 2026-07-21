@@ -2,8 +2,8 @@ package org.lucoenergia.conluz.infrastructure.production.plant.get;
 
 import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementFileRepository;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementFile;
-import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementFileEntityMapper;
-import org.lucoenergia.conluz.infrastructure.production.plant.SharingAgreementFileRepository;
+import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreementfile.SharingAgreementFileEntityMapper;
+import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreementfile.SharingAgreementFileRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 

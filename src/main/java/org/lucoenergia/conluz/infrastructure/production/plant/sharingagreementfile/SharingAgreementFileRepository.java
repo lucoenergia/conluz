@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production.plant;
+package org.lucoenergia.conluz.infrastructure.production.plant.sharingagreementfile;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

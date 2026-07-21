@@ -11,6 +11,7 @@ public class ApiTag {
     public static final String USERS = "Users";
     public static final String SUPPLIES = "Supplies";
     public static final String PLANTS = "Plants";
+    public static final String SHARING_AGREEMENTS = "Sharing agreements";
     public static final String COMMUNITIES = "Communities";
     public static final String MEMBERSHIPS = "Memberships";
 }

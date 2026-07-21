@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.production.plant;
+package org.lucoenergia.conluz.infrastructure.production.plant.sharingagreementfile;
 
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementFile;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
