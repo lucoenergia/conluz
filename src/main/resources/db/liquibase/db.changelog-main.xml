@@ -54,4 +54,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/make_supply_partition_coefficient_plant_and_sharing_agreement_not_null.xml" relativeToChangelogFile="true" />
     <include file="changelogs/drop_supply_partition_coefficient_one_active_index.xml" relativeToChangelogFile="true" />
     <include file="changelogs/add_supply_partition_coefficient_no_overlapping_exclusion_constraint.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/make_supply_partition_coefficient_valid_from_nullable.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

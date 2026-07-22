@@ -1,8 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -22,15 +22,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Transactional
 @Repository
-public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyPartitionCoefficientRepository {
+public class SaveSupplyPartitionCoefficientRepositoryDatabase implements SaveSupplyPartitionCoefficientRepository {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SupplyPartitionCoefficientRepositoryDatabase.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SaveSupplyPartitionCoefficientRepositoryDatabase.class);
 
     private final SupplyPartitionCoefficientJpaRepository jpaRepository;
     private final SupplyRepository supplyRepository;
@@ -38,7 +39,7 @@ public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyParti
     private final SharingAgreementRepository sharingAgreementRepository;
     private final SupplyPartitionCoefficientEntityMapper mapper;
 
-    public SupplyPartitionCoefficientRepositoryDatabase(
+    public SaveSupplyPartitionCoefficientRepositoryDatabase(
             SupplyPartitionCoefficientJpaRepository jpaRepository,
             SupplyRepository supplyRepository,
             PlantRepository plantRepository,
@@ -49,48 +50,6 @@ public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyParti
         this.plantRepository = plantRepository;
         this.sharingAgreementRepository = sharingAgreementRepository;
         this.mapper = mapper;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<SupplyPartitionCoefficient> findActiveBySupplyId(UUID supplyId) {
-        return jpaRepository.findActiveBySupplyId(supplyId).map(mapper::map);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<SupplyPartitionCoefficient> findBySupplyIdAtTimestamp(UUID supplyId, Instant timestamp) {
-        return jpaRepository.findBySupplyIdAtTimestamp(supplyId, timestamp).map(mapper::map);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<SupplyPartitionCoefficient> findByPlantIdAndSupplyIdAtTimestamp(UUID plantId, UUID supplyId, Instant timestamp) {
-        return jpaRepository.findByPlantIdAndSupplyIdAtTimestamp(plantId, supplyId, timestamp).map(mapper::map);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<SupplyPartitionCoefficient> findAllBySupplyIdAtTimestamp(UUID supplyId, Instant timestamp) {
-        return mapper.mapList(jpaRepository.findAllBySupplyIdAtTimestamp(supplyId, timestamp));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<SupplyPartitionCoefficient> findBySupplyIdInRange(UUID supplyId, Instant from, Instant to) {
-        return mapper.mapList(jpaRepository.findBySupplyIdInRange(supplyId, from, to));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<SupplyPartitionCoefficient> findAllBySupplyIdOrderByValidFromAsc(UUID supplyId) {
-        return mapper.mapList(jpaRepository.findAllBySupplyIdOrderByValidFromAsc(supplyId));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<SupplyPartitionCoefficient> findAllActiveAtTimestamp(Instant timestamp) {
-        return mapper.mapList(jpaRepository.findAllActiveAtTimestamp(timestamp));
     }
 
     @Override
@@ -137,8 +96,14 @@ public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyParti
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public boolean existsBySharingAgreementId(UUID sharingAgreementId) {
-        return jpaRepository.existsBySharingAgreementId(sharingAgreementId);
+    public List<SupplyPartitionCoefficient> replaceAllForSharingAgreement(UUID sharingAgreementId,
+                                                                            List<SupplyPartitionCoefficient> coefficients) {
+        jpaRepository.deleteBySharingAgreementId(sharingAgreementId);
+
+        List<SupplyPartitionCoefficient> saved = new ArrayList<>();
+        for (SupplyPartitionCoefficient coefficient : coefficients) {
+            saved.add(save(coefficient));
+        }
+        return saved;
     }
 }

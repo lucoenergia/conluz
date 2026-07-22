@@ -98,6 +98,30 @@ class RegisterPartitionCoefficientControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void legacyEndpointStillActivatesImmediatelyAfterValidFromBecameNullable() throws Exception {
+        // Phase 5c makes valid_from nullable (pending rows) and leaves the phase-2d plant/agreement
+        // inference in registerCoefficientChange functionally unchanged. This asserts the legacy
+        // single-supply endpoint still writes an immediately-active (non-null validFrom) row, exactly
+        // as before -- it never goes through the new pending-row materialisation path.
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        String url = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
+
+        String body = """
+                {"coefficient": 0.750000, "effectiveAt": "2025-06-01T00:00:00Z"}
+                """;
+
+        mockMvc.perform(post(url)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.validFrom").value("2025-06-01T00:00:00Z"))
+                .andExpect(jsonPath("$.validFrom").isNotEmpty());
+    }
+
+    @Test
     void returnsBadRequestForNegativeCoefficient() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();

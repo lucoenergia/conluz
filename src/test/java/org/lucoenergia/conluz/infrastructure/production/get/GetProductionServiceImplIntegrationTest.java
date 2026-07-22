@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -85,7 +85,7 @@ class GetProductionServiceImplIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
-    private SupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
+    private SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
     @Autowired
     private EnergyProductionInfluxLoader energyProductionInfluxLoader;
     @Autowired

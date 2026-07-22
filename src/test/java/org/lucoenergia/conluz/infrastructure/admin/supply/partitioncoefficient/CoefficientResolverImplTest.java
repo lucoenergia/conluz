@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientResolver;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSegment;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,12 +26,12 @@ class CoefficientResolverImplTest {
     private static final UUID PLANT_ID = UUID.randomUUID();
     private static final UUID OTHER_PLANT_ID = UUID.randomUUID();
 
-    private SupplyPartitionCoefficientRepository repository;
+    private GetSupplyPartitionCoefficientRepository repository;
     private CoefficientResolver resolver;
 
     @BeforeEach
     void setUp() {
-        repository = mock(SupplyPartitionCoefficientRepository.class);
+        repository = mock(GetSupplyPartitionCoefficientRepository.class);
         resolver = new CoefficientResolverImpl(repository);
     }
 
@@ -62,10 +62,9 @@ class CoefficientResolverImplTest {
 
     @Test
     void resolveCoefficientReturnsZeroWhenPending() {
-        // validFrom == null represents a pending, not-yet-scheduled coefficient. The
-        // supply_partition_coefficient.valid_from column is NOT NULL today, so this row shape is
-        // unreachable through a real DB read -- exercised here directly against a stubbed repository,
-        // as documented on CoefficientResolver.
+        // validFrom == null represents a pending, not-yet-activated coefficient (phase 5c). See
+        // MaterializeSharingAgreementCoefficientsServiceImplTest for the same assertion exercised
+        // end-to-end against a real materialised row, not just a stubbed repository.
         Instant instant = Instant.parse("2025-01-01T00:00:00Z");
         SupplyPartitionCoefficient pending = record(PLANT_ID, BigDecimal.valueOf(0.5), null, null);
         when(repository.findByPlantIdAndSupplyIdAtTimestamp(PLANT_ID, SUPPLY_ID, instant)).thenReturn(Optional.of(pending));

@@ -71,4 +71,13 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
      * parallel one.
      */
     boolean existsBySharingAgreementId(UUID sharingAgreementId);
+
+    // flushAutomatically: this bulk delete only touches supply_partition_coefficient's table
+    // space, so Hibernate's auto-flush would not otherwise flush an unrelated pending entity (e.g.
+    // a SharingAgreementFile insert earlier in the same transaction, as StoreDistributorFileServiceImpl
+    // does) before running it -- and clearAutomatically then evicts that still-unflushed entity from
+    // the persistence context, silently discarding it. Forcing the flush first avoids that.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM SupplyPartitionCoefficientEntity e WHERE e.sharingAgreement.id = :sharingAgreementId")
+    void deleteBySharingAgreementId(@Param("sharingAgreementId") UUID sharingAgreementId);
 }

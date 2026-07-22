@@ -3,10 +3,11 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementRepository;
@@ -25,16 +26,19 @@ import java.util.stream.Collectors;
 @Service
 public class PartitionCoefficientServiceImpl implements PartitionCoefficientService {
 
-    private final SupplyPartitionCoefficientRepository repository;
+    private final GetSupplyPartitionCoefficientRepository repository;
+    private final SaveSupplyPartitionCoefficientRepository saveRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final GetPlantRepository getPlantRepository;
     private final GetSharingAgreementRepository getSharingAgreementRepository;
 
-    public PartitionCoefficientServiceImpl(SupplyPartitionCoefficientRepository repository,
+    public PartitionCoefficientServiceImpl(GetSupplyPartitionCoefficientRepository repository,
+                                           SaveSupplyPartitionCoefficientRepository saveRepository,
                                            GetSupplyRepository getSupplyRepository,
                                            GetPlantRepository getPlantRepository,
                                            GetSharingAgreementRepository getSharingAgreementRepository) {
         this.repository = repository;
+        this.saveRepository = saveRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.getPlantRepository = getPlantRepository;
         this.getSharingAgreementRepository = getSharingAgreementRepository;
@@ -63,11 +67,24 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
         Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId))
                 .orElseThrow(() -> new SupplyNotFoundException(SupplyId.of(supplyId)));
 
-        // INTERIM (phase 2d): plant and sharing-agreement are inferred here because
-        // neither the single-supply endpoint nor the bulk-import path carries that
-        // context yet. Phase 3 (distributor-file-driven agreement creation) removes
-        // this inference entirely: the caller will pass plantId/sharingAgreementId
-        // explicitly and this block should be deleted then.
+        // STILL INTERIM (phase 2d), open decision owned by phase 5d: plant and sharing-agreement are
+        // inferred here because neither the single-supply endpoint (RegisterPartitionCoefficientController)
+        // nor the bulk-import path (RegisterPartitionCoefficientsWithFileController /
+        // RegisterPartitionCoefficientInBulkServiceImpl) carries that context in its request shape.
+        // This is scaffolding, not a permanent design -- its disposition (redesign to pass
+        // plantId/sharingAgreementId explicitly, or removal alongside the two endpoints themselves)
+        // is an open decision for phase 5d, which already owns those endpoints.
+        //
+        // Known consequence for 5d to weigh: this method calls neither assertDraft() nor checks
+        // SharingAgreementStatus at all, so the two legacy endpoints above can currently write an
+        // active (non-null validFrom) coefficient row against a PUBLISHED agreement -- bypassing the
+        // immutability guarantee assertDraft() enforces everywhere else on the sharing-agreement
+        // write surface (phase 5b's patch/delete/publish, and phase 5c's file-upload/PUT endpoints).
+        // This is a pre-existing gap, not one phase 5c introduces, but it must not be read as settled.
+        //
+        // This method is unrelated to, and never called by,
+        // MaterializeSharingAgreementCoefficientsService (phase 5c), which never sets a non-null
+        // validFrom -- it only ever writes pending rows.
         UUID communityId = supply.getCommunity().getId();
         Plant plant = getPlantRepository.findByCommunityId(communityId)
                 .orElseThrow(() -> new IllegalStateException(
@@ -81,7 +98,7 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
                         "coefficient resolution; every plant with coefficients gets a synthetic PUBLISHED " +
                         "agreement in the phase-2d migration backfill, so this should be unreachable."));
 
-        repository.closeActivePeriod(supplyId, plantId, effectiveAt);
+        saveRepository.closeActivePeriod(supplyId, plantId, effectiveAt);
 
         SupplyPartitionCoefficient newPeriod = new SupplyPartitionCoefficient.Builder()
                 .withId(UUID.randomUUID())
@@ -94,10 +111,10 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
                 .withCreatedAt(Instant.now())
                 .build();
 
-        SupplyPartitionCoefficient saved = repository.save(newPeriod);
+        SupplyPartitionCoefficient saved = saveRepository.save(newPeriod);
 
         // Keep supply.partition_coefficient in sync with the active value
-        repository.syncSupplyPartitionCoefficient(supplyId, newCoefficient);
+        saveRepository.syncSupplyPartitionCoefficient(supplyId, newCoefficient);
 
         return saved;
     }

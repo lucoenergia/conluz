@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.production.plant.create.CreateSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementResponse;
@@ -18,6 +17,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoun
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,11 +37,9 @@ import java.util.UUID;
 public class CreateSharingAgreementController {
 
     private final CreateSharingAgreementService service;
-    private final AuthService authService;
 
-    public CreateSharingAgreementController(CreateSharingAgreementService service, AuthService authService) {
+    public CreateSharingAgreementController(CreateSharingAgreementService service) {
         this.service = service;
-        this.authService = authService;
     }
 
     @PostMapping
@@ -76,10 +74,9 @@ public class CreateSharingAgreementController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId)")
-    public SharingAgreementResponse createSharingAgreement(@PathVariable UUID plantId,
+    public SharingAgreementResponse createSharingAgreement(@AuthenticationPrincipal User currentUser,
+                                                            @PathVariable UUID plantId,
                                                             @Valid @RequestBody CreateSharingAgreementBody body) {
-        User currentUser = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("No authenticated user for an authorized request"));
         SharingAgreement agreement = service.create(plantId, body.getName(), body.getNotes(), currentUser.getId());
         return new SharingAgreementResponse(agreement);
     }

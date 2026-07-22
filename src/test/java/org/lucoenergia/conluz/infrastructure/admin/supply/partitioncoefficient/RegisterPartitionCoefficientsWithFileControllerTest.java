@@ -86,6 +86,29 @@ class RegisterPartitionCoefficientsWithFileControllerTest extends BaseController
     }
 
     @Test
+    void legacyBulkImportStillActivatesImmediatelyAfterValidFromBecameNullable() throws Exception {
+        // Phase 5c makes valid_from nullable (pending rows) and leaves the phase-2d plant/agreement
+        // inference in this bulk-import path functionally unchanged. This asserts it still creates
+        // immediately-active (non-null validFrom) rows, exactly as before.
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        createSupplyWithCode("ES0031300806333001KE0F");
+        createSupplyWithCode("ES0031300326337001WS0F");
+
+        MockMultipartFile file = loadFixture(FIXTURE, TXT_CONTENT_TYPE);
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .param("effectiveAt", EFFECTIVE_AT)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", hasSize(2)))
+                .andExpect(jsonPath("$.created[0].validFrom").value(EFFECTIVE_AT))
+                .andExpect(jsonPath("$.created[1].validFrom").value(EFFECTIVE_AT));
+    }
+
+    @Test
     void handlesUnknownCupsAsError() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         createSupplyWithCode("ES0031300806333001KE0F");

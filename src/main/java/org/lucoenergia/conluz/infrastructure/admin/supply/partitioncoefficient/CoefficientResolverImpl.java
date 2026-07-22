@@ -2,8 +2,8 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientResolver;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSegment;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,9 +19,9 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class CoefficientResolverImpl implements CoefficientResolver {
 
-    private final SupplyPartitionCoefficientRepository repository;
+    private final GetSupplyPartitionCoefficientRepository repository;
 
-    public CoefficientResolverImpl(SupplyPartitionCoefficientRepository repository) {
+    public CoefficientResolverImpl(GetSupplyPartitionCoefficientRepository repository) {
         this.repository = repository;
     }
 

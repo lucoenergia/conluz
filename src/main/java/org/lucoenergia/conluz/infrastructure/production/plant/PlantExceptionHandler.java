@@ -2,13 +2,17 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.distributorfile.DistributorFileValidationException;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.DuplicatePartitionCoefficientEntryException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementHasNoCoefficientsException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotDraftException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementFileNotFoundException;
+import org.lucoenergia.conluz.infrastructure.production.plant.distributorfile.DistributorFileErrorMapper;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorDetail;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -17,16 +21,21 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class PlantExceptionHandler {
 
     private final MessageSource messageSource;
     private final ErrorBuilder errorBuilder;
+    private final DistributorFileErrorMapper distributorFileErrorMapper;
 
-    public PlantExceptionHandler(MessageSource messageSource, ErrorBuilder errorBuilder) {
+    public PlantExceptionHandler(MessageSource messageSource, ErrorBuilder errorBuilder,
+                                  DistributorFileErrorMapper distributorFileErrorMapper) {
         this.messageSource = messageSource;
         this.errorBuilder = errorBuilder;
+        this.distributorFileErrorMapper = distributorFileErrorMapper;
     }
 
     @ExceptionHandler(PlantAlreadyExistsException.class)
@@ -97,5 +106,31 @@ public class PlantExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_HAS_NO_COEFFICIENTS, null, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(DuplicatePartitionCoefficientEntryException.class)
+    public ResponseEntity<RestError> handleException(DuplicatePartitionCoefficientEntryException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.duplicate.cups",
+                new Object[]{e.getSharingAgreementId(), e.getCups()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_DUPLICATE_CUPS, null, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DistributorFileValidationException.class)
+    public ResponseEntity<RestError> handleException(DistributorFileValidationException e) {
+
+        List<RestErrorDetail> details = e.getErrors().stream()
+                .map(error -> distributorFileErrorMapper.toRestErrorDetail(error, LocaleContextHolder.getLocale()))
+                .collect(Collectors.toList());
+
+        String summary = messageSource.getMessage(
+                "error.distributor.file.invalid",
+                new Object[]{e.getErrors().size()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(summary, details, HttpStatus.BAD_REQUEST);
     }
 }

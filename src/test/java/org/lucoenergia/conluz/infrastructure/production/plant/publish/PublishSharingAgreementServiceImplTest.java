@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant.publish;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.plant.publish.PublishSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
@@ -27,7 +27,7 @@ class PublishSharingAgreementServiceImplTest {
     @Mock
     private GetSharingAgreementService getSharingAgreementService;
     @Mock
-    private SupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
+    private GetSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
     @Mock
     private PublishSharingAgreementRepository repository;
 

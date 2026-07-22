@@ -77,4 +77,20 @@ public class ErrorBuilder {
 
         return new ResponseEntity<>(restError, status);
     }
+
+    /**
+     * Builds one {@link RestError} from a pre-built collection of {@link RestErrorDetail}, e.g. the
+     * per-line errors found while validating an uploaded file. {@code message} is the short summary
+     * shown in {@link RestError#getMessage()} -- never a concatenation of the individual details.
+     */
+    public ResponseEntity<RestError> build(String message, List<RestErrorDetail> errors, HttpStatus status) {
+
+        final String traceId = UUID.randomUUID().toString();
+
+        LOGGER.error("Error message: {}. Trace ID: {}. {} error(s).", message, traceId, errors.size());
+
+        final RestError restError = new RestError(status.value(), message, traceId, errors);
+
+        return new ResponseEntity<>(restError, status);
+    }
 }

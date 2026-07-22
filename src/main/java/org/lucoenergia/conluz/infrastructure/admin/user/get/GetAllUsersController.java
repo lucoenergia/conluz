@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserService;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
@@ -20,6 +19,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.springdoc.core.converters.models.PageableAsQueryParam;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,14 +38,12 @@ public class GetAllUsersController {
     private final GetUserService service;
     private final PaginationRequestMapper paginationRequestMapper;
     private final CommunityAccessGuard communityAccessGuard;
-    private final AuthService authService;
 
     public GetAllUsersController(GetUserService service, PaginationRequestMapper paginationRequestMapper,
-                                 CommunityAccessGuard communityAccessGuard, AuthService authService) {
+                                 CommunityAccessGuard communityAccessGuard) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
         this.communityAccessGuard = communityAccessGuard;
-        this.authService = authService;
     }
 
     @GetMapping
@@ -83,9 +81,8 @@ public class GetAllUsersController {
     @InternalServerErrorResponse
     @PageableAsQueryParam
     @PreAuthorize("@communityAccessGuard.canListUsers()")
-    public PagedResult<UserResponse> getAllUsers(@Parameter(hidden = true) Pageable page) {
-        User currentUser = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
+    public PagedResult<UserResponse> getAllUsers(@AuthenticationPrincipal User currentUser,
+                                                  @Parameter(hidden = true) Pageable page) {
         Set<UUID> visibleCommunityIds = communityAccessGuard.visibleCommunityIds();
 
         PagedResult<User> users;
