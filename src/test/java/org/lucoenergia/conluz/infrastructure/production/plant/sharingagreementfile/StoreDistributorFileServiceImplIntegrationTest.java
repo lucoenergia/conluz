@@ -12,7 +12,7 @@ import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAg
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.DistributorFileStoreResult;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.DownloadSharingAgreementFileService;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementFile;
-import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementMismatchException;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.StoreDistributorFileService;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
@@ -282,7 +282,7 @@ class StoreDistributorFileServiceImplIntegrationTest extends BaseIntegrationTest
 
         byte[] file = content(CUPS_1 + ";0,500000", CUPS_2 + ";0,500000");
 
-        assertThrows(SharingAgreementMismatchException.class,
+        assertThrows(SharingAgreementPlantMismatchException.class,
                 () -> storeDistributorFileService.store(plantA.getId(), agreementB.getId(), FILENAME, file,
                         user.getId()));
     }

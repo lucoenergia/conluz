@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.production.plant.sharingagreement;
 
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementPlantMismatchException;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,7 +22,7 @@ public interface MaterializeSharingAgreementCoefficientsService {
      * untouched.
      *
      * @throws SharingAgreementNotFoundException if sharingAgreementId does not exist
-     * @throws org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementMismatchException
+     * @throws SharingAgreementPlantMismatchException
      *         if sharingAgreementId does not belong to plantId
      * @throws SharingAgreementNotDraftException if the agreement is not DRAFT
      * @throws org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException

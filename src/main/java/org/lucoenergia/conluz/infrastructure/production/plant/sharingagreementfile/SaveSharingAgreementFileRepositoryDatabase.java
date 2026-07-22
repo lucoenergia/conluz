@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant.sharingagreementf
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SaveSharingAgreementFileRepository;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementFile;
-import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementMismatchException;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementRepository;
 import org.springframework.stereotype.Repository;
@@ -32,7 +32,7 @@ public class SaveSharingAgreementFileRepositoryDatabase implements SaveSharingAg
         SharingAgreementEntity sharingAgreementEntity = sharingAgreementRepository.findById(file.getSharingAgreementId())
                 .orElseThrow(() -> new SharingAgreementNotFoundException(file.getSharingAgreementId()));
         if (!sharingAgreementEntity.getPlant().getId().equals(plantId)) {
-            throw new SharingAgreementMismatchException(file.getSharingAgreementId(), plantId);
+            throw new SharingAgreementPlantMismatchException(file.getSharingAgreementId(), plantId);
         }
 
         SharingAgreementFileEntity entity = new SharingAgreementFileEntity();

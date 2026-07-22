@@ -10,7 +10,7 @@ public interface SaveSharingAgreementFileRepository {
      *
      * @throws org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotFoundException if
      *                                              the sharing agreement does not exist
-     * @throws SharingAgreementMismatchException    if the sharing agreement does not belong to {@code plantId}
+     * @throws SharingAgreementPlantMismatchException    if the sharing agreement does not belong to {@code plantId}
      */
     SharingAgreementFile save(SharingAgreementFile file, UUID plantId);
 }

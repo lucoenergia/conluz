@@ -13,7 +13,7 @@ import org.lucoenergia.conluz.domain.production.plant.sharingagreement.Duplicate
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.MaterializeSharingAgreementCoefficientsService;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.PendingCoefficientEntry;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
-import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementMismatchException;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.springframework.stereotype.Service;
@@ -50,7 +50,7 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
                                                          List<PendingCoefficientEntry> entries) {
         SharingAgreement agreement = getSharingAgreementService.findById(sharingAgreementId);
         if (!agreement.getPlantId().equals(plantId)) {
-            throw new SharingAgreementMismatchException(sharingAgreementId, plantId);
+            throw new SharingAgreementPlantMismatchException(sharingAgreementId, plantId);
         }
         agreement.assertDraft();
 
