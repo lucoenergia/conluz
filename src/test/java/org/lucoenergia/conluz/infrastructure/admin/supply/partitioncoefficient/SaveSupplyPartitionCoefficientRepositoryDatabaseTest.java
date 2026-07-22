@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
@@ -24,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,9 +33,6 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
 
     @Autowired
     private SaveSupplyPartitionCoefficientRepositoryDatabase repository;
-
-    @Autowired
-    private GetSupplyPartitionCoefficientRepository getRepository;
 
     @Autowired
     private SupplyPartitionCoefficientJpaRepository jpaRepository;
@@ -94,24 +88,6 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
                 .withValidTo(validTo)
                 .withCreatedAt(Instant.now())
                 .build());
-    }
-
-    @Test
-    void closeActivePeriodSetsValidToOnOpenRow() {
-        SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
-        Instant start = Instant.parse("2024-01-01T00:00:00Z");
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(5.000000), start, null);
-
-        Instant closeAt = Instant.parse("2025-01-01T00:00:00Z");
-        repository.closeActivePeriod(supply.getId(), agreement.getPlant().getId(), closeAt);
-
-        Optional<SupplyPartitionCoefficient> active = getRepository.findActiveBySupplyId(supply.getId());
-        assertFalse(active.isPresent());
-
-        List<SupplyPartitionCoefficient> history = getRepository.findAllBySupplyIdOrderByValidFromAsc(supply.getId());
-        assertEquals(1, history.size());
-        assertEquals(closeAt, history.get(0).getValidTo());
     }
 
     @Test

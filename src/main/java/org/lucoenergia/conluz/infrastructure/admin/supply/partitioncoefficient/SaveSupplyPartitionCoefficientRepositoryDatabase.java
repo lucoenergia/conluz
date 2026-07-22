@@ -15,23 +15,16 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Transactional
 @Repository
 public class SaveSupplyPartitionCoefficientRepositoryDatabase implements SaveSupplyPartitionCoefficientRepository {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(SaveSupplyPartitionCoefficientRepositoryDatabase.class);
 
     private final SupplyPartitionCoefficientJpaRepository jpaRepository;
     private final SupplyRepository supplyRepository;
@@ -73,26 +66,6 @@ public class SaveSupplyPartitionCoefficientRepositoryDatabase implements SaveSup
         entity.setCreatedAt(coefficient.getCreatedAt());
 
         return mapper.map(jpaRepository.save(entity));
-    }
-
-    @Override
-    public void closeActivePeriod(UUID supplyId, UUID plantId, Instant validTo) {
-        Optional<SupplyPartitionCoefficientEntity> result = jpaRepository.findActiveBySupplyIdAndPlantId(supplyId, plantId);
-        if (result.isEmpty()) {
-            LOGGER.debug("No active coefficient found for supply {} and plant {}", supplyId, plantId);
-            return;
-        }
-        SupplyPartitionCoefficientEntity activeCoefficient = result.get();
-        activeCoefficient.setValidTo(validTo);
-        jpaRepository.save(activeCoefficient);
-    }
-
-    @Override
-    public void syncSupplyPartitionCoefficient(UUID supplyId, BigDecimal newCoefficient) {
-        SupplyEntity supply = supplyRepository.findById(supplyId)
-                .orElseThrow(() -> new SupplyNotFoundException(SupplyId.of(supplyId)));
-        supply.setPartitionCoefficient(newCoefficient.floatValue());
-        supplyRepository.save(supply);
     }
 
     @Override
