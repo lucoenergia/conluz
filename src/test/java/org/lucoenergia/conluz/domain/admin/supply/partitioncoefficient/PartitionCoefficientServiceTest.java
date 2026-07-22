@@ -27,7 +27,8 @@ import static org.mockito.Mockito.*;
 class PartitionCoefficientServiceTest {
 
     private PartitionCoefficientService service;
-    private SupplyPartitionCoefficientRepository repository;
+    private GetSupplyPartitionCoefficientRepository repository;
+    private SaveSupplyPartitionCoefficientRepository saveRepository;
     private GetSupplyRepository getSupplyRepository;
     private GetPlantRepository getPlantRepository;
     private GetSharingAgreementRepository getSharingAgreementRepository;
@@ -39,11 +40,12 @@ class PartitionCoefficientServiceTest {
 
     @BeforeEach
     void setUp() {
-        repository = mock(SupplyPartitionCoefficientRepository.class);
+        repository = mock(GetSupplyPartitionCoefficientRepository.class);
+        saveRepository = mock(SaveSupplyPartitionCoefficientRepository.class);
         getSupplyRepository = mock(GetSupplyRepository.class);
         getPlantRepository = mock(GetPlantRepository.class);
         getSharingAgreementRepository = mock(GetSharingAgreementRepository.class);
-        service = new PartitionCoefficientServiceImpl(repository, getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
+        service = new PartitionCoefficientServiceImpl(repository, saveRepository, getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
     }
 
     // --- resolveCoefficient ---
@@ -177,17 +179,17 @@ class PartitionCoefficientServiceTest {
                 .thenReturn(Optional.of(SHARING_AGREEMENT_ID));
 
         SupplyPartitionCoefficient saved = buildRecord(effectiveAt, null, newCoefficient);
-        when(repository.save(any())).thenReturn(saved);
+        when(saveRepository.save(any())).thenReturn(saved);
 
         SupplyPartitionCoefficient result = service.registerCoefficientChange(SUPPLY_ID, newCoefficient, effectiveAt);
 
-        verify(repository).closeActivePeriod(SUPPLY_ID, PLANT_ID, effectiveAt);
-        verify(repository).save(argThat(c ->
+        verify(saveRepository).closeActivePeriod(SUPPLY_ID, PLANT_ID, effectiveAt);
+        verify(saveRepository).save(argThat(c ->
                 c.getSupplyId().equals(SUPPLY_ID)
                         && c.getCoefficient().equals(newCoefficient)
                         && c.getValidFrom().equals(effectiveAt)
                         && c.getValidTo() == null));
-        verify(repository).syncSupplyPartitionCoefficient(SUPPLY_ID, newCoefficient);
+        verify(saveRepository).syncSupplyPartitionCoefficient(SUPPLY_ID, newCoefficient);
         assertNotNull(result);
     }
 
@@ -198,7 +200,7 @@ class PartitionCoefficientServiceTest {
         assertThrows(SupplyNotFoundException.class,
                 () -> service.registerCoefficientChange(SUPPLY_ID, BigDecimal.ONE, Instant.now()));
 
-        verifyNoInteractions(repository);
+        verifyNoInteractions(saveRepository);
     }
 
     // --- computeCommunitySum ---

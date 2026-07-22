@@ -5,7 +5,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientResolver;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.DuplicatePartitionCoefficientEntryException;
@@ -59,7 +59,7 @@ class MaterializeSharingAgreementCoefficientsServiceImplTest extends BaseIntegra
     @Autowired
     private SupplyPartitionCoefficientJpaRepository supplyPartitionCoefficientJpaRepository;
     @Autowired
-    private SupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
+    private SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
 
     private CommunityEntity persistCommunity() {
         return communityJpaRepository.save(CommunityMother.randomEntity().build());
@@ -190,7 +190,7 @@ class MaterializeSharingAgreementCoefficientsServiceImplTest extends BaseIntegra
 
     @Test
     void midReplaceFailureLeavesPriorSetIntact() {
-        // Exercises SupplyPartitionCoefficientRepository.replaceAllForSharingAgreement directly
+        // Exercises SaveSupplyPartitionCoefficientRepository.replaceAllForSharingAgreement directly
         // (below the service layer, which validates every CUPS before ever reaching the repository
         // in normal use) with a genuinely unpersistable second row -- a real failure, not a mocked
         // one -- to prove the delete-then-insert loop is atomic: nothing commits if any row fails.

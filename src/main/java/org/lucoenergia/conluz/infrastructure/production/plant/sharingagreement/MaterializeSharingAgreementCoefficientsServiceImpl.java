@@ -3,8 +3,8 @@ package org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
@@ -33,12 +33,12 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
     private final GetSharingAgreementService getSharingAgreementService;
     private final GetPlantRepository getPlantRepository;
     private final GetSupplyRepository getSupplyRepository;
-    private final SupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
+    private final SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
 
     public MaterializeSharingAgreementCoefficientsServiceImpl(GetSharingAgreementService getSharingAgreementService,
                                                                 GetPlantRepository getPlantRepository,
                                                                 GetSupplyRepository getSupplyRepository,
-                                                                SupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository) {
+                                                                SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository) {
         this.getSharingAgreementService = getSharingAgreementService;
         this.getPlantRepository = getPlantRepository;
         this.getSupplyRepository = getSupplyRepository;

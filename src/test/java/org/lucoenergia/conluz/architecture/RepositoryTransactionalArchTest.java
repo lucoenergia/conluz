@@ -20,7 +20,6 @@ public class RepositoryTransactionalArchTest extends BaseArchTest {
     // to toggle readOnly (rather than being split into separate read/write classes). Tracked
     // follow-up debt — do not add new entries; split the class instead.
     private static final Set<String> MIXING_EXCEPTIONS = Set.of(
-            "SupplyPartitionCoefficientRepositoryDatabase",
             "ManagePlatformAdminRepositoryDatabase",
             "GetSharingAgreementRepositoryDatabase",
             "GetSharingAgreementFileRepositoryDatabase"

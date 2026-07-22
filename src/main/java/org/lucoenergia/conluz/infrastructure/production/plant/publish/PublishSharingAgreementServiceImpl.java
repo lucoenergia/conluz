@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.publish;
 
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.plant.publish.PublishSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.plant.publish.PublishSharingAgreementService;
@@ -16,11 +16,11 @@ import java.util.UUID;
 public class PublishSharingAgreementServiceImpl implements PublishSharingAgreementService {
 
     private final GetSharingAgreementService getSharingAgreementService;
-    private final SupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
+    private final GetSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
     private final PublishSharingAgreementRepository repository;
 
     public PublishSharingAgreementServiceImpl(GetSharingAgreementService getSharingAgreementService,
-                                               SupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository,
+                                               GetSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository,
                                                PublishSharingAgreementRepository repository) {
         this.getSharingAgreementService = getSharingAgreementService;
         this.supplyPartitionCoefficientRepository = supplyPartitionCoefficientRepository;

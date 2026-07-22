@@ -3,10 +3,11 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementRepository;
@@ -25,16 +26,19 @@ import java.util.stream.Collectors;
 @Service
 public class PartitionCoefficientServiceImpl implements PartitionCoefficientService {
 
-    private final SupplyPartitionCoefficientRepository repository;
+    private final GetSupplyPartitionCoefficientRepository repository;
+    private final SaveSupplyPartitionCoefficientRepository saveRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final GetPlantRepository getPlantRepository;
     private final GetSharingAgreementRepository getSharingAgreementRepository;
 
-    public PartitionCoefficientServiceImpl(SupplyPartitionCoefficientRepository repository,
+    public PartitionCoefficientServiceImpl(GetSupplyPartitionCoefficientRepository repository,
+                                           SaveSupplyPartitionCoefficientRepository saveRepository,
                                            GetSupplyRepository getSupplyRepository,
                                            GetPlantRepository getPlantRepository,
                                            GetSharingAgreementRepository getSharingAgreementRepository) {
         this.repository = repository;
+        this.saveRepository = saveRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.getPlantRepository = getPlantRepository;
         this.getSharingAgreementRepository = getSharingAgreementRepository;
@@ -94,7 +98,7 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
                         "coefficient resolution; every plant with coefficients gets a synthetic PUBLISHED " +
                         "agreement in the phase-2d migration backfill, so this should be unreachable."));
 
-        repository.closeActivePeriod(supplyId, plantId, effectiveAt);
+        saveRepository.closeActivePeriod(supplyId, plantId, effectiveAt);
 
         SupplyPartitionCoefficient newPeriod = new SupplyPartitionCoefficient.Builder()
                 .withId(UUID.randomUUID())
@@ -107,10 +111,10 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
                 .withCreatedAt(Instant.now())
                 .build();
 
-        SupplyPartitionCoefficient saved = repository.save(newPeriod);
+        SupplyPartitionCoefficient saved = saveRepository.save(newPeriod);
 
         // Keep supply.partition_coefficient in sync with the active value
-        repository.syncSupplyPartitionCoefficient(supplyId, newCoefficient);
+        saveRepository.syncSupplyPartitionCoefficient(supplyId, newCoefficient);
 
         return saved;
     }

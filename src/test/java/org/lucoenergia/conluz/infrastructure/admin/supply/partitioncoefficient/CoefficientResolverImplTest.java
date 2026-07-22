@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientResolver;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSegment;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,12 +26,12 @@ class CoefficientResolverImplTest {
     private static final UUID PLANT_ID = UUID.randomUUID();
     private static final UUID OTHER_PLANT_ID = UUID.randomUUID();
 
-    private SupplyPartitionCoefficientRepository repository;
+    private GetSupplyPartitionCoefficientRepository repository;
     private CoefficientResolver resolver;
 
     @BeforeEach
     void setUp() {
-        repository = mock(SupplyPartitionCoefficientRepository.class);
+        repository = mock(GetSupplyPartitionCoefficientRepository.class);
         resolver = new CoefficientResolverImpl(repository);
     }
 

@@ -6,7 +6,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -43,7 +43,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     @Autowired
     private CreateSupplyService createSupplyService;
     @Autowired
-    private SupplyPartitionCoefficientRepository partitionCoefficientRepository;
+    private SaveSupplyPartitionCoefficientRepository partitionCoefficientRepository;
     @Autowired
     private GetCommunityRepository getCommunityRepository;
     @Autowired
