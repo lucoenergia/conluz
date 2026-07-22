@@ -7,10 +7,8 @@ import java.math.BigDecimal;
  * This is a warning, never a hard error: Σβ ≠ 1 is legitimate mid-transition (e.g. a plant being
  * onboarded row by row). The distributor-file upload path enforces the exact sum as a hard error
  * instead (see {@link org.lucoenergia.conluz.domain.production.plant.distributorfile.DistributorFileErrorCode#COEFFICIENT_SUM_INVALID}),
- * since a file is expected to represent a complete, final set. Deliberately not the same class as
- * {@code CommunityCoefficientSumWarning} (infrastructure.admin.supply.partitioncoefficient): that
- * one sums the community-wide *active* coefficients at an instant; this one sums *this agreement's
- * pending* coefficient set -- same tolerance/shape, different scope.
+ * since a file is expected to represent a complete, final set. This class sums *this agreement's
+ * pending* coefficient set, scoped to a single sharing agreement.
  */
 final class PartitionCoefficientSetSumWarning {
 

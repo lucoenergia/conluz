@@ -1,17 +1,11 @@
 package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 public interface SaveSupplyPartitionCoefficientRepository {
 
     SupplyPartitionCoefficient save(SupplyPartitionCoefficient coefficient);
-
-    void closeActivePeriod(UUID supplyId, UUID plantId, Instant validTo);
-
-    void syncSupplyPartitionCoefficient(UUID supplyId, BigDecimal newCoefficient);
 
     /**
      * Atomically replaces every row belonging to {@code sharingAgreementId} (pending or not) with

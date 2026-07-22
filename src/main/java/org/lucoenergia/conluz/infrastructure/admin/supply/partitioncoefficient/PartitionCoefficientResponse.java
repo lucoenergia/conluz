@@ -15,6 +15,10 @@ public class PartitionCoefficientResponse {
     @Schema(description = "Supply this coefficient belongs to", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
     private final UUID supplyId;
 
+    @Schema(description = "Plant this coefficient belongs to. Disambiguates a supply's timeline " +
+            "when it participates in more than one plant.", example = "a1b2c3d4-1234-5678-abcd-000000000002")
+    private final UUID plantId;
+
     @Schema(description = "Partition coefficient value", example = "0.030763")
     private final BigDecimal coefficient;
 
@@ -33,6 +37,7 @@ public class PartitionCoefficientResponse {
     public PartitionCoefficientResponse(SupplyPartitionCoefficient domain) {
         this.id = domain.getId();
         this.supplyId = domain.getSupplyId();
+        this.plantId = domain.getPlantId();
         this.coefficient = domain.getCoefficient();
         this.validFrom = domain.getValidFrom();
         this.validTo = domain.getValidTo();
@@ -45,6 +50,10 @@ public class PartitionCoefficientResponse {
 
     public UUID getSupplyId() {
         return supplyId;
+    }
+
+    public UUID getPlantId() {
+        return plantId;
     }
 
     public BigDecimal getCoefficient() {

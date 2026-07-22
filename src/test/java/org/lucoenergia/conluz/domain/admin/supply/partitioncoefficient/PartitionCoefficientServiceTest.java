@@ -2,14 +2,6 @@ package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.community.Community;
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.production.plant.Plant;
-import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
-import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementRepository;
-import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient.PartitionCoefficientServiceImpl;
 
 import java.math.BigDecimal;
@@ -28,24 +20,13 @@ class PartitionCoefficientServiceTest {
 
     private PartitionCoefficientService service;
     private GetSupplyPartitionCoefficientRepository repository;
-    private SaveSupplyPartitionCoefficientRepository saveRepository;
-    private GetSupplyRepository getSupplyRepository;
-    private GetPlantRepository getPlantRepository;
-    private GetSharingAgreementRepository getSharingAgreementRepository;
 
     private static final UUID SUPPLY_ID = UUID.randomUUID();
-    private static final UUID COMMUNITY_ID = UUID.randomUUID();
-    private static final UUID PLANT_ID = UUID.randomUUID();
-    private static final UUID SHARING_AGREEMENT_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
         repository = mock(GetSupplyPartitionCoefficientRepository.class);
-        saveRepository = mock(SaveSupplyPartitionCoefficientRepository.class);
-        getSupplyRepository = mock(GetSupplyRepository.class);
-        getPlantRepository = mock(GetPlantRepository.class);
-        getSharingAgreementRepository = mock(GetSharingAgreementRepository.class);
-        service = new PartitionCoefficientServiceImpl(repository, saveRepository, getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
+        service = new PartitionCoefficientServiceImpl(repository);
     }
 
     // --- resolveCoefficient ---
@@ -157,64 +138,6 @@ class PartitionCoefficientServiceTest {
         assertEquals(from, result.get(0).getValidFrom());  // clipped to query start
         assertEquals(to, result.get(0).getValidTo());       // clipped to query end
         assertEquals(BigDecimal.valueOf(5.000000), result.get(0).getCoefficient());
-    }
-
-    // --- registerCoefficientChange ---
-
-    @Test
-    void registerCoefficientChangeClosesActivePeriodAndCreatesNewOne() {
-        Instant effectiveAt = Instant.parse("2025-06-01T00:00:00Z");
-        BigDecimal newCoefficient = BigDecimal.valueOf(7.000000);
-
-        Community community = mock(Community.class);
-        when(community.getId()).thenReturn(COMMUNITY_ID);
-        Supply supply = mock(Supply.class);
-        when(supply.getCommunity()).thenReturn(community);
-        when(getSupplyRepository.findById(SupplyId.of(SUPPLY_ID))).thenReturn(Optional.of(supply));
-
-        Plant plant = mock(Plant.class);
-        when(plant.getId()).thenReturn(PLANT_ID);
-        when(getPlantRepository.findByCommunityId(COMMUNITY_ID)).thenReturn(Optional.of(plant));
-        when(getSharingAgreementRepository.findCurrentPublishedAgreementIdByPlantId(PLANT_ID))
-                .thenReturn(Optional.of(SHARING_AGREEMENT_ID));
-
-        SupplyPartitionCoefficient saved = buildRecord(effectiveAt, null, newCoefficient);
-        when(saveRepository.save(any())).thenReturn(saved);
-
-        SupplyPartitionCoefficient result = service.registerCoefficientChange(SUPPLY_ID, newCoefficient, effectiveAt);
-
-        verify(saveRepository).closeActivePeriod(SUPPLY_ID, PLANT_ID, effectiveAt);
-        verify(saveRepository).save(argThat(c ->
-                c.getSupplyId().equals(SUPPLY_ID)
-                        && c.getCoefficient().equals(newCoefficient)
-                        && c.getValidFrom().equals(effectiveAt)
-                        && c.getValidTo() == null));
-        verify(saveRepository).syncSupplyPartitionCoefficient(SUPPLY_ID, newCoefficient);
-        assertNotNull(result);
-    }
-
-    @Test
-    void registerCoefficientChangeThrowsWhenSupplyNotFound() {
-        when(getSupplyRepository.findById(SupplyId.of(SUPPLY_ID))).thenReturn(Optional.empty());
-
-        assertThrows(SupplyNotFoundException.class,
-                () -> service.registerCoefficientChange(SUPPLY_ID, BigDecimal.ONE, Instant.now()));
-
-        verifyNoInteractions(saveRepository);
-    }
-
-    // --- computeCommunitySum ---
-
-    @Test
-    void computeCommunitySumReturnsCorrectTotal() {
-        Instant timestamp = Instant.now();
-        SupplyPartitionCoefficient c1 = buildRecord(timestamp.minusSeconds(1), null, BigDecimal.valueOf(30.000000));
-        SupplyPartitionCoefficient c2 = buildRecord(timestamp.minusSeconds(1), null, BigDecimal.valueOf(70.000000));
-        when(repository.findAllActiveAtTimestamp(timestamp)).thenReturn(List.of(c1, c2));
-
-        BigDecimal sum = service.computeCommunitySum(timestamp);
-
-        assertEquals(0, BigDecimal.valueOf(100.000000).compareTo(sum));
     }
 
     // --- findAllCoefficientHistory ---

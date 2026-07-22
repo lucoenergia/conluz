@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -69,8 +70,32 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].plantId").value(agreement.getPlant().getId().toString()))
                 .andExpect(jsonPath("$[0].validFrom").value("2024-01-01T00:00:00Z"))
+                .andExpect(jsonPath("$[1].plantId").value(agreement.getPlant().getId().toString()))
                 .andExpect(jsonPath("$[1].validFrom").value("2025-01-01T00:00:00Z"));
+    }
+
+    @Test
+    void getHistoryDisambiguatesRowsAcrossTwoPlantsForSameSupply() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        SharingAgreementEntity agreement1 = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreementEntity agreement2 = ensurePlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        // Same [t0, open) window on both plants: without plantId these two rows would be
+        // indistinguishable overlapping intervals for the same supply.
+        persistCoefficient(supply.getId(), agreement1, BigDecimal.valueOf(0.4), t0, null);
+        persistCoefficient(supply.getId(), agreement2, BigDecimal.valueOf(0.6), t0, null);
+
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].plantId").value(Matchers.containsInAnyOrder(
+                        agreement1.getPlant().getId().toString(), agreement2.getPlant().getId().toString())));
     }
 
     @Test
