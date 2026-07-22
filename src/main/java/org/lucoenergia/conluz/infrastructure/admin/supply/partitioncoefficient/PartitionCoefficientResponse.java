@@ -18,8 +18,9 @@ public class PartitionCoefficientResponse {
     @Schema(description = "Partition coefficient value", example = "0.030763")
     private final BigDecimal coefficient;
 
-    @Schema(description = "Start of the period during which this coefficient is active (inclusive)",
-            example = "2024-05-23T00:00:00Z")
+    @Schema(description = "Start of the period during which this coefficient is active (inclusive). " +
+            "Null means this is a pending coefficient, materialised but not yet activated.",
+            example = "2024-05-23T00:00:00Z", nullable = true)
     private final Instant validFrom;
 
     @Schema(description = "End of the period (exclusive). Null means this is the currently active coefficient.",

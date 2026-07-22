@@ -63,11 +63,24 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
         Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId))
                 .orElseThrow(() -> new SupplyNotFoundException(SupplyId.of(supplyId)));
 
-        // INTERIM (phase 2d): plant and sharing-agreement are inferred here because
-        // neither the single-supply endpoint nor the bulk-import path carries that
-        // context yet. Phase 3 (distributor-file-driven agreement creation) removes
-        // this inference entirely: the caller will pass plantId/sharingAgreementId
-        // explicitly and this block should be deleted then.
+        // STILL INTERIM (phase 2d), open decision owned by phase 5d: plant and sharing-agreement are
+        // inferred here because neither the single-supply endpoint (RegisterPartitionCoefficientController)
+        // nor the bulk-import path (RegisterPartitionCoefficientsWithFileController /
+        // RegisterPartitionCoefficientInBulkServiceImpl) carries that context in its request shape.
+        // This is scaffolding, not a permanent design -- its disposition (redesign to pass
+        // plantId/sharingAgreementId explicitly, or removal alongside the two endpoints themselves)
+        // is an open decision for phase 5d, which already owns those endpoints.
+        //
+        // Known consequence for 5d to weigh: this method calls neither assertDraft() nor checks
+        // SharingAgreementStatus at all, so the two legacy endpoints above can currently write an
+        // active (non-null validFrom) coefficient row against a PUBLISHED agreement -- bypassing the
+        // immutability guarantee assertDraft() enforces everywhere else on the sharing-agreement
+        // write surface (phase 5b's patch/delete/publish, and phase 5c's file-upload/PUT endpoints).
+        // This is a pre-existing gap, not one phase 5c introduces, but it must not be read as settled.
+        //
+        // This method is unrelated to, and never called by,
+        // MaterializeSharingAgreementCoefficientsService (phase 5c), which never sets a non-null
+        // validFrom -- it only ever writes pending rows.
         UUID communityId = supply.getCommunity().getId();
         Plant plant = getPlantRepository.findByCommunityId(communityId)
                 .orElseThrow(() -> new IllegalStateException(

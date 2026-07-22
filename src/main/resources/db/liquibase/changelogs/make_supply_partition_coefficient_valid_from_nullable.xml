@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Phase 5c introduces "pending" coefficient rows: materialised into supply_partition_coefficient
+         by an uploaded distributor file or by manual authoring, but not yet activated. A pending row
+         has valid_from = NULL; activation (setting a non-null valid_from) is explicitly out of scope
+         for this phase and is left for a future one.
+
+         No preConditions guard is needed here, unlike add_supply_partition_coefficient_no_overlapping_
+         exclusion_constraint.xml: relaxing NOT NULL to nullable is monotonic and cannot be violated by
+         any existing row (every existing row already satisfies "nullable", since NOT NULL implies it).
+
+         no_overlapping_coefficients (see add_supply_partition_coefficient_no_overlapping_exclusion_
+         constraint.xml) already carries a `WHERE (valid_from IS NOT NULL)` partial-index predicate,
+         added pre-emptively in anticipation of exactly this change. Verified still correct: it
+         continues to exclude every pending row (valid_from IS NULL) from the overlap check, so no
+         change to that constraint is needed here. It does NOT, however, protect against two pending
+         rows for the same (plant_id, supply_id): both have valid_from = NULL and are therefore both
+         excluded from the exclusion constraint's comparison. That gap is closed at the application
+         layer (MaterializeSharingAgreementCoefficientsServiceImpl rejects duplicate CUPS within one
+         replace call), not at the database layer, and is called out explicitly here so a future
+         reader does not assume the exclusion constraint already covers it. -->
+    <changeSet id="make_supply_partition_coefficient_valid_from_nullable" author="Víctor Cañizares">
+        <sql>
+            ALTER TABLE supply_partition_coefficient ALTER COLUMN valid_from DROP NOT NULL;
+        </sql>
+        <rollback>
+            <!-- This rollback will fail with a NOT NULL violation if any pending row (valid_from IS
+                 NULL) exists at rollback time, e.g. any agreement that has had phase 5c's file-upload
+                 or manual-authoring endpoints exercised against it, but not yet activated by a future
+                 phase. That is an accepted, documented trade-off: activating (backfilling valid_from)
+                 or deleting those rows first is an operational decision for whoever runs the rollback,
+                 not something this changeset can safely automate. -->
+            <sql>ALTER TABLE supply_partition_coefficient ALTER COLUMN valid_from SET NOT NULL;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

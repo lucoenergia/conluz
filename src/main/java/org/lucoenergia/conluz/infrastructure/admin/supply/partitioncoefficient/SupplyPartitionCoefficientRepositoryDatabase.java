@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -140,5 +141,17 @@ public class SupplyPartitionCoefficientRepositoryDatabase implements SupplyParti
     @Transactional(readOnly = true)
     public boolean existsBySharingAgreementId(UUID sharingAgreementId) {
         return jpaRepository.existsBySharingAgreementId(sharingAgreementId);
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficient> replaceAllForSharingAgreement(UUID sharingAgreementId,
+                                                                            List<SupplyPartitionCoefficient> coefficients) {
+        jpaRepository.deleteBySharingAgreementId(sharingAgreementId);
+
+        List<SupplyPartitionCoefficient> saved = new ArrayList<>();
+        for (SupplyPartitionCoefficient coefficient : coefficients) {
+            saved.add(save(coefficient));
+        }
+        return saved;
     }
 }

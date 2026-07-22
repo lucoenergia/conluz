@@ -31,7 +31,11 @@ public class SupplyPartitionCoefficientEntity {
     @Column(name = "coefficient", nullable = false, precision = 18, scale = 6)
     private BigDecimal coefficient;
 
-    @Column(name = "valid_from", nullable = false)
+    /**
+     * Nullable since phase 5c: a null valid_from is a "pending" row, materialised (by a distributor
+     * file upload or manual authoring) but not yet activated. Activation is a future phase's job.
+     */
+    @Column(name = "valid_from")
     private Instant validFrom;
 
     @Column(name = "valid_to")

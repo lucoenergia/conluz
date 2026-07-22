@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.distributorfile.DistributorFileError;
 import org.lucoenergia.conluz.domain.production.plant.distributorfile.DistributorFileErrorCode;
 import org.lucoenergia.conluz.domain.production.plant.distributorfile.DistributorFileValidationException;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotDraftException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.DistributorFileStoreResult;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.DownloadSharingAgreementFileService;
@@ -17,6 +18,8 @@ import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
@@ -32,10 +35,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,6 +74,12 @@ class StoreDistributorFileServiceImplIntegrationTest extends BaseIntegrationTest
     @Autowired
     private SharingAgreementRepository sharingAgreementRepository;
 
+    @Autowired
+    private SharingAgreementFileRepository sharingAgreementFileRepository;
+
+    @Autowired
+    private SupplyPartitionCoefficientJpaRepository supplyPartitionCoefficientJpaRepository;
+
     private CommunityEntity persistCommunity() {
         return communityJpaRepository.save(CommunityMother.randomEntity().build());
     }
@@ -89,12 +101,16 @@ class StoreDistributorFileServiceImplIntegrationTest extends BaseIntegrationTest
                 .build());
     }
 
-    private SharingAgreementEntity persistPublishedAgreement(PlantEntity plant) {
+    private SharingAgreementEntity persistDraftAgreement(PlantEntity plant) {
+        return persistAgreement(plant, SharingAgreementStatus.DRAFT);
+    }
+
+    private SharingAgreementEntity persistAgreement(PlantEntity plant, SharingAgreementStatus status) {
         SharingAgreementEntity agreement = new SharingAgreementEntity();
         agreement.setId(UUID.randomUUID());
         agreement.setPlant(plant);
         agreement.setName("Test agreement " + UUID.randomUUID());
-        agreement.setStatus(SharingAgreementStatus.PUBLISHED);
+        agreement.setStatus(status);
         agreement.setCreatedAt(Instant.now());
         agreement.setCreatedBy(null);
         return sharingAgreementRepository.save(agreement);
@@ -112,7 +128,7 @@ class StoreDistributorFileServiceImplIntegrationTest extends BaseIntegrationTest
         SupplyEntity supplyA1 = persistSupply(user, communityA, CUPS_1);
         SupplyEntity supplyB1 = persistSupply(user, communityB, CUPS_2);
         PlantEntity plantA = persistPlant(supplyA1, REGULATORY_CODE);
-        SharingAgreementEntity agreementA = persistPublishedAgreement(plantA);
+        SharingAgreementEntity agreementA = persistDraftAgreement(plantA);
 
         byte[] file = content(CUPS_1 + ";0,500000", CUPS_2 + ";0,500000");
 
@@ -142,7 +158,7 @@ class StoreDistributorFileServiceImplIntegrationTest extends BaseIntegrationTest
         SupplyEntity supply1 = persistSupply(user, community, CUPS_1);
         persistSupply(user, community, CUPS_2);
         PlantEntity plant = persistPlant(supply1, REGULATORY_CODE);
-        SharingAgreementEntity agreement = persistPublishedAgreement(plant);
+        SharingAgreementEntity agreement = persistDraftAgreement(plant);
 
         byte[] original = content(CUPS_1 + ";0,500000", CUPS_2 + ";0,500000");
 
@@ -168,7 +184,7 @@ class StoreDistributorFileServiceImplIntegrationTest extends BaseIntegrationTest
         SupplyEntity supply1 = persistSupply(user, community, CUPS_1);
         persistSupply(user, community, CUPS_2);
         PlantEntity plant = persistPlant(supply1, REGULATORY_CODE);
-        SharingAgreementEntity agreement = persistPublishedAgreement(plant);
+        SharingAgreementEntity agreement = persistDraftAgreement(plant);
 
         byte[] original = content(CUPS_1 + ";0,500000", CUPS_2 + ";0,500000");
 
@@ -182,19 +198,87 @@ class StoreDistributorFileServiceImplIntegrationTest extends BaseIntegrationTest
     }
 
     @Test
+    void validFileOnDraftMaterializesPendingRows() {
+        CommunityEntity community = persistCommunity();
+        UserEntity user = persistUser();
+        SupplyEntity supply1 = persistSupply(user, community, CUPS_1);
+        persistSupply(user, community, CUPS_2);
+        PlantEntity plant = persistPlant(supply1, REGULATORY_CODE);
+        SharingAgreementEntity agreement = persistDraftAgreement(plant);
+
+        byte[] file = content(CUPS_1 + ";0,400000", CUPS_2 + ";0,600000");
+
+        storeDistributorFileService.store(plant.getId(), agreement.getId(), FILENAME, file, user.getId());
+
+        List<SupplyPartitionCoefficientEntity> rows = supplyPartitionCoefficientJpaRepository.findAll().stream()
+                .filter(e -> e.getSharingAgreement().getId().equals(agreement.getId()))
+                .toList();
+        assertEquals(2, rows.size());
+        for (SupplyPartitionCoefficientEntity row : rows) {
+            assertNull(row.getValidFrom());
+            assertEquals(plant.getId(), row.getPlant().getId());
+            assertEquals(agreement.getId(), row.getSharingAgreement().getId());
+        }
+    }
+
+    @Test
+    void nonDraftAgreementThrowsAndPersistsNothing() {
+        CommunityEntity community = persistCommunity();
+        UserEntity user = persistUser();
+        SupplyEntity supply1 = persistSupply(user, community, CUPS_1);
+        persistSupply(user, community, CUPS_2);
+        PlantEntity plant = persistPlant(supply1, REGULATORY_CODE);
+        SharingAgreementEntity published = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+
+        byte[] file = content(CUPS_1 + ";0,500000", CUPS_2 + ";0,500000");
+
+        assertThrows(SharingAgreementNotDraftException.class,
+                () -> storeDistributorFileService.store(plant.getId(), published.getId(), FILENAME, file, user.getId()));
+
+        boolean anyFile = sharingAgreementFileRepository.findAll().stream()
+                .anyMatch(f -> f.getSharingAgreement().getId().equals(published.getId()));
+        assertFalse(anyFile);
+        boolean anyCoefficient = supplyPartitionCoefficientJpaRepository.findAll().stream()
+                .anyMatch(e -> e.getSharingAgreement().getId().equals(published.getId()));
+        assertFalse(anyCoefficient);
+    }
+
+    @Test
+    void reUploadAtomicallyReplacesPriorCoefficientSet() {
+        CommunityEntity community = persistCommunity();
+        UserEntity user = persistUser();
+        SupplyEntity supply1 = persistSupply(user, community, CUPS_1);
+        SupplyEntity supply2 = persistSupply(user, community, CUPS_2);
+        PlantEntity plant = persistPlant(supply1, REGULATORY_CODE);
+        SharingAgreementEntity agreement = persistDraftAgreement(plant);
+
+        byte[] fileA = content(CUPS_1 + ";1,000000");
+        storeDistributorFileService.store(plant.getId(), agreement.getId(), FILENAME, fileA, user.getId());
+
+        byte[] fileB = content(CUPS_2 + ";1,000000");
+        storeDistributorFileService.store(plant.getId(), agreement.getId(), FILENAME, fileB, user.getId());
+
+        List<SupplyPartitionCoefficientEntity> rows = supplyPartitionCoefficientJpaRepository.findAll().stream()
+                .filter(e -> e.getSharingAgreement().getId().equals(agreement.getId()))
+                .toList();
+        assertEquals(1, rows.size());
+        assertEquals(supply2.getId(), rows.get(0).getSupply().getId());
+    }
+
+    @Test
     void mismatchedSharingAgreementIdThrowsMismatchException() {
         CommunityEntity community = persistCommunity();
         UserEntity user = persistUser();
         SupplyEntity supplyA1 = persistSupply(user, community, CUPS_1);
         persistSupply(user, community, CUPS_2);
         PlantEntity plantA = persistPlant(supplyA1, REGULATORY_CODE);
-        persistPublishedAgreement(plantA);
+        persistDraftAgreement(plantA);
 
         // A second plant/agreement in a different community -- its agreement id does not belong to plantA.
         CommunityEntity communityB = persistCommunity();
         SupplyEntity supplyB1 = persistSupply(user, communityB, "ES0031300325733009FH0F");
         PlantEntity plantB = persistPlant(supplyB1, "ES0031300325733009FH0FA000");
-        SharingAgreementEntity agreementB = persistPublishedAgreement(plantB);
+        SharingAgreementEntity agreementB = persistDraftAgreement(plantB);
 
         byte[] file = content(CUPS_1 + ";0,500000", CUPS_2 + ";0,500000");
 

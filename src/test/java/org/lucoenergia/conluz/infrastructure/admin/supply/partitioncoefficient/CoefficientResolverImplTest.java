@@ -62,10 +62,9 @@ class CoefficientResolverImplTest {
 
     @Test
     void resolveCoefficientReturnsZeroWhenPending() {
-        // validFrom == null represents a pending, not-yet-scheduled coefficient. The
-        // supply_partition_coefficient.valid_from column is NOT NULL today, so this row shape is
-        // unreachable through a real DB read -- exercised here directly against a stubbed repository,
-        // as documented on CoefficientResolver.
+        // validFrom == null represents a pending, not-yet-activated coefficient (phase 5c). See
+        // MaterializeSharingAgreementCoefficientsServiceImplTest for the same assertion exercised
+        // end-to-end against a real materialised row, not just a stubbed repository.
         Instant instant = Instant.parse("2025-01-01T00:00:00Z");
         SupplyPartitionCoefficient pending = record(PLANT_ID, BigDecimal.valueOf(0.5), null, null);
         when(repository.findByPlantIdAndSupplyIdAtTimestamp(PLANT_ID, SUPPLY_ID, instant)).thenReturn(Optional.of(pending));
