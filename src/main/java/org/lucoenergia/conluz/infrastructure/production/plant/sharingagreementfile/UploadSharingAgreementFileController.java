@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.DistributorFileStoreResult;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.StoreDistributorFileService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -20,6 +19,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,11 +39,9 @@ import java.util.UUID;
 public class UploadSharingAgreementFileController {
 
     private final StoreDistributorFileService service;
-    private final AuthService authService;
 
-    public UploadSharingAgreementFileController(StoreDistributorFileService service, AuthService authService) {
+    public UploadSharingAgreementFileController(StoreDistributorFileService service) {
         this.service = service;
-        this.authService = authService;
     }
 
     @PostMapping
@@ -87,14 +85,12 @@ public class UploadSharingAgreementFileController {
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
     public UploadSharingAgreementFileResponse uploadSharingAgreementFile(
+            @AuthenticationPrincipal User currentUser,
             @PathVariable UUID plantId,
             @PathVariable UUID id,
             @Parameter(description = "Distributor TXT file. Format: CUPS;coefficient (comma decimal separator). " +
                     "File name must follow the pattern: {regulatoryCode}_{YYYY}.txt.", required = true)
             @RequestParam("file") MultipartFile file) throws IOException {
-        User currentUser = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("No authenticated user for an authorized request"));
-
         DistributorFileStoreResult result = service.store(plantId, id, file.getOriginalFilename(), file.getBytes(),
                 currentUser.getId());
 
