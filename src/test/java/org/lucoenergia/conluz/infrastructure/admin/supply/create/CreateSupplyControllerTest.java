@@ -58,8 +58,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "communityId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
                   "personalId": "%s",
                   "address": "Fake Street 123",
-                  "addressRef": "4ASDF654ASDF89ASD",
-                  "partitionCoefficient": "3.0763"
+                  "addressRef": "4ASDF654ASDF89ASD"
                 }
         """, userPersonalId);
 
@@ -73,7 +72,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.code").value("ES0033333333333333AA0A"))
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
                 .andExpect(jsonPath("$.addressRef").value("4ASDF654ASDF89ASD"))
-                .andExpect(jsonPath("$.partitionCoefficient").value("3.0763"))
+                .andExpect(jsonPath("$.partitionCoefficient").value(0.0))
                 .andExpect(jsonPath("$.name").isEmpty())
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
@@ -105,7 +104,6 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "personalId": "%s",
                   "address": "Fake Street 456",
                   "addressRef": "4ASDF654ASDF89ASD",
-                  "partitionCoefficient": "2.5432",
                   "name": "Test Supply Name"
                 }
         """, userPersonalId);
@@ -120,7 +118,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.code").value("ES0033333333333333BB0B"))
                 .andExpect(jsonPath("$.address").value("Fake Street 456"))
                 .andExpect(jsonPath("$.addressRef").value("4ASDF654ASDF89ASD"))
-                .andExpect(jsonPath("$.partitionCoefficient").value("2.5432"))
+                .andExpect(jsonPath("$.partitionCoefficient").value(0.0))
                 .andExpect(jsonPath("$.name").value("Test Supply Name")) // Name is explicitly provided
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
@@ -133,37 +131,6 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.user.enabled").value(user.isEnabled()));
 
         Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333BB0B"));
-    }
-
-    @Test
-    void testCreateSupplyWithoutPartitionCoefficient() throws Exception {
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-
-        String userPersonalId = "54889216G";
-        User user = UserMother.randomUser();
-        user.setPersonalId(userPersonalId);
-        createUserRepository.create(user);
-
-        String body = String.format("""
-                {
-                  "code": "ES0033333333333333CC0C",
-                  "communityId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-                  "personalId": "%s",
-                  "address": "Fake Street 789",
-                  "addressRef": "4ASDF654ASDF89ASD"
-                }
-        """, userPersonalId);
-
-        mockMvc.perform(post(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.partitionCoefficient").value(0.0));
-
-        Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333CC0C"));
     }
 
     @Test
@@ -182,11 +149,10 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "personalId": "%s",
                   "address": "%s",
                   "addressRef": "%s",
-                  "partitionCoefficient": "%s",
                   "communityId": "%s"
                 }
         """, supply.getCode(), user.getPersonalId(), supply.getAddress(), supply.getAddressRef(),
-                supply.getPartitionCoefficient(), DEFAULT_COMMUNITY_ID);
+                DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -227,31 +193,27 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                         {
                           "personalId": "54889216G",
                           "address": "Fake Street 456",
-                          "addressRef": "4ASDF654ASDF89ASD",
-                          "partitionCoefficient": "2.5432"
+                          "addressRef": "4ASDF654ASDF89ASD"
                         }
                 """,
                 """
                         {
                           "code": "ES0033333333333333BB0B",
                           "address": "Fake Street 456",
-                          "addressRef": "4ASDF654ASDF89ASD",
-                          "partitionCoefficient": "2.5432"
+                          "addressRef": "4ASDF654ASDF89ASD"
                         }
                 """,
                 """
                         {
                           "code": "ES0033333333333333BB0B",
                           "personalId": "54889216G",
-                          "addressRef": "4ASDF654ASDF89ASD",
-                          "partitionCoefficient": "2.5432"
+                          "addressRef": "4ASDF654ASDF89ASD"
                         }
                 """,
                 """
                         {
                           "code": "ES0033333333333333BB0B",
                           "personalId": "54889216G",
-                          "partitionCoefficient": "2.5432",
                           "address": "Fake Street 456"
                         }
                 """,
@@ -261,8 +223,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                           "code": "ES0033333333333333BB0B",
                           "personalId": "54889216G",
                           "address": "Fake Street 456",
-                          "addressRef": "4ASDF654ASDF89ASD",
-                          "partitionCoefficient": "2.5432"
+                          "addressRef": "4ASDF654ASDF89ASD"
                         }
                 """
                 );
@@ -285,8 +246,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "communityId": "%s",
                   "personalId": "%s",
                   "address": "Fake Street 123",
-                  "addressRef": "4ASDF654ASDF89ASD",
-                  "partitionCoefficient": "3.0763"
+                  "addressRef": "4ASDF654ASDF89ASD"
                 }
         """, java.util.UUID.randomUUID(), userPersonalId);
 
@@ -297,54 +257,6 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
-    }
-
-    @ParameterizedTest
-    @MethodSource("getBodyWithInvalidFormatValues")
-    void testWithInvalidFormatValues(String body) throws Exception {
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-
-        mockMvc.perform(post(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
-                .andExpect(jsonPath("$.message").isNotEmpty())
-                .andExpect(jsonPath("$.traceId").isNotEmpty());
-    }
-
-    static List<String> getBodyWithInvalidFormatValues() {
-        return List.of("""
-                    {
-                      "code": "ES0033333333333333AA0A",
-                      "personalId": "54889216G",
-                      "address": "Fake Street 123",
-                      "addressRef": "4ASDF654ASDF89ASD",
-                      "partitionCoefficient": "-3.0763"
-                    }
-                """,
-                """
-                    {
-                      "code": "ES0033333333333333AA0A",
-                      "personalId": "54889216G",
-                      "address": "Fake Street 123",
-                      "addressRef": "4ASDF654ASDF89ASD",
-                      "partitionCoefficient": "3,0763"
-                    }
-                """,
-                """
-                    {
-                      "code": "ES0033333333333333AA0A",
-                      "personalId": "54889216G",
-                      "address": "Fake Street 123",
-                      "addressRef": "4ASDF654ASDF89ASD",
-                      "partitionCoefficient": "foo"
-                    }
-                """);
     }
 
     @Test
@@ -387,8 +299,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                   "communityId": "%s",
                   "personalId": "%s",
                   "address": "Fake Street 123",
-                  "addressRef": "4ASDF654ASDF89ASD",
-                  "partitionCoefficient": "3.0763"
+                  "addressRef": "4ASDF654ASDF89ASD"
                 }
         """, DEFAULT_COMMUNITY_ID, userPersonalId);
 
