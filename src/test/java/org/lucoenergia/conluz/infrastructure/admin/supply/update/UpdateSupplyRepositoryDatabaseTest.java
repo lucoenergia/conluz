@@ -33,7 +33,6 @@ class UpdateSupplyRepositoryDatabaseTest {
                 .withCode("code")
                 .withName("name")
                 .withAddress("address")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .withContract(new SupplyContract.Builder()
                         .withValidDateFrom(LocalDate.now())

@@ -98,7 +98,6 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                 .withName(supply.getName())
                 .withAddress(supply.getAddress())
                 .withAddressRef(supply.getAddressRef())
-                .withPartitionCoefficient(supply.getPartitionCoefficient())
                 .withEnabled(supply.getEnabled())
                 .withCommunity(communityEntity)
                 .withShelly(shellyEntity)

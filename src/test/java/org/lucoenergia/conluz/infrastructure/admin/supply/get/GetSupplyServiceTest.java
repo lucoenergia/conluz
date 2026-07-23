@@ -35,10 +35,10 @@ class GetSupplyServiceTest {
         User user = UserMother.randomUserWithId(userId);
         Supply supply1 = new Supply.Builder()
                 .withId(UUID.randomUUID()).withCode("ES001").withUser(user).withName("Supply 1")
-                .withAddress("Address 1").withPartitionCoefficient(1.0f).withEnabled(true).build();
+                .withAddress("Address 1").withEnabled(true).build();
         Supply supply2 = new Supply.Builder()
                 .withId(UUID.randomUUID()).withCode("ES002").withUser(user).withName("Supply 2")
-                .withAddress("Address 2").withPartitionCoefficient(1.0f).withEnabled(true).build();
+                .withAddress("Address 2").withEnabled(true).build();
 
         List<Supply> expectedSupplies = Arrays.asList(supply1, supply2);
         when(repository.findByUserId(userIdValue)).thenReturn(expectedSupplies);

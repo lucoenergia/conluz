@@ -28,7 +28,6 @@ public class SupplyEntity {
     private String name;
     private String address;
     private String addressRef;
-    private Float partitionCoefficient;
     private Boolean enabled;
 
     @OneToOne(mappedBy = "supply", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -60,7 +59,6 @@ public class SupplyEntity {
         private String name;
         private String address;
         private String addressRef;
-        private Float partitionCoefficient;
         private Boolean enabled;
         private SupplyShellyEntity shelly;
         private SupplyDistributorEntity distributor;
@@ -101,11 +99,6 @@ public class SupplyEntity {
             return this;
         }
 
-        public Builder withPartitionCoefficient(Float partitionCoefficient) {
-            this.partitionCoefficient = partitionCoefficient;
-            return this;
-        }
-
         public Builder withEnabled(Boolean enabled) {
             this.enabled = enabled;
             return this;
@@ -135,7 +128,6 @@ public class SupplyEntity {
             entity.name = this.name;
             entity.address = this.address;
             entity.addressRef = this.addressRef;
-            entity.partitionCoefficient = this.partitionCoefficient;
             entity.enabled = this.enabled;
             if (shelly != null) {
                 entity.shelly = shelly;
@@ -203,14 +195,6 @@ public class SupplyEntity {
 
     public void setAddressRef(String addressRef) {
         this.addressRef = addressRef;
-    }
-
-    public Float getPartitionCoefficient() {
-        return partitionCoefficient;
-    }
-
-    public void setPartitionCoefficient(Float partitionCoefficient) {
-        this.partitionCoefficient = partitionCoefficient;
     }
 
     public Boolean getEnabled() {

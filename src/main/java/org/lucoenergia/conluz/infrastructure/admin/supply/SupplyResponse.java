@@ -23,10 +23,6 @@ public class SupplyResponse {
     private final String address;
     @Schema(description = "Reference ID of the address", example = "4ASDF654ASDF89ASD")
     private final String addressRef;
-    @Schema(description = "Legacy partition coefficient of the supply. No longer authoritative: " +
-            "the sharing-agreement coefficient timeline is the source of truth for production calculations.",
-            example = "2.403561")
-    private final Float partitionCoefficient;
     @Schema(description = "Whether the supply is enabled or disabled", example = "true")
     private final Boolean enabled;
     @Schema(description = "Contract information of the supply")
@@ -42,7 +38,6 @@ public class SupplyResponse {
         this.name = supply.getName();
         this.address = supply.getAddress();
         this.addressRef = supply.getAddressRef();
-        this.partitionCoefficient = supply.getPartitionCoefficient();
         this.enabled = supply.getEnabled();
         this.user = supply.getUser() != null ? new UserResponse(supply.getUser()) : null;
         this.contract = supply.getContract() != null ? new SupplyContractResponse(supply.getContract()) : null;
@@ -72,10 +67,6 @@ public class SupplyResponse {
 
     public String getAddressRef() {
         return addressRef;
-    }
-
-    public Float getPartitionCoefficient() {
-        return partitionCoefficient;
     }
 
     public Boolean getEnabled() {

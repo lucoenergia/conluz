@@ -72,7 +72,6 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.name").value(supplyModified.getName()))
                 .andExpect(jsonPath("$.address").value(supplyModified.getAddress()))
                 .andExpect(jsonPath("$.addressRef").value(supplyModified.getAddressRef()))
-                .andExpect(jsonPath("$.partitionCoefficient").value(supply.getPartitionCoefficient()))
                 .andExpect(jsonPath("$.enabled").value(supply.getEnabled()))
                 .andExpect(jsonPath("$.contract.validDateFrom").value(supply.getContract().getValidDateFrom().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
                 .andExpect(jsonPath("$.distributor.name").value(supply.getDistributor().getName()))

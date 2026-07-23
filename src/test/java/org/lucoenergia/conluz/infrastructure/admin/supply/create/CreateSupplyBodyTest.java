@@ -26,7 +26,6 @@ class CreateSupplyBodyTest {
         assertEquals("PERSONAL456", result.getUser().getPersonalId());
         assertEquals("Test Address", result.getAddress());
         assertEquals(body.getAddressRef(), result.getAddressRef());
-        assertEquals(0.0F, result.getPartitionCoefficient());
         assertEquals("Supply Name", result.getName());
     }
 
@@ -50,7 +49,6 @@ class CreateSupplyBodyTest {
         assertEquals("Test Address", result.getAddress());
         assertEquals(body.getAddressRef(), result.getAddressRef());
         assertEquals(body.getAddressRef(), result.getAddressRef());
-        assertEquals(0.0F, result.getPartitionCoefficient());
         assertNull(result.getName());
     }
 
@@ -73,7 +71,6 @@ class CreateSupplyBodyTest {
         assertEquals("PERSONAL456", result.getUser().getPersonalId());
         assertEquals("Test Address", result.getAddress());
         assertEquals(body.getAddressRef(), result.getAddressRef());
-        assertEquals(0.0F, result.getPartitionCoefficient());
         assertNull(result.getName());
     }
 }

@@ -564,7 +564,6 @@ class PlantAccessGuardImplTest {
                 .withUser(owner)
                 .withName("Supply")
                 .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .build();
     }
@@ -578,7 +577,6 @@ class PlantAccessGuardImplTest {
                 .withCommunity(community)
                 .withName("Supply")
                 .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .build();
     }
@@ -591,7 +589,6 @@ class PlantAccessGuardImplTest {
                 .withCommunity(community)
                 .withName("Supply")
                 .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .build();
     }
