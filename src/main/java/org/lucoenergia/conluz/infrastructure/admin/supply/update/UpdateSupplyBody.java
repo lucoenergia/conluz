@@ -2,7 +2,6 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.update;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Positive;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyDto;
 
 
@@ -18,8 +17,6 @@ public class UpdateSupplyBody {
     private String address;
     @NotEmpty
     private String addressRef;
-    @Positive
-    private Float partitionCoefficient;
 
 
     public String getCode() {
@@ -54,21 +51,12 @@ public class UpdateSupplyBody {
         this.addressRef = addressRef;
     }
 
-    public Float getPartitionCoefficient() {
-        return partitionCoefficient;
-    }
-
-    public void setPartitionCoefficient(Float partitionCoefficient) {
-        this.partitionCoefficient = partitionCoefficient;
-    }
-
     public UpdateSupplyDto mapToSupply() {
         UpdateSupplyDto.Builder builder = new UpdateSupplyDto.Builder();
         builder.code(code)
                 .name(name)
                 .address(address)
-                .addressRef(addressRef)
-                .partitionCoefficient(partitionCoefficient);
+                .addressRef(addressRef);
         return builder.build();
     }
 }

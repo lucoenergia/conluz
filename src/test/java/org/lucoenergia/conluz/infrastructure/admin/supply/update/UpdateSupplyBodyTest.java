@@ -15,7 +15,6 @@ class UpdateSupplyBodyTest {
         updateSupplyBody.setName("name");
         updateSupplyBody.setAddress("address");
         updateSupplyBody.setAddressRef("addressRef");
-        updateSupplyBody.setPartitionCoefficient(0.5f);
 
         // Act
         UpdateSupplyDto supply = updateSupplyBody.mapToSupply();
@@ -25,6 +24,5 @@ class UpdateSupplyBodyTest {
         assertEquals("name", supply.getName());
         assertEquals("address", supply.getAddress());
         assertEquals("addressRef", supply.getAddressRef());
-        assertEquals(0.5f, supply.getPartitionCoefficient());
     }
 }

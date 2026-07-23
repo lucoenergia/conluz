@@ -23,7 +23,9 @@ public class SupplyResponse {
     private final String address;
     @Schema(description = "Reference ID of the address", example = "4ASDF654ASDF89ASD")
     private final String addressRef;
-    @Schema(description = "Address of the supply", example = "2.403561")
+    @Schema(description = "Legacy partition coefficient of the supply. No longer authoritative: " +
+            "the sharing-agreement coefficient timeline is the source of truth for production calculations.",
+            example = "2.403561")
     private final Float partitionCoefficient;
     @Schema(description = "Whether the supply is enabled or disabled", example = "true")
     private final Boolean enabled;

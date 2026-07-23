@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
@@ -22,8 +21,6 @@ public class CreateSupplyBody {
     private String address;
     @NotEmpty
     private String addressRef;
-    @PositiveOrZero
-    private Float partitionCoefficient;
     private String name;
     @NotNull
     private UUID communityId;
@@ -50,14 +47,6 @@ public class CreateSupplyBody {
 
     public void setAddressRef(String addressRef) {
         this.addressRef = addressRef;
-    }
-
-    public Float getPartitionCoefficient() {
-        return partitionCoefficient;
-    }
-
-    public void setPartitionCoefficient(Float partitionCoefficient) {
-        this.partitionCoefficient = partitionCoefficient;
     }
 
     public String getPersonalId() {
@@ -89,7 +78,6 @@ public class CreateSupplyBody {
         builder.withCode(code != null ? code.trim() : null)
                 .withAddress(address != null ? address.trim() : null)
                 .withAddressRef(addressRef != null ? addressRef.trim() : null)
-                .withPartitionCoefficient(partitionCoefficient != null ? partitionCoefficient : 0.0F)
                 .withUser(personalId != null ? new User.Builder().personalId(personalId.trim()).build() : null);
 
         if (name != null && !name.isBlank()) {

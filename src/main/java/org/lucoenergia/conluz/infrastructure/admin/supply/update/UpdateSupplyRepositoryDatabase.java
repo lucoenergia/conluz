@@ -40,7 +40,6 @@ public class UpdateSupplyRepositoryDatabase implements UpdateSupplyRepository {
         currentSupply.setName(supply.getName());
         currentSupply.setAddress(supply.getAddress());
         currentSupply.setAddressRef(supply.getAddressRef());
-        currentSupply.setPartitionCoefficient(supply.getPartitionCoefficient());
 
         if (supply.getContract() != null) {
             if (currentSupply.getContract() == null) {

@@ -8,14 +8,12 @@ public class UpdateSupplyDto {
     private final String name;
     private final String address;
     private final String addressRef;
-    private final Float partitionCoefficient;
 
     private UpdateSupplyDto(Builder builder) {
         this.code = builder.code;
         this.name = builder.name;
         this.address = builder.address;
         this.addressRef = builder.addressRef;
-        this.partitionCoefficient = builder.partitionCoefficient;
     }
 
     public static class Builder {
@@ -23,7 +21,6 @@ public class UpdateSupplyDto {
         private String name;
         private String address;
         private String addressRef;
-        private Float partitionCoefficient;
 
         public Builder() {
         }
@@ -48,11 +45,6 @@ public class UpdateSupplyDto {
             return this;
         }
 
-        public Builder partitionCoefficient(Float partitionCoefficient) {
-            this.partitionCoefficient = partitionCoefficient;
-            return this;
-        }
-
         public UpdateSupplyDto build() {
             return new UpdateSupplyDto(this);
         }
@@ -74,10 +66,6 @@ public class UpdateSupplyDto {
         return addressRef;
     }
 
-    public Float getPartitionCoefficient() {
-        return partitionCoefficient;
-    }
-
     public Supply mapToSupply(Supply.Builder supplyBuilder) {
         supplyBuilder
                 .withCode(code)
@@ -85,9 +73,6 @@ public class UpdateSupplyDto {
                 .withAddressRef(addressRef);
         if (name != null) {
             supplyBuilder.withName(name);
-        }
-        if (partitionCoefficient != null) {
-            supplyBuilder.withPartitionCoefficient(partitionCoefficient);
         }
         return supplyBuilder.build();
     }

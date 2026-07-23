@@ -42,7 +42,6 @@ class UpdateSupplyServiceTest {
                 .code("NEWCODE123")
                 .name("Updated Supply")
                 .address("456 Avenue")
-                .partitionCoefficient(2.0f)
                 .build();
 
         Supply updatedSupply = new Supply.Builder()
@@ -79,7 +78,6 @@ class UpdateSupplyServiceTest {
                 .code("NEWCODE123")
                 .name("Updated Supply")
                 .address("456 Avenue")
-                .partitionCoefficient(2.0f)
                 .build();
 
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.empty());
