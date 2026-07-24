@@ -7,8 +7,11 @@ import org.lucoenergia.conluz.domain.production.plant.sharingagreement.Duplicate
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementHasNoCoefficientsException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotDraftException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotPublishedException;
+import org.lucoenergia.conluz.domain.production.plant.sharingagreement.activation.CoefficientActivationException;
 import org.lucoenergia.conluz.domain.production.plant.sharingagreementfile.SharingAgreementFileNotFoundException;
 import org.lucoenergia.conluz.infrastructure.production.plant.distributorfile.DistributorFileErrorMapper;
+import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.activation.CoefficientActivationErrorMapper;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
@@ -30,12 +33,15 @@ public class PlantExceptionHandler {
     private final MessageSource messageSource;
     private final ErrorBuilder errorBuilder;
     private final DistributorFileErrorMapper distributorFileErrorMapper;
+    private final CoefficientActivationErrorMapper coefficientActivationErrorMapper;
 
     public PlantExceptionHandler(MessageSource messageSource, ErrorBuilder errorBuilder,
-                                  DistributorFileErrorMapper distributorFileErrorMapper) {
+                                  DistributorFileErrorMapper distributorFileErrorMapper,
+                                  CoefficientActivationErrorMapper coefficientActivationErrorMapper) {
         this.messageSource = messageSource;
         this.errorBuilder = errorBuilder;
         this.distributorFileErrorMapper = distributorFileErrorMapper;
+        this.coefficientActivationErrorMapper = coefficientActivationErrorMapper;
     }
 
     @ExceptionHandler(PlantAlreadyExistsException.class)
@@ -117,6 +123,32 @@ public class PlantExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_DUPLICATE_CUPS, null, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(SharingAgreementNotPublishedException.class)
+    public ResponseEntity<RestError> handleException(SharingAgreementNotPublishedException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.not.published",
+                new Object[]{e.getId(), e.getCurrentStatus()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_NOT_PUBLISHED, null, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(CoefficientActivationException.class)
+    public ResponseEntity<RestError> handleException(CoefficientActivationException e) {
+
+        List<RestErrorDetail> details = e.getErrors().stream()
+                .map(error -> coefficientActivationErrorMapper.toRestErrorDetail(error, LocaleContextHolder.getLocale()))
+                .collect(Collectors.toList());
+
+        String summary = messageSource.getMessage(
+                "error.sharing.agreement.coefficient.activation.invalid",
+                new Object[]{e.getErrors().size()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(summary, details, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(DistributorFileValidationException.class)
