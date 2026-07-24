@@ -74,6 +74,23 @@ public class SharingAgreement {
         }
     }
 
+    /**
+     * Throws {@link SharingAgreementNotPublishedException} only for DRAFT; PUBLISHED and SUPERSEDED
+     * both pass. Used by the coefficient-activation paths (activate/deactivate/close/reopen), which
+     * deliberately do NOT call {@link #assertDraft()}: that guard protects WHICH coefficients exist
+     * (sealed at publish), while activation records WHEN an external party applied one -- an observed
+     * fact that can occur after publication, and must remain correctable even once this agreement
+     * becomes SUPERSEDED (e.g. fixing a mis-recorded date on one of its own rows). SUPERSEDED is a
+     * recomputed, not authored, status; freezing it here would make such corrections permanently
+     * impossible, which nothing in the spec calls for. This is the one write on a non-DRAFT agreement
+     * that is correct -- do not "fix" it to require DRAFT.
+     */
+    public void assertNotDraft() {
+        if (status == SharingAgreementStatus.DRAFT) {
+            throw new SharingAgreementNotPublishedException(id, status);
+        }
+    }
+
     public static class Builder {
         private UUID id;
         private UUID plantId;
