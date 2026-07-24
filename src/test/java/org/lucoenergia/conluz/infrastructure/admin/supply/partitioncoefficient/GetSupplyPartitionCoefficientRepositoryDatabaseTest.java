@@ -64,6 +64,10 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
 
     private SharingAgreementEntity persistPlantAndPublishedAgreement(SupplyEntity supply) {
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
+        return persistPublishedAgreement(plant);
+    }
+
+    private SharingAgreementEntity persistPublishedAgreement(PlantEntity plant) {
         SharingAgreementEntity agreement = new SharingAgreementEntity();
         agreement.setId(UUID.randomUUID());
         agreement.setPlant(plant);
@@ -250,6 +254,104 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
         persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(0.4), t0, t1);
 
         List<SupplyPartitionCoefficient> result = repository.findAllBySupplyIdAtTimestamp(supply.getId(), queryAt);
+
+        assertTrue(result.isEmpty());
+    }
+
+    // --- Coefficient activation (phase 5f) ---
+
+    @Test
+    void findAllByIdAndSharingAgreementIdExcludesCoefficientsFromAnotherAgreement() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreementA = persistPlantAndPublishedAgreement(supply);
+        SharingAgreementEntity agreementB = persistPublishedAgreement(agreementA.getPlant());
+        SupplyPartitionCoefficient inA = persist(supply.getId(), agreementA.getPlant().getId(), agreementA.getId(),
+                BigDecimal.ONE, null, null);
+        SupplyPartitionCoefficient inB = persist(supply.getId(), agreementB.getPlant().getId(), agreementB.getId(),
+                BigDecimal.ONE, null, null);
+
+        List<SupplyPartitionCoefficient> result = repository.findAllByIdAndSharingAgreementId(
+                List.of(inA.getId(), inB.getId()), agreementA.getId());
+
+        assertEquals(1, result.size());
+        assertEquals(inA.getId(), result.get(0).getId());
+    }
+
+    @Test
+    void findPredecessorReturnsOpenRowWhenBoundaryIsNull() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        SupplyPartitionCoefficient open = persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(),
+                BigDecimal.ONE, Instant.parse("2024-01-01T00:00:00Z"), null);
+        UUID unrelatedCoefficientId = UUID.randomUUID();
+
+        Optional<SupplyPartitionCoefficient> result = repository.findPredecessor(
+                agreement.getPlant().getId(), supply.getId(), unrelatedCoefficientId, null);
+
+        assertTrue(result.isPresent());
+        assertEquals(open.getId(), result.get().getId());
+    }
+
+    @Test
+    void findPredecessorReturnsRowEndingAtBoundaryWhenBoundaryNonNull() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreementA = persistPlantAndPublishedAgreement(supply);
+        Instant boundary = Instant.parse("2025-01-01T00:00:00Z");
+        SupplyPartitionCoefficient predecessor = persist(supply.getId(), agreementA.getPlant().getId(), agreementA.getId(),
+                BigDecimal.ONE, Instant.parse("2024-01-01T00:00:00Z"), boundary);
+        SharingAgreementEntity agreementB = persistPublishedAgreement(agreementA.getPlant());
+        SupplyPartitionCoefficient successor = persist(supply.getId(), agreementB.getPlant().getId(), agreementB.getId(),
+                BigDecimal.ONE, boundary, null);
+
+        Optional<SupplyPartitionCoefficient> result = repository.findPredecessor(
+                agreementA.getPlant().getId(), supply.getId(), successor.getId(), boundary);
+
+        assertTrue(result.isPresent());
+        assertEquals(predecessor.getId(), result.get().getId());
+    }
+
+    @Test
+    void findPredecessorExcludesPendingRowsEvenWhenValidToIsNull() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        // A pending row also has validTo == null, but must never be returned as an "open predecessor".
+        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.ONE, null, null);
+        UUID excludeId = UUID.randomUUID();
+
+        Optional<SupplyPartitionCoefficient> result = repository.findPredecessor(
+                agreement.getPlant().getId(), supply.getId(), excludeId, null);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findNextActivatedAfterReturnsNearestLaterRowEvenWhenNotAdjacent() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreementA = persistPlantAndPublishedAgreement(supply);
+        Instant closedAt = Instant.parse("2024-06-01T00:00:00Z");
+        SupplyPartitionCoefficient closed = persist(supply.getId(), agreementA.getPlant().getId(), agreementA.getId(),
+                BigDecimal.ONE, Instant.parse("2024-01-01T00:00:00Z"), closedAt);
+        SharingAgreementEntity agreementB = persistPublishedAgreement(agreementA.getPlant());
+        Instant laterStart = Instant.parse("2025-01-01T00:00:00Z"); // not adjacent to closedAt
+        SupplyPartitionCoefficient later = persist(supply.getId(), agreementB.getPlant().getId(), agreementB.getId(),
+                BigDecimal.ONE, laterStart, null);
+
+        Optional<SupplyPartitionCoefficient> result = repository.findNextActivatedAfter(
+                agreementA.getPlant().getId(), supply.getId(), closed.getId(), closed.getValidFrom());
+
+        assertTrue(result.isPresent());
+        assertEquals(later.getId(), result.get().getId());
+    }
+
+    @Test
+    void findNextActivatedAfterReturnsEmptyWhenNoLaterRowExists() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        SupplyPartitionCoefficient only = persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(),
+                BigDecimal.ONE, Instant.parse("2024-01-01T00:00:00Z"), Instant.parse("2024-06-01T00:00:00Z"));
+
+        Optional<SupplyPartitionCoefficient> result = repository.findNextActivatedAfter(
+                agreement.getPlant().getId(), supply.getId(), only.getId(), only.getValidFrom());
 
         assertTrue(result.isEmpty());
     }

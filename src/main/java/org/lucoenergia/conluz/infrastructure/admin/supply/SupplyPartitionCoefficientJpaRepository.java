@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -69,4 +70,38 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM SupplyPartitionCoefficientEntity e WHERE e.sharingAgreement.id = :sharingAgreementId")
     void deleteBySharingAgreementId(@Param("sharingAgreementId") UUID sharingAgreementId);
+
+    // -- Coefficient activation (phase 5f) --
+
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.id IN :ids AND e.sharingAgreement.id = :sharingAgreementId")
+    List<SupplyPartitionCoefficientEntity> findAllByIdInAndSharingAgreementId(@Param("ids") List<UUID> ids,
+                                                                                @Param("sharingAgreementId") UUID sharingAgreementId);
+
+    // The currently open row for (plantId, supplyId), if any -- used when the coefficient being
+    // activated has no validFrom of its own yet (pure activation).
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId AND e.supply.id = :supplyId " +
+            "AND e.id <> :excludeId AND e.validFrom IS NOT NULL AND e.validTo IS NULL")
+    Optional<SupplyPartitionCoefficientEntity> findOpenPredecessor(@Param("plantId") UUID plantId,
+                                                                     @Param("supplyId") UUID supplyId,
+                                                                     @Param("excludeId") UUID excludeId);
+
+    // The row whose validTo equals boundary -- used when correcting or reverting a coefficient that
+    // already has its own validFrom set (the row may or may not still be the open one).
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId AND e.supply.id = :supplyId " +
+            "AND e.id <> :excludeId AND e.validFrom IS NOT NULL AND e.validTo = :boundary")
+    Optional<SupplyPartitionCoefficientEntity> findPredecessorEndingAt(@Param("plantId") UUID plantId,
+                                                                         @Param("supplyId") UUID supplyId,
+                                                                         @Param("excludeId") UUID excludeId,
+                                                                         @Param("boundary") Instant boundary);
+
+    // The nearest activated row after afterInstant, however far away -- callers pass a single-item
+    // Pageable (LIMIT 1) rather than loading every later row into memory.
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId AND e.supply.id = :supplyId " +
+            "AND e.id <> :excludeId AND e.validFrom IS NOT NULL AND e.validFrom > :afterInstant " +
+            "ORDER BY e.validFrom ASC")
+    List<SupplyPartitionCoefficientEntity> findActivatedAfterOrderByValidFromAsc(@Param("plantId") UUID plantId,
+                                                                                   @Param("supplyId") UUID supplyId,
+                                                                                   @Param("excludeId") UUID excludeId,
+                                                                                   @Param("afterInstant") Instant afterInstant,
+                                                                                   Pageable pageable);
 }
