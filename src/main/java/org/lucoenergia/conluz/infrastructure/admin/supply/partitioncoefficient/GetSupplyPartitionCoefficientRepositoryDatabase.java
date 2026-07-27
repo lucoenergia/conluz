@@ -2,8 +2,10 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientJpaRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,5 +66,29 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     @Override
     public boolean existsBySharingAgreementId(UUID sharingAgreementId) {
         return jpaRepository.existsBySharingAgreementId(sharingAgreementId);
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficient> findAllByIdAndSharingAgreementId(List<UUID> ids, UUID sharingAgreementId) {
+        return mapper.mapList(jpaRepository.findAllByIdInAndSharingAgreementId(ids, sharingAgreementId));
+    }
+
+    @Override
+    public Optional<SupplyPartitionCoefficient> findPredecessor(UUID plantId, UUID supplyId, UUID excludeCoefficientId,
+                                                                  Instant boundaryValidTo) {
+        Optional<SupplyPartitionCoefficientEntity> entity = boundaryValidTo == null
+                ? jpaRepository.findOpenPredecessor(plantId, supplyId, excludeCoefficientId)
+                : jpaRepository.findPredecessorEndingAt(plantId, supplyId, excludeCoefficientId, boundaryValidTo);
+        return entity.map(mapper::map);
+    }
+
+    @Override
+    public Optional<SupplyPartitionCoefficient> findNextActivatedAfter(UUID plantId, UUID supplyId,
+                                                                         UUID excludeCoefficientId, Instant afterInstant) {
+        return jpaRepository.findActivatedAfterOrderByValidFromAsc(plantId, supplyId, excludeCoefficientId, afterInstant,
+                        PageRequest.of(0, 1))
+                .stream()
+                .findFirst()
+                .map(mapper::map);
     }
 }

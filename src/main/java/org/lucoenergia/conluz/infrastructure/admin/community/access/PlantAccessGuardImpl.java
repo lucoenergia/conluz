@@ -9,9 +9,9 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
-import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementRepository;
-import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreement;
-import org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 
