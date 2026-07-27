@@ -23,7 +23,6 @@ public class SupplyEntityMother {
                 .withId(UUID.randomUUID())
                 .withCode(RandomStringUtils.random(20, true, true))
                 .withAddress(RandomStringUtils.random(20, true, true))
-                .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(new Random().nextBoolean())
                 .withUser(user)
                 .withCommunity(community)

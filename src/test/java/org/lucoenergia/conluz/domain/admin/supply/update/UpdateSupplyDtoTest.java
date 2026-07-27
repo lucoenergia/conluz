@@ -63,7 +63,6 @@ class UpdateSupplyDtoTest {
         // Assert
         assertEquals("SUP125", supply.getCode());
         assertEquals("Minimal Supply", supply.getName());
-        assertEquals(0F, supply.getPartitionCoefficient());
         assertEquals(null, supply.getAddress());
         assertEquals(null, supply.getAddressRef());
     }

@@ -32,7 +32,6 @@ class CreateSupplyServiceTest {
                 .withId(UUID.randomUUID())
                 .withCode("code")
                 .withAddress("address")
-                .withPartitionCoefficient(1.0F)
                 .withEnabled(Boolean.TRUE)
                 .build();
 
@@ -58,7 +57,6 @@ class CreateSupplyServiceTest {
                 .withId(UUID.randomUUID())
                 .withCode("code")
                 .withAddress("address")
-                .withPartitionCoefficient(1.0F)
                 .withEnabled(Boolean.TRUE)
                 .build();
 

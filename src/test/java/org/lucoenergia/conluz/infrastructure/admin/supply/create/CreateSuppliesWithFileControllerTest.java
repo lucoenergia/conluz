@@ -18,7 +18,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Files;
-import java.util.Random;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.not;
@@ -59,7 +58,6 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 .withId(UUID.randomUUID())
                 .withCode(supplyCode)
                 .withAddress(RandomStringUtils.random(20, true, true))
-                .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(true)
                 .withName(RandomStringUtils.random(20, true, true))
                 .withUser(user)

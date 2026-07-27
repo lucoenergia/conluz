@@ -72,7 +72,6 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.code").value("ES0033333333333333AA0A"))
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
                 .andExpect(jsonPath("$.addressRef").value("4ASDF654ASDF89ASD"))
-                .andExpect(jsonPath("$.partitionCoefficient").value(0.0))
                 .andExpect(jsonPath("$.name").isEmpty())
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
@@ -118,7 +117,6 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.code").value("ES0033333333333333BB0B"))
                 .andExpect(jsonPath("$.address").value("Fake Street 456"))
                 .andExpect(jsonPath("$.addressRef").value("4ASDF654ASDF89ASD"))
-                .andExpect(jsonPath("$.partitionCoefficient").value(0.0))
                 .andExpect(jsonPath("$.name").value("Test Supply Name")) // Name is explicitly provided
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
