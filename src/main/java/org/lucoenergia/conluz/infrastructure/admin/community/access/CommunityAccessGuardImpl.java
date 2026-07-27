@@ -8,7 +8,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
-import org.lucoenergia.conluz.domain.production.plant.get.GetSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;

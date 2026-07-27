@@ -13,8 +13,8 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoeffic
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
-import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementEntity;
-import org.lucoenergia.conluz.infrastructure.production.plant.sharingagreement.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
