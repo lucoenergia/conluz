@@ -44,12 +44,11 @@ public class GetSharingAgreementPartitionCoefficientsController {
                     Ordered by CUPS ascending. Works regardless of the agreement's status (DRAFT,
                     PUBLISHED or SUPERSEDED).
 
-                    **Required: Community Admin of the plant's community.**
+                    **Required: any member of the plant's community (any role).**
 
                     Returns 404 if the plant does not exist, if the caller is not a member of its
                     community, or if the sharing agreement does not exist or does not belong to this
-                    plant, to avoid leaking the existence of plants or agreements by ID. Returns 403
-                    if the caller is a member of the community but not an admin.
+                    plant, to avoid leaking the existence of plants or agreements by ID.
 
                     Authentication is required using a Bearer token.
                     """,
@@ -69,7 +68,7 @@ public class GetSharingAgreementPartitionCoefficientsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
+    @PreAuthorize("@communityAccessGuard.canReadSharingAgreement(#plantId, #sharingAgreementId)")
     public List<SharingAgreementPartitionCoefficientResponse> getPartitionCoefficients(
             @PathVariable UUID plantId, @PathVariable UUID sharingAgreementId) {
         return service.findBySharingAgreementId(plantId, sharingAgreementId).stream()
