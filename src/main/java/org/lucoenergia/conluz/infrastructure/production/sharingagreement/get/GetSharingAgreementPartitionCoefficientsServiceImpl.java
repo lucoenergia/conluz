@@ -97,6 +97,13 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
                 endState = CoefficientEndState.OPEN_ORPHAN;
                 endDate = null;
             } else if (next.get().getValidFrom() != null) {
+                // Structurally unreachable via this application's own write paths: an activated
+                // "next" row here would mean two overlapping open-ended activated coefficients for
+                // the same (plantId, supplyId) -- the no_overlapping_coefficients exclusion
+                // constraint (and the setValidFrom cascade that closes a predecessor when its
+                // successor activates) makes that impossible. Kept for defensive completeness of the
+                // enum's contract; exercised only at the unit level (mocked repositories), not by an
+                // integration fixture.
                 endState = CoefficientEndState.DERIVED;
                 endDate = next.get().getValidFrom();
             } else {
