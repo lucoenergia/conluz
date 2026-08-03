@@ -213,26 +213,26 @@ class GetSharingAgreementPartitionCoefficientsControllerTest extends BaseControl
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(5)))
                 // Response is CUPS-ascending regardless of the scrambled persist order above.
-                .andExpect(jsonPath("$[0].supplyCode").value(CUPS_CLOSED))
+                .andExpect(jsonPath("$[0].supply.code").value(CUPS_CLOSED))
                 .andExpect(jsonPath("$[0].endState").value("CLOSED"))
                 .andExpect(jsonPath("$[0].applicationState").value("APPLIED"))
                 .andExpect(jsonPath("$[0].endDate").value("2024-06-01T00:00:00Z"))
                 .andExpect(jsonPath("$[0].coefficient").value(0.5))
-                .andExpect(jsonPath("$[1].supplyCode").value(CUPS_DERIVED))
+                .andExpect(jsonPath("$[1].supply.code").value(CUPS_DERIVED))
                 .andExpect(jsonPath("$[1].endState").value("DERIVED"))
                 .andExpect(jsonPath("$[1].endDate").value("2024-07-01T00:00:00Z"))
-                .andExpect(jsonPath("$[2].supplyCode").value(CUPS_PENDING_SUCCESSION))
+                .andExpect(jsonPath("$[2].supply.code").value(CUPS_PENDING_SUCCESSION))
                 .andExpect(jsonPath("$[2].endState").value("PENDING_SUCCESSION"))
                 .andExpect(jsonPath("$[2].applicationState").value("APPLIED"))
                 .andExpect(jsonPath("$[2].endDate").value(nullValue()))
-                .andExpect(jsonPath("$[3].supplyCode").value(CUPS_ORPHAN_DRAFT_REGRESSION))
+                .andExpect(jsonPath("$[3].supply.code").value(CUPS_ORPHAN_DRAFT_REGRESSION))
                 .andExpect(jsonPath("$[3].endState").value("OPEN_ORPHAN"))
                 .andExpect(jsonPath("$[3].endDate").value(nullValue()))
-                .andExpect(jsonPath("$[4].supplyCode").value(CUPS_ORPHAN_NEVER_ACTIVATED))
+                .andExpect(jsonPath("$[4].supply.code").value(CUPS_ORPHAN_NEVER_ACTIVATED))
                 .andExpect(jsonPath("$[4].endState").value("OPEN_ORPHAN"))
                 .andExpect(jsonPath("$[4].applicationState").value("PENDING"))
                 .andExpect(jsonPath("$[4].endDate").value(nullValue()))
-                .andExpect(jsonPath("$[4].supplyName").value("Supply 5"));
+                .andExpect(jsonPath("$[4].supply.name").value("Supply 5"));
     }
 
     @Test
@@ -246,11 +246,11 @@ class GetSharingAgreementPartitionCoefficientsControllerTest extends BaseControl
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(2)))
-                .andExpect(jsonPath("$[0].supplyCode").value(CUPS_DERIVED))
+                .andExpect(jsonPath("$[0].supply.code").value(CUPS_DERIVED))
                 .andExpect(jsonPath("$[0].endState").value("OPEN"))
                 .andExpect(jsonPath("$[0].applicationState").value("APPLIED"))
                 .andExpect(jsonPath("$[0].endDate").value(nullValue()))
-                .andExpect(jsonPath("$[1].supplyCode").value(CUPS_PENDING_SUCCESSION))
+                .andExpect(jsonPath("$[1].supply.code").value(CUPS_PENDING_SUCCESSION))
                 .andExpect(jsonPath("$[1].endState").value("OPEN"))
                 .andExpect(jsonPath("$[1].applicationState").value("PENDING"))
                 .andExpect(jsonPath("$[1].endDate").value(nullValue()));

@@ -14,14 +14,8 @@ public class SharingAgreementPartitionCoefficientResponse {
     @Schema(description = "Internal unique identifier of this coefficient", example = "b3d1a2f0-1234-5678-abcd-000000000001")
     private final UUID coefficientId;
 
-    @Schema(description = "Supply this coefficient belongs to", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
-    private final UUID supplyId;
-
-    @Schema(description = "CUPS code of the supply", example = "ES0031607648137001RC0F")
-    private final String supplyCode;
-
-    @Schema(description = "Display name of the supply", example = "John Doe")
-    private final String supplyName;
+    @Schema(description = "Supply this coefficient belongs to")
+    private final SharingAgreementCoefficientSupplyResponse supply;
 
     @Schema(description = "Partition coefficient value, on a 0-1 scale", example = "0.030763")
     private final BigDecimal coefficient;
@@ -47,9 +41,7 @@ public class SharingAgreementPartitionCoefficientResponse {
 
     public SharingAgreementPartitionCoefficientResponse(SharingAgreementCoefficientView view) {
         this.coefficientId = view.getCoefficientId();
-        this.supplyId = view.getSupplyId();
-        this.supplyCode = view.getSupplyCode();
-        this.supplyName = view.getSupplyName();
+        this.supply = new SharingAgreementCoefficientSupplyResponse(view.getSupplyId(), view.getSupplyCode(), view.getSupplyName());
         this.coefficient = view.getCoefficient();
         this.validFrom = view.getValidFrom();
         this.validTo = view.getValidTo();
@@ -62,16 +54,8 @@ public class SharingAgreementPartitionCoefficientResponse {
         return coefficientId;
     }
 
-    public UUID getSupplyId() {
-        return supplyId;
-    }
-
-    public String getSupplyCode() {
-        return supplyCode;
-    }
-
-    public String getSupplyName() {
-        return supplyName;
+    public SharingAgreementCoefficientSupplyResponse getSupply() {
+        return supply;
     }
 
     public BigDecimal getCoefficient() {
