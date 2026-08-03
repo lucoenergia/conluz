@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.infrastructure.production.sharingagreement.Sharing
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,5 +48,12 @@ public class GetSharingAgreementRepositoryDatabase implements GetSharingAgreemen
                 ? sharingAgreementRepository.findByPlantIdOrderByCreatedAtDesc(plantId)
                 : sharingAgreementRepository.findByPlantIdAndStatusOrderByCreatedAtDesc(plantId, status);
         return mapper.mapList(entities);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsLaterNonDraftAgreement(UUID plantId, UUID excludeSharingAgreementId, Instant afterCreatedAt) {
+        return sharingAgreementRepository.existsLaterNonDraftAgreement(
+                plantId, SharingAgreementStatus.DRAFT, afterCreatedAt, excludeSharingAgreementId);
     }
 }

@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientJpaRepository;
@@ -86,6 +87,22 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     public Optional<SupplyPartitionCoefficient> findNextActivatedAfter(UUID plantId, UUID supplyId,
                                                                          UUID excludeCoefficientId, Instant afterInstant) {
         return jpaRepository.findActivatedAfterOrderByValidFromAsc(plantId, supplyId, excludeCoefficientId, afterInstant,
+                        PageRequest.of(0, 1))
+                .stream()
+                .findFirst()
+                .map(mapper::map);
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficient> findAllBySharingAgreementId(UUID sharingAgreementId) {
+        return mapper.mapList(jpaRepository.findBySharingAgreementId(sharingAgreementId));
+    }
+
+    @Override
+    public Optional<SupplyPartitionCoefficient> findNextCoefficientForSupplyInLaterAgreement(
+            UUID plantId, UUID supplyId, UUID excludeSharingAgreementId, Instant afterAgreementCreatedAt) {
+        return jpaRepository.findNextCoefficientsForSupplyInLaterAgreements(plantId, supplyId,
+                        SharingAgreementStatus.DRAFT, afterAgreementCreatedAt, excludeSharingAgreementId,
                         PageRequest.of(0, 1))
                 .stream()
                 .findFirst()

@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -76,6 +77,25 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
     @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.id IN :ids AND e.sharingAgreement.id = :sharingAgreementId")
     List<SupplyPartitionCoefficientEntity> findAllByIdInAndSharingAgreementId(@Param("ids") List<UUID> ids,
                                                                                 @Param("sharingAgreementId") UUID sharingAgreementId);
+
+    List<SupplyPartitionCoefficientEntity> findBySharingAgreementId(UUID sharingAgreementId);
+
+    // The coefficient for (plantId, supplyId) belonging to the nearest later non-DRAFT agreement of
+    // the plant (by sharing_agreement.created_at ASC), regardless of whether that row is itself
+    // activated -- unlike findActivatedAfterOrderByValidFromAsc, which only ever finds activated
+    // rows. DRAFT agreements are always excluded: a draft-in-progress must never change the
+    // displayed state of an existing, already-published row.
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId AND e.supply.id = :supplyId " +
+            "AND e.sharingAgreement.status <> :draftStatus AND e.sharingAgreement.createdAt > :afterCreatedAt " +
+            "AND e.sharingAgreement.id <> :excludeAgreementId " +
+            "ORDER BY e.sharingAgreement.createdAt ASC")
+    List<SupplyPartitionCoefficientEntity> findNextCoefficientsForSupplyInLaterAgreements(
+            @Param("plantId") UUID plantId,
+            @Param("supplyId") UUID supplyId,
+            @Param("draftStatus") SharingAgreementStatus draftStatus,
+            @Param("afterCreatedAt") Instant afterCreatedAt,
+            @Param("excludeAgreementId") UUID excludeAgreementId,
+            Pageable pageable);
 
     // The currently open row for (plantId, supplyId), if any -- used when the coefficient being
     // activated has no validFrom of its own yet (pure activation).
