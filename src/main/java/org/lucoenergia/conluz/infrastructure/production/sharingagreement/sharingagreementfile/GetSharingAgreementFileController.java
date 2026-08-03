@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/plants/{plantId}/sharing-agreements/{id}/file")
+@RequestMapping("/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/file")
 public class GetSharingAgreementFileController {
 
     private final DownloadSharingAgreementFileService downloadSharingAgreementFileService;
@@ -63,9 +63,9 @@ public class GetSharingAgreementFileController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canReadSharingAgreement(#plantId, #id)")
-    public ResponseEntity<byte[]> getSharingAgreementFile(@PathVariable UUID plantId, @PathVariable UUID id) {
-        SharingAgreementFile file = downloadSharingAgreementFileService.downloadLatestBySharingAgreementId(id);
+    @PreAuthorize("@communityAccessGuard.canReadSharingAgreement(#plantId, #sharingAgreementId)")
+    public ResponseEntity<byte[]> getSharingAgreementFile(@PathVariable UUID plantId, @PathVariable UUID sharingAgreementId) {
+        SharingAgreementFile file = downloadSharingAgreementFileService.downloadLatestBySharingAgreementId(sharingAgreementId);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);

@@ -29,7 +29,7 @@ public class DisableUserController {
         this.service = service;
     }
 
-    @PostMapping(path = "/users/{id}/disable")
+    @PostMapping(path = "/users/{userId}/disable")
     @Operation(
             summary = "Disables a user by ID",
             description = """
@@ -59,7 +59,7 @@ public class DisableUserController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
-    public void disableUser(@PathVariable("id") UUID userId) {
+    public void disableUser(@PathVariable("userId") UUID userId) {
         service.disable(UserId.of(userId));
     }
 }

@@ -29,7 +29,7 @@ public class UpdateSupplyController {
         this.service = service;
     }
 
-    @PutMapping("/supplies/{id}")
+    @PutMapping("/supplies/{supplyId}")
     @Operation(
             summary = "Updates supply information",
             description = """
@@ -57,7 +57,7 @@ public class UpdateSupplyController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
-    public SupplyResponse updateSupply(@PathVariable("id") UUID supplyId, @Valid @RequestBody UpdateSupplyBody body) {
+    public SupplyResponse updateSupply(@PathVariable("supplyId") UUID supplyId, @Valid @RequestBody UpdateSupplyBody body) {
         return new SupplyResponse(service.update(SupplyId.of(supplyId), body.mapToSupply()));
     }
 }

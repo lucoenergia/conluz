@@ -31,7 +31,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/plants/{plantId}/sharing-agreements/{id}/partition-coefficients/reopen",
+        value = "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/partition-coefficients/reopen",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -86,12 +86,12 @@ public class ReopenCoefficientsController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
     public CoefficientActivationResponse reopenCoefficients(
             @PathVariable UUID plantId,
-            @PathVariable UUID id,
+            @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody ReopenCoefficientsBody body) {
-        List<SupplyPartitionCoefficient> touched = service.setValidTo(plantId, id, null, body.getCoefficientIds());
+        List<SupplyPartitionCoefficient> touched = service.setValidTo(plantId, sharingAgreementId, null, body.getCoefficientIds());
         return new CoefficientActivationResponse(touched);
     }
 }

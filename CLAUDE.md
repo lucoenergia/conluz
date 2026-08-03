@@ -171,6 +171,12 @@ With the app running:
 - Follow SOLID and Clean Code principles
 - Code and comments must be in English
 - Code should be self-explanatory with comments when additional explanation is needed
+- **URL path parameter naming**: All REST API URL path segments that identify a resource MUST use the
+  `{resourceId}` convention (e.g. `{supplyId}`, `{userId}`, `{plantId}`, `{communityId}`,
+  `{sharingAgreementId}`). The bare `{id}` pattern is never used. The same name MUST be used
+  consistently for the `@PathVariable` annotation value and the Java method parameter name. This
+  ensures OpenAPI specs are self-documenting and eliminates ambiguity when multiple IDs appear in
+  the same URL.
 - All new code must have automated tests
 - Architecture tests are enforced via ArchUnit (see `src/test/java/org/lucoenergia/conluz/architecture/`)
 - When injecting beans, always use the interface. This also applies to integration tests

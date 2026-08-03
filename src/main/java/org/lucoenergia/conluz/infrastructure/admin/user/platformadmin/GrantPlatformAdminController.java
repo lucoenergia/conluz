@@ -30,7 +30,7 @@ public class GrantPlatformAdminController {
         this.service = service;
     }
 
-    @PostMapping(path = "/users/{id}/grant-platform-admin")
+    @PostMapping(path = "/users/{userId}/grant-platform-admin")
     @Operation(
             summary = "Grants platform-admin privileges to a user by ID",
             description = """
@@ -60,7 +60,7 @@ public class GrantPlatformAdminController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
-    public void grantPlatformAdmin(@PathVariable("id") UUID userId) {
+    public void grantPlatformAdmin(@PathVariable("userId") UUID userId) {
         service.grant(UserId.of(userId));
     }
 }

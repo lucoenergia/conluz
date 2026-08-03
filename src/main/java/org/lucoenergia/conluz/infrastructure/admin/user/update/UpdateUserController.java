@@ -29,7 +29,7 @@ public class UpdateUserController {
         this.service = service;
     }
 
-    @PutMapping("/users/{id}")
+    @PutMapping("/users/{userId}")
     @Operation(
             summary = "Updates user information",
             description = """
@@ -58,7 +58,7 @@ public class UpdateUserController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
-    public UserResponse updateUser(@PathVariable("id") UUID userId, @Valid @RequestBody UpdateUserBody body) {
+    public UserResponse updateUser(@PathVariable("userId") UUID userId, @Valid @RequestBody UpdateUserBody body) {
         return new UserResponse(service.update(body.toUser(userId)));
     }
 }

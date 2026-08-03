@@ -28,7 +28,7 @@ public class DisableSupplyController {
         this.service = service;
     }
 
-    @PostMapping(path = "/supplies/{id}/disable")
+    @PostMapping(path = "/supplies/{supplyId}/disable")
     @Operation(
             summary = "Disables a supply by ID",
             description = """
@@ -56,7 +56,7 @@ public class DisableSupplyController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
-    public SupplyResponse disableSupply(@PathVariable("id") UUID supplyId) {
+    public SupplyResponse disableSupply(@PathVariable("supplyId") UUID supplyId) {
         Supply updated = service.disable(SupplyId.of(supplyId));
         return new SupplyResponse(updated);
     }

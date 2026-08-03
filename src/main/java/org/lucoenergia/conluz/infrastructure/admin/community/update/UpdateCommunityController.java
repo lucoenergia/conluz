@@ -38,7 +38,7 @@ public class UpdateCommunityController {
         this.service = service;
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{communityId}")
     @Operation(
             summary = "Updates an existing community.",
             description = """
@@ -62,9 +62,9 @@ public class UpdateCommunityController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
-    public CommunityResponse updateCommunity(@PathVariable("id") UUID id,
+    public CommunityResponse updateCommunity(@PathVariable("communityId") UUID communityId,
                                               @Valid @RequestBody UpdateCommunityBody body) {
-        Community community = service.update(id, body.mapToCommunity());
+        Community community = service.update(communityId, body.mapToCommunity());
         return new CommunityResponse(community);
     }
 }

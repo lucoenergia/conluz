@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(value = "/api/v1/plants/{plantId}/sharing-agreements/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}", produces = MediaType.APPLICATION_JSON_VALUE)
 public class DeleteSharingAgreementController {
 
     private final DeleteSharingAgreementService service;
@@ -83,8 +83,8 @@ public class DeleteSharingAgreementController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
-    public void deleteSharingAgreement(@PathVariable UUID plantId, @PathVariable UUID id) {
-        service.delete(plantId, id);
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
+    public void deleteSharingAgreement(@PathVariable UUID plantId, @PathVariable UUID sharingAgreementId) {
+        service.delete(plantId, sharingAgreementId);
     }
 }

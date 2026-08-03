@@ -29,7 +29,7 @@ import java.util.UUID;
  * Controller for retrieving monthly consumption data for a specific supply
  */
 @RestController
-@RequestMapping("/api/v1/supplies/{id}/consumption/monthly")
+@RequestMapping("/api/v1/supplies/{supplyId}/consumption/monthly")
 public class GetSupplyMonthlyConsumptionController {
 
     private final GetDatadisConsumptionService getDatadisConsumptionService;
@@ -72,12 +72,12 @@ public class GetSupplyMonthlyConsumptionController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canReadSupply(#id)")
+    @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
     public List<DatadisConsumption> getSupplyMonthlyConsumption(
-            @PathVariable("id") UUID id,
+            @PathVariable("supplyId") UUID supplyId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
 
-        return getDatadisConsumptionService.getMonthlyConsumptionBySupply(SupplyId.of(id), startDate, endDate);
+        return getDatadisConsumptionService.getMonthlyConsumptionBySupply(SupplyId.of(supplyId), startDate, endDate);
     }
 }

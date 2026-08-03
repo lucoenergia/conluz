@@ -28,7 +28,7 @@ public class EnableSupplyController {
         this.service = service;
     }
 
-    @PostMapping(path = "/supplies/{id}/enable")
+    @PostMapping(path = "/supplies/{supplyId}/enable")
     @Operation(
             summary = "Enables a supply by ID",
             description = """
@@ -56,7 +56,7 @@ public class EnableSupplyController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
-    public SupplyResponse enableSupply(@PathVariable("id") UUID supplyId) {
+    public SupplyResponse enableSupply(@PathVariable("supplyId") UUID supplyId) {
         Supply updated = service.enable(SupplyId.of(supplyId));
         return new SupplyResponse(updated);
     }

@@ -32,7 +32,7 @@ public class DisableCommunityController {
         this.stateService = stateService;
     }
 
-    @PostMapping("/{id}/disable")
+    @PostMapping("/{communityId}/disable")
     @Operation(
             summary = "Disables a community.",
             description = "Disables an existing community. Requires PLATFORM_ADMIN role.",
@@ -53,7 +53,7 @@ public class DisableCommunityController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
-    public void disableCommunity(@PathVariable("id") UUID id) {
-        stateService.disable(id);
+    public void disableCommunity(@PathVariable("communityId") UUID communityId) {
+        stateService.disable(communityId);
     }
 }

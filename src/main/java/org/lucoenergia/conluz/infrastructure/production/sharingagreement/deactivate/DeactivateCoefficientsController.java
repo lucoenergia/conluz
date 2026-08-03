@@ -31,7 +31,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/plants/{plantId}/sharing-agreements/{id}/partition-coefficients/deactivate",
+        value = "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/partition-coefficients/deactivate",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -90,12 +90,12 @@ public class DeactivateCoefficientsController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
     public CoefficientActivationResponse deactivateCoefficients(
             @PathVariable UUID plantId,
-            @PathVariable UUID id,
+            @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody DeactivateCoefficientsBody body) {
-        List<SupplyPartitionCoefficient> touched = service.setValidFrom(plantId, id, null, body.getCoefficientIds());
+        List<SupplyPartitionCoefficient> touched = service.setValidFrom(plantId, sharingAgreementId, null, body.getCoefficientIds());
         return new CoefficientActivationResponse(touched);
     }
 }

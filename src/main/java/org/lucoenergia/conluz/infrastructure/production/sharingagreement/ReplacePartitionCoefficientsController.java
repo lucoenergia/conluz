@@ -30,7 +30,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/plants/{plantId}/sharing-agreements/{id}/partition-coefficients",
+        value = "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/partition-coefficients",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -82,12 +82,12 @@ public class ReplacePartitionCoefficientsController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
     public ReplacePartitionCoefficientsResponse replacePartitionCoefficients(
             @PathVariable UUID plantId,
-            @PathVariable UUID id,
+            @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody ReplacePartitionCoefficientsBody body) {
-        List<SupplyPartitionCoefficient> saved = service.replaceAll(plantId, id, body.mapToEntries());
+        List<SupplyPartitionCoefficient> saved = service.replaceAll(plantId, sharingAgreementId, body.mapToEntries());
         return new ReplacePartitionCoefficientsResponse(saved);
     }
 }
