@@ -35,7 +35,7 @@ public class RevokePlatformAdminController {
         this.service = service;
     }
 
-    @PostMapping(path = "/users/{id}/revoke-platform-admin")
+    @PostMapping(path = "/users/{userId}/revoke-platform-admin")
     @Operation(
             summary = "Revokes platform-admin privileges from a user by ID",
             description = """
@@ -90,7 +90,7 @@ public class RevokePlatformAdminController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("hasRole('PLATFORM_ADMIN') and !@communityAccessGuard.isCurrentUser(#userId)")
-    public void revokePlatformAdmin(@PathVariable("id") UUID userId) {
+    public void revokePlatformAdmin(@PathVariable("userId") UUID userId) {
         service.revoke(UserId.of(userId));
     }
 }

@@ -31,7 +31,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/plants/{plantId}/sharing-agreements/{id}/partition-coefficients/close",
+        value = "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/partition-coefficients/close",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -89,12 +89,12 @@ public class CloseCoefficientsController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
     public CoefficientActivationResponse closeCoefficients(
             @PathVariable UUID plantId,
-            @PathVariable UUID id,
+            @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody CloseCoefficientsBody body) {
-        List<SupplyPartitionCoefficient> touched = service.setValidTo(plantId, id, body.getClosedOn(), body.getCoefficientIds());
+        List<SupplyPartitionCoefficient> touched = service.setValidTo(plantId, sharingAgreementId, body.getClosedOn(), body.getCoefficientIds());
         return new CoefficientActivationResponse(touched);
     }
 }

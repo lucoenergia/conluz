@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(value = "/api/v1/plants/{plantId}/sharing-agreements/{id}/publish", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/publish", produces = MediaType.APPLICATION_JSON_VALUE)
 public class PublishSharingAgreementController {
 
     private final PublishSharingAgreementService service;
@@ -87,9 +87,9 @@ public class PublishSharingAgreementController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
-    public SharingAgreementResponse publishSharingAgreement(@PathVariable UUID plantId, @PathVariable UUID id) {
-        SharingAgreement agreement = service.publish(plantId, id);
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
+    public SharingAgreementResponse publishSharingAgreement(@PathVariable UUID plantId, @PathVariable UUID sharingAgreementId) {
+        SharingAgreement agreement = service.publish(plantId, sharingAgreementId);
         return new SharingAgreementResponse(agreement);
     }
 }

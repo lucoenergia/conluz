@@ -26,7 +26,7 @@ public class DeleteUserController {
         this.service = service;
     }
 
-    @DeleteMapping("/users/{id}")
+    @DeleteMapping("/users/{userId}")
     @Operation(
             summary = "Removes a user by ID",
             description = """
@@ -55,7 +55,7 @@ public class DeleteUserController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
-    public void deleteUser(@PathVariable("id") UUID userId) {
+    public void deleteUser(@PathVariable("userId") UUID userId) {
         service.delete(UserId.of(userId));
     }
 }

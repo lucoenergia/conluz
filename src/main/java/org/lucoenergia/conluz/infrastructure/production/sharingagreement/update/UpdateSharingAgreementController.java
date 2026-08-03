@@ -31,7 +31,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/plants/{plantId}/sharing-agreements/{id}",
+        value = "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -96,10 +96,10 @@ public class UpdateSharingAgreementController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
-    public SharingAgreementResponse updateSharingAgreement(@PathVariable UUID plantId, @PathVariable UUID id,
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
+    public SharingAgreementResponse updateSharingAgreement(@PathVariable UUID plantId, @PathVariable UUID sharingAgreementId,
                                                             @Valid @RequestBody UpdateSharingAgreementBody body) {
-        SharingAgreement agreement = service.update(plantId, id, body.mapToUpdateSharingAgreement());
+        SharingAgreement agreement = service.update(plantId, sharingAgreementId, body.mapToUpdateSharingAgreement());
         return new SharingAgreementResponse(agreement);
     }
 }

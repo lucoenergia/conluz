@@ -35,7 +35,7 @@ public class GetCommunityByIdController {
         this.service = service;
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{communityId}")
     @Operation(
             summary = "Retrieves a community by its ID.",
             description = """
@@ -60,9 +60,9 @@ public class GetCommunityByIdController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("isAuthenticated() and @communityAccessGuard.canReadCommunity(#id)")
-    public ResponseEntity<CommunityResponse> getCommunityById(@PathVariable("id") UUID id) {
-        return service.findByIdWithStats(id)
+    @PreAuthorize("isAuthenticated() and @communityAccessGuard.canReadCommunity(#communityId)")
+    public ResponseEntity<CommunityResponse> getCommunityById(@PathVariable("communityId") UUID communityId) {
+        return service.findByIdWithStats(communityId)
                 .map(c -> ResponseEntity.ok(new CommunityResponse(c)))
                 .orElse(ResponseEntity.notFound().build());
     }

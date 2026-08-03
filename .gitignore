@@ -68,3 +68,4 @@ deploy/local/snapshots/
 deploy/deploy-local-restore-*.dump
 
 .junie
+.claude

@@ -32,7 +32,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/plants/{plantId}/sharing-agreements/{id}/file",
+        value = "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/file",
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -83,15 +83,15 @@ public class UploadSharingAgreementFileController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #id)")
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
     public UploadSharingAgreementFileResponse uploadSharingAgreementFile(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID plantId,
-            @PathVariable UUID id,
+            @PathVariable UUID sharingAgreementId,
             @Parameter(description = "Distributor TXT file. Format: CUPS;coefficient (comma decimal separator). " +
                     "File name must follow the pattern: {regulatoryCode}_{YYYY}.txt.", required = true)
             @RequestParam("file") MultipartFile file) throws IOException {
-        DistributorFileStoreResult result = service.store(plantId, id, file.getOriginalFilename(), file.getBytes(),
+        DistributorFileStoreResult result = service.store(plantId, sharingAgreementId, file.getOriginalFilename(), file.getBytes(),
                 currentUser.getId());
 
         return new UploadSharingAgreementFileResponse(result);

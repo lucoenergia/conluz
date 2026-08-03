@@ -35,7 +35,7 @@ public class GetPlantByIdController {
         this.service = service;
     }
 
-    @GetMapping("/plants/{id}")
+    @GetMapping("/plants/{plantId}")
     @Operation(
             summary = "Retrieves a single plant by ID",
             description = """
@@ -65,7 +65,7 @@ public class GetPlantByIdController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canReadPlant(#plantId)")
-    public PlantResponse getPlantById(@PathVariable("id") UUID plantId) {
+    public PlantResponse getPlantById(@PathVariable("plantId") UUID plantId) {
         Plant plant = service.findById(PlantId.of(plantId));
         return new PlantResponse(plant);
     }
