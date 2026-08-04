@@ -39,6 +39,13 @@ public interface GetSupplyPartitionCoefficientRepository {
     boolean existsBySharingAgreementId(UUID sharingAgreementId);
 
     /**
+     * Read-only existence check used by the sharing-agreement revert-to-draft precondition: an
+     * agreement can only go back to DRAFT while none of its coefficients have been applied by the
+     * distributor yet (i.e. none has {@code validFrom} set).
+     */
+    boolean existsBySharingAgreementIdAndValidFromIsNotNull(UUID sharingAgreementId);
+
+    /**
      * The subset of {@code ids} that belong to {@code sharingAgreementId}. Ownership is enforced by
      * this query itself (not by a service-side check afterwards) so it cannot be silently dropped by
      * a later refactor: any id absent from the result -- unknown, or belonging to another agreement

@@ -49,4 +49,21 @@ public interface SharingAgreementRepository extends JpaRepository<SharingAgreeme
                                           @Param("draftStatus") SharingAgreementStatus draftStatus,
                                           @Param("afterCreatedAt") Instant afterCreatedAt,
                                           @Param("excludeId") UUID excludeId);
+
+    // Native SQL, not read-then-write: folding the PUBLISHED-status and inert (no coefficient has
+    // valid_from set) preconditions into the same UPDATE's WHERE clause makes the whole check-and-write
+    // atomic under the row lock the UPDATE itself takes, closing the race window a separate "read the
+    // gate, then write the status" would leave open (e.g. a concurrent coefficient activation setting
+    // valid_from between the read and the write). Returns the number of rows updated (0 or 1); the
+    // caller re-reads to classify *why* it was 0 only for error-message purposes, never for correctness.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+            UPDATE sharing_agreement sa SET status = 'DRAFT'
+            WHERE sa.id = :sharingAgreementId
+              AND sa.plant_id = :plantId
+              AND sa.status = 'PUBLISHED'
+              AND NOT EXISTS (SELECT 1 FROM supply_partition_coefficient c
+                              WHERE c.sharing_agreement_id = sa.id AND c.valid_from IS NOT NULL)
+            """, nativeQuery = true)
+    int revertToDraftIfEligible(@Param("sharingAgreementId") UUID sharingAgreementId, @Param("plantId") UUID plantId);
 }
