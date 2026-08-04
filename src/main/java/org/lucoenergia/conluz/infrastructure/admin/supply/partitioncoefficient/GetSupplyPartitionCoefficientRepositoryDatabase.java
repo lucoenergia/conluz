@@ -70,6 +70,11 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     }
 
     @Override
+    public boolean existsBySharingAgreementIdAndValidFromIsNotNull(UUID sharingAgreementId) {
+        return jpaRepository.existsBySharingAgreementIdAndValidFromIsNotNull(sharingAgreementId);
+    }
+
+    @Override
     public List<SupplyPartitionCoefficient> findAllByIdAndSharingAgreementId(List<UUID> ids, UUID sharingAgreementId) {
         return mapper.mapList(jpaRepository.findAllByIdInAndSharingAgreementId(ids, sharingAgreementId));
     }

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotDraftException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotPublishedException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotRevertibleException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 
 import java.util.UUID;
@@ -84,5 +85,43 @@ class SharingAgreementTest {
                 assertThrows(SharingAgreementNotPublishedException.class, agreement::assertNotDraft);
         assertEquals(id, exception.getId());
         assertEquals(SharingAgreementStatus.DRAFT, exception.getCurrentStatus());
+    }
+
+    @Test
+    void assertPublished_doesNotThrow_whenStatusIsPublished() {
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(UUID.randomUUID())
+                .withStatus(SharingAgreementStatus.PUBLISHED)
+                .build();
+
+        assertDoesNotThrow(agreement::assertPublished);
+    }
+
+    @Test
+    void assertPublished_throws_whenStatusIsDraft() {
+        UUID id = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(id)
+                .withStatus(SharingAgreementStatus.DRAFT)
+                .build();
+
+        SharingAgreementNotRevertibleException exception =
+                assertThrows(SharingAgreementNotRevertibleException.class, agreement::assertPublished);
+        assertEquals(id, exception.getId());
+        assertEquals(SharingAgreementStatus.DRAFT, exception.getCurrentStatus());
+    }
+
+    @Test
+    void assertPublished_throws_whenStatusIsSuperseded() {
+        UUID id = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(id)
+                .withStatus(SharingAgreementStatus.SUPERSEDED)
+                .build();
+
+        SharingAgreementNotRevertibleException exception =
+                assertThrows(SharingAgreementNotRevertibleException.class, agreement::assertPublished);
+        assertEquals(id, exception.getId());
+        assertEquals(SharingAgreementStatus.SUPERSEDED, exception.getCurrentStatus());
     }
 }

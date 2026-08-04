@@ -91,6 +91,17 @@ public class SharingAgreement {
         }
     }
 
+    /**
+     * Throws {@link SharingAgreementNotRevertibleException} unless this agreement is PUBLISHED. Used
+     * by revert-to-draft: DRAFT (already draft) and SUPERSEDED (every coefficient already applied) are
+     * both rejected, since only a PUBLISHED-but-still-inert agreement can safely go back to DRAFT.
+     */
+    public void assertPublished() {
+        if (status != SharingAgreementStatus.PUBLISHED) {
+            throw new SharingAgreementNotRevertibleException(id, status);
+        }
+    }
+
     public static class Builder {
         private UUID id;
         private UUID plantId;

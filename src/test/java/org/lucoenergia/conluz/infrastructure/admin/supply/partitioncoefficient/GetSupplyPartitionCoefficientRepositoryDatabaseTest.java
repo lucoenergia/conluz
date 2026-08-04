@@ -448,6 +448,52 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
         assertEquals(nonDraft.getId(), result.get().getId());
     }
 
+    // --- Revert-to-draft inert gate ---
+
+    @Test
+    void existsBySharingAgreementIdAndValidFromIsNotNullReturnsTrueWhenAtLeastOneRowIsApplied() {
+        SupplyEntity supply1 = persistSupply();
+        SupplyEntity supply2 = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply1);
+        // Pending row alongside an applied one -- the gate must not be fooled by the pending row.
+        persist(supply1.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.ONE, null, null);
+        persist(supply2.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.ONE,
+                Instant.parse("2024-01-01T00:00:00Z"), null);
+
+        assertTrue(repository.existsBySharingAgreementIdAndValidFromIsNotNull(agreement.getId()));
+    }
+
+    @Test
+    void existsBySharingAgreementIdAndValidFromIsNotNullReturnsFalseWhenAllRowsArePending() {
+        SupplyEntity supply1 = persistSupply();
+        SupplyEntity supply2 = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply1);
+        persist(supply1.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.ONE, null, null);
+        persist(supply2.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.ONE, null, null);
+
+        assertFalse(repository.existsBySharingAgreementIdAndValidFromIsNotNull(agreement.getId()));
+    }
+
+    @Test
+    void existsBySharingAgreementIdAndValidFromIsNotNullReturnsFalseWhenAgreementHasNoCoefficients() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+
+        assertFalse(repository.existsBySharingAgreementIdAndValidFromIsNotNull(agreement.getId()));
+    }
+
+    @Test
+    void existsBySharingAgreementIdAndValidFromIsNotNullIgnoresValidToOnAPendingRow() {
+        // A row can have validTo set (e.g. a defensive close) while validFrom is still null -- that
+        // must not count as "applied": the gate keys on validFrom only, never validTo.
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.ONE,
+                null, Instant.parse("2025-01-01T00:00:00Z"));
+
+        assertFalse(repository.existsBySharingAgreementIdAndValidFromIsNotNull(agreement.getId()));
+    }
+
     @Test
     void findNextCoefficientForSupplyInLaterAgreementReturnsEmptyWhenNoneExists() {
         SupplyEntity supply = persistSupply();

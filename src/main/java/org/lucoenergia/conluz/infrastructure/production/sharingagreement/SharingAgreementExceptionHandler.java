@@ -82,6 +82,28 @@ public class SharingAgreementExceptionHandler {
         return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_HAS_NO_COEFFICIENTS, null, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(SharingAgreementNotRevertibleException.class)
+    public ResponseEntity<RestError> handleException(SharingAgreementNotRevertibleException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.not.revertible",
+                new Object[]{e.getId(), e.getCurrentStatus()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_NOT_REVERTIBLE, null, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(SharingAgreementHasAppliedCoefficientsException.class)
+    public ResponseEntity<RestError> handleException(SharingAgreementHasAppliedCoefficientsException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.has.applied.coefficients",
+                Collections.singletonList(e.getId()).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_HAS_APPLIED_COEFFICIENTS, null, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(DuplicatePartitionCoefficientEntryException.class)
     public ResponseEntity<RestError> handleException(DuplicatePartitionCoefficientEntryException e) {
 

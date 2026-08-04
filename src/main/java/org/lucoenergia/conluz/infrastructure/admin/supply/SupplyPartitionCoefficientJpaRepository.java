@@ -63,6 +63,13 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
      */
     boolean existsBySharingAgreementId(UUID sharingAgreementId);
 
+    /**
+     * Read-only existence check used by the sharing-agreement revert-to-draft precondition: an
+     * agreement can only go back to DRAFT while none of its coefficients have been applied by the
+     * distributor yet.
+     */
+    boolean existsBySharingAgreementIdAndValidFromIsNotNull(UUID sharingAgreementId);
+
     // flushAutomatically: this bulk delete only touches supply_partition_coefficient's table
     // space, so Hibernate's auto-flush would not otherwise flush an unrelated pending entity (e.g.
     // a SharingAgreementFile insert earlier in the same transaction, as StoreDistributorFileServiceImpl
