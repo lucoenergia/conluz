@@ -67,15 +67,15 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
                 plantId, sharingAgreementId, agreement.getCreatedAt());
 
         return coefficients.stream()
-                .map(coefficient -> toView(plantId, agreement, coefficient, suppliesById.get(coefficient.getSupplyId()),
+                .map(coefficient -> map(plantId, agreement, coefficient, suppliesById.get(coefficient.getSupplyId()),
                         laterAgreementExists))
                 .sorted(Comparator.comparing(SharingAgreementCoefficient::getSupplyCode))
                 .toList();
     }
 
-    private SharingAgreementCoefficient toView(UUID plantId, SharingAgreement agreement,
-                                               SupplyPartitionCoefficient coefficient, Supply supply,
-                                               boolean laterAgreementExists) {
+    private SharingAgreementCoefficient map(UUID plantId, SharingAgreement agreement,
+                                            SupplyPartitionCoefficient coefficient, Supply supply,
+                                            boolean laterAgreementExists) {
         CoefficientApplicationState applicationState = coefficient.getValidFrom() == null
                 ? CoefficientApplicationState.PENDING : CoefficientApplicationState.APPLIED;
 
