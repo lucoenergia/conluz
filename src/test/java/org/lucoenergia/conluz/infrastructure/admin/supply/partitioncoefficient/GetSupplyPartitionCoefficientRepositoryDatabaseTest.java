@@ -68,12 +68,16 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
     }
 
     private SharingAgreementEntity persistPublishedAgreement(PlantEntity plant) {
+        return persistAgreement(plant, SharingAgreementStatus.PUBLISHED, Instant.now());
+    }
+
+    private SharingAgreementEntity persistAgreement(PlantEntity plant, SharingAgreementStatus status, Instant createdAt) {
         SharingAgreementEntity agreement = new SharingAgreementEntity();
         agreement.setId(UUID.randomUUID());
         agreement.setPlant(plant);
         agreement.setName("Test agreement " + UUID.randomUUID());
-        agreement.setStatus(SharingAgreementStatus.PUBLISHED);
-        agreement.setCreatedAt(Instant.now());
+        agreement.setStatus(status);
+        agreement.setCreatedAt(createdAt);
         agreement.setCreatedBy(null);
         return sharingAgreementRepository.save(agreement);
     }
@@ -352,6 +356,107 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
 
         Optional<SupplyPartitionCoefficient> result = repository.findNextActivatedAfter(
                 agreement.getPlant().getId(), supply.getId(), only.getId(), only.getValidFrom());
+
+        assertTrue(result.isEmpty());
+    }
+
+    // --- Sharing-agreement coefficient set read (partition-coefficients GET) ---
+
+    @Test
+    void findAllBySharingAgreementIdReturnsEveryRowOfThatAgreement() {
+        SupplyEntity supply1 = persistSupply();
+        SupplyEntity supply2 = persistSupply();
+        SharingAgreementEntity agreementA = persistPlantAndPublishedAgreement(supply1);
+        SharingAgreementEntity agreementB = persistPublishedAgreement(agreementA.getPlant());
+        persist(supply1.getId(), agreementA.getPlant().getId(), agreementA.getId(), BigDecimal.valueOf(0.4), null, null);
+        persist(supply2.getId(), agreementA.getPlant().getId(), agreementA.getId(), BigDecimal.valueOf(0.6), null, null);
+        persist(supply1.getId(), agreementB.getPlant().getId(), agreementB.getId(), BigDecimal.ONE, null, null);
+
+        List<SupplyPartitionCoefficient> result = repository.findAllBySharingAgreementId(agreementA.getId());
+
+        assertEquals(2, result.size());
+        assertTrue(result.stream().allMatch(c -> c.getSharingAgreementId().equals(agreementA.getId())));
+    }
+
+    @Test
+    void findAllBySharingAgreementIdReturnsEmptyWhenAgreementHasNoCoefficients() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+
+        List<SupplyPartitionCoefficient> result = repository.findAllBySharingAgreementId(agreement.getId());
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findNextCoefficientForSupplyInLaterAgreementFindsPendingRow() {
+        SupplyEntity supply = persistSupply();
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        SharingAgreementEntity agreementA = persistPlantAndPublishedAgreement(supply);
+        persist(supply.getId(), agreementA.getPlant().getId(), agreementA.getId(), BigDecimal.valueOf(0.5), t0, null);
+        SharingAgreementEntity agreementB = persistAgreement(agreementA.getPlant(), SharingAgreementStatus.PUBLISHED,
+                agreementA.getCreatedAt().plusSeconds(60));
+        SupplyPartitionCoefficient pending = persist(supply.getId(), agreementB.getPlant().getId(), agreementB.getId(),
+                BigDecimal.valueOf(0.5), null, null);
+
+        Optional<SupplyPartitionCoefficient> result = repository.findNextCoefficientForSupplyInLaterAgreement(
+                agreementA.getPlant().getId(), supply.getId(), agreementA.getId(), agreementA.getCreatedAt());
+
+        assertTrue(result.isPresent());
+        assertEquals(pending.getId(), result.get().getId());
+    }
+
+    @Test
+    void findNextCoefficientForSupplyInLaterAgreementFindsActivatedRow() {
+        SupplyEntity supply = persistSupply();
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
+        SharingAgreementEntity agreementA = persistPlantAndPublishedAgreement(supply);
+        // Closed (not open-ended) so it does not overlap the successor's open range: a real
+        // successor chain always closes the predecessor at the point the successor takes over.
+        persist(supply.getId(), agreementA.getPlant().getId(), agreementA.getId(), BigDecimal.valueOf(0.5), t0, t1);
+        SharingAgreementEntity agreementB = persistAgreement(agreementA.getPlant(), SharingAgreementStatus.PUBLISHED,
+                agreementA.getCreatedAt().plusSeconds(60));
+        SupplyPartitionCoefficient activated = persist(supply.getId(), agreementB.getPlant().getId(), agreementB.getId(),
+                BigDecimal.valueOf(0.5), t1, null);
+
+        Optional<SupplyPartitionCoefficient> result = repository.findNextCoefficientForSupplyInLaterAgreement(
+                agreementA.getPlant().getId(), supply.getId(), agreementA.getId(), agreementA.getCreatedAt());
+
+        assertTrue(result.isPresent());
+        assertEquals(activated.getId(), result.get().getId());
+    }
+
+    @Test
+    void findNextCoefficientForSupplyInLaterAgreementSkipsDraftAndReturnsNextNonDraft() {
+        SupplyEntity supply = persistSupply();
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        SharingAgreementEntity agreementA = persistPlantAndPublishedAgreement(supply);
+        persist(supply.getId(), agreementA.getPlant().getId(), agreementA.getId(), BigDecimal.valueOf(0.5), t0, null);
+        SharingAgreementEntity draftAgreement = persistAgreement(agreementA.getPlant(), SharingAgreementStatus.DRAFT,
+                agreementA.getCreatedAt().plusSeconds(60));
+        persist(supply.getId(), draftAgreement.getPlant().getId(), draftAgreement.getId(), BigDecimal.valueOf(0.5), null, null);
+        SharingAgreementEntity agreementC = persistAgreement(agreementA.getPlant(), SharingAgreementStatus.PUBLISHED,
+                agreementA.getCreatedAt().plusSeconds(120));
+        SupplyPartitionCoefficient nonDraft = persist(supply.getId(), agreementC.getPlant().getId(), agreementC.getId(),
+                BigDecimal.valueOf(0.5), null, null);
+
+        Optional<SupplyPartitionCoefficient> result = repository.findNextCoefficientForSupplyInLaterAgreement(
+                agreementA.getPlant().getId(), supply.getId(), agreementA.getId(), agreementA.getCreatedAt());
+
+        assertTrue(result.isPresent());
+        assertEquals(nonDraft.getId(), result.get().getId());
+    }
+
+    @Test
+    void findNextCoefficientForSupplyInLaterAgreementReturnsEmptyWhenNoneExists() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(0.5),
+                Instant.parse("2024-01-01T00:00:00Z"), null);
+
+        Optional<SupplyPartitionCoefficient> result = repository.findNextCoefficientForSupplyInLaterAgreement(
+                agreement.getPlant().getId(), supply.getId(), agreement.getId(), agreement.getCreatedAt());
 
         assertTrue(result.isEmpty());
     }

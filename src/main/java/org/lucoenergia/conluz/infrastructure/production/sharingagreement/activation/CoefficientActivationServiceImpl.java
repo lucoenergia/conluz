@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.activa
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSuccessionCascade;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
@@ -165,8 +166,8 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                 // touch a valid_to you authored, and only up to where the timeline is actually free.
                 Optional<SupplyPartitionCoefficient> nextRow = getCoefficientRepository.findNextActivatedAfter(
                         plantId, coefficient.getSupplyId(), coefficient.getId(), coefficient.getValidFrom());
-                boolean currentValidToIsCascadeDerived = nextRow.isPresent()
-                        && nextRow.get().getValidFrom().equals(coefficient.getValidTo());
+                boolean currentValidToIsCascadeDerived =
+                        CoefficientSuccessionCascade.isValidToCascadeDerived(coefficient, nextRow);
                 boolean requestedValueReachesNextRow = nextRow.isPresent()
                         && (newValidTo == null || newValidTo.isAfter(nextRow.get().getValidFrom()));
                 if (currentValidToIsCascadeDerived || requestedValueReachesNextRow) {

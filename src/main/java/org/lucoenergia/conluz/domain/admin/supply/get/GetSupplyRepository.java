@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface GetSupplyRepository {
@@ -17,6 +18,12 @@ public interface GetSupplyRepository {
 
     Optional<Supply> findById(SupplyId id);
     Optional<Supply> findByCode(SupplyCode code);
+
+    /**
+     * Bulk lookup for enriching a list of records that each reference a supply by id, avoiding an
+     * N+1 loop of {@link #findById(SupplyId)} calls.
+     */
+    List<Supply> findAllByIds(Set<UUID> ids);
 
     PagedResult<Supply> findAll(PagedRequest pagedRequest);
     List<Supply> findAll();

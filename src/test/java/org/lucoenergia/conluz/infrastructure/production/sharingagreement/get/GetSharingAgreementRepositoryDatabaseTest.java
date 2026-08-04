@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 
@@ -151,5 +152,56 @@ class GetSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
 
         assertEquals(1, result.size());
         assertEquals(agreementOfA.getId(), result.get(0).getId());
+    }
+
+    // --- existsLaterNonDraftAgreement ---
+
+    @Test
+    void existsLaterNonDraftAgreement_returnsTrue_whenLaterPublishedAgreementExists() {
+        PlantEntity plant = persistPlant();
+        Instant t0 = Instant.now();
+        SharingAgreementEntity agreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED, t0);
+        persistAgreement(plant, SharingAgreementStatus.PUBLISHED, t0.plusSeconds(60));
+
+        boolean result = repository.existsLaterNonDraftAgreement(plant.getId(), agreement.getId(), t0);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void existsLaterNonDraftAgreement_returnsFalse_whenOnlyLaterAgreementIsDraft() {
+        PlantEntity plant = persistPlant();
+        Instant t0 = Instant.now();
+        SharingAgreementEntity agreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED, t0);
+        persistAgreement(plant, SharingAgreementStatus.DRAFT, t0.plusSeconds(60));
+
+        boolean result = repository.existsLaterNonDraftAgreement(plant.getId(), agreement.getId(), t0);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void existsLaterNonDraftAgreement_returnsFalse_whenNoLaterAgreementExists() {
+        PlantEntity plant = persistPlant();
+        Instant t0 = Instant.now();
+        SharingAgreementEntity agreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED, t0);
+
+        boolean result = repository.existsLaterNonDraftAgreement(plant.getId(), agreement.getId(), t0);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void existsLaterNonDraftAgreement_excludesTheAgreementItself() {
+        PlantEntity plant = persistPlant();
+        Instant t0 = Instant.now();
+        SharingAgreementEntity agreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED, t0);
+
+        // afterCreatedAt intentionally set before the agreement's own createdAt, so only a bug that
+        // fails to exclude the agreement's own id (rather than the createdAt filter) would pass.
+        boolean result = repository.existsLaterNonDraftAgreement(
+                plant.getId(), agreement.getId(), t0.minusSeconds(1));
+
+        assertFalse(result);
     }
 }
