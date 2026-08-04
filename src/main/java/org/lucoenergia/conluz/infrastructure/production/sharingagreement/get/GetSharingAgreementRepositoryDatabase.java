@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Transactional
+@Transactional(readOnly = true)
 @Repository
 public class GetSharingAgreementRepositoryDatabase implements GetSharingAgreementRepository {
 
@@ -28,7 +28,6 @@ public class GetSharingAgreementRepositoryDatabase implements GetSharingAgreemen
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<UUID> findCurrentPublishedAgreementIdByPlantId(UUID plantId) {
         return sharingAgreementRepository
                 .findFirstByPlantIdAndStatusOrderByCreatedAtDesc(plantId, SharingAgreementStatus.PUBLISHED)
@@ -36,13 +35,11 @@ public class GetSharingAgreementRepositoryDatabase implements GetSharingAgreemen
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<SharingAgreement> findById(UUID id) {
         return sharingAgreementRepository.findById(id).map(mapper::map);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<SharingAgreement> findByPlantId(UUID plantId, SharingAgreementStatus status) {
         List<SharingAgreementEntity> entities = status == null
                 ? sharingAgreementRepository.findByPlantIdOrderByCreatedAtDesc(plantId)
@@ -51,7 +48,6 @@ public class GetSharingAgreementRepositoryDatabase implements GetSharingAgreemen
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean existsLaterNonDraftAgreement(UUID plantId, UUID excludeSharingAgreementId, Instant afterCreatedAt) {
         return sharingAgreementRepository.existsLaterNonDraftAgreement(
                 plantId, SharingAgreementStatus.DRAFT, afterCreatedAt, excludeSharingAgreementId);
