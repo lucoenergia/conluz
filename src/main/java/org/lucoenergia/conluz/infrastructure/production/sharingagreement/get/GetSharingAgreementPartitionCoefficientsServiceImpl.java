@@ -11,7 +11,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementPartitionCoefficientsService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
-import org.lucoenergia.conluz.domain.production.sharingagreement.get.SharingAgreementCoefficientView;
+import org.lucoenergia.conluz.domain.production.sharingagreement.get.SharingAgreementCoefficient;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +44,7 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
     }
 
     @Override
-    public List<SharingAgreementCoefficientView> findBySharingAgreementId(UUID plantId, UUID sharingAgreementId) {
+    public List<SharingAgreementCoefficient> findBySharingAgreementId(UUID plantId, UUID sharingAgreementId) {
         SharingAgreement agreement = getSharingAgreementService.findById(sharingAgreementId);
         if (!agreement.getPlantId().equals(plantId)) {
             throw new SharingAgreementPlantMismatchException(sharingAgreementId, plantId);
@@ -69,13 +69,13 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
         return coefficients.stream()
                 .map(coefficient -> toView(plantId, agreement, coefficient, suppliesById.get(coefficient.getSupplyId()),
                         laterAgreementExists))
-                .sorted(Comparator.comparing(SharingAgreementCoefficientView::getSupplyCode))
+                .sorted(Comparator.comparing(SharingAgreementCoefficient::getSupplyCode))
                 .toList();
     }
 
-    private SharingAgreementCoefficientView toView(UUID plantId, SharingAgreement agreement,
-                                                     SupplyPartitionCoefficient coefficient, Supply supply,
-                                                     boolean laterAgreementExists) {
+    private SharingAgreementCoefficient toView(UUID plantId, SharingAgreement agreement,
+                                               SupplyPartitionCoefficient coefficient, Supply supply,
+                                               boolean laterAgreementExists) {
         CoefficientApplicationState applicationState = coefficient.getValidFrom() == null
                 ? CoefficientApplicationState.PENDING : CoefficientApplicationState.APPLIED;
 
@@ -112,6 +112,6 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
             }
         }
 
-        return new SharingAgreementCoefficientView(coefficient, supply, applicationState, endState, endDate);
+        return new SharingAgreementCoefficient(coefficient, supply, applicationState, endState, endDate);
     }
 }

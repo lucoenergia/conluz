@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.get;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientApplicationState;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientEndState;
-import org.lucoenergia.conluz.domain.production.sharingagreement.get.SharingAgreementCoefficientView;
+import org.lucoenergia.conluz.domain.production.sharingagreement.get.SharingAgreementCoefficient;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -39,7 +39,7 @@ public class SharingAgreementPartitionCoefficientResponse {
             "endState is DERIVED or CLOSED.", example = "2025-01-01T00:00:00Z", nullable = true)
     private final Instant endDate;
 
-    public SharingAgreementPartitionCoefficientResponse(SharingAgreementCoefficientView view) {
+    public SharingAgreementPartitionCoefficientResponse(SharingAgreementCoefficient view) {
         this.coefficientId = view.getCoefficientId();
         this.supply = new SharingAgreementCoefficientSupplyResponse(view.getSupplyId(), view.getSupplyCode(), view.getSupplyName());
         this.coefficient = view.getCoefficient();

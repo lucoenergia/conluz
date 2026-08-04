@@ -13,7 +13,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
-import org.lucoenergia.conluz.domain.production.sharingagreement.get.SharingAgreementCoefficientView;
+import org.lucoenergia.conluz.domain.production.sharingagreement.get.SharingAgreementCoefficient;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -95,7 +95,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, PLANT_ID));
         when(getCoefficientRepository.findAllBySharingAgreementId(agreementId)).thenReturn(List.of());
 
-        List<SharingAgreementCoefficientView> result = service().findBySharingAgreementId(PLANT_ID, agreementId);
+        List<SharingAgreementCoefficient> result = service().findBySharingAgreementId(PLANT_ID, agreementId);
 
         assertTrue(result.isEmpty());
     }
@@ -111,7 +111,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, row.getId(), row.getValidFrom()))
                 .thenReturn(Optional.empty());
 
-        SharingAgreementCoefficientView view = onlyView(agreementId);
+        SharingAgreementCoefficient view = onlyView(agreementId);
 
         assertEquals(CoefficientEndState.CLOSED, view.getEndState());
         assertEquals(validTo, view.getEndDate());
@@ -130,7 +130,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, row.getId(), row.getValidFrom()))
                 .thenReturn(Optional.of(successor));
 
-        SharingAgreementCoefficientView view = onlyView(agreementId);
+        SharingAgreementCoefficient view = onlyView(agreementId);
 
         assertEquals(CoefficientEndState.DERIVED, view.getEndState());
         assertEquals(validTo, view.getEndDate());
@@ -151,7 +151,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         when(getCoefficientRepository.findNextCoefficientForSupplyInLaterAgreement(
                 PLANT_ID, supplyId, agreementId, AGREEMENT_CREATED_AT)).thenReturn(Optional.of(successor));
 
-        SharingAgreementCoefficientView view = onlyView(agreementId);
+        SharingAgreementCoefficient view = onlyView(agreementId);
 
         assertEquals(CoefficientEndState.DERIVED, view.getEndState());
         assertEquals(successorValidFrom, view.getEndDate());
@@ -170,7 +170,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         when(getCoefficientRepository.findNextCoefficientForSupplyInLaterAgreement(
                 PLANT_ID, supplyId, agreementId, AGREEMENT_CREATED_AT)).thenReturn(Optional.of(pendingSuccessor));
 
-        SharingAgreementCoefficientView view = onlyView(agreementId);
+        SharingAgreementCoefficient view = onlyView(agreementId);
 
         assertEquals(CoefficientEndState.PENDING_SUCCESSION, view.getEndState());
         assertNull(view.getEndDate());
@@ -188,7 +188,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         when(getCoefficientRepository.findNextCoefficientForSupplyInLaterAgreement(
                 PLANT_ID, supplyId, agreementId, AGREEMENT_CREATED_AT)).thenReturn(Optional.empty());
 
-        SharingAgreementCoefficientView view = onlyView(agreementId);
+        SharingAgreementCoefficient view = onlyView(agreementId);
 
         assertEquals(CoefficientEndState.OPEN_ORPHAN, view.getEndState());
         assertNull(view.getEndDate());
@@ -204,7 +204,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         when(getSharingAgreementRepository.existsLaterNonDraftAgreement(PLANT_ID, agreementId, AGREEMENT_CREATED_AT))
                 .thenReturn(false);
 
-        SharingAgreementCoefficientView view = onlyView(agreementId);
+        SharingAgreementCoefficient view = onlyView(agreementId);
 
         assertEquals(CoefficientEndState.OPEN, view.getEndState());
         assertNull(view.getEndDate());
@@ -222,7 +222,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         when(getSharingAgreementRepository.existsLaterNonDraftAgreement(PLANT_ID, agreementId, AGREEMENT_CREATED_AT))
                 .thenReturn(false);
 
-        SharingAgreementCoefficientView view = onlyView(agreementId);
+        SharingAgreementCoefficient view = onlyView(agreementId);
 
         assertEquals(CoefficientApplicationState.PENDING, view.getApplicationState());
         assertEquals(CoefficientEndState.OPEN, view.getEndState());
@@ -243,7 +243,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         when(getSharingAgreementRepository.existsLaterNonDraftAgreement(eq(PLANT_ID), eq(agreementId), any()))
                 .thenReturn(false);
 
-        List<SharingAgreementCoefficientView> result = service().findBySharingAgreementId(PLANT_ID, agreementId);
+        List<SharingAgreementCoefficient> result = service().findBySharingAgreementId(PLANT_ID, agreementId);
 
         assertEquals(2, result.size());
         assertEquals("ES0000000000000000AA", result.get(0).getSupplyCode());
@@ -257,8 +257,8 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
                 .thenReturn(List.of(supply(supplyId, "ES0000000000000000AA", "Test supply")));
     }
 
-    private SharingAgreementCoefficientView onlyView(UUID agreementId) {
-        List<SharingAgreementCoefficientView> result = service().findBySharingAgreementId(PLANT_ID, agreementId);
+    private SharingAgreementCoefficient onlyView(UUID agreementId) {
+        List<SharingAgreementCoefficient> result = service().findBySharingAgreementId(PLANT_ID, agreementId);
         assertEquals(1, result.size());
         return result.get(0);
     }

@@ -18,5 +18,5 @@ public interface GetSharingAgreementPartitionCoefficientsService {
      * @throws SharingAgreementNotFoundException     if no such agreement exists
      * @throws SharingAgreementPlantMismatchException if the agreement does not belong to plantId
      */
-    List<SharingAgreementCoefficientView> findBySharingAgreementId(UUID plantId, UUID sharingAgreementId);
+    List<SharingAgreementCoefficient> findBySharingAgreementId(UUID plantId, UUID sharingAgreementId);
 }
