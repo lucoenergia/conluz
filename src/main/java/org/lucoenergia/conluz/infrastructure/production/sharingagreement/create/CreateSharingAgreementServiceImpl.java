@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.create;
 
-import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementService;
@@ -29,8 +28,8 @@ public class CreateSharingAgreementServiceImpl implements CreateSharingAgreement
     }
 
     @Override
-    public SharingAgreement create(UUID plantId, String name, String notes, UUID createdBy) {
-        Plant plant = getPlantRepository.findById(PlantId.of(plantId))
+    public SharingAgreement create(UUID plantId, String name, String notes, BigDecimal installedPowerKw, UUID createdBy) {
+        getPlantRepository.findById(PlantId.of(plantId))
                 .orElseThrow(() -> new PlantNotFoundException(PlantId.of(plantId)));
 
         SharingAgreement agreement = new SharingAgreement.Builder()
@@ -39,7 +38,7 @@ public class CreateSharingAgreementServiceImpl implements CreateSharingAgreement
                 .withName(name)
                 .withNotes(notes)
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(BigDecimal.valueOf(plant.getTotalPower()))
+                .withInstalledPowerKw(installedPowerKw)
                 .withCreatedAt(Instant.now())
                 .withCreatedBy(createdBy)
                 .build();
