@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -20,12 +21,16 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -39,6 +44,7 @@ class UploadSharingAgreementFileControllerTest extends BaseControllerTest {
     private static final String FILENAME = REGULATORY_CODE + "_2024.txt";
     private static final String CUPS_1 = "ES0031300325733001FH0F";
     private static final String CUPS_2 = "ES0031300325733002FH0F";
+    private static final String UNKNOWN_CUPS = "ES0031300325733099FH0F";
     private static final String TXT_CONTENT_TYPE = "text/plain";
 
     @Autowired
@@ -177,6 +183,73 @@ class UploadSharingAgreementFileControllerTest extends BaseControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").isArray())
                 .andExpect(jsonPath("$.errors[0].code").value("DISTRIBUTOR_FILE_COEFFICIENT_SUM_INVALID"));
+    }
+
+    @Test
+    void returnsAllLineLevelViolationsInASingleResponse() throws Exception {
+        setUpBaseFixture();
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        String content = CUPS_1 + ";0,500000\n"
+                + CUPS_2 + ";0,50\n"
+                + UNKNOWN_CUPS + ";0,500000\n"
+                + "not-a-valid-line-without-separator";
+        MockMultipartFile invalid = new MockMultipartFile("file", FILENAME, TXT_CONTENT_TYPE,
+                content.getBytes(StandardCharsets.UTF_8));
+
+        MvcResult result = mockMvc.perform(multipart(url(plantA.getId(), draftAgreement.getId())).file(invalid)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        JsonNode errors = objectMapper.readTree(result.getResponse().getContentAsString()).get("errors");
+        assertEquals(3, errors.size(), errors.toString());
+        assertTrue(containsError(errors, "DISTRIBUTOR_FILE_VALUE_SCALE_INVALID", "2"));
+        assertTrue(containsError(errors, "DISTRIBUTOR_FILE_CUPS_UNKNOWN", "3"));
+        assertTrue(containsError(errors, "DISTRIBUTOR_FILE_LINE_MALFORMED", "4"));
+    }
+
+    private boolean containsError(JsonNode errors, String code, String line) {
+        for (JsonNode error : errors) {
+            if (error.get("code").asText().equals(code) && line.equals(error.path("params").path("line").asText(null))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
+    void distinguishesFileLevelFromLineLevelErrorsInOneResponse() throws Exception {
+        setUpBaseFixture();
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        String content = CUPS_1 + ";0,500000\n" + CUPS_2 + ";0,50";
+        MockMultipartFile invalid = new MockMultipartFile("file", FILENAME, TXT_CONTENT_TYPE,
+                content.getBytes(StandardCharsets.UTF_8));
+
+        MvcResult result = mockMvc.perform(multipart(url(plantA.getId(), draftAgreement.getId())).file(invalid)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        JsonNode errors = objectMapper.readTree(result.getResponse().getContentAsString()).get("errors");
+        assertEquals(2, errors.size(), errors.toString());
+
+        JsonNode lineLevel = findByCode(errors, "DISTRIBUTOR_FILE_VALUE_SCALE_INVALID");
+        assertTrue(lineLevel.path("params").has("line"));
+        assertEquals("2", lineLevel.path("params").get("line").asText());
+
+        JsonNode fileLevel = findByCode(errors, "DISTRIBUTOR_FILE_COEFFICIENT_SUM_INVALID");
+        assertFalse(fileLevel.path("params").has("line"));
+    }
+
+    private JsonNode findByCode(JsonNode errors, String code) {
+        for (JsonNode error : errors) {
+            if (error.get("code").asText().equals(code)) {
+                return error;
+            }
+        }
+        throw new AssertionError("No error with code " + code + " in " + errors);
     }
 
     @Test

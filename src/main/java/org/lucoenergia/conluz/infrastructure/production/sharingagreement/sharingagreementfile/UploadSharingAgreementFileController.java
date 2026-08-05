@@ -11,7 +11,6 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.DistributorFileStoreResult;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.StoreDistributorFileService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
@@ -73,12 +72,19 @@ public class UploadSharingAgreementFileController {
                     useReturnTypeSchema = true
             ),
             @ApiResponse(
+                    responseCode = "400",
+                    description = "The file failed validation: one or more of its lines, or the file " +
+                            "as a whole, violate a distributor file rule (e.g. malformed filename, " +
+                            "unknown or duplicate CUPS, invalid coefficient value, coefficient sum not " +
+                            "equal to 1). `errors` lists every violation found, not just the first.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = RestError.class))
+            ),
+            @ApiResponse(
                     responseCode = "409",
                     description = "The agreement is not in DRAFT status.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = RestError.class))
             )
     })
-    @BadRequestErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
