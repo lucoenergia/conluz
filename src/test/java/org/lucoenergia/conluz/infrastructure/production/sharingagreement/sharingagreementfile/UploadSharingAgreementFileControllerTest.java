@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -215,6 +216,40 @@ class UploadSharingAgreementFileControllerTest extends BaseControllerTest {
             }
         }
         return false;
+    }
+
+    @Test
+    void distinguishesFileLevelFromLineLevelErrorsInOneResponse() throws Exception {
+        setUpBaseFixture();
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        String content = CUPS_1 + ";0,500000\n" + CUPS_2 + ";0,50";
+        MockMultipartFile invalid = new MockMultipartFile("file", FILENAME, TXT_CONTENT_TYPE,
+                content.getBytes(StandardCharsets.UTF_8));
+
+        MvcResult result = mockMvc.perform(multipart(url(plantA.getId(), draftAgreement.getId())).file(invalid)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        JsonNode errors = objectMapper.readTree(result.getResponse().getContentAsString()).get("errors");
+        assertEquals(2, errors.size(), errors.toString());
+
+        JsonNode lineLevel = findByCode(errors, "DISTRIBUTOR_FILE_VALUE_SCALE_INVALID");
+        assertTrue(lineLevel.path("params").has("line"));
+        assertEquals("2", lineLevel.path("params").get("line").asText());
+
+        JsonNode fileLevel = findByCode(errors, "DISTRIBUTOR_FILE_COEFFICIENT_SUM_INVALID");
+        assertFalse(fileLevel.path("params").has("line"));
+    }
+
+    private JsonNode findByCode(JsonNode errors, String code) {
+        for (JsonNode error : errors) {
+            if (error.get("code").asText().equals(code)) {
+                return error;
+            }
+        }
+        throw new AssertionError("No error with code " + code + " in " + errors);
     }
 
     @Test
