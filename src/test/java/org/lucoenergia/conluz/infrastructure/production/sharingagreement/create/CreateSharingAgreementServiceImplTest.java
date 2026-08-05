@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
@@ -40,9 +41,15 @@ class CreateSharingAgreementServiceImplTest {
     void create_throwsPlantNotFound_whenPlantDoesNotExist() {
         UUID plantId = UUID.randomUUID();
         when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.empty());
+        CreateSharingAgreement request = new CreateSharingAgreement.Builder()
+                .withName("name")
+                .withNotes("notes")
+                .withInstalledPowerKw(BigDecimal.TEN)
+                .withCreatedBy(UUID.randomUUID())
+                .build();
 
         assertThrows(PlantNotFoundException.class,
-                () -> service().create(plantId, "name", "notes", BigDecimal.TEN, UUID.randomUUID()));
+                () -> service().create(plantId, request));
     }
 
     @Test
@@ -52,9 +59,14 @@ class CreateSharingAgreementServiceImplTest {
         Plant plant = PlantMother.random().withId(plantId).withTotalPower(7.25).build();
         when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.of(plant));
         when(repository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        CreateSharingAgreement request = new CreateSharingAgreement.Builder()
+                .withName("2024 winter distribution")
+                .withNotes("notes")
+                .withInstalledPowerKw(BigDecimal.valueOf(3.5))
+                .withCreatedBy(createdBy)
+                .build();
 
-        SharingAgreement result = service().create(plantId, "2024 winter distribution", "notes",
-                BigDecimal.valueOf(3.5), createdBy);
+        SharingAgreement result = service().create(plantId, request);
 
         assertEquals(plantId, result.getPlantId());
         assertEquals("2024 winter distribution", result.getName());

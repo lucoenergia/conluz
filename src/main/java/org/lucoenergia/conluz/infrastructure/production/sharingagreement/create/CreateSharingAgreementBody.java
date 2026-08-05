@@ -4,8 +4,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreement;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Schema(requiredProperties = {"name", "installedPowerKw"})
 public class CreateSharingAgreementBody {
@@ -42,5 +44,14 @@ public class CreateSharingAgreementBody {
 
     public void setInstalledPowerKw(BigDecimal installedPowerKw) {
         this.installedPowerKw = installedPowerKw;
+    }
+
+    public CreateSharingAgreement mapToCreateSharingAgreement(UUID createdBy) {
+        return new CreateSharingAgreement.Builder()
+                .withName(name)
+                .withNotes(notes)
+                .withInstalledPowerKw(installedPowerKw)
+                .withCreatedBy(createdBy)
+                .build();
     }
 }

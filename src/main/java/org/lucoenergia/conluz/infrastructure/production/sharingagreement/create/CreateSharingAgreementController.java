@@ -78,7 +78,7 @@ public class CreateSharingAgreementController {
     public SharingAgreementResponse createSharingAgreement(@AuthenticationPrincipal User currentUser,
                                                             @PathVariable UUID plantId,
                                                             @Valid @RequestBody CreateSharingAgreementBody body) {
-        SharingAgreement agreement = service.create(plantId, body.getName(), body.getNotes(), body.getInstalledPowerKw(), currentUser.getId());
+        SharingAgreement agreement = service.create(plantId, body.mapToCreateSharingAgreement(currentUser.getId()));
         return new SharingAgreementResponse(agreement);
     }
 }
