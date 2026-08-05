@@ -141,6 +141,17 @@ public class SharingAgreementExceptionHandler {
         return errorBuilder.build(summary, details, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(SharingAgreementCoefficientSumInvalidException.class)
+    public ResponseEntity<RestError> handleException(SharingAgreementCoefficientSumInvalidException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.coefficient.sum.invalid",
+                new Object[]{e.getId(), e.getActualSum().toPlainString()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID, null, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(DistributorFileValidationException.class)
     public ResponseEntity<RestError> handleException(DistributorFileValidationException e) {
 
