@@ -8,7 +8,9 @@ import java.util.UUID;
 
 /**
  * Builds the i-DE distributor coefficient-partition file for a sharing agreement on demand, from
- * its current (active) partition coefficients. Nothing is persisted.
+ * its full, immutable coefficient set (one row per supply, regardless of {@code validFrom}/
+ * {@code validTo} -- those are application-lifecycle metadata, not part of the file content).
+ * Nothing is persisted.
  */
 public interface GenerateSharingAgreementFileService {
 
@@ -19,7 +21,7 @@ public interface GenerateSharingAgreementFileService {
      *                                                       not belong to {@code plantId}
      * @throws PlantMissingRegulatoryCodeException          if the plant has no regulatory code
      *                                                       (CAU) configured
-     * @throws SharingAgreementCoefficientSumInvalidException if the agreement's active partition
+     * @throws SharingAgreementCoefficientSumInvalidException if the agreement's partition
      *                                                       coefficients do not sum to exactly 1
      */
     GeneratedDistributorFile generate(UUID plantId, UUID sharingAgreementId, int year);

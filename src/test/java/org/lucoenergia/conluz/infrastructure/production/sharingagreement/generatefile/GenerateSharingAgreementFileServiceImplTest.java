@@ -132,22 +132,51 @@ class GenerateSharingAgreementFileServiceImplTest {
     }
 
     @Test
-    void generate_excludesClosedCoefficients_fromSumAndLines() {
+    void generate_includesClosedCoefficients_inSumAndLines() {
         stubAgreementAndPlant();
         UUID supplyId1 = UUID.randomUUID();
         UUID supplyId2 = UUID.randomUUID();
         UUID closedSupplyId = UUID.randomUUID();
+        // The coefficient set is the agreement's complete, immutable reparto -- a closed row
+        // (validTo set, e.g. a supply's baja) still represents its share and must be exported,
+        // not dropped. validFrom/validTo are application-lifecycle metadata, irrelevant to
+        // whether a row belongs in the file.
         List<SupplyPartitionCoefficient> coefficients = List.of(
-                coefficient(supplyId1, new BigDecimal("0.500000"), Instant.now(), null),
-                coefficient(supplyId2, new BigDecimal("0.500000"), Instant.now(), null),
-                coefficient(closedSupplyId, new BigDecimal("0.500000"), Instant.now().minusSeconds(3600), Instant.now()));
+                coefficient(supplyId1, new BigDecimal("0.333333"), Instant.now(), null),
+                coefficient(supplyId2, new BigDecimal("0.333333"), Instant.now(), null),
+                coefficient(closedSupplyId, new BigDecimal("0.333334"), Instant.now().minusSeconds(3600), Instant.now()));
         when(getCoefficientRepository.findAllBySharingAgreementId(AGREEMENT_ID)).thenReturn(coefficients);
-        when(getSupplyRepository.findAllByIds(Set.of(supplyId1, supplyId2)))
-                .thenReturn(List.of(supply(supplyId1, CUPS_1), supply(supplyId2, CUPS_2)));
+        when(getSupplyRepository.findAllByIds(Set.of(supplyId1, supplyId2, closedSupplyId)))
+                .thenReturn(List.of(supply(supplyId1, CUPS_1), supply(supplyId2, CUPS_2), supply(closedSupplyId, CUPS_3)));
 
         GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
 
-        String expected = CUPS_1 + ";0,500000\n" + CUPS_2 + ";0,500000\n";
+        String expected = CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n";
+        assertEquals(expected, new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void generate_includesFullySupersededCoefficientSet_whenEveryRowIsClosed() {
+        stubAgreementAndPlant();
+        UUID supplyId1 = UUID.randomUUID();
+        UUID supplyId2 = UUID.randomUUID();
+        UUID supplyId3 = UUID.randomUUID();
+        Instant activatedAt = Instant.now().minusSeconds(7200);
+        Instant closedAt = Instant.now().minusSeconds(3600);
+        // A SUPERSEDED agreement has every row closed (validTo set). The old isActive() filter
+        // would have yielded an empty set here, always failing the sum gate -- the full,
+        // immutable reparto must still be exported.
+        List<SupplyPartitionCoefficient> coefficients = List.of(
+                coefficient(supplyId1, new BigDecimal("0.333333"), activatedAt, closedAt),
+                coefficient(supplyId2, new BigDecimal("0.333333"), activatedAt, closedAt),
+                coefficient(supplyId3, new BigDecimal("0.333334"), activatedAt, closedAt));
+        when(getCoefficientRepository.findAllBySharingAgreementId(AGREEMENT_ID)).thenReturn(coefficients);
+        when(getSupplyRepository.findAllByIds(Set.of(supplyId1, supplyId2, supplyId3)))
+                .thenReturn(List.of(supply(supplyId1, CUPS_1), supply(supplyId2, CUPS_2), supply(supplyId3, CUPS_3)));
+
+        GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
+
+        String expected = CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n";
         assertEquals(expected, new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8));
     }
 

@@ -338,32 +338,59 @@ class GenerateSharingAgreementFileControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void generatesFileForPublishedAgreement() throws Exception {
+    void generatesFileForPublishedAgreementWithOneBajaedSupply() throws Exception {
         setUpBaseFixture();
         SharingAgreementEntity published = persistAgreement(plantA, SharingAgreementStatus.PUBLISHED);
-        seedBalancedPendingCoefficients(plantA, published);
+        Instant activatedAt = Instant.now().minusSeconds(7200);
+        // supply3 was later given de baja (deregistered): its coefficient row is closed
+        // (validTo set), but it is still part of the agreement's complete, immutable reparto and
+        // must still appear in the generated file -- the set still sums to exactly 1.
+        seedCoefficient(supply1, plantA, published, new BigDecimal("0.333333"), activatedAt, null);
+        seedCoefficient(supply2, plantA, published, new BigDecimal("0.333333"), activatedAt, null);
+        seedCoefficient(supply3, plantA, published, new BigDecimal("0.333334"), activatedAt, Instant.now());
         String authHeader = loginAsCommunityAdmin(communityA.getId());
 
-        mockMvc.perform(post(url(plantA.getId(), published.getId()))
+        byte[] responseBytes = mockMvc.perform(post(url(plantA.getId(), published.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body(2023)))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsByteArray();
+
+        String content = new String(responseBytes, StandardCharsets.UTF_8);
+        assertEquals(CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n", content);
     }
 
     @Test
-    void generatesFileForSupersededAgreement() throws Exception {
+    void generatesFileForFullySupersededAgreement() throws Exception {
         setUpBaseFixture();
         SharingAgreementEntity superseded = persistAgreement(plantA, SharingAgreementStatus.SUPERSEDED);
-        seedBalancedPendingCoefficients(plantA, superseded);
+        Instant activatedAt = Instant.now().minusSeconds(7200);
+        Instant closedAt = Instant.now().minusSeconds(3600);
+        // A SUPERSEDED agreement has every row closed (validTo set). The full, immutable reparto
+        // must still be exported -- an isActive()-style filter would yield an empty set here and
+        // always fail the sum gate.
+        seedCoefficient(supply1, plantA, superseded, new BigDecimal("0.333333"), activatedAt, closedAt);
+        seedCoefficient(supply2, plantA, superseded, new BigDecimal("0.333333"), activatedAt, closedAt);
+        seedCoefficient(supply3, plantA, superseded, new BigDecimal("0.333334"), activatedAt, closedAt);
         String authHeader = loginAsCommunityAdmin(communityA.getId());
+        String expectedFilename = REGULATORY_CODE + "_2023.txt";
 
-        mockMvc.perform(post(url(plantA.getId(), superseded.getId()))
+        byte[] responseBytes = mockMvc.perform(post(url(plantA.getId(), superseded.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body(2023)))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsByteArray();
+
+        String content = new String(responseBytes, StandardCharsets.UTF_8);
+        assertEquals(CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n", content);
+
+        DistributorFileParseResult result = distributorFileParser.parse(expectedFilename, responseBytes,
+                REGULATORY_CODE, Set.of(CUPS_1, CUPS_2, CUPS_3));
+        assertTrue(result.isValid());
+        assertEquals(3, result.getEntries().size());
     }
 }

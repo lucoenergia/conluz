@@ -57,12 +57,14 @@ public class GenerateSharingAgreementFileServiceImpl implements GenerateSharingA
             throw new PlantMissingRegulatoryCodeException(plantId);
         }
 
-        List<SupplyPartitionCoefficient> active = getCoefficientRepository.findAllBySharingAgreementId(sharingAgreementId)
-                .stream()
-                .filter(SupplyPartitionCoefficient::isActive)
-                .toList();
+        // The agreement's coefficient set is complete and immutable -- one row per supply,
+        // regardless of status. validFrom/validTo are application-lifecycle metadata (when the
+        // distributor started applying a coefficient, when it was superseded); they say nothing
+        // about whether a supply's share belongs in the file. The distributor file is the full
+        // reparto, so every row is exported as-is.
+        List<SupplyPartitionCoefficient> coefficients = getCoefficientRepository.findAllBySharingAgreementId(sharingAgreementId);
 
-        BigDecimal sum = active.stream()
+        BigDecimal sum = coefficients.stream()
                 .map(SupplyPartitionCoefficient::getCoefficient)
                 .map(DistributorFileFormat::normalizeScale)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -71,11 +73,11 @@ public class GenerateSharingAgreementFileServiceImpl implements GenerateSharingA
         }
 
         Map<UUID, Supply> suppliesById = getSupplyRepository.findAllByIds(
-                        active.stream().map(SupplyPartitionCoefficient::getSupplyId).collect(Collectors.toSet()))
+                        coefficients.stream().map(SupplyPartitionCoefficient::getSupplyId).collect(Collectors.toSet()))
                 .stream()
                 .collect(Collectors.toMap(Supply::getId, supply -> supply));
 
-        String text = active.stream()
+        String text = coefficients.stream()
                 .sorted(Comparator.comparing(c -> suppliesById.get(c.getSupplyId()).getCode()))
                 .map(c -> DistributorFileFormat.formatCoefficientLine(suppliesById.get(c.getSupplyId()).getCode(), c.getCoefficient()))
                 .collect(Collectors.joining(DistributorFileFormat.LINE_SEPARATOR, "", DistributorFileFormat.LINE_SEPARATOR));
