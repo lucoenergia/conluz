@@ -3,12 +3,12 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.distri
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.DistributorFileEntry;
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.DistributorFileError;
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.DistributorFileErrorCode;
+import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.DistributorFileFormat;
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.DistributorFileParseResult;
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.DistributorFileParser;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,11 +29,7 @@ import java.util.stream.Collectors;
 @Component
 public class DistributorFileParserImpl implements DistributorFileParser {
 
-    private static final Pattern FILENAME_PATTERN = Pattern.compile("^(?<code>[^_]+)_(?<year>\\d{4})\\.txt$");
     private static final Pattern COMMA_DECIMAL_PATTERN = Pattern.compile("^\\d+,\\d+$");
-    private static final BigDecimal EXPECTED_SUM = new BigDecimal("1.000000");
-    private static final int CUPS_LENGTH = 22;
-    private static final int REQUIRED_DECIMAL_DIGITS = 6;
 
     @Override
     public DistributorFileParseResult parse(String filename, byte[] content, String plantRegulatoryCode,
@@ -61,7 +57,7 @@ public class DistributorFileParserImpl implements DistributorFileParser {
             String rawValue = tokens[1];
 
             // Rule 5 -- independent of the value checks below.
-            if (rawCups.length() != CUPS_LENGTH) {
+            if (rawCups.length() != DistributorFileFormat.CUPS_LENGTH) {
                 errors.add(new DistributorFileError(DistributorFileErrorCode.CUPS_LENGTH_INVALID, lineNumber,
                         Map.of("line", String.valueOf(lineNumber), "cups", rawCups)));
             }
@@ -91,7 +87,7 @@ public class DistributorFileParserImpl implements DistributorFileParser {
     }
 
     private void checkFilename(String filename, String plantRegulatoryCode, List<DistributorFileError> errors) {
-        Matcher matcher = FILENAME_PATTERN.matcher(filename);
+        Matcher matcher = DistributorFileFormat.FILENAME_PATTERN.matcher(filename);
         if (!matcher.matches()) {
             errors.add(new DistributorFileError(DistributorFileErrorCode.FILENAME_SHAPE_INVALID, null,
                     Map.of("filename", filename)));
@@ -114,7 +110,7 @@ public class DistributorFileParserImpl implements DistributorFileParser {
             return null;
         }
         String fractionalDigits = rawValue.substring(rawValue.indexOf(',') + 1);
-        if (fractionalDigits.length() != REQUIRED_DECIMAL_DIGITS) {
+        if (fractionalDigits.length() != DistributorFileFormat.REQUIRED_DECIMAL_DIGITS) {
             errors.add(new DistributorFileError(DistributorFileErrorCode.VALUE_SCALE_INVALID, lineNumber,
                     Map.of("line", String.valueOf(lineNumber), "cups", rawCups, "value", rawValue)));
             return null;
@@ -133,7 +129,7 @@ public class DistributorFileParserImpl implements DistributorFileParser {
     }
 
     private void checkSum(BigDecimal sum, List<DistributorFileError> errors) {
-        if (sum.compareTo(EXPECTED_SUM) != 0) {
+        if (!DistributorFileFormat.isValidSum(sum)) {
             errors.add(new DistributorFileError(DistributorFileErrorCode.COEFFICIENT_SUM_INVALID, null,
                     Map.of("actualSum", sum.toPlainString())));
         }
@@ -145,7 +141,7 @@ public class DistributorFileParserImpl implements DistributorFileParser {
      * {@link DistributorFileErrorCode#LINE_MALFORMED}.
      */
     private List<String> splitLines(byte[] content) {
-        String text = new String(content, StandardCharsets.UTF_8);
+        String text = new String(content, DistributorFileFormat.CHARSET);
         String[] rawLines = text.split("\r\n|\r|\n", -1);
         int lineCount = rawLines.length;
         if (lineCount > 0 && rawLines[lineCount - 1].isEmpty()) {
