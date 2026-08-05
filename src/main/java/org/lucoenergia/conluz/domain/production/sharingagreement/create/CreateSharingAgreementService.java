@@ -8,9 +8,9 @@ public interface CreateSharingAgreementService {
 
     /**
      * Creates a new DRAFT sharing agreement under the given plant. {@code installedPowerKw} is
-     * snapshotted from the plant's current {@code totalPower} at creation time, not a live join.
-     *
-     * @param createdBy the acting user's id; never null on this path
+     * supplied by the caller as a snapshot of the plant's installed power at authoring time, not
+     * read from the plant record. {@code createdBy} (the acting user's id; never null on this path)
+     * is carried by {@code request}.
      */
-    SharingAgreement create(UUID plantId, String name, String notes, UUID createdBy);
+    SharingAgreement create(UUID plantId, CreateSharingAgreement request);
 }

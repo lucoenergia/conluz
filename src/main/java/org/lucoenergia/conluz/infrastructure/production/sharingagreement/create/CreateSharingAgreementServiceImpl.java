@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.create;
 
-import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
@@ -11,7 +11,6 @@ import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -29,19 +28,19 @@ public class CreateSharingAgreementServiceImpl implements CreateSharingAgreement
     }
 
     @Override
-    public SharingAgreement create(UUID plantId, String name, String notes, UUID createdBy) {
-        Plant plant = getPlantRepository.findById(PlantId.of(plantId))
+    public SharingAgreement create(UUID plantId, CreateSharingAgreement request) {
+        getPlantRepository.findById(PlantId.of(plantId))
                 .orElseThrow(() -> new PlantNotFoundException(PlantId.of(plantId)));
 
         SharingAgreement agreement = new SharingAgreement.Builder()
                 .withId(UUID.randomUUID())
                 .withPlantId(plantId)
-                .withName(name)
-                .withNotes(notes)
+                .withName(request.getName())
+                .withNotes(request.getNotes())
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(BigDecimal.valueOf(plant.getTotalPower()))
+                .withInstalledPowerKw(request.getInstalledPowerKw())
                 .withCreatedAt(Instant.now())
-                .withCreatedBy(createdBy)
+                .withCreatedBy(request.getCreatedBy())
                 .build();
 
         return repository.create(agreement);

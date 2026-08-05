@@ -2,6 +2,8 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.create
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
@@ -68,7 +70,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
         mockMvc.perform(post(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"2024 winter distribution\"}"))
+                        .content("{\"name\":\"2024 winter distribution\",\"installedPowerKw\":12.5}"))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
@@ -81,7 +83,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
         mockMvc.perform(post(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"2024 winter distribution\"}"))
+                        .content("{\"name\":\"2024 winter distribution\",\"installedPowerKw\":12.5}"))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }
@@ -99,21 +101,49 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void createsDraftAgreementWithSnapshottedPowerAndCreator() throws Exception {
+    void createsDraftAgreementWithSuppliedPowerAndCreator() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
+        // Deliberately different from plantA's totalPower, to prove the stored value comes
+        // from the request body and not from a server-side snapshot of the plant.
+        BigDecimal installedPowerKw = BigDecimal.valueOf(plantA.getTotalPower()).add(BigDecimal.ONE);
 
         mockMvc.perform(post(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"2024 winter distribution\",\"notes\":\"initial\"}"))
+                        .content("{\"name\":\"2024 winter distribution\",\"notes\":\"initial\",\"installedPowerKw\":" + installedPowerKw + "}"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.plantId").value(plantA.getId().toString()))
                 .andExpect(jsonPath("$.name").value("2024 winter distribution"))
                 .andExpect(jsonPath("$.notes").value("initial"))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
-                .andExpect(jsonPath("$.installedPowerKw").value(BigDecimal.valueOf(plantA.getTotalPower()).doubleValue()))
+                .andExpect(jsonPath("$.installedPowerKw").value(installedPowerKw.doubleValue()))
                 .andExpect(jsonPath("$.createdBy").isNotEmpty());
+    }
+
+    @Test
+    void returnsBadRequestWhenInstalledPowerKwIsMissing() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(post(url(plantA.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"2024 winter distribution\"}"))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1"})
+    void returnsBadRequestWhenInstalledPowerKwIsNotPositive(String installedPowerKw) throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(post(url(plantA.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"2024 winter distribution\",\"installedPowerKw\":" + installedPowerKw + "}"))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
     }
 
     private Plant createPlant(Community community) {
