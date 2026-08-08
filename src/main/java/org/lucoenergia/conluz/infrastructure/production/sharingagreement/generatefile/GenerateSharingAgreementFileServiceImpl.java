@@ -64,10 +64,8 @@ public class GenerateSharingAgreementFileServiceImpl implements GenerateSharingA
         // reparto, so every row is exported as-is.
         List<SupplyPartitionCoefficient> coefficients = getCoefficientRepository.findAllBySharingAgreementId(sharingAgreementId);
 
-        BigDecimal sum = coefficients.stream()
-                .map(SupplyPartitionCoefficient::getCoefficient)
-                .map(DistributorFileFormat::normalizeScale)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal sum = DistributorFileFormat.normalizedSum(
+                coefficients.stream().map(SupplyPartitionCoefficient::getCoefficient).toList());
         if (!DistributorFileFormat.isValidSum(sum)) {
             throw new SharingAgreementCoefficientSumInvalidException(sharingAgreementId, sum);
         }
