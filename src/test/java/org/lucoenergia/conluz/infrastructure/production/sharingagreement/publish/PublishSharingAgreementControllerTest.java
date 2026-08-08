@@ -33,8 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -64,6 +67,8 @@ class PublishSharingAgreementControllerTest extends BaseControllerTest {
     private Community communityB;
     private Plant plantA;
     private Supply supplyA;
+    private Supply supplyB;
+    private Supply supplyC;
     private Plant otherPlantInCommunityA;
     private SharingAgreementEntity draftAgreement;
 
@@ -72,6 +77,8 @@ class PublishSharingAgreementControllerTest extends BaseControllerTest {
         communityA = createCommunityRepository.create(CommunityMother.random().build());
         communityB = createCommunityRepository.create(CommunityMother.random().build());
         supplyA = createSupply(communityA);
+        supplyB = createSupply(communityA);
+        supplyC = createSupply(communityA);
         plantA = createPlant(supplyA);
         otherPlantInCommunityA = createPlant(createSupply(communityA));
         draftAgreement = createAgreement(plantA, SharingAgreementStatus.DRAFT);
@@ -127,7 +134,8 @@ class PublishSharingAgreementControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isConflict());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_NOT_DRAFT"));
     }
 
     @Test
@@ -138,12 +146,61 @@ class PublishSharingAgreementControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isConflict());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_HAS_NO_COEFFICIENTS"));
+    }
+
+    @Test
+    void returnsConflictWhenCoefficientSumIsLessThanOne() throws Exception {
+        seedCoefficients(draftAgreement, new BigDecimal("0.300000"), new BigDecimal("0.300000"));
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(post(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID"))
+                .andExpect(jsonPath("$.errors[0].params.actualSum").value("0.600000"));
+
+        assertAgreementIsStillDraftWithUnchangedCoefficients(new BigDecimal("0.300000"), new BigDecimal("0.300000"));
+    }
+
+    @Test
+    void returnsConflictWhenCoefficientSumIsGreaterThanOne() throws Exception {
+        seedCoefficients(draftAgreement, new BigDecimal("0.700000"), new BigDecimal("0.700000"));
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(post(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID"))
+                .andExpect(jsonPath("$.errors[0].params.actualSum").value("1.400000"));
+
+        assertAgreementIsStillDraftWithUnchangedCoefficients(new BigDecimal("0.700000"), new BigDecimal("0.700000"));
     }
 
     @Test
     void publishesDraftAgreementWithCoefficients() throws Exception {
         seedCoefficient(supplyA, plantA, draftAgreement);
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(post(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(draftAgreement.getId().toString()))
+                .andExpect(jsonPath("$.status").value("PUBLISHED"));
+    }
+
+    @Test
+    void publishesDraftAgreementWithCoefficientsSummingToOneOnlyAtFullScale() throws Exception {
+        // 1/3 does not terminate; only the six-decimal-scale split sums to exactly 1 -- this would
+        // fail under a naive double/float equality check.
+        seedCoefficients(draftAgreement, new BigDecimal("0.333333"), new BigDecimal("0.333333"), new BigDecimal("0.333334"));
         String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(post(url(plantA.getId(), draftAgreement.getId()))
@@ -193,6 +250,41 @@ class PublishSharingAgreementControllerTest extends BaseControllerTest {
         coefficient.setValidFrom(Instant.now());
         coefficient.setCreatedAt(Instant.now());
         supplyPartitionCoefficientJpaRepository.save(coefficient);
+    }
+
+    /**
+     * Seeds one coefficient row per value on {@code draftAgreement}/{@code plantA}, drawn from
+     * {@code supplyA}/{@code supplyB}/{@code supplyC} in order. Supports up to three values.
+     */
+    private void seedCoefficients(SharingAgreementEntity agreement, BigDecimal... values) {
+        List<Supply> supplies = List.of(supplyA, supplyB, supplyC);
+        PlantEntity plantEntity = plantRepository.getReferenceById(plantA.getId());
+        SharingAgreementEntity agreementReference = sharingAgreementRepository.getReferenceById(agreement.getId());
+        for (int i = 0; i < values.length; i++) {
+            SupplyEntity supplyEntity = supplyRepository.getReferenceById(supplies.get(i).getId());
+
+            SupplyPartitionCoefficientEntity coefficient = new SupplyPartitionCoefficientEntity();
+            coefficient.setId(UUID.randomUUID());
+            coefficient.setSupply(supplyEntity);
+            coefficient.setPlant(plantEntity);
+            coefficient.setSharingAgreement(agreementReference);
+            coefficient.setCoefficient(values[i]);
+            coefficient.setValidFrom(null);
+            coefficient.setCreatedAt(Instant.now());
+            supplyPartitionCoefficientJpaRepository.save(coefficient);
+        }
+    }
+
+    private void assertAgreementIsStillDraftWithUnchangedCoefficients(BigDecimal... expectedValues) {
+        SharingAgreementEntity refreshed = sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow();
+        assertEquals(SharingAgreementStatus.DRAFT, refreshed.getStatus());
+
+        List<SupplyPartitionCoefficientEntity> coefficients = supplyPartitionCoefficientJpaRepository
+                .findBySharingAgreementId(draftAgreement.getId());
+        assertEquals(expectedValues.length, coefficients.size());
+        for (BigDecimal expected : expectedValues) {
+            assertTrue(coefficients.stream().anyMatch(c -> expected.compareTo(c.getCoefficient()) == 0));
+        }
     }
 
     private String url(UUID plantId, UUID agreementId) {
