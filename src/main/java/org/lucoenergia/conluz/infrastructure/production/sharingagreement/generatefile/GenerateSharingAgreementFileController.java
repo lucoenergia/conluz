@@ -47,8 +47,9 @@ public class GenerateSharingAgreementFileController {
     @Operation(
             summary = "Generates the i-DE distributor coefficient-partition file for a sharing agreement",
             description = """
-                    Builds the i-DE distributor TXT file from this agreement's currently-active
-                    partition coefficients and streams it back as a file download. Nothing is
+                    Builds the i-DE distributor TXT file from this agreement's complete, immutable
+                    partition-coefficient set -- one row per supply, regardless of status or
+                    activation state -- and streams it back as a file download. Nothing is
                     persisted -- the file is built in memory from the current state and returned.
 
                     **Required: Community Admin**
@@ -58,7 +59,7 @@ public class GenerateSharingAgreementFileController {
                     Returns 404 if the plant or the agreement does not exist, does not belong to this
                     plant, or the caller is not a member of its community, to avoid leaking existence.
                     Returns 409 if the plant has no regulatory code (CAU) configured, or if the
-                    currently-active coefficients do not sum to exactly 1.
+                    agreement's coefficient set does not sum to exactly 1.
 
                     Authentication is required using a Bearer token.
                     """,
@@ -77,7 +78,7 @@ public class GenerateSharingAgreementFileController {
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "The plant has no regulatory code configured, or the active coefficients do not sum to exactly 1.",
+                    description = "The plant has no regulatory code configured, or the agreement's coefficient set does not sum to exactly 1.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = RestError.class))
             )
     })
