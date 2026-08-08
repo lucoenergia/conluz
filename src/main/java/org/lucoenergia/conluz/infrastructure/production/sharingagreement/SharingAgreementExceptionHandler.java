@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -149,7 +150,8 @@ public class SharingAgreementExceptionHandler {
                 new Object[]{e.getId(), e.getActualSum().toPlainString()},
                 LocaleContextHolder.getLocale()
         );
-        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID, null, HttpStatus.CONFLICT);
+        Map<String, String> params = Map.of("actualSum", e.getActualSum().toPlainString());
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID, params, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(DistributorFileValidationException.class)
