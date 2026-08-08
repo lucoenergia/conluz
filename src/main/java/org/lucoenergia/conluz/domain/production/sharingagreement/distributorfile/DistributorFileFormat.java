@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.regex.Pattern;
 
 /**
@@ -58,5 +59,17 @@ public final class DistributorFileFormat {
      */
     public static boolean isValidSum(BigDecimal sum) {
         return sum.compareTo(EXPECTED_SUM) == 0;
+    }
+
+    /**
+     * Sums {@code coefficients} after normalizing each to {@link #REQUIRED_DECIMAL_DIGITS} decimal
+     * digits -- the same total {@link #isValidSum} is checked against. Callers that need both the
+     * boolean verdict and the actual sum (e.g. to report it in an error) compute it once here and
+     * pass it to {@link #isValidSum}, instead of duplicating this pipeline inline.
+     */
+    public static BigDecimal normalizedSum(Collection<BigDecimal> coefficients) {
+        return coefficients.stream()
+                .map(DistributorFileFormat::normalizeScale)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

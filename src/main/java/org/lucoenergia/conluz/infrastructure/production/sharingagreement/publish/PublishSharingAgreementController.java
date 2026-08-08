@@ -47,8 +47,8 @@ public class PublishSharingAgreementController {
 
                     Returns 404 if the plant or the agreement does not exist, does not belong to this
                     plant, or the caller is not a member of its community, to avoid leaking existence.
-                    Returns 409 if the agreement is not in DRAFT status, or if it has no partition
-                    coefficients yet.
+                    Returns 409 if the agreement is not in DRAFT status, if it has no partition
+                    coefficients yet, or if its coefficients do not sum to exactly 1.
 
                     Authentication is required using a Bearer token.
                     """,
@@ -64,7 +64,8 @@ public class PublishSharingAgreementController {
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "The agreement is not in DRAFT status, or it has no partition coefficients yet.",
+                    description = "The agreement is not in DRAFT status, it has no partition coefficients yet, " +
+                            "or its coefficients do not sum to exactly 1.",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class),

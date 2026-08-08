@@ -3,9 +3,11 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.publis
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.publish.PublishSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementCoefficientSumInvalidException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementHasNoCoefficientsException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotDraftException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
@@ -13,6 +15,8 @@ import org.lucoenergia.conluz.infrastructure.production.sharingagreement.publish
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,6 +40,14 @@ class PublishSharingAgreementServiceImplTest {
         return new PublishSharingAgreementServiceImpl(getSharingAgreementService, supplyPartitionCoefficientRepository, repository);
     }
 
+    private SupplyPartitionCoefficient coefficient(BigDecimal value) {
+        return new SupplyPartitionCoefficient.Builder()
+                .withId(UUID.randomUUID())
+                .withSupplyId(UUID.randomUUID())
+                .withCoefficient(value)
+                .build();
+    }
+
     @Test
     void publish_throwsNotDraft_whenAgreementIsPublished() {
         UUID agreementId = UUID.randomUUID();
@@ -46,7 +58,7 @@ class PublishSharingAgreementServiceImplTest {
         when(getSharingAgreementService.findById(agreementId)).thenReturn(published);
 
         assertThrows(SharingAgreementNotDraftException.class, () -> service().publish(UUID.randomUUID(), agreementId));
-        verify(supplyPartitionCoefficientRepository, never()).existsBySharingAgreementId(agreementId);
+        verify(supplyPartitionCoefficientRepository, never()).findAllBySharingAgreementId(agreementId);
     }
 
     @Test
@@ -57,7 +69,7 @@ class PublishSharingAgreementServiceImplTest {
                 .withStatus(SharingAgreementStatus.DRAFT)
                 .build();
         when(getSharingAgreementService.findById(agreementId)).thenReturn(draft);
-        when(supplyPartitionCoefficientRepository.existsBySharingAgreementId(agreementId)).thenReturn(false);
+        when(supplyPartitionCoefficientRepository.findAllBySharingAgreementId(agreementId)).thenReturn(List.of());
 
         assertThrows(SharingAgreementHasNoCoefficientsException.class,
                 () -> service().publish(UUID.randomUUID(), agreementId));
@@ -65,7 +77,27 @@ class PublishSharingAgreementServiceImplTest {
     }
 
     @Test
-    void publish_delegatesToRepository_whenDraftWithCoefficients() {
+    void publish_throwsSumInvalid_whenCoefficientsDoNotSumToOne() {
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement draft = new SharingAgreement.Builder()
+                .withId(agreementId)
+                .withStatus(SharingAgreementStatus.DRAFT)
+                .build();
+        when(getSharingAgreementService.findById(agreementId)).thenReturn(draft);
+        List<SupplyPartitionCoefficient> coefficients = List.of(
+                coefficient(new BigDecimal("0.500000")),
+                coefficient(new BigDecimal("0.400000")));
+        when(supplyPartitionCoefficientRepository.findAllBySharingAgreementId(agreementId)).thenReturn(coefficients);
+
+        SharingAgreementCoefficientSumInvalidException e = assertThrows(SharingAgreementCoefficientSumInvalidException.class,
+                () -> service().publish(UUID.randomUUID(), agreementId));
+
+        assertEquals(0, new BigDecimal("0.900000").compareTo(e.getActualSum()));
+        verify(repository, never()).publish(any(), any());
+    }
+
+    @Test
+    void publish_delegatesToRepository_whenDraftWithCoefficientsSummingToOne() {
         UUID plantId = UUID.randomUUID();
         UUID agreementId = UUID.randomUUID();
         SharingAgreement draft = new SharingAgreement.Builder()
@@ -73,7 +105,11 @@ class PublishSharingAgreementServiceImplTest {
                 .withStatus(SharingAgreementStatus.DRAFT)
                 .build();
         when(getSharingAgreementService.findById(agreementId)).thenReturn(draft);
-        when(supplyPartitionCoefficientRepository.existsBySharingAgreementId(agreementId)).thenReturn(true);
+        List<SupplyPartitionCoefficient> coefficients = List.of(
+                coefficient(new BigDecimal("0.333333")),
+                coefficient(new BigDecimal("0.333333")),
+                coefficient(new BigDecimal("0.333334")));
+        when(supplyPartitionCoefficientRepository.findAllBySharingAgreementId(agreementId)).thenReturn(coefficients);
         SharingAgreement published = new SharingAgreement.Builder()
                 .withId(agreementId)
                 .withStatus(SharingAgreementStatus.PUBLISHED)
