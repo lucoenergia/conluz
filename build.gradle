@@ -5,7 +5,17 @@ plugins {
 }
 
 group = 'org.lucoenergia'
-version = "1.0.133"
+
+// Version is derived from the nearest git tag reachable from HEAD (created by
+// .github/workflows/version-update.yml), not hardcoded here. This lets the
+// version-bump workflow push a tag without ever committing to `main`, so it
+// is unaffected by branch protection rules on `main`.
+def versionOutput = providers.exec {
+    commandLine 'git', 'describe', '--tags', '--abbrev=0'
+    ignoreExitValue = true
+}.standardOutput.asText.getOrElse('').trim()
+
+version = versionOutput ?: '0.0.0-dev'
 
 java {
     toolchain {
