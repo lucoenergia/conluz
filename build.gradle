@@ -15,7 +15,7 @@ def versionOutput = providers.exec {
     ignoreExitValue = true
 }.standardOutput.asText.getOrElse('').trim()
 
-version = versionOutput ?: '0.0.0-dev'
+version = versionOutput ?: '0.0.0'
 
 java {
     toolchain {
