@@ -6,8 +6,8 @@
         </encoder>
     </appender>
 
-    <!-- Development and Testing environment -->
-    <springProfile name="dev,test">
+    <!-- Development and Testing environments -->
+    <springProfile name="dev,test,local">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
         </root>
