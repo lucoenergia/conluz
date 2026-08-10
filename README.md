@@ -150,6 +150,29 @@ If you have your InfluxDB running with a different server, port, user credential
 
     The application will be accessible at https://localhost:8443.
 
+### Local development
+
+For day-to-day local development, conluz-infra provisions a local Postgres (port 5433) and
+InfluxDB (port 8087) with anonymized data. Bring those up first (see conluz-infra's local
+setup), then from this repo run:
+
+```bash
+make run    # ./gradlew bootRun --args='--spring.profiles.active=local'
+make debug  # same, with the JVM debug port open for attaching a debugger
+```
+
+Both targets activate the `local` Spring profile (`src/main/resources/application-local.properties`),
+which points at those services using `luz`/`blank` on both — a fixed, non-secret local dev
+convention, not a credential to protect (see [Already existing InfluxDB
+installation](#already-existing-influxdb-installation) above for the same convention).
+
+> **Note:**
+>
+> The JWT secret in `application-local.properties` is only used if the `CONLUZ_JWT_SECRET_KEY`
+> environment variable is **not** already set in your shell — that variable always takes
+> precedence over the profile's value. If you've previously exported a real secret (e.g. copied
+> from a production `.env`), `unset CONLUZ_JWT_SECRET_KEY` before running locally.
+
 
 ## Usage
 
