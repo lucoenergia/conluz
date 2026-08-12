@@ -2,7 +2,9 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.commons.collections4.map.HashedMap;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -15,11 +17,7 @@ import org.springframework.stereotype.Repository;
 import java.security.Key;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 
 @Repository
@@ -126,8 +124,14 @@ public class JwtAuthRepository implements AuthRepository {
         if (secretKey == null || secretKey.isBlank()) {
             throw new SecretKeyNotFoundException();
         }
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
+        try {
+            byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (DecodingException e) {
+            throw new InvalidSecretKeyException("Secret key is not valid Base64", e);
+        } catch (WeakKeyException e) {
+            throw new WeakSecretKeyException("Secret key is too short/weak", e);
+        }
     }
 
     private Claims getAllClaims(Token token) {

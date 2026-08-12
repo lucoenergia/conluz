@@ -215,7 +215,7 @@ class GetSupplyMonthlyProductionControllerTest extends BaseControllerTest {
     void testWithExpiredToken() throws Exception {
         UUID randomId = UUID.randomUUID();
         final String expiredToken = JwtAuthenticationFilter.AUTHORIZATION_HEADER_PREFIX +
-                "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.jO3pgdDj4mg9TnRzL7f8RUL1ytJS7057jAg6zaCcwn0";
+                "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.xvJF4LjS7oIcMUXjI7WbHkuxTnmuJn-3JVcwWm6qbok";
 
         mockMvc.perform(get(URL + "/" + randomId + "/production/monthly")
                         .queryParam("startDate", START_DATE)

@@ -27,7 +27,7 @@ import java.util.UUID;
 @ExtendWith(MockitoExtension.class)
 class JwtAuthRepositoryTest {
 
-    private final static String SECRET_KEY = "b5f86373ba5d7593f4c6eab57862bf4be76369c1adbe263ae2d50ddae40b8ca2";
+    private final static String SECRET_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
     @InjectMocks
     private JwtAuthRepository repository;
@@ -95,6 +95,28 @@ class JwtAuthRepositoryTest {
 
         Assertions.assertThrows(SecretKeyNotFoundException.class,
                 () -> repository.getUserIdFromToken(Token.of(invalidToken)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"local-dev-only-not-a-secret-DO-NOT-USE-IN-PRODUCTION-0000000000"})
+    void testInvalidSecretKey(String secretKey) {
+        User user = UserMother.randomUser();
+
+        Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(secretKey);
+
+        Assertions.assertThrows(InvalidSecretKeyException.class,
+                () -> repository.getToken(user));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"foo"})
+    void testWeakSecretKey(String secretKey) {
+        User user = UserMother.randomUser();
+
+        Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(secretKey);
+
+        Assertions.assertThrows(WeakSecretKeyException.class,
+                () -> repository.getToken(user));
     }
     
     

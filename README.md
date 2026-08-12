@@ -31,7 +31,7 @@ The application focuses on seamless interaction with the underlying infrastructu
    You have to provide the secret key as an environment variable called `CONLUZ_JWT_SECRET_KEY`
 
    ```
-   export CONLUZ_JWT_SECRET_KEY="b5f86373ba5d7593f4c6eab57862bf4be76369c1adbe263ae2d50ddae40b8ca2"
+   export CONLUZ_JWT_SECRET_KEY="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
    ```
 
    The secret key must be compatible with [HMAC-SHA algorithms](https://datatracker.ietf.org/doc/html/rfc7518#section-3.2) and must have a length of 256 bits (32 bytes) or more.
