@@ -31,7 +31,7 @@ cp .env.example .env                                    # then edit .env with yo
 docker compose -f docker-compose.example.yml up -d      # start postgres + influxdb + conluz
 ```
 
-The app is then reachable at https://localhost:8443 (see the project `README.md` and `CLAUDE.md`
+The app is then reachable at https://localhost:8443 (see the project `README.md` and `AGENTS.md`
 for build and usage details).
 
 > Validate the compose file without starting anything with:
