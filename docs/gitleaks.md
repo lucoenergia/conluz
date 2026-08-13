@@ -57,4 +57,4 @@ by itself undo the exposure).
 Production topology and operational tooling — real hostnames, filesystem paths, community
 names, CUPS codes, backup schedules, credentials — live in the **private `conluz-infra`
 repository**, never here. `deploy/` in this repo is a **sanitized reference example** only.
-See the "Deployment & infrastructure boundary" section in `CLAUDE.md`.
+See the "Deployment & infrastructure boundary" section in `AGENTS.md`.
