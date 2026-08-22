@@ -59,6 +59,16 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
                         .collect(Collectors.toList()));
     }
 
+    @Override
+    public List<SupplyPartitionCoefficient> replaceAllBySupplyId(UUID plantId, UUID sharingAgreementId,
+                                                                 List<ResolvedCoefficientEntry> entries) {
+        return replaceAllInternal(plantId, sharingAgreementId,
+                () -> assertNoDuplicateSupplyId(sharingAgreementId, entries),
+                communityId -> entries.stream()
+                        .map(entry -> toPendingRowFromSupplyId(entry, plantId, sharingAgreementId, communityId))
+                        .collect(Collectors.toList()));
+    }
+
     /**
      * Shared replace sequence: verifies {@code sharingAgreementId} belongs to {@code plantId}, asserts
      * DRAFT, runs the caller's duplicate check, resolves the plant's community, builds the pending
@@ -84,16 +94,6 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
         List<SupplyPartitionCoefficient> pendingRows = rowBuilder.apply(communityId);
 
         return supplyPartitionCoefficientRepository.replaceAllForSharingAgreement(sharingAgreementId, pendingRows);
-    }
-
-    @Override
-    public List<SupplyPartitionCoefficient> replaceAllBySupplyId(UUID plantId, UUID sharingAgreementId,
-                                                                   List<ResolvedCoefficientEntry> entries) {
-        return replaceAllInternal(plantId, sharingAgreementId,
-                () -> assertNoDuplicateSupplyId(sharingAgreementId, entries),
-                communityId -> entries.stream()
-                        .map(entry -> toPendingRowFromSupplyId(entry, plantId, sharingAgreementId, communityId))
-                        .collect(Collectors.toList()));
     }
 
     private void assertNoDuplicateCups(UUID sharingAgreementId, List<PendingCoefficientEntry> entries) {
