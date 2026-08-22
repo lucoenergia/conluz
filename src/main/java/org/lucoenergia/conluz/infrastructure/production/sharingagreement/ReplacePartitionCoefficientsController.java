@@ -87,7 +87,7 @@ public class ReplacePartitionCoefficientsController {
             @PathVariable UUID plantId,
             @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody ReplacePartitionCoefficientsBody body) {
-        List<SupplyPartitionCoefficient> saved = service.replaceAll(plantId, sharingAgreementId, body.mapToEntries());
+        List<SupplyPartitionCoefficient> saved = service.replaceAllBySupplyId(plantId, sharingAgreementId, body.mapToEntries());
         return new ReplacePartitionCoefficientsResponse(saved);
     }
 }
