@@ -212,10 +212,10 @@ class RevertSharingAgreementToDraftControllerTest extends BaseControllerTest {
         String replaceBody = """
                 {
                   "coefficients": [
-                    { "cups": "%s", "coefficient": 1 }
+                    { "supplyId": "%s", "coefficient": 1 }
                   ]
                 }
-                """.formatted(supplyA.getCode());
+                """.formatted(supplyA.getId());
         mockMvc.perform(put(coefficientsUrl(plantA.getId(), publishedAgreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)

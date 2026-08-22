@@ -9,6 +9,8 @@ import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntity;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
@@ -22,14 +24,18 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Transactional
 class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
@@ -47,12 +53,17 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
     private PlantRepository plantRepository;
     @Autowired
     private SharingAgreementRepository sharingAgreementRepository;
+    @Autowired
+    private SupplyPartitionCoefficientJpaRepository supplyPartitionCoefficientJpaRepository;
 
     private CommunityEntity communityA;
     private CommunityEntity communityB;
     private PlantEntity plantA;
     private PlantEntity otherPlantInCommunityA;
     private SharingAgreementEntity draftAgreement;
+    private SupplyEntity supply1;
+    private SupplyEntity supply2;
+    private SupplyEntity supplyInCommunityB;
 
     private CommunityEntity persistCommunity() {
         return communityJpaRepository.save(CommunityMother.randomEntity().build());
@@ -83,12 +94,19 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
         return sharingAgreementRepository.save(agreement);
     }
 
+    private List<SupplyPartitionCoefficientEntity> rowsFor(UUID sharingAgreementId) {
+        return supplyPartitionCoefficientJpaRepository.findAll().stream()
+                .filter(e -> e.getSharingAgreement().getId().equals(sharingAgreementId))
+                .toList();
+    }
+
     private void setUpBaseFixture() {
         communityA = persistCommunity();
         communityB = persistCommunity();
         UserEntity user = persistUser();
-        SupplyEntity supply1 = persistSupply(user, communityA, CUPS_1);
-        persistSupply(user, communityA, CUPS_2);
+        supply1 = persistSupply(user, communityA, CUPS_1);
+        supply2 = persistSupply(user, communityA, CUPS_2);
+        supplyInCommunityB = persistSupply(user, communityB, "ES0031300325733003FH0F");
         plantA = persistPlant(supply1);
         otherPlantInCommunityA = persistPlant(persistSupply(user, communityA, "ES0031300325733009FH0F"));
         draftAgreement = persistAgreement(plantA, SharingAgreementStatus.DRAFT);
@@ -101,10 +119,10 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
     private String bodyWithSumOne() {
         return """
                 {"coefficients": [
-                    {"cups": "%s", "coefficient": 0.500000},
-                    {"cups": "%s", "coefficient": 0.500000}
+                    {"supplyId": "%s", "coefficient": 0.500000},
+                    {"supplyId": "%s", "coefficient": 0.500000}
                 ]}
-                """.formatted(CUPS_1, CUPS_2);
+                """.formatted(supply1.getId(), supply2.getId());
     }
 
     @Test
@@ -172,22 +190,26 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void returnsBadRequestForDuplicateCups() throws Exception {
+    void returnsBadRequestForDuplicateSupplyId() throws Exception {
         setUpBaseFixture();
         String authHeader = loginAsCommunityAdmin(communityA.getId());
         String body = """
                 {"coefficients": [
-                    {"cups": "%s", "coefficient": 0.500000},
-                    {"cups": "%s", "coefficient": 0.500000}
+                    {"supplyId": "%s", "coefficient": 0.500000},
+                    {"supplyId": "%s", "coefficient": 0.500000}
                 ]}
-                """.formatted(CUPS_1, CUPS_1);
+                """.formatted(supply1.getId(), supply1.getId());
 
         mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andDo(print())
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_DUPLICATE_SUPPLY"))
+                .andExpect(jsonPath("$.errors[0].params.supplyId").value(supply1.getId().toString()));
+
+        assertEquals(0, rowsFor(draftAgreement.getId()).size());
     }
 
     @Test
@@ -204,6 +226,62 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void returnsNotFoundForUnknownSupplyIdAndLeavesPriorSetUnchanged() throws Exception {
+        setUpBaseFixture();
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithSumOne()))
+                .andExpect(status().isOk());
+
+        String body = """
+                {"coefficients": [
+                    {"supplyId": "%s", "coefficient": 0.500000},
+                    {"supplyId": "%s", "coefficient": 0.500000}
+                ]}
+                """.formatted(supply1.getId(), UUID.randomUUID());
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+
+        assertEquals(2, rowsFor(draftAgreement.getId()).size());
+    }
+
+    @Test
+    void returnsNotFoundForCrossCommunitySupplyIdAndLeavesPriorSetUnchanged() throws Exception {
+        setUpBaseFixture();
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithSumOne()))
+                .andExpect(status().isOk());
+
+        String body = """
+                {"coefficients": [
+                    {"supplyId": "%s", "coefficient": 0.500000},
+                    {"supplyId": "%s", "coefficient": 0.500000}
+                ]}
+                """.formatted(supply1.getId(), supplyInCommunityB.getId());
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+
+        assertEquals(2, rowsFor(draftAgreement.getId()).size());
+    }
+
+    @Test
     void replacesCoefficientsWithSumEqualToOneReturnsNoWarning() throws Exception {
         setUpBaseFixture();
         String authHeader = loginAsCommunityAdmin(communityA.getId());
@@ -214,7 +292,7 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
                         .content(bodyWithSumOne()))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.coefficients", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.coefficients", hasSize(2)))
                 .andExpect(jsonPath("$.coefficients[0].validFrom").value(nullValue()))
                 .andExpect(jsonPath("$.coefficientSumWarning").value(nullValue()));
     }
@@ -225,10 +303,10 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
         String body = """
                 {"coefficients": [
-                    {"cups": "%s", "coefficient": 0.300000},
-                    {"cups": "%s", "coefficient": 0.300000}
+                    {"supplyId": "%s", "coefficient": 0.300000},
+                    {"supplyId": "%s", "coefficient": 0.300000}
                 ]}
-                """.formatted(CUPS_1, CUPS_2);
+                """.formatted(supply1.getId(), supply2.getId());
 
         mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -238,5 +316,31 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.coefficientSumWarning")
                         .value("Coefficient set sum is 0.6, expected 1"));
+    }
+
+    @Test
+    void replacesCoefficientsIncludingExactlyZeroIsAcceptedAndStored() throws Exception {
+        setUpBaseFixture();
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        String body = """
+                {"coefficients": [
+                    {"supplyId": "%s", "coefficient": 1},
+                    {"supplyId": "%s", "coefficient": 0}
+                ]}
+                """.formatted(supply1.getId(), supply2.getId());
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients", hasSize(2)));
+
+        List<SupplyPartitionCoefficientEntity> rows = rowsFor(draftAgreement.getId());
+        assertEquals(2, rows.size());
+        assertEquals(1, rows.stream()
+                .filter(row -> BigDecimal.ZERO.compareTo(row.getCoefficient()) == 0)
+                .count());
     }
 }
