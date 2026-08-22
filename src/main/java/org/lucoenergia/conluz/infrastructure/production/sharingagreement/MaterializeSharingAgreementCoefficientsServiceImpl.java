@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Transactional
@@ -48,21 +49,36 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
     @Override
     public List<SupplyPartitionCoefficient> replaceAll(UUID plantId, UUID sharingAgreementId,
                                                          List<PendingCoefficientEntry> entries) {
+        return replaceAllInternal(plantId, sharingAgreementId,
+                () -> assertNoDuplicateCups(sharingAgreementId, entries),
+                communityId -> entries.stream()
+                        .map(entry -> toPendingRow(entry, plantId, sharingAgreementId, communityId))
+                        .collect(Collectors.toList()));
+    }
+
+    /**
+     * Shared replace sequence: verifies {@code sharingAgreementId} belongs to {@code plantId}, asserts
+     * DRAFT, runs the caller's duplicate check, resolves the plant's community, builds the pending
+     * rows via the caller's resolver, then atomically replaces the agreement's coefficient set. Used
+     * by both the CUPS-keyed {@link #replaceAll} (distributor-file import + legacy manual path) and
+     * the supplyId-keyed replace method.
+     */
+    private List<SupplyPartitionCoefficient> replaceAllInternal(UUID plantId, UUID sharingAgreementId,
+                                                                  Runnable duplicateCheck,
+                                                                  Function<UUID, List<SupplyPartitionCoefficient>> rowBuilder) {
         SharingAgreement agreement = getSharingAgreementService.findById(sharingAgreementId);
         if (!agreement.getPlantId().equals(plantId)) {
             throw new SharingAgreementPlantMismatchException(sharingAgreementId, plantId);
         }
         agreement.assertDraft();
 
-        assertNoDuplicateCups(sharingAgreementId, entries);
+        duplicateCheck.run();
 
         Plant plant = getPlantRepository.findById(PlantId.of(plantId))
                 .orElseThrow(() -> new PlantNotFoundException(PlantId.of(plantId)));
         UUID communityId = plant.getSupply().getCommunity().getId();
 
-        List<SupplyPartitionCoefficient> pendingRows = entries.stream()
-                .map(entry -> toPendingRow(entry, plantId, sharingAgreementId, communityId))
-                .collect(Collectors.toList());
+        List<SupplyPartitionCoefficient> pendingRows = rowBuilder.apply(communityId);
 
         return supplyPartitionCoefficientRepository.replaceAllForSharingAgreement(sharingAgreementId, pendingRows);
     }
