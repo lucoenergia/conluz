@@ -10,12 +10,15 @@ import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.DuplicatePartitionCoefficientEntryException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.DuplicatePartitionCoefficientSupplyException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.MaterializeSharingAgreementCoefficientsService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.PendingCoefficientEntry;
+import org.lucoenergia.conluz.domain.production.sharingagreement.ResolvedCoefficientEntry;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,6 +86,16 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
         return supplyPartitionCoefficientRepository.replaceAllForSharingAgreement(sharingAgreementId, pendingRows);
     }
 
+    @Override
+    public List<SupplyPartitionCoefficient> replaceAllBySupplyId(UUID plantId, UUID sharingAgreementId,
+                                                                   List<ResolvedCoefficientEntry> entries) {
+        return replaceAllInternal(plantId, sharingAgreementId,
+                () -> assertNoDuplicateSupplyId(sharingAgreementId, entries),
+                communityId -> entries.stream()
+                        .map(entry -> toPendingRowFromSupplyId(entry, plantId, sharingAgreementId, communityId))
+                        .collect(Collectors.toList()));
+    }
+
     private void assertNoDuplicateCups(UUID sharingAgreementId, List<PendingCoefficientEntry> entries) {
         Set<String> seen = new HashSet<>();
         for (PendingCoefficientEntry entry : entries) {
@@ -92,11 +105,38 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
         }
     }
 
+    private void assertNoDuplicateSupplyId(UUID sharingAgreementId, List<ResolvedCoefficientEntry> entries) {
+        Set<UUID> seen = new HashSet<>();
+        for (ResolvedCoefficientEntry entry : entries) {
+            if (!seen.add(entry.getSupplyId())) {
+                throw new DuplicatePartitionCoefficientSupplyException(sharingAgreementId, entry.getSupplyId());
+            }
+        }
+    }
+
     private SupplyPartitionCoefficient toPendingRow(PendingCoefficientEntry entry, UUID plantId,
                                                       UUID sharingAgreementId, UUID communityId) {
         Supply supply = getSupplyRepository.findByCode(SupplyCode.of(entry.getCups()))
                 .filter(candidate -> candidate.getCommunity().getId().equals(communityId))
                 .orElseThrow(() -> new SupplyNotFoundException(SupplyCode.of(entry.getCups())));
+
+        return new SupplyPartitionCoefficient.Builder()
+                .withId(UUID.randomUUID())
+                .withSupplyId(supply.getId())
+                .withPlantId(plantId)
+                .withSharingAgreementId(sharingAgreementId)
+                .withCoefficient(entry.getCoefficient())
+                .withValidFrom(null)
+                .withValidTo(null)
+                .withCreatedAt(Instant.now())
+                .build();
+    }
+
+    private SupplyPartitionCoefficient toPendingRowFromSupplyId(ResolvedCoefficientEntry entry, UUID plantId,
+                                                                  UUID sharingAgreementId, UUID communityId) {
+        Supply supply = getSupplyRepository.findById(SupplyId.of(entry.getSupplyId()))
+                .filter(candidate -> candidate.getCommunity().getId().equals(communityId))
+                .orElseThrow(() -> new SupplyNotFoundException(SupplyId.of(entry.getSupplyId())));
 
         return new SupplyPartitionCoefficient.Builder()
                 .withId(UUID.randomUUID())
