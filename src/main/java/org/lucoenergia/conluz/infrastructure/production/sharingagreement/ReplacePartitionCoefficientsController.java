@@ -54,10 +54,12 @@ public class ReplacePartitionCoefficientsController {
                     **Required: Community Admin**
 
                     Returns 404 if the plant or the agreement does not exist, does not belong to this
-                    plant, or the caller is not a member of its community, to avoid leaking existence.
+                    plant, the caller is not a member of its community, or any coefficient's supplyId
+                    does not resolve to a supply of the plant's community -- an unknown supplyId and a
+                    supplyId belonging to another community are indistinguishable in the response, to
+                    avoid leaking existence.
                     Returns 409 if the agreement is not in DRAFT status.
-                    Returns 400 if the same CUPS appears more than once, or any CUPS is not a known
-                    supply of the plant's community.
+                    Returns 400 if the same supplyId appears more than once in the request.
 
                     Authentication is required using a Bearer token.
                     """,
@@ -87,7 +89,7 @@ public class ReplacePartitionCoefficientsController {
             @PathVariable UUID plantId,
             @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody ReplacePartitionCoefficientsBody body) {
-        List<SupplyPartitionCoefficient> saved = service.replaceAll(plantId, sharingAgreementId, body.mapToEntries());
+        List<SupplyPartitionCoefficient> saved = service.replaceAllBySupplyId(plantId, sharingAgreementId, body.mapToEntries());
         return new ReplacePartitionCoefficientsResponse(saved);
     }
 }

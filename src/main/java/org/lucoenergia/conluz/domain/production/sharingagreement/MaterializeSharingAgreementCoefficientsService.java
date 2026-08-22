@@ -32,4 +32,21 @@ public interface MaterializeSharingAgreementCoefficientsService {
      */
     List<SupplyPartitionCoefficient> replaceAll(UUID plantId, UUID sharingAgreementId,
                                                  List<PendingCoefficientEntry> entries);
+
+    /**
+     * The supplyId-keyed sibling of {@link #replaceAll}: same atomic full-replace contract, but each
+     * entry already identifies its supply by id rather than by CUPS, so resolution is scoped to the
+     * plant's community by id instead of by code.
+     *
+     * @throws SharingAgreementNotFoundException if sharingAgreementId does not exist
+     * @throws SharingAgreementPlantMismatchException
+     *         if sharingAgreementId does not belong to plantId
+     * @throws SharingAgreementNotDraftException if the agreement is not DRAFT
+     * @throws org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException
+     *         if any entry's supplyId does not resolve to a supply of the plant's community
+     * @throws DuplicatePartitionCoefficientSupplyException if the same supplyId appears more than
+     *         once in {@code entries}
+     */
+    List<SupplyPartitionCoefficient> replaceAllBySupplyId(UUID plantId, UUID sharingAgreementId,
+                                                           List<ResolvedCoefficientEntry> entries);
 }

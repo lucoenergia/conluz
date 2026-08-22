@@ -116,6 +116,18 @@ public class SharingAgreementExceptionHandler {
         return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_DUPLICATE_CUPS, null, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(DuplicatePartitionCoefficientSupplyException.class)
+    public ResponseEntity<RestError> handleException(DuplicatePartitionCoefficientSupplyException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.duplicate.supply",
+                new Object[]{e.getSharingAgreementId(), e.getSupplyId()},
+                LocaleContextHolder.getLocale()
+        );
+        Map<String, String> params = Map.of("supplyId", e.getSupplyId().toString());
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_DUPLICATE_SUPPLY, params, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(SharingAgreementNotPublishedException.class)
     public ResponseEntity<RestError> handleException(SharingAgreementNotPublishedException e) {
 

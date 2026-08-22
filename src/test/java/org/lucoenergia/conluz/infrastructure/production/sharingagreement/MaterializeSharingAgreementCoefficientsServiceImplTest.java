@@ -9,8 +9,10 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSuppl
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.sharingagreement.DuplicatePartitionCoefficientEntryException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.DuplicatePartitionCoefficientSupplyException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.MaterializeSharingAgreementCoefficientsService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.PendingCoefficientEntry;
+import org.lucoenergia.conluz.domain.production.sharingagreement.ResolvedCoefficientEntry;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotDraftException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
@@ -273,5 +275,90 @@ class MaterializeSharingAgreementCoefficientsServiceImplTest extends BaseIntegra
         assertEquals(1, rowsFor(draftA.getId()).size());
         assertEquals(1, rowsFor(draftB.getId()).size());
         assertFalse(rowsFor(draftA.getId()).isEmpty() && rowsFor(draftB.getId()).isEmpty());
+    }
+
+    @Test
+    void unknownSupplyIdThrowsAndLeavesPriorSetIntact() {
+        CommunityEntity community = persistCommunity();
+        UserEntity user = persistUser();
+        SupplyEntity supply = persistSupply(user, community, "ES0031300MATTEST120L");
+        PlantEntity plant = persistPlant(supply);
+        SharingAgreementEntity draft = persistAgreement(plant, SharingAgreementStatus.DRAFT);
+
+        materializeService.replaceAllBySupplyId(plant.getId(), draft.getId(),
+                List.of(new ResolvedCoefficientEntry(supply.getId(), BigDecimal.ONE)));
+
+        List<ResolvedCoefficientEntry> entries = List.of(
+                new ResolvedCoefficientEntry(supply.getId(), BigDecimal.valueOf(0.5)),
+                new ResolvedCoefficientEntry(UUID.randomUUID(), BigDecimal.valueOf(0.5)));
+
+        assertThrows(SupplyNotFoundException.class,
+                () -> materializeService.replaceAllBySupplyId(plant.getId(), draft.getId(), entries));
+
+        List<SupplyPartitionCoefficientEntity> rows = rowsFor(draft.getId());
+        assertEquals(1, rows.size());
+        assertEquals(supply.getId(), rows.get(0).getSupply().getId());
+        assertEquals(0, BigDecimal.ONE.compareTo(rows.get(0).getCoefficient()));
+    }
+
+    @Test
+    void crossCommunitySupplyIdIsTreatedAsUnknown() {
+        CommunityEntity communityA = persistCommunity();
+        CommunityEntity communityB = persistCommunity();
+        UserEntity user = persistUser();
+        SupplyEntity supplyA = persistSupply(user, communityA, "ES0031300MATTEST130M");
+        SupplyEntity supplyB = persistSupply(user, communityB, "ES0031300MATTEST140N");
+        PlantEntity plantA = persistPlant(supplyA);
+        SharingAgreementEntity draft = persistAgreement(plantA, SharingAgreementStatus.DRAFT);
+
+        List<ResolvedCoefficientEntry> entries = List.of(
+                new ResolvedCoefficientEntry(supplyB.getId(), BigDecimal.ONE));
+
+        assertThrows(SupplyNotFoundException.class,
+                () -> materializeService.replaceAllBySupplyId(plantA.getId(), draft.getId(), entries));
+
+        assertTrue(rowsFor(draft.getId()).isEmpty());
+    }
+
+    @Test
+    void duplicateSupplyIdThrowsAndLeavesPriorSetIntact() {
+        CommunityEntity community = persistCommunity();
+        UserEntity user = persistUser();
+        SupplyEntity supply = persistSupply(user, community, "ES0031300MATTEST150O");
+        PlantEntity plant = persistPlant(supply);
+        SharingAgreementEntity draft = persistAgreement(plant, SharingAgreementStatus.DRAFT);
+
+        materializeService.replaceAllBySupplyId(plant.getId(), draft.getId(),
+                List.of(new ResolvedCoefficientEntry(supply.getId(), BigDecimal.ONE)));
+
+        List<ResolvedCoefficientEntry> entries = List.of(
+                new ResolvedCoefficientEntry(supply.getId(), BigDecimal.valueOf(0.5)),
+                new ResolvedCoefficientEntry(supply.getId(), BigDecimal.valueOf(0.5)));
+
+        assertThrows(DuplicatePartitionCoefficientSupplyException.class,
+                () -> materializeService.replaceAllBySupplyId(plant.getId(), draft.getId(), entries));
+
+        List<SupplyPartitionCoefficientEntity> rows = rowsFor(draft.getId());
+        assertEquals(1, rows.size());
+        assertEquals(0, BigDecimal.ONE.compareTo(rows.get(0).getCoefficient()));
+    }
+
+    @Test
+    void materializedRowsBySupplyIdArePendingAndExcludedFromResolution() {
+        CommunityEntity community = persistCommunity();
+        UserEntity user = persistUser();
+        SupplyEntity supply = persistSupply(user, community, "ES0031300MATTEST160P");
+        PlantEntity plant = persistPlant(supply);
+        SharingAgreementEntity draft = persistAgreement(plant, SharingAgreementStatus.DRAFT);
+
+        materializeService.replaceAllBySupplyId(plant.getId(), draft.getId(), List.of(
+                new ResolvedCoefficientEntry(supply.getId(), BigDecimal.valueOf(0.6))));
+
+        List<SupplyPartitionCoefficientEntity> rows = rowsFor(draft.getId());
+        assertEquals(1, rows.size());
+        assertNull(rows.get(0).getValidFrom());
+
+        BigDecimal resolved = coefficientResolver.resolveCoefficient(plant.getId(), supply.getId(), Instant.now());
+        assertEquals(0, BigDecimal.ZERO.compareTo(resolved));
     }
 }
