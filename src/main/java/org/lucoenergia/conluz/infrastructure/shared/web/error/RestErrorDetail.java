@@ -11,7 +11,8 @@ public class RestErrorDetail {
     private final String message;
 
     @Schema(description = "Null for errors not yet migrated to the typed contract; clients " +
-            "must fall back to `message` for those.")
+            "must fall back to `message` for those.",
+            types = {"string", "null"})
     private final RestErrorCode code;
 
     /**
@@ -22,7 +23,8 @@ public class RestErrorDetail {
      * BigDecimal keeps its scale, e.g. "0.998765"); localization is a conluz-web concern.
      */
     @Schema(description = "Structured data for this error, keyed in camelCase for use as i18n " +
-            "interpolation variables. Null when the error carries no such data.")
+            "interpolation variables. Null when the error carries no such data.",
+            types = {"object", "null"})
     private final Map<String, String> params;
 
     public RestErrorDetail(String message, RestErrorCode code, Map<String, String> params) {
