@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient.P
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Schema(requiredProperties = {"coefficients"})
 public class CoefficientActivationResponse {
 
     @Schema(description = "Every coefficient actually touched by this call -- the requested targets " +

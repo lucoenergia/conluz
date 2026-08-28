@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.UUID;
 
+@Schema(requiredProperties = {"id", "code", "name"})
 public class SharingAgreementCoefficientSupplyResponse {
 
     @Schema(description = "Internal unique identifier of the supply", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")

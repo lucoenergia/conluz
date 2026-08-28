@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+@Schema(requiredProperties = {"supplyId", "timestamp", "coefficient"})
 public class CoefficientAtTimestampResponse {
 
     @Schema(description = "Supply UUID", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
