@@ -9,27 +9,29 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
 import java.util.UUID;
 
+@Schema(requiredProperties = {"id", "code", "user", "name", "address", "addressRef", "enabled",
+        "contract", "distributor", "shelly"})
 public class SupplyResponse {
 
     @Schema(description = "Internal unique identifier of the supply", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
     private final UUID id;
     @Schema(description = "Code that identifies the supply", example = "ES0031300119158001DL0Y")
     private final String code;
-    @Schema(description = "Owner of the supply")
+    @Schema(description = "Owner of the supply", types = {"object", "null"})
     private final UserResponse user;
-    @Schema(description = "Name of the supply", example = "My house")
+    @Schema(description = "Name of the supply", example = "My house", types = {"string", "null"})
     private final String name;
     @Schema(description = "Address of the supply", example = "Fake Street 123")
     private final String address;
-    @Schema(description = "Reference ID of the address", example = "4ASDF654ASDF89ASD")
+    @Schema(description = "Reference ID of the address", example = "4ASDF654ASDF89ASD", types = {"string", "null"})
     private final String addressRef;
     @Schema(description = "Whether the supply is enabled or disabled", example = "true")
     private final Boolean enabled;
-    @Schema(description = "Contract information of the supply")
+    @Schema(description = "Contract information of the supply", types = {"object", "null"})
     private final SupplyContractResponse contract;
-    @Schema(description = "Distributor information of the supply")
+    @Schema(description = "Distributor information of the supply", types = {"object", "null"})
     private final SupplyDistributorResponse distributor;
-    @Schema(description = "Shelly device information of the supply")
+    @Schema(description = "Shelly device information of the supply", types = {"object", "null"})
     private final SupplyShellyResponse shelly;
 
     public SupplyResponse(Supply supply) {

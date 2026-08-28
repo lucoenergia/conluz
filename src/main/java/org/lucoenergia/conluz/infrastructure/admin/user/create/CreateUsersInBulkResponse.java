@@ -1,10 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Schema(requiredProperties = {"created", "errors"})
 public class CreateUsersInBulkResponse {
 
     private final List<UserPersonalId> created = new ArrayList<>();
@@ -25,7 +27,9 @@ public class CreateUsersInBulkResponse {
         return new ArrayList<>(errors);
     }
 
+    @Schema(requiredProperties = {"personalId", "errorMessage"})
     public static class CreateUsersInBulkError {
+        @Schema(types = {"string", "null"})
         private final UserPersonalId personalId;
         private final String errorMessage;
 
