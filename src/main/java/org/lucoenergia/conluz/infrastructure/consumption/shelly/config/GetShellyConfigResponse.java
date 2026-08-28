@@ -1,7 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.consumption.shelly.config;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.consumption.shelly.config.ShellyConfig;
 
+@Schema(requiredProperties = {"enabled"})
 public class GetShellyConfigResponse {
 
     private Boolean enabled;
