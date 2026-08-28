@@ -12,7 +12,7 @@ import java.util.UUID;
 @Schema(requiredProperties = {"name", "installedPowerKw"})
 public class CreateSharingAgreementBody {
 
-    @Schema(description = "Human-readable label for the agreement", example = "2024 winter distribution")
+    @Schema(description = "Human-readable label for the agreement", example = "Reparto 2025-2026")
     @NotBlank
     private String name;
     @Schema(description = "Free-text notes about the agreement", example = "Adjusted after member B joined")
