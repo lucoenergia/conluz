@@ -16,10 +16,13 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.delete.DeleteSharingAgreementRepositoryDatabase;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileEntity;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -42,6 +45,8 @@ class DeleteSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
     private UserRepository userRepository;
     @Autowired
     private CommunityJpaRepository communityJpaRepository;
+    @Autowired
+    private SharingAgreementFileRepository sharingAgreementFileRepository;
 
     private PlantEntity persistPlant() {
         UserEntity user = UserMother.randomUserEntity();
@@ -70,6 +75,30 @@ class DeleteSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         repository.delete(plant.getId(), entity.getId());
 
         assertTrue(sharingAgreementRepository.findById(entity.getId()).isEmpty());
+    }
+
+    @Test
+    void delete_removesTheAgreement_andItsFiles() {
+        PlantEntity plant = persistPlant();
+        SharingAgreementEntity entity = persistAgreement(plant);
+
+        UserEntity uploader = UserMother.randomUserEntity();
+        userRepository.save(uploader);
+
+        SharingAgreementFileEntity file = new SharingAgreementFileEntity();
+        file.setId(UUID.randomUUID());
+        file.setSharingAgreement(entity);
+        file.setFilename("distributor.csv");
+        file.setContent("distributor,file,content".getBytes(StandardCharsets.UTF_8));
+        file.setContentHash("hash");
+        file.setUploadedAt(Instant.now());
+        file.setUploadedBy(uploader.getId());
+        sharingAgreementFileRepository.save(file);
+
+        repository.delete(plant.getId(), entity.getId());
+
+        assertTrue(sharingAgreementRepository.findById(entity.getId()).isEmpty());
+        assertTrue(sharingAgreementFileRepository.findById(file.getId()).isEmpty());
     }
 
     @Test
