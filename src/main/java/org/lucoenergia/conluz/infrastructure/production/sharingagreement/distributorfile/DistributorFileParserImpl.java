@@ -24,7 +24,10 @@ import java.util.stream.Collectors;
  * Filename {@code {code}_{YYYY}.txt} where {@code code} is the plant's regulatory_code (CAU).
  *
  * <p>All 8 rules (plus the non-numbered malformed-line case) are checked in a single pass; a
- * failure in one rule never prevents the others from being checked and reported.
+ * failure in one rule never prevents the others from being checked and reported -- except rule 1
+ * (filename shape): a mismatch there (e.g. a wrong file extension) means the file isn't even the
+ * expected kind of file, so parsing stops immediately with just that one error instead of also
+ * running content checks against bytes that were never meant to look like {@code CUPS;value} lines.
  */
 @Component
 public class DistributorFileParserImpl implements DistributorFileParser {
@@ -36,7 +39,9 @@ public class DistributorFileParserImpl implements DistributorFileParser {
                                              Set<String> knownCups) {
         List<DistributorFileError> errors = new ArrayList<>();
 
-        checkFilename(filename, plantRegulatoryCode, errors);
+        if (!checkFilename(filename, plantRegulatoryCode, errors)) {
+            return new DistributorFileParseResult(List.of(), errors);
+        }
 
         List<DistributorFileEntry> entries = new ArrayList<>();
         Map<String, List<Integer>> lineNumbersByCups = new LinkedHashMap<>();
@@ -86,12 +91,17 @@ public class DistributorFileParserImpl implements DistributorFileParser {
         return new DistributorFileParseResult(entries, errors);
     }
 
-    private void checkFilename(String filename, String plantRegulatoryCode, List<DistributorFileError> errors) {
+    /**
+     * Checks rule 1 (filename shape) and, only if it passes, rule 2 (regulatory code). Returns
+     * {@code false} when rule 1 fails, telling the caller to stop parsing altogether -- a
+     * malformed filename means the content checks below have nothing meaningful to validate.
+     */
+    private boolean checkFilename(String filename, String plantRegulatoryCode, List<DistributorFileError> errors) {
         Matcher matcher = DistributorFileFormat.FILENAME_PATTERN.matcher(filename);
         if (!matcher.matches()) {
             errors.add(new DistributorFileError(DistributorFileErrorCode.FILENAME_SHAPE_INVALID, null,
                     Map.of("filename", filename)));
-            return;
+            return false;
         }
         String code = matcher.group("code");
         if (plantRegulatoryCode == null) {
@@ -101,6 +111,7 @@ public class DistributorFileParserImpl implements DistributorFileParser {
             errors.add(new DistributorFileError(DistributorFileErrorCode.FILENAME_REGULATORY_CODE_MISMATCH, null,
                     Map.of("expected", plantRegulatoryCode, "actual", code)));
         }
+        return true;
     }
 
     private BigDecimal checkValue(String rawValue, int lineNumber, String rawCups, List<DistributorFileError> errors) {

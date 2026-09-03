@@ -186,6 +186,24 @@ class UploadSharingAgreementFileControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void returnsSingleErrorForWrongFileExtension() throws Exception {
+        setUpBaseFixture();
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        MockMultipartFile wrongExtension = new MockMultipartFile("file", "report.pdf", "application/pdf",
+                "%PDF-1.4 fake content".getBytes(StandardCharsets.UTF_8));
+
+        MvcResult result = mockMvc.perform(multipart(url(plantA.getId(), draftAgreement.getId())).file(wrongExtension)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        JsonNode errors = objectMapper.readTree(result.getResponse().getContentAsString()).get("errors");
+        assertEquals(1, errors.size(), errors.toString());
+        assertEquals("DISTRIBUTOR_FILE_FILENAME_SHAPE_INVALID", errors.get(0).get("code").asText());
+    }
+
+    @Test
     void returnsAllLineLevelViolationsInASingleResponse() throws Exception {
         setUpBaseFixture();
         String authHeader = loginAsCommunityAdmin(communityA.getId());

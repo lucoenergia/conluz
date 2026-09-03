@@ -49,7 +49,7 @@ class DistributorFileParserImplTest {
     }
 
     @Test
-    void rule1FailureSkipsRule2ButStillRunsLineChecks() throws IOException {
+    void rule1FailureShortCircuitsAllOtherChecks() throws IOException {
         byte[] content = loadFixture("rule1_filename_shape_invalid.txt");
         String badFilename = "badfilename.txt";
 
@@ -59,7 +59,7 @@ class DistributorFileParserImplTest {
         DistributorFileError error = result.getErrors().get(0);
         assertEquals(DistributorFileErrorCode.FILENAME_SHAPE_INVALID, error.getCode());
         assertEquals(badFilename, error.getParams().get("filename"));
-        assertEquals(3, result.getEntries().size());
+        assertEquals(0, result.getEntries().size());
     }
 
     @Test
