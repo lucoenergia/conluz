@@ -57,4 +57,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/make_supply_partition_coefficient_valid_from_nullable.xml" relativeToChangelogFile="true" />
     <include file="changelogs/add_supply_partition_coefficient_valid_from_zone_remark.xml" relativeToChangelogFile="true" />
     <include file="changelogs/drop_supplies_partition_coefficient.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_on_delete_cascade_to_sharing_agreement_children_fks.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

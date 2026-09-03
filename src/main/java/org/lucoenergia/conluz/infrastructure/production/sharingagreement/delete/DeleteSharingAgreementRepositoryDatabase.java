@@ -4,7 +4,6 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.delete.DeleteSh
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,12 +14,9 @@ import java.util.UUID;
 public class DeleteSharingAgreementRepositoryDatabase implements DeleteSharingAgreementRepository {
 
     private final SharingAgreementRepository sharingAgreementRepository;
-    private final SharingAgreementFileRepository sharingAgreementFileRepository;
 
-    public DeleteSharingAgreementRepositoryDatabase(SharingAgreementRepository sharingAgreementRepository,
-                                                      SharingAgreementFileRepository sharingAgreementFileRepository) {
+    public DeleteSharingAgreementRepositoryDatabase(SharingAgreementRepository sharingAgreementRepository) {
         this.sharingAgreementRepository = sharingAgreementRepository;
-        this.sharingAgreementFileRepository = sharingAgreementFileRepository;
     }
 
     @Override
@@ -30,7 +26,6 @@ public class DeleteSharingAgreementRepositoryDatabase implements DeleteSharingAg
         if (!plantId.equals(entity.getPlant().getId())) {
             throw new SharingAgreementNotFoundException(sharingAgreementId);
         }
-        sharingAgreementFileRepository.deleteBySharingAgreementId(sharingAgreementId);
         sharingAgreementRepository.delete(entity);
     }
 }
