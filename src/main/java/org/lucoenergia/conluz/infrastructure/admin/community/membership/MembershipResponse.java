@@ -7,10 +7,11 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
 import java.util.UUID;
 
+@Schema(requiredProperties = {"id", "user", "communityId", "role", "enabled"})
 public class MembershipResponse {
 
     private final UUID id;
-    @Schema(description = "User associated with the membership")
+    @Schema(description = "User associated with the membership", types = {"object", "null"})
     private final UserResponse user;
     private final UUID communityId;
     private final CommunityRole role;

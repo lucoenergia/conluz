@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
@@ -8,14 +9,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+@Schema(requiredProperties = {"id", "personalId", "number", "fullName", "address", "email",
+        "phoneNumber", "enabled", "isPlatformAdmin", "memberships"})
 public class UserResponse {
 
     private final UUID id;
     private final String personalId;
     private final Integer number;
     private final String fullName;
+    @Schema(types = {"string", "null"})
     private final String address;
     private final String email;
+    @Schema(types = {"string", "null"})
     private final String phoneNumber;
     private final Boolean enabled;
     private final Boolean isPlatformAdmin;

@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreemen
 
 import java.util.UUID;
 
+@Schema(requiredProperties = {"fileId", "filename", "entriesMaterialized"})
 public class UploadSharingAgreementFileResponse {
 
     @Schema(description = "Internal unique identifier of the stored file", example = "b3d1a2f0-1234-5678-abcd-000000000001")

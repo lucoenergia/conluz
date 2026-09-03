@@ -9,23 +9,24 @@ import java.util.UUID;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 
+@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "installedPowerKw", "createdAt", "createdBy"})
 public class SharingAgreementResponse {
 
     @Schema(description = "Internal unique identifier of the sharing agreement", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
     private final UUID id;
     @Schema(description = "Identifier of the plant this agreement distributes production from", example = "4b2f60d1-f9db-455c-8c2d-c34ae7a1c23c")
     private final UUID plantId;
-    @Schema(description = "Human-readable label for the agreement", example = "2024 winter distribution")
+    @Schema(description = "Human-readable label for the agreement", example = "Reparto 2025-2026")
     private final String name;
-    @Schema(description = "Free-text notes about the agreement", example = "Adjusted after member B joined", nullable = true)
+    @Schema(description = "Free-text notes about the agreement", example = "Adjusted after member B joined", types = {"string", "null"})
     private final String notes;
     @Schema(description = "Status of the agreement: DRAFT, PUBLISHED or SUPERSEDED", example = "PUBLISHED")
     private final SharingAgreementStatus status;
-    @Schema(description = "Snapshot of the plant's installed power at authoring time, in kW", example = "12.5", nullable = true)
+    @Schema(description = "Snapshot of the plant's installed power at authoring time, in kW", example = "12.5")
     private final BigDecimal installedPowerKw;
     @Schema(description = "Date and time the agreement was created")
     private final Instant createdAt;
-    @Schema(description = "Identifier of the user who created the agreement. Null means it was created by the system (a migration), not by a person", nullable = true)
+    @Schema(description = "Identifier of the user who created the agreement. Null means it was created by the system (a migration), not by a person", types = {"string", "null"})
     private final UUID createdBy;
 
     public SharingAgreementResponse(SharingAgreement sharingAgreement) {

@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+@Schema(requiredProperties = {"id", "supplyId", "plantId", "coefficient", "validFrom", "validTo", "createdAt"})
 public class PartitionCoefficientResponse {
 
     @Schema(description = "Internal unique identifier", example = "b3d1a2f0-1234-5678-abcd-000000000001")
@@ -24,11 +25,11 @@ public class PartitionCoefficientResponse {
 
     @Schema(description = "Start of the period during which this coefficient is active (inclusive). " +
             "Null means this is a pending coefficient, materialised but not yet activated.",
-            example = "2024-05-23T00:00:00Z", nullable = true)
+            example = "2024-05-23T00:00:00Z", types = {"string", "null"})
     private final Instant validFrom;
 
     @Schema(description = "End of the period (exclusive). Null means this is the currently active coefficient.",
-            example = "2025-01-01T00:00:00Z", nullable = true)
+            example = "2025-01-01T00:00:00Z", types = {"string", "null"})
     private final Instant validTo;
 
     @Schema(description = "Timestamp when this record was created", example = "2024-05-23T10:30:00Z")

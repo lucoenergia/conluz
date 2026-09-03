@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+@Schema(requiredProperties = {"coefficientId", "supply", "coefficient", "validFrom", "validTo",
+        "applicationState", "endState", "endDate"})
 public class SharingAgreementPartitionCoefficientResponse {
 
     @Schema(description = "Internal unique identifier of this coefficient", example = "b3d1a2f0-1234-5678-abcd-000000000001")
@@ -22,11 +24,11 @@ public class SharingAgreementPartitionCoefficientResponse {
 
     @Schema(description = "Start of the period during which this coefficient is active (inclusive). " +
             "Null means this is a pending coefficient, materialised but not yet activated.",
-            example = "2024-05-23T00:00:00Z", nullable = true)
+            example = "2024-05-23T00:00:00Z", types = {"string", "null"})
     private final Instant validFrom;
 
     @Schema(description = "End of the period (exclusive), as stored. Null unless explicitly closed.",
-            example = "2025-01-01T00:00:00Z", nullable = true)
+            example = "2025-01-01T00:00:00Z", types = {"string", "null"})
     private final Instant validTo;
 
     @Schema(description = "Whether the distributor has applied this coefficient yet")
@@ -36,7 +38,7 @@ public class SharingAgreementPartitionCoefficientResponse {
     private final CoefficientEndState endState;
 
     @Schema(description = "The effective end of this coefficient's coverage. Present only when " +
-            "endState is DERIVED or CLOSED.", example = "2025-01-01T00:00:00Z", nullable = true)
+            "endState is DERIVED or CLOSED.", example = "2025-01-01T00:00:00Z", types = {"string", "null"})
     private final Instant endDate;
 
     public SharingAgreementPartitionCoefficientResponse(SharingAgreementCoefficient view) {

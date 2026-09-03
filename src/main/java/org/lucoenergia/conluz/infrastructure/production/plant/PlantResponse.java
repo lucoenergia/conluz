@@ -8,6 +8,8 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@Schema(requiredProperties = {"id", "providerCode", "regulatoryCode", "supply", "name", "address",
+        "description", "inverterProvider", "totalPower", "connectionDate"})
 public class PlantResponse {
 
     private final UUID id;
@@ -18,14 +20,16 @@ public class PlantResponse {
     private final String providerCode;
     @Schema(description = "The identifier assigned by the regulator. In Spain this is the CAU " +
             "(Codigo de Autoconsumo). It is not the provider's station code (provider_code) and " +
-            "not a CUPS.")
+            "not a CUPS.", types = {"string", "null"})
     private final String regulatoryCode;
     private final SupplyResponse supply;
     private final String name;
     private final String address;
+    @Schema(types = {"string", "null"})
     private final String description;
     private final InverterProvider inverterProvider;
     private final Double totalPower;
+    @Schema(types = {"string", "null"})
     private final LocalDate connectionDate;
 
     public PlantResponse(Plant plant) {

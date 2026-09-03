@@ -1,8 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.datadis.config;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 
+@Schema(requiredProperties = {"username", "passwordSet", "baseUrl", "enabled"})
 public class SetDatadisConfigResponse {
 
     private final String username;

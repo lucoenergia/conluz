@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Schema(requiredProperties = {"coefficients", "coefficientSumWarning"})
 public class ReplacePartitionCoefficientsResponse {
 
     @Schema(description = "The agreement's new, full pending coefficient set.")
@@ -15,7 +16,7 @@ public class ReplacePartitionCoefficientsResponse {
 
     @Schema(description = "Warning message when the sum of the replaced coefficient set deviates " +
             "from 1 by more than 0.0001. Null when the sum is correct.",
-            nullable = true,
+            types = {"string", "null"},
             example = "Coefficient set sum is 0.958347, expected 1")
     private final String coefficientSumWarning;
 
