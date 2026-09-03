@@ -16,6 +16,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -97,7 +98,7 @@ public class GenerateSharingAgreementFileController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentDispositionFormData("attachment", file.getFilename());
+        headers.setContentDisposition(ContentDisposition.attachment().filename(file.getFilename()).build());
 
         return ResponseEntity.ok()
                 .headers(headers)
