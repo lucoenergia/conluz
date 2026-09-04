@@ -11,17 +11,23 @@ import java.util.UUID;
 public class SharingAgreementFileSummary {
 
     private final UUID id;
+    private final UUID sharingAgreementId;
     private final String filename;
     private final Instant uploadedAt;
 
     private SharingAgreementFileSummary(Builder builder) {
         this.id = builder.id;
+        this.sharingAgreementId = builder.sharingAgreementId;
         this.filename = builder.filename;
         this.uploadedAt = builder.uploadedAt;
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getSharingAgreementId() {
+        return sharingAgreementId;
     }
 
     public String getFilename() {
@@ -34,11 +40,17 @@ public class SharingAgreementFileSummary {
 
     public static class Builder {
         private UUID id;
+        private UUID sharingAgreementId;
         private String filename;
         private Instant uploadedAt;
 
         public Builder withId(UUID id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder withSharingAgreementId(UUID sharingAgreementId) {
+            this.sharingAgreementId = sharingAgreementId;
             return this;
         }
 

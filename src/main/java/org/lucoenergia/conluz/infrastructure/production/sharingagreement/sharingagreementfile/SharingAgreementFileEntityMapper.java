@@ -24,6 +24,7 @@ public class SharingAgreementFileEntityMapper extends BaseMapper<SharingAgreemen
     public SharingAgreementFileSummary mapSummary(SharingAgreementFileSummaryProjection projection) {
         return new SharingAgreementFileSummary.Builder()
                 .withId(projection.getId())
+                .withSharingAgreementId(projection.getSharingAgreementId())
                 .withFilename(projection.getFilename())
                 .withUploadedAt(projection.getUploadedAt())
                 .build();
