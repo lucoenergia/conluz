@@ -21,15 +21,20 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileEntity;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.ContentHasher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -54,6 +59,8 @@ class GetSharingAgreementsControllerTest extends BaseControllerTest {
     private PlantRepository plantRepository;
     @Autowired
     private SharingAgreementRepository sharingAgreementRepository;
+    @Autowired
+    private SharingAgreementFileRepository sharingAgreementFileRepository;
 
     private Community communityA;
     private Community communityB;
@@ -125,6 +132,39 @@ class GetSharingAgreementsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(published.getId().toString()))
                 .andExpect(jsonPath("$[0].status").value("PUBLISHED"));
+    }
+
+    @Test
+    void returnsFileMetadataPerAgreementIndependently() throws Exception {
+        SharingAgreementEntity withFile = createAgreement(plantA, SharingAgreementStatus.DRAFT, Instant.now().minusSeconds(60));
+        SharingAgreementEntity withoutFile = createAgreement(plantA, SharingAgreementStatus.DRAFT, Instant.now());
+
+        User uploader = UserMother.randomUser();
+        createUserRepository.create(uploader);
+        byte[] content = "distributor content".getBytes(StandardCharsets.UTF_8);
+        SharingAgreementFileEntity file = new SharingAgreementFileEntity();
+        file.setId(UUID.randomUUID());
+        file.setSharingAgreement(withFile);
+        file.setFilename("distributor.txt");
+        file.setContent(content);
+        file.setContentHash(ContentHasher.sha256Hex(content));
+        file.setUploadedAt(Instant.now());
+        file.setUploadedBy(uploader.getId());
+        sharingAgreementFileRepository.save(file);
+
+        String authHeader = loginAsCommunityMember(communityA.getId());
+
+        mockMvc.perform(get(url(plantA.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                // ordered newest first: withoutFile (newer) at [0], withFile (older) at [1]
+                .andExpect(jsonPath("$[0].id").value(withoutFile.getId().toString()))
+                .andExpect(jsonPath("$[0].file").value(nullValue()))
+                .andExpect(jsonPath("$[1].id").value(withFile.getId().toString()))
+                .andExpect(jsonPath("$[1].file.filename").value("distributor.txt"));
     }
 
     private SharingAgreementEntity createAgreement(Plant plant, SharingAgreementStatus status, Instant createdAt) {

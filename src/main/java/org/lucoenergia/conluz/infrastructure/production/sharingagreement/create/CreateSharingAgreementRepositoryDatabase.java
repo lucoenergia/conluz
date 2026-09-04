@@ -43,6 +43,9 @@ public class CreateSharingAgreementRepositoryDatabase implements CreateSharingAg
         entity.setCreatedAt(agreement.getCreatedAt());
         entity.setCreatedBy(agreement.getCreatedBy());
 
+        // No file lookup here: a freshly created agreement cannot yet have an uploaded file --
+        // upload is a separate, later call that requires the agreement to already exist -- so
+        // `file` is correctly left null (the default from SharingAgreementEntityMapper.map()).
         return mapper.map(sharingAgreementRepository.save(entity));
     }
 }

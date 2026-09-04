@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile;
 
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementFile;
+import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementFileSummary;
 import org.lucoenergia.conluz.domain.shared.BaseMapper;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,14 @@ public class SharingAgreementFileEntityMapper extends BaseMapper<SharingAgreemen
                 .withContentHash(entity.getContentHash())
                 .withUploadedAt(entity.getUploadedAt())
                 .withUploadedBy(entity.getUploadedBy())
+                .build();
+    }
+
+    public SharingAgreementFileSummary mapSummary(SharingAgreementFileSummaryProjection projection) {
+        return new SharingAgreementFileSummary.Builder()
+                .withId(projection.getId())
+                .withFilename(projection.getFilename())
+                .withUploadedAt(projection.getUploadedAt())
                 .build();
     }
 }

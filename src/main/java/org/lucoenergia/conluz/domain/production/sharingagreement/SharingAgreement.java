@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement;
 
+import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementFileSummary;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -19,6 +21,7 @@ public class SharingAgreement {
     private final BigDecimal installedPowerKw;
     private final Instant createdAt;
     private final UUID createdBy;
+    private final SharingAgreementFileSummary file;
 
     private SharingAgreement(Builder builder) {
         this.id = builder.id;
@@ -29,6 +32,7 @@ public class SharingAgreement {
         this.installedPowerKw = builder.installedPowerKw;
         this.createdAt = builder.createdAt;
         this.createdBy = builder.createdBy;
+        this.file = builder.file;
     }
 
     public UUID getId() {
@@ -61,6 +65,30 @@ public class SharingAgreement {
 
     public UUID getCreatedBy() {
         return createdBy;
+    }
+
+    public SharingAgreementFileSummary getFile() {
+        return file;
+    }
+
+    /**
+     * Returns a copy of this agreement with its {@code file} replaced. Used to attach the latest
+     * uploaded file's metadata after loading/saving the agreement itself, keeping that lookup out of
+     * {@code SharingAgreementEntityMapper} so a list of agreements can be enriched with a single
+     * batched query instead of one lookup per row.
+     */
+    public SharingAgreement withFile(SharingAgreementFileSummary file) {
+        return new Builder()
+                .withId(id)
+                .withPlantId(plantId)
+                .withName(name)
+                .withNotes(notes)
+                .withStatus(status)
+                .withInstalledPowerKw(installedPowerKw)
+                .withCreatedAt(createdAt)
+                .withCreatedBy(createdBy)
+                .withFile(file)
+                .build();
     }
 
     /**
@@ -111,6 +139,7 @@ public class SharingAgreement {
         private BigDecimal installedPowerKw;
         private Instant createdAt;
         private UUID createdBy;
+        private SharingAgreementFileSummary file;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -149,6 +178,11 @@ public class SharingAgreement {
 
         public Builder withCreatedBy(UUID createdBy) {
             this.createdBy = createdBy;
+            return this;
+        }
+
+        public Builder withFile(SharingAgreementFileSummary file) {
+            this.file = file;
             return this;
         }
 

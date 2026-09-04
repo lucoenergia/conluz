@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -118,7 +119,8 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.notes").value("initial"))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.installedPowerKw").value(installedPowerKw.doubleValue()))
-                .andExpect(jsonPath("$.createdBy").isNotEmpty());
+                .andExpect(jsonPath("$.createdBy").isNotEmpty())
+                .andExpect(jsonPath("$.file").value(nullValue()));
     }
 
     @Test

@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
@@ -78,6 +79,23 @@ class CreateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         assertEquals(0, BigDecimal.valueOf(12.5).compareTo(result.getInstalledPowerKw()));
         assertEquals(createdBy, result.getCreatedBy());
         assertTrue(sharingAgreementRepository.findById(agreementId).isPresent());
+    }
+
+    @Test
+    void aFreshlyCreatedAgreementCannotHaveAFileYet() {
+        PlantEntity plant = persistPlant();
+        SharingAgreement toCreate = new SharingAgreement.Builder()
+                .withId(UUID.randomUUID())
+                .withPlantId(plant.getId())
+                .withName("2024 winter distribution")
+                .withStatus(SharingAgreementStatus.DRAFT)
+                .withInstalledPowerKw(BigDecimal.valueOf(12.5))
+                .withCreatedAt(Instant.now())
+                .build();
+
+        SharingAgreement result = repository.create(toCreate);
+
+        assertNull(result.getFile());
     }
 
     @Test

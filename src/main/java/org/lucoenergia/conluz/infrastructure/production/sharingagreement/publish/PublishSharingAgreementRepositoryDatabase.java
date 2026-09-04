@@ -7,6 +7,8 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileEntityMapper;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,12 +19,18 @@ import java.util.UUID;
 public class PublishSharingAgreementRepositoryDatabase implements PublishSharingAgreementRepository {
 
     private final SharingAgreementRepository sharingAgreementRepository;
+    private final SharingAgreementFileRepository sharingAgreementFileRepository;
     private final SharingAgreementEntityMapper mapper;
+    private final SharingAgreementFileEntityMapper fileMapper;
 
     public PublishSharingAgreementRepositoryDatabase(SharingAgreementRepository sharingAgreementRepository,
-                                                      SharingAgreementEntityMapper mapper) {
+                                                      SharingAgreementFileRepository sharingAgreementFileRepository,
+                                                      SharingAgreementEntityMapper mapper,
+                                                      SharingAgreementFileEntityMapper fileMapper) {
         this.sharingAgreementRepository = sharingAgreementRepository;
+        this.sharingAgreementFileRepository = sharingAgreementFileRepository;
         this.mapper = mapper;
+        this.fileMapper = fileMapper;
     }
 
     @Override
@@ -35,6 +43,10 @@ public class PublishSharingAgreementRepositoryDatabase implements PublishSharing
 
         entity.setStatus(SharingAgreementStatus.PUBLISHED);
 
-        return mapper.map(sharingAgreementRepository.save(entity));
+        SharingAgreement agreement = mapper.map(sharingAgreementRepository.save(entity));
+        return agreement.withFile(sharingAgreementFileRepository
+                .findFirstProjectedBySharingAgreementIdOrderByUploadedAtDescIdDesc(agreement.getId())
+                .map(fileMapper::mapSummary)
+                .orElse(null));
     }
 }

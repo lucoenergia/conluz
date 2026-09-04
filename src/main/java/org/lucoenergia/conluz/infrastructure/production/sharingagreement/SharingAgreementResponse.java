@@ -9,7 +9,7 @@ import java.util.UUID;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 
-@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "installedPowerKw", "createdAt", "createdBy"})
+@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "installedPowerKw", "createdAt", "createdBy", "file"})
 public class SharingAgreementResponse {
 
     @Schema(description = "Internal unique identifier of the sharing agreement", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
@@ -28,6 +28,8 @@ public class SharingAgreementResponse {
     private final Instant createdAt;
     @Schema(description = "Identifier of the user who created the agreement. Null means it was created by the system (a migration), not by a person", types = {"string", "null"})
     private final UUID createdBy;
+    @Schema(description = "Metadata of the latest evidence file uploaded for this agreement. Null means no file has been uploaded, never that it wasn't loaded", types = {"object", "null"})
+    private final SharingAgreementFileResponse file;
 
     public SharingAgreementResponse(SharingAgreement sharingAgreement) {
         this.id = sharingAgreement.getId();
@@ -38,6 +40,10 @@ public class SharingAgreementResponse {
         this.installedPowerKw = sharingAgreement.getInstalledPowerKw();
         this.createdAt = sharingAgreement.getCreatedAt();
         this.createdBy = sharingAgreement.getCreatedBy();
+        this.file = sharingAgreement.getFile() == null ? null : new SharingAgreementFileResponse(
+                sharingAgreement.getFile().getId(),
+                sharingAgreement.getFile().getFilename(),
+                sharingAgreement.getFile().getUploadedAt());
     }
 
     public UUID getId() {
@@ -70,5 +76,9 @@ public class SharingAgreementResponse {
 
     public UUID getCreatedBy() {
         return createdBy;
+    }
+
+    public SharingAgreementFileResponse getFile() {
+        return file;
     }
 }

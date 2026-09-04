@@ -21,15 +21,20 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileEntity;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.ContentHasher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -50,6 +55,8 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     private PlantRepository plantRepository;
     @Autowired
     private SharingAgreementRepository sharingAgreementRepository;
+    @Autowired
+    private SharingAgreementFileRepository sharingAgreementFileRepository;
 
     private Community communityA;
     private Community communityB;
@@ -151,13 +158,41 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.plantId").value(plantA.getId().toString()))
                 .andExpect(jsonPath("$.name").value("Updated name"))
                 .andExpect(jsonPath("$.installedPowerKw").value(9.75))
-                .andExpect(jsonPath("$.status").value("DRAFT"));
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.file").value(nullValue()));
 
         SharingAgreementEntity persisted = sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow();
         org.junit.jupiter.api.Assertions.assertEquals(plantA.getId(), persisted.getPlant().getId());
         org.junit.jupiter.api.Assertions.assertEquals(originalCreatedAt, persisted.getCreatedAt());
         org.junit.jupiter.api.Assertions.assertNull(persisted.getCreatedBy());
         org.junit.jupiter.api.Assertions.assertEquals(SharingAgreementStatus.DRAFT, persisted.getStatus());
+    }
+
+    @Test
+    void returnsFileMetadata_whenFileAlreadyUploaded() throws Exception {
+        User uploader = UserMother.randomUser();
+        createUserRepository.create(uploader);
+        byte[] content = "distributor content".getBytes(StandardCharsets.UTF_8);
+        SharingAgreementFileEntity file = new SharingAgreementFileEntity();
+        file.setId(UUID.randomUUID());
+        file.setSharingAgreement(draftAgreement);
+        file.setFilename("distributor.txt");
+        file.setContent(content);
+        file.setContentHash(ContentHasher.sha256Hex(content));
+        file.setUploadedAt(Instant.now());
+        file.setUploadedBy(uploader.getId());
+        sharingAgreementFileRepository.save(file);
+
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("Updated name", "9.75")))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.file.id").value(file.getId().toString()))
+                .andExpect(jsonPath("$.file.filename").value("distributor.txt"));
     }
 
     private Plant createPlant(Community community) {
