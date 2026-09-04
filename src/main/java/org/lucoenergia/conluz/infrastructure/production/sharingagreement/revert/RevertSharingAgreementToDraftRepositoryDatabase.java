@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotRevertibleException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.revert.RevertSharingAgreementToDraftRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.GetSharingAgreementFileSummaryRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
@@ -20,13 +21,16 @@ import java.util.UUID;
 public class RevertSharingAgreementToDraftRepositoryDatabase implements RevertSharingAgreementToDraftRepository {
 
     private final SharingAgreementRepository sharingAgreementRepository;
+    private final GetSharingAgreementFileSummaryRepository fileSummaryRepository;
     private final GetSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
     private final SharingAgreementEntityMapper mapper;
 
     public RevertSharingAgreementToDraftRepositoryDatabase(SharingAgreementRepository sharingAgreementRepository,
+                                                             GetSharingAgreementFileSummaryRepository fileSummaryRepository,
                                                              GetSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository,
                                                              SharingAgreementEntityMapper mapper) {
         this.sharingAgreementRepository = sharingAgreementRepository;
+        this.fileSummaryRepository = fileSummaryRepository;
         this.supplyPartitionCoefficientRepository = supplyPartitionCoefficientRepository;
         this.mapper = mapper;
     }
@@ -37,7 +41,8 @@ public class RevertSharingAgreementToDraftRepositoryDatabase implements RevertSh
         if (updated == 1) {
             SharingAgreementEntity entity = sharingAgreementRepository.findById(sharingAgreementId)
                     .orElseThrow(() -> new SharingAgreementNotFoundException(sharingAgreementId));
-            return mapper.map(entity);
+            SharingAgreement agreement = mapper.map(entity);
+            return agreement.withFile(fileSummaryRepository.findLatestBySharingAgreementId(agreement.getId()).orElse(null));
         }
 
         // The atomic UPDATE above found no eligible row. The service already checked the same

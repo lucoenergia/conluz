@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.publish.Publish
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.GetSharingAgreementFileSummaryRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
@@ -17,11 +18,14 @@ import java.util.UUID;
 public class PublishSharingAgreementRepositoryDatabase implements PublishSharingAgreementRepository {
 
     private final SharingAgreementRepository sharingAgreementRepository;
+    private final GetSharingAgreementFileSummaryRepository fileSummaryRepository;
     private final SharingAgreementEntityMapper mapper;
 
     public PublishSharingAgreementRepositoryDatabase(SharingAgreementRepository sharingAgreementRepository,
+                                                      GetSharingAgreementFileSummaryRepository fileSummaryRepository,
                                                       SharingAgreementEntityMapper mapper) {
         this.sharingAgreementRepository = sharingAgreementRepository;
+        this.fileSummaryRepository = fileSummaryRepository;
         this.mapper = mapper;
     }
 
@@ -35,6 +39,7 @@ public class PublishSharingAgreementRepositoryDatabase implements PublishSharing
 
         entity.setStatus(SharingAgreementStatus.PUBLISHED);
 
-        return mapper.map(sharingAgreementRepository.save(entity));
+        SharingAgreement agreement = mapper.map(sharingAgreementRepository.save(entity));
+        return agreement.withFile(fileSummaryRepository.findLatestBySharingAgreementId(agreement.getId()).orElse(null));
     }
 }

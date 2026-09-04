@@ -25,16 +25,21 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileEntity;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.ContentHasher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -64,6 +69,8 @@ class RevertSharingAgreementToDraftControllerTest extends BaseControllerTest {
     private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
     private SupplyPartitionCoefficientJpaRepository supplyPartitionCoefficientJpaRepository;
+    @Autowired
+    private SharingAgreementFileRepository sharingAgreementFileRepository;
 
     private Community communityA;
     private Community communityB;
@@ -200,7 +207,8 @@ class RevertSharingAgreementToDraftControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(publishedAgreement.getId().toString()))
-                .andExpect(jsonPath("$.status").value("DRAFT"));
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.file").value(nullValue()));
 
         // No coefficient side effect: only the agreement's status changed.
         SupplyPartitionCoefficientEntity coefficient = supplyPartitionCoefficientJpaRepository.findById(coefficientId)
@@ -222,6 +230,32 @@ class RevertSharingAgreementToDraftControllerTest extends BaseControllerTest {
                         .content(replaceBody))
                 .andDo(print())
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void revertsPublishedAgreementWithFile_returnsFileMetadata() throws Exception {
+        seedCoefficient(supplyA, plantA, publishedAgreement, null);
+        User uploader = UserMother.randomUser();
+        createUserRepository.create(uploader);
+        byte[] content = "distributor content".getBytes(StandardCharsets.UTF_8);
+        SharingAgreementFileEntity file = new SharingAgreementFileEntity();
+        file.setId(UUID.randomUUID());
+        file.setSharingAgreement(publishedAgreement);
+        file.setFilename("distributor.txt");
+        file.setContent(content);
+        file.setContentHash(ContentHasher.sha256Hex(content));
+        file.setUploadedAt(Instant.now());
+        file.setUploadedBy(uploader.getId());
+        sharingAgreementFileRepository.save(file);
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(post(url(plantA.getId(), publishedAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.file.id").value(file.getId().toString()))
+                .andExpect(jsonPath("$.file.filename").value("distributor.txt"));
     }
 
     private Supply createSupply(Community community) {

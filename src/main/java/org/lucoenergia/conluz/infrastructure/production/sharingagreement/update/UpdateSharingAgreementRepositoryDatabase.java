@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.GetSharingAgreementFileSummaryRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
@@ -17,11 +18,14 @@ import java.util.UUID;
 public class UpdateSharingAgreementRepositoryDatabase implements UpdateSharingAgreementRepository {
 
     private final SharingAgreementRepository sharingAgreementRepository;
+    private final GetSharingAgreementFileSummaryRepository fileSummaryRepository;
     private final SharingAgreementEntityMapper mapper;
 
     public UpdateSharingAgreementRepositoryDatabase(SharingAgreementRepository sharingAgreementRepository,
+                                                     GetSharingAgreementFileSummaryRepository fileSummaryRepository,
                                                      SharingAgreementEntityMapper mapper) {
         this.sharingAgreementRepository = sharingAgreementRepository;
+        this.fileSummaryRepository = fileSummaryRepository;
         this.mapper = mapper;
     }
 
@@ -37,6 +41,7 @@ public class UpdateSharingAgreementRepositoryDatabase implements UpdateSharingAg
         entity.setNotes(update.getNotes());
         entity.setInstalledPowerKw(update.getInstalledPowerKw());
 
-        return mapper.map(sharingAgreementRepository.save(entity));
+        SharingAgreement agreement = mapper.map(sharingAgreementRepository.save(entity));
+        return agreement.withFile(fileSummaryRepository.findLatestBySharingAgreementId(agreement.getId()).orElse(null));
     }
 }
