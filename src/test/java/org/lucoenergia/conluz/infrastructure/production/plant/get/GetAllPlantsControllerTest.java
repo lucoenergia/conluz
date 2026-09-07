@@ -81,6 +81,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[0].totalPower").value(plantTwo.getTotalPower()))
                 .andExpect(jsonPath("$.items[0].connectionDate").value(plantTwo.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.items[0].supply.code").value(plantTwo.getSupply().getCode()))
+                .andExpect(jsonPath("$.items[0].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
 
                 .andExpect(jsonPath("$.items[1].id").isNotEmpty())
                 .andExpect(jsonPath("$.items[1].providerCode").value(plantOne.getProviderCode()))
@@ -91,6 +92,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[1].totalPower").value(plantOne.getTotalPower()))
                 .andExpect(jsonPath("$.items[1].connectionDate").value(plantOne.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.items[1].supply.code").value(plantOne.getSupply().getCode()))
+                .andExpect(jsonPath("$.items[1].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
 
                 .andExpect(jsonPath("$.items[2].id").isNotEmpty())
                 .andExpect(jsonPath("$.items[2].providerCode").value(plantThree.getProviderCode()))
@@ -100,7 +102,8 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[2].inverterProvider").value(plantThree.getInverterProvider().name()))
                 .andExpect(jsonPath("$.items[2].totalPower").value(plantThree.getTotalPower()))
                 .andExpect(jsonPath("$.items[2].connectionDate").value(plantThree.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
-                .andExpect(jsonPath("$.items[2].supply.code").value(plantThree.getSupply().getCode()));
+                .andExpect(jsonPath("$.items[2].supply.code").value(plantThree.getSupply().getCode()))
+                .andExpect(jsonPath("$.items[2].community.id").value(DEFAULT_COMMUNITY_ID.toString()));
     }
 
     @Test
