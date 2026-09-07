@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.production.plant;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
@@ -91,6 +92,10 @@ public class Plant {
 
     public void initializeUuid() {
         id = UUID.randomUUID();
+    }
+
+    public Community getCommunity() {
+        return supply.getCommunity();
     }
 
     public static class Builder {

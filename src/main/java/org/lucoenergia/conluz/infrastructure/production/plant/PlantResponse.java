@@ -45,7 +45,7 @@ public class PlantResponse {
         this.inverterProvider = plant.getInverterProvider();
         this.totalPower = plant.getTotalPower();
         this.connectionDate = plant.getConnectionDate();
-        this.community = new PlantCommunityResponse(plant.getSupply().getCommunity().getId());
+        this.community = new PlantCommunityResponse(plant.getCommunity().getId());
     }
 
     public UUID getId() {
