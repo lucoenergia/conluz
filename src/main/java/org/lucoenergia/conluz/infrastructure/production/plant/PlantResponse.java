@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Schema(requiredProperties = {"id", "providerCode", "regulatoryCode", "supply", "name", "address",
-        "description", "inverterProvider", "totalPower", "connectionDate"})
+        "description", "inverterProvider", "totalPower", "connectionDate", "community"})
 public class PlantResponse {
 
     private final UUID id;
@@ -31,6 +31,8 @@ public class PlantResponse {
     private final Double totalPower;
     @Schema(types = {"string", "null"})
     private final LocalDate connectionDate;
+    @Schema(description = "The community that owns the plant.")
+    private final PlantCommunityResponse community;
 
     public PlantResponse(Plant plant) {
         this.id = plant.getId();
@@ -43,6 +45,7 @@ public class PlantResponse {
         this.inverterProvider = plant.getInverterProvider();
         this.totalPower = plant.getTotalPower();
         this.connectionDate = plant.getConnectionDate();
+        this.community = new PlantCommunityResponse(plant.getSupply().getCommunity().getId());
     }
 
     public UUID getId() {
@@ -83,5 +86,9 @@ public class PlantResponse {
 
     public LocalDate getConnectionDate() {
         return connectionDate;
+    }
+
+    public PlantCommunityResponse getCommunity() {
+        return community;
     }
 }
