@@ -116,6 +116,39 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
     }
 
     @Test
+    void activationRejectedWhenItOverlapsARowFurtherBackInTheChainThanTheImmediatePredecessor() {
+        SupplyEntity supply = persistSupply();
+        PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
+
+        // Row1: closed, cascade-adjacent to Row2.
+        SharingAgreementEntity agreement1 = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        persistCoefficient(supply, plant, agreement1,
+                Instant.parse("2020-01-01T00:00:00Z"), Instant.parse("2021-01-01T00:00:00Z"));
+
+        // Row2: closed by a self-authored exit, NOT adjacent to anything after it -- leaves a gap,
+        // so findOpenPredecessor finds nothing for a later pure activation of the same supply.
+        SharingAgreementEntity agreement2 = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        persistCoefficient(supply, plant, agreement2,
+                Instant.parse("2021-01-01T00:00:00Z"), Instant.parse("2022-01-01T00:00:00Z"));
+
+        // Row3: pending, a third agreement. No open predecessor exists, so the existing per-item
+        // checks (which compare only against the immediate predecessor/successor) have nothing to
+        // compare against -- only the projected-state check reaches back far enough to catch this.
+        SharingAgreementEntity agreement3 = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        SupplyPartitionCoefficient row3 = persistCoefficient(supply, plant, agreement3, null, null);
+
+        LocalDate appliedOn = LocalDate.of(2020, 6, 1); // lands inside Row1's range, two rows back.
+
+        CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
+                () -> service.setValidFrom(plant.getId(), agreement3.getId(), appliedOn, List.of(row3.getId())));
+
+        assertTrue(exception.getErrors().stream()
+                .allMatch(e -> e.getCode() == CoefficientActivationErrorCode.PERIOD_OVERLAP));
+        assertTrue(exception.getErrors().stream()
+                .anyMatch(e -> row3.getId().toString().equals(e.getParams().get("coefficientId"))));
+    }
+
+    @Test
     void emptyRangeCorrectionRejectedBeforeReachingPostgresNoRowWritten() {
         SupplyEntity supply = persistSupply();
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());

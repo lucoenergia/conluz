@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -131,4 +132,10 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
                                                                                    @Param("excludeId") UUID excludeId,
                                                                                    @Param("afterInstant") Instant afterInstant,
                                                                                    Pageable pageable);
+
+    // Full history (any agreement, any time, pending or not) for plantId and any of supplyIds --
+    // one query, used to project a batch's writes for overlap checking (phase 5f follow-up).
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId AND e.supply.id IN :supplyIds")
+    List<SupplyPartitionCoefficientEntity> findAllByPlantIdAndSupplyIdIn(@Param("plantId") UUID plantId,
+                                                                           @Param("supplyIds") Collection<UUID> supplyIds);
 }

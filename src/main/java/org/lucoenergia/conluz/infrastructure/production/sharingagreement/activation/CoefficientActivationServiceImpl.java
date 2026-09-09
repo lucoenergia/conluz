@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.activa
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapDetector;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSuccessionCascade;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
@@ -31,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Transactional
 @Service
@@ -110,6 +112,8 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
             }
         }
 
+        checkNoProjectedOverlap(writes, errors);
+
         if (!errors.isEmpty()) {
             throw new CoefficientActivationException(errors);
         }
@@ -178,6 +182,8 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
             writes.add(withValidFromTo(coefficient, coefficient.getValidFrom(), newValidTo));
         }
 
+        checkNoProjectedOverlap(writes, errors);
+
         if (!errors.isEmpty()) {
             throw new CoefficientActivationException(errors);
         }
@@ -207,6 +213,50 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
 
     private List<UUID> distinct(List<UUID> coefficientIds) {
         return new ArrayList<>(new LinkedHashSet<>(coefficientIds));
+    }
+
+    /**
+     * Projects this batch's writes onto the full history of every supply they touch (one query),
+     * and rejects with a precise, per-coefficient error if the projected end state overlaps --
+     * catching a collision with a row further back in the chain than the immediate predecessor/
+     * successor the checks above already compare against. Run after those checks: it only ever
+     * sees coefficients that already passed them (writes contains only successfully-validated
+     * items), so it can never fire for a case one of them already named precisely.
+     */
+    private void checkNoProjectedOverlap(List<SupplyPartitionCoefficient> writes, List<CoefficientActivationError> errors) {
+        if (writes.isEmpty()) {
+            return;
+        }
+        UUID plantId = writes.get(0).getPlantId();
+        Set<UUID> supplyIds = writes.stream().map(SupplyPartitionCoefficient::getSupplyId).collect(Collectors.toSet());
+        Map<UUID, SupplyPartitionCoefficient> writesById = writes.stream()
+                .collect(Collectors.toMap(SupplyPartitionCoefficient::getId, w -> w));
+
+        List<SupplyPartitionCoefficient> projected = getCoefficientRepository.findAllByPlantIdAndSupplyIdIn(plantId, supplyIds)
+                .stream()
+                .map(row -> writesById.getOrDefault(row.getId(), row))
+                .collect(Collectors.toList());
+
+        for (CoefficientOverlapDetector.Overlap overlap : CoefficientOverlapDetector.findOverlaps(projected)) {
+            if (writesById.containsKey(overlap.first().getId())) {
+                errors.add(errorWithConflict(overlap.first(), overlap.second()));
+            }
+            if (writesById.containsKey(overlap.second().getId())) {
+                errors.add(errorWithConflict(overlap.second(), overlap.first()));
+            }
+        }
+    }
+
+    private CoefficientActivationError errorWithConflict(SupplyPartitionCoefficient coefficient,
+                                                            SupplyPartitionCoefficient conflictingWith) {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("coefficientId", coefficient.getId().toString());
+        String cups = resolveCups(coefficient.getSupplyId());
+        if (cups != null) {
+            params.put("cups", cups);
+        }
+        params.put("conflictingCoefficientId", conflictingWith.getId().toString());
+        return new CoefficientActivationError(CoefficientActivationErrorCode.PERIOD_OVERLAP, params);
     }
 
     private List<SupplyPartitionCoefficient> applyAndRecompute(List<SupplyPartitionCoefficient> writes) {

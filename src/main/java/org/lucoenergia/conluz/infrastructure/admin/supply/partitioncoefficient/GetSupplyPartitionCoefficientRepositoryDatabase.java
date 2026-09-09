@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -112,5 +113,10 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
                 .stream()
                 .findFirst()
                 .map(mapper::map);
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficient> findAllByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds) {
+        return mapper.mapList(jpaRepository.findAllByPlantIdAndSupplyIdIn(plantId, supplyIds));
     }
 }
