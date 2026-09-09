@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.activation;
 
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientResolver;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
@@ -61,6 +62,8 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
     private CommunityJpaRepository communityJpaRepository;
     @Autowired
     private PlantRepository plantRepository;
+    @Autowired
+    private EntityManager entityManager;
 
     private SupplyEntity persistSupply() {
         UserEntity user = userRepository.save(UserMother.randomUserEntity());
@@ -105,6 +108,34 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
                 Instant.parse("2024-01-01T00:00:00Z"), null);
         SharingAgreementEntity successorAgreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
         SupplyPartitionCoefficient successor = persistCoefficient(supply, plant, successorAgreement, null, null);
+
+        LocalDate appliedOn = LocalDate.of(2025, 1, 1);
+        List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), successorAgreement.getId(),
+                appliedOn, List.of(successor.getId()));
+
+        Instant expected = appliedOn.atStartOfDay(zone(plant.getId())).toInstant();
+        assertTrue(result.stream().anyMatch(c -> c.getId().equals(successor.getId()) && expected.equals(c.getValidFrom())));
+        assertTrue(result.stream().anyMatch(c -> c.getId().equals(predecessor.getId()) && expected.equals(c.getValidTo())));
+    }
+
+    @Test
+    void activationCascadeSurvivesWhenSuccessorIsLoadedBeforePredecessor() {
+        SupplyEntity supply = persistSupply();
+        PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
+        SharingAgreementEntity predecessorAgreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        SupplyPartitionCoefficient predecessor = persistCoefficient(supply, plant, predecessorAgreement,
+                Instant.parse("2024-01-01T00:00:00Z"), null);
+        SharingAgreementEntity successorAgreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        SupplyPartitionCoefficient successor = persistCoefficient(supply, plant, successorAgreement, null, null);
+
+        // Flush so the setup rows actually reach the database, then detach both entities so
+        // setValidFrom must reload them itself, in its own code order (successor via fetch() first,
+        // predecessor via findPredecessor() second) -- the exact ordering that caused the reported
+        // production failure. The setup above happens to load predecessor first, which would let a
+        // broken flush-ordering assumption pass by accident; clearing the persistence context
+        // removes that accident.
+        entityManager.flush();
+        entityManager.clear();
 
         LocalDate appliedOn = LocalDate.of(2025, 1, 1);
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), successorAgreement.getId(),
