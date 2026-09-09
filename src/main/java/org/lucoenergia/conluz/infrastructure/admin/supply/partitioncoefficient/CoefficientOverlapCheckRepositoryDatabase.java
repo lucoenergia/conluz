@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 import jakarta.persistence.EntityManager;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapCheckRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientOverlapException;
-import org.lucoenergia.conluz.infrastructure.shared.error.PostgresConstraintName;
+import org.lucoenergia.conluz.infrastructure.shared.error.PostgresConstraintNameChecker;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +29,7 @@ public class CoefficientOverlapCheckRepositoryDatabase implements CoefficientOve
             // @Repository's exception translation runs on the AOP proxy boundary, which this method
             // body is inside of, not past. PostgresConstraintName walks the full cause chain regardless
             // of the top-level wrapper type, so it works the same either way.
-            if (PostgresConstraintName.matches(e, CONSTRAINT_NAME)) {
+            if (PostgresConstraintNameChecker.matches(e, CONSTRAINT_NAME)) {
                 throw new SupplyPartitionCoefficientOverlapException(e);
             }
             throw e;

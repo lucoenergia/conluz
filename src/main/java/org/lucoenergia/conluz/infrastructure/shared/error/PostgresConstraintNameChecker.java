@@ -8,9 +8,9 @@ import org.postgresql.util.PSQLException;
  * e.getMessage(), which is localised by the server's lc_messages and would break on a
  * differently configured server with no code change.
  */
-public final class PostgresConstraintName {
+public final class PostgresConstraintNameChecker {
 
-    private PostgresConstraintName() {
+    private PostgresConstraintNameChecker() {
     }
 
     public static boolean matches(Throwable exception, String constraintName) {

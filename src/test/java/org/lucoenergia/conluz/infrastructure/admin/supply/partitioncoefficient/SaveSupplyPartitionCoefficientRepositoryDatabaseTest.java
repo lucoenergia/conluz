@@ -17,7 +17,7 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
-import org.lucoenergia.conluz.infrastructure.shared.error.PostgresConstraintName;
+import org.lucoenergia.conluz.infrastructure.shared.error.PostgresConstraintNameChecker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -164,7 +164,7 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
 
         TestTransaction.flagForCommit();
         DataIntegrityViolationException caught = assertThrows(DataIntegrityViolationException.class, TestTransaction::end);
-        assertTrue(PostgresConstraintName.matches(caught, CoefficientOverlapCheckRepositoryDatabase.CONSTRAINT_NAME),
+        assertTrue(PostgresConstraintNameChecker.matches(caught, CoefficientOverlapCheckRepositoryDatabase.CONSTRAINT_NAME),
                 "expected the no_overlapping_coefficients constraint, got: " + caught.getMessage());
 
         TestTransaction.start();
