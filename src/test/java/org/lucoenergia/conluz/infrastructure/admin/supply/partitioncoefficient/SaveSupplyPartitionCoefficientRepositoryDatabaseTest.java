@@ -164,7 +164,7 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
 
         TestTransaction.flagForCommit();
         DataIntegrityViolationException caught = assertThrows(DataIntegrityViolationException.class, TestTransaction::end);
-        assertTrue(PostgresConstraintName.matches(caught, "no_overlapping_coefficients"),
+        assertTrue(PostgresConstraintName.matches(caught, CoefficientOverlapCheckRepositoryDatabase.CONSTRAINT_NAME),
                 "expected the no_overlapping_coefficients constraint, got: " + caught.getMessage());
 
         TestTransaction.start();

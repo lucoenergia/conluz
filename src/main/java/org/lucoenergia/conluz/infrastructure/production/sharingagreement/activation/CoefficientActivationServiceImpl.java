@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.activa
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapCheckRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapDetector;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSuccessionCascade;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
@@ -44,19 +45,22 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     private final RecomputeSharingAgreementStatusRepository recomputeStatusRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final ZoneResolver zoneResolver;
+    private final CoefficientOverlapCheckRepository overlapCheckRepository;
 
     public CoefficientActivationServiceImpl(GetSharingAgreementService getSharingAgreementService,
                                              GetSupplyPartitionCoefficientRepository getCoefficientRepository,
                                              SaveSupplyPartitionCoefficientRepository saveCoefficientRepository,
                                              RecomputeSharingAgreementStatusRepository recomputeStatusRepository,
                                              GetSupplyRepository getSupplyRepository,
-                                             ZoneResolver zoneResolver) {
+                                             ZoneResolver zoneResolver,
+                                             CoefficientOverlapCheckRepository overlapCheckRepository) {
         this.getSharingAgreementService = getSharingAgreementService;
         this.getCoefficientRepository = getCoefficientRepository;
         this.saveCoefficientRepository = saveCoefficientRepository;
         this.recomputeStatusRepository = recomputeStatusRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.zoneResolver = zoneResolver;
+        this.overlapCheckRepository = overlapCheckRepository;
     }
 
     @Override
@@ -265,6 +269,9 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         for (SupplyPartitionCoefficient write : writes) {
             touched.add(saveCoefficientRepository.save(write));
             affectedAgreementIds.add(write.getSharingAgreementId());
+        }
+        if (!writes.isEmpty()) {
+            overlapCheckRepository.flushAndCheckNoOverlap();
         }
         // Once per distinct affected agreement, never once per coefficient -- see
         // RecomputeSharingAgreementStatusRepository.
