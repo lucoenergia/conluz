@@ -24,7 +24,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/production/huawei/config",
+        value = "/api/v1/plants/{plantId}/production/huawei/config",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -36,7 +36,7 @@ public class SetHuaweiConfigController {
         this.service = service;
     }
 
-    @PutMapping("/{plantId}")
+    @PutMapping
     @Operation(
             summary = "Sets up the configuration to be able to connect with Huawei.",
             description = """
