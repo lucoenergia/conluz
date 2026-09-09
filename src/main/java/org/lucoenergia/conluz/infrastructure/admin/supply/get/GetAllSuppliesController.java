@@ -27,7 +27,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Get the supplies of a community visible to the current user.
+ * Get the supplies of a community visible to the current user. The caller must be a member of the
+ * community; a non-member platform admin is denied.
  */
 @RestController
 @RequestMapping(value = "/api/v1/communities/{communityId}/supplies")
@@ -53,8 +54,9 @@ public class GetAllSuppliesController {
                     filtering and sorting. Requires authentication through a Bearer Token.
 
                     **Visibility:** Community admins of the community see all of its supplies.
-                    Regular members see only the supplies they own within the community. Returns 404 if the community
-                    does not exist or the caller is not a member of it.""",
+                    Regular members see only the supplies they own within the community. **Required: any member of the
+                    community.** Returns 404 if the community does not exist or the caller is not a member of it, and
+                    403 for a non-member platform admin.""",
             tags = ApiTag.SUPPLIES,
             operationId = "getAllSupplies"
     )
@@ -71,7 +73,7 @@ public class GetAllSuppliesController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
-    @PreAuthorize("@communityAccessGuard.canReadCommunity(#communityId)")
+    @PreAuthorize("isAuthenticated() and @communityAccessGuard.isMemberOfCommunity(#communityId)")
     public PagedResult<SupplyResponse> getAllSupplies(@AuthenticationPrincipal User currentUser,
                                                       @PathVariable UUID communityId,
                                                       @Parameter(hidden = true) Pageable page) {

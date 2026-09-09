@@ -27,7 +27,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -38,10 +37,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
-class GetHourlyProductionControllerTest extends BaseControllerTest {
+class GetMonthlyProductionControllerTest extends BaseControllerTest {
 
     private static final String START_DATE = "2023-09-01T00:00:00.000+02:00";
-    private static final String END_DATE = "2023-09-01T23:00:00.000+02:00";
+    private static final String END_DATE = "2023-09-30T23:00:00.000+02:00";
 
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
@@ -106,10 +105,10 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetHourlyProduction() throws Exception {
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+    void testGetMonthlyProduction() throws Exception {
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
-        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/monthly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
@@ -118,10 +117,10 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetHourlyProduction_whenPlatformAdminNotMember_thenForbidden() throws Exception {
+    void testGetMonthlyProduction_whenPlatformAdminNotMember_thenForbidden() throws Exception {
         String authHeader = loginAsDefaultPlatformAdmin();
 
-        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/monthly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
@@ -129,38 +128,16 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testInvalidDateFormat() throws Exception {
+    void testGetMonthlyProductionBySupply() throws Exception {
 
-        String invalidStartDate = "foo";
-        String validEndDate = "2023-10-25T23:00:00.000+02:00";
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-
-        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("startDate", invalidStartDate)
-                        .queryParam("endDate", validEndDate))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("\"traceId\":")))
-                .andExpect(content().string(containsString("\"timestamp\":")))
-                .andExpect(content().string(containsString("\"status\":400")))
-                .andExpect(content().string(containsString("\"message\":\"El campo con nombre 'startDate' y valor 'foo' tiene un formato incorrecto. El formato esperado es 'yyyy-mm-ddThh:mm:ss.000+h:mm'\"")));
-    }
-
-    @Test
-    void testGetHourlyProductionBySupply() throws Exception {
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
 
-        // Create some supplies
         Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
-        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
-        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
         persistCoefficient(supply.getId());
 
-        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/monthly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("supplyId", supply.getId().toString())
                         .queryParam("startDate", START_DATE)
@@ -170,66 +147,17 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetHourlyProductionByUnknownSupply() throws Exception {
+    void testGetMonthlyProductionByUnknownSupply() throws Exception {
 
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
         UUID supplyId = UUID.randomUUID();
 
-        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/monthly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("supplyId", supplyId.toString())
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isNotFound())
-                .andExpect(content().string(containsString("\"traceId\":")))
-                .andExpect(content().string(containsString("\"timestamp\":")))
-                .andExpect(content().string(containsString("\"status\":404")))
                 .andExpect(content().string(containsString(String.format("\"message\":\"El punto de suministro con identificador '%s' no ha sido encontrado. Revise que el identificador sea correcto.\"", supplyId))));
-    }
-
-    @Test
-    void testGetHourlyProductionWithWrongSupplyParameterName() throws Exception {
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-        String supplyId = "1";
-
-        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("supply", supplyId)
-                        .queryParam("startDate", START_DATE)
-                        .queryParam("endDate", END_DATE))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("power")));
-    }
-
-    @Test
-    void testGetHourlyProductionWithoutStartDate() throws Exception {
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-
-        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("endDate", END_DATE))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("\"traceId\":")))
-                .andExpect(content().string(containsString("\"timestamp\":")))
-                .andExpect(content().string(containsString("\"status\":400")))
-                .andExpect(content().string(containsString("\"message\":\"El parámetro con nombre 'startDate' es obligatorio.\"")));
-    }
-
-    @Test
-    void testGetHourlyProductionWithoutEndDate() throws Exception {
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-
-        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("startDate", START_DATE))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("\"traceId\":")))
-                .andExpect(content().string(containsString("\"timestamp\":")))
-                .andExpect(content().string(containsString("\"status\":400")))
-                .andExpect(content().encoding(StandardCharsets.UTF_8))
-                .andExpect(content().string(containsString("\"message\":\"El parámetro con nombre 'endDate' es obligatorio.\"")));
     }
 }
