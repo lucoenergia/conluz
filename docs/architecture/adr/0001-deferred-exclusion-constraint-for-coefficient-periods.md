@@ -1,4 +1,4 @@
-# ADR-0003 — Defer the coefficient overlap constraint and re-check it explicitly
+# ADR-0001 — Defer the coefficient overlap constraint and re-check it explicitly
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
