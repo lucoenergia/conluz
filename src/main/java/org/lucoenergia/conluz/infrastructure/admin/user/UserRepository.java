@@ -19,7 +19,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     boolean existsByPersonalId(String personalId);
 
-    long countByIsPlatformAdminTrue();
+    long countByIsPlatformAdminTrueAndEnabledTrue();
 
     @Query("SELECT u FROM users u WHERE EXISTS(SELECT s FROM supplies s WHERE s.user = u)")
     List<UserEntity> findAllUsersWithAtLeastOneSupply();

@@ -33,7 +33,7 @@ public class ManagePlatformAdminRepositoryDatabase implements ManagePlatformAdmi
     @Override
     @Transactional(readOnly = true)
     public long countPlatformAdmins() {
-        return userRepository.countByIsPlatformAdminTrue();
+        return userRepository.countByIsPlatformAdminTrueAndEnabledTrue();
     }
 
     private void setPlatformAdmin(UserId id, boolean value) {
