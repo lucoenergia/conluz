@@ -91,19 +91,12 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
 
     @Override
     public boolean canReadSharingAgreement(UUID plantId, UUID sharingAgreementId) {
-        User user = helper.getCurrentUser().orElse(null);
-        if (user == null) {
-            return false;
-        }
-        getCommunityIdOfVisiblePlant(user, plantId);
-        // The agreement is the resource whose existence must not leak: a caller who cannot see the
-        // plant already got a 404 above; one who can see the plant but targets an agreement that
-        // does not exist or belongs to a different plant must not be told it exists elsewhere.
-        SharingAgreement agreement = getSharingAgreementRepository.findById(sharingAgreementId).orElse(null);
-        if (agreement == null || !plantId.equals(agreement.getPlantId())) {
-            throw new SharingAgreementNotFoundException(sharingAgreementId);
-        }
-        return true;
+        // Sharing agreement contents (coefficients, distributor files, participating supplies' CUPS)
+        // are admin-only, so a member-non-admin gets a 403. This is currently byte-for-byte identical
+        // to canManageSharingAgreement(plantId, sharingAgreementId) -- kept as a separate, deliberately
+        // duplicating method (not merged away) so the two rules can diverge later without touching
+        // call sites; do not delete this method as dead weight.
+        return canManageSharingAgreement(plantId, sharingAgreementId);
     }
 
     @Override

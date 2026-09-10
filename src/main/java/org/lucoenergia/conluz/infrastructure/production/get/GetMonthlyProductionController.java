@@ -40,9 +40,9 @@ public class GetMonthlyProductionController {
             summary = "Retrieves monthly energy production data of a community within a given date interval.",
             description = "Retrieves monthly energy production data for the plants of the community identified by the path "
                     + "`communityId`, within the specified date interval. **Required: any member of the community.** "
-                    + "Returns 404 if the community does not exist or the caller is not a member of it. When a `supplyId` "
-                    + "is provided, only the supply owner or a Community Admin of the supply's community may access it, "
-                    + "and the supply must belong to the community in the path.",
+                    + "Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a "
+                    + "non-member platform admin. When a `supplyId` is provided, it must back a plant of the community "
+                    + "in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
             tags = ApiTag.PRODUCTION,
             operationId = "getMonthlyProduction"
     )
@@ -58,8 +58,7 @@ public class GetMonthlyProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated() and @communityAccessGuard.canReadCommunity(#communityId)"
-            + " and (#supplyId == null or @communityAccessGuard.canReadSupply(#supplyId))")
+    @PreAuthorize("isAuthenticated() and @communityAccessGuard.isMemberOfCommunity(#communityId)")
     public List<ProductionByTime> getMonthlyProduction(
             @PathVariable UUID communityId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,

@@ -18,7 +18,7 @@ public interface PlantAccessGuard {
 
     /**
      * Whether the current user may read the given sharing agreement, which must belong to the
-     * given plant. Allowed for any enabled member (regardless of role) of the plant's community.
+     * given plant. Only community admins of the plant's community.
      */
     boolean canReadSharingAgreement(UUID plantId, UUID sharingAgreementId);
 

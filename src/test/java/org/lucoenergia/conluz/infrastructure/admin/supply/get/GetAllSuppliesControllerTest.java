@@ -129,7 +129,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -140,6 +140,17 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalElements").value("0"))
                 .andExpect(jsonPath("$.totalPages").value("0"))
                 .andExpect(jsonPath("$.number").value("0"));
+    }
+
+    @Test
+    void testPlatformAdminNotMemberIsForbidden() throws Exception {
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -159,7 +170,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -189,7 +200,7 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
         Supply supplyThree = SupplyMother.random(userTwo).build();
         createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

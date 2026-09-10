@@ -100,12 +100,23 @@ class GetSharingAgreementsControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void returnsForbiddenForCommunityMember() throws Exception {
+        String authHeader = loginAsCommunityMember(communityA.getId());
+
+        mockMvc.perform(get(url(plantA.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void returnsAgreementsForCommunityMemberOrderedNewestFirst() throws Exception {
         Instant now = Instant.now();
         createAgreement(plantA, SharingAgreementStatus.DRAFT, now.minusSeconds(60));
         SharingAgreementEntity newest = createAgreement(plantA, SharingAgreementStatus.PUBLISHED, now);
 
-        String authHeader = loginAsCommunityMember(communityA.getId());
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(get(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -121,7 +132,7 @@ class GetSharingAgreementsControllerTest extends BaseControllerTest {
         createAgreement(plantA, SharingAgreementStatus.DRAFT, Instant.now().minusSeconds(60));
         SharingAgreementEntity published = createAgreement(plantA, SharingAgreementStatus.PUBLISHED, Instant.now());
 
-        String authHeader = loginAsCommunityMember(communityA.getId());
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(get(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -152,7 +163,7 @@ class GetSharingAgreementsControllerTest extends BaseControllerTest {
         file.setUploadedBy(uploader.getId());
         sharingAgreementFileRepository.save(file);
 
-        String authHeader = loginAsCommunityMember(communityA.getId());
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(get(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

@@ -272,7 +272,29 @@ class PlantAccessGuardImplTest {
     }
 
     @Test
-    void canReadSharingAgreement_returnsTrue_whenUserIsMemberAndAgreementBelongsToPlant() {
+    void canReadSharingAgreement_returnsTrue_whenUserIsCommunityAdminAndAgreementBelongsToPlant() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+        when(helper.hasCommunityAdminRoleIn(user, communityId)).thenReturn(true);
+
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(agreementId)
+                .withPlantId(plant.getId())
+                .build();
+        when(getSharingAgreementRepository.findById(agreementId)).thenReturn(Optional.of(agreement));
+
+        assertTrue(guard().canReadSharingAgreement(plant.getId(), agreementId));
+    }
+
+    @Test
+    void canReadSharingAgreement_returnsFalse_whenUserIsCommunityMember() {
         Community community = CommunityMother.random().build();
         UUID communityId = community.getId();
         Supply supply = supplyInCommunity(UUID.randomUUID(), community);
@@ -289,7 +311,7 @@ class PlantAccessGuardImplTest {
                 .build();
         when(getSharingAgreementRepository.findById(agreementId)).thenReturn(Optional.of(agreement));
 
-        assertTrue(guard().canReadSharingAgreement(plant.getId(), agreementId));
+        assertFalse(guard().canReadSharingAgreement(plant.getId(), agreementId));
     }
 
     // --- canManageSharingAgreement(plantId) ---

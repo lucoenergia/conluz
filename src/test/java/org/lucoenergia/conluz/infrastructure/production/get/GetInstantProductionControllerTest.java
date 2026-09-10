@@ -49,12 +49,21 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
 
     @Test
     void testGetInstantProduction() throws Exception {
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));
+    }
+
+    @Test
+    void testGetInstantProduction_whenPlatformAdminNotMember_thenForbidden() throws Exception {
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -86,7 +95,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetInstantProductionByUnknownSupply() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         UUID supplyId = UUID.randomUUID();
 
         mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production")
@@ -102,7 +111,7 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetInstantProductionWithWrongParameter() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         String supplyId = "1";
 
         mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production")
