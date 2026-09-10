@@ -21,8 +21,6 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileEntity;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -118,6 +116,12 @@ class GetSharingAgreementFileControllerTest extends BaseControllerTest {
 
     @Test
     void returnsNotFoundWhenAgreementBelongsToAnotherPlantOfTheSameCommunity() throws Exception {
+        // The caller can see the community and the path plant, but the agreement belongs to a
+        // different plant -> 404, it must not be served. Deliberately kept on a plain member
+        // (not an admin) rather than converted to loginAsCommunityAdmin: this is the only test
+        // proving the visibility gate runs before the role gate -- a member targeting a
+        // wrong-plant agreement must still get 404, not 403, even though that same member would
+        // get 403 on a correctly-targeted agreement (see returnsForbiddenForCommunityMember).
         String authHeader = loginAsCommunityMember(communityA.getId());
 
         mockMvc.perform(get(url(otherPlantInCommunityA.getId(), agreementWithFile.getId()))
@@ -128,8 +132,19 @@ class GetSharingAgreementFileControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void returnsNotFoundWhenAgreementHasNoFile() throws Exception {
+    void returnsForbiddenForCommunityMember() throws Exception {
         String authHeader = loginAsCommunityMember(communityA.getId());
+
+        mockMvc.perform(get(url(plantA.getId(), agreementWithFile.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void returnsNotFoundWhenAgreementHasNoFile() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(get(url(plantA.getId(), agreementWithoutFile.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -140,7 +155,7 @@ class GetSharingAgreementFileControllerTest extends BaseControllerTest {
 
     @Test
     void returnsFileForCommunityMember() throws Exception {
-        String authHeader = loginAsCommunityMember(communityA.getId());
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(get(url(plantA.getId(), agreementWithFile.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

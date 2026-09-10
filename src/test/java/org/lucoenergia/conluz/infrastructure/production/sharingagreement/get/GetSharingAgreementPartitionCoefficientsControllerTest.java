@@ -174,14 +174,13 @@ class GetSharingAgreementPartitionCoefficientsControllerTest extends BaseControl
     }
 
     @Test
-    void returnsOkForCommunityMember() throws Exception {
+    void returnsForbiddenForCommunityMember() throws Exception {
         setUpMultiAgreementFixture();
         String authHeader = loginAsCommunityMember(communityA.getId());
 
         mockMvc.perform(get(url(plantA.getId(), agreement1.getId())).header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(5)));
+                .andExpect(status().isForbidden());
     }
 
     @Test

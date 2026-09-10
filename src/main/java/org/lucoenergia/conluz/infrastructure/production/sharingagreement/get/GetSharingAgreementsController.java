@@ -43,10 +43,11 @@ public class GetSharingAgreementsController {
             description = """
                     Returns the sharing agreements of the given plant, newest first, optionally filtered by status.
 
-                    **Required: any member of the plant's community (any role).**
+                    **Required: community admin of the plant's community.**
 
-                    Returns 404 if the plant does not exist OR if the caller is not a member of its
-                    community, to avoid leaking the existence of plants by ID.
+                    Returns 404 if the plant does not exist or if the caller is not a member of its
+                    community, to avoid leaking the existence of plants by ID. Returns 403 if the
+                    caller is an enabled member of the plant's community but not a community admin.
 
                     Authentication is required using a Bearer token.
                     """,
@@ -66,7 +67,7 @@ public class GetSharingAgreementsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canReadPlant(#plantId)")
+    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId)")
     public List<SharingAgreementResponse> getSharingAgreements(
             @PathVariable UUID plantId,
             @Parameter(description = "Filter by status") @RequestParam(required = false) SharingAgreementStatus status) {
