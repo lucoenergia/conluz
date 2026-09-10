@@ -39,11 +39,13 @@ public class GetSharingAgreementByIdController {
             description = """
                     This endpoint retrieves detailed information about a specific sharing agreement of a plant.
 
-                    **Required: any member of the plant's community (any role).**
+                    **Required: community admin of the plant's community.**
 
                     Returns 404 if the plant does not exist, if the caller is not a member of its
                     community, or if the sharing agreement does not exist or does not belong to
                     this plant, to avoid leaking the existence of plants or agreements by ID.
+                    Returns 403 if the caller is an enabled member of the plant's community but
+                    not a community admin.
 
                     Authentication is required using a Bearer token.
                     """,

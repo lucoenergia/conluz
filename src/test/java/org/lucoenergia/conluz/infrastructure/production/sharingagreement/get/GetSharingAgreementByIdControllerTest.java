@@ -103,7 +103,11 @@ class GetSharingAgreementByIdControllerTest extends BaseControllerTest {
     @Test
     void returnsNotFoundWhenAgreementBelongsToAnotherPlantOfTheSameCommunity() throws Exception {
         // The caller can see the community and the path plant, but the agreement belongs to a
-        // different plant -> 404, it must not be served.
+        // different plant -> 404, it must not be served. Deliberately kept on a plain member
+        // (not an admin) rather than converted to loginAsCommunityAdmin: this is the only test
+        // proving the visibility gate runs before the role gate -- a member targeting a
+        // wrong-plant agreement must still get 404, not 403, even though that same member would
+        // get 403 on a correctly-targeted agreement (see returnsForbiddenForCommunityMember).
         String authHeader = loginAsCommunityMember(communityA.getId());
 
         mockMvc.perform(get(url(otherPlantInCommunityA.getId(), agreementOfPlantA.getId()))
@@ -114,8 +118,19 @@ class GetSharingAgreementByIdControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void returnsAgreementForCommunityMember() throws Exception {
+    void returnsForbiddenForCommunityMember() throws Exception {
         String authHeader = loginAsCommunityMember(communityA.getId());
+
+        mockMvc.perform(get(url(plantA.getId(), agreementOfPlantA.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void returnsAgreementForCommunityMember() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(get(url(plantA.getId(), agreementOfPlantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -143,7 +158,7 @@ class GetSharingAgreementByIdControllerTest extends BaseControllerTest {
         file.setUploadedBy(uploader.getId());
         sharingAgreementFileRepository.save(file);
 
-        String authHeader = loginAsCommunityMember(communityA.getId());
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(get(url(plantA.getId(), agreementOfPlantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
