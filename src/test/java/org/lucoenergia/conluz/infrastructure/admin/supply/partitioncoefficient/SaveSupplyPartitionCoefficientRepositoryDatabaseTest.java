@@ -17,8 +17,11 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
+import org.lucoenergia.conluz.infrastructure.shared.error.PostgresConstraintNameChecker;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -98,10 +101,13 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
         persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(3.000000), t0, null);
 
-        // Attempting to persist a second open-ended row for the same (plant, supply) must fail
+        // Attempting to persist a second open-ended row for the same (plant, supply) must fail.
+        // The constraint is deferred (checked at COMMIT, not per-statement), so flush() alone no
+        // longer triggers it inside this @Transactional test, which never commits -- force an
+        // immediate check instead.
         assertThrows(Exception.class, () -> {
             persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(4.000000), t1, null);
-            // Force the flush so the DB constraint fires within this transaction
+            jdbcTemplate.execute("SET CONSTRAINTS no_overlapping_coefficients IMMEDIATE");
             jpaRepository.flush();
         });
     }
@@ -133,11 +139,37 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
         Instant t3 = Instant.parse("2025-06-01T00:00:00Z");
         persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1);
 
-        // [t2, t3) overlaps [t0, t1) even though neither row is open-ended.
+        // [t2, t3) overlaps [t0, t1) even though neither row is open-ended. Same deferred-constraint
+        // note as uniqueActiveConstraintPreventsSecondOpenRowForSameSupply above.
         assertThrows(Exception.class, () -> {
             persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(2.0), t2, t3);
+            jdbcTemplate.execute("SET CONSTRAINTS no_overlapping_coefficients IMMEDIATE");
             jpaRepository.flush();
         });
+    }
+
+    // Every other test in this class forces an IMMEDIATE check, which passes even against a
+    // constraint that was never actually made deferrable -- this is the one test that exercises
+    // the configuration production actually runs under: a real COMMIT.
+    @Test
+    void overlappingCoefficientsAreRejectedAtCommit() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
+        Instant t2 = Instant.parse("2024-06-01T00:00:00Z");
+        Instant t3 = Instant.parse("2025-06-01T00:00:00Z");
+        UUID id1 = persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1).getId();
+        UUID id2 = persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(2.0), t2, t3).getId();
+
+        TestTransaction.flagForCommit();
+        DataIntegrityViolationException caught = assertThrows(DataIntegrityViolationException.class, TestTransaction::end);
+        assertTrue(PostgresConstraintNameChecker.matches(caught, CoefficientOverlapCheckRepositoryDatabase.CONSTRAINT_NAME),
+                "expected the no_overlapping_coefficients constraint, got: " + caught.getMessage());
+
+        TestTransaction.start();
+        assertTrue(jpaRepository.findById(id1).isEmpty());
+        assertTrue(jpaRepository.findById(id2).isEmpty());
     }
 
     @Test

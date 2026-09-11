@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement;
 
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientOverlapException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.*;
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.DistributorFileValidationException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationException;
@@ -152,6 +153,14 @@ public class SharingAgreementExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(summary, details, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(SupplyPartitionCoefficientOverlapException.class)
+    public ResponseEntity<RestError> handleException(SupplyPartitionCoefficientOverlapException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.coefficient.overlap.conflict", null, LocaleContextHolder.getLocale());
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_COEFFICIENT_OVERLAP_CONFLICT, null, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(SharingAgreementCoefficientSumInvalidException.class)

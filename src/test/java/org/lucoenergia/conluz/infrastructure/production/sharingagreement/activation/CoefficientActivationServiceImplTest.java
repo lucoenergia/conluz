@@ -6,6 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapCheckRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
@@ -62,10 +63,13 @@ class CoefficientActivationServiceImplTest {
     private GetSupplyRepository getSupplyRepository;
     @Mock
     private ZoneResolver zoneResolver;
+    @Mock
+    private CoefficientOverlapCheckRepository overlapCheckRepository;
 
     private CoefficientActivationServiceImpl service() {
         return new CoefficientActivationServiceImpl(getSharingAgreementService, getCoefficientRepository,
-                saveCoefficientRepository, recomputeStatusRepository, getSupplyRepository, zoneResolver);
+                saveCoefficientRepository, recomputeStatusRepository, getSupplyRepository, zoneResolver,
+                overlapCheckRepository);
     }
 
     private static final UUID PLANT_ID = UUID.randomUUID();
@@ -781,7 +785,8 @@ class CoefficientActivationServiceImplTest {
         when(saveRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
         CoefficientActivationServiceImpl serviceUnderTest = new CoefficientActivationServiceImpl(
-                agreementService, coefficientRepository, saveRepository, recomputeStatusRepository, getSupplyRepository, resolver);
+                agreementService, coefficientRepository, saveRepository, recomputeStatusRepository, getSupplyRepository,
+                resolver, overlapCheckRepository);
         serviceUnderTest.setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId));
 
         return captor.getValue().getValidFrom();

@@ -23,5 +23,11 @@ public enum CoefficientActivationErrorCode {
     COEFFICIENT_NOT_ACTIVE,
     /** close/correct-close: newValidTo <= coefficient's own validFrom. Distinct from the predecessor/
      * successor codes above, which name a different row. Params: coefficientId, cups. */
-    CLOSURE_DATE_NOT_AFTER_ACTIVATION
+    CLOSURE_DATE_NOT_AFTER_ACTIVATION,
+    /** The write this item resolves to would overlap another coefficient -- not necessarily the
+     * immediate predecessor/successor already checked above -- for the same (plantId, supplyId),
+     * once every write in this batch is projected onto the supply's full history. Checked after all
+     * of the codes above, so it never fires for a case one of them already names precisely.
+     * Params: coefficientId, cups, conflictingCoefficientId. */
+    PERIOD_OVERLAP
 }

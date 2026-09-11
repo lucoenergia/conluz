@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -109,4 +110,12 @@ public interface GetSupplyPartitionCoefficientRepository {
      */
     Optional<SupplyPartitionCoefficient> findNextCoefficientForSupplyInLaterAgreement(
             UUID plantId, UUID supplyId, UUID excludeSharingAgreementId, Instant afterAgreementCreatedAt);
+
+    /**
+     * Every coefficient row -- any agreement, any time, pending or not -- for {@code plantId} and
+     * any of {@code supplyIds}. Used to project a batch's writes onto the complete history for the
+     * supplies it touches, so {@link CoefficientOverlapDetector} can check for an overlap against
+     * the whole chain, not just the immediate predecessor/successor.
+     */
+    List<SupplyPartitionCoefficient> findAllByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds);
 }

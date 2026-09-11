@@ -48,6 +48,9 @@ public class CoefficientActivationErrorMapper {
         register(CoefficientActivationErrorCode.CLOSURE_DATE_NOT_AFTER_ACTIVATION,
                 RestErrorCode.SHARING_AGREEMENT_CLOSURE_DATE_NOT_AFTER_ACTIVATION,
                 "error.sharing.agreement.closure.date.not.after.activation", "coefficientId", "cups");
+        register(CoefficientActivationErrorCode.PERIOD_OVERLAP,
+                RestErrorCode.SHARING_AGREEMENT_COEFFICIENT_PERIOD_OVERLAP,
+                "error.sharing.agreement.coefficient.period.overlap", "coefficientId", "cups", "conflictingCoefficientId");
     }
 
     private static void register(CoefficientActivationErrorCode code, RestErrorCode restErrorCode, String messageKey,

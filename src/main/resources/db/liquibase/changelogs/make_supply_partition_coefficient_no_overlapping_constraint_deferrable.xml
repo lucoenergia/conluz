@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- The activation cascade (CoefficientActivationServiceImpl.setValidFrom/setValidTo) opens
+         one row and closes another for the same (plant_id, supply_id) inside a single
+         transaction. Hibernate flushes pending updates in persistence-context load order, not in
+         the cascade's logical order, so the two UPDATEs can hit the database with the successor
+         opened before the predecessor is closed — a transient, self-resolving double-open state
+         that a non-deferrable constraint rejects immediately. Deferring the check to COMMIT makes
+         correctness depend only on the transaction's final state.
+
+         DROP+ADD (Postgres does not support ALTER CONSTRAINT on exclusion constraints) runs as one
+         Liquibase changeSet, i.e. one Postgres transaction, so no writer can observe the table
+         without this constraint. ADD CONSTRAINT takes an ACCESS EXCLUSIVE lock on
+         supply_partition_coefficient for the duration (brief: schema-only, no data rewrite) and
+         re-validates the exclusion predicate against every existing row — it fails outright,
+         halting the migration, if any pair already overlaps. That re-validation is expected to be
+         a no-op here: the original (non-deferrable) constraint already proved the data holds this
+         invariant, and the ACCESS EXCLUSIVE lock across DROP+ADD rules out anything changing it
+         mid-migration. -->
+    <changeSet id="make_supply_partition_coefficient_no_overlapping_constraint_deferrable" author="Víctor Cañizares">
+        <sql>
+            ALTER TABLE supply_partition_coefficient DROP CONSTRAINT no_overlapping_coefficients;
+            ALTER TABLE supply_partition_coefficient ADD CONSTRAINT no_overlapping_coefficients
+              EXCLUDE USING gist (plant_id WITH =, supply_id WITH =,
+                                  tstzrange(valid_from, valid_to, '[)') WITH &amp;&amp;)
+              WHERE (valid_from IS NOT NULL)
+              DEFERRABLE INITIALLY DEFERRED;
+        </sql>
+        <rollback>
+            <sql>
+                ALTER TABLE supply_partition_coefficient DROP CONSTRAINT no_overlapping_coefficients;
+                ALTER TABLE supply_partition_coefficient ADD CONSTRAINT no_overlapping_coefficients
+                  EXCLUDE USING gist (plant_id WITH =, supply_id WITH =,
+                                      tstzrange(valid_from, valid_to, '[)') WITH &amp;&amp;)
+                  WHERE (valid_from IS NOT NULL);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
