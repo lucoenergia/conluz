@@ -15,6 +15,27 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
             </column>
         </createTable>
         <addDefaultValue tableName="shelly_config" columnName="id" defaultValueComputed="gen_random_uuid()"/>
+        <!-- conluz-281: shelly_config did not exist before this changeset, so unlike Datadis/Huawei
+             there is no prior row to reconcile. An install upgrading from <= 1.0.76 signals that
+             Shelly was actually in use by having at least one supply with a real Shelly identifier
+             attached (shelly_mac/shelly_id/shelly_mqtt_prefix); not merely by having supplies at
+             all. Those flat columns still live on `supplies` at this point in the changelog chain;
+             they only move into the dedicated supplies_shelly table later, in
+             normalize_supplies_tables. If such a supply exists, insert a single enabled shelly_config
+             row to preserve the legacy always-on behavior; an install with no Shelly-identified supply
+             (including every fresh install) gets no row, matching the pre-existing "disabled"
+             semantics of an absent config. -->
+        <sql>
+            INSERT INTO shelly_config (id, enabled)
+            SELECT gen_random_uuid(), true
+            WHERE EXISTS (
+                SELECT 1 FROM supplies
+                WHERE shelly_mac IS NOT NULL OR shelly_id IS NOT NULL OR shelly_mqtt_prefix IS NOT NULL
+            );
+        </sql>
+        <rollback>
+            <dropTable tableName="shelly_config"/>
+        </rollback>
     </changeSet>
 
 </databaseChangeLog>
