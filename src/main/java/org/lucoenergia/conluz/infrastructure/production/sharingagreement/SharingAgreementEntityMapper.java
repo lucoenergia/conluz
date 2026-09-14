@@ -18,6 +18,8 @@ public class SharingAgreementEntityMapper extends BaseMapper<SharingAgreementEnt
                 .withInstalledPowerKw(entity.getInstalledPowerKw())
                 .withCreatedAt(entity.getCreatedAt())
                 .withCreatedBy(entity.getCreatedBy())
+                .withUpdatedAt(entity.getUpdatedAt())
+                .withUpdatedBy(entity.getUpdatedBy())
                 .build();
     }
 }

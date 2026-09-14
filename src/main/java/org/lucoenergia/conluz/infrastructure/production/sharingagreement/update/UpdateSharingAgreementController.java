@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreementService;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementResponse;
@@ -20,6 +21,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -97,9 +99,11 @@ public class UpdateSharingAgreementController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
-    public SharingAgreementResponse updateSharingAgreement(@PathVariable UUID plantId, @PathVariable UUID sharingAgreementId,
+    public SharingAgreementResponse updateSharingAgreement(@AuthenticationPrincipal User currentUser,
+                                                            @PathVariable UUID plantId, @PathVariable UUID sharingAgreementId,
                                                             @Valid @RequestBody UpdateSharingAgreementBody body) {
-        SharingAgreement agreement = service.update(plantId, sharingAgreementId, body.mapToUpdateSharingAgreement());
+        SharingAgreement agreement = service.update(plantId, sharingAgreementId,
+                body.mapToUpdateSharingAgreement(currentUser.getId()));
         return new SharingAgreementResponse(agreement);
     }
 }
