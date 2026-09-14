@@ -8,7 +8,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
     <!-- Sharing agreements can now be edited (name, notes, installed power) after publication, in
          any status. This records who last edited an agreement and when, without a full history
          table: only the latest edit is kept, never the previous value. Both columns are nullable
-         and NULL for every existing row -- those rows have never been edited, and NULL is the
+         and NULL for every existing row: those rows have never been edited, and NULL is the
          honest representation of that, not a value backfilled from created_at/created_by.
 
          updated_by uses onDelete="SET NULL", unlike created_by and sharing_agreement_file's
@@ -16,7 +16,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
          already make deleting a referenced user fail today, since nothing in this app handles
          DataIntegrityViolationException. Editing happens far more often than creating or
          uploading, so left as RESTRICT this column would make that existing gap much easier to
-         hit. Fixing it here is scoped to this new column only -- created_by/uploaded_by are a
+         hit. Fixing it here is scoped to this new column only; created_by/uploaded_by are a
          pre-existing gap, not something this changeset touches. -->
     <changeSet id="add_updated_at_and_updated_by_to_sharing_agreement" author="Víctor Cañizares">
         <preConditions onFail="HALT">
