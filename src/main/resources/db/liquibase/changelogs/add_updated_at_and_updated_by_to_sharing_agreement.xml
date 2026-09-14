@@ -32,11 +32,13 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
                 <constraints nullable="true"/>
             </column>
             <column name="updated_by" type="UUID" remarks="The user who last edited the agreement. NULL means it has never been edited since creation.">
-                <constraints nullable="true" foreignKeyName="sharing_agreement_updated_by_fk"
-                             referencedTableName="users" referencedColumnNames="id"
-                             onDelete="SET NULL"/>
+                <constraints nullable="true"/>
             </column>
         </addColumn>
+        <addForeignKeyConstraint baseTableName="sharing_agreement" baseColumnNames="updated_by"
+                                  constraintName="sharing_agreement_updated_by_fk"
+                                  referencedTableName="users" referencedColumnNames="id"
+                                  onDelete="SET NULL"/>
         <rollback>
             <dropColumn tableName="sharing_agreement" columnName="updated_at"/>
             <dropColumn tableName="sharing_agreement" columnName="updated_by"/>
