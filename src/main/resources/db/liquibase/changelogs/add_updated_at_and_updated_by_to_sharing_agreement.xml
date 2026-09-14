@@ -45,4 +45,26 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
         </rollback>
     </changeSet>
 
+    <!-- The original changeSet above deliberately left created_by as RESTRICT. This changeset
+         reverses that decision: deleting a user now fails whenever they created an agreement, and
+         deleting a user is something this app does. onDelete="SET NULL" matches updated_by and is
+         honest for created_by too, since NULL already means "the system, not a person" (see its
+         column remarks): after a user is deleted, "that user" is no longer a meaningful answer.
+         uploaded_by on sharing_agreement_file remains a pre-existing gap, untouched. -->
+    <changeSet id="add_on_delete_set_null_to_sharing_agreement_created_by_fk" author="Víctor Cañizares">
+        <dropForeignKeyConstraint baseTableName="sharing_agreement"
+                                  constraintName="sharing_agreement_created_by_fk"/>
+        <addForeignKeyConstraint baseTableName="sharing_agreement" baseColumnNames="created_by"
+                                  constraintName="sharing_agreement_created_by_fk"
+                                  referencedTableName="users" referencedColumnNames="id"
+                                  onDelete="SET NULL"/>
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="sharing_agreement"
+                                      constraintName="sharing_agreement_created_by_fk"/>
+            <addForeignKeyConstraint baseTableName="sharing_agreement" baseColumnNames="created_by"
+                                      constraintName="sharing_agreement_created_by_fk"
+                                      referencedTableName="users" referencedColumnNames="id"/>
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>
