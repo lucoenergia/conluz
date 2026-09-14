@@ -51,7 +51,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
             if (recordedPeriod.isEmpty()) {
                 // The supply has never stored a consumption record, so there is no period to
                 // report. This is an empty result, not a missing supply.
-                return SupplyEnergyMetrics.empty(null, null, 0L);
+                return SupplyEnergyMetrics.empty(supply, null, null, 0L);
             }
             resolvedStartDate = dateConverter.convertInstantToOffsetDateTime(recordedPeriod.get().getFirstRecord());
             resolvedEndDate = dateConverter.convertInstantToOffsetDateTime(recordedPeriod.get().getLastRecord());
@@ -61,6 +61,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 .aggregateByRangeOfDates(supply, resolvedStartDate, resolvedEndDate);
 
         return new SupplyEnergyMetrics(
+                supply,
                 resolvedStartDate,
                 resolvedEndDate,
                 aggregate.getHoursWithData(),

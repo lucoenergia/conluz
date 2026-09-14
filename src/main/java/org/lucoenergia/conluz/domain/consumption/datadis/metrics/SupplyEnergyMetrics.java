@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.consumption.datadis.metrics;
 
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+
 import java.time.OffsetDateTime;
 
 /**
@@ -14,6 +16,7 @@ import java.time.OffsetDateTime;
  */
 public class SupplyEnergyMetrics {
 
+    private final Supply supply;
     private final OffsetDateTime startDate;
     private final OffsetDateTime endDate;
     private final long hoursWithData;
@@ -32,9 +35,10 @@ public class SupplyEnergyMetrics {
      * @param selfConsumptionKWh the sum of the stored {@code self_consumption_energy_kwh} field
      * @param surplusKWh         the sum of the stored {@code surplus_energy_kwh} field
      */
-    public SupplyEnergyMetrics(OffsetDateTime startDate, OffsetDateTime endDate, long hoursWithData,
-                               long expectedHours, double gridImportKWh, double selfConsumptionKWh,
-                               double surplusKWh) {
+    public SupplyEnergyMetrics(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate,
+                               long hoursWithData, long expectedHours, double gridImportKWh,
+                               double selfConsumptionKWh, double surplusKWh) {
+        this.supply = supply;
         this.startDate = startDate;
         this.endDate = endDate;
         this.hoursWithData = hoursWithData;
@@ -51,8 +55,9 @@ public class SupplyEnergyMetrics {
     /**
      * The metrics of a supply with no record in the resolved period, over the given period.
      */
-    public static SupplyEnergyMetrics empty(OffsetDateTime startDate, OffsetDateTime endDate, long expectedHours) {
-        return new SupplyEnergyMetrics(startDate, endDate, 0L, expectedHours, 0d, 0d, 0d);
+    public static SupplyEnergyMetrics empty(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate,
+                                            long expectedHours) {
+        return new SupplyEnergyMetrics(supply, startDate, endDate, 0L, expectedHours, 0d, 0d, 0d);
     }
 
     /**
@@ -65,6 +70,10 @@ public class SupplyEnergyMetrics {
             return null;
         }
         return numerator / denominator;
+    }
+
+    public Supply getSupply() {
+        return supply;
     }
 
     public OffsetDateTime getStartDate() {
