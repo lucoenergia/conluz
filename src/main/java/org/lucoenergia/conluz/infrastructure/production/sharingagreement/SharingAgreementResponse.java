@@ -9,7 +9,7 @@ import java.util.UUID;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 
-@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "installedPowerKw", "createdAt", "createdBy", "file"})
+@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "installedPowerKw", "createdAt", "createdBy", "updatedAt", "updatedBy", "file"})
 public class SharingAgreementResponse {
 
     @Schema(description = "Internal unique identifier of the sharing agreement", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
@@ -28,6 +28,10 @@ public class SharingAgreementResponse {
     private final Instant createdAt;
     @Schema(description = "Identifier of the user who created the agreement. Null means it was created by the system (a migration), not by a person", types = {"string", "null"})
     private final UUID createdBy;
+    @Schema(description = "Date and time the agreement was last edited. Null means it has never been edited since creation", types = {"string", "null"})
+    private final Instant updatedAt;
+    @Schema(description = "Identifier of the user who last edited the agreement. Null means it has never been edited since creation", types = {"string", "null"})
+    private final UUID updatedBy;
     @Schema(description = "Metadata of the latest evidence file uploaded for this agreement. Null means no file has been uploaded, never that it wasn't loaded", types = {"object", "null"})
     private final SharingAgreementFileResponse file;
 
@@ -40,6 +44,8 @@ public class SharingAgreementResponse {
         this.installedPowerKw = sharingAgreement.getInstalledPowerKw();
         this.createdAt = sharingAgreement.getCreatedAt();
         this.createdBy = sharingAgreement.getCreatedBy();
+        this.updatedAt = sharingAgreement.getUpdatedAt();
+        this.updatedBy = sharingAgreement.getUpdatedBy();
         this.file = sharingAgreement.getFile() == null ? null : new SharingAgreementFileResponse(
                 sharingAgreement.getFile().getId(),
                 sharingAgreement.getFile().getFilename(),
@@ -76,6 +82,14 @@ public class SharingAgreementResponse {
 
     public UUID getCreatedBy() {
         return createdBy;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public UUID getUpdatedBy() {
+        return updatedBy;
     }
 
     public SharingAgreementFileResponse getFile() {

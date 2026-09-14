@@ -1,9 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.update;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -18,7 +15,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Forbidd
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -48,18 +44,19 @@ public class UpdateSharingAgreementController {
 
     @PutMapping
     @Operation(
-            summary = "Replaces a DRAFT sharing agreement's name, notes and installed power",
+            summary = "Replaces a sharing agreement's name, notes and installed power",
             description = """
-                    This endpoint replaces the name, notes and installed power of a sharing agreement.
-                    All three fields must be provided; this is a full replacement of the updatable
-                    fields, not a partial update. Its status, plant and creation metadata can never be
-                    changed through this endpoint.
+                    This endpoint replaces the name, notes and installed power of a sharing agreement,
+                    regardless of its status: DRAFT, PUBLISHED and SUPERSEDED agreements can all be
+                    edited this way. All three fields must be provided; this is a full replacement of
+                    the updatable fields, not a partial update. Its status, plant and creation metadata
+                    can never be changed through this endpoint. The acting user and the time of the
+                    edit are recorded as updatedBy/updatedAt on the returned agreement.
 
                     **Required: Community Admin**
 
                     Returns 404 if the plant or the agreement does not exist, does not belong to this
                     plant, or the caller is not a member of its community, to avoid leaking existence.
-                    Returns 409 if the agreement is not in DRAFT status.
 
                     Authentication is required using a Bearer token.
                     """,
@@ -72,25 +69,6 @@ public class UpdateSharingAgreementController {
                     responseCode = "200",
                     description = "The sharing agreement has been successfully updated.",
                     useReturnTypeSchema = true
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "The agreement is not in DRAFT status.",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = RestError.class),
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                               "timestamp": "2024-01-03T10:10:25.534035352+01:00",
-                                               "status": 409,
-                                               "message": "Sharing agreement 'ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c' is not in DRAFT status.",
-                                               "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
-                                               "errors": []
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     @BadRequestErrorResponse
