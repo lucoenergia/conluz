@@ -1,0 +1,113 @@
+package org.lucoenergia.conluz.domain.consumption.datadis.metrics;
+
+import java.time.OffsetDateTime;
+
+/**
+ * A supply's energy totals and self-sufficiency / self-consumption ratios over a resolved period.
+ *
+ * <p>The ratios are computed by summing every record first and dividing once, never by averaging
+ * per-record ratios: an hour consuming 100 kWh and an hour consuming 1 kWh must not weigh the
+ * same.</p>
+ *
+ * <p>Both period bounds are null when the supply has no stored record and no explicit period was
+ * requested.</p>
+ */
+public class SupplyEnergyMetrics {
+
+    private final OffsetDateTime startDate;
+    private final OffsetDateTime endDate;
+    private final long hoursWithData;
+    private final long expectedHours;
+    private final double gridImportKWh;
+    private final double selfConsumptionKWh;
+    private final double surplusKWh;
+    private final double totalConsumptionKWh;
+    private final double assignedProductionKWh;
+    private final Double selfSufficiencyRatio;
+    private final Double selfConsumptionRatio;
+
+    /**
+     * @param gridImportKWh      the sum of the stored {@code consumption_kwh} field, which is
+     *                           energy imported from the grid and excludes self-consumed energy
+     * @param selfConsumptionKWh the sum of the stored {@code self_consumption_energy_kwh} field
+     * @param surplusKWh         the sum of the stored {@code surplus_energy_kwh} field
+     */
+    public SupplyEnergyMetrics(OffsetDateTime startDate, OffsetDateTime endDate, long hoursWithData,
+                               long expectedHours, double gridImportKWh, double selfConsumptionKWh,
+                               double surplusKWh) {
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.hoursWithData = hoursWithData;
+        this.expectedHours = expectedHours;
+        this.gridImportKWh = gridImportKWh;
+        this.selfConsumptionKWh = selfConsumptionKWh;
+        this.surplusKWh = surplusKWh;
+        this.totalConsumptionKWh = gridImportKWh + selfConsumptionKWh;
+        this.assignedProductionKWh = selfConsumptionKWh + surplusKWh;
+        this.selfSufficiencyRatio = ratio(selfConsumptionKWh, this.totalConsumptionKWh);
+        this.selfConsumptionRatio = ratio(selfConsumptionKWh, this.assignedProductionKWh);
+    }
+
+    /**
+     * The metrics of a supply with no record in the resolved period, over the given period.
+     */
+    public static SupplyEnergyMetrics empty(OffsetDateTime startDate, OffsetDateTime endDate, long expectedHours) {
+        return new SupplyEnergyMetrics(startDate, endDate, 0L, expectedHours, 0d, 0d, 0d);
+    }
+
+    /**
+     * Divides only once the denominator is known to be non-zero, so a ratio is either a finite
+     * number or null. Dividing first would yield {@code NaN} or {@code Infinity}, which Jackson
+     * serialises as bare tokens that are not valid JSON.
+     */
+    private static Double ratio(double numerator, double denominator) {
+        if (denominator == 0d) {
+            return null;
+        }
+        return numerator / denominator;
+    }
+
+    public OffsetDateTime getStartDate() {
+        return startDate;
+    }
+
+    public OffsetDateTime getEndDate() {
+        return endDate;
+    }
+
+    public long getHoursWithData() {
+        return hoursWithData;
+    }
+
+    public long getExpectedHours() {
+        return expectedHours;
+    }
+
+    public double getGridImportKWh() {
+        return gridImportKWh;
+    }
+
+    public double getSelfConsumptionKWh() {
+        return selfConsumptionKWh;
+    }
+
+    public double getSurplusKWh() {
+        return surplusKWh;
+    }
+
+    public double getTotalConsumptionKWh() {
+        return totalConsumptionKWh;
+    }
+
+    public double getAssignedProductionKWh() {
+        return assignedProductionKWh;
+    }
+
+    public Double getSelfSufficiencyRatio() {
+        return selfSufficiencyRatio;
+    }
+
+    public Double getSelfConsumptionRatio() {
+        return selfConsumptionRatio;
+    }
+}
