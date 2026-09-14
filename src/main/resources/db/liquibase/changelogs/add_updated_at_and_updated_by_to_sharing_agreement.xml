@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Sharing agreements can now be edited (name, notes, installed power) after publication, in
+         any status. This records who last edited an agreement and when, without a full history
+         table: only the latest edit is kept, never the previous value. Both columns are nullable
+         and NULL for every existing row -- those rows have never been edited, and NULL is the
+         honest representation of that, not a value backfilled from created_at/created_by.
+
+         updated_by uses onDelete="SET NULL", unlike created_by and sharing_agreement_file's
+         uploaded_by (neither has an onDelete clause, i.e. default RESTRICT): those two columns
+         already make deleting a referenced user fail today, since nothing in this app handles
+         DataIntegrityViolationException. Editing happens far more often than creating or
+         uploading, so left as RESTRICT this column would make that existing gap much easier to
+         hit. Fixing it here is scoped to this new column only -- created_by/uploaded_by are a
+         pre-existing gap, not something this changeset touches. -->
+    <changeSet id="add_updated_at_and_updated_by_to_sharing_agreement" author="Víctor Cañizares">
+        <preConditions onFail="HALT">
+            <not>
+                <columnExists tableName="sharing_agreement" columnName="updated_at"/>
+            </not>
+            <not>
+                <columnExists tableName="sharing_agreement" columnName="updated_by"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="sharing_agreement">
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" remarks="When the agreement was last edited. NULL means it has never been edited since creation.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="updated_by" type="UUID" remarks="The user who last edited the agreement. NULL means it has never been edited since creation.">
+                <constraints nullable="true" foreignKeyName="sharing_agreement_updated_by_fk"
+                             referencedTableName="users" referencedColumnNames="id"
+                             onDelete="SET NULL"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="sharing_agreement" columnName="updated_at"/>
+            <dropColumn tableName="sharing_agreement" columnName="updated_by"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
