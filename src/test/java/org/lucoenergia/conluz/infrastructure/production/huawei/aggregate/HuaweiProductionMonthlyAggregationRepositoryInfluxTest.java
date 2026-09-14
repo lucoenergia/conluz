@@ -52,7 +52,7 @@ class HuaweiProductionMonthlyAggregationRepositoryInfluxTest extends BaseIntegra
 
     @BeforeEach
     void setUp() {
-        plant = PlantMother.random().withCode(STATION_CODE).build();
+        plant = PlantMother.random().withProviderCode(STATION_CODE).build();
         loadHourlyDataForApril2023();
     }
 

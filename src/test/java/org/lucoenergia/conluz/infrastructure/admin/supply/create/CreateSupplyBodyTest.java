@@ -15,7 +15,6 @@ class CreateSupplyBodyTest {
         body.setPersonalId(" PERSONAL456  ");
         body.setAddress(" Test Address  ");
         body.setAddressRef("ASDFKSDF98I78");
-        body.setPartitionCoefficient(1.2f);
         body.setName(" Supply Name ");
 
         // Perform mapping
@@ -27,7 +26,6 @@ class CreateSupplyBodyTest {
         assertEquals("PERSONAL456", result.getUser().getPersonalId());
         assertEquals("Test Address", result.getAddress());
         assertEquals(body.getAddressRef(), result.getAddressRef());
-        assertEquals(1.2f, result.getPartitionCoefficient());
         assertEquals("Supply Name", result.getName());
     }
 
@@ -39,7 +37,6 @@ class CreateSupplyBodyTest {
         body.setPersonalId("PERSONAL456");
         body.setAddress("Test Address");
         body.setAddressRef("ASDFKSDF98I78");
-        body.setPartitionCoefficient(1.2f);
         body.setName(null);
 
         // Perform mapping
@@ -52,7 +49,6 @@ class CreateSupplyBodyTest {
         assertEquals("Test Address", result.getAddress());
         assertEquals(body.getAddressRef(), result.getAddressRef());
         assertEquals(body.getAddressRef(), result.getAddressRef());
-        assertEquals(1.2f, result.getPartitionCoefficient());
         assertNull(result.getName());
     }
 
@@ -64,7 +60,6 @@ class CreateSupplyBodyTest {
         body.setPersonalId("PERSONAL456");
         body.setAddress("Test Address");
         body.setAddressRef("ASDFKSDF98I78");
-        body.setPartitionCoefficient(1.2f);
         body.setName("  ");
 
         // Perform mapping
@@ -76,7 +71,6 @@ class CreateSupplyBodyTest {
         assertEquals("PERSONAL456", result.getUser().getPersonalId());
         assertEquals("Test Address", result.getAddress());
         assertEquals(body.getAddressRef(), result.getAddressRef());
-        assertEquals(1.2f, result.getPartitionCoefficient());
         assertNull(result.getName());
     }
 }

@@ -35,7 +35,7 @@ public class GetUserByIdController {
         this.service = service;
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{userId}")
     @Operation(
             summary = "Retrieves a single user by ID",
             description = """
@@ -62,7 +62,7 @@ public class GetUserByIdController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canReadUser(#userId)")
-    public UserResponse getUserById(@PathVariable("id") UUID userId) {
+    public UserResponse getUserById(@PathVariable("userId") UUID userId) {
         User user = service.findById(UserId.of(userId));
         return new UserResponse(user);
     }

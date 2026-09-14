@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.supply.sync;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;

@@ -1,0 +1,24 @@
+# Pre-commit hook for conluz.
+#
+# This repo is PUBLIC and world-readable, so a committed secret must be treated as
+# compromised the moment it lands. gitleaks is the safety net that stops a real secret
+# (JWT key, DB/InfluxDB/MQTT password, PGPASSWORD, token, private key) from ever being
+# committed here — real values live only in gitignored .env files on the host; committed
+# files use ${VAR} interpolation and *.env.example templates. See docs/gitleaks.md.
+#
+# This config invokes the SYSTEM gitleaks binary (language: system) rather than building it
+# from source, so no Go toolchain is required. Install both tools from your distro:
+#
+#   sudo apt install pre-commit gitleaks      # Ubuntu/Debian
+#   pre-commit install                        # writes .git/hooks/pre-commit
+#
+# Note: `gitleaks protect --staged` is the pre-commit subcommand in gitleaks 8.16–8.18
+# (the apt version). In gitleaks 8.19+ it becomes `gitleaks git --staged`.
+repos:
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (scan staged changes)
+        entry: gitleaks protect --staged --redact --verbose
+        language: system
+        pass_filenames: false

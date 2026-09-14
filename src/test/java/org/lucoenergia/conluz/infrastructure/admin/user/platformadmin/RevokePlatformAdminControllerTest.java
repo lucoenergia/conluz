@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.PERSONAL_ID;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -76,7 +77,10 @@ class RevokePlatformAdminControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()))
-                .andExpect(jsonPath("$.message").isNotEmpty());
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_LAST_PLATFORM_ADMIN"))
+                .andExpect(jsonPath("$.errors[0].params").value(nullValue()))
+                .andExpect(jsonPath("$.errors[0].message").isNotEmpty());
 
         // The default platform admin still holds the flag.
         Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID))
@@ -117,7 +121,11 @@ class RevokePlatformAdminControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
+                // Backward compatibility: an unmigrated error still carries a matching scalar
+                // `message` and a null `code`, proving the additive contract doesn't break it.
+                .andExpect(jsonPath("$.errors[0].code").value(nullValue()))
+                .andExpect(jsonPath("$.errors[0].message").isNotEmpty());
     }
 
     @Test

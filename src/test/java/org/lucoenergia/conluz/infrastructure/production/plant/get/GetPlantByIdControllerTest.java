@@ -58,7 +58,7 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(plant.getId().toString()))
-                .andExpect(jsonPath("$.code").value(plant.getCode()))
+                .andExpect(jsonPath("$.providerCode").value(plant.getProviderCode()))
                 .andExpect(jsonPath("$.name").value(plant.getName()))
                 .andExpect(jsonPath("$.address").value(plant.getAddress()))
                 .andExpect(jsonPath("$.description").value(plant.getDescription()))
@@ -66,7 +66,8 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPower").value(plant.getTotalPower()))
                 .andExpect(jsonPath("$.connectionDate").value(plant.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.supply.id").value(supply.getId().toString()))
-                .andExpect(jsonPath("$.supply.code").value(supply.getCode()));
+                .andExpect(jsonPath("$.supply.code").value(supply.getCode()))
+                .andExpect(jsonPath("$.community.id").value(DEFAULT_COMMUNITY_ID.toString()));
     }
 
     @Test
@@ -135,7 +136,7 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(plant.getId().toString()))
-                .andExpect(jsonPath("$.code").value(plant.getCode()));
+                .andExpect(jsonPath("$.providerCode").value(plant.getProviderCode()));
     }
 
     @Test

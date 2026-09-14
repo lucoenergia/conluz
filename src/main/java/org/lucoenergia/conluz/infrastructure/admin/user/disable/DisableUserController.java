@@ -1,8 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.disable;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -13,7 +11,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequ
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,7 +29,7 @@ public class DisableUserController {
         this.service = service;
     }
 
-    @PostMapping(path = "/users/{id}/disable")
+    @PostMapping(path = "/users/{userId}/disable")
     @Operation(
             summary = "Disables a user by ID",
             description = """
@@ -62,7 +59,7 @@ public class DisableUserController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
-    public void disableUser(@PathVariable("id") UUID userId) {
+    public void disableUser(@PathVariable("userId") UUID userId) {
         service.disable(UserId.of(userId));
     }
 }

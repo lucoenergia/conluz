@@ -15,4 +15,22 @@ public interface PlantAccessGuard {
     boolean canCreatePlant(String supplyCode);
 
     boolean canListPlants(UUID communityId);
+
+    /**
+     * Whether the current user may read the given sharing agreement, which must belong to the
+     * given plant. Only community admins of the plant's community.
+     */
+    boolean canReadSharingAgreement(UUID plantId, UUID sharingAgreementId);
+
+    /**
+     * Whether the current user may create a sharing agreement under the given plant. Only
+     * community admins of the plant's community.
+     */
+    boolean canManageSharingAgreement(UUID plantId);
+
+    /**
+     * Whether the current user may patch, delete or publish the given sharing agreement, which
+     * must belong to the given plant. Only community admins of the plant's community.
+     */
+    boolean canManageSharingAgreement(UUID plantId, UUID sharingAgreementId);
 }

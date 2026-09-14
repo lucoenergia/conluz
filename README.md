@@ -31,7 +31,7 @@ The application focuses on seamless interaction with the underlying infrastructu
    You have to provide the secret key as an environment variable called `CONLUZ_JWT_SECRET_KEY`
 
    ```
-   export CONLUZ_JWT_SECRET_KEY="b5f86373ba5d7593f4c6eab57862bf4be76369c1adbe263ae2d50ddae40b8ca2"
+   export CONLUZ_JWT_SECRET_KEY="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
    ```
 
    The secret key must be compatible with [HMAC-SHA algorithms](https://datatracker.ietf.org/doc/html/rfc7518#section-3.2) and must have a length of 256 bits (32 bytes) or more.
@@ -51,8 +51,8 @@ You don't need to do an extra effort of creating all the table manually, because
 
 > **Note:**
 >
-> To have a PostgreSQL database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
-> You just need to navigate to the `deploy` folder and execute the command `docker compose up -d`
+> To have a PostgreSQL database up and running in a few seconds, you can use the sanitized reference example `deploy/docker-compose.example.yml`. This file will do automatically all the configurations required transparently.
+> Navigate to the `deploy` folder, copy `.env.example` to `.env` and fill it in, then execute `docker compose -f docker-compose.example.yml up -d`
 
 2. **InfluxDB database**
 
@@ -77,8 +77,8 @@ Conluz uses InfluxDB as a time series database to store consumption, production 
 
 #### New Postgres installation
 
-To have a PostgreSQL database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
-You just need to execute the command `docker compose up -d postgres`
+To have a PostgreSQL database up and running in a few seconds, you can use the sanitized reference example `deploy/docker-compose.example.yml`. This file will do automatically all the configurations required transparently.
+From the `deploy` folder, copy `.env.example` to `.env` and fill it in, then execute `docker compose -f docker-compose.example.yml up -d postgres`
 
 #### Already existing Postgres installation
 
@@ -108,8 +108,8 @@ If you are running Postgres locally on `localhost:5432` you don't need to provid
 
 #### New InfluxDB installation
 
-To have an InfluxDB database up and running in a few seconds, you can use the docker compose file `deploy/docker-compose.yaml`. This file will do automatically all the configurations required transparently.
-You just need to execute the command `docker compose up -d influxdb`
+To have an InfluxDB database up and running in a few seconds, you can use the sanitized reference example `deploy/docker-compose.example.yml`. This file will do automatically all the configurations required transparently.
+From the `deploy` folder, copy `.env.example` to `.env` and fill it in, then execute `docker compose -f docker-compose.example.yml up -d influxdb`
 
 #### Already existing InfluxDB installation
 If you already have an InfluxDB database up and running, you need to execute these commands:
@@ -149,6 +149,29 @@ If you have your InfluxDB running with a different server, port, user credential
     ```
 
     The application will be accessible at https://localhost:8443.
+
+### Local development
+
+For day-to-day local development, conluz-infra provisions a local Postgres (port 5433) and
+InfluxDB (port 8087) with anonymized data. Bring those up first (see conluz-infra's local
+setup), then from this repo run:
+
+```bash
+make run    # ./gradlew bootRun --args='--spring.profiles.active=local'
+make debug  # same, with the JVM debug port open for attaching a debugger
+```
+
+Both targets activate the `local` Spring profile (`src/main/resources/application-local.properties`),
+which points at those services using `luz`/`blank` on both — a fixed, non-secret local dev
+convention, not a credential to protect (see [Already existing InfluxDB
+installation](#already-existing-influxdb-installation) above for the same convention).
+
+> **Note:**
+>
+> The JWT secret in `application-local.properties` is only used if the `CONLUZ_JWT_SECRET_KEY`
+> environment variable is **not** already set in your shell — that variable always takes
+> precedence over the profile's value. If you've previously exported a real secret (e.g. copied
+> from a production `.env`), `unset CONLUZ_JWT_SECRET_KEY` before running locally.
 
 
 ## Usage

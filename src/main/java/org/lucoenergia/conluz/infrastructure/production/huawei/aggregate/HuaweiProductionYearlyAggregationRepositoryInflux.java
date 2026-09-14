@@ -38,7 +38,7 @@ public class HuaweiProductionYearlyAggregationRepositoryInflux implements Huawei
     @Override
     public void aggregateYearlyProduction(Plant plant, int year) {
 
-        LOGGER.info("Aggregating yearly production for plant: {}, year: {}", plant.getCode(), year);
+        LOGGER.info("Aggregating yearly production for plant: {}, year: {}", plant.getProviderCode(), year);
 
         String startDate = String.format("%d-01-01T00:00:00Z", year);
         String endDate = String.format("%d-12-31T23:59:59Z", year);
@@ -60,7 +60,7 @@ public class HuaweiProductionYearlyAggregationRepositoryInflux implements Huawei
                     GROUP BY station_code
                     """,
                     HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT,
-                    plant.getCode(),
+                    plant.getProviderCode(),
                     startDate,
                     endDate));
 
@@ -75,7 +75,7 @@ public class HuaweiProductionYearlyAggregationRepositoryInflux implements Huawei
             List<HuaweiHourlyProductionMonthlyPoint> aggregatedData = resultMapper.toPOJO(queryResult, HuaweiHourlyProductionMonthlyPoint.class);
 
             if (aggregatedData.isEmpty()) {
-                LOGGER.warn("No monthly data found to aggregate for plant: {}, year: {}", plant.getCode(), year);
+                LOGGER.warn("No monthly data found to aggregate for plant: {}, year: {}", plant.getProviderCode(), year);
                 return;
             }
 
@@ -89,7 +89,7 @@ public class HuaweiProductionYearlyAggregationRepositoryInflux implements Huawei
 
             Point point = Point.measurement(HuaweiConfig.HUAWEI_YEARLY_PRODUCTION_MEASUREMENT)
                     .time(timestamp, TimeUnit.MILLISECONDS)
-                    .tag("station_code", plant.getCode())
+                    .tag("station_code", plant.getProviderCode())
                     .addField("inverter_power", aggregated.getInverterPower() != null ? aggregated.getInverterPower() : 0.0)
                     .addField("ongrid_power", aggregated.getOngridPower() != null ? aggregated.getOngridPower() : 0.0)
                     .addField("power_profit", aggregated.getPowerProfit() != null ? aggregated.getPowerProfit() : 0.0)
@@ -100,7 +100,7 @@ public class HuaweiProductionYearlyAggregationRepositoryInflux implements Huawei
             batchPoints.point(point);
             connection.write(batchPoints);
 
-            LOGGER.info("Successfully aggregated yearly production for plant: {}, year: {}", plant.getCode(), year);
+            LOGGER.info("Successfully aggregated yearly production for plant: {}, year: {}", plant.getProviderCode(), year);
         }
     }
 }

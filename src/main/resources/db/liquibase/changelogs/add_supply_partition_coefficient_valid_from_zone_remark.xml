@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Phase 5f (coefficient activation) is the first phase that ever writes valid_from: it
+         converts the administrator-authored LocalDate to an instant via ZoneResolver, currently the
+         application-level conluz.time.zone.id (see TimeConfiguration / ZoneResolverImpl). This is a
+         comment-only change (no schema/data change), so no preConditions guard is needed: it is
+         monotonic and cannot fail against any existing data. -->
+    <changeSet id="add_supply_partition_coefficient_valid_from_zone_remark" author="Víctor Cañizares">
+        <setColumnRemarks tableName="supply_partition_coefficient" columnName="valid_from"
+            remarks="Persisted as an instant, resolved from the administrator-authored LocalDate using
+                     the application-level conluz.time.zone.id at the moment of activation (see
+                     ZoneResolver). A persisted instant does not migrate: when the zone moves to
+                     community level, the backfill must seed every existing community with the
+                     application-level value in force at that moment, or older coefficients will keep
+                     the old instant while newer ones use the new one and the timeline becomes
+                     internally inconsistent by one hour, silently."/>
+    </changeSet>
+
+</databaseChangeLog>

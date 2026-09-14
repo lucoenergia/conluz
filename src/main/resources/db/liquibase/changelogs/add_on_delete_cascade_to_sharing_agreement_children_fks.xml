@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Deleting a DRAFT sharing_agreement previously failed with a FK violation whenever it had
+         evidence files, since nothing removed the referencing sharing_agreement_file rows first.
+         Cascading at the DB level lets Postgres remove them as part of the same DELETE statement,
+         without the app needing to load file content into memory just to clean up. -->
+    <changeSet id="add_on_delete_cascade_to_sharing_agreement_file_fk" author="Víctor Cañizares">
+        <dropForeignKeyConstraint baseTableName="sharing_agreement_file"
+                                   constraintName="sharing_agreement_file_sharing_agreement_id_fk"/>
+        <addForeignKeyConstraint baseTableName="sharing_agreement_file" baseColumnNames="sharing_agreement_id"
+                                  constraintName="sharing_agreement_file_sharing_agreement_id_fk"
+                                  referencedTableName="sharing_agreement" referencedColumnNames="id"
+                                  onDelete="CASCADE"/>
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="sharing_agreement_file"
+                                       constraintName="sharing_agreement_file_sharing_agreement_id_fk"/>
+            <addForeignKeyConstraint baseTableName="sharing_agreement_file" baseColumnNames="sharing_agreement_id"
+                                      constraintName="sharing_agreement_file_sharing_agreement_id_fk"
+                                      referencedTableName="sharing_agreement" referencedColumnNames="id"/>
+        </rollback>
+    </changeSet>
+
+    <!-- Same issue, same fix, for supply_partition_coefficient: a DRAFT agreement's coefficients are
+         always pending (valid_from IS NULL, never activated; activation requires a non-DRAFT
+         agreement, see CoefficientActivationServiceImpl), so cascading their deletion only discards
+         an unpublished proposal, never in-effect data. -->
+    <changeSet id="add_on_delete_cascade_to_supply_partition_coefficient_sharing_agreement_fk" author="Víctor Cañizares">
+        <dropForeignKeyConstraint baseTableName="supply_partition_coefficient"
+                                   constraintName="supply_partition_coefficient_sharing_agreement_id_fk"/>
+        <addForeignKeyConstraint baseTableName="supply_partition_coefficient" baseColumnNames="sharing_agreement_id"
+                                  constraintName="supply_partition_coefficient_sharing_agreement_id_fk"
+                                  referencedTableName="sharing_agreement" referencedColumnNames="id"
+                                  onDelete="CASCADE"/>
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="supply_partition_coefficient"
+                                       constraintName="supply_partition_coefficient_sharing_agreement_id_fk"/>
+            <addForeignKeyConstraint baseTableName="supply_partition_coefficient" baseColumnNames="sharing_agreement_id"
+                                      constraintName="supply_partition_coefficient_sharing_agreement_id_fk"
+                                      referencedTableName="sharing_agreement" referencedColumnNames="id"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -24,7 +24,6 @@ class SupplyEntityMapperTest {
         Assertions.assertEquals(entity.getCode(), result.getCode());
         Assertions.assertEquals(entity.getName(), result.getName());
         Assertions.assertEquals(entity.getAddress(), result.getAddress());
-        Assertions.assertEquals(entity.getPartitionCoefficient(), result.getPartitionCoefficient());
         Assertions.assertEquals(entity.getEnabled(), result.getEnabled());
         Assertions.assertEquals(entity.getUser().getPersonalId(), result.getUser().getPersonalId());
 

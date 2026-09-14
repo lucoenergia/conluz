@@ -18,8 +18,8 @@ import org.springframework.stereotype.Component;
                 version = "1.0.0",
                 description = "Conluz is an API-driven application designed for the efficient management of an energy community,enabling the administration of community members and their corresponding supply points and the retrieval of consumption, production data.",
                 license = @License(
-                        name = "Apache-2.0 license",
-                        url = "https://www.apache.org/licenses/LICENSE-2.0"
+                        name = "AGPL-3.0 license",
+                        url = "https://www.gnu.org/licenses/agpl-3.0.html"
                 ),
                 contact = @Contact(
                         name = "Luco Energía",

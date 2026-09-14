@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.user.create.DefaultAdminUserAlreadyIn
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -67,6 +68,6 @@ public class UserExceptionHandler {
                 List.of().toArray(),
                 LocaleContextHolder.getLocale()
         );
-        return errorBuilder.build(message, HttpStatus.CONFLICT);
+        return errorBuilder.build(message, RestErrorCode.USER_LAST_PLATFORM_ADMIN, null, HttpStatus.CONFLICT);
     }
 }

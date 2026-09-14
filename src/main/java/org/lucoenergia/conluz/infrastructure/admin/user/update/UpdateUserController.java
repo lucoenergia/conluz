@@ -1,8 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -11,7 +9,6 @@ import org.lucoenergia.conluz.domain.admin.user.update.UpdateUserService;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +29,7 @@ public class UpdateUserController {
         this.service = service;
     }
 
-    @PutMapping("/users/{id}")
+    @PutMapping("/users/{userId}")
     @Operation(
             summary = "Updates user information",
             description = """
@@ -61,7 +58,7 @@ public class UpdateUserController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
-    public UserResponse updateUser(@PathVariable("id") UUID userId, @Valid @RequestBody UpdateUserBody body) {
+    public UserResponse updateUser(@PathVariable("userId") UUID userId, @Valid @RequestBody UpdateUserBody body) {
         return new UserResponse(service.update(body.toUser(userId)));
     }
 }

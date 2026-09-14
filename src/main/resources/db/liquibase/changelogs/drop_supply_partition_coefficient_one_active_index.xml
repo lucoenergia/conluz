@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Replaced by add_supply_partition_coefficient_no_overlapping_exclusion_constraint.xml, which
+         enforces the equivalent invariant scoped to (plant_id, supply_id) instead of supply_id alone,
+         now that a supply may have an active coefficient in more than one plant at once. -->
+    <changeSet id="drop_supply_partition_coefficient_one_active_index" author="Víctor Cañizares">
+        <sql>DROP INDEX idx_supply_partition_coefficient_one_active;</sql>
+        <rollback>
+            <sql>
+                CREATE UNIQUE INDEX idx_supply_partition_coefficient_one_active
+                ON supply_partition_coefficient (supply_id)
+                WHERE valid_to IS NULL;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

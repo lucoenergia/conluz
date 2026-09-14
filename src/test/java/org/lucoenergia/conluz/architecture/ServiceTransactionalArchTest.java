@@ -54,6 +54,14 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
     // Set of classes that are exempt from the rule
     private static final Set<String> EXCEPTIONS = new HashSet<>();
 
+    // Classes with a class-level @Transactional default that is also flipped per-method purely
+    // to toggle readOnly (rather than being split into separate read/write classes). Tracked
+    // follow-up debt — do not add new entries; split the class instead.
+    private static final Set<String> MIXING_EXCEPTIONS = Set.of(
+            "PartitionCoefficientServiceImpl",
+            "AuthServiceImpl"
+    );
+
     static {
         // Add classes that are exempt from the @Transactional requirement
         // For example, services that don't modify data or have custom transaction handling
@@ -88,6 +96,16 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
         }
 
         rule.check(IMPORTED_CLASSES);
+    }
+
+    @Test
+    void serviceClassesDoNotMixTransactionalModes() {
+        classes()
+                .that().areAnnotatedWith(Service.class)
+                .and().areAnnotatedWith(Transactional.class)
+                .and().haveNameNotMatching(".*(" + String.join("|", MIXING_EXCEPTIONS) + ").*")
+                .should(TransactionalMixingCondition.notMixReadOnlyAndWriteMethods())
+                .check(IMPORTED_CLASSES);
     }
 
     private ArchCondition<com.tngtech.archunit.core.domain.JavaClass> beAnnotatedWithTransactional() {

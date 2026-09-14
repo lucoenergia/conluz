@@ -26,7 +26,7 @@ public class DeletePlantController {
         this.service = service;
     }
 
-    @DeleteMapping("/plants/{id}")
+    @DeleteMapping("/plants/{plantId}")
     @Operation(
             summary = "Removes a plant by ID",
             description = """
@@ -60,7 +60,7 @@ public class DeletePlantController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
-    public void deletePlant(@PathVariable("id") UUID plantId) {
+    public void deletePlant(@PathVariable("plantId") UUID plantId) {
         service.delete(PlantId.of(plantId));
     }
 }

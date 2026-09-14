@@ -20,6 +20,10 @@ public interface AuthService {
 
     /**
      * Retrieves the currently authenticated user from the context or session.
+     * Intended for {@code CommunityAccessGuard} implementations, which run as part of
+     * {@code @PreAuthorize} evaluation itself. Controllers must not call this method — by the time
+     * a {@code @PreAuthorize}-guarded controller method runs, the authenticated user is already
+     * guaranteed and should be obtained via {@code @AuthenticationPrincipal} instead.
      *
      * @return an Optional containing the currently authenticated User if present; otherwise, an empty Optional
      */

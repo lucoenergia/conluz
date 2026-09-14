@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -56,14 +55,15 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         plantOne = createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         // Modify data of the plant
         UpdatePlantBody plantModified = new UpdatePlantBody();
-        plantModified.setCode("TS-234123");
+        plantModified.setProviderCode("TS-234123");
+        plantModified.setRegulatoryCode("ES0021000000000001JN0F");
         plantModified.setSupplyCode(supplyTwo.getCode());
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
@@ -81,13 +81,51 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(plantOne.getId().toString()))
-                .andExpect(jsonPath("$.code").value(plantModified.getCode()))
+                .andExpect(jsonPath("$.providerCode").value(plantModified.getProviderCode()))
+                .andExpect(jsonPath("$.regulatoryCode").value(plantModified.getRegulatoryCode()))
                 .andExpect(jsonPath("$.supply.code").value(plantModified.getSupplyCode()))
                 .andExpect(jsonPath("$.name").value(plantModified.getName()))
                 .andExpect(jsonPath("$.description").value(plantModified.getDescription()))
                 .andExpect(jsonPath("$.connectionDate").value(plantModified.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.inverterProvider").value(plantModified.getInverterProvider().name()))
                 .andExpect(jsonPath("$.totalPower").value(plantModified.getTotalPower()));
+    }
+
+    @Test
+    void testOmittingRegulatoryCodeNullsItOut() throws Exception {
+
+        // PUT is a full replace: omitting an optional field in the body clears it, same as the
+        // existing behavior for description/connectionDate.
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
+        Supply supply = SupplyMother.random().build();
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+
+        Plant plant = PlantMother.random(supply)
+                .withProviderCode("TS-987654")
+                .withRegulatoryCode("ES0021000000000001JN0F")
+                .build();
+        plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        UpdatePlantBody plantModified = new UpdatePlantBody();
+        plantModified.setProviderCode("TS-987654");
+        plantModified.setSupplyCode(supply.getCode());
+        plantModified.setName("Main plant");
+        plantModified.setAddress("Fake Street 666");
+        plantModified.setTotalPower(25.6D);
+        plantModified.setInverterProvider(InverterProvider.HUAWEI);
+
+        String bodyAsString = objectMapper.writeValueAsString(plantModified);
+
+        mockMvc.perform(put(String.format("/api/v1/plants/%s", plant.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyAsString))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.regulatoryCode").isEmpty());
     }
 
     @Test
@@ -104,15 +142,15 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         plantOne = createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
-        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         UpdatePlantBody plantModified = new UpdatePlantBody();
-        plantModified.setCode("TS-234123");
+        plantModified.setProviderCode("TS-234123");
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
         plantModified.setTotalPower(25.6D);
@@ -127,7 +165,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(plantOne.getId().toString()))
-                .andExpect(jsonPath("$.code").value(plantModified.getCode()))
+                .andExpect(jsonPath("$.providerCode").value(plantModified.getProviderCode()))
                 .andExpect(jsonPath("$.supply.code").value(plantModified.getSupplyCode()))
                 .andExpect(jsonPath("$.name").value(plantModified.getName()))
                 .andExpect(jsonPath("$.description").isEmpty())
@@ -144,7 +182,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         final String plantId = UUID.randomUUID().toString();
 
         UpdatePlantBody plantModified = new UpdatePlantBody();
-        plantModified.setCode("TS-234123");
+        plantModified.setProviderCode("TS-234123");
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
         plantModified.setTotalPower(25.6D);
@@ -171,13 +209,13 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
 
         // Create three supplies
-        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         plantOne = createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
         String authHeader = loginAsDefaultPlatformAdmin();
 
         UpdatePlantBody plantModified = new UpdatePlantBody();
-        plantModified.setCode("TS-234123");
+        plantModified.setProviderCode("TS-234123");
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
         plantModified.setTotalPower(25.6D);
@@ -202,7 +240,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         final String body = """
                         {
                           "unknown": 1,
-                          "code": "TS-234123",
+                          "providerCode": "TS-234123",
                           "name": "Main plant",
                           "address": "Fake Street 666",
                           "totalPower": "25.6"
@@ -256,21 +294,21 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                                 {
-                                  "code": "TS-234123",
+                                  "providerCode": "TS-234123",
                                   "address": "Fake Street 666",
                                   "totalPower": "25.6"
                                 }
                         """,
                 """
                                 {
-                                  "code": "TS-234123",
+                                  "providerCode": "TS-234123",
                                   "name": "Main plant",
                                   "totalPower": "25.6"
                                 }
                         """,
                 """
                                 {
-                                  "code": "TS-234123",
+                                  "providerCode": "TS-234123",
                                   "name": "Main plant",
                                   "address": "Fake Street 666",
                                 }
@@ -300,7 +338,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
     static List<String> getBodyWithInvalidFormatValues() {
         return List.of("""
                             {
-                              "code": "TS-1234124",
+                              "providerCode": "TS-1234124",
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
@@ -310,7 +348,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                             {
-                              "code": "TS-1234124",
+                              "providerCode": "TS-1234124",
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
@@ -320,7 +358,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                             {
-                              "code": "TS-1234124",
+                              "providerCode": "TS-1234124",
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
@@ -384,7 +422,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         Supply supplyTwo = SupplyMother.random().build();
 
         UpdatePlantBody plantModified = new UpdatePlantBody();
-        plantModified.setCode("TS-234123");
+        plantModified.setProviderCode("TS-234123");
         plantModified.setSupplyCode(supplyTwo.getCode());
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");

@@ -13,6 +13,8 @@ public class SupplyPartitionCoefficientEntityMapper
         return new SupplyPartitionCoefficient.Builder()
                 .withId(entity.getId())
                 .withSupplyId(entity.getSupply().getId())
+                .withPlantId(entity.getPlant().getId())
+                .withSharingAgreementId(entity.getSharingAgreement().getId())
                 .withCoefficient(entity.getCoefficient())
                 .withValidFrom(entity.getValidFrom())
                 .withValidTo(entity.getValidTo())

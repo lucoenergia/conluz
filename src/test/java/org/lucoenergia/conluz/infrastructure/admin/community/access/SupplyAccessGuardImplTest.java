@@ -206,7 +206,6 @@ class SupplyAccessGuardImplTest {
                 .withUser(owner)
                 .withName("Supply")
                 .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .build();
     }
@@ -220,7 +219,6 @@ class SupplyAccessGuardImplTest {
                 .withCommunity(community)
                 .withName("Supply")
                 .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .build();
     }

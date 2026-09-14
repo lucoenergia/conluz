@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Guards: "every community that currently owns a supply_partition_coefficient row has
+         exactly one plant". This starts from supply_partition_coefficient (the table the backfill
+         in this phase actually walks), not from plants, on purpose: grouping from plants would
+         silently skip any community that owns coefficients but has zero plants (such a community
+         never appears in a GROUP BY over plants), letting it sail through here only to fail the
+         addNotNullConstraint changeset later, after the synthetic-agreement backfill has already
+         written data. The guarded set must match the mutated set. -->
+    <changeSet id="add_plant_and_sharing_agreement_to_supply_partition_coefficient" author="Víctor Cañizares">
+        <preConditions onFail="HALT">
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM (
+                    SELECT owner.community_id
+                    FROM supply_partition_coefficient spc
+                    JOIN supplies owner ON owner.id = spc.supply_id
+                    GROUP BY owner.community_id
+                ) communities_with_coefficients
+                LEFT JOIN (
+                    SELECT ps.community_id, count(*) AS plant_count
+                    FROM plants p
+                    JOIN supplies ps ON ps.id = p.supply_id
+                    GROUP BY ps.community_id
+                ) plant_counts ON plant_counts.community_id = communities_with_coefficients.community_id
+                WHERE COALESCE(plant_counts.plant_count, 0) &lt;&gt; 1
+            </sqlCheck>
+        </preConditions>
+        <addColumn tableName="supply_partition_coefficient">
+            <column name="plant_id" type="UUID" remarks="The plant this coefficient participates in. Nullable here, made NOT NULL by make_supply_partition_coefficient_plant_and_sharing_agreement_not_null.xml once backfilled.">
+                <constraints nullable="true" foreignKeyName="supply_partition_coefficient_plant_id_fk"
+                             referencedTableName="plants" referencedColumnNames="id"/>
+            </column>
+            <column name="sharing_agreement_id" type="UUID" remarks="The agreement that authored this coefficient. Nullable here for the same reason as plant_id.">
+                <constraints nullable="true" foreignKeyName="supply_partition_coefficient_sharing_agreement_id_fk"
+                             referencedTableName="sharing_agreement" referencedColumnNames="id"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="supply_partition_coefficient" columnName="plant_id"/>
+            <dropColumn tableName="supply_partition_coefficient" columnName="sharing_agreement_id"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -22,7 +22,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/communities/{id}/memberships",
+        value = "/api/v1/communities/{communityId}/memberships",
         produces = MediaType.APPLICATION_JSON_VALUE
 )
 public class DeleteMembershipController {
@@ -53,9 +53,9 @@ public class DeleteMembershipController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageMemberships(#id)")
-    public void deleteMembership(@PathVariable("id") UUID id,
+    @PreAuthorize("@communityAccessGuard.canManageMemberships(#communityId)")
+    public void deleteMembership(@PathVariable("communityId") UUID communityId,
                                   @PathVariable("userId") UUID userId) {
-        service.delete(id, userId);
+        service.delete(communityId, userId);
     }
 }

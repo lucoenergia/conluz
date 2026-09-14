@@ -42,13 +42,13 @@ public class SyncMonthlyHuaweiProductionController {
                     The request body must contain:
                     - **year** (required, integer): The year for which to aggregate data
                     - **month** (optional, integer 1-12): The month to aggregate. If not provided, all months of the year will be aggregated.
-                    - **plantCode** (optional, string): The plant code to aggregate. If not provided, all plants will be aggregated.
+                    - **plantProviderCode** (optional, string): The plant code to aggregate. If not provided, all plants will be aggregated.
 
                     **Behavior:**
-                    - If both month and plantCode are provided: Aggregates only that specific plant for that month
+                    - If both month and plantProviderCode are provided: Aggregates only that specific plant for that month
                     - If only month is provided: Aggregates all plants for that specific month
-                    - If only plantCode is provided: Aggregates that plant for all months of the year
-                    - If neither month nor plantCode is provided: Aggregates all plants for all months of the year
+                    - If only plantProviderCode is provided: Aggregates that plant for all months of the year
+                    - If neither month nor plantProviderCode is provided: Aggregates all plants for all months of the year
 
                     The community is taken from the path and only that community's plants are aggregated.
 
@@ -77,6 +77,6 @@ public class SyncMonthlyHuaweiProductionController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncMonthlyHuaweiProduction(@PathVariable UUID communityId,
                                             @Valid @RequestBody SyncMonthlyHuaweiProductionBody body) {
-        aggregationService.syncMonthlyProductions(communityId, body.getPlantCode(), body.getMonth(), body.getYear());
+        aggregationService.syncMonthlyProductions(communityId, body.getPlantProviderCode(), body.getMonth(), body.getYear());
     }
 }

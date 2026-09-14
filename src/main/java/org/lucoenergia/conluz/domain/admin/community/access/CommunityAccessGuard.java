@@ -7,8 +7,7 @@ public interface CommunityAccessGuard extends
         SupplyAccessGuard,
         MembershipAccessGuard,
         UserAccessGuard,
-        PlantAccessGuard,
-        SharingAgreementAccessGuard {
+        PlantAccessGuard {
 
     boolean canReadCommunity(UUID communityId);
 

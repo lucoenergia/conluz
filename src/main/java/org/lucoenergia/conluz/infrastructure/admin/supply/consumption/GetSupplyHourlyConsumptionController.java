@@ -29,7 +29,7 @@ import java.util.UUID;
  * Controller for retrieving hourly consumption data for a specific supply
  */
 @RestController
-@RequestMapping("/api/v1/supplies/{id}/consumption/hourly")
+@RequestMapping("/api/v1/supplies/{supplyId}/consumption/hourly")
 public class GetSupplyHourlyConsumptionController {
 
     private final GetDatadisConsumptionService getDatadisConsumptionService;
@@ -72,12 +72,12 @@ public class GetSupplyHourlyConsumptionController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canReadSupply(#id)")
+    @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
     public List<DatadisConsumption> getSupplyHourlyConsumption(
-            @PathVariable("id") UUID id,
+            @PathVariable("supplyId") UUID supplyId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
 
-        return getDatadisConsumptionService.getHourlyConsumptionBySupply(SupplyId.of(id), startDate, endDate);
+        return getDatadisConsumptionService.getHourlyConsumptionBySupply(SupplyId.of(supplyId), startDate, endDate);
     }
 }

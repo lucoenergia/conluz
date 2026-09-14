@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet author="Víctor Cañizares" id="rename_plants_code_to_provider_code">
+        <renameColumn tableName="plants"
+                      oldColumnName="code"
+                      newColumnName="provider_code"
+                      columnDataType="text"
+                      remarks="The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as the station_code tag in InfluxDB: this is the join key between the PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the regulator's code is regulatory_code."/>
+        <rollback>
+            <renameColumn tableName="plants"
+                          oldColumnName="provider_code"
+                          newColumnName="code"
+                          columnDataType="text"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -5,21 +5,21 @@ import org.lucoenergia.conluz.domain.shared.PlantId;
 public class PlantNotFoundException extends RuntimeException {
 
     private PlantId id;
-    private String code;
+    private String providerCode;
 
     public PlantNotFoundException(PlantId id) {
         this.id = id;
     }
 
-    public PlantNotFoundException(String code) {
-        this.code = code;
+    public PlantNotFoundException(String providerCode) {
+        this.providerCode = providerCode;
     }
 
     public PlantId getId() {
         return id;
     }
 
-    public String getCode() {
-        return code;
+    public String getProviderCode() {
+        return providerCode;
     }
 }

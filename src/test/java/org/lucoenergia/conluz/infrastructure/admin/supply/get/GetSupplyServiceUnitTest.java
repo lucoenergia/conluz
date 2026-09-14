@@ -33,7 +33,6 @@ class GetSupplyServiceUnitTest {
                 .withCode("SUP123")
                 .withName("Test Supply")
                 .withAddress("123 Test Street")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .build();
 

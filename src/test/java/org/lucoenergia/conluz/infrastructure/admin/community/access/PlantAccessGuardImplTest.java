@@ -14,6 +14,9 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.mockito.Mock;
@@ -36,9 +39,11 @@ class PlantAccessGuardImplTest {
     private GetPlantRepository getPlantRepository;
     @Mock
     private GetSupplyRepository getSupplyRepository;
+    @Mock
+    private GetSharingAgreementRepository getSharingAgreementRepository;
 
     private PlantAccessGuard guard() {
-        return new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository);
+        return new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository, getSharingAgreementRepository);
     }
 
     // --- canManagePlant ---
@@ -190,6 +195,260 @@ class PlantAccessGuardImplTest {
         assertThrows(PlantNotFoundException.class, () -> guard().canReadPlant(plant.getId()));
     }
 
+    // --- canReadSharingAgreement ---
+
+    @Test
+    void canReadSharingAgreement_returnsFalse_whenNoAuthenticatedUser() {
+        when(helper.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canReadSharingAgreement(UUID.randomUUID(), UUID.randomUUID()));
+    }
+
+    @Test
+    void canReadSharingAgreement_throwsNotFound_whenPlantNotFound() {
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+
+        UUID plantId = UUID.randomUUID();
+        when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.empty());
+
+        assertThrows(PlantNotFoundException.class,
+                () -> guard().canReadSharingAgreement(plantId, UUID.randomUUID()));
+    }
+
+    @Test
+    void canReadSharingAgreement_throwsNotFound_whenUserIsNotMemberOfPlantCommunity() {
+        Community community = CommunityMother.random().build();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        assertThrows(PlantNotFoundException.class,
+                () -> guard().canReadSharingAgreement(plant.getId(), UUID.randomUUID()));
+    }
+
+    @Test
+    void canReadSharingAgreement_throwsNotFound_whenAgreementDoesNotExist() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        UUID agreementId = UUID.randomUUID();
+        when(getSharingAgreementRepository.findById(agreementId)).thenReturn(Optional.empty());
+
+        assertThrows(SharingAgreementNotFoundException.class,
+                () -> guard().canReadSharingAgreement(plant.getId(), agreementId));
+    }
+
+    @Test
+    void canReadSharingAgreement_throwsNotFound_whenAgreementBelongsToAnotherPlant() {
+        // The agreement exists but under a different plant -> the caller must not be able to tell
+        // it exists elsewhere -> 404, same as a non-existent agreement.
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(agreementId)
+                .withPlantId(UUID.randomUUID())
+                .build();
+        when(getSharingAgreementRepository.findById(agreementId)).thenReturn(Optional.of(agreement));
+
+        assertThrows(SharingAgreementNotFoundException.class,
+                () -> guard().canReadSharingAgreement(plant.getId(), agreementId));
+    }
+
+    @Test
+    void canReadSharingAgreement_returnsTrue_whenUserIsCommunityAdminAndAgreementBelongsToPlant() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+        when(helper.hasCommunityAdminRoleIn(user, communityId)).thenReturn(true);
+
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(agreementId)
+                .withPlantId(plant.getId())
+                .build();
+        when(getSharingAgreementRepository.findById(agreementId)).thenReturn(Optional.of(agreement));
+
+        assertTrue(guard().canReadSharingAgreement(plant.getId(), agreementId));
+    }
+
+    @Test
+    void canReadSharingAgreement_returnsFalse_whenUserIsCommunityMember() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(agreementId)
+                .withPlantId(plant.getId())
+                .build();
+        when(getSharingAgreementRepository.findById(agreementId)).thenReturn(Optional.of(agreement));
+
+        assertFalse(guard().canReadSharingAgreement(plant.getId(), agreementId));
+    }
+
+    // --- canManageSharingAgreement(plantId) ---
+
+    @Test
+    void canManageSharingAgreementForCreate_returnsFalse_whenNoAuthenticatedUser() {
+        when(helper.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canManageSharingAgreement(UUID.randomUUID()));
+    }
+
+    @Test
+    void canManageSharingAgreementForCreate_returnsTrue_whenUserIsCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(helper.hasCommunityAdminRoleIn(user, communityId)).thenReturn(true);
+
+        assertTrue(guard().canManageSharingAgreement(plant.getId()));
+    }
+
+    @Test
+    void canManageSharingAgreementForCreate_returnsFalse_whenUserIsCommunityMember() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+
+        assertFalse(guard().canManageSharingAgreement(plant.getId()));
+    }
+
+    @Test
+    void canManageSharingAgreementForCreate_throwsNotFound_whenPlantNotFound() {
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+
+        UUID plantId = UUID.randomUUID();
+        when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.empty());
+
+        assertThrows(PlantNotFoundException.class, () -> guard().canManageSharingAgreement(plantId));
+    }
+
+    // --- canManageSharingAgreement(plantId, sharingAgreementId) ---
+
+    @Test
+    void canManageSharingAgreementForWrite_returnsFalse_whenNoAuthenticatedUser() {
+        when(helper.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canManageSharingAgreement(UUID.randomUUID(), UUID.randomUUID()));
+    }
+
+    @Test
+    void canManageSharingAgreementForWrite_throwsNotFound_whenPlantNotFound() {
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+
+        UUID plantId = UUID.randomUUID();
+        when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.empty());
+
+        assertThrows(PlantNotFoundException.class,
+                () -> guard().canManageSharingAgreement(plantId, UUID.randomUUID()));
+    }
+
+    @Test
+    void canManageSharingAgreementForWrite_throwsNotFound_whenAgreementBelongsToAnotherPlant() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(agreementId)
+                .withPlantId(UUID.randomUUID())
+                .build();
+        when(getSharingAgreementRepository.findById(agreementId)).thenReturn(Optional.of(agreement));
+
+        assertThrows(SharingAgreementNotFoundException.class,
+                () -> guard().canManageSharingAgreement(plant.getId(), agreementId));
+    }
+
+    @Test
+    void canManageSharingAgreementForWrite_returnsTrue_whenUserIsCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+        when(helper.hasCommunityAdminRoleIn(user, communityId)).thenReturn(true);
+
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(agreementId)
+                .withPlantId(plant.getId())
+                .build();
+        when(getSharingAgreementRepository.findById(agreementId)).thenReturn(Optional.of(agreement));
+
+        assertTrue(guard().canManageSharingAgreement(plant.getId(), agreementId));
+    }
+
+    @Test
+    void canManageSharingAgreementForWrite_returnsFalse_whenUserIsCommunityMember() {
+        Community community = CommunityMother.random().build();
+        UUID communityId = community.getId();
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        Plant plant = new Plant.Builder().withId(UUID.randomUUID()).withSupply(supply).build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasMembershipInCommunity(user, communityId)).thenReturn(true);
+        when(getPlantRepository.findById(PlantId.of(plant.getId()))).thenReturn(Optional.of(plant));
+
+        UUID agreementId = UUID.randomUUID();
+        SharingAgreement agreement = new SharingAgreement.Builder()
+                .withId(agreementId)
+                .withPlantId(plant.getId())
+                .build();
+        when(getSharingAgreementRepository.findById(agreementId)).thenReturn(Optional.of(agreement));
+
+        assertFalse(guard().canManageSharingAgreement(plant.getId(), agreementId));
+    }
+
     // --- canListPlants ---
 
     @Test
@@ -327,7 +586,6 @@ class PlantAccessGuardImplTest {
                 .withUser(owner)
                 .withName("Supply")
                 .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .build();
     }
@@ -341,7 +599,6 @@ class PlantAccessGuardImplTest {
                 .withCommunity(community)
                 .withName("Supply")
                 .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .build();
     }
@@ -354,7 +611,6 @@ class PlantAccessGuardImplTest {
                 .withCommunity(community)
                 .withName("Supply")
                 .withAddress("Address")
-                .withPartitionCoefficient(1.0f)
                 .withEnabled(true)
                 .build();
     }

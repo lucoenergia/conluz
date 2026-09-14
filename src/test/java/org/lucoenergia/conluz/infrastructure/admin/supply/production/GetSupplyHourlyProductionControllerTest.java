@@ -6,11 +6,21 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +28,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
@@ -41,16 +53,62 @@ class GetSupplyHourlyProductionControllerTest extends BaseControllerTest {
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
+    private CreatePlantRepository createPlantRepository;
+    @Autowired
     private EnergyProductionInfluxLoader energyProductionInfluxLoader;
+    @Autowired
+    private PlantRepository plantRepository;
+    @Autowired
+    private SharingAgreementRepository sharingAgreementRepository;
+    @Autowired
+    private SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
+
+    private Plant plant;
 
     @BeforeEach
     void beforeEach() {
         energyProductionInfluxLoader.loadData();
+        // Register a plant in the default community whose code matches the seeded InfluxDB station_code,
+        // so the per-supply production query (driven by supply_partition_coefficient, see
+        // persistCoefficient) resolves data.
+        User plantOwner = createUserRepository.create(UserMother.randomUser());
+        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()));
+        plant = createPlantRepository.create(
+                PlantMother.random(plantSupply).withProviderCode(EnergyProductionInfluxLoader.STATION_CODE).build(),
+                SupplyId.of(plantSupply.getId()));
     }
 
     @AfterEach
     void afterEach() {
         energyProductionInfluxLoader.clearData();
+    }
+
+    /**
+     * Registers an open-ended, coefficient-1.0 timeline row linking {@code supplyId} to {@link #plant},
+     * so the per-supply production path (driven entirely by supply_partition_coefficient) resolves
+     * this plant for the supply. Without this, a supply with no timeline row yields zero production
+     * by design -- see CoefficientResolver.
+     */
+    private void persistCoefficient(UUID supplyId) {
+        SharingAgreementEntity agreement = new SharingAgreementEntity();
+        agreement.setId(UUID.randomUUID());
+        agreement.setPlant(plantRepository.getReferenceById(plant.getId()));
+        agreement.setName("Test agreement " + UUID.randomUUID());
+        agreement.setStatus(SharingAgreementStatus.PUBLISHED);
+        agreement.setCreatedAt(Instant.now());
+        agreement.setCreatedBy(null);
+        sharingAgreementRepository.save(agreement);
+
+        supplyPartitionCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
+                .withId(UUID.randomUUID())
+                .withSupplyId(supplyId)
+                .withPlantId(plant.getId())
+                .withSharingAgreementId(agreement.getId())
+                .withCoefficient(BigDecimal.ONE)
+                .withValidFrom(Instant.parse("2020-01-01T00:00:00Z"))
+                .withValidTo(null)
+                .withCreatedAt(Instant.now())
+                .build());
     }
 
     @Test
@@ -59,6 +117,7 @@ class GetSupplyHourlyProductionControllerTest extends BaseControllerTest {
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        persistCoefficient(supply.getId());
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -156,7 +215,7 @@ class GetSupplyHourlyProductionControllerTest extends BaseControllerTest {
     void testWithExpiredToken() throws Exception {
         UUID randomId = UUID.randomUUID();
         final String expiredToken = JwtAuthenticationFilter.AUTHORIZATION_HEADER_PREFIX +
-                "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.jO3pgdDj4mg9TnRzL7f8RUL1ytJS7057jAg6zaCcwn0";
+                "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.xvJF4LjS7oIcMUXjI7WbHkuxTnmuJn-3JVcwWm6qbok";
 
         mockMvc.perform(get(URL + "/" + randomId + "/production/hourly")
                         .queryParam("startDate", START_DATE)

@@ -5,9 +5,11 @@ import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
 
 import java.time.LocalDate;
 
+@Schema(requiredProperties = {"validDateFrom"})
 public class SupplyContractResponse {
 
-    @Schema(description = "Date on which the supply point was registered as valid", example = "2024-01-15")
+    @Schema(description = "Date on which the supply point was registered as valid", example = "2024-01-15",
+            types = {"string", "null"})
     private final LocalDate validDateFrom;
 
     public SupplyContractResponse(SupplyContract contract) {

@@ -2,11 +2,14 @@
 #
 #  Trigger: The workflow runs when there is a push to the main branch.
 #
-#  Increment version: The version from build.gradle is read using grep, then split into parts (major, minor, patch). The patch version is incremented.
+#  Increment version: The latest existing version tag is read from git (sorted
+#  by semantic version), then split into parts (major, minor, patch). The
+#  patch version is incremented. build.gradle itself derives its `version` from
+#  the nearest git tag at build time (see build.gradle), so nothing is written
+#  to build.gradle or committed to main here — this workflow only creates and
+#  pushes a tag, which is unaffected by branch protection rules on `main`.
 #
-#  Commit and push changes: After updating the build.gradle file, the change is committed and pushed back to the main branch.
-#
-#  Tagging: The commit is tagged with the new version, and the tag is pushed to the remote repository.
+#  Tagging: The new version is tagged on the current HEAD, and the tag is pushed to the remote repository.
 #
 #  Image build trigger: Because tags pushed by GITHUB_TOKEN do not fire downstream
 #  push-tag events, the build-and-push-image workflow is triggered explicitly via
@@ -29,6 +32,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -36,11 +41,11 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Increment version in build.gradle, commit and push version update
+      - name: Increment version and push tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=$(grep -oP 'version = "\K[0-9]+\.[0-9]+\.[0-9]+' build.gradle)
+          VERSION=$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
           echo "Current version: $VERSION"
 
           # Increment the patch version (you can modify this to increment major/minor instead)
@@ -49,17 +54,7 @@ jobs:
           NEW_VERSION="${version_parts[0]}.${version_parts[1]}.$PATCH"
           echo "New version: $NEW_VERSION"
 
-          # Update the version in build.gradle file
-          sed -i "s/version = \"$VERSION\"/version = \"$NEW_VERSION\"/" build.gradle
-
-          # Commit and push version update
-          git config --global user.name "viktorKhan"
-          git config --global user.email "viktorKhan@users.noreply.github.com"
-          git add build.gradle
-          git commit -m "Bump version to $NEW_VERSION"
-          git push origin HEAD:main
-
-          # Tag the commit with the new version and push
+          # Tag the current commit with the new version and push
           echo "Tagging with new version: $NEW_VERSION"
           git tag "$NEW_VERSION"
           git push origin "$NEW_VERSION"

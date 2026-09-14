@@ -5,7 +5,17 @@ plugins {
 }
 
 group = 'org.lucoenergia'
-version = "1.0.116"
+
+// Version is derived from the nearest git tag reachable from HEAD (created by
+// .github/workflows/version-update.yml), not hardcoded here. This lets the
+// version-bump workflow push a tag without ever committing to `main`, so it
+// is unaffected by branch protection rules on `main`.
+def versionOutput = providers.exec {
+    commandLine 'git', 'describe', '--tags', '--abbrev=0'
+    ignoreExitValue = true
+}.standardOutput.asText.getOrElse('').trim()
+
+version = versionOutput ?: '0.0.0'
 
 java {
     toolchain {
@@ -28,7 +38,10 @@ dependencies {
 
     implementation 'org.liquibase:liquibase-core:4.28.0'
     implementation 'org.influxdb:influxdb-java:2.25'
-    runtimeOnly 'org.postgresql:postgresql'
+    // implementation, not runtimeOnly: PostgresConstraintName reads PSQLException's structured
+    // ServerErrorMessage to identify a constraint violation by name, so the driver's exception
+    // type must be visible at compile time in main sources, not just on the runtime classpath.
+    implementation 'org.postgresql:postgresql'
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
 

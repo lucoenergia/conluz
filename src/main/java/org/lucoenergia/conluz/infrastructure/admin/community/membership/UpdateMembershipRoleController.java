@@ -25,7 +25,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/communities/{id}/memberships",
+        value = "/api/v1/communities/{communityId}/memberships",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -57,11 +57,11 @@ public class UpdateMembershipRoleController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageMemberships(#id)")
-    public MembershipResponse updateMembershipRole(@PathVariable("id") UUID id,
+    @PreAuthorize("@communityAccessGuard.canManageMemberships(#communityId)")
+    public MembershipResponse updateMembershipRole(@PathVariable("communityId") UUID communityId,
                                                     @PathVariable("userId") UUID userId,
                                                     @Valid @RequestBody UpdateMembershipRoleBody body) {
-        CommunityMembership membership = service.updateRole(id, userId, body.getRole());
+        CommunityMembership membership = service.updateRole(communityId, userId, body.getRole());
         return new MembershipResponse(membership);
     }
 }

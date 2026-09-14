@@ -36,7 +36,7 @@ public class GetSuppliesByUserIdController {
         this.supplyService = supplyService;
     }
 
-    @GetMapping("/{id}/supplies")
+    @GetMapping("/{userId}/supplies")
     @Operation(
             summary = "Retrieves all supplies for a specific user",
             description = """
@@ -65,7 +65,7 @@ public class GetSuppliesByUserIdController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canReadUser(#userId)")
-    public List<SupplyResponse> getSuppliesByUserId(@PathVariable("id") UUID userId) {
+    public List<SupplyResponse> getSuppliesByUserId(@PathVariable("userId") UUID userId) {
         List<Supply> supplies = supplyService.getByUserId(UserId.of(userId));
 
         return supplies.stream()

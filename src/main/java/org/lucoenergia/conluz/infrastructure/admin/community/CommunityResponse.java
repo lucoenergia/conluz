@@ -8,12 +8,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+@Schema(requiredProperties = {"id", "name", "code", "legalId", "address", "enabled", "adminNames",
+        "memberCount", "supplyPointCount"})
 public class CommunityResponse {
 
     private final UUID id;
     private final String name;
     private final String code;
+    @Schema(types = {"string", "null"})
     private final String legalId;
+    @Schema(types = {"string", "null"})
     private final String address;
     private final Boolean enabled;
 

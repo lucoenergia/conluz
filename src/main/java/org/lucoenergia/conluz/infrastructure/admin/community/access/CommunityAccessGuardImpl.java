@@ -4,11 +4,11 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.*;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -22,7 +22,6 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     private final MembershipAccessGuard membershipAccessGuard;
     private final UserAccessGuard userAccessGuard;
     private final PlantAccessGuard plantAccessGuard;
-    private final SharingAgreementAccessGuard sharingAgreementAccessGuard;
 
     public CommunityAccessGuardImpl(AuthService authService,
                                     GetCommunityRepository getCommunityRepository,
@@ -34,8 +33,8 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         this.supplyAccessGuard = new SupplyAccessGuardImpl(helper, getSupplyRepository);
         this.membershipAccessGuard = new MembershipAccessGuardImpl(helper);
         this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository);
-        this.plantAccessGuard = new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository);
-        this.sharingAgreementAccessGuard = new SharingAgreementAccessGuardImpl(helper, getSharingAgreementRepository);
+        this.plantAccessGuard = new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository,
+                getSharingAgreementRepository);
     }
 
     @Override
@@ -130,8 +129,18 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
-    public boolean canManageSharingAgreement(UUID agreementId) {
-        return sharingAgreementAccessGuard.canManageSharingAgreement(agreementId);
+    public boolean canReadSharingAgreement(UUID plantId, UUID sharingAgreementId) {
+        return plantAccessGuard.canReadSharingAgreement(plantId, sharingAgreementId);
+    }
+
+    @Override
+    public boolean canManageSharingAgreement(UUID plantId) {
+        return plantAccessGuard.canManageSharingAgreement(plantId);
+    }
+
+    @Override
+    public boolean canManageSharingAgreement(UUID plantId, UUID sharingAgreementId) {
+        return plantAccessGuard.canManageSharingAgreement(plantId, sharingAgreementId);
     }
 
     @Override

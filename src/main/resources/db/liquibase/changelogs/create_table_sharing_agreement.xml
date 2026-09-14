@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Replaces the legacy sharing_agreements/supplies_partitions model (dropped later in this
+         phase). An agreement now belongs to a plant, keeps the original distributor file as
+         evidence, and becomes the authoring aggregate over supply_partition_coefficient, which is
+         untouched by this change and remains the source of truth for the coefficients themselves. -->
+    <changeSet id="create_table_sharing_agreement" author="Víctor Cañizares">
+        <createTable tableName="sharing_agreement" remarks="An authoring event over the coefficient timeline in supply_partition_coefficient: it groups the coefficients that were set together, against a given plant, and keeps the evidence they were derived from.">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="sharing_agreement_id_pk"/>
+            </column>
+            <column name="plant_id" type="UUID" remarks="The plant this agreement distributes production from.">
+                <constraints foreignKeyName="sharing_agreement_plant_id_fk"
+                             referencedTableName="plants" referencedColumnNames="id"
+                             nullable="false"/>
+            </column>
+            <column name="name" type="TEXT" remarks="Human-readable label for the agreement.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notes" type="TEXT" remarks="Free-text notes about the agreement. Optional."/>
+            <column name="status" type="TEXT" remarks="DRAFT, PUBLISHED or SUPERSEDED. TEXT + CHECK rather than a native PostgreSQL ENUM: a native enum cannot have a value removed, and extending it (ALTER TYPE ... ADD VALUE) has historically been restricted inside transactions -- a poor fit for Liquibase and for a value set that will change. TEXT + CHECK is trivially alterable and reads identically.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="installed_power_kw" type="NUMERIC" remarks="A deliberate snapshot of the plant's installed power at authoring time, not a join to plants.total_power: the plant's installed power today is not the power the agreement was authored against."/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="UUID" remarks="NULL means the agreement was created by the system (a migration), not by a person -- there is no honest user id to record. Phase 2d creates exactly one such synthetic agreement to carry coefficients that predate this model. Do not backfill this with a synthetic 'system' user row: it could not authenticate, it would appear in member listings, and someone would eventually delete it.">
+                <constraints foreignKeyName="sharing_agreement_created_by_fk"
+                             referencedTableName="users" referencedColumnNames="id"
+                             nullable="true"/>
+            </column>
+            <!-- Deliberately no "origin" column. Do not add one. -->
+        </createTable>
+        <sql>ALTER TABLE sharing_agreement ADD CONSTRAINT sharing_agreement_status_check CHECK (status IN ('DRAFT', 'PUBLISHED', 'SUPERSEDED'))</sql>
+        <rollback>
+            <dropTable tableName="sharing_agreement"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

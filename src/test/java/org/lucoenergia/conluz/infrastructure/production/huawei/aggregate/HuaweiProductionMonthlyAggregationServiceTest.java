@@ -122,10 +122,10 @@ class HuaweiProductionMonthlyAggregationServiceTest {
         UUID communityId = UUID.randomUUID();
         Plant plant1 = PlantMother.random().build();
         Plant plant2 = PlantMother.random().build();
-        when(getPlantRepository.findPlantCodesByCommunity(communityId))
-                .thenReturn(List.of(plant1.getCode(), plant2.getCode()));
-        when(getEnergyStationRepository.findByCode(plant1.getCode())).thenReturn(Optional.of(plant1));
-        when(getEnergyStationRepository.findByCode(plant2.getCode())).thenReturn(Optional.of(plant2));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId))
+                .thenReturn(List.of(plant1.getProviderCode(), plant2.getProviderCode()));
+        when(getEnergyStationRepository.findByProviderCode(plant1.getProviderCode())).thenReturn(Optional.of(plant1));
+        when(getEnergyStationRepository.findByProviderCode(plant2.getProviderCode())).thenReturn(Optional.of(plant2));
 
         service.aggregateMonthlyProductions(communityId, 2024);
 
@@ -141,10 +141,10 @@ class HuaweiProductionMonthlyAggregationServiceTest {
         UUID communityId = UUID.randomUUID();
         Plant plant1 = PlantMother.random().build();
         Plant plant2 = PlantMother.random().build();
-        when(getPlantRepository.findPlantCodesByCommunity(communityId))
-                .thenReturn(List.of(plant1.getCode(), plant2.getCode()));
-        when(getEnergyStationRepository.findByCode(plant1.getCode())).thenReturn(Optional.of(plant1));
-        when(getEnergyStationRepository.findByCode(plant2.getCode())).thenReturn(Optional.of(plant2));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId))
+                .thenReturn(List.of(plant1.getProviderCode(), plant2.getProviderCode()));
+        when(getEnergyStationRepository.findByProviderCode(plant1.getProviderCode())).thenReturn(Optional.of(plant1));
+        when(getEnergyStationRepository.findByProviderCode(plant2.getProviderCode())).thenReturn(Optional.of(plant2));
 
         service.aggregateMonthlyProductions(communityId, Month.JULY, 2024);
 
@@ -158,10 +158,10 @@ class HuaweiProductionMonthlyAggregationServiceTest {
     void testAggregateMonthlyForSpecificPlant() {
         UUID communityId = UUID.randomUUID();
         Plant plant = PlantMother.random().build();
-        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
+        when(getEnergyStationRepository.findByProviderCode(plant.getProviderCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(List.of(plant.getProviderCode()));
 
-        service.aggregateMonthlyProductions(communityId, plant.getCode(), Month.AUGUST, 2024);
+        service.aggregateMonthlyProductions(communityId, plant.getProviderCode(), Month.AUGUST, 2024);
 
         verify(aggregationRepository, times(1))
                 .aggregateMonthlyProduction(eq(plant), eq(Month.AUGUST), eq(2024));
@@ -170,11 +170,11 @@ class HuaweiProductionMonthlyAggregationServiceTest {
     @Test
     void testAggregateMonthlyForSpecificPlant_whenPlantNotFound_thenThrows() {
         UUID communityId = UUID.randomUUID();
-        String plantCode = "UNKNOWN";
-        when(getEnergyStationRepository.findByCode(plantCode)).thenReturn(Optional.empty());
+        String plantProviderCode = "UNKNOWN";
+        when(getEnergyStationRepository.findByProviderCode(plantProviderCode)).thenReturn(Optional.empty());
 
         assertThrows(PlantNotFoundException.class,
-                () -> service.aggregateMonthlyProductions(communityId, plantCode, Month.AUGUST, 2024));
+                () -> service.aggregateMonthlyProductions(communityId, plantProviderCode, Month.AUGUST, 2024));
 
         verify(aggregationRepository, never())
                 .aggregateMonthlyProduction(any(Plant.class), any(Month.class), anyInt());
@@ -184,11 +184,11 @@ class HuaweiProductionMonthlyAggregationServiceTest {
     void testAggregateMonthlyForSpecificPlant_whenPlantNotInCommunity_thenThrows() {
         UUID communityId = UUID.randomUUID();
         Plant plant = PlantMother.random().build();
-        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(Collections.emptyList());
+        when(getEnergyStationRepository.findByProviderCode(plant.getProviderCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(Collections.emptyList());
 
         assertThrows(PlantNotFoundException.class,
-                () -> service.aggregateMonthlyProductions(communityId, plant.getCode(), Month.AUGUST, 2024));
+                () -> service.aggregateMonthlyProductions(communityId, plant.getProviderCode(), Month.AUGUST, 2024));
 
         verify(aggregationRepository, never())
                 .aggregateMonthlyProduction(any(Plant.class), any(Month.class), anyInt());
@@ -213,8 +213,8 @@ class HuaweiProductionMonthlyAggregationServiceTest {
         UUID communityId = UUID.randomUUID();
         Plant plant = PlantMother.random().build();
         when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(List.of(configForPlant(UUID.randomUUID())));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
-        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(List.of(plant.getProviderCode()));
+        when(getEnergyStationRepository.findByProviderCode(plant.getProviderCode())).thenReturn(Optional.of(plant));
 
         service.syncMonthlyProductions(communityId, null, null, 2024);
 
@@ -226,10 +226,10 @@ class HuaweiProductionMonthlyAggregationServiceTest {
         UUID communityId = UUID.randomUUID();
         Plant plant = PlantMother.random().build();
         when(getHuaweiConfigRepository.getEnabledHuaweiConfigs()).thenReturn(List.of(configForPlant(UUID.randomUUID())));
-        when(getEnergyStationRepository.findByCode(plant.getCode())).thenReturn(Optional.of(plant));
-        when(getPlantRepository.findPlantCodesByCommunity(communityId)).thenReturn(List.of(plant.getCode()));
+        when(getEnergyStationRepository.findByProviderCode(plant.getProviderCode())).thenReturn(Optional.of(plant));
+        when(getPlantRepository.findPlantProviderCodesByCommunity(communityId)).thenReturn(List.of(plant.getProviderCode()));
 
-        service.syncMonthlyProductions(communityId, plant.getCode(), 6, 2024);
+        service.syncMonthlyProductions(communityId, plant.getProviderCode(), 6, 2024);
 
         verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(plant), eq(Month.JUNE), eq(2024));
     }

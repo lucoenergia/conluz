@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Phase 6, final step of the partition-coefficient epic: the scalar column has had no
+         readers since phase 4 (the sharing-agreement coefficient timeline is authoritative) and
+         no writers since phase 5e. A pre-deploy production check confirmed 0 supplies whose
+         coefficient exists only in this column, so the timeline fully supersedes it.
+
+         Irreversible: the rollback below recreates the column shape only, it does NOT restore
+         values. Recovery of the pre-drop values requires the backup/export taken ahead of this
+         deploy, not this rollback. -->
+    <changeSet id="drop_supplies_partition_coefficient" author="Víctor Cañizares">
+        <preConditions onFail="HALT">
+            <columnExists tableName="supplies" columnName="partition_coefficient"/>
+        </preConditions>
+        <dropColumn tableName="supplies" columnName="partition_coefficient"/>
+        <rollback>
+            <addColumn tableName="supplies">
+                <column name="partition_coefficient" type="FLOAT" defaultValue="0">
+                    <constraints nullable="false"/>
+                </column>
+            </addColumn>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,50 @@
+package org.lucoenergia.conluz.infrastructure.shared.web.error;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+/**
+ * Stable, machine-readable error codes for {@link RestErrorDetail#getCode()}.
+ *
+ * <p>A newer backend may emit a code that an already-deployed conluz-web does not know. The
+ * generated TypeScript union is a compile-time construct and offers no runtime protection.
+ * Clients must always have a default branch and fall back to rendering {@code message}.
+ * Adding a value here is additive and non-breaking; renaming or removing one is a breaking
+ * API change.
+ *
+ * <p>Naming: SCREAMING_SNAKE_CASE, namespaced by domain area (e.g. {@code USER_}, {@code
+ * SUPPLY_}). Values are paired with {@link RestErrorDetail#getParams()} keys in camelCase,
+ * used as i18n interpolation variables by clients.
+ */
+@Schema(description = "Stable machine-readable error code.")
+public enum RestErrorCode {
+
+    USER_LAST_PLATFORM_ADMIN,
+    SHARING_AGREEMENT_NOT_DRAFT,
+    SHARING_AGREEMENT_HAS_NO_COEFFICIENTS,
+    SHARING_AGREEMENT_NOT_REVERTIBLE,
+    SHARING_AGREEMENT_HAS_APPLIED_COEFFICIENTS,
+    SHARING_AGREEMENT_DUPLICATE_CUPS,
+    SHARING_AGREEMENT_DUPLICATE_SUPPLY,
+    SHARING_AGREEMENT_NOT_PUBLISHED,
+    SHARING_AGREEMENT_COEFFICIENT_NOT_IN_AGREEMENT,
+    SHARING_AGREEMENT_DATE_IN_FUTURE,
+    SHARING_AGREEMENT_ACTIVATION_DATE_NOT_AFTER_PREDECESSOR,
+    SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR,
+    SHARING_AGREEMENT_COEFFICIENT_HAS_SUCCESSOR,
+    SHARING_AGREEMENT_COEFFICIENT_NOT_ACTIVE,
+    SHARING_AGREEMENT_COEFFICIENT_OVERLAP_CONFLICT,
+    SHARING_AGREEMENT_CLOSURE_DATE_NOT_AFTER_ACTIVATION,
+    SHARING_AGREEMENT_COEFFICIENT_PERIOD_OVERLAP,
+    DISTRIBUTOR_FILE_FILENAME_SHAPE_INVALID,
+    DISTRIBUTOR_FILE_PLANT_REGULATORY_CODE_MISSING,
+    DISTRIBUTOR_FILE_FILENAME_REGULATORY_CODE_MISMATCH,
+    DISTRIBUTOR_FILE_VALUE_DECIMAL_SEPARATOR_INVALID,
+    DISTRIBUTOR_FILE_VALUE_SCALE_INVALID,
+    DISTRIBUTOR_FILE_CUPS_LENGTH_INVALID,
+    DISTRIBUTOR_FILE_CUPS_DUPLICATE,
+    DISTRIBUTOR_FILE_COEFFICIENT_SUM_INVALID,
+    DISTRIBUTOR_FILE_CUPS_UNKNOWN,
+    DISTRIBUTOR_FILE_LINE_MALFORMED,
+    SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID,
+    PLANT_MISSING_REGULATORY_CODE
+}

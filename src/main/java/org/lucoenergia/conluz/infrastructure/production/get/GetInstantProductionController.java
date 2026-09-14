@@ -37,9 +37,9 @@ public class GetInstantProductionController {
             summary = "Delivers real-time energy production details of a community.",
             description = "Offers real-time insights into the instantaneous energy production of the plants of the "
                     + "community identified by the path `communityId`. **Required: any member of the community.** "
-                    + "Returns 404 if the community does not exist or the caller is not a member of it. When a `supplyId` "
-                    + "is provided, only the supply owner or a Community Admin of the supply's community may access it, "
-                    + "and the supply must belong to the community in the path.",
+                    + "Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a "
+                    + "non-member platform admin. When a `supplyId` is provided, it must back a plant of the community "
+                    + "in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
             tags = ApiTag.PRODUCTION,
             operationId = "getInstantProduction"
     )
@@ -55,8 +55,7 @@ public class GetInstantProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated() and @communityAccessGuard.canReadCommunity(#communityId)"
-            + " and (#supplyId == null or @communityAccessGuard.canReadSupply(#supplyId))")
+    @PreAuthorize("isAuthenticated() and @communityAccessGuard.isMemberOfCommunity(#communityId)")
     public InstantProduction getInstantProduction(@PathVariable UUID communityId,
                                                   @RequestParam(required = false) UUID supplyId) {
         if (Objects.isNull(supplyId)) {

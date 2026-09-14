@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.domain.shared.pagination;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class PagedRequest {

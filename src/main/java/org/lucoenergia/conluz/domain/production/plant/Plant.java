@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.production.plant;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
@@ -17,8 +18,19 @@ public class Plant {
     private UUID id;
     @NotBlank
     private String name;
+    /**
+     * The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as
+     * the {@code station_code} tag in InfluxDB: this is the join key between the PostgreSQL plant
+     * row and its time series. It is not a CUPS and not a CAU -- the regulator's code is
+     * {@code regulatory_code}.
+     */
     @NotBlank
-    private String code;
+    private String providerCode;
+    /**
+     * The identifier assigned by the regulator. In Spain this is the CAU (Código de Autoconsumo).
+     * It is not the provider's station code ({@code provider_code}) and not a CUPS.
+     */
+    private String regulatoryCode;
     @NotBlank
     private String address;
     @NotBlank
@@ -42,8 +54,12 @@ public class Plant {
         return name;
     }
 
-    public String getCode() {
-        return code;
+    public String getProviderCode() {
+        return providerCode;
+    }
+
+    public String getRegulatoryCode() {
+        return regulatoryCode;
     }
 
     public String getAddress() {
@@ -78,10 +94,15 @@ public class Plant {
         id = UUID.randomUUID();
     }
 
+    public Community getCommunity() {
+        return supply.getCommunity();
+    }
+
     public static class Builder {
         private UUID id;
         private String name;
-        private String code;
+        private String providerCode;
+        private String regulatoryCode;
         private String address;
         private String description;
         private InverterProvider inverterProvider;
@@ -99,8 +120,13 @@ public class Plant {
             return this;
         }
 
-        public Builder withCode(String code) {
-            this.code = code;
+        public Builder withProviderCode(String providerCode) {
+            this.providerCode = providerCode;
+            return this;
+        }
+
+        public Builder withRegulatoryCode(String regulatoryCode) {
+            this.regulatoryCode = regulatoryCode;
             return this;
         }
 
@@ -138,7 +164,8 @@ public class Plant {
             Plant station = new Plant();
             station.id = this.id;
             station.name = this.name;
-            station.code = this.code;
+            station.providerCode = this.providerCode;
+            station.regulatoryCode = this.regulatoryCode;
             station.address = this.address;
             station.description = this.description;
             station.inverterProvider = this.inverterProvider;
@@ -153,19 +180,19 @@ public class Plant {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Plant plant)) return false;
-        return Objects.equals(getId(), plant.getId()) && Objects.equals(getName(), plant.getName()) && Objects.equals(getCode(), plant.getCode());
+        return Objects.equals(getId(), plant.getId()) && Objects.equals(getName(), plant.getName()) && Objects.equals(getProviderCode(), plant.getProviderCode());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getName(), getCode());
+        return Objects.hash(getId(), getName(), getProviderCode());
     }
 
     @Override
     public String toString() {
         return "Plant{" +
                 "name='" + name + '\'' +
-                ", code='" + code + '\'' +
+                ", providerCode='" + providerCode + '\'' +
                 ", id=" + id +
                 '}';
     }

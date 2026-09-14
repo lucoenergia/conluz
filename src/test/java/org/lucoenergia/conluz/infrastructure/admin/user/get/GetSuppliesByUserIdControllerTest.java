@@ -15,7 +15,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Random;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,7 +43,6 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withUser(user)
                 .withName("Supply 1")
                 .withAddress("Address 1")
-                .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(true)
                 .build();
         createSupplyRepository.create(supply1, UserId.of(user.getId()));
@@ -55,7 +53,6 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withUser(user)
                 .withName("Supply 2")
                 .withAddress("Address 2")
-                .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(true)
                 .build();
         createSupplyRepository.create(supply2, UserId.of(user.getId()));
@@ -88,7 +85,6 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withUser(user)
                 .withName("My Supply")
                 .withAddress("My Address")
-                .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(true)
                 .build();
         Supply createdSupply = createSupplyRepository.create(supply, UserId.of(user.getId()));
@@ -130,7 +126,6 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withUser(user2)
                 .withName("User 2 Supply")
                 .withAddress("User 2 Address")
-                .withPartitionCoefficient(new Random().nextFloat())
                 .withEnabled(true)
                 .build();
         createSupplyRepository.create(supply, UserId.of(user2.getId()));

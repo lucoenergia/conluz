@@ -1,11 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.shared.db.influxdb;
 
 import org.influxdb.InfluxDB;
-import org.influxdb.InfluxDBFactory;
-import org.influxdb.impl.InfluxDBImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
 

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Forbids overlapping [valid_from, valid_to) periods for the same (plant_id, supply_id), using
+         a GiST exclusion constraint (btree_gist supplies GiST support for the plain equality columns).
+
+         '[)', half-open: valid_to is derived: the end of supply S's coefficient in agreement N is
+         the valid_from of S in agreement N+1, so consecutive rows share a boundary instant. '[]'
+         would treat that shared instant as overlap and reject every superseding agreement; '[)' makes
+         adjacent rows non-overlapping.
+
+         WHERE (valid_from IS NOT NULL), partial: valid_from is still NOT NULL on every row in this
+         phase, so this predicate is currently always true and has no observable effect today. It is
+         included anyway because it future-proofs the constraint against an anticipated later
+         relaxation of valid_from's nullability (pending, not-yet-activated rows), so a future phase
+         does not need to touch this exclusion constraint again. Do not remove it as dead code. -->
+    <changeSet id="add_supply_partition_coefficient_no_overlapping_exclusion_constraint" author="Víctor Cañizares">
+        <!-- Defense in depth: the strictly-stronger overlap check this constraint enforces (any
+             overlap, not just a second open-ended row) must be proven against real data before this
+             changeset ever runs in an environment with existing coefficients. See the phase 2d report
+             for the manual diagnostic run against production. This precondition re-checks the same
+             condition, precisely (plant_id is populated and NOT NULL by this point in the chain), so
+             the migration HALTs cleanly instead of failing mid-ALTER TABLE if data drifted. -->
+        <preConditions onFail="HALT">
+            <sqlCheck expectedResult="0">
+                SELECT count(*)
+                FROM supply_partition_coefficient a
+                JOIN supply_partition_coefficient b
+                  ON a.plant_id = b.plant_id AND a.supply_id = b.supply_id AND a.id &lt; b.id
+                 AND a.valid_from IS NOT NULL AND b.valid_from IS NOT NULL
+                 AND tstzrange(a.valid_from, a.valid_to, '[)') &amp;&amp; tstzrange(b.valid_from, b.valid_to, '[)')
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            ALTER TABLE supply_partition_coefficient ADD CONSTRAINT no_overlapping_coefficients
+              EXCLUDE USING gist (plant_id WITH =, supply_id WITH =,
+                                  tstzrange(valid_from, valid_to, '[)') WITH &amp;&amp;)
+              WHERE (valid_from IS NOT NULL);
+        </sql>
+        <rollback>
+            <sql>ALTER TABLE supply_partition_coefficient DROP CONSTRAINT no_overlapping_coefficients;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

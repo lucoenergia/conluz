@@ -7,10 +7,8 @@ import org.lucoenergia.conluz.infrastructure.consumption.shelly.config.ShellyCon
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Repository
 @Transactional(readOnly = true)

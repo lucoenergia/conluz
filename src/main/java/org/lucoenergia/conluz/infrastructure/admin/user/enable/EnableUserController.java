@@ -29,7 +29,7 @@ public class EnableUserController {
         this.service = service;
     }
 
-    @PostMapping(path = "/users/{id}/enable")
+    @PostMapping(path = "/users/{userId}/enable")
     @Operation(
             summary = "Enables a user by ID",
             description = """
@@ -58,7 +58,7 @@ public class EnableUserController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
-    public void enableUser(@PathVariable("id") UUID userId) {
+    public void enableUser(@PathVariable("userId") UUID userId) {
         service.enable(UserId.of(userId));
     }
 }

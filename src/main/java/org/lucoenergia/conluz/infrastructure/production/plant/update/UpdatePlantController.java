@@ -29,7 +29,7 @@ public class UpdatePlantController {
         this.service = service;
     }
 
-    @PutMapping("/plants/{id}")
+    @PutMapping("/plants/{plantId}")
     @Operation(
             summary = "Updates plant information",
             description = """
@@ -63,7 +63,7 @@ public class UpdatePlantController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
-    public PlantResponse updatePlant(@PathVariable("id") UUID plantId, @Valid @RequestBody UpdatePlantBody body) {
+    public PlantResponse updatePlant(@PathVariable("plantId") UUID plantId, @Valid @RequestBody UpdatePlantBody body) {
         return new PlantResponse(service.update(body.toPlant(plantId)));
     }
 }

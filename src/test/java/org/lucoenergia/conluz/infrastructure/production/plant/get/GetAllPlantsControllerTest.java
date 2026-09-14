@@ -53,11 +53,11 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
         // Create three supplies
-        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
-        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
@@ -73,7 +73,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items.size()").value(3))
 
                 .andExpect(jsonPath("$.items[0].id").isNotEmpty())
-                .andExpect(jsonPath("$.items[0].code").value(plantTwo.getCode()))
+                .andExpect(jsonPath("$.items[0].providerCode").value(plantTwo.getProviderCode()))
                 .andExpect(jsonPath("$.items[0].name").value(plantTwo.getName()))
                 .andExpect(jsonPath("$.items[0].address").value(plantTwo.getAddress()))
                 .andExpect(jsonPath("$.items[0].description").value(plantTwo.getDescription()))
@@ -81,9 +81,10 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[0].totalPower").value(plantTwo.getTotalPower()))
                 .andExpect(jsonPath("$.items[0].connectionDate").value(plantTwo.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.items[0].supply.code").value(plantTwo.getSupply().getCode()))
+                .andExpect(jsonPath("$.items[0].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
 
                 .andExpect(jsonPath("$.items[1].id").isNotEmpty())
-                .andExpect(jsonPath("$.items[1].code").value(plantOne.getCode()))
+                .andExpect(jsonPath("$.items[1].providerCode").value(plantOne.getProviderCode()))
                 .andExpect(jsonPath("$.items[1].name").value(plantOne.getName()))
                 .andExpect(jsonPath("$.items[1].address").value(plantOne.getAddress()))
                 .andExpect(jsonPath("$.items[1].description").value(plantOne.getDescription()))
@@ -91,16 +92,18 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[1].totalPower").value(plantOne.getTotalPower()))
                 .andExpect(jsonPath("$.items[1].connectionDate").value(plantOne.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.items[1].supply.code").value(plantOne.getSupply().getCode()))
+                .andExpect(jsonPath("$.items[1].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
 
                 .andExpect(jsonPath("$.items[2].id").isNotEmpty())
-                .andExpect(jsonPath("$.items[2].code").value(plantThree.getCode()))
+                .andExpect(jsonPath("$.items[2].providerCode").value(plantThree.getProviderCode()))
                 .andExpect(jsonPath("$.items[2].name").value(plantThree.getName()))
                 .andExpect(jsonPath("$.items[2].address").value(plantThree.getAddress()))
                 .andExpect(jsonPath("$.items[2].description").value(plantThree.getDescription()))
                 .andExpect(jsonPath("$.items[2].inverterProvider").value(plantThree.getInverterProvider().name()))
                 .andExpect(jsonPath("$.items[2].totalPower").value(plantThree.getTotalPower()))
                 .andExpect(jsonPath("$.items[2].connectionDate").value(plantThree.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
-                .andExpect(jsonPath("$.items[2].supply.code").value(plantThree.getSupply().getCode()));
+                .andExpect(jsonPath("$.items[2].supply.code").value(plantThree.getSupply().getCode()))
+                .andExpect(jsonPath("$.items[2].community.id").value(DEFAULT_COMMUNITY_ID.toString()));
     }
 
     @Test
@@ -131,11 +134,11 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
-        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
@@ -151,7 +154,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPages").value("3"))
                 .andExpect(jsonPath("$.number").value("1"))
                 .andExpect(jsonPath("$.items.size()").value(1))
-                .andExpect(jsonPath("$.items[0].code").value(plantOne.getCode()));
+                .andExpect(jsonPath("$.items[0].providerCode").value(plantOne.getProviderCode()));
     }
 
     @Test
@@ -162,7 +165,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Supply supplyOne = SupplyMother.random().build();
         supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
 
-        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
 
         String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
@@ -177,7 +180,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPages").value("1"))
                 .andExpect(jsonPath("$.number").value("0"))
                 .andExpect(jsonPath("$.items.size()").value(1))
-                .andExpect(jsonPath("$.items[0].code").value(plantOne.getCode()));
+                .andExpect(jsonPath("$.items[0].providerCode").value(plantOne.getProviderCode()));
     }
 
     @Test
@@ -208,11 +211,11 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
-        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
@@ -240,11 +243,11 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
-        Plant plantOne = PlantMother.random(supplyOne).withCode("TS-456789").build();
+        Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withCode("TS-123456").build();
+        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
-        Plant plantThree = PlantMother.random(supplyTwo).withCode("TS-789456").build();
+        Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
@@ -273,17 +276,17 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
         Plant plantOne = PlantMother.random(supplyOne)
-                .withCode("TS-456789")
+                .withProviderCode("TS-456789")
                 .withName("Plant One")
                 .build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
         Plant plantTwo = PlantMother.random(supplyOne)
-                .withCode("TS-123456")
+                .withProviderCode("TS-123456")
                 .withName("Plant Two")
                 .build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
         Plant plantThree = PlantMother.random(supplyTwo)
-                .withCode("TS-789456")
+                .withProviderCode("TS-789456")
                 .withName("Plant Three")
                 .build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
@@ -300,9 +303,9 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPages").value("1"))
                 .andExpect(jsonPath("$.number").value("0"))
                 .andExpect(jsonPath("$.items.size()").value(3))
-                .andExpect(jsonPath("$.items[0].code").value(plantOne.getCode()))
-                .andExpect(jsonPath("$.items[1].code").value(plantThree.getCode()))
-                .andExpect(jsonPath("$.items[2].code").value(plantTwo.getCode()));
+                .andExpect(jsonPath("$.items[0].providerCode").value(plantOne.getProviderCode()))
+                .andExpect(jsonPath("$.items[1].providerCode").value(plantThree.getProviderCode()))
+                .andExpect(jsonPath("$.items[2].providerCode").value(plantTwo.getProviderCode()));
     }
 
     @Test
@@ -318,19 +321,19 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
         Plant plantOne = PlantMother.random(supplyOne)
-                .withCode("TS-456789")
+                .withProviderCode("TS-456789")
                 .withName("Plant One")
                 .withTotalPower(60D)
                 .build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
         Plant plantTwo = PlantMother.random(supplyOne)
-                .withCode("TS-123456")
+                .withProviderCode("TS-123456")
                 .withName("Plant Two")
                 .withTotalPower(60D)
                 .build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
         Plant plantThree = PlantMother.random(supplyTwo)
-                .withCode("TS-789456")
+                .withProviderCode("TS-789456")
                 .withName("Plant Three")
                 .withTotalPower(30D)
                 .build();
@@ -341,7 +344,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("sort", "totalPower,asc")
-                        .queryParam("sort", "code,asc"))
+                        .queryParam("sort", "providerCode,asc"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value("20"))
@@ -349,9 +352,9 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPages").value("1"))
                 .andExpect(jsonPath("$.number").value("0"))
                 .andExpect(jsonPath("$.items.size()").value(3))
-                .andExpect(jsonPath("$.items[0].code").value(plantThree.getCode()))
-                .andExpect(jsonPath("$.items[1].code").value(plantTwo.getCode()))
-                .andExpect(jsonPath("$.items[2].code").value(plantOne.getCode()));
+                .andExpect(jsonPath("$.items[0].providerCode").value(plantThree.getProviderCode()))
+                .andExpect(jsonPath("$.items[1].providerCode").value(plantTwo.getProviderCode()))
+                .andExpect(jsonPath("$.items[2].providerCode").value(plantOne.getProviderCode()));
     }
 
     @Test
@@ -367,19 +370,19 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
 
         Plant plantOne = PlantMother.random(supplyOne)
-                .withCode("TS-456789")
+                .withProviderCode("TS-456789")
                 .withName("Plant One")
                 .withTotalPower(60D)
                 .build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
         Plant plantTwo = PlantMother.random(supplyOne)
-                .withCode("TS-123456")
+                .withProviderCode("TS-123456")
                 .withName("Plant Two")
                 .withTotalPower(60D)
                 .build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
         Plant plantThree = PlantMother.random(supplyTwo)
-                .withCode("TS-789456")
+                .withProviderCode("TS-789456")
                 .withName("Plant Three")
                 .withTotalPower(30D)
                 .build();
@@ -399,7 +402,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPages").value("3"))
                 .andExpect(jsonPath("$.number").value("1"))
                 .andExpect(jsonPath("$.items.size()").value(1))
-                .andExpect(jsonPath("$.items[0].code").value(plantThree.getCode()));
+                .andExpect(jsonPath("$.items[0].providerCode").value(plantThree.getProviderCode()));
     }
 
     @Test
@@ -409,7 +412,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         createUserRepository.create(user);
         Supply supply = SupplyMother.random().build();
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
-        Plant plant = PlantMother.random(supply).withCode("TS-456789").build();
+        Plant plant = PlantMother.random(supply).withProviderCode("TS-456789").build();
         createPlantRepository.create(plant, SupplyId.of(supply.getId()));
 
         // A regular (non-admin) member of the plant's community can list its plants
@@ -421,7 +424,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value("1"))
                 .andExpect(jsonPath("$.items.size()").value(1))
-                .andExpect(jsonPath("$.items[0].code").value(plant.getCode()));
+                .andExpect(jsonPath("$.items[0].providerCode").value(plant.getProviderCode()));
     }
 
     @Test
@@ -469,7 +472,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
     void testWithExpiredToken() throws Exception {
 
         final String expiredToken = JwtAuthenticationFilter.AUTHORIZATION_HEADER_PREFIX +
-                "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.jO3pgdDj4mg9TnRzL7f8RUL1ytJS7057jAg6zaCcwn0";
+                "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJiMTFlMTgxNS1mNzE0LTRmNGEtOGZjMS0yNjQxM2FmM2YzYmIiLCJpYXQiOjE3MDQyNzkzNzIsImV4cCI6MTcwNDI4MTE3Mn0.xvJF4LjS7oIcMUXjI7WbHkuxTnmuJn-3JVcwWm6qbok";
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, expiredToken))

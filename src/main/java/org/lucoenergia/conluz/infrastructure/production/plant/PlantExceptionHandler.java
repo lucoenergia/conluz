@@ -1,9 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
+import org.lucoenergia.conluz.domain.production.plant.PlantMissingRegulatoryCodeException;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -27,11 +29,11 @@ public class PlantExceptionHandler {
     @ExceptionHandler(PlantAlreadyExistsException.class)
     public ResponseEntity<RestError> handleException(PlantAlreadyExistsException e) {
 
-        String plantCode = e.getCode().toString();
+        String plantProviderCode = e.getProviderCode().toString();
 
         String message = messageSource.getMessage(
                 "error.plant.already.exists",
-                Collections.singletonList(plantCode).toArray(),
+                Collections.singletonList(plantProviderCode).toArray(),
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
@@ -40,7 +42,7 @@ public class PlantExceptionHandler {
     @ExceptionHandler(PlantNotFoundException.class)
     public ResponseEntity<RestError> handleException(PlantNotFoundException e) {
 
-        String plantIdentifier = e.getId() != null ? e.getId().toString() : e.getCode();
+        String plantIdentifier = e.getId() != null ? e.getId().toString() : e.getProviderCode();
 
         String message = messageSource.getMessage(
                 "error.plant.not.found",
@@ -48,5 +50,16 @@ public class PlantExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(PlantMissingRegulatoryCodeException.class)
+    public ResponseEntity<RestError> handleException(PlantMissingRegulatoryCodeException e) {
+
+        String message = messageSource.getMessage(
+                "error.plant.missing.regulatory.code",
+                Collections.singletonList(e.getPlantId()).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.PLANT_MISSING_REGULATORY_CODE, null, HttpStatus.CONFLICT);
     }
 }

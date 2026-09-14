@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.get;
 
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -18,10 +20,12 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantResponse;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -30,6 +34,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Transactional
@@ -46,6 +51,8 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private EntityManager entityManager;
 
 
     @Test
@@ -86,7 +93,7 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
 
         assertTrue(result.isPresent());
         assertEquals(plant.getId(), result.get().getId());
-        assertEquals(plant.getCode(), result.get().getCode());
+        assertEquals(plant.getProviderCode(), result.get().getProviderCode());
     }
 
     @Test
@@ -160,7 +167,7 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void testFindPlantCodesByCommunityReturnsCodesOfPlantsOfThatCommunity() {
+    void testFindPlantProviderCodesByCommunityReturnsCodesOfPlantsOfThatCommunity() {
 
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         Community otherCommunity = createCommunityRepository.create(CommunityMother.random().build());
@@ -177,18 +184,18 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         createPlantRepository.create(PlantMother.random(supplyInOtherCommunity).build(),
                 SupplyId.of(supplyInOtherCommunity.getId()));
 
-        List<String> codes = getPlantRepositoryDatabase.findPlantCodesByCommunity(community.getId());
+        List<String> codes = getPlantRepositoryDatabase.findPlantProviderCodesByCommunity(community.getId());
 
         assertEquals(1, codes.size());
-        assertTrue(codes.contains(plantInCommunity.getCode()));
+        assertTrue(codes.contains(plantInCommunity.getProviderCode()));
     }
 
     @Test
-    void testFindPlantCodesByCommunityReturnsEmptyWhenCommunityHasNoPlants() {
+    void testFindPlantProviderCodesByCommunityReturnsEmptyWhenCommunityHasNoPlants() {
 
         Community community = createCommunityRepository.create(CommunityMother.random().build());
 
-        List<String> codes = getPlantRepositoryDatabase.findPlantCodesByCommunity(community.getId());
+        List<String> codes = getPlantRepositoryDatabase.findPlantProviderCodesByCommunity(community.getId());
 
         assertTrue(codes.isEmpty());
     }
@@ -216,7 +223,7 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         assertEquals(1, codes.size());
         // The CUPS (supply code) is returned, not the plant/station code.
         assertTrue(codes.contains(supplyInCommunity.getCode()));
-        assertFalse(codes.contains(plantInCommunity.getCode()));
+        assertFalse(codes.contains(plantInCommunity.getProviderCode()));
         assertFalse(codes.contains(supplyInOtherCommunity.getCode()));
     }
 
@@ -228,5 +235,37 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         Set<String> codes = getPlantRepositoryDatabase.findSupplyCodesByCommunity(community.getId());
 
         assertTrue(codes.isEmpty());
+    }
+
+    @Test
+    void mappingPlantsToPlantResponse_addsNoAdditionalQueries_toExposeTheOwningCommunity() {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User user = createUserRepository.create(UserMother.randomUser());
+
+        for (int i = 0; i < 3; i++) {
+            Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(),
+                    UserId.of(user.getId()), community.getId());
+            createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
+        }
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // GetPlantRepositoryDatabase already fully resolves Plant.supply.community for every item
+        // (a pre-existing, unrelated per-plant lazy load) -- that cost is not what this test measures.
+        PagedResult<Plant> plants = getPlantRepositoryDatabase.findByCommunities(PagedRequest.of(0, 10),
+                Set.of(community.getId()));
+
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+
+        List<PlantResponse> responses = plants.getItems().stream().map(PlantResponse::new).toList();
+
+        assertEquals(0, statistics.getPrepareStatementCount(),
+                "constructing PlantResponse must not issue further queries: community is already resolved");
+        for (PlantResponse response : responses) {
+            assertNotNull(response.getCommunity().getId());
+        }
     }
 }

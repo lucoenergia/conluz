@@ -8,7 +8,6 @@ import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
@@ -18,6 +17,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
 import org.springdoc.core.converters.models.PageableAsQueryParam;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +27,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Get the supplies of a community visible to the current user.
+ * Get the supplies of a community visible to the current user. The caller must be a member of the
+ * community; a non-member platform admin is denied.
  */
 @RestController
 @RequestMapping(value = "/api/v1/communities/{communityId}/supplies")
@@ -36,14 +37,12 @@ public class GetAllSuppliesController {
     private final GetSupplyService service;
     private final PaginationRequestMapper paginationRequestMapper;
     private final CommunityAccessGuard communityAccessGuard;
-    private final AuthService authService;
 
     public GetAllSuppliesController(GetSupplyService service, PaginationRequestMapper paginationRequestMapper,
-                                    CommunityAccessGuard communityAccessGuard, AuthService authService) {
+                                    CommunityAccessGuard communityAccessGuard) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
         this.communityAccessGuard = communityAccessGuard;
-        this.authService = authService;
     }
 
 
@@ -55,8 +54,9 @@ public class GetAllSuppliesController {
                     filtering and sorting. Requires authentication through a Bearer Token.
 
                     **Visibility:** Community admins of the community see all of its supplies.
-                    Regular members see only the supplies they own within the community. Returns 404 if the community
-                    does not exist or the caller is not a member of it.""",
+                    Regular members see only the supplies they own within the community. **Required: any member of the
+                    community.** Returns 404 if the community does not exist or the caller is not a member of it, and
+                    403 for a non-member platform admin.""",
             tags = ApiTag.SUPPLIES,
             operationId = "getAllSupplies"
     )
@@ -73,12 +73,10 @@ public class GetAllSuppliesController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
-    @PreAuthorize("@communityAccessGuard.canReadCommunity(#communityId)")
-    public PagedResult<SupplyResponse> getAllSupplies(@PathVariable UUID communityId,
+    @PreAuthorize("isAuthenticated() and @communityAccessGuard.isMemberOfCommunity(#communityId)")
+    public PagedResult<SupplyResponse> getAllSupplies(@AuthenticationPrincipal User currentUser,
+                                                      @PathVariable UUID communityId,
                                                       @Parameter(hidden = true) Pageable page) {
-        User currentUser = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("User must be authenticated"));
-
         boolean canSeeAll = communityAccessGuard.adminCommunityIds().contains(communityId);
 
         PagedResult<Supply> supplies;

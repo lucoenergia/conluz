@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class SetHuaweiConfigControllerTest extends BaseControllerTest {
 
-    private static final String URL_TEMPLATE = "/api/v1/production/huawei/config/%s";
+    private static final String URL_TEMPLATE = "/api/v1/plants/%s/production/huawei/config";
 
     @Autowired
     private HuaweiConfigRepository huaweiConfigRepository;

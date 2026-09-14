@@ -2,7 +2,6 @@ package org.lucoenergia.conluz.domain.admin.supply;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
@@ -27,9 +26,6 @@ public class Supply {
     private String address;
     private String addressRef;
     @NotNull
-    @PositiveOrZero
-    private final Float partitionCoefficient;
-    @NotNull
     private Boolean enabled;
 
     private SupplyContract contract;
@@ -44,7 +40,6 @@ public class Supply {
         this.name = builder.name;
         this.address = builder.address;
         this.addressRef = builder.addressRef;
-        this.partitionCoefficient = builder.partitionCoefficient == null ? 0F : builder.partitionCoefficient;
         this.enabled = builder.enabled != null && builder.enabled;
         this.contract = builder.contract;
         this.distributor = builder.distributor;
@@ -67,7 +62,6 @@ public class Supply {
         private String name;
         private String address;
         private String addressRef;
-        private Float partitionCoefficient;
         private Boolean enabled;
         private SupplyContract contract;
         private SupplyDistributor distributor;
@@ -101,11 +95,6 @@ public class Supply {
 
         public Builder withAddressRef(String addressRef) {
             this.addressRef = addressRef;
-            return this;
-        }
-
-        public Builder withPartitionCoefficient(Float partitionCoefficient) {
-            this.partitionCoefficient = partitionCoefficient;
             return this;
         }
 
@@ -165,10 +154,6 @@ public class Supply {
 
     public String getAddressRef() {
         return addressRef;
-    }
-
-    public Float getPartitionCoefficient() {
-        return partitionCoefficient;
     }
 
     public Boolean getEnabled() {
@@ -235,7 +220,6 @@ public class Supply {
                 .withName(this.name)
                 .withAddress(this.address)
                 .withAddressRef(this.addressRef)
-                .withPartitionCoefficient(this.partitionCoefficient)
                 .withEnabled(this.enabled)
                 .withContract(this.contract)
                 .withDistributor(this.distributor)

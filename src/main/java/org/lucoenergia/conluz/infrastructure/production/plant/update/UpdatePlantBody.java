@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.production.plant.update;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 
@@ -11,12 +10,20 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Schema(requiredProperties = {
-        "code", "name", "address", "totalPower", "personalId", "inverterProvider"
+        "providerCode", "name", "address", "totalPower", "personalId", "inverterProvider"
 })
 public class UpdatePlantBody {
 
+    @Schema(description = "The plant identifier assigned by the inverter provider (currently Huawei). " +
+            "Used verbatim as the station_code tag in InfluxDB: this is the join key between the " +
+            "PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the " +
+            "regulator's code is regulatory_code.")
     @NotBlank
-    private String code;
+    private String providerCode;
+    @Schema(description = "The identifier assigned by the regulator. In Spain this is the CAU " +
+            "(Codigo de Autoconsumo). It is not the provider's station code (provider_code) and " +
+            "not a CUPS.")
+    private String regulatoryCode;
     @NotBlank
     private String name;
     private String description;
@@ -30,12 +37,20 @@ public class UpdatePlantBody {
     @Positive
     private Double totalPower;
 
-    public String getCode() {
-        return code;
+    public String getProviderCode() {
+        return providerCode;
     }
 
-    public void setCode(String code) {
-        this.code = code;
+    public void setProviderCode(String providerCode) {
+        this.providerCode = providerCode;
+    }
+
+    public String getRegulatoryCode() {
+        return regulatoryCode;
+    }
+
+    public void setRegulatoryCode(String regulatoryCode) {
+        this.regulatoryCode = regulatoryCode;
     }
 
     public String getName() {
@@ -97,7 +112,8 @@ public class UpdatePlantBody {
     public Plant toPlant(UUID uuid) {
         Plant.Builder builder = new Plant.Builder();
         builder.withId(uuid)
-                .withCode(code)
+                .withProviderCode(providerCode)
+                .withRegulatoryCode(regulatoryCode)
                 .withName(name)
                 .withDescription(description)
                 .withInverterProvider(inverterProvider)

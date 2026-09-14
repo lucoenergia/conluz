@@ -25,7 +25,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/production/huawei/config",
+        value = "/api/v1/plants/{plantId}/production/huawei/config",
         produces = MediaType.APPLICATION_JSON_VALUE
 )
 public class GetHuaweiConfigController {
@@ -36,7 +36,7 @@ public class GetHuaweiConfigController {
         this.service = service;
     }
 
-    @GetMapping("/{plantId}")
+    @GetMapping
     @Operation(
             summary = "Returns the current Huawei configuration for a plant.",
             description = """

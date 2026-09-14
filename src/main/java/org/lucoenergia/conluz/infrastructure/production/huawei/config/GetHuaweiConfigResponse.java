@@ -1,10 +1,13 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.config;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 
+@Schema(requiredProperties = {"username", "passwordSet", "baseUrl", "enabled"})
 public class GetHuaweiConfigResponse {
 
+    @Schema(types = {"string", "null"})
     private final String username;
     private final boolean passwordSet;
     private final String baseUrl;

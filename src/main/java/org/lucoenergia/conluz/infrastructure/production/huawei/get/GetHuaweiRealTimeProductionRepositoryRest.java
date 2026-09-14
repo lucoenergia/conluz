@@ -67,7 +67,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
         }
 
         String stationCodes = stations.stream()
-                .map(Plant::getCode)
+                .map(Plant::getProviderCode)
                 .collect(Collectors.joining(", "));
 
         final OkHttpClient client = conluzRestClientBuilder.build();

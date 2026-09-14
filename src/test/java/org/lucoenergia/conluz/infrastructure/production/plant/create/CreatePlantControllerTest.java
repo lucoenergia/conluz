@@ -62,10 +62,12 @@ class CreatePlantControllerTest extends BaseControllerTest {
         supplyRepository.save(supply);
 
         String plantCode = "PS-456798";
+        String regulatoryCode = "ES0021000000000001JN0F";
 
         String body = String.format("""
                         {
-                          "code": "%s",
+                          "providerCode": "%s",
+                          "regulatoryCode": "%s",
                           "name": "Plant one",
                           "supplyCode": "%s",
                           "address": "Fake Street 123",
@@ -74,7 +76,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                           "connectionDate": "2024-05-23",
                           "inverterProvider": "HUAWEI"
                         }
-                """, plantCode, supply.getCode());
+                """, plantCode, regulatoryCode, supply.getCode());
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -83,7 +85,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.code").value(plantCode))
+                .andExpect(jsonPath("$.providerCode").value(plantCode))
+                .andExpect(jsonPath("$.regulatoryCode").value(regulatoryCode))
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
                 .andExpect(jsonPath("$.name").value("Plant one"))
                 .andExpect(jsonPath("$.description").value("Plant number one"))
@@ -92,7 +95,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.inverterProvider").value("HUAWEI"))
                 .andExpect(jsonPath("$.supply.code").value(supply.getCode()));
 
-        Assertions.assertEquals(1, plantRepository.countByCode(plantCode));
+        Assertions.assertEquals(1, plantRepository.countByProviderCode(plantCode));
     }
 
     @Test
@@ -115,7 +118,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
 
         String body = String.format("""
                         {
-                          "code": "%s",
+                          "providerCode": "%s",
                           "name": "Plant one",
                           "supplyCode": "%s",
                           "address": "Fake Street 123",
@@ -131,7 +134,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.code").value(plantCode))
+                .andExpect(jsonPath("$.providerCode").value(plantCode))
+                .andExpect(jsonPath("$.regulatoryCode").isEmpty())
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
                 .andExpect(jsonPath("$.name").value("Plant one"))
                 .andExpect(jsonPath("$.description").isEmpty())
@@ -140,7 +144,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.inverterProvider").value("HUAWEI"))
                 .andExpect(jsonPath("$.supply.code").value(supply.getCode()));
 
-        Assertions.assertEquals(1, plantRepository.countByCode(plantCode));
+        Assertions.assertEquals(1, plantRepository.countByProviderCode(plantCode));
     }
 
     @ParameterizedTest
@@ -173,7 +177,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                                 {
-                                  "code": "TS-65987",
+                                  "providerCode": "TS-65987",
                                   "personalId": "12345678Z",
                                   "address": "Fake Street 123",
                                   "totalPower": "60.00",
@@ -182,7 +186,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                                 {
-                                  "code": "TS-65987",
+                                  "providerCode": "TS-65987",
                                   "name": "Plant one",
                                   "address": "Fake Street 123",
                                   "totalPower": "60.00",
@@ -191,7 +195,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                                 {
-                                  "code": "TS-65987",
+                                  "providerCode": "TS-65987",
                                   "name": "Plant one",
                                   "personalId": "12345678Z",
                                   "totalPower": "60.00",
@@ -200,7 +204,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                                 {
-                                  "code": "TS-65987",
+                                  "providerCode": "TS-65987",
                                   "name": "Plant one",
                                   "personalId": "12345678Z",
                                   "address": "Fake Street 123",
@@ -209,7 +213,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                                 {
-                                  "code": "TS-65987",
+                                  "providerCode": "TS-65987",
                                   "name": "Plant one",
                                   "personalId": "12345678Z",
                                   "address": "Fake Street 123",
@@ -239,7 +243,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
     static List<String> getBodyWithInvalidFormatValues() {
         return List.of("""
                             {
-                              "code": "TS-1234124",
+                              "providerCode": "TS-1234124",
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
@@ -249,7 +253,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                             {
-                              "code": "TS-1234124",
+                              "providerCode": "TS-1234124",
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
@@ -259,7 +263,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                         """,
                 """
                             {
-                              "code": "TS-1234124",
+                              "providerCode": "TS-1234124",
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
@@ -286,7 +290,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
         String plantCode = "PS-456798";
 
         plantRepository.save(new PlantEntity.Builder()
-                .withCode(plantCode)
+                .withProviderCode(plantCode)
                 .withTotalPower(23D)
                 .withAddress("Fake Street 123")
                 .withInverterProvider(InverterProvider.HUAWEI)
@@ -297,7 +301,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
 
         String body = String.format("""
                         {
-                          "code": "%s",
+                          "providerCode": "%s",
                           "name": "Plant one",
                           "supplyCode": "%s",
                           "address": "Fake Street 123",
@@ -357,7 +361,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
 
         String body = String.format("""
                         {
-                          "code": "%s",
+                          "providerCode": "%s",
                           "name": "Plant one",
                           "supplyCode": "%s",
                           "address": "Fake Street 123",

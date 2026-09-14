@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="add_regulatory_code_to_plants" author="Víctor Cañizares">
+        <addColumn tableName="plants">
+            <column name="regulatory_code" type="text"
+                    remarks="The identifier assigned by the regulator. In Spain this is the CAU (Codigo de Autoconsumo). It is not the provider's station code (provider_code) and not a CUPS.">
+                <constraints nullable="true" unique="true" uniqueConstraintName="plants_regulatory_code_uk"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="plants" columnName="regulatory_code"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -13,7 +13,7 @@ public interface GetEnergyStationRepository {
 
     List<Plant> findAllByInverterProvider(InverterProvider provider);
 
-    Optional<Plant> findByCode(String code);
+    Optional<Plant> findByProviderCode(String providerCode);
 
     Optional<Plant> findById(UUID plantId);
 }

@@ -24,7 +24,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/communities/{id}/memberships",
+        value = "/api/v1/communities/{communityId}/memberships",
         produces = MediaType.APPLICATION_JSON_VALUE
 )
 public class GetMembershipsController {
@@ -55,9 +55,9 @@ public class GetMembershipsController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageMemberships(#id)")
-    public List<MembershipResponse> getMemberships(@PathVariable("id") UUID id) {
-        List<CommunityMembership> memberships = service.findByCommunityId(id);
+    @PreAuthorize("@communityAccessGuard.canManageMemberships(#communityId)")
+    public List<MembershipResponse> getMemberships(@PathVariable("communityId") UUID communityId) {
+        List<CommunityMembership> memberships = service.findByCommunityId(communityId);
         return memberships.stream()
                 .map(MembershipResponse::new)
                 .toList();

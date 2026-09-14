@@ -39,8 +39,8 @@ public class GetEnergyStationRepositoryDatabase implements GetEnergyStationRepos
     }
 
     @Override
-    public Optional<Plant> findByCode(String code) {
-        return plantRepository.findByCode(code).map(this::mapEntityToDomain);
+    public Optional<Plant> findByProviderCode(String providerCode) {
+        return plantRepository.findByProviderCode(providerCode).map(this::mapEntityToDomain);
     }
 
     @Override
@@ -52,7 +52,7 @@ public class GetEnergyStationRepositoryDatabase implements GetEnergyStationRepos
         return new Plant.Builder()
                 .withId(entity.getId())
                 .withName(entity.getName())
-                .withCode(entity.getCode())
+                .withProviderCode(entity.getProviderCode())
                 .withAddress(entity.getAddress())
                 .withDescription(entity.getDescription())
                 .withInverterProvider(entity.getInverterProvider())

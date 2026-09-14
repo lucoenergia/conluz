@@ -28,7 +28,7 @@ import java.util.UUID;
  * Controller for retrieving hourly production data for a specific supply
  */
 @RestController
-@RequestMapping("/api/v1/supplies/{id}/production/hourly")
+@RequestMapping("/api/v1/supplies/{supplyId}/production/hourly")
 public class GetSupplyHourlyProductionController {
 
     private final GetProductionService getProductionService;
@@ -56,12 +56,12 @@ public class GetSupplyHourlyProductionController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canReadSupply(#id)")
+    @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
     public List<ProductionByTime> getSupplyHourlyProduction(
-            @PathVariable("id") UUID id,
+            @PathVariable("supplyId") UUID supplyId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
 
-        return getProductionService.getHourlyProductionByRangeOfDatesAndSupply(startDate, endDate, SupplyId.of(id));
+        return getProductionService.getHourlyProductionByRangeOfDatesAndSupply(startDate, endDate, SupplyId.of(supplyId));
     }
 }

@@ -1,0 +1,22 @@
+package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
+
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface SaveSupplyPartitionCoefficientRepository {
+
+    SupplyPartitionCoefficient save(SupplyPartitionCoefficient coefficient);
+
+    /**
+     * Atomically replaces every row belonging to {@code sharingAgreementId} (pending or not) with
+     * {@code coefficients}: deletes the agreement's entire existing set, then inserts each element
+     * of {@code coefficients} as a new row, in one transaction. Every element is persisted exactly
+     * as given -- this method performs no status check and does not touch validFrom/validTo itself.
+     * Callers must call {@link SharingAgreement#assertDraft()}
+     * before invoking this.
+     */
+    List<SupplyPartitionCoefficient> replaceAllForSharingAgreement(UUID sharingAgreementId,
+                                                                     List<SupplyPartitionCoefficient> coefficients);
+}

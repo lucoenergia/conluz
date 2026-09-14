@@ -28,7 +28,7 @@ public interface HuaweiProductionMonthlyAggregationService {
      * Aggregates a single plant, requiring it to belong to the given community so a job for one
      * community cannot aggregate another community's plant.
      */
-    void aggregateMonthlyProductions(UUID communityId, String plantCode, Month month, int year);
+    void aggregateMonthlyProductions(UUID communityId, String plantProviderCode, Month month, int year);
 
     /**
      * Entry point for the manual community sync endpoint. Verifies that Huawei is enabled and then
@@ -37,9 +37,9 @@ public interface HuaweiProductionMonthlyAggregationService {
      * controller does not embed domain logic.
      *
      * @param communityId the community whose plants are aggregated
-     * @param plantCode   optional plant code; when null/blank, all the community's plants are aggregated
+     * @param plantProviderCode   optional plant code; when null/blank, all the community's plants are aggregated
      * @param month       optional month (1-12); when null, every month of the year is aggregated
      * @param year        the year to aggregate
      */
-    void syncMonthlyProductions(UUID communityId, String plantCode, Integer month, int year);
+    void syncMonthlyProductions(UUID communityId, String plantProviderCode, Integer month, int year);
 }

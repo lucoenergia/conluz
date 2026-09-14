@@ -17,7 +17,7 @@ public class SyncMonthlyHuaweiProductionBody {
     @Max(value = 12)
     private Integer month;
 
-    private String plantCode;
+    private String plantProviderCode;
 
     public SyncMonthlyHuaweiProductionBody() {
     }
@@ -31,10 +31,10 @@ public class SyncMonthlyHuaweiProductionBody {
         this.month = month;
     }
 
-    public SyncMonthlyHuaweiProductionBody(Integer year, Integer month, String plantCode) {
+    public SyncMonthlyHuaweiProductionBody(Integer year, Integer month, String plantProviderCode) {
         this.year = year;
         this.month = month;
-        this.plantCode = plantCode;
+        this.plantProviderCode = plantProviderCode;
     }
 
     public Integer getYear() {
@@ -53,11 +53,11 @@ public class SyncMonthlyHuaweiProductionBody {
         this.month = month;
     }
 
-    public String getPlantCode() {
-        return plantCode;
+    public String getPlantProviderCode() {
+        return plantProviderCode;
     }
 
-    public void setPlantCode(String plantCode) {
-        this.plantCode = plantCode;
+    public void setPlantProviderCode(String plantProviderCode) {
+        this.plantProviderCode = plantProviderCode;
     }
 }

@@ -40,9 +40,9 @@ public class GetPlantServiceImpl implements GetPlantService {
     }
 
     private void applyDefaultSort(PagedRequest pagedRequest) {
-        // If no sorting is provided, sort by code ascending by default
+        // If no sorting is provided, sort by provider code ascending by default
         if (!pagedRequest.isSorted()) {
-            final Order defaultOrder = new Order(Direction.ASC, "code");
+            final Order defaultOrder = new Order(Direction.ASC, "providerCode");
             pagedRequest.addOrder(defaultOrder);
         }
     }

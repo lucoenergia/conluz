@@ -14,7 +14,7 @@
             <option value="conluz" />
           </list>
         </option>
-        <option name="sourceFilePath" value="deploy/docker-compose.yaml" />
+        <option name="sourceFilePath" value="deploy/docker-compose.example.yml" />
       </settings>
     </deployment>
     <method v="2">

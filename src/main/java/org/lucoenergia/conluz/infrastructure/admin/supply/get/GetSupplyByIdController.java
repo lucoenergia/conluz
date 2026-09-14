@@ -30,7 +30,7 @@ public class GetSupplyByIdController {
         this.service = service;
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{supplyId}")
     @Operation(
             summary = "Gets a supply by ID",
             description = """
@@ -52,9 +52,9 @@ public class GetSupplyByIdController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canReadSupply(#id)")
-    public SupplyResponse getSupply(@PathVariable("id") UUID id) {
-        Supply supply = service.getById(SupplyId.of(id));
+    @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
+    public SupplyResponse getSupply(@PathVariable("supplyId") UUID supplyId) {
+        Supply supply = service.getById(SupplyId.of(supplyId));
         return new SupplyResponse(supply);
     }
 }
