@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Positive;
 import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreement;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Schema(requiredProperties = {"name", "installedPowerKw"})
 public class UpdateSharingAgreementBody {
@@ -45,11 +46,12 @@ public class UpdateSharingAgreementBody {
         this.installedPowerKw = installedPowerKw;
     }
 
-    public UpdateSharingAgreement mapToUpdateSharingAgreement() {
+    public UpdateSharingAgreement mapToUpdateSharingAgreement(UUID updatedBy) {
         return new UpdateSharingAgreement.Builder()
                 .withName(name)
                 .withNotes(notes)
                 .withInstalledPowerKw(installedPowerKw)
+                .withUpdatedBy(updatedBy)
                 .build();
     }
 }

@@ -59,4 +59,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/drop_supplies_partition_coefficient.xml" relativeToChangelogFile="true" />
     <include file="changelogs/add_on_delete_cascade_to_sharing_agreement_children_fks.xml" relativeToChangelogFile="true" />
     <include file="changelogs/make_supply_partition_coefficient_no_overlapping_constraint_deferrable.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_updated_at_and_updated_by_to_sharing_agreement.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>
