@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.consumption.datadis.metrics;
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;

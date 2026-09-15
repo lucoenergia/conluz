@@ -1,14 +1,14 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis.metrics;
+package org.lucoenergia.conluz.infrastructure.consumption;
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetSupplyEnergyMetricsService;
-import org.lucoenergia.conluz.domain.consumption.datadis.metrics.InvalidEnergyMetricsPeriodException;
-import org.lucoenergia.conluz.domain.consumption.datadis.metrics.RecordedConsumptionPeriod;
-import org.lucoenergia.conluz.domain.consumption.datadis.metrics.SupplyEnergyMetrics;
+import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
+import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
+import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
+import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Service;

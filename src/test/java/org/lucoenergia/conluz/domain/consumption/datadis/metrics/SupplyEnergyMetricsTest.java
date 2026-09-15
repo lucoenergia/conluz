@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.consumption.datadis.metrics;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 
 import java.time.OffsetDateTime;
 

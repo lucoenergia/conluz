@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.lucoenergia.conluz.domain.consumption.datadis.metrics.SupplyEnergyMetrics;
+import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 
 @Schema(requiredProperties = {"supply", "period", "coverage", "energy", "selfSufficiencyRatio",
         "selfConsumptionRatio"})

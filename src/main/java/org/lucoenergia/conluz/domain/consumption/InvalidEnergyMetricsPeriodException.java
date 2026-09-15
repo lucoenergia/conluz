@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.domain.consumption.datadis.metrics;
+package org.lucoenergia.conluz.domain.consumption;
 
 /**
  * Raised when the requested energy metrics period cannot be resolved from the dates supplied.

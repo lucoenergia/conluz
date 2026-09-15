@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.consumption.datadis.metrics;
 
+import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
+
 /**
  * Totals of the hourly Datadis consumption records stored for a supply over a period, together
  * with the number of records that contributed to them.

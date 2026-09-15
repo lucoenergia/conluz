@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.domain.consumption.datadis.metrics;
+package org.lucoenergia.conluz.domain.consumption;
 
 import java.time.Instant;
 
