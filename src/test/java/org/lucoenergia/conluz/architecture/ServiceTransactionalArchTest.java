@@ -15,6 +15,7 @@ import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProduct
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
+import org.lucoenergia.conluz.infrastructure.admin.supply.tariff.EstimatedSupplyTariffResolver;
 import org.lucoenergia.conluz.infrastructure.consumption.shelly.aggregate.ShellyConsumptionsHourlyAggregatorService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,6 +77,7 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
         addException(HuaweiProductionMonthlyAggregationService.class.getSimpleName());
         addException(HuaweiProductionYearlyAggregationService.class.getSimpleName());
         addException(CommunityAccessGuard.class.getSimpleName());
+        addException(EstimatedSupplyTariffResolver.class.getSimpleName());
         // Add more exceptions as needed
     }
 
