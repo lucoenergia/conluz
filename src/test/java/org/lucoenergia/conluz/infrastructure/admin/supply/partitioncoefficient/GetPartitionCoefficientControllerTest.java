@@ -3,7 +3,9 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
@@ -38,6 +40,7 @@ import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSu
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
@@ -59,6 +62,8 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
     private CommunityJpaRepository communityJpaRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
 
     @Test
     void getHistoryReturnsAllPeriodsOrdered() throws Exception {
@@ -358,10 +363,12 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].plant.id").value(inX.getPlant().getId().toString()));
     }
 
-    // --- Authorization regressions (see docs/security/authorization-policy.md) ---
+    // --- Authorization (see docs/security/authorization-policy.md) ---
     //
-    // The guard is canEditSupply, which resolves the community from the supply itself. An admin of
-    // some other community therefore gets 404, not 403: it must not leak that the supply exists.
+    // The history is guarded by canReadSupply -- the same rule as GET /supplies/{supplyId} -- so the
+    // supply owner may read it. /active and /at keep canEditSupply and stay admin-only. Both guards
+    // resolve the community from the supply itself, so a caller who cannot see the supply at all gets
+    // 404 rather than 403: its existence must not leak.
 
     @Test
     void endpointsRejectUnauthenticatedCallersWith401() throws Exception {
@@ -388,8 +395,12 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         }
     }
 
+    /**
+     * AC11: widening the history to the owner must not drag the single-result endpoints along. They
+     * answer "which coefficient applies", which stays an administrative question.
+     */
     @Test
-    void endpointsReturn403ForTheSupplyOwnerWhoIsNotAnAdmin() throws Exception {
+    void activeAndAtTimestampStillReturn403ForTheSupplyOwnerWhoIsNotAnAdmin() throws Exception {
         User owner = UserMother.randomUser();
         owner.enable();
         createUserRepository.create(owner);
@@ -397,14 +408,161 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 UserPersonalId.of(owner.getPersonalId()), DEFAULT_COMMUNITY_ID);
         String authHeader = loginUser(owner);
 
-        // The owner can see the supply, so this is a permission failure rather than a hidden
-        // resource. Widening these endpoints to the owner is deliberately out of scope here.
-        for (String path : coefficientPaths(supply)) {
+        String base = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
+        // The owner can see the supply, so this is a permission failure rather than a hidden resource.
+        for (String path : List.of(base + "/active", base + "/at")) {
             mockMvc.perform(get(path).param("timestamp", "2024-06-15T12:00:00Z")
                             .header(HttpHeaders.AUTHORIZATION, authHeader)
                             .accept(MediaType.APPLICATION_JSON))
                     .andExpect(status().isForbidden());
         }
+    }
+
+    // --- History: owner access and pending visibility (AC9, AC10) ---
+
+    @Test
+    void getHistoryReturnsEveryPlantWithoutPendingPeriodsForTheOwner() throws Exception {
+        User owner = UserMother.randomUser();
+        owner.enable();
+        createUserRepository.create(owner);
+        Supply supply = createSupplyService.create(SupplyMother.random(owner).build(),
+                UserPersonalId.of(owner.getPersonalId()), DEFAULT_COMMUNITY_ID);
+        TwoPlantFixture fixture = twoPlantsWithActivatedAndPendingCoefficients(supply);
+
+        mockMvc.perform(get(historyPath(supply))
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].validFrom").value(Matchers.everyItem(Matchers.notNullValue())))
+                .andExpect(jsonPath("$[*].plant.id").value(Matchers.containsInAnyOrder(
+                        fixture.plantX().toString(), fixture.plantY().toString())))
+                // Pending rows live in a DRAFT agreement, so none of its periods may surface either.
+                .andExpect(jsonPath("$[*].sharingAgreement.status")
+                        .value(Matchers.everyItem(Matchers.not("DRAFT"))));
+    }
+
+    @Test
+    void getHistoryHonoursThePlantFilterForTheOwnerAndStillHidesPending() throws Exception {
+        User owner = UserMother.randomUser();
+        owner.enable();
+        createUserRepository.create(owner);
+        Supply supply = createSupplyService.create(SupplyMother.random(owner).build(),
+                UserPersonalId.of(owner.getPersonalId()), DEFAULT_COMMUNITY_ID);
+        TwoPlantFixture fixture = twoPlantsWithActivatedAndPendingCoefficients(supply);
+
+        mockMvc.perform(get(historyPath(supply))
+                        .param("plantId", fixture.plantX().toString())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].plant.id").value(fixture.plantX().toString()))
+                .andExpect(jsonPath("$[0].validFrom").isNotEmpty());
+    }
+
+    /**
+     * The regression guarding AC1: admins keep the whole timeline, pending periods included. They are
+     * the only caller who can act on one.
+     */
+    @Test
+    void getHistoryKeepsPendingPeriodsForAnAdminOfTheSupplyCommunity() throws Exception {
+        Supply supply = createTestSupply();
+        twoPlantsWithActivatedAndPendingCoefficients(supply);
+
+        mockMvc.perform(get(historyPath(supply))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[*].validFrom").value(Matchers.hasItem(Matchers.nullValue())));
+    }
+
+    /**
+     * AC10. Owning the supply must not narrow what an admin of its community may see -- the two roles
+     * are additive, and nothing stops a community admin from owning a supply in their own community.
+     */
+    @Test
+    void getHistoryKeepsPendingPeriodsForAnOwnerWhoIsAlsoAnAdminOfTheSupplyCommunity() throws Exception {
+        User ownerAdmin = UserMother.randomUser();
+        ownerAdmin.enable();
+        createUserRepository.create(ownerAdmin);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, ownerAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        Supply supply = createSupplyService.create(SupplyMother.random(ownerAdmin).build(),
+                UserPersonalId.of(ownerAdmin.getPersonalId()), DEFAULT_COMMUNITY_ID);
+        twoPlantsWithActivatedAndPendingCoefficients(supply);
+
+        mockMvc.perform(get(historyPath(supply))
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(ownerAdmin))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[*].validFrom").value(Matchers.hasItem(Matchers.nullValue())));
+    }
+
+    // --- History denials mirror GET /supplies/{supplyId} exactly (AC9) ---
+    //
+    // Asserted by calling both endpoints in the same test and comparing their statuses to each other.
+    // Hardcoding the expected code would let the two drift apart while both tests still passed.
+
+    @Test
+    void getHistoryDeniesACommunityMemberExactlyAsGetSupplyDoes() throws Exception {
+        Supply supply = createTestSupply();
+        String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
+
+        assertHistoryDeniedLikeGetSupply(supply, authHeader);
+    }
+
+    @Test
+    void getHistoryDeniesAnAdminOfAnotherCommunityExactlyAsGetSupplyDoes() throws Exception {
+        Supply supply = createTestSupply();
+        CommunityEntity otherCommunity = communityJpaRepository.save(CommunityMother.randomEntity().build());
+        String authHeader = loginAsCommunityAdmin(otherCommunity.getId());
+
+        assertHistoryDeniedLikeGetSupply(supply, authHeader);
+    }
+
+    private void assertHistoryDeniedLikeGetSupply(Supply supply, String authHeader) throws Exception {
+        int getSupplyStatus = mockMvc.perform(get("/api/v1/supplies/" + supply.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andReturn().getResponse().getStatus();
+        int historyStatus = mockMvc.perform(get(historyPath(supply))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andReturn().getResponse().getStatus();
+
+        assertEquals(getSupplyStatus, historyStatus,
+                "the history must answer this caller exactly as GET /supplies/{supplyId} does");
+    }
+
+    private String historyPath(Supply supply) {
+        return "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
+    }
+
+    /**
+     * Two plants, each carrying one activated period in a PUBLISHED agreement and one pending period
+     * in a DRAFT one. A pending row can only ever belong to a DRAFT agreement: activation rejects a
+     * DRAFT agreement, and revert-to-draft refuses once any coefficient has a validFrom.
+     */
+    private TwoPlantFixture twoPlantsWithActivatedAndPendingCoefficients(Supply supply) {
+        SharingAgreementEntity publishedInX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreementEntity publishedInY = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreementEntity draftInX = persistAgreement(publishedInX, SharingAgreementStatus.DRAFT);
+        SharingAgreementEntity draftInY = persistAgreement(publishedInY, SharingAgreementStatus.DRAFT);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        persistCoefficient(supply.getId(), publishedInX, BigDecimal.valueOf(0.4), t0, null);
+        persistCoefficient(supply.getId(), publishedInY, BigDecimal.valueOf(0.6), t0, null);
+        persistCoefficient(supply.getId(), draftInX, BigDecimal.valueOf(0.45), null, null);
+        persistCoefficient(supply.getId(), draftInY, BigDecimal.valueOf(0.55), null, null);
+        return new TwoPlantFixture(publishedInX.getPlant().getId(), publishedInY.getPlant().getId());
+    }
+
+    private record TwoPlantFixture(UUID plantX, UUID plantY) {
     }
 
     private List<String> coefficientPaths(Supply supply) {

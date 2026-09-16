@@ -66,6 +66,23 @@ class PartitionCoefficientApiDocsTest extends BaseControllerTest {
         }
     }
 
+    /**
+     * The history is guarded by canReadSupply, which returns 200, throws 404, or -- for an anonymous
+     * caller -- yields 401. It has no reachable 403, and a documented status a caller can never
+     * receive is a false promise: a client would write dead handling for it. 404, by contrast, is
+     * reachable and was previously undocumented.
+     */
+    @Test
+    void theHistoryDocumentsNotFoundAndNoForbidden() throws Exception {
+        JsonNode responses = apiDocs().path("paths")
+                .path("/api/v1/supplies/{supplyId}/partition-coefficients")
+                .path("get").path("responses");
+
+        assertTrue(responses.has("404"), "404 is reachable and must be documented: " + responses);
+        assertTrue(responses.has("401"), "401 is reachable and must be documented: " + responses);
+        assertFalse(responses.has("403"), "403 is unreachable under canReadSupply: " + responses);
+    }
+
     @Test
     void partitionCoefficientCarriesNestedReferencesAndNoFlatIds() throws Exception {
         JsonNode properties = apiDocs().path("components").path("schemas")
