@@ -1,7 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
+import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * One bucket of a supply's consumption series -- a local calendar day on the daily endpoint, a local
@@ -13,10 +18,17 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
  * <p>This is the response contract, deliberately separate from {@link DatadisConsumption}, which is
  * the shape the external Datadis API speaks and is still serialised directly by the hourly and
  * yearly endpoints. Detaching them drops {@code empty} -- a boolean that never existed as data and
- * only appeared in the JSON because {@code isEmpty()} is a getter.
+ * only appeared in the JSON because {@code isEmpty()} is a getter -- and makes room for the savings
+ * Datadis knows nothing about.
+ *
+ * <p>This is also where the amount is rounded, once, for presentation: the calculation itself keeps
+ * full precision, so a bucket cut across two tariff segments is rounded as a whole rather than once
+ * per segment. Rounding per bucket does mean the rounded buckets of a period need not add up to the
+ * cent to the single rounded total the energy metrics endpoint reports for that same period.
  */
 @Schema(requiredProperties = {"cups", "date", "time", "consumptionKWh", "obtainMethod",
-        "surplusEnergyKWh", "generationEnergyKWh", "selfConsumptionEnergyKWh"})
+        "surplusEnergyKWh", "generationEnergyKWh", "selfConsumptionEnergyKWh", "savingsEur",
+        "tariffSource"})
 public class SupplyConsumptionBucketResponse {
 
     @Schema(description = "CUPS code of the supply the bucket belongs to.",
@@ -44,8 +56,25 @@ public class SupplyConsumptionBucketResponse {
     @Schema(description = "Energy generated and consumed on site over the bucket, in kWh.",
             example = "5.5")
     private final Float selfConsumptionEnergyKWh;
+    @Schema(description = "Estimated amount the bucket's self-consumed energy saved, in euros, " +
+            "rounded to cents. A bucket with no self-consumption -- and a bucket with no stored " +
+            "record at all -- reports 0.00.",
+            example = "0.83")
+    private final BigDecimal savingsEur;
+    @Schema(description = "Whether the prices behind the amount are the supply's contracted " +
+            "tariff or an estimate. A single estimated stretch of the bucket makes the whole " +
+            "amount an estimate.",
+            example = "ESTIMATE")
+    private final TariffSource tariffSource;
 
-    public SupplyConsumptionBucketResponse(DatadisConsumption consumption) {
+    public SupplyConsumptionBucketResponse(SupplyConsumptionBucket bucket) {
+        DatadisConsumption consumption = bucket.getConsumption();
+        // Scale is declared inline rather than as a constant: ResponseSchemaNullabilityArchTest
+        // inspects every field of a *Response class, static ones included, and would demand a
+        // @Schema marker on a private constant that is not part of the contract at all.
+        int cents = 2;
+        this.savingsEur = bucket.getSavings().getAmountEur().setScale(cents, RoundingMode.HALF_UP);
+        this.tariffSource = bucket.getSavings().getTariffSource();
         this.cups = consumption.getCups();
         this.date = consumption.getDate();
         this.time = consumption.getTime();
@@ -86,5 +115,13 @@ public class SupplyConsumptionBucketResponse {
 
     public Float getSelfConsumptionEnergyKWh() {
         return selfConsumptionEnergyKWh;
+    }
+
+    public BigDecimal getSavingsEur() {
+        return savingsEur;
+    }
+
+    public TariffSource getTariffSource() {
+        return tariffSource;
     }
 }

@@ -66,6 +66,22 @@ public class GetSupplyDailyConsumptionController {
                     included -- for example `2023-04-01T00:00:00+02:00` to
                     `2023-04-30T23:59:59+02:00` for April 2023 in Europe/Madrid. A day with no stored
                     record is returned with zero energy rather than omitted.
+
+                    Each day is priced over its own local day, clipped to the requested bounds, so a
+                    partial edge bucket's savings cover exactly the hours its energy fields cover.
+
+                    **Savings:** `savingsEur` is an **estimate** of what the bucket's self-consumed
+                    energy was worth. It prices the **energy term before taxes** only: the power
+                    term, access tolls, charges and electricity tax are all excluded, and VAT is
+                    applied only where the resolved tariff carries a rate. `tariffSource` says where
+                    the prices came from -- `ESTIMATE` for a computed approximation, `REAL_TARIFF`
+                    for the supply's contracted tariff -- and a single estimated stretch of the
+                    bucket makes the whole amount an estimate. A bucket with no self-consumption,
+                    and a bucket with no stored record at all, reports `0.00`.
+
+                    Datadis publishes a month's self-consumption around the 10th of the following
+                    month, so the current month has no self-consumption data yet and its savings
+                    come back as zero.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyDailyConsumption",
@@ -89,7 +105,7 @@ public class GetSupplyDailyConsumptionController {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
 
-        return getDatadisConsumptionService.getDailyConsumptionBySupply(SupplyId.of(supplyId), startDate, endDate)
+        return getDatadisConsumptionService.getDailySeriesBySupply(SupplyId.of(supplyId), startDate, endDate)
                 .stream()
                 .map(SupplyConsumptionBucketResponse::new)
                 .toList();

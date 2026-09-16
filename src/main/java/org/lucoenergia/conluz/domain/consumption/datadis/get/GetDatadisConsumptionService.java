@@ -14,19 +14,6 @@ import java.util.List;
 public interface GetDatadisConsumptionService {
 
     /**
-     * Retrieves daily consumption data for a specific supply within a date range.
-     * Access is restricted based on user role and ownership.
-     *
-     * @param supplyId the supply ID for which to retrieve consumption data
-     * @param startDate the start date of the range, inclusive
-     * @param endDate the end date of the range, inclusive
-     * @return a list of daily consumption data
-     */
-    List<DatadisConsumption> getDailyConsumptionBySupply(@NotNull SupplyId supplyId,
-                                                          @NotNull OffsetDateTime startDate,
-                                                          @NotNull OffsetDateTime endDate);
-
-    /**
      * Retrieves the daily consumption series for a supply, each bucket priced over its own local
      * calendar day.
      *
@@ -75,19 +62,6 @@ public interface GetDatadisConsumptionService {
     List<DatadisConsumption> getHourlyConsumptionBySupply(@NotNull SupplyId supplyId,
                                                            @NotNull OffsetDateTime startDate,
                                                            @NotNull OffsetDateTime endDate);
-
-    /**
-     * Retrieves monthly consumption data for a specific supply within a date range.
-     * Access is restricted based on user role and ownership.
-     *
-     * @param supplyId the supply ID for which to retrieve consumption data
-     * @param startDate the start date of the range, inclusive
-     * @param endDate the end date of the range, inclusive
-     * @return a list of monthly consumption data
-     */
-    List<DatadisConsumption> getMonthlyConsumptionBySupply(@NotNull SupplyId supplyId,
-                                                            @NotNull OffsetDateTime startDate,
-                                                            @NotNull OffsetDateTime endDate);
 
     /**
      * Retrieves yearly consumption data for a specific supply within a date range.

@@ -44,24 +44,10 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     }
 
     @Override
-    public List<DatadisConsumption> getDailyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
-                                                                OffsetDateTime endDate) {
-        Supply supply = getSupplyOrThrow(supplyId);
-        return getDatadisConsumptionRepository.getDailyConsumptionsByRangeOfDates(supply, startDate, endDate);
-    }
-
-    @Override
     public List<DatadisConsumption> getHourlyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                  OffsetDateTime endDate) {
         Supply supply = getSupplyOrThrow(supplyId);
         return getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(supply, startDate, endDate);
-    }
-
-    @Override
-    public List<DatadisConsumption> getMonthlyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
-                                                                   OffsetDateTime endDate) {
-        Supply supply = getSupplyOrThrow(supplyId);
-        return getDatadisConsumptionRepository.getMonthlyConsumptionsByRangeOfDates(supply, startDate, endDate);
     }
 
     @Override
