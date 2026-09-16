@@ -70,6 +70,23 @@ public class GetSupplyEnergyMetricsController {
                     the period spans, so a partially synchronised period can be told apart from a genuinely
                     low ratio. Hours without a record are left out of the sums; they are never counted as
                     zero.
+
+                    **Savings:**
+                    `savings.amountEur` is an **estimate** of what the self-consumed energy of the period
+                    was worth. It prices the **energy term before taxes** only: the power term, access
+                    tolls, charges and electricity tax are all excluded, and VAT is applied only where the
+                    resolved tariff carries a rate. `savings.tariffSource` says where the prices came from
+                    -- `ESTIMATE` for a computed approximation, `REAL_TARIFF` for the supply's contracted
+                    tariff -- and a single estimated stretch of the period makes the whole amount an
+                    estimate.
+
+                    The amount **does not distinguish missing data from genuine zeros**: an hour with no
+                    stored record contributes nothing, exactly as it contributes nothing to the energy
+                    totals, so a partially synchronised period yields a proportionally low figure rather
+                    than a flagged one. `coverage` is the field that tells the two apart. Consistently
+                    with that, an explicitly requested period containing no record at all is worth `0.00`,
+                    while `null` is reserved for the one case where no period could be resolved: a supply
+                    with no stored record and no requested period.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyEnergyMetrics",

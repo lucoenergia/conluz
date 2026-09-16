@@ -360,6 +360,183 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(24));
     }
 
+    // --- Estimated savings ---
+
+    /**
+     * AC1. The configured estimate is 0.15 EUR/kWh at a VAT rate of 0, so a period whose
+     * self-consumption is 1 + 50 + 2 = 53 kWh is worth 53 x 0.15 = 7.95 EUR. The three records
+     * differ in magnitude, so an amount derived from a count of records rather than from the kWh
+     * could not land on this figure.
+     */
+    @Test
+    void testSavingsPriceTheSelfConsumedEnergyAtTheEstimatedTariff() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+
+        writeRecords(
+                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 9.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 100.0f, 50.0f, 0.5f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 1.0f, 2.0f, 2.0f));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2024-02-01T00:00:00+01:00")
+                        .queryParam("endDate", "2024-02-01T02:00:00+01:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.savings.amountEur").value(closeTo(7.95, TOLERANCE)))
+                .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
+                // Two decimals exactly, not 7.949999... or 7.9.
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"amountEur\":7.95")));
+    }
+
+    /**
+     * AC2. No stored record and no requested period: there is no period to price, so the amount
+     * is absent. The object itself is still there, and so is its source.
+     */
+    @Test
+    void testSupplyWithoutAnyRecordAndWithoutAPeriodReportsAnAbsentAmount() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value(nullValue()))
+                .andExpect(jsonPath("$.savings").exists())
+                .andExpect(jsonPath("$.savings.amountEur").value(nullValue()))
+                .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
+                // Pins the serialisation: the key is present and explicitly null.
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"amountEur\":null")));
+    }
+
+    /**
+     * An explicitly requested period with no record inside it is a different case from AC2: the
+     * period resolved, so the answer is a real zero rather than an absent amount. The endpoint
+     * cannot tell missing data from genuine zeros here, which is exactly what `coverage` is for --
+     * and it reports 0 of 24 hours covered.
+     */
+    @Test
+    void testExplicitPeriodWithoutAnyRecordIsWorthZeroRatherThanNull() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+
+        // The supply has records, just none inside the requested period.
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 1.0f));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2025-01-01T00:00:00+01:00")
+                        .queryParam("endDate", "2025-01-01T23:00:00+01:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.savings.amountEur").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"amountEur\":0.00")))
+                // coverage is the field that tells this apart from a genuinely idle period.
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(0))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(24));
+    }
+
+    /**
+     * AC3. Records exist and were consumed from the grid, but none of the energy was
+     * self-consumed, so the saving is a real zero carried to two decimals.
+     */
+    @Test
+    void testZeroSelfConsumptionIsWorthZero() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+
+        writeRecords(
+                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 10.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 20.0f, 0.0f, 0.0f));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2024-02-01T00:00:00+01:00")
+                        .queryParam("endDate", "2024-02-01T01:00:00+01:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$.savings.amountEur").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"amountEur\":0.00")));
+    }
+
+    /**
+     * AC4. With explicit bounds, the saving covers the same period the energy does. Both figures
+     * are asserted against values computed by hand from the records inside the period, rather
+     * than one against the other: the records outside the period are large enough that pricing
+     * the supply's whole history would give 12.00 EUR instead of 1.20.
+     */
+    @Test
+    void testSavingsCoverTheSameExplicitPeriodAsTheEnergyTotals() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+
+        writeRecords(
+                // Outside the period, before it.
+                hourlyRecord(supply.getCode(), "2024/02/01", "09:00", 1.0f, 36.0f, 0.0f),
+                // Inside: 2 + 3 + 3 = 8 kWh self-consumed.
+                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 1.0f, 2.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 1.0f, 3.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 1.0f, 3.0f, 0.0f),
+                // Outside the period, after it.
+                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 1.0f, 36.0f, 0.0f));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2024-02-01T10:00:00+01:00")
+                        .queryParam("endDate", "2024-02-01T12:00:00+01:00"))
+                .andExpect(status().isOk())
+                // Hand-computed from the three in-period records.
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(8.0, TOLERANCE)))
+                // 8 x 0.15 = 1.20, not 80 x 0.15 = 12.00.
+                .andExpect(jsonPath("$.savings.amountEur").value(closeTo(1.20, TOLERANCE)))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"amountEur\":1.20")));
+    }
+
+    /**
+     * The record on the inclusive end bound is priced, the one an hour later is not -- the saving
+     * honours the same inclusive bounds the energy totals do.
+     */
+    @Test
+    void testSavingsHonourTheInclusiveEndBound() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+
+        writeRecords(
+                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 0.0f, 10.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 0.0f, 10.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 0.0f, 1000.0f, 0.0f));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2024-02-01T10:00:00+01:00")
+                        .queryParam("endDate", "2024-02-01T11:00:00+01:00"))
+                .andExpect(status().isOk())
+                // 20 x 0.15 = 3.00. The 12:00 record would have taken it to 153.00.
+                .andExpect(jsonPath("$.savings.amountEur").value(closeTo(3.00, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(20.0, TOLERANCE)));
+    }
+
+    /**
+     * AC5. Savings are read through the same authorization as the rest of the response: the owner
+     * sees their own supply's amount.
+     */
+    @Test
+    void testOwnerSeesTheSavingsOfTheirOwnSupply() throws Exception {
+        User owner = UserMother.randomUser();
+        owner.enable();
+        User createdOwner = createUserRepository.create(owner);
+        Supply supply = createSupplyOwnedBy(createdOwner);
+
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 10.0f, 0.0f));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
+                .andExpect(status().isOk())
+                // 10 x 0.15 = 1.50.
+                .andExpect(jsonPath("$.savings.amountEur").value(closeTo(1.50, TOLERANCE)))
+                .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"));
+    }
+
     @Test
     void testAsOwnerOfTheSupply() throws Exception {
         User owner = UserMother.randomUser();
