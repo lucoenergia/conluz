@@ -119,4 +119,9 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     public List<SupplyPartitionCoefficient> findAllByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds) {
         return mapper.mapList(jpaRepository.findAllByPlantIdAndSupplyIdIn(plantId, supplyIds));
     }
+
+    @Override
+    public Optional<Instant> findEarliestValidFromByCommunityId(UUID communityId) {
+        return jpaRepository.findEarliestValidFromByCommunityId(communityId);
+    }
 }

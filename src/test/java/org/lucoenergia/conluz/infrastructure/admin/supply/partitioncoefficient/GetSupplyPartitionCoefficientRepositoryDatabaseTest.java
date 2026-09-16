@@ -6,6 +6,8 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPar
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
@@ -60,6 +62,25 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
                 user,
                 communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID)
         ));
+    }
+
+    private CommunityEntity persistCommunity() {
+        return communityJpaRepository.save(CommunityMother.randomEntity().build());
+    }
+
+    private SupplyEntity persistSupplyIn(CommunityEntity community) {
+        UserEntity user = UserMother.randomUserEntity();
+        userRepository.save(user);
+        return supplyRepository.save(SupplyEntityMother.random(user, community));
+    }
+
+    /**
+     * A plant belongs to a community through its own supply, so a plant "in" a community is one
+     * whose supply is in it.
+     */
+    private PlantEntity persistPlantIn(CommunityEntity community) {
+        return plantRepository.save(
+                PlantMother.randomPlantEntity().withSupply(persistSupplyIn(community)).build());
     }
 
     private SharingAgreementEntity persistPlantAndPublishedAgreement(SupplyEntity supply) {
@@ -505,5 +526,85 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
                 agreement.getPlant().getId(), supply.getId(), agreement.getId(), agreement.getCreatedAt());
 
         assertTrue(result.isEmpty());
+    }
+
+    // --- findEarliestValidFromByCommunityId ---
+
+    /**
+     * Several plants, several coefficients each, one pending row that is earlier than every
+     * activated one, and an activated row in another community that is earlier still. Only the
+     * earliest activated instant of this community's plants may come back, and none of the three
+     * distractors can be excluded by accident: the pending row is the overall minimum, the other
+     * community's row is the second minimum, and the answer lives on the second plant rather than
+     * the first.
+     */
+    @Test
+    void findEarliestValidFromByCommunityIdReturnsTheEarliestActivationAmongTheCommunityPlants() {
+        CommunityEntity community = persistCommunity();
+        CommunityEntity otherCommunity = persistCommunity();
+
+        PlantEntity firstPlant = persistPlantIn(community);
+        SharingAgreementEntity firstAgreement = persistPublishedAgreement(firstPlant);
+        PlantEntity secondPlant = persistPlantIn(community);
+        SharingAgreementEntity secondAgreement = persistPublishedAgreement(secondPlant);
+        PlantEntity foreignPlant = persistPlantIn(otherCommunity);
+        SharingAgreementEntity foreignAgreement = persistPublishedAgreement(foreignPlant);
+
+        // The first plant's activated rows, both later than the answer.
+        SupplyEntity consumerOne = persistSupplyIn(community);
+        persist(consumerOne.getId(), firstPlant.getId(), firstAgreement.getId(), BigDecimal.ONE,
+                Instant.parse("2024-06-01T00:00:00Z"), Instant.parse("2024-09-01T00:00:00Z"));
+        persist(consumerOne.getId(), firstPlant.getId(), firstAgreement.getId(), BigDecimal.ONE,
+                Instant.parse("2024-09-01T00:00:00Z"), null);
+
+        // The answer: the earliest activated row of the community, on the second plant.
+        SupplyEntity consumerTwo = persistSupplyIn(community);
+        persist(consumerTwo.getId(), secondPlant.getId(), secondAgreement.getId(), BigDecimal.ONE,
+                Instant.parse("2024-03-01T00:00:00Z"), null);
+
+        // Earlier than the answer but never activated, so it must not count.
+        SupplyEntity consumerThree = persistSupplyIn(community);
+        persist(consumerThree.getId(), secondPlant.getId(), secondAgreement.getId(), BigDecimal.ONE,
+                null, null);
+
+        // Earlier than the answer but in another community, so it must not count either.
+        SupplyEntity foreignConsumer = persistSupplyIn(otherCommunity);
+        persist(foreignConsumer.getId(), foreignPlant.getId(), foreignAgreement.getId(), BigDecimal.ONE,
+                Instant.parse("2023-01-01T00:00:00Z"), null);
+
+        Optional<Instant> result = repository.findEarliestValidFromByCommunityId(community.getId());
+
+        assertTrue(result.isPresent());
+        assertEquals(Instant.parse("2024-03-01T00:00:00Z"), result.get());
+    }
+
+    /**
+     * A community whose coefficients have all been authored but none applied has not started
+     * saving anyone anything, which is empty rather than the earliest pending row.
+     */
+    @Test
+    void findEarliestValidFromByCommunityIdIsEmptyWhenEveryCoefficientIsStillPending() {
+        CommunityEntity community = persistCommunity();
+        PlantEntity plant = persistPlantIn(community);
+        SharingAgreementEntity agreement = persistPublishedAgreement(plant);
+
+        SupplyEntity consumerOne = persistSupplyIn(community);
+        persist(consumerOne.getId(), plant.getId(), agreement.getId(), BigDecimal.ONE, null, null);
+        SupplyEntity consumerTwo = persistSupplyIn(community);
+        persist(consumerTwo.getId(), plant.getId(), agreement.getId(), BigDecimal.ONE, null, null);
+
+        assertTrue(repository.findEarliestValidFromByCommunityId(community.getId()).isEmpty());
+    }
+
+    @Test
+    void findEarliestValidFromByCommunityIdIsEmptyForACommunityWithoutPlants() {
+        CommunityEntity community = persistCommunity();
+
+        assertTrue(repository.findEarliestValidFromByCommunityId(community.getId()).isEmpty());
+    }
+
+    @Test
+    void findEarliestValidFromByCommunityIdIsEmptyForAnUnknownCommunity() {
+        assertTrue(repository.findEarliestValidFromByCommunityId(UUID.randomUUID()).isEmpty());
     }
 }

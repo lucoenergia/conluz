@@ -57,6 +57,17 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
             "AND (e.validTo IS NULL OR e.validTo > :timestamp)")
     List<SupplyPartitionCoefficientEntity> findAllActiveAtTimestamp(@Param("timestamp") Instant timestamp);
 
+    // The earliest activation among the coefficients of a community's plants, in one aggregate
+    // query. A plant has no community column of its own -- it belongs to one through its own
+    // supply -- so the path goes plant -> supply -> community, matching PlantRepository's
+    // p.supply.community.id. Note this is the *plant's* community, not e.supply.community: the
+    // latter is the consuming supply's, which answers a different question.
+    // Pending rows (valid_from IS NULL) are excluded; MIN would skip them anyway, and saying so
+    // keeps the intent readable rather than relying on SQL's NULL handling.
+    @Query("SELECT MIN(e.validFrom) FROM SupplyPartitionCoefficientEntity e " +
+            "WHERE e.validFrom IS NOT NULL AND e.plant.supply.community.id = :communityId")
+    Optional<Instant> findEarliestValidFromByCommunityId(@Param("communityId") UUID communityId);
+
     /**
      * Read-only existence check used by the sharing-agreement publish precondition. Phase 5c's
      * coefficient-materialization work should extend this repository rather than adding a
