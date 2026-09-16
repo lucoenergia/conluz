@@ -116,8 +116,16 @@ public class DateConverter {
     }
 
     /**
-     * Returns the UTC Instant representing the local calendar day
-     * that contains the given OffsetDateTime (e.g., Europe/Madrid midnight → UTC 22:00 prev day in summer).
+     * Returns <strong>the very same instant</strong> the argument already denotes. Re-expressing an
+     * {@link OffsetDateTime} in another zone with {@code atZoneSameInstant} changes only the offset
+     * the value is <em>displayed</em> with, never the point on the time line, and {@link Instant}
+     * carries no offset at all -- so the configured zone cannot influence the result. This is a
+     * no-op, kept only because call sites still route through it; it does <strong>not</strong> snap
+     * the value to the start of the local day, nor to any other boundary.
+     *
+     * <p>Aligning a query to local calendar days is done in InfluxQL with a {@code tz()} clause on
+     * the {@code GROUP BY time(...)}, not by adjusting the range bounds -- see
+     * {@code GetDatadisConsumptionRepositoryInflux} and {@code GetProductionRepositoryInflux}.
      */
     public Instant toLocalDayInstant(OffsetDateTime dateTime) {
         return dateTime

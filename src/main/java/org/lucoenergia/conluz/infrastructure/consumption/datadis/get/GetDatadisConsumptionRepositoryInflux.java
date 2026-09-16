@@ -112,9 +112,9 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                                                                          OffsetDateTime endDate, String measurementName, String duration) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
-            // Snap to local day boundaries so the query aligns with the displayed (local) timezone.
-            // Start: inclusive start of the local day containing startDate.
-            // End:   exclusive start of the local day containing endDate (day-level half-open interval).
+            // No snapping happens here, despite the names: toLocalDayInstant returns the same instant
+            // it is given. The bounds are exactly the caller's, and the interval is inclusive on both
+            // ends, matching the public contract of the consumption endpoints.
             Instant queryStart = dateConverter.toLocalDayInstant(startDate);
             Instant queryEnd = dateConverter.toLocalDayInstant(endDate);
 
