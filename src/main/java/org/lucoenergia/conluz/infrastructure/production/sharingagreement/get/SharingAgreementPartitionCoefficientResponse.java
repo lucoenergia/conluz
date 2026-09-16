@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientApplicationState;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientEndState;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.SharingAgreementCoefficient;
+import org.lucoenergia.conluz.infrastructure.shared.web.reference.SupplyReferenceResponse;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,7 +18,7 @@ public class SharingAgreementPartitionCoefficientResponse {
     private final UUID coefficientId;
 
     @Schema(description = "Supply this coefficient belongs to")
-    private final SharingAgreementCoefficientSupplyResponse supply;
+    private final SupplyReferenceResponse supply;
 
     @Schema(description = "Partition coefficient value, on a 0-1 scale", example = "0.030763")
     private final BigDecimal coefficient;
@@ -43,7 +44,7 @@ public class SharingAgreementPartitionCoefficientResponse {
 
     public SharingAgreementPartitionCoefficientResponse(SharingAgreementCoefficient view) {
         this.coefficientId = view.getCoefficientId();
-        this.supply = new SharingAgreementCoefficientSupplyResponse(view.getSupplyId(), view.getSupplyCode(), view.getSupplyName());
+        this.supply = new SupplyReferenceResponse(view.getSupplyId(), view.getSupplyCode(), view.getSupplyName());
         this.coefficient = view.getCoefficient();
         this.validFrom = view.getValidFrom();
         this.validTo = view.getValidTo();
@@ -56,7 +57,7 @@ public class SharingAgreementPartitionCoefficientResponse {
         return coefficientId;
     }
 
-    public SharingAgreementCoefficientSupplyResponse getSupply() {
+    public SupplyReferenceResponse getSupply() {
         return supply;
     }
 
