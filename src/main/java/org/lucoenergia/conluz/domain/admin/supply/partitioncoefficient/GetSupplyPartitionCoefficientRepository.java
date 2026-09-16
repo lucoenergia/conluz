@@ -132,4 +132,45 @@ public interface GetSupplyPartitionCoefficientRepository {
      * the whole chain, not just the immediate predecessor/successor.
      */
     List<SupplyPartitionCoefficient> findAllByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds);
+
+    /**
+     * The full coefficient history of a supply, enriched with supply, plant and agreement display
+     * data, ordered by valid_from ascending. A null {@code plantId} means every plant the supply
+     * participates in; a plant the supply has no coefficient in yields an empty list.
+     *
+     * <p>Pending rows (valid_from IS NULL) are included -- the history is the whole timeline.
+     */
+    List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(UUID supplyId, UUID plantId);
+
+    /**
+     * The active coefficient of a supply in each plant it participates in -- at most one per plant,
+     * guaranteed by the {@code no_overlapping_coefficients} exclusion constraint. A null
+     * {@code plantId} means every plant.
+     *
+     * <p>Active means {@code validFrom IS NOT NULL AND validTo IS NULL}. A pending row also has a
+     * null valid_to, so the valid_from predicate is what separates "in force" from "authored but
+     * never applied"; without it a pending row would be reported as the supply's active coefficient.
+     */
+    List<SupplyPartitionCoefficientDetail> findActiveDetailsBySupplyId(UUID supplyId, UUID plantId);
+
+    /**
+     * One item per plant whose coefficient for {@code supplyId} covers {@code timestamp}, with
+     * valid_from inclusive and valid_to exclusive. A null {@code plantId} means every plant. Pending
+     * rows are excluded: a coefficient never applied by the distributor covered no instant.
+     */
+    List<SupplyPartitionCoefficientDetail> findDetailsBySupplyIdAtTimestamp(UUID supplyId, UUID plantId, Instant timestamp);
+
+    /**
+     * Details for the given coefficient ids, in no particular order. Used to enrich the result of a
+     * write in one query rather than per row; callers that care about order must restore it
+     * themselves, since SQL {@code IN} does not preserve argument order.
+     */
+    List<SupplyPartitionCoefficientDetail> findAllDetailsByIdIn(Collection<UUID> ids);
+
+    /**
+     * The active coefficient of each of {@code supplyIds} within one plant, in a single query -- the
+     * batch behind a sharing agreement's "current coefficient" column. At most one row per supply,
+     * for the reason given on {@link #findActiveDetailsBySupplyId}.
+     */
+    List<SupplyPartitionCoefficientDetail> findActiveDetailsByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds);
 }

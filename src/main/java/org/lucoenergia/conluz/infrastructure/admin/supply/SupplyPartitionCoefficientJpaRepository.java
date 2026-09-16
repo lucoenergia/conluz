@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -149,4 +150,65 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
     @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId AND e.supply.id IN :supplyIds")
     List<SupplyPartitionCoefficientEntity> findAllByPlantIdAndSupplyIdIn(@Param("plantId") UUID plantId,
                                                                            @Param("supplyIds") Collection<UUID> supplyIds);
+
+    // -- Detail projections (multi-plant read API) --
+    //
+    // Constructor expressions selecting scalars only: no entity is materialised, so neither a lazy
+    // proxy nor SupplyEntity's three eager @OneToOne(mappedBy) associations can fire. Each of these
+    // is exactly one query regardless of how many rows come back.
+    //
+    // The plant filter is a separate method per query rather than a "(:plantId IS NULL OR ...)"
+    // predicate: binding a null UUID parameter under Hibernate 6 + PostgreSQL fails with "could not
+    // determine data type of parameter", and the adapter selects the method instead.
+
+    String DETAIL_SELECT = "SELECT new org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient."
+            + "SupplyPartitionCoefficientDetail("
+            + "e.id, e.supply.id, e.supply.code, e.supply.name, "
+            + "e.plant.id, e.plant.name, "
+            + "e.sharingAgreement.id, e.sharingAgreement.name, e.sharingAgreement.status, "
+            + "e.coefficient, e.validFrom, e.validTo, e.createdAt) "
+            + "FROM SupplyPartitionCoefficientEntity e ";
+
+    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId ORDER BY e.validFrom ASC")
+    List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(@Param("supplyId") UUID supplyId);
+
+    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId AND e.plant.id = :plantId ORDER BY e.validFrom ASC")
+    List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyIdAndPlantId(@Param("supplyId") UUID supplyId,
+                                                                             @Param("plantId") UUID plantId);
+
+    // Active means activated and still open: validFrom IS NOT NULL excludes pending rows, which also
+    // have a null validTo and would otherwise be indistinguishable from an active one.
+    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId "
+            + "AND e.validFrom IS NOT NULL AND e.validTo IS NULL ORDER BY e.plant.name ASC")
+    List<SupplyPartitionCoefficientDetail> findActiveDetailsBySupplyId(@Param("supplyId") UUID supplyId);
+
+    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId AND e.plant.id = :plantId "
+            + "AND e.validFrom IS NOT NULL AND e.validTo IS NULL ORDER BY e.plant.name ASC")
+    List<SupplyPartitionCoefficientDetail> findActiveDetailsBySupplyIdAndPlantId(@Param("supplyId") UUID supplyId,
+                                                                                @Param("plantId") UUID plantId);
+
+    // valid_from inclusive, valid_to exclusive; one row per plant covering the instant.
+    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId AND e.validFrom IS NOT NULL "
+            + "AND e.validFrom <= :timestamp AND (e.validTo IS NULL OR e.validTo > :timestamp) "
+            + "ORDER BY e.plant.name ASC")
+    List<SupplyPartitionCoefficientDetail> findDetailsBySupplyIdAtTimestamp(@Param("supplyId") UUID supplyId,
+                                                                           @Param("timestamp") Instant timestamp);
+
+    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId AND e.plant.id = :plantId AND e.validFrom IS NOT NULL "
+            + "AND e.validFrom <= :timestamp AND (e.validTo IS NULL OR e.validTo > :timestamp) "
+            + "ORDER BY e.plant.name ASC")
+    List<SupplyPartitionCoefficientDetail> findDetailsBySupplyIdAndPlantIdAtTimestamp(@Param("supplyId") UUID supplyId,
+                                                                                      @Param("plantId") UUID plantId,
+                                                                                      @Param("timestamp") Instant timestamp);
+
+    @Query(DETAIL_SELECT + "WHERE e.id IN :ids")
+    List<SupplyPartitionCoefficientDetail> findAllDetailsByIdIn(@Param("ids") Collection<UUID> ids);
+
+    // The active coefficient of each of supplyIds in one plant -- the batch behind a sharing
+    // agreement's "current coefficient" column. Plant-scoped and validTo IS NULL, so the
+    // no_overlapping_coefficients exclusion constraint guarantees at most one row per supply.
+    @Query(DETAIL_SELECT + "WHERE e.plant.id = :plantId AND e.supply.id IN :supplyIds "
+            + "AND e.validFrom IS NOT NULL AND e.validTo IS NULL")
+    List<SupplyPartitionCoefficientDetail> findActiveDetailsByPlantIdAndSupplyIdIn(@Param("plantId") UUID plantId,
+                                                                                  @Param("supplyIds") Collection<UUID> supplyIds);
 }
