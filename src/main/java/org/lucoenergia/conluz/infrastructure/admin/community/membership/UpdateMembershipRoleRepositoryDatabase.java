@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.membership.UpdateMembershipRoleRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -45,10 +46,9 @@ public class UpdateMembershipRoleRepositoryDatabase implements UpdateMembershipR
         UserEntity userEntity = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(UserId.of(userId)));
 
-        CommunityMembershipEntity entity = membershipJpaRepository.findByUserId(userId).stream()
-                .filter(m -> m.getCommunity() != null && communityId.equals(m.getCommunity().getId()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Membership not found"));
+        CommunityMembershipEntity entity = membershipJpaRepository
+                .findByUserIdAndCommunityId(userId, communityId)
+                .orElseThrow(() -> new MembershipNotFoundException(communityId, userId));
 
         entity.setRole(role);
         CommunityMembershipEntity saved = membershipJpaRepository.save(entity);

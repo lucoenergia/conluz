@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.context.MessageSource;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Collections;
+import java.util.List;
 
 @RestControllerAdvice
 public class CommunityExceptionHandler {
@@ -28,6 +30,23 @@ public class CommunityExceptionHandler {
         String message = messageSource.getMessage(
                 "error.community.not.found",
                 Collections.singletonList(e.getId() != null ? e.getId().toString() : "").toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * A 404 rather than a 403: the caller reaching this point has already been authorized for the
+     * community, so nothing is leaked by saying the membership is not there.
+     */
+    @ExceptionHandler(MembershipNotFoundException.class)
+    public ResponseEntity<RestError> handleException(MembershipNotFoundException e) {
+        String message = messageSource.getMessage(
+                "error.membership.not.found",
+                List.of(
+                        e.getUserId() != null ? e.getUserId().toString() : "",
+                        e.getCommunityId() != null ? e.getCommunityId().toString() : ""
+                ).toArray(),
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);
