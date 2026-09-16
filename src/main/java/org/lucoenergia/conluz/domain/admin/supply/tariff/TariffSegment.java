@@ -16,6 +16,10 @@ public class TariffSegment {
 
     private final DateRange range;
     private final TariffPlan plan;
+    /**
+     * VAT rate applied on top of the plan's price per kWh, as a fraction rather than a
+     * percentage: {@code 0.21} is 21%, and {@code 0} means no VAT.
+     */
     private final BigDecimal vatRate;
     private final TariffSource source;
 

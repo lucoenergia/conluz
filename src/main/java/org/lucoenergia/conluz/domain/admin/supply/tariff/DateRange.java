@@ -10,6 +10,15 @@ import java.util.Objects;
  * <p>It is the temporal unit used throughout the tariff model to scope a
  * {@link TariffSegment} to a period and to ask a {@link SupplyTariffResolver}
  * for the tariff applicable over a span of time.
+ *
+ * <p>Both bounds are <strong>civil dates</strong>, interpreted in the time zone configured as
+ * {@code conluz.time.zone.id} -- they carry no instant and no offset of their own. An
+ * inclusive end date coming from outside therefore maps to <em>the day after</em> it: "all of
+ * 2025" is {@code [2025-01-01, 2026-01-01)}. Converting a bound to an instant is
+ * {@code date.atStartOfDay(zone)}, and the conversion belongs at the top of the consuming
+ * service, done once. See the package documentation for the full rule.
+ *
+ * <p>The range is never empty: {@code start} must be strictly before {@code end}.
  */
 public class DateRange {
 
