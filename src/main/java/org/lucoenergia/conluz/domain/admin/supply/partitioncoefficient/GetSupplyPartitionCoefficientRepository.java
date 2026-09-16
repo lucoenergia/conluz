@@ -8,16 +8,12 @@ import java.util.UUID;
 
 public interface GetSupplyPartitionCoefficientRepository {
 
-    Optional<SupplyPartitionCoefficient> findActiveBySupplyId(UUID supplyId);
-
-    Optional<SupplyPartitionCoefficient> findBySupplyIdAtTimestamp(UUID supplyId, Instant timestamp);
-
     /**
      * The coefficient for a specific {@code (plantId, supplyId)} pair active at {@code timestamp}.
-     * Unlike {@link #findBySupplyIdAtTimestamp}, this is unambiguous even when the supply has
-     * concurrently-active coefficients across multiple plants (permitted by the
-     * {@code no_overlapping_coefficients} exclusion constraint, which is scoped to
-     * {@code (plant_id, supply_id)}, not {@code supply_id} alone).
+     * Scoping by plant is what makes this unambiguous: a supply may have concurrently-active
+     * coefficients across multiple plants, permitted by the {@code no_overlapping_coefficients}
+     * exclusion constraint, which is scoped to {@code (plant_id, supply_id)}, not {@code supply_id}
+     * alone.
      */
     Optional<SupplyPartitionCoefficient> findByPlantIdAndSupplyIdAtTimestamp(UUID plantId, UUID supplyId, Instant timestamp);
 

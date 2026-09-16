@@ -185,21 +185,84 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.coefficient").value("3.0763"));
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].coefficient").value("3.0763"))
+                .andExpect(jsonPath("$[0].supply.id").value(supply.getId().toString()))
+                .andExpect(jsonPath("$[0].supply.code").value(supply.getCode()))
+                .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlant().getId().toString()))
+                .andExpect(jsonPath("$[0].plant.name").value(agreement.getPlant().getName()))
+                .andExpect(jsonPath("$[0].timestamp").value("2024-06-15T12:00:00Z"))
+                .andExpect(jsonPath("$[0].supplyId").doesNotExist())
+                .andExpect(jsonPath("$[0].plantId").doesNotExist());
     }
 
     @Test
-    void getAtTimestampReturns404WhenNoHistoryCoversTimestamp() throws Exception {
+    void getAtTimestampReturnsEmptyListWhenNoHistoryCoversTimestamp() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         // No coefficient seeded for this supply
+
+        // No period covering the instant is a normal answer, not a missing resource: the endpoint
+        // returns a collection, and an empty collection is what "nothing applies" looks like.
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/at")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .param("timestamp", "2024-06-15T12:00:00Z")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void getAtTimestampReturnsOneItemPerPlantCoveringTheInstant() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
+        persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
 
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/at")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("timestamp", "2024-06-15T12:00:00Z")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].plant.id").value(Matchers.containsInAnyOrder(
+                        inX.getPlant().getId().toString(), inY.getPlant().getId().toString())));
+    }
+
+    @Test
+    void getAtTimestampTreatsValidFromAsInclusiveAndValidToAsExclusive() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        SharingAgreementEntity agreement = ensurePlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        Instant boundary = Instant.parse("2025-01-01T00:00:00Z");
+        persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(1.0), t0, boundary);
+        persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(2.0), boundary, null);
+
+        // Exactly at the shared instant the later period applies: validTo is exclusive, validFrom
+        // inclusive, so the two consecutive periods never both answer.
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/at")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .param("timestamp", "2025-01-01T00:00:00Z")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].coefficient").value("2.0"));
+
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/at")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .param("timestamp", "2024-12-31T23:59:59Z")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].coefficient").value("1.0"));
     }
 
     private Supply createTestSupply() {

@@ -4,11 +4,9 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupply
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -28,10 +26,8 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
     }
 
     @Override
-    public BigDecimal findCoefficientByInstant(UUID supplyId, Instant timestamp) {
-        return repository.findBySupplyIdAtTimestamp(supplyId, timestamp)
-                .map(SupplyPartitionCoefficient::getCoefficient)
-                .orElseThrow(() -> new SupplyPartitionCoefficientNotFoundException(supplyId, timestamp));
+    public List<SupplyPartitionCoefficientDetail> findCoefficientsByInstant(UUID supplyId, Instant timestamp) {
+        return repository.findDetailsBySupplyIdAtTimestamp(supplyId, null, timestamp);
     }
 
     @Override

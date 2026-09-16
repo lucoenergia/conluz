@@ -32,16 +32,6 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     }
 
     @Override
-    public Optional<SupplyPartitionCoefficient> findActiveBySupplyId(UUID supplyId) {
-        return jpaRepository.findActiveBySupplyId(supplyId).map(mapper::map);
-    }
-
-    @Override
-    public Optional<SupplyPartitionCoefficient> findBySupplyIdAtTimestamp(UUID supplyId, Instant timestamp) {
-        return jpaRepository.findBySupplyIdAtTimestamp(supplyId, timestamp).map(mapper::map);
-    }
-
-    @Override
     public Optional<SupplyPartitionCoefficient> findByPlantIdAndSupplyIdAtTimestamp(UUID plantId, UUID supplyId, Instant timestamp) {
         return jpaRepository.findByPlantIdAndSupplyIdAtTimestamp(plantId, supplyId, timestamp).map(mapper::map);
     }

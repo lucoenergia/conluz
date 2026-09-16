@@ -16,16 +16,6 @@ import java.util.UUID;
 
 public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<SupplyPartitionCoefficientEntity, UUID> {
 
-    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.supply.id = :supplyId AND e.validTo IS NULL")
-    Optional<SupplyPartitionCoefficientEntity> findActiveBySupplyId(@Param("supplyId") UUID supplyId);
-
-    // valid_from inclusive, valid_to exclusive
-    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.supply.id = :supplyId " +
-            "AND e.validFrom <= :timestamp AND (e.validTo IS NULL OR e.validTo > :timestamp)")
-    Optional<SupplyPartitionCoefficientEntity> findBySupplyIdAtTimestamp(
-            @Param("supplyId") UUID supplyId,
-            @Param("timestamp") Instant timestamp);
-
     // valid_from inclusive, valid_to exclusive; scoped to a single plant, unambiguous when a supply
     // has concurrently-active coefficients across multiple plants
     @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId " +

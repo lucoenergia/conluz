@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -8,12 +7,13 @@ import java.util.UUID;
 public interface PartitionCoefficientService {
 
     /**
-     * Returns the coefficient active at the given instant.
-     * Boundary rule: valid_from inclusive, valid_to exclusive.
+     * One entry per plant whose coefficient for the supply covers {@code timestamp}, with
+     * valid_from inclusive and valid_to exclusive. Empty when no period covers the instant.
      *
-     * @throws SupplyPartitionCoefficientNotFoundException if no coefficient covers the given timestamp
+     * <p>A supply may hold a coefficient in several plants at the same instant, so this is a list.
+     * Pending periods are excluded: a coefficient the distributor never applied covered no instant.
      */
-    BigDecimal findCoefficientByInstant(UUID supplyId, Instant timestamp);
+    List<SupplyPartitionCoefficientDetail> findCoefficientsByInstant(UUID supplyId, Instant timestamp);
 
     /**
      * Returns all coefficient periods overlapping [from, to), with valid_from and valid_to

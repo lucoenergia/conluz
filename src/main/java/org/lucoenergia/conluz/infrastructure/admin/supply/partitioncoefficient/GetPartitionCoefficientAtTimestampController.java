@@ -16,12 +16,12 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Returns the coefficient that was active at a given point in time.
+ * Returns the coefficients that were active at a given point in time -- one per plant.
  */
 @RestController
 @RequestMapping(value = "/api/v1/supplies/{supplyId}/partition-coefficients/at",
@@ -36,28 +36,37 @@ public class GetPartitionCoefficientAtTimestampController {
 
     @GetMapping
     @Operation(
-            summary = "Returns the coefficient that was active at the given point in time.",
+            summary = "Returns the coefficients that were active at the given point in time, one per plant.",
             description = """
-                    Uses boundary convention: validFrom inclusive, validTo exclusive.
-                    **Required: Community Admin**
+                    Returns one entry per plant whose coefficient for the supply covers the given
+                    instant. Boundary convention: validFrom inclusive, validTo exclusive, so at an
+                    instant shared by two consecutive periods the later one applies.
+
+                    A supply may hold a coefficient in several plants at once, so this is a list, and
+                    it is empty when no period covers the instant -- a normal result, not an error.
+                    Pending coefficients are excluded: one the distributor never applied covered no
+                    instant.
+
+                    **Required: Community Admin of the supply's community.**
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getPartitionCoefficientAtTimestamp",
             security = @SecurityRequirement(name = "bearerToken")
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Coefficient retrieved successfully.", useReturnTypeSchema = true)
+            @ApiResponse(responseCode = "200", description = "Coefficients retrieved successfully.", useReturnTypeSchema = true)
     })
     @BadRequestErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
-    public CoefficientAtTimestampResponse getAtTimestamp(
+    public List<CoefficientAtTimestampResponse> getAtTimestamp(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
             @Parameter(description = "ISO-8601 timestamp", example = "2025-01-15T12:00:00Z")
             @RequestParam @NotNull Instant timestamp) {
-        BigDecimal coefficient = service.findCoefficientByInstant(supplyId, timestamp);
-        return new CoefficientAtTimestampResponse(supplyId, timestamp, coefficient);
+        return service.findCoefficientsByInstant(supplyId, timestamp).stream()
+                .map(detail -> new CoefficientAtTimestampResponse(detail, timestamp))
+                .toList();
     }
 }
