@@ -224,4 +224,25 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
+
+    /**
+     * AC10. The hourly series still serialises the domain object, `empty` included: only the daily
+     * and monthly endpoints moved to a response DTO.
+     */
+    @Test
+    void testHourlyConsumptionStillCarriesTheEmptyField() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(
+                SupplyMother.random(user).withCode(CUPS_CODE).build(),
+                UserId.of(user.getId()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/hourly")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"empty\"")));
+    }
 }

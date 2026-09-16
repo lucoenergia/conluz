@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -84,11 +83,14 @@ public class GetSupplyMonthlyConsumptionController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
-    public List<DatadisConsumption> getSupplyMonthlyConsumption(
+    public List<SupplyConsumptionBucketResponse> getSupplyMonthlyConsumption(
             @PathVariable("supplyId") UUID supplyId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
 
-        return getDatadisConsumptionService.getMonthlyConsumptionBySupply(SupplyId.of(supplyId), startDate, endDate);
+        return getDatadisConsumptionService.getMonthlyConsumptionBySupply(SupplyId.of(supplyId), startDate, endDate)
+                .stream()
+                .map(SupplyConsumptionBucketResponse::new)
+                .toList();
     }
 }

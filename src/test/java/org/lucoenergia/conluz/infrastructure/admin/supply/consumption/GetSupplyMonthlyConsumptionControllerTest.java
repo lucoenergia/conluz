@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -223,5 +224,56 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    /**
+     * AC3. Every field the endpoint declared before the response DTO was introduced keeps its name
+     * and its JSON type, so the only contract change on this endpoint is the one that is intended.
+     */
+    @Test
+    void testMonthlyConsumptionKeepsEveryPreviouslyDeclaredField() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(
+                SupplyMother.random(user).withCode(CUPS_CODE).build(),
+                UserId.of(user.getId()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/monthly")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].cups").isString())
+                .andExpect(jsonPath("$[0].date").isString())
+                .andExpect(jsonPath("$[0].time").isString())
+                .andExpect(jsonPath("$[0].consumptionKWh").isNumber())
+                .andExpect(jsonPath("$[0].obtainMethod").isString())
+                .andExpect(jsonPath("$[0].surplusEnergyKWh").isNumber())
+                .andExpect(jsonPath("$[0].generationEnergyKWh").isNumber())
+                .andExpect(jsonPath("$[0].selfConsumptionEnergyKWh").isNumber());
+    }
+
+    /**
+     * AC3. Asserted on the raw JSON rather than with a jsonPath absence matcher: `empty` was never
+     * data, only the serialisation of an `isEmpty()` getter, and the point is that the key does not
+     * reach the wire at all.
+     */
+    @Test
+    void testMonthlyConsumptionNoLongerCarriesTheEmptyField() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(
+                SupplyMother.random(user).withCode(CUPS_CODE).build(),
+                UserId.of(user.getId()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/monthly")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"cups\"")))
+                .andExpect(content().string(not(containsString("\"empty\""))));
     }
 }
