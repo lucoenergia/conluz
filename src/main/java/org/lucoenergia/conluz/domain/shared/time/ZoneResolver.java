@@ -26,4 +26,12 @@ public interface ZoneResolver {
      * that change lands with no call site touched.
      */
     ZoneId resolveZoneIdForSupply(UUID supplyId);
+
+    /**
+     * The zone a community's local dates are read in -- the civil start date of a payback, for
+     * instance. Parameterised by community for the same reason the others are parameterised by
+     * plant and supply, and it is the level the zone is expected to settle at, since both plants
+     * and supplies reach their community anyway.
+     */
+    ZoneId resolveZoneIdForCommunity(UUID communityId);
 }

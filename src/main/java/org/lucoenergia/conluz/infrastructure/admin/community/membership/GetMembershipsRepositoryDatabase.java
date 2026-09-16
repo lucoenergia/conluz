@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -64,6 +65,13 @@ public class GetMembershipsRepositoryDatabase implements GetMembershipsRepositor
                         Collectors.mapping(
                                 e -> toDomain(e, e.getCommunity() != null ? communityEntityMapper.map(e.getCommunity()) : null),
                                 Collectors.toList())));
+    }
+
+    @Override
+    public Optional<CommunityMembership> findByUserIdAndCommunityId(UUID userId, UUID communityId) {
+        return membershipJpaRepository.findByUserIdAndCommunityId(userId, communityId)
+                .map(entity -> toDomain(entity,
+                        entity.getCommunity() != null ? communityEntityMapper.map(entity.getCommunity()) : null));
     }
 
     private CommunityMembership toDomain(CommunityMembershipEntity entity, Community community) {

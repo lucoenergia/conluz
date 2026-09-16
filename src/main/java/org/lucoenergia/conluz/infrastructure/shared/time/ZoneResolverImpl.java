@@ -9,8 +9,8 @@ import java.util.UUID;
 /**
  * Wraps the existing application-level {@link TimeConfiguration} -- the same source
  * {@code GetProductionServiceImpl}/{@code GetProductionRepositoryInflux}/{@code DateConverter} already
- * read -- ignoring the plant and supply arguments for now. When the zone moves to community level,
- * that lookup lands inside this one class with no call site touched.
+ * read -- ignoring its arguments for now. When the zone moves to community level, that lookup
+ * lands inside this one class with no call site touched.
  */
 @Component
 public class ZoneResolverImpl implements ZoneResolver {
@@ -28,6 +28,11 @@ public class ZoneResolverImpl implements ZoneResolver {
 
     @Override
     public ZoneId resolveZoneIdForSupply(UUID supplyId) {
+        return timeConfiguration.getZoneId();
+    }
+
+    @Override
+    public ZoneId resolveZoneIdForCommunity(UUID communityId) {
         return timeConfiguration.getZoneId();
     }
 }
