@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -14,6 +15,8 @@ import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
@@ -28,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
@@ -53,6 +57,8 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     private PlantRepository plantRepository;
     @Autowired
     private SharingAgreementRepository sharingAgreementRepository;
+    @Autowired
+    private CommunityJpaRepository communityJpaRepository;
 
     @Test
     void getHistoryReturnsAllPeriodsOrdered() throws Exception {
@@ -350,6 +356,60 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].plant.id").value(inX.getPlant().getId().toString()));
+    }
+
+    // --- Authorization regressions (see docs/security/authorization-policy.md) ---
+    //
+    // The guard is canEditSupply, which resolves the community from the supply itself. An admin of
+    // some other community therefore gets 404, not 403: it must not leak that the supply exists.
+
+    @Test
+    void endpointsRejectUnauthenticatedCallersWith401() throws Exception {
+        Supply supply = createTestSupply();
+
+        for (String path : coefficientPaths(supply)) {
+            mockMvc.perform(get(path).param("timestamp", "2024-06-15T12:00:00Z")
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Test
+    void endpointsReturn404ForAnAdminOfAnotherCommunity() throws Exception {
+        Supply supply = createTestSupply();
+        CommunityEntity otherCommunity = communityJpaRepository.save(CommunityMother.randomEntity().build());
+        String authHeader = loginAsCommunityAdmin(otherCommunity.getId());
+
+        for (String path : coefficientPaths(supply)) {
+            mockMvc.perform(get(path).param("timestamp", "2024-06-15T12:00:00Z")
+                            .header(HttpHeaders.AUTHORIZATION, authHeader)
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    @Test
+    void endpointsReturn403ForTheSupplyOwnerWhoIsNotAnAdmin() throws Exception {
+        User owner = UserMother.randomUser();
+        owner.enable();
+        createUserRepository.create(owner);
+        Supply supply = createSupplyService.create(SupplyMother.random(owner).build(),
+                UserPersonalId.of(owner.getPersonalId()), DEFAULT_COMMUNITY_ID);
+        String authHeader = loginUser(owner);
+
+        // The owner can see the supply, so this is a permission failure rather than a hidden
+        // resource. Widening these endpoints to the owner is deliberately out of scope here.
+        for (String path : coefficientPaths(supply)) {
+            mockMvc.perform(get(path).param("timestamp", "2024-06-15T12:00:00Z")
+                            .header(HttpHeaders.AUTHORIZATION, authHeader)
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    private List<String> coefficientPaths(Supply supply) {
+        String base = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
+        return List.of(base, base + "/active", base + "/at");
     }
 
     private Supply createTestSupply() {
