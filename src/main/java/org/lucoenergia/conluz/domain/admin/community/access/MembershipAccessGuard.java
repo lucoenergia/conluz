@@ -28,4 +28,28 @@ public interface MembershipAccessGuard {
      * investment in this community".
      */
     boolean canManageMembershipInvestment(UUID communityId);
+
+    /**
+     * Whether the current user may read the payback progress of this membership: either they are
+     * {@code userId} themselves and hold an enabled membership in {@code communityId}, or they are
+     * an enabled {@code COMMUNITY_ADMIN} of it.
+     *
+     * <p>Deliberately not expressed through {@code canReadCommunity}, which grants every platform
+     * admin access to every community. Payback is a member's own financial position, so
+     * administering the platform does not confer it; a platform admin reaches their own payback
+     * here through the self branch, like anyone else.
+     *
+     * <p>Maps denials by visibility, never by role:
+     * <ul>
+     *     <li>anonymous → {@code false} (→ 401),</li>
+     *     <li>everyone else who qualifies for neither branch → throws
+     *         {@code CommunityNotFoundException} (→ 404).</li>
+     * </ul>
+     * There is no 403 outcome, following {@code canReadSupply}: a 403 would tell a caller who may
+     * not read this membership that it nevertheless exists.
+     *
+     * <p>Authorization only. Whether the membership exists is the service's lookup, so the two
+     * concerns do not have to be kept in step in two places.
+     */
+    boolean canReadMembershipPayback(UUID communityId, UUID userId);
 }
