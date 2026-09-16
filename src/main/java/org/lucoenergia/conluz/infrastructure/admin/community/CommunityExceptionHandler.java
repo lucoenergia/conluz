@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
@@ -53,6 +54,30 @@ public class CommunityExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * A 409 for the same reason a duplicate membership is one: the body is well-formed and the
+     * caller is authorized, and what stops the request is that {@code code} or {@code legalId} is
+     * already taken by another community. Both columns are unique in the database.
+     *
+     * <p>This exception was thrown from the moment communities gained uniqueness checks but was
+     * never mapped, so a duplicate left the application as a 500 with no {@code RestError} body.
+     * {@code field} names which of the two collided, carried as a param so a client can mark the
+     * offending input rather than guessing from the message.
+     */
+    @ExceptionHandler(CommunityAlreadyExistsException.class)
+    public ResponseEntity<RestError> handleException(CommunityAlreadyExistsException e) {
+        String field = e.getField() != null ? e.getField() : "";
+        String value = e.getValue() != null ? e.getValue() : "";
+
+        String message = messageSource.getMessage(
+                "error.community.already.exists",
+                List.of(field, value).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.COMMUNITY_ALREADY_EXISTS,
+                Map.of("field", field, "value", value), HttpStatus.CONFLICT);
     }
 
     /**
