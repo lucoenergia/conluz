@@ -55,6 +55,17 @@ public class GetSupplyYearlyConsumptionController {
                     - Obtain method (Real/Estimated)
 
                     Data is aggregated by year within the specified date range.
+
+                    **Time zone:** each year covers the local calendar year of the time zone the
+                    application is configured with, not the UTC one, so its total includes the first
+                    and last local hours of the year and nothing from its neighbours.
+
+                    **Range bounds:** `startDate` and `endDate` are both inclusive, and they select
+                    pre-aggregated points by the instant each one is stamped at, which is local
+                    midnight on the first day of its year. Pass them with the zone's offset to
+                    select the years intended: local `2023-01-01T00:00:00+01:00` is
+                    `2022-12-31T23:00:00Z`, so a bound expressed in UTC can select one year too few
+                    or too many.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyYearlyConsumption",

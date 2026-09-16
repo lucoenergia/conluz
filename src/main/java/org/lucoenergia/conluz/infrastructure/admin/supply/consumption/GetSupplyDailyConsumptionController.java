@@ -55,6 +55,18 @@ public class GetSupplyDailyConsumptionController {
                     - Obtain method (Real/Estimated)
 
                     Data is aggregated by day within the specified date range.
+
+                    **Time zone:** days follow the local calendar of the time zone the application is
+                    configured with, not UTC. A day therefore lasts 23 hours on the spring daylight
+                    saving transition and 25 hours on the autumn one.
+
+                    **Range bounds:** `startDate` and `endDate` are both inclusive and are taken as
+                    given, without being rounded to a day boundary. Bounds that fall in the middle of
+                    a local day produce a partial first and last bucket, so a caller wanting whole
+                    local days must pass them at local midnight and at 23:59:59 local time, offset
+                    included -- for example `2023-04-01T00:00:00+02:00` to
+                    `2023-04-30T23:59:59+02:00` for April 2023 in Europe/Madrid. A day with no stored
+                    record is returned with zero energy rather than omitted.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyDailyConsumption",
