@@ -3,13 +3,6 @@ package org.lucoenergia.conluz.infrastructure.consumption;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.supply.tariff.DateRange;
-import org.lucoenergia.conluz.domain.admin.supply.tariff.FlatPlan;
-import org.lucoenergia.conluz.domain.admin.supply.tariff.SupplyTariffResolver;
-import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSchedule;
-import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSegment;
-import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
-import org.lucoenergia.conluz.domain.admin.supply.tariff.UnsupportedTariffPlanException;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
@@ -17,17 +10,13 @@ import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodExcep
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
+import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
@@ -38,20 +27,17 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
     private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final DateConverter dateConverter;
-    private final SupplyTariffResolver supplyTariffResolver;
-    private final ZoneResolver zoneResolver;
+    private final SupplySavingsCalculator supplySavingsCalculator;
 
     public GetSupplyEnergyMetricsServiceImpl(
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
             GetSupplyRepository getSupplyRepository,
             DateConverter dateConverter,
-            @Qualifier("estimatedSupplyTariffResolver") SupplyTariffResolver supplyTariffResolver,
-            ZoneResolver zoneResolver) {
+            SupplySavingsCalculator supplySavingsCalculator) {
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.dateConverter = dateConverter;
-        this.supplyTariffResolver = supplyTariffResolver;
-        this.zoneResolver = zoneResolver;
+        this.supplySavingsCalculator = supplySavingsCalculator;
     }
 
     @Override
@@ -88,109 +74,30 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 aggregate.getConsumptionKWh(),
                 aggregate.getSelfConsumptionEnergyKWh(),
                 aggregate.getSurplusEnergyKWh(),
-                estimateSavings(supplyId, supply, resolvedStartDate, resolvedEndDate,
+                estimateSavings(supply, resolvedStartDate, resolvedEndDate,
                         aggregate.getSelfConsumptionEnergyKWh()));
     }
 
     /**
-     * Prices the self-consumed energy of the resolved period, segment by segment.
+     * Prices the self-consumed energy of the resolved period.
      *
      * <p>The period's public end is inclusive; it is converted to an exclusive instant
-     * <strong>here and only here</strong>, and every downstream use -- the civil range the
-     * resolver is asked for, the clamping of each segment, the half-open sums -- consumes that
-     * one instant pair, so the priced instants and the aggregated instants are the same set by
-     * construction.
+     * <strong>here and only here</strong>, and the calculator consumes that one instant pair for
+     * the civil range it resolves a tariff for, for the clamping of each segment and for its
+     * half-open sums -- so the priced instants and the instants the aggregate already summed are
+     * the same set by construction.
      *
-     * <p>Precondition, guaranteed by {@link SupplyTariffResolver#scheduleFor}: the returned
-     * schedule covers the requested range in its entirety, with no gap. Nothing here checks for
-     * holes, because a schedule that had one could not have been constructed.
+     * <p>The aggregate's own total is handed over so a period covered by a single tariff segment
+     * reports an amount consistent with the {@code selfConsumptionKWh} beside it, without a
+     * second query for energy already counted.
      */
-    private SupplySavings estimateSavings(SupplyId supplyId, Supply supply, OffsetDateTime startDate,
-                                          OffsetDateTime endDate, double totalSelfConsumptionKWh) {
-
-        Instant from = startDate.toInstant();
-        Instant toExclusive = DateConverter.toExclusiveUpperBound(endDate);
-
-        ZoneId zone = zoneResolver.resolveZoneIdForSupply(supplyId.getId());
-        TariffSchedule schedule = supplyTariffResolver.scheduleFor(supplyId, civilRangeCovering(startDate, endDate, zone));
-
-        boolean singleSegment = schedule.getSegments().size() == 1;
-
-        BigDecimal amount = BigDecimal.ZERO;
-        for (TariffSegment segment : schedule.getSegments()) {
-            // A lone segment necessarily covers the whole period, so its clamped interval is
-            // exactly the one the aggregate already summed. Reusing that total keeps the amount
-            // consistent with the reported selfConsumptionKWh to the last bit, and costs no query.
-            double kWh = singleSegment
-                    ? totalSelfConsumptionKWh
-                    : selfConsumptionOf(segment, supply, from, toExclusive, zone);
-            amount = amount.add(pricePerKwhIncludingVat(segment).multiply(BigDecimal.valueOf(kWh)));
-        }
-
-        return SupplySavings.of(amount, aggregateSourceOf(schedule));
-    }
-
-    /**
-     * The civil date range containing the whole period, which is what a resolver is asked for.
-     *
-     * <p>Tariff dates are civil dates in the configured zone and a {@link DateRange} is half-open,
-     * so an inclusive end maps to the civil date containing it <em>plus one day</em>: a period
-     * ending on 2025-12-31 is {@code [.., 2026-01-01)}, never {@code [.., 2025-12-31)}, which
-     * would leave its last day unpriced. The range is derived from the public inclusive end
-     * rather than from the exclusive instant, so the day it names is the day the caller asked
-     * for.
-     */
-    private DateRange civilRangeCovering(OffsetDateTime startDate, OffsetDateTime endDate, ZoneId zone) {
-        return new DateRange(
-                startDate.atZoneSameInstant(zone).toLocalDate(),
-                endDate.atZoneSameInstant(zone).toLocalDate().plusDays(1));
-    }
-
-    /**
-     * The self-consumption of the part of {@code segment} that falls inside the period. The
-     * schedule may start before and end after the period it was resolved for, so each segment is
-     * clamped to the period's real instants before being queried.
-     */
-    private double selfConsumptionOf(TariffSegment segment, Supply supply, Instant from, Instant toExclusive,
-                                     ZoneId zone) {
-        Instant segmentFrom = max(segment.getRange().getStart().atStartOfDay(zone).toInstant(), from);
-        Instant segmentTo = min(segment.getRange().getEnd().atStartOfDay(zone).toInstant(), toExclusive);
-
-        if (!segmentFrom.isBefore(segmentTo)) {
-            return 0d;
-        }
-        return getDatadisConsumptionAggregateRepository.sumSelfConsumptionKWh(supply, segmentFrom, segmentTo);
-    }
-
-    /**
-     * The price a kWh consumed under this segment saved, taxes included. The plan's price is the
-     * taxable base and VAT travels with the segment, so the two are multiplied here rather than
-     * being folded into the plan.
-     */
-    private BigDecimal pricePerKwhIncludingVat(TariffSegment segment) {
-        if (!(segment.getPlan() instanceof FlatPlan flatPlan)) {
-            throw new UnsupportedTariffPlanException(segment.getPlan().getClass());
-        }
-        return flatPlan.getPricePerKwh().multiply(BigDecimal.ONE.add(segment.getVatRate()));
-    }
-
-    /**
-     * One source for a figure derived from several segments. A total is only as trustworthy as
-     * its least trustworthy part, so a single estimated segment makes the whole amount an
-     * estimate; {@code REAL_TARIFF} requires every segment to be contracted.
-     */
-    private TariffSource aggregateSourceOf(TariffSchedule schedule) {
-        boolean anyEstimated = schedule.getSegments().stream()
-                .anyMatch(segment -> segment.getSource() == TariffSource.ESTIMATE);
-        return anyEstimated ? TariffSource.ESTIMATE : TariffSource.REAL_TARIFF;
-    }
-
-    private static Instant max(Instant left, Instant right) {
-        return left.isAfter(right) ? left : right;
-    }
-
-    private static Instant min(Instant left, Instant right) {
-        return left.isBefore(right) ? left : right;
+    private SupplySavings estimateSavings(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate,
+                                          double totalSelfConsumptionKWh) {
+        return supplySavingsCalculator.estimate(
+                supply,
+                startDate.toInstant(),
+                DateConverter.toExclusiveUpperBound(endDate),
+                totalSelfConsumptionKWh);
     }
 
     private void validatePeriod(OffsetDateTime startDate, OffsetDateTime endDate) {

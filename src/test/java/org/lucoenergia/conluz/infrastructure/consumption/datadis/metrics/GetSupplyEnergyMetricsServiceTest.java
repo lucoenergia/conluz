@@ -23,6 +23,7 @@ import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.consumption.GetSupplyEnergyMetricsServiceImpl;
+import org.lucoenergia.conluz.infrastructure.consumption.savings.SupplySavingsCalculatorImpl;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.mockito.ArgumentCaptor;
@@ -72,7 +73,7 @@ class GetSupplyEnergyMetricsServiceTest {
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
     private final GetSupplyEnergyMetricsService service = new GetSupplyEnergyMetricsServiceImpl(
             aggregateRepository, getSupplyRepository, new DateConverter(timeConfiguration),
-            tariffResolver, zoneResolver);
+            new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver));
 
     private final Supply supply = SupplyMother.random().build();
     private final SupplyId supplyId = SupplyId.of(supply.getId());
