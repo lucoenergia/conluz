@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.tariff;
 
 import org.lucoenergia.conluz.domain.admin.supply.tariff.*;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ import java.util.List;
  * consumers know the figures are approximate rather than contracted.
  */
 @Service
+@Qualifier("estimatedSupplyTariffResolver")
 public class EstimatedSupplyTariffResolver implements SupplyTariffResolver {
 
     private final BigDecimal basePrice;
