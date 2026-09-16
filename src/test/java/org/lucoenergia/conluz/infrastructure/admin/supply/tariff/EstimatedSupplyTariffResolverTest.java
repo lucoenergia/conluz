@@ -1,8 +1,13 @@
-package org.lucoenergia.conluz.domain.admin.supply.tariff;
+package org.lucoenergia.conluz.infrastructure.admin.supply.tariff;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.DateRange;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.FlatPlan;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffPlan;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSchedule;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSegment;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.infrastructure.admin.supply.tariff.EstimatedSupplyTariffResolver;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
