@@ -35,7 +35,15 @@ public class GetPartitionCoefficientHistoryController {
     @GetMapping
     @Operation(
             summary = "Returns the full partition coefficient history for a supply.",
-            description = "Returns all coefficient periods ordered by validFrom ascending. **Required: Community Admin**",
+            description = """
+                    Returns all coefficient periods of the supply, across every plant it participates in,
+                    ordered by validFrom ascending. Pending periods (validFrom = null) are included.
+
+                    Each period carries the plant it belongs to, so a supply participating in more than
+                    one plant yields several interleaved timelines that a caller can group by plant.
+
+                    **Required: Community Admin of the supply's community.**
+                    """,
             tags = ApiTag.SUPPLIES,
             operationId = "getPartitionCoefficientHistory",
             security = @SecurityRequirement(name = "bearerToken")

@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public interface PartitionCoefficientService {
@@ -23,12 +22,26 @@ public interface PartitionCoefficientService {
     List<SupplyPartitionCoefficient> findAllCoefficientsInRange(UUID supplyId, Instant from, Instant to);
 
     /**
-     * Returns the full history for the given supply ordered by valid_from ascending.
+     * The full history for the given supply, ordered by valid_from ascending, enriched with the
+     * supply, plant and agreement each period refers to. Pending periods are included.
      */
-    List<SupplyPartitionCoefficient> findAllCoefficientHistory(UUID supplyId);
+    List<SupplyPartitionCoefficientDetail> findAllCoefficientHistory(UUID supplyId);
 
     /**
-     * Returns the active coefficient for the given supply.
+     * The active coefficient of the supply in each plant it participates in -- at most one per
+     * plant, and empty when the supply has none.
+     *
+     * <p>Active means {@code validFrom != null && validTo == null}. A supply may legitimately be
+     * active in several plants at once, so this is a list: the
+     * {@code no_overlapping_coefficients} exclusion constraint is scoped to (plant, supply), not to
+     * the supply alone.
      */
-    Optional<SupplyPartitionCoefficient> findActiveBySupplyId(UUID supplyId);
+    List<SupplyPartitionCoefficientDetail> findActiveBySupplyId(UUID supplyId);
+
+    /**
+     * Details for the given coefficients, in the same order they were given. Enriches the result of
+     * a write in one query; the order is restored explicitly because SQL {@code IN} does not
+     * preserve it.
+     */
+    List<SupplyPartitionCoefficientDetail> findDetailsInOrderOf(List<SupplyPartitionCoefficient> coefficients);
 }

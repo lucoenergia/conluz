@@ -1,24 +1,31 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
+import org.lucoenergia.conluz.infrastructure.shared.web.reference.PlantReferenceResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.reference.SharingAgreementReferenceResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.reference.SupplyReferenceResponse;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(requiredProperties = {"id", "supplyId", "plantId", "coefficient", "validFrom", "validTo", "createdAt"})
+@Schema(requiredProperties = {"id", "supply", "plant", "sharingAgreement", "coefficient", "validFrom",
+        "validTo", "createdAt"})
 public class PartitionCoefficientResponse {
 
     @Schema(description = "Internal unique identifier", example = "b3d1a2f0-1234-5678-abcd-000000000001")
     private final UUID id;
 
-    @Schema(description = "Supply this coefficient belongs to", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
-    private final UUID supplyId;
+    @Schema(description = "Supply this coefficient belongs to")
+    private final SupplyReferenceResponse supply;
 
     @Schema(description = "Plant this coefficient belongs to. Disambiguates a supply's timeline " +
-            "when it participates in more than one plant.", example = "a1b2c3d4-1234-5678-abcd-000000000002")
-    private final UUID plantId;
+            "when it participates in more than one plant.")
+    private final PlantReferenceResponse plant;
+
+    @Schema(description = "Sharing agreement that authored this coefficient.")
+    private final SharingAgreementReferenceResponse sharingAgreement;
 
     @Schema(description = "Partition coefficient value", example = "0.030763")
     private final BigDecimal coefficient;
@@ -28,33 +35,42 @@ public class PartitionCoefficientResponse {
             example = "2024-05-23T00:00:00Z", types = {"string", "null"})
     private final Instant validFrom;
 
-    @Schema(description = "End of the period (exclusive). Null means this is the currently active coefficient.",
+    @Schema(description = "End of the period (exclusive). Null means the period is still open; " +
+            "combined with a non-null validFrom that makes this the currently active coefficient " +
+            "for its plant.",
             example = "2025-01-01T00:00:00Z", types = {"string", "null"})
     private final Instant validTo;
 
     @Schema(description = "Timestamp when this record was created", example = "2024-05-23T10:30:00Z")
     private final Instant createdAt;
 
-    public PartitionCoefficientResponse(SupplyPartitionCoefficient domain) {
-        this.id = domain.getId();
-        this.supplyId = domain.getSupplyId();
-        this.plantId = domain.getPlantId();
-        this.coefficient = domain.getCoefficient();
-        this.validFrom = domain.getValidFrom();
-        this.validTo = domain.getValidTo();
-        this.createdAt = domain.getCreatedAt();
+    public PartitionCoefficientResponse(SupplyPartitionCoefficientDetail detail) {
+        this.id = detail.getId();
+        this.supply = new SupplyReferenceResponse(detail.getSupply().id(), detail.getSupply().code(),
+                detail.getSupply().name());
+        this.plant = new PlantReferenceResponse(detail.getPlant().id(), detail.getPlant().name());
+        this.sharingAgreement = new SharingAgreementReferenceResponse(detail.getSharingAgreement().id(),
+                detail.getSharingAgreement().name(), detail.getSharingAgreement().status());
+        this.coefficient = detail.getCoefficientValue();
+        this.validFrom = detail.getValidFrom();
+        this.validTo = detail.getValidTo();
+        this.createdAt = detail.getCreatedAt();
     }
 
     public UUID getId() {
         return id;
     }
 
-    public UUID getSupplyId() {
-        return supplyId;
+    public SupplyReferenceResponse getSupply() {
+        return supply;
     }
 
-    public UUID getPlantId() {
-        return plantId;
+    public PlantReferenceResponse getPlant() {
+        return plant;
+    }
+
+    public SharingAgreementReferenceResponse getSharingAgreement() {
+        return sharingAgreement;
     }
 
     public BigDecimal getCoefficient() {

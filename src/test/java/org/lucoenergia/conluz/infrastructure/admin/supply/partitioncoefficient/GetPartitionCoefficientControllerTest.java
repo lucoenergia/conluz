@@ -70,10 +70,20 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].plantId").value(agreement.getPlant().getId().toString()))
+                .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlant().getId().toString()))
+                .andExpect(jsonPath("$[0].plant.name").value(agreement.getPlant().getName()))
+                .andExpect(jsonPath("$[0].supply.id").value(supply.getId().toString()))
+                .andExpect(jsonPath("$[0].supply.code").value(supply.getCode()))
+                .andExpect(jsonPath("$[0].sharingAgreement.id").value(agreement.getId().toString()))
+                .andExpect(jsonPath("$[0].sharingAgreement.name").value(agreement.getName()))
+                .andExpect(jsonPath("$[0].sharingAgreement.status").value("PUBLISHED"))
                 .andExpect(jsonPath("$[0].validFrom").value("2024-01-01T00:00:00Z"))
-                .andExpect(jsonPath("$[1].plantId").value(agreement.getPlant().getId().toString()))
-                .andExpect(jsonPath("$[1].validFrom").value("2025-01-01T00:00:00Z"));
+                .andExpect(jsonPath("$[1].plant.id").value(agreement.getPlant().getId().toString()))
+                .andExpect(jsonPath("$[1].validFrom").value("2025-01-01T00:00:00Z"))
+                // No flat entity reference survives anywhere in the payload.
+                .andExpect(jsonPath("$[0].supplyId").doesNotExist())
+                .andExpect(jsonPath("$[0].plantId").doesNotExist())
+                .andExpect(jsonPath("$[0].sharingAgreementId").doesNotExist());
     }
 
     @Test
@@ -94,12 +104,12 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[*].plantId").value(Matchers.containsInAnyOrder(
+                .andExpect(jsonPath("$[*].plant.id").value(Matchers.containsInAnyOrder(
                         agreement1.getPlant().getId().toString(), agreement2.getPlant().getId().toString())));
     }
 
     @Test
-    void getActiveReturnsRowWithNullValidTo() throws Exception {
+    void getActiveReturnsOneOpenPeriodPerPlant() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         SharingAgreementEntity agreement = ensurePlantAndPublishedAgreement(supply);
@@ -113,7 +123,50 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.validTo").doesNotExist());
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].validTo").doesNotExist())
+                .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlant().getId().toString()))
+                .andExpect(jsonPath("$[0].supply.id").value(supply.getId().toString()))
+                .andExpect(jsonPath("$[0].sharingAgreement.status").value("PUBLISHED"));
+    }
+
+    @Test
+    void getActiveReturnsOneItemPerPlantAndExcludesPendingPeriods() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreementEntity draftInX = persistAgreement(inX, SharingAgreementStatus.DRAFT);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
+        persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
+        // Pending: null validFrom. Its validTo is null too, so only the validFrom rule keeps it out.
+        persistCoefficient(supply.getId(), draftInX, BigDecimal.valueOf(0.9), null, null);
+
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/active")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].plant.id").value(Matchers.containsInAnyOrder(
+                        inX.getPlant().getId().toString(), inY.getPlant().getId().toString())))
+                .andExpect(jsonPath("$[*].validFrom").value(Matchers.everyItem(Matchers.notNullValue())));
+    }
+
+    @Test
+    void getActiveReturnsEmptyListWhenOnlyPendingPeriodsExist() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        SharingAgreementEntity draft = ensurePlantAndAgreement(supply, SharingAgreementStatus.DRAFT);
+        persistCoefficient(supply.getId(), draft, BigDecimal.valueOf(1.0), null, null);
+
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/active")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
@@ -157,13 +210,29 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     }
 
     private SharingAgreementEntity ensurePlantAndPublishedAgreement(Supply supply) {
+        return ensurePlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+    }
+
+    private SharingAgreementEntity ensurePlantAndAgreement(Supply supply, SharingAgreementStatus status) {
         SupplyEntity supplyEntity = supplyJpaRepository.getReferenceById(supply.getId());
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supplyEntity).build());
+        return persistAgreement(plant, status);
+    }
+
+    /**
+     * A second agreement on the plant of an existing one -- for fixtures that need a draft and a
+     * published agreement over the same plant.
+     */
+    private SharingAgreementEntity persistAgreement(SharingAgreementEntity onPlantOf, SharingAgreementStatus status) {
+        return persistAgreement(onPlantOf.getPlant(), status);
+    }
+
+    private SharingAgreementEntity persistAgreement(PlantEntity plant, SharingAgreementStatus status) {
         SharingAgreementEntity agreement = new SharingAgreementEntity();
         agreement.setId(UUID.randomUUID());
         agreement.setPlant(plant);
         agreement.setName("Test agreement " + UUID.randomUUID());
-        agreement.setStatus(SharingAgreementStatus.PUBLISHED);
+        agreement.setStatus(status);
         agreement.setCreatedAt(Instant.now());
         agreement.setCreatedBy(null);
         return sharingAgreementRepository.save(agreement);
