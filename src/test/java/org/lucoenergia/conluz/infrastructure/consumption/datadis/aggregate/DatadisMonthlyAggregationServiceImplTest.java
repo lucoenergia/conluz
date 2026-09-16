@@ -178,6 +178,37 @@ class DatadisMonthlyAggregationServiceImplTest {
         verify(aggregationRepository, times(1)).aggregateMonthlyConsumption(eq(supply2), eq(Month.APRIL), eq(2024));
     }
 
+    /**
+     * A disabled supply still consumed energy while it was on, so its pre-aggregates must be
+     * recomputable. Nothing on the community path filters on the enabled flag -- neither this service
+     * nor GetSupplyRepository.findAllByCommunityId nor the JPA query behind it -- so a disabled supply
+     * is aggregated like any other, which is what lets the post-deploy recomputation cover the whole
+     * history with the plain community-wide call.
+     */
+    @Test
+    void testAggregateMonthlyForCommunityIncludesDisabledSupplies() {
+
+        // Given
+        UUID communityId = UUID.randomUUID();
+        Supply enabledSupply = SupplyMother.random()
+                .withEnabled(true)
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
+        Supply disabledSupply = SupplyMother.random()
+                .withEnabled(false)
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
+        when(getSupplyRepository.findAllByCommunityId(communityId))
+                .thenReturn(List.of(enabledSupply, disabledSupply));
+
+        // When
+        service.aggregateMonthlyConsumptions(communityId, Month.JANUARY, 2024);
+
+        // Then
+        verify(aggregationRepository, times(1))
+                .aggregateMonthlyConsumption(eq(enabledSupply), eq(Month.JANUARY), eq(2024));
+        verify(aggregationRepository, times(1))
+                .aggregateMonthlyConsumption(eq(disabledSupply), eq(Month.JANUARY), eq(2024));
+    }
+
     @Test
     void testAggregateMonthlyForCommunitySpecificMonthSkipsSuppliesWithoutDistributorCode() {
 

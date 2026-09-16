@@ -145,6 +145,32 @@ class DatadisYearlyAggregationServiceImplTest {
         verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply2), eq(2024));
     }
 
+    /**
+     * As on the monthly side, nothing on the community path filters on the enabled flag, so a
+     * disabled supply's yearly pre-aggregate is recomputed by the plain community-wide call.
+     */
+    @Test
+    void testAggregateYearlyForCommunityIncludesDisabledSupplies() {
+
+        // Given
+        UUID communityId = UUID.randomUUID();
+        Supply enabledSupply = SupplyMother.random()
+                .withEnabled(true)
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
+        Supply disabledSupply = SupplyMother.random()
+                .withEnabled(false)
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
+        when(getSupplyRepository.findAllByCommunityId(communityId))
+                .thenReturn(List.of(enabledSupply, disabledSupply));
+
+        // When
+        service.aggregateYearlyConsumptions(communityId, 2024);
+
+        // Then
+        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(enabledSupply), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(disabledSupply), eq(2024));
+    }
+
     @Test
     void testAggregateYearlyForCommunitySkipsSuppliesWithoutDistributorCode() {
 

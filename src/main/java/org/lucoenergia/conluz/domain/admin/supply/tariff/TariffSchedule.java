@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.supply.tariff;
 
-import java.util.Collections;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -17,7 +17,49 @@ public class TariffSchedule {
     private final List<TariffSegment> segments;
 
     public TariffSchedule(List<TariffSegment> segments) {
-        this.segments = Collections.unmodifiableList(segments);
+        if (segments == null) {
+            throw new InvalidTariffScheduleException(InvalidTariffScheduleException.Reason.NULL_SEGMENTS);
+        }
+        if (segments.isEmpty()) {
+            throw new InvalidTariffScheduleException(InvalidTariffScheduleException.Reason.EMPTY);
+        }
+        for (int i = 0; i < segments.size(); i++) {
+            if (segments.get(i) == null) {
+                throw new InvalidTariffScheduleException(
+                        InvalidTariffScheduleException.Reason.NULL_SEGMENT, i);
+            }
+        }
+        for (int i = 1; i < segments.size(); i++) {
+            assertContiguous(segments.get(i - 1), segments.get(i), i);
+        }
+        // Defensive copy, not Collections.unmodifiableList: the latter is a read-only *view*
+        // over the caller's list, so the caller could still mutate the schedule after the
+        // invariants above were checked.
+        this.segments = List.copyOf(segments);
+    }
+
+    /**
+     * Checks that {@code current} resumes exactly where {@code previous} stopped. The three
+     * failures are distinguished rather than collapsed into one "bad boundary": a gap means
+     * unpriced energy, an overlap means energy priced twice, and being out of order means the
+     * producer is not emitting a timeline at all.
+     */
+    private static void assertContiguous(TariffSegment previous, TariffSegment current, int index) {
+        LocalDate previousEnd = previous.getRange().getEnd();
+        LocalDate currentStart = current.getRange().getStart();
+
+        if (currentStart.isBefore(previous.getRange().getStart())) {
+            throw new InvalidTariffScheduleException(
+                    InvalidTariffScheduleException.Reason.OUT_OF_ORDER, index);
+        }
+        if (currentStart.isBefore(previousEnd)) {
+            throw new InvalidTariffScheduleException(
+                    InvalidTariffScheduleException.Reason.OVERLAPPING, index);
+        }
+        if (currentStart.isAfter(previousEnd)) {
+            throw new InvalidTariffScheduleException(
+                    InvalidTariffScheduleException.Reason.GAP, index);
+        }
     }
 
     public List<TariffSegment> getSegments() {

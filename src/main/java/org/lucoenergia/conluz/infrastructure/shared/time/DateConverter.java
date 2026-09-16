@@ -59,6 +59,23 @@ public class DateConverter {
         return convertStringToLocalDate(dateString, DATE_FORMAT);
     }
 
+    /**
+     * Converts an API-level <em>inclusive</em> end into the exclusive upper bound the half-open
+     * query and segment machinery uses uniformly. No series in this system is sub-second, so
+     * nudging by one nanosecond is a lossless conversion rather than an approximation: no record
+     * can fall strictly between the inclusive end and the value returned here.
+     *
+     * <p>Callers must apply this <strong>once</strong>, at the top of the service, and pass the
+     * resulting instant to every downstream call, so the fetched record set and the
+     * segment-covered instant set are the same set by construction.
+     *
+     * <p>{@link #convertToString(Instant)} formats nine fractional digits, so the added nanosecond
+     * survives into the query literal rather than being truncated away.
+     */
+    public static Instant toExclusiveUpperBound(OffsetDateTime inclusiveEnd) {
+        return inclusiveEnd.toInstant().plusNanos(1);
+    }
+
     public static LocalDate convertStringToLocalDate(String dateString, String pattern) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
         return LocalDate.parse(dateString, formatter);
@@ -99,8 +116,16 @@ public class DateConverter {
     }
 
     /**
-     * Returns the UTC Instant representing the local calendar day
-     * that contains the given OffsetDateTime (e.g., Europe/Madrid midnight → UTC 22:00 prev day in summer).
+     * Returns <strong>the very same instant</strong> the argument already denotes. Re-expressing an
+     * {@link OffsetDateTime} in another zone with {@code atZoneSameInstant} changes only the offset
+     * the value is <em>displayed</em> with, never the point on the time line, and {@link Instant}
+     * carries no offset at all -- so the configured zone cannot influence the result. This is a
+     * no-op, kept only because call sites still route through it; it does <strong>not</strong> snap
+     * the value to the start of the local day, nor to any other boundary.
+     *
+     * <p>Aligning a query to local calendar days is done in InfluxQL with a {@code tz()} clause on
+     * the {@code GROUP BY time(...)}, not by adjusting the range bounds -- see
+     * {@code GetDatadisConsumptionRepositoryInflux} and {@code GetProductionRepositoryInflux}.
      */
     public Instant toLocalDayInstant(OffsetDateTime dateTime) {
         return dateTime

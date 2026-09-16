@@ -3,8 +3,11 @@ package org.lucoenergia.conluz.domain.consumption.datadis.metrics;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
+import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -90,7 +93,8 @@ class SupplyEnergyMetricsTest {
 
     private SupplyEnergyMetrics metrics(double gridImportKWh, double selfConsumptionKWh, double surplusKWh) {
         return new SupplyEnergyMetrics(supply, START_DATE, END_DATE, 3L, 3L,
-                gridImportKWh, selfConsumptionKWh, surplusKWh);
+                gridImportKWh, selfConsumptionKWh, surplusKWh,
+                SupplySavings.of(new BigDecimal("1.23"), TariffSource.ESTIMATE));
     }
 
     private void assertFinite(Double ratio) {

@@ -38,6 +38,17 @@ public interface GetSupplyRepository {
      */
     PagedResult<Supply> findByOwnerAndCommunity(PagedRequest pagedRequest, UserId ownerId, UUID communityId);
 
+    /**
+     * Every supply owned by the given user inside the given community, unpaginated and in one
+     * query. For whole-set computations such as a member's payback, where a page would silently
+     * leave supplies out of a total rather than showing fewer rows.
+     *
+     * <p>Disabled supplies are included. A supply that has since been switched off still
+     * self-consumed energy while it was on, and that energy still saved its owner money; dropping
+     * it would understate what the member has recovered.
+     */
+    List<Supply> findAllByOwnerAndCommunityId(UserId ownerId, UUID communityId);
+
     List<Supply> findByUserId(UserId userId);
 
     List<Supply> findAllByCommunityId(UUID communityId);

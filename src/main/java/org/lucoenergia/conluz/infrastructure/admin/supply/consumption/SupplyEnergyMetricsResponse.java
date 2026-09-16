@@ -3,8 +3,8 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 
-@Schema(requiredProperties = {"supply", "period", "coverage", "energy", "selfSufficiencyRatio",
-        "selfConsumptionRatio"})
+@Schema(requiredProperties = {"supply", "period", "coverage", "energy", "savings",
+        "selfSufficiencyRatio", "selfConsumptionRatio"})
 public class SupplyEnergyMetricsResponse {
 
     @Schema(description = "The supply the metrics were computed for.")
@@ -15,6 +15,8 @@ public class SupplyEnergyMetricsResponse {
     private final SupplyEnergyMetricsCoverageResponse coverage;
     @Schema(description = "The energy totals the ratios were derived from.")
     private final SupplyEnergyMetricsEnergyResponse energy;
+    @Schema(description = "What the self-consumed energy of the period was worth.")
+    private final SupplyEnergyMetricsSavingsResponse savings;
     @Schema(description = "Share of the energy consumed that came from the community rather than " +
             "from the grid, on a 0-1 scale. Null when nothing was consumed in the period.",
             example = "0.42", types = {"number", "null"})
@@ -35,6 +37,7 @@ public class SupplyEnergyMetricsResponse {
                 metrics.getSelfConsumptionKWh(),
                 metrics.getSurplusKWh(),
                 metrics.getAssignedProductionKWh());
+        this.savings = new SupplyEnergyMetricsSavingsResponse(metrics.getSavings());
         this.selfSufficiencyRatio = metrics.getSelfSufficiencyRatio();
         this.selfConsumptionRatio = metrics.getSelfConsumptionRatio();
     }
@@ -53,6 +56,10 @@ public class SupplyEnergyMetricsResponse {
 
     public SupplyEnergyMetricsEnergyResponse getEnergy() {
         return energy;
+    }
+
+    public SupplyEnergyMetricsSavingsResponse getSavings() {
+        return savings;
     }
 
     public Double getSelfSufficiencyRatio() {

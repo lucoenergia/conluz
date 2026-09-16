@@ -8,6 +8,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
+import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
@@ -16,9 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
-import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -29,18 +31,35 @@ public class DatadisMonthlyAggregationRepositoryInflux implements DatadisMonthly
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
     private final DateConverter dateConverter;
+    private final ZoneResolver zoneResolver;
 
     public DatadisMonthlyAggregationRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
-                                                     DateConverter dateConverter) {
+                                                     DateConverter dateConverter,
+                                                     ZoneResolver zoneResolver) {
         this.influxDbConnectionManager = influxDbConnectionManager;
         this.dateConverter = dateConverter;
+        this.zoneResolver = zoneResolver;
     }
 
+    /**
+     * Sums the hourly measurement over the month as the supply's calendar sees it:
+     * {@code [local midnight of the 1st, local midnight of the 1st of the next month)}. Literal UTC
+     * bounds used to drop the month's first local hour or two and pick up the tail of the previous
+     * month instead.
+     *
+     * <p>The point is stamped at the start of that same window, which is where it has always been
+     * stamped, and the tag set stays {@code cups} alone. Since InfluxDB keys a point by measurement,
+     * tag set and timestamp, re-running this overwrites the existing point rather than adding one.
+     */
     @Override
     public void aggregateMonthlyConsumption(Supply supply, Month month, int year) {
 
-        final String startDate = dateConverter.convertToFirstDayOfTheMonthAsString(month, year);
-        final String endDate = dateConverter.convertToLastDayOfTheMonthAsString(month, year);
+        final ZoneId zoneId = zoneResolver.resolveZoneIdForSupply(supply.getId());
+        final LocalDate firstDayOfMonth = LocalDate.of(year, month, 1);
+        final Instant startOfMonth = firstDayOfMonth.atStartOfDay(zoneId).toInstant();
+        final Instant startOfNextMonth = firstDayOfMonth.plusMonths(1).atStartOfDay(zoneId).toInstant();
+        final String startDate = dateConverter.convertToString(startOfMonth);
+        final String endDate = dateConverter.convertToString(startOfNextMonth);
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
@@ -56,7 +75,7 @@ public class DatadisMonthlyAggregationRepositoryInflux implements DatadisMonthly
                     FROM "%s"
                     WHERE cups = '%s'
                         AND time >= '%s'
-                        AND time <= '%s'
+                        AND time < '%s'
                     GROUP BY cups
                     """,
                     DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
@@ -83,15 +102,10 @@ public class DatadisMonthlyAggregationRepositoryInflux implements DatadisMonthly
             // Persist the aggregated monthly data
             DatadisConsumptionPoint aggregated = aggregatedData.get(0);
 
-            // Calculate timestamp for first day of month at midnight (local timezone)
-            LocalDate firstDayOfMonth = LocalDate.of(year, month, 1);
-            String formattedDate = firstDayOfMonth.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-            long timestamp = dateConverter.convertStringDateToMilliseconds(formattedDate + "T00:00");
-
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
             Point point = Point.measurement(DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT)
-                    .time(timestamp, TimeUnit.MILLISECONDS)
+                    .time(startOfMonth.toEpochMilli(), TimeUnit.MILLISECONDS)
                     .tag("cups", supply.getCode())
                     .addField("consumption_kwh", aggregated.getConsumptionKWh() != null ? aggregated.getConsumptionKWh() : 0.0)
                     .addField("surplus_energy_kwh", aggregated.getSurplusEnergyKWh() != null ? aggregated.getSurplusEnergyKWh() : 0.0)

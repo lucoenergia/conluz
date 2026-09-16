@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionInfluxLoader;
+import org.lucoenergia.conluz.infrastructure.consumption.datadis.SupplyConsumptionSavingsInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -36,6 +38,7 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
     private static final String START_DATE = "2023-04-01T00:00:00Z";
     private static final String END_DATE = "2023-04-30T23:59:59Z";
     private static final String CUPS_CODE = "ES0031406912345678JN0F";
+    private static final double TOLERANCE = 0.0001;
 
     @Autowired
     private CreateUserRepository createUserRepository;
@@ -43,15 +46,19 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private DatadisConsumptionInfluxLoader datadisConsumptionInfluxLoader;
+    @Autowired
+    private SupplyConsumptionSavingsInfluxLoader supplyConsumptionSavingsInfluxLoader;
 
     @BeforeEach
     void beforeEach() {
         datadisConsumptionInfluxLoader.loadData();
+        supplyConsumptionSavingsInfluxLoader.loadData();
     }
 
     @AfterEach
     void afterEach() {
         datadisConsumptionInfluxLoader.clearData();
+        supplyConsumptionSavingsInfluxLoader.clearData();
     }
 
     @Test
@@ -223,5 +230,54 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    /**
+     * AC10. The hourly series still serialises the domain object, `empty` included: only the daily
+     * and monthly endpoints moved to a response DTO.
+     */
+    @Test
+    void testHourlyConsumptionStillCarriesTheEmptyField() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(
+                SupplyMother.random(user).withCode(CUPS_CODE).build(),
+                UserId.of(user.getId()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/hourly")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"empty\"")));
+    }
+
+    /**
+     * The hourly series is built by the same grouped statement as the daily one, so it carried the
+     * same constant 0.0 for generated energy. Each bucket is one record here, so the values are the
+     * ones written.
+     */
+    @Test
+    void testHourlyConsumptionReportsGeneratedEnergy() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(
+                SupplyMother.random(user).withCode(SupplyConsumptionSavingsInfluxLoader.CUPS_WITH_SAVINGS).build(),
+                UserId.of(user.getId()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/hourly")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2023-04-10T09:00:00+02:00")
+                        .queryParam("endDate", "2023-04-10T18:00:00+02:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].time").value("09:00"))
+                .andExpect(jsonPath("$[0].generationEnergyKWh").value(closeTo(2.00, TOLERANCE)))
+                .andExpect(jsonPath("$[0].selfConsumptionEnergyKWh").value(closeTo(0.25, TOLERANCE)))
+                .andExpect(jsonPath("$[5].time").value("14:00"))
+                .andExpect(jsonPath("$[5].generationEnergyKWh").value(closeTo(4.00, TOLERANCE)))
+                .andExpect(jsonPath("$[9].time").value("18:00"))
+                .andExpect(jsonPath("$[9].generationEnergyKWh").value(closeTo(6.00, TOLERANCE)));
     }
 }

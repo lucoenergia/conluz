@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -14,6 +15,21 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
     List<CommunityMembershipEntity> findByUserId(UUID userId);
 
     List<CommunityMembershipEntity> findByCommunityId(UUID communityId);
+
+    /**
+     * The one membership of a user in a community, if it exists. At most one row can match: the
+     * {@code community_memberships_user_community_uq} constraint makes the pair unique. Prefer
+     * this over filtering {@link #findByUserId(UUID)} in memory, which loads every community the
+     * user belongs to in order to keep one row.
+     */
+    Optional<CommunityMembershipEntity> findByUserIdAndCommunityId(UUID userId, UUID communityId);
+
+    /**
+     * Whether the user already belongs to the community. Cheaper than
+     * {@link #findByUserIdAndCommunityId(UUID, UUID)} when the row itself is not needed, which is
+     * the case for the duplicate precondition on create.
+     */
+    boolean existsByUserIdAndCommunityId(UUID userId, UUID communityId);
 
     @Query("SELECT m.community.id, COUNT(m) FROM community_memberships m WHERE m.community.id IN :ids GROUP BY m.community.id")
     List<Object[]> countMembersByCommunityIds(@Param("ids") Set<UUID> ids);

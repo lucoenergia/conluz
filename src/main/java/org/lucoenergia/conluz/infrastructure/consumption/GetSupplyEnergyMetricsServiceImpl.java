@@ -9,6 +9,8 @@ import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
 import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
+import org.lucoenergia.conluz.domain.consumption.SupplySavings;
+import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Service;
@@ -25,14 +27,17 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
     private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final DateConverter dateConverter;
+    private final SupplySavingsCalculator supplySavingsCalculator;
 
     public GetSupplyEnergyMetricsServiceImpl(
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
             GetSupplyRepository getSupplyRepository,
-            DateConverter dateConverter) {
+            DateConverter dateConverter,
+            SupplySavingsCalculator supplySavingsCalculator) {
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.dateConverter = dateConverter;
+        this.supplySavingsCalculator = supplySavingsCalculator;
     }
 
     @Override
@@ -68,7 +73,31 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 expectedHours(resolvedStartDate, resolvedEndDate),
                 aggregate.getConsumptionKWh(),
                 aggregate.getSelfConsumptionEnergyKWh(),
-                aggregate.getSurplusEnergyKWh());
+                aggregate.getSurplusEnergyKWh(),
+                estimateSavings(supply, resolvedStartDate, resolvedEndDate,
+                        aggregate.getSelfConsumptionEnergyKWh()));
+    }
+
+    /**
+     * Prices the self-consumed energy of the resolved period.
+     *
+     * <p>The period's public end is inclusive; it is converted to an exclusive instant
+     * <strong>here and only here</strong>, and the calculator consumes that one instant pair for
+     * the civil range it resolves a tariff for, for the clamping of each segment and for its
+     * half-open sums -- so the priced instants and the instants the aggregate already summed are
+     * the same set by construction.
+     *
+     * <p>The aggregate's own total is handed over so a period covered by a single tariff segment
+     * reports an amount consistent with the {@code selfConsumptionKWh} beside it, without a
+     * second query for energy already counted.
+     */
+    private SupplySavings estimateSavings(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate,
+                                          double totalSelfConsumptionKWh) {
+        return supplySavingsCalculator.estimate(
+                supply,
+                startDate.toInstant(),
+                DateConverter.toExclusiveUpperBound(endDate),
+                totalSelfConsumptionKWh);
     }
 
     private void validatePeriod(OffsetDateTime startDate, OffsetDateTime endDate) {

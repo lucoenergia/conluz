@@ -33,6 +33,20 @@ public interface GetSupplyPartitionCoefficientRepository {
     List<SupplyPartitionCoefficient> findAllActiveAtTimestamp(Instant timestamp);
 
     /**
+     * The earliest activation instant among the partition coefficients of a community's plants --
+     * the point from which that community has been sharing energy at all, and therefore the point
+     * a member's savings start accruing from.
+     *
+     * <p>Pending coefficients ({@code validFrom IS NULL}) do not count: a coefficient that has
+     * been authored but never applied by the distributor has not saved anyone anything yet.
+     *
+     * <p>Scoped by the <em>plant's</em> community, which a plant belongs to through its own
+     * supply. Empty when the community has no plant carrying an activated coefficient, which is
+     * a legitimate state (a community that has not started sharing) rather than an error.
+     */
+    Optional<Instant> findEarliestValidFromByCommunityId(UUID communityId);
+
+    /**
      * Read-only existence check used by the sharing-agreement publish precondition. Phase 5c's
      * coefficient-materialization work should extend this repository rather than adding a
      * parallel one.
