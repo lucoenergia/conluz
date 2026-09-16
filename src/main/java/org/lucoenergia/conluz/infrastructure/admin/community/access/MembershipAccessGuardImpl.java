@@ -28,4 +28,18 @@ class MembershipAccessGuardImpl implements MembershipAccessGuard {
         }
         return helper.hasCommunityAdminRoleIn(user, communityId);
     }
+
+    @Override
+    public boolean canManageMembershipInvestment(UUID communityId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null || communityId == null) {
+            return false;
+        }
+        // No platform-admin bypass, deliberately, and no 403 branch: anyone who is not a community
+        // admin here is told the community is not there rather than that they may not touch it.
+        if (!helper.hasCommunityAdminRoleIn(user, communityId)) {
+            throw new CommunityNotFoundException(communityId);
+        }
+        return true;
+    }
 }
