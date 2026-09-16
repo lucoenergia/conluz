@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Schema(requiredProperties = {"coefficientId", "supply", "coefficient", "validFrom", "validTo",
-        "applicationState", "endState", "endDate"})
+        "applicationState", "endState", "endDate", "currentCoefficient"})
 public class SharingAgreementPartitionCoefficientResponse {
 
     @Schema(description = "Internal unique identifier of this coefficient", example = "b3d1a2f0-1234-5678-abcd-000000000001")
@@ -42,6 +42,11 @@ public class SharingAgreementPartitionCoefficientResponse {
             "endState is DERIVED or CLOSED.", example = "2025-01-01T00:00:00Z", types = {"string", "null"})
     private final Instant endDate;
 
+    @Schema(description = "The coefficient this supply is currently on in this agreement's plant -- " +
+            "what the value in this row would replace. Null when the supply has no active " +
+            "coefficient in this plant.", types = {"object", "null"})
+    private final CurrentCoefficientResponse currentCoefficient;
+
     public SharingAgreementPartitionCoefficientResponse(SharingAgreementCoefficient view) {
         this.coefficientId = view.getCoefficientId();
         this.supply = new SupplyReferenceResponse(view.getSupplyId(), view.getSupplyCode(), view.getSupplyName());
@@ -51,6 +56,8 @@ public class SharingAgreementPartitionCoefficientResponse {
         this.applicationState = view.getApplicationState();
         this.endState = view.getEndState();
         this.endDate = view.getEndDate();
+        this.currentCoefficient = view.getCurrentCoefficient() == null
+                ? null : new CurrentCoefficientResponse(view.getCurrentCoefficient());
     }
 
     public UUID getCoefficientId() {
@@ -83,5 +90,9 @@ public class SharingAgreementPartitionCoefficientResponse {
 
     public Instant getEndDate() {
         return endDate;
+    }
+
+    public CurrentCoefficientResponse getCurrentCoefficient() {
+        return currentCoefficient;
     }
 }
