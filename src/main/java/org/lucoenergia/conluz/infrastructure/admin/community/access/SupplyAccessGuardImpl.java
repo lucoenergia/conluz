@@ -39,6 +39,16 @@ class SupplyAccessGuardImpl implements SupplyAccessGuard {
         return isCommunityAdminOf(supply, user);
     }
 
+    @Override
+    public boolean isCommunityAdminOfSupply(UUID supplyId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null || supplyId == null) {
+            return false;
+        }
+        Supply supply = findSupply(supplyId);
+        return supply != null && isCommunityAdminOf(supply, user);
+    }
+
     /**
      * Resolves the supply once and returns it, or throws: a caller who cannot see the supply (it does
      * not exist, or they neither administer its community nor own it) gets a 404, never a 403, to

@@ -196,6 +196,109 @@ class SupplyAccessGuardImplTest {
         assertFalse(guard().canEditSupply(UUID.randomUUID()));
     }
 
+    // --- isCommunityAdminOfSupply ---
+    // A question, not a gate: every denial is false, never an exception. A controller calls it after
+    // canReadSupply has already decided the request proceeds, so throwing here would turn a shaping
+    // decision into a second, competing access decision.
+
+    @Test
+    void isCommunityAdminOfSupply_returnsTrue_whenUserIsCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasCommunityAdminRoleIn(user, community.getId())).thenReturn(true);
+
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        assertTrue(guard().isCommunityAdminOfSupply(supply.getId()));
+    }
+
+    @Test
+    void isCommunityAdminOfSupply_returnsTrue_whenUserIsBothOwnerAndCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasCommunityAdminRoleIn(user, community.getId())).thenReturn(true);
+
+        Supply supply = supplyInCommunity(user.getId(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        // Being the owner as well must not demote the caller: admin decides what they may see.
+        assertTrue(guard().isCommunityAdminOfSupply(supply.getId()));
+    }
+
+    @Test
+    void isCommunityAdminOfSupply_returnsFalse_whenUserIsOnlyTheOwner() {
+        Community community = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasCommunityAdminRoleIn(user, community.getId())).thenReturn(false);
+
+        Supply supply = supplyInCommunity(user.getId(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        assertFalse(guard().isCommunityAdminOfSupply(supply.getId()));
+    }
+
+    @Test
+    void isCommunityAdminOfSupply_returnsFalse_whenUserIsAPlainMemberOfTheSupplyCommunity() {
+        Community community = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(helper.hasCommunityAdminRoleIn(user, community.getId())).thenReturn(false);
+
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        assertFalse(guard().isCommunityAdminOfSupply(supply.getId()));
+    }
+
+    @Test
+    void isCommunityAdminOfSupply_returnsFalse_whenUserAdministersAnotherCommunity() {
+        Community supplyCommunity = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        // Admin somewhere else: the rule is scoped to the community the supply belongs to.
+        when(helper.hasCommunityAdminRoleIn(user, supplyCommunity.getId())).thenReturn(false);
+
+        Supply supply = supplyInCommunity(UUID.randomUUID(), supplyCommunity);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        assertFalse(guard().isCommunityAdminOfSupply(supply.getId()));
+    }
+
+    @Test
+    void isCommunityAdminOfSupply_returnsFalse_whenUserIsPlatformAdminButNotCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        when(helper.getCurrentUser()).thenReturn(Optional.of(admin));
+        when(helper.hasCommunityAdminRoleIn(admin, community.getId())).thenReturn(false);
+
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        assertFalse(guard().isCommunityAdminOfSupply(supply.getId()));
+    }
+
+    @Test
+    void isCommunityAdminOfSupply_returnsFalse_whenSupplyDoesNotExist() {
+        UUID supplyId = UUID.randomUUID();
+        User user = UserMother.randomUser();
+        when(helper.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getSupplyRepository.findById(SupplyId.of(supplyId))).thenReturn(Optional.empty());
+
+        assertFalse(guard().isCommunityAdminOfSupply(supplyId));
+    }
+
+    @Test
+    void isCommunityAdminOfSupply_returnsFalse_whenNoAuthenticatedUser() {
+        when(helper.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().isCommunityAdminOfSupply(UUID.randomUUID()));
+    }
+
     // --- helpers ---
 
     private Supply supplyOwnedBy(UUID ownerId) {
