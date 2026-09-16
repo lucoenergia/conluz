@@ -44,6 +44,7 @@ public class GetPartitionCoefficientAtTimestampController {
 
                     A supply may hold a coefficient in several plants at once, so this is a list, and
                     it is empty when no period covers the instant -- a normal result, not an error.
+                    Pass plantId to restrict the result to a single plant.
                     Pending coefficients are excluded: one the distributor never applied covered no
                     instant.
 
@@ -64,8 +65,11 @@ public class GetPartitionCoefficientAtTimestampController {
     public List<CoefficientAtTimestampResponse> getAtTimestamp(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
             @Parameter(description = "ISO-8601 timestamp", example = "2025-01-15T12:00:00Z")
-            @RequestParam @NotNull Instant timestamp) {
-        return service.findCoefficientsByInstant(supplyId, timestamp).stream()
+            @RequestParam @NotNull Instant timestamp,
+            @Parameter(description = "Optional plant filter. When omitted, every plant the supply "
+                    + "participates in is included.")
+            @RequestParam(required = false) UUID plantId) {
+        return service.findCoefficientsByInstant(supplyId, plantId, timestamp).stream()
                 .map(detail -> new CoefficientAtTimestampResponse(detail, timestamp))
                 .toList();
     }

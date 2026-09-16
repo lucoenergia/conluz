@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -45,7 +46,7 @@ public class GetActivePartitionCoefficientController {
 
                     A supply may be active in several plants at once, so this is a list. It is empty
                     when the supply has no active coefficient anywhere, which is a normal result
-                    rather than an error.
+                    rather than an error. Pass plantId to restrict the result to a single plant.
 
                     **Required: Community Admin of the supply's community.**
                     """,
@@ -62,8 +63,11 @@ public class GetActivePartitionCoefficientController {
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
     public List<PartitionCoefficientResponse> getActive(
-            @Parameter(description = "Supply UUID") @PathVariable UUID supplyId) {
-        return service.findActiveBySupplyId(supplyId).stream()
+            @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
+            @Parameter(description = "Optional plant filter. When omitted, every plant the supply "
+                    + "participates in is included.")
+            @RequestParam(required = false) UUID plantId) {
+        return service.findActiveBySupplyId(supplyId, plantId).stream()
                 .map(PartitionCoefficientResponse::new)
                 .toList();
     }

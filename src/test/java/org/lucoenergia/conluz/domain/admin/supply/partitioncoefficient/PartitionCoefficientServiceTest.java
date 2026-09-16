@@ -38,7 +38,7 @@ class PartitionCoefficientServiceTest {
                 buildRecord(midnight.minusSeconds(3600), null, BigDecimal.valueOf(3.076300)));
         when(repository.findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, midnight)).thenReturn(List.of(record));
 
-        List<SupplyPartitionCoefficientDetail> result = service.findCoefficientsByInstant(SUPPLY_ID, midnight);
+        List<SupplyPartitionCoefficientDetail> result = service.findCoefficientsByInstant(SUPPLY_ID, null, midnight);
 
         assertEquals(1, result.size());
         assertEquals(BigDecimal.valueOf(3.076300), result.get(0).getCoefficientValue());
@@ -51,7 +51,7 @@ class PartitionCoefficientServiceTest {
                 buildRecord(Instant.parse("2025-01-01T00:00:00Z"), null, BigDecimal.valueOf(2.543200)));
         when(repository.findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, midHour)).thenReturn(List.of(record));
 
-        List<SupplyPartitionCoefficientDetail> result = service.findCoefficientsByInstant(SUPPLY_ID, midHour);
+        List<SupplyPartitionCoefficientDetail> result = service.findCoefficientsByInstant(SUPPLY_ID, null, midHour);
 
         assertEquals(1, result.size());
         assertEquals(BigDecimal.valueOf(2.543200), result.get(0).getCoefficientValue());
@@ -66,7 +66,7 @@ class PartitionCoefficientServiceTest {
                 BigDecimal.valueOf(0.6), instant.minusSeconds(3600), null);
         when(repository.findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, instant)).thenReturn(List.of(inX, inY));
 
-        assertEquals(2, service.findCoefficientsByInstant(SUPPLY_ID, instant).size());
+        assertEquals(2, service.findCoefficientsByInstant(SUPPLY_ID, null, instant).size());
         // A null plant means "every plant the supply participates in".
         verify(repository).findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, instant);
     }
@@ -77,7 +77,7 @@ class PartitionCoefficientServiceTest {
         when(repository.findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, timestamp)).thenReturn(List.of());
 
         // An empty collection, not a 404: nothing covering an instant is a normal answer.
-        assertTrue(service.findCoefficientsByInstant(SUPPLY_ID, timestamp).isEmpty());
+        assertTrue(service.findCoefficientsByInstant(SUPPLY_ID, null, timestamp).isEmpty());
     }
 
     // --- resolveCoefficientsInRange ---
@@ -155,7 +155,7 @@ class PartitionCoefficientServiceTest {
                 SupplyPartitionCoefficientDetailMother.of(buildRecord(t1, null, BigDecimal.valueOf(2.0)));
         when(repository.findAllDetailsBySupplyId(SUPPLY_ID, null)).thenReturn(List.of(p1, p2));
 
-        List<SupplyPartitionCoefficientDetail> result = service.findAllCoefficientHistory(SUPPLY_ID);
+        List<SupplyPartitionCoefficientDetail> result = service.findAllCoefficientHistory(SUPPLY_ID, null);
 
         assertEquals(2, result.size());
         assertEquals(t0, result.get(0).getValidFrom());
@@ -174,7 +174,7 @@ class PartitionCoefficientServiceTest {
                 BigDecimal.valueOf(0.6), Instant.now().minusSeconds(3600), null);
         when(repository.findActiveDetailsBySupplyId(SUPPLY_ID, null)).thenReturn(List.of(inX, inY));
 
-        List<SupplyPartitionCoefficientDetail> result = service.findActiveBySupplyId(SUPPLY_ID);
+        List<SupplyPartitionCoefficientDetail> result = service.findActiveBySupplyId(SUPPLY_ID, null);
 
         assertEquals(2, result.size());
         verify(repository).findActiveDetailsBySupplyId(SUPPLY_ID, null);
@@ -184,7 +184,7 @@ class PartitionCoefficientServiceTest {
     void findActiveBySupplyId_returnsEmptyList_whenNoActiveRecord() {
         when(repository.findActiveDetailsBySupplyId(SUPPLY_ID, null)).thenReturn(List.of());
 
-        assertTrue(service.findActiveBySupplyId(SUPPLY_ID).isEmpty());
+        assertTrue(service.findActiveBySupplyId(SUPPLY_ID, null).isEmpty());
     }
 
     // --- helpers ---

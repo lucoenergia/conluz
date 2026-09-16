@@ -26,8 +26,8 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
     }
 
     @Override
-    public List<SupplyPartitionCoefficientDetail> findCoefficientsByInstant(UUID supplyId, Instant timestamp) {
-        return repository.findDetailsBySupplyIdAtTimestamp(supplyId, null, timestamp);
+    public List<SupplyPartitionCoefficientDetail> findCoefficientsByInstant(UUID supplyId, UUID plantId, Instant timestamp) {
+        return repository.findDetailsBySupplyIdAtTimestamp(supplyId, plantId, timestamp);
     }
 
     @Override
@@ -39,13 +39,13 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
     }
 
     @Override
-    public List<SupplyPartitionCoefficientDetail> findAllCoefficientHistory(UUID supplyId) {
-        return repository.findAllDetailsBySupplyId(supplyId, null);
+    public List<SupplyPartitionCoefficientDetail> findAllCoefficientHistory(UUID supplyId, UUID plantId) {
+        return repository.findAllDetailsBySupplyId(supplyId, plantId);
     }
 
     @Override
-    public List<SupplyPartitionCoefficientDetail> findActiveBySupplyId(UUID supplyId) {
-        return repository.findActiveDetailsBySupplyId(supplyId, null);
+    public List<SupplyPartitionCoefficientDetail> findActiveBySupplyId(UUID supplyId, UUID plantId) {
+        return repository.findActiveDetailsBySupplyId(supplyId, plantId);
     }
 
     @Override

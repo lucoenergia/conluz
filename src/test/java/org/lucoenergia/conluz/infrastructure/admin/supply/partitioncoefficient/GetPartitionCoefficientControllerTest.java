@@ -265,6 +265,93 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].coefficient").value("1.0"));
     }
 
+    @Test
+    void getHistoryRestrictsToOnePlantWhenPlantIdIsGiven() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
+        persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
+
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .param("plantId", inX.getPlant().getId().toString())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].plant.id").value(inX.getPlant().getId().toString()));
+
+        // Without the filter both plants' timelines come back.
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void getHistoryReturnsEmptyListForAPlantTheSupplyHasNoCoefficientIn() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        SharingAgreementEntity agreement = ensurePlantAndPublishedAgreement(supply);
+        persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(1.0),
+                Instant.parse("2024-01-01T00:00:00Z"), null);
+        // A plant of a different supply entirely -- unrelated to this supply's timeline.
+        SharingAgreementEntity unrelated = ensurePlantAndPublishedAgreement(createTestSupply());
+
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .param("plantId", unrelated.getPlant().getId().toString())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void getActiveRestrictsToOnePlantWhenPlantIdIsGiven() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
+        persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
+
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/active")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .param("plantId", inY.getPlant().getId().toString())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].plant.id").value(inY.getPlant().getId().toString()));
+    }
+
+    @Test
+    void getAtTimestampRestrictsToOnePlantWhenPlantIdIsGiven() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createTestSupply();
+        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
+        persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
+        persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
+
+        mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/at")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .param("timestamp", "2024-06-15T12:00:00Z")
+                        .param("plantId", inX.getPlant().getId().toString())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].plant.id").value(inX.getPlant().getId().toString()));
+    }
+
     private Supply createTestSupply() {
         User user = UserMother.randomUser();
         createUserRepository.create(user);

@@ -41,6 +41,8 @@ public class GetPartitionCoefficientHistoryController {
 
                     Each period carries the plant it belongs to, so a supply participating in more than
                     one plant yields several interleaved timelines that a caller can group by plant.
+                    Pass plantId to restrict the result to a single plant's timeline; a plant the
+                    supply has no coefficient in yields an empty list rather than an error.
 
                     **Required: Community Admin of the supply's community.**
                     """,
@@ -57,8 +59,11 @@ public class GetPartitionCoefficientHistoryController {
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
     public List<PartitionCoefficientResponse> getHistory(
-            @Parameter(description = "Supply UUID") @PathVariable UUID supplyId) {
-        return service.findAllCoefficientHistory(supplyId).stream()
+            @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
+            @Parameter(description = "Optional plant filter. When omitted, every plant the supply "
+                    + "participates in is included.")
+            @RequestParam(required = false) UUID plantId) {
+        return service.findAllCoefficientHistory(supplyId, plantId).stream()
                 .map(PartitionCoefficientResponse::new)
                 .toList();
     }
