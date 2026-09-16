@@ -17,7 +17,7 @@ public class SupplyReferenceResponse {
     @Schema(description = "Code of the supply", example = "ES0031607648137001RC0F")
     private final String code;
 
-    @Schema(description = "Display name of the supply", example = "John Doe")
+    @Schema(description = "Display name of the supply", example = "John Doe", types = {"string", "null"})
     private final String name;
 
     public SupplyReferenceResponse(UUID id, String code, String name) {
