@@ -59,6 +59,23 @@ public class DateConverter {
         return convertStringToLocalDate(dateString, DATE_FORMAT);
     }
 
+    /**
+     * Converts an API-level <em>inclusive</em> end into the exclusive upper bound the half-open
+     * query and segment machinery uses uniformly. No series in this system is sub-second, so
+     * nudging by one nanosecond is a lossless conversion rather than an approximation: no record
+     * can fall strictly between the inclusive end and the value returned here.
+     *
+     * <p>Callers must apply this <strong>once</strong>, at the top of the service, and pass the
+     * resulting instant to every downstream call, so the fetched record set and the
+     * segment-covered instant set are the same set by construction.
+     *
+     * <p>{@link #convertToString(Instant)} formats nine fractional digits, so the added nanosecond
+     * survives into the query literal rather than being truncated away.
+     */
+    public static Instant toExclusiveUpperBound(OffsetDateTime inclusiveEnd) {
+        return inclusiveEnd.toInstant().plusNanos(1);
+    }
+
     public static LocalDate convertStringToLocalDate(String dateString, String pattern) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
         return LocalDate.parse(dateString, formatter);

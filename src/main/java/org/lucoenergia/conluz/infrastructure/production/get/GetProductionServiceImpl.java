@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -314,14 +315,15 @@ public class GetProductionServiceImpl implements GetProductionService {
 
     /**
      * Converts the API's inclusive {@code endDate} into the exclusive upper bound the segment/query
-     * machinery uses uniformly. Production data in this system is never sub-second resolution, so
-     * nudging by one nanosecond is a lossless conversion, not an approximation. This is the single
-     * place this conversion happens; every downstream call (segment resolution, half-open fetches,
-     * per-segment clamped ranges) uses the resulting instant, so the fetched point set and the
-     * segment-covered instant set are the same set of instants by construction.
+     * machinery uses uniformly. This is the single place this conversion happens for production;
+     * every downstream call (segment resolution, half-open fetches, per-segment clamped ranges)
+     * uses the resulting instant, so the fetched point set and the segment-covered instant set are
+     * the same set of instants by construction.
+     *
+     * @see DateConverter#toExclusiveUpperBound(OffsetDateTime)
      */
     private static Instant exclusiveTo(OffsetDateTime endDate) {
-        return endDate.toInstant().plusNanos(1);
+        return DateConverter.toExclusiveUpperBound(endDate);
     }
 
     private static OffsetDateTime toOffsetDateTime(Instant instant) {
