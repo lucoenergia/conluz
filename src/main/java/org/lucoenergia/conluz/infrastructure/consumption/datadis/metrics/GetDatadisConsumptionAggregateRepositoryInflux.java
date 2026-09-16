@@ -89,6 +89,35 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
     }
 
     @Override
+    public double sumSelfConsumptionKWh(Supply supply, Instant from, Instant to) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // >= and <, where the sibling aggregate uses >= and <=: the upper bound is exclusive
+            // so that adjacent sub-intervals of one period do not both count the boundary record.
+            // convertToString formats nine fractional digits, so a bound that differs from another
+            // by a single nanosecond still reaches InfluxDB as a distinct instant.
+            Query query = new Query(String.format(
+                    """
+                            SELECT SUM("self_consumption_energy_kwh") AS "self_consumption_energy_kwh"
+                            FROM "%s"
+                            WHERE cups = '%s'
+                                AND time >= '%s'
+                                AND time < '%s'
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    supply.getCode(),
+                    dateConverter.convertToString(from),
+                    dateConverter.convertToString(to)));
+
+            QueryResult.Series series = firstSeries(connection.query(query));
+            if (series == null) {
+                return 0d;
+            }
+            return readDouble(series, series.getValues().get(0), COLUMN_SELF_CONSUMPTION_ENERGY_KWH);
+        }
+    }
+
+    @Override
     public Optional<RecordedConsumptionPeriod> findRecordedPeriod(Supply supply) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
