@@ -44,6 +44,7 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
 
     private static final String FIELD_CONSUMPTION_KWH = "consumption_kwh";
     private static final String FIELD_SURPLUS_ENERGY_KWH = "surplus_energy_kwh";
+    private static final String FIELD_GENERATION_ENERGY_KWH = "generation_energy_kwh";
     private static final String FIELD_SELF_CONSUMPTION_ENERGY_KWH = "self_consumption_energy_kwh";
     private static final String FIELD_OBTAIN_METHOD = "obtain_method";
     private static final String TAG_CUPS = "cups";
@@ -63,21 +64,25 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
      *   <li>{@code 2023/04/13} -- no record at all; the day still comes back, at 0.00.</li>
      *   <li>{@code 2023/04/14} -- 1.25 + 0.25 = 1.50 kWh, worth 0.225: again a half cent, 0.23.</li>
      * </ul>
+     *
+     * <p>Generated energy is written too, and its daily totals are deliberately different from the
+     * self-consumed ones -- 12.00, 2.00, 0.50, nothing and 4.00 kWh -- so an assertion on one field
+     * cannot pass by reading the other.
      */
     private static final List<HourlyRecord> HOURLY_RECORDS = List.of(
-            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-10T09:00+02:00", 1.00d, 0.00d, 0.25d),
-            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-10T14:00+02:00", 2.00d, 0.50d, 0.75d),
-            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-10T18:00+02:00", 3.00d, 0.25d, 1.00d),
-            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-11T10:00+02:00", 1.00d, 0.00d, 0.25d),
-            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-11T11:00+02:00", 1.00d, 0.00d, 0.25d),
-            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-12T10:00+02:00", 1.00d, 0.00d, 0.00d),
+            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-10T09:00+02:00", 1.00d, 0.00d, 2.00d, 0.25d),
+            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-10T14:00+02:00", 2.00d, 0.50d, 4.00d, 0.75d),
+            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-10T18:00+02:00", 3.00d, 0.25d, 6.00d, 1.00d),
+            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-11T10:00+02:00", 1.00d, 0.00d, 1.00d, 0.25d),
+            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-11T11:00+02:00", 1.00d, 0.00d, 1.00d, 0.25d),
+            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-12T10:00+02:00", 1.00d, 0.00d, 0.50d, 0.00d),
             // 2023-04-13 is deliberately absent.
-            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-14T10:00+02:00", 2.00d, 0.00d, 1.25d),
-            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-14T11:00+02:00", 1.00d, 0.00d, 0.25d),
+            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-14T10:00+02:00", 2.00d, 0.00d, 3.00d, 1.25d),
+            new HourlyRecord(CUPS_WITH_SAVINGS, "2023-04-14T11:00+02:00", 1.00d, 0.00d, 1.00d, 0.25d),
 
             // 4.00 kWh worth 0.60 on the 10th, 2.00 kWh worth 0.30 on the 11th.
-            new HourlyRecord(OTHER_CUPS_WITH_SAVINGS, "2023-04-10T10:00+02:00", 5.00d, 0.00d, 4.00d),
-            new HourlyRecord(OTHER_CUPS_WITH_SAVINGS, "2023-04-11T10:00+02:00", 3.00d, 0.00d, 2.00d));
+            new HourlyRecord(OTHER_CUPS_WITH_SAVINGS, "2023-04-10T10:00+02:00", 5.00d, 0.00d, 8.00d, 4.00d),
+            new HourlyRecord(OTHER_CUPS_WITH_SAVINGS, "2023-04-11T10:00+02:00", 3.00d, 0.00d, 4.00d, 2.00d));
 
     /**
      * Monthly pre-aggregates, each stamped at local midnight of the first of its month, which is
@@ -85,11 +90,11 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
      * 0.00 and 1.20 for the supply with savings; 3.00 for the other one.
      */
     private static final List<MonthlyRecord> MONTHLY_RECORDS = List.of(
-            new MonthlyRecord(CUPS_WITH_SAVINGS, "2024-01-01T00:00+01:00", 400.00d, 20.00d, 100.00d),
-            new MonthlyRecord(CUPS_WITH_SAVINGS, "2024-02-01T00:00+01:00", 380.00d, 15.00d, 0.50d),
-            new MonthlyRecord(CUPS_WITH_SAVINGS, "2024-03-01T00:00+01:00", 350.00d, 10.00d, 0.00d),
-            new MonthlyRecord(CUPS_WITH_SAVINGS, "2024-04-01T00:00+02:00", 300.00d, 25.00d, 8.00d),
-            new MonthlyRecord(OTHER_CUPS_WITH_SAVINGS, "2024-01-01T00:00+01:00", 500.00d, 5.00d, 20.00d));
+            new MonthlyRecord(CUPS_WITH_SAVINGS, "2024-01-01T00:00+01:00", 400.00d, 20.00d, 500.00d, 100.00d),
+            new MonthlyRecord(CUPS_WITH_SAVINGS, "2024-02-01T00:00+01:00", 380.00d, 15.00d, 480.00d, 0.50d),
+            new MonthlyRecord(CUPS_WITH_SAVINGS, "2024-03-01T00:00+01:00", 350.00d, 10.00d, 450.00d, 0.00d),
+            new MonthlyRecord(CUPS_WITH_SAVINGS, "2024-04-01T00:00+02:00", 300.00d, 25.00d, 400.00d, 8.00d),
+            new MonthlyRecord(OTHER_CUPS_WITH_SAVINGS, "2024-01-01T00:00+01:00", 500.00d, 5.00d, 600.00d, 20.00d));
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
 
@@ -104,22 +109,26 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
 
             HOURLY_RECORDS.forEach(record -> batchPoints.point(
                     pointAt(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, record.cups(), record.localTime(),
-                            record.consumptionKWh(), record.surplusEnergyKWh(), record.selfConsumptionEnergyKWh())));
+                            record.consumptionKWh(), record.surplusEnergyKWh(), record.generationEnergyKWh(),
+                            record.selfConsumptionEnergyKWh())));
             MONTHLY_RECORDS.forEach(record -> batchPoints.point(
                     pointAt(DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT, record.cups(), record.localTime(),
-                            record.consumptionKWh(), record.surplusEnergyKWh(), record.selfConsumptionEnergyKWh())));
+                            record.consumptionKWh(), record.surplusEnergyKWh(), record.generationEnergyKWh(),
+                            record.selfConsumptionEnergyKWh())));
 
             connection.write(batchPoints);
         }
     }
 
     private static Point pointAt(String measurement, String cups, String localTime, double consumptionKWh,
-                                 double surplusEnergyKWh, double selfConsumptionEnergyKWh) {
+                                 double surplusEnergyKWh, double generationEnergyKWh,
+                                 double selfConsumptionEnergyKWh) {
         return Point.measurement(measurement)
                 .time(OffsetDateTime.parse(localTime).toInstant().toEpochMilli(), TimeUnit.MILLISECONDS)
                 .tag(TAG_CUPS, cups)
                 .addField(FIELD_CONSUMPTION_KWH, consumptionKWh)
                 .addField(FIELD_SURPLUS_ENERGY_KWH, surplusEnergyKWh)
+                .addField(FIELD_GENERATION_ENERGY_KWH, generationEnergyKWh)
                 .addField(FIELD_SELF_CONSUMPTION_ENERGY_KWH, selfConsumptionEnergyKWh)
                 .addField(FIELD_OBTAIN_METHOD, OBTAIN_METHOD)
                 .build();
@@ -140,10 +149,12 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
     }
 
     private record HourlyRecord(String cups, String localTime, double consumptionKWh,
-                                double surplusEnergyKWh, double selfConsumptionEnergyKWh) {
+                                double surplusEnergyKWh, double generationEnergyKWh,
+                                double selfConsumptionEnergyKWh) {
     }
 
     private record MonthlyRecord(String cups, String localTime, double consumptionKWh,
-                                 double surplusEnergyKWh, double selfConsumptionEnergyKWh) {
+                                 double surplusEnergyKWh, double generationEnergyKWh,
+                                 double selfConsumptionEnergyKWh) {
     }
 }

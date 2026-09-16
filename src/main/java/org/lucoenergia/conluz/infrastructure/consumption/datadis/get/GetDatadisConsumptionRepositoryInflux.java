@@ -129,6 +129,15 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
      *
      * <p>No {@code fill()} is emitted, so InfluxDB's default {@code fill(null)} stands and a bucket
      * with no record is still returned (mapped to {@code 0.0} downstream) rather than omitted.
+     *
+     * <p>Every energy field the mapper reads is summed here, {@code generation_energy_kwh}
+     * included. It is stored per hourly record by
+     * {@code PersistDatadisConsumptionRepositoryInflux} and summed by the monthly and yearly
+     * aggregation jobs; omitting it from this statement left it null on every row, which
+     * {@code parseToFloat} then flattened to a constant {@code 0.0} -- indistinguishable from a
+     * supply that generated nothing, on the daily series, the hourly series and the CSV report
+     * alike. A field absent from a supply's records still sums to null and still reads back as
+     * {@code 0.0}, exactly as the other three do.
      */
     private List<DatadisConsumption> getConsumptionsByRangeOfDatesGroupedByDuration(Supply supply, OffsetDateTime startDate,
                                                                          OffsetDateTime endDate, String measurementName,
@@ -144,6 +153,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                             SELECT
                                 SUM("consumption_kwh") AS "consumption_kwh",
                                 SUM("surplus_energy_kwh") AS "surplus_energy_kwh",
+                                SUM("generation_energy_kwh") AS "generation_energy_kwh",
                                 SUM("self_consumption_energy_kwh") AS "self_consumption_energy_kwh",
                                 LAST("obtain_method") AS "obtain_method"
                             FROM "%s"

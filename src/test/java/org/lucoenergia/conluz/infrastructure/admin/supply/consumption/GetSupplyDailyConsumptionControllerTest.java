@@ -409,4 +409,34 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].savingsEur").value(closeTo(0.60, TOLERANCE)))
                 .andExpect(jsonPath("$[1].savingsEur").value(closeTo(0.30, TOLERANCE)));
     }
+
+    /**
+     * Generated energy used to come back as a constant 0.0 on this series: the grouped query summed
+     * every energy field except `generation_energy_kwh`, so the mapper only ever saw a null. The
+     * daily totals here -- 12.00, 2.00, 0.50, nothing and 4.00 kWh -- differ from the
+     * self-consumption totals of the same days on purpose, so this cannot pass by reading the wrong
+     * column.
+     */
+    @Test
+    void testDailyConsumptionSumsGeneratedEnergy() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(
+                SupplyMother.random(user).withCode(SupplyConsumptionSavingsInfluxLoader.CUPS_WITH_SAVINGS).build(),
+                UserId.of(user.getId()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", SAVINGS_START_DATE)
+                        .queryParam("endDate", SAVINGS_END_DATE))
+                .andExpect(status().isOk())
+                // 2.00 + 4.00 + 6.00 on the 10th.
+                .andExpect(jsonPath("$[0].generationEnergyKWh").value(closeTo(12.00, TOLERANCE)))
+                .andExpect(jsonPath("$[1].generationEnergyKWh").value(closeTo(2.00, TOLERANCE)))
+                .andExpect(jsonPath("$[2].generationEnergyKWh").value(closeTo(0.50, TOLERANCE)))
+                // The 13th has no record at all, so it stays at zero like its other energy fields.
+                .andExpect(jsonPath("$[3].generationEnergyKWh").value(closeTo(0.00, TOLERANCE)))
+                .andExpect(jsonPath("$[4].generationEnergyKWh").value(closeTo(4.00, TOLERANCE)));
+    }
 }

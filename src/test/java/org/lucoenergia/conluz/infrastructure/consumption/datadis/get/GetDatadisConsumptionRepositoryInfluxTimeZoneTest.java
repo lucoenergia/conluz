@@ -15,20 +15,23 @@ import org.mockito.ArgumentCaptor;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Proves two things about the InfluxQL this repository builds, neither of which an integration test
- * against the single configured zone could show: that the daily query takes its {@code tz()} clause
- * from {@link ZoneResolver} rather than hardcoding a zone, and that the hourly query carries no
- * {@code tz()} clause at all. Hourly consumption is out of scope for local-calendar alignment, so
- * its statement must stay exactly what it was.
+ * Proves things about the InfluxQL this repository builds that an integration test against the
+ * single configured zone could not show: that the daily query takes its {@code tz()} clause from
+ * {@link ZoneResolver} rather than hardcoding a zone, that the hourly query carries no {@code tz()}
+ * clause at all -- hourly consumption is out of scope for local-calendar alignment, so its
+ * statement must stay exactly what it was -- and that both grouped queries select every energy
+ * field the mapper reads.
  *
  * <p>A plain Mockito test (no Spring context) so a zone other than {@code conluz.time.zone.id}
  * (Europe/Madrid in {@code application-test.properties}) can be exercised without a second
@@ -81,6 +84,37 @@ class GetDatadisConsumptionRepositoryInfluxTimeZoneTest {
                         + command);
         assertTrue(command.contains("GROUP BY time(1h), cups"),
                 "Expected the hourly grouping to be unchanged: " + command);
+    }
+
+    /**
+     * An energy field missing from the SELECT list does not fail: it comes back null and is
+     * flattened to {@code 0.0}, which reads as "this supply generated nothing" rather than as a
+     * bug. {@code generation_energy_kwh} was omitted for exactly that reason, so the column list is
+     * pinned here as well as through the values the integration tests read back.
+     */
+    @Test
+    void bothGroupedQueriesSumEveryEnergyField() {
+        when(zoneResolver.resolveZoneIdForSupply(supply.getId())).thenReturn(ZONE_UNDER_TEST);
+        OffsetDateTime start = OffsetDateTime.parse("2023-04-01T00:00:00Z");
+        OffsetDateTime end = OffsetDateTime.parse("2023-04-30T23:59:59Z");
+
+        repository.getDailyConsumptionsByRangeOfDates(supply, start, end);
+        repository.getHourlyConsumptionsByRangeOfDates(supply, start, end);
+
+        for (Query query : capturedCommands()) {
+            String command = query.getCommand();
+            for (String field : List.of("consumption_kwh", "surplus_energy_kwh",
+                    "generation_energy_kwh", "self_consumption_energy_kwh")) {
+                assertTrue(command.contains(String.format("SUM(\"%s\")", field)),
+                        () -> "Expected the grouped query to sum " + field + ": " + command);
+            }
+        }
+    }
+
+    private List<Query> capturedCommands() {
+        ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
+        verify(influxDB, times(2)).query(captor.capture());
+        return captor.getAllValues();
     }
 
     private String capturedCommand() {
