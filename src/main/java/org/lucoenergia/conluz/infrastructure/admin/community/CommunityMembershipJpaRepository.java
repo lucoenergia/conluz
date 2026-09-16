@@ -24,6 +24,13 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
      */
     Optional<CommunityMembershipEntity> findByUserIdAndCommunityId(UUID userId, UUID communityId);
 
+    /**
+     * Whether the user already belongs to the community. Cheaper than
+     * {@link #findByUserIdAndCommunityId(UUID, UUID)} when the row itself is not needed, which is
+     * the case for the duplicate precondition on create.
+     */
+    boolean existsByUserIdAndCommunityId(UUID userId, UUID communityId);
+
     @Query("SELECT m.community.id, COUNT(m) FROM community_memberships m WHERE m.community.id IN :ids GROUP BY m.community.id")
     List<Object[]> countMembersByCommunityIds(@Param("ids") Set<UUID> ids);
 

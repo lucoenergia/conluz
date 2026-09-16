@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -44,6 +45,15 @@ public class CreateMembershipRepositoryDatabase implements CreateMembershipRepos
 
         UserEntity userEntity = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(UserId.of(userId)));
+
+        // Checked here rather than left to the (user_id, community_id) unique constraint, whose
+        // DataIntegrityViolationException nothing maps and which therefore surfaced as a 500.
+        // A narrow race remains: two concurrent creates can both pass this and one will still hit
+        // the constraint. The window is small and the outcome is the same either way -- one
+        // membership exists -- so it is not worth serialising the endpoint over.
+        if (membershipJpaRepository.existsByUserIdAndCommunityId(userId, communityId)) {
+            throw new MembershipAlreadyExistsException(communityId, userId);
+        }
 
         CommunityMembershipEntity entity = new CommunityMembershipEntity.Builder()
                 .withId(UUID.randomUUID())
