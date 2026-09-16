@@ -25,7 +25,7 @@ class EstimatedSupplyTariffResolverTest {
 
     @Test
     void returnsExactlyOneSegment() {
-        DateRange range = new DateRange(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+        DateRange range = new DateRange(LocalDate.of(2025, 1, 1), LocalDate.of(2026, 1, 1));
 
         TariffSchedule schedule = resolver.scheduleFor(SUPPLY_ID, range);
 
@@ -53,7 +53,7 @@ class EstimatedSupplyTariffResolverTest {
 
     @Test
     void segmentCarriesConfiguredBasePriceAsFlatPlan() {
-        DateRange range = new DateRange(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+        DateRange range = new DateRange(LocalDate.of(2025, 1, 1), LocalDate.of(2026, 1, 1));
 
         TariffSchedule schedule = resolver.scheduleFor(SUPPLY_ID, range);
 
@@ -64,7 +64,7 @@ class EstimatedSupplyTariffResolverTest {
 
     @Test
     void segmentCarriesConfiguredVatRate() {
-        DateRange range = new DateRange(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+        DateRange range = new DateRange(LocalDate.of(2025, 1, 1), LocalDate.of(2026, 1, 1));
 
         TariffSchedule schedule = resolver.scheduleFor(SUPPLY_ID, range);
 
@@ -74,8 +74,8 @@ class EstimatedSupplyTariffResolverTest {
 
     @Test
     void ignoresSupplyContentAndRange() {
-        DateRange range1 = new DateRange(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 6, 30));
-        DateRange range2 = new DateRange(LocalDate.of(2025, 5, 1), LocalDate.of(2025, 8, 31));
+        DateRange range1 = new DateRange(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 7, 1));
+        DateRange range2 = new DateRange(LocalDate.of(2025, 5, 1), LocalDate.of(2025, 9, 1));
         SupplyId otherSupply = SupplyId.of(UUID.randomUUID());
 
         TariffSchedule schedule1 = resolver.scheduleFor(SUPPLY_ID, range1);

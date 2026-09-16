@@ -17,6 +17,18 @@ public class DateRange {
     private final LocalDate end;
 
     public DateRange(LocalDate start, LocalDate end) {
+        if (start == null) {
+            throw new InvalidDateRangeException(InvalidDateRangeException.Reason.NULL_START);
+        }
+        if (end == null) {
+            throw new InvalidDateRangeException(InvalidDateRangeException.Reason.NULL_END);
+        }
+        if (start.isAfter(end)) {
+            throw new InvalidDateRangeException(InvalidDateRangeException.Reason.START_AFTER_END);
+        }
+        if (start.isEqual(end)) {
+            throw new InvalidDateRangeException(InvalidDateRangeException.Reason.EMPTY_RANGE);
+        }
         this.start = start;
         this.end = end;
     }
