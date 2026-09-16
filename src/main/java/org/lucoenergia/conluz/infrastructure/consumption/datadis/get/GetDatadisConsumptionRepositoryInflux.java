@@ -7,6 +7,7 @@ import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionMonthlyPoint;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.consumption.datadis.DatadisConsumptionYearlyPoint;
@@ -17,7 +18,6 @@ import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
-import java.time.Instant;
 import java.time.Month;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -28,11 +28,14 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
     private final DateConverter dateConverter;
+    private final ZoneResolver zoneResolver;
 
     public GetDatadisConsumptionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
-                                                 DateConverter dateConverter) {
+                                                 DateConverter dateConverter,
+                                                 ZoneResolver zoneResolver) {
         this.influxDbConnectionManager = influxDbConnectionManager;
         this.dateConverter = dateConverter;
+        this.zoneResolver = zoneResolver;
     }
 
     @Override
@@ -61,13 +64,13 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
     @Override
     public List<DatadisConsumption> getDailyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
         return getConsumptionsByRangeOfDatesGroupedByDuration(supply, startDate, endDate,
-                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.DAILY);
+                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.DAILY, true);
     }
 
     @Override
     public List<DatadisConsumption> getHourlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
         return getConsumptionsByRangeOfDatesGroupedByDuration(supply, startDate, endDate,
-                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.HOURLY);
+                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.HOURLY, false);
     }
 
     @Override
@@ -108,15 +111,33 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
         }
     }
 
+    /**
+     * Grouped sums over an interval that is <strong>inclusive on both ends</strong>, exactly as the
+     * public consumption endpoints document it: the bounds are the caller's instants, unadjusted.
+     *
+     * <p>{@code localCalendarAligned} appends {@code tz('<zone>')} -- the zone
+     * {@link ZoneResolver#resolveZoneIdForSupply(java.util.UUID)} gives for this supply -- so that
+     * {@code GROUP BY time(1d)} buckets start at local midnight instead of UTC midnight, which also
+     * makes a spring-forward day 23 hours long and a fall-back day 25. The clause comes last in the
+     * statement, as in {@code GetProductionRepositoryInflux}, where the same InfluxQL construct was
+     * verified against a live InfluxDB 1.8.
+     *
+     * <p>Only the daily grouping passes {@code true}. Hourly buckets are whole-hour aligned and every
+     * zone offset in use is a whole number of hours, so alignment would be a no-op there; leaving the
+     * hourly query byte-identical also keeps it clear of InfluxDB 1.x's {@code tz()} behaviour across
+     * a DST fall-back, which this change does not examine.
+     *
+     * <p>No {@code fill()} is emitted, so InfluxDB's default {@code fill(null)} stands and a bucket
+     * with no record is still returned (mapped to {@code 0.0} downstream) rather than omitted.
+     */
     private List<DatadisConsumption> getConsumptionsByRangeOfDatesGroupedByDuration(Supply supply, OffsetDateTime startDate,
-                                                                         OffsetDateTime endDate, String measurementName, String duration) {
+                                                                         OffsetDateTime endDate, String measurementName,
+                                                                         String duration, boolean localCalendarAligned) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
-            // No snapping happens here, despite the names: toLocalDayInstant returns the same instant
-            // it is given. The bounds are exactly the caller's, and the interval is inclusive on both
-            // ends, matching the public contract of the consumption endpoints.
-            Instant queryStart = dateConverter.toLocalDayInstant(startDate);
-            Instant queryEnd = dateConverter.toLocalDayInstant(endDate);
+            String timeZoneClause = localCalendarAligned
+                    ? String.format(" tz('%s')", zoneResolver.resolveZoneIdForSupply(supply.getId()).getId())
+                    : "";
 
             Query query = new Query(String.format(
                     """
@@ -129,13 +150,14 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                             WHERE cups = '%s'
                                 AND time >= '%s'
                                 AND time <= '%s'
-                            GROUP BY time(%s), cups
+                            GROUP BY time(%s), cups%s
                             """,
                     measurementName,
                     supply.getCode(),
-                    dateConverter.convertToString(queryStart),
-                    dateConverter.convertToString(queryEnd),
-                    duration));
+                    dateConverter.convertToString(startDate),
+                    dateConverter.convertToString(endDate),
+                    duration,
+                    timeZoneClause));
 
             QueryResult queryResult = connection.query(query);
 
