@@ -39,8 +39,9 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
     }
 
     @Override
-    public List<SupplyPartitionCoefficientDetail> findAllCoefficientHistory(UUID supplyId, UUID plantId) {
-        return repository.findAllDetailsBySupplyId(supplyId, plantId);
+    public List<SupplyPartitionCoefficientDetail> findAllCoefficientHistory(UUID supplyId, UUID plantId,
+                                                                            boolean includePending) {
+        return repository.findAllDetailsBySupplyId(supplyId, plantId, includePending);
     }
 
     @Override

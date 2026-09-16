@@ -25,13 +25,18 @@ public interface PartitionCoefficientService {
     List<SupplyPartitionCoefficient> findAllCoefficientsInRange(UUID supplyId, Instant from, Instant to);
 
     /**
-     * The full history for the given supply, ordered by valid_from ascending, enriched with the
-     * supply, plant and agreement each period refers to. Pending periods are included.
+     * The history for the given supply, ordered by valid_from ascending, enriched with the supply,
+     * plant and agreement each period refers to.
+     *
+     * <p>{@code includePending} decides whether pending periods (valid_from = null) are part of the
+     * result. Only a Community Admin of the supply's community may see them, so the caller -- which
+     * knows who is asking -- resolves the flag and this method honours it.
      *
      * <p>A null {@code plantId} means every plant the supply participates in; a plant the supply has
      * no coefficient in yields an empty list rather than an error.
      */
-    List<SupplyPartitionCoefficientDetail> findAllCoefficientHistory(UUID supplyId, UUID plantId);
+    List<SupplyPartitionCoefficientDetail> findAllCoefficientHistory(UUID supplyId, UUID plantId,
+                                                                      boolean includePending);
 
     /**
      * The active coefficient of the supply in each plant it participates in -- at most one per

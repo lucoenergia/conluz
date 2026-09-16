@@ -70,7 +70,7 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
         SharingAgreementEntity agreement = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
         persist(supply, agreement, BigDecimal.valueOf(0.250000), T0, null);
 
-        List<SupplyPartitionCoefficientDetail> details = repository.findAllDetailsBySupplyId(supply.getId(), null);
+        List<SupplyPartitionCoefficientDetail> details = repository.findAllDetailsBySupplyId(supply.getId(), null, true);
 
         assertEquals(1, details.size());
         SupplyPartitionCoefficientDetail detail = details.get(0);
@@ -93,8 +93,8 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
         persist(supply, inY, BigDecimal.valueOf(0.600000), T0, null);
 
         UUID plantX = inX.getPlant().getId();
-        List<SupplyPartitionCoefficientDetail> filtered = repository.findAllDetailsBySupplyId(supply.getId(), plantX);
-        List<SupplyPartitionCoefficientDetail> unfiltered = repository.findAllDetailsBySupplyId(supply.getId(), null);
+        List<SupplyPartitionCoefficientDetail> filtered = repository.findAllDetailsBySupplyId(supply.getId(), plantX, true);
+        List<SupplyPartitionCoefficientDetail> unfiltered = repository.findAllDetailsBySupplyId(supply.getId(), null, true);
 
         assertEquals(1, filtered.size());
         assertEquals(plantX, filtered.get(0).getPlant().id());
@@ -109,7 +109,72 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
         PlantEntity unrelated = plantRepository.save(
                 PlantMother.randomPlantEntity().withSupply(persistSupply()).build());
 
-        assertTrue(repository.findAllDetailsBySupplyId(supply.getId(), unrelated.getId()).isEmpty());
+        assertTrue(repository.findAllDetailsBySupplyId(supply.getId(), unrelated.getId(), true).isEmpty());
+    }
+
+    /**
+     * All four combinations of the two independent filters. They are independent on purpose: the
+     * plant filter picks a different query method (a null UUID cannot be bound), while includePending
+     * is a bound parameter of both, so only exercising the cross product proves the boolean survives
+     * in the plant-filtered query as well.
+     */
+    @Test
+    void findAllDetailsHonoursIncludePendingAcrossBothPlantFilterVariants() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreementEntity inY = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreementEntity draftInX = persistAgreement(inX.getPlant(), SharingAgreementStatus.DRAFT);
+        SharingAgreementEntity draftInY = persistAgreement(inY.getPlant(), SharingAgreementStatus.DRAFT);
+        persist(supply, inX, BigDecimal.valueOf(0.400000), T0, null);
+        persist(supply, inY, BigDecimal.valueOf(0.600000), T0, null);
+        persist(supply, draftInX, BigDecimal.valueOf(0.450000), null, null);
+        persist(supply, draftInY, BigDecimal.valueOf(0.550000), null, null);
+
+        UUID plantX = inX.getPlant().getId();
+
+        assertEquals(4, repository.findAllDetailsBySupplyId(supply.getId(), null, true).size());
+        assertEquals(2, repository.findAllDetailsBySupplyId(supply.getId(), plantX, true).size());
+
+        List<SupplyPartitionCoefficientDetail> everyPlantWithoutPending =
+                repository.findAllDetailsBySupplyId(supply.getId(), null, false);
+        List<SupplyPartitionCoefficientDetail> plantXWithoutPending =
+                repository.findAllDetailsBySupplyId(supply.getId(), plantX, false);
+
+        assertEquals(2, everyPlantWithoutPending.size());
+        assertTrue(everyPlantWithoutPending.stream().allMatch(d -> d.getValidFrom() != null));
+        assertEquals(1, plantXWithoutPending.size());
+        assertEquals(plantX, plantXWithoutPending.get(0).getPlant().id());
+        assertTrue(plantXWithoutPending.stream().allMatch(d -> d.getValidFrom() != null));
+    }
+
+    /**
+     * Pins what the pending filter buys the owner-facing history: no DRAFT agreement can reach a
+     * caller who may not see pending rows. That holds because an activated coefficient can never
+     * belong to a DRAFT agreement -- activation asserts the agreement is not DRAFT, and
+     * revert-to-draft refuses while any of its coefficients has a validFrom. This asserts the
+     * consequence at query level rather than trusting that invariant from a distance.
+     */
+    @Test
+    void findAllDetailsWithoutPendingRowsNeverCarriesADraftAgreement() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreementEntity published = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreementEntity superseded = persistAgreement(published.getPlant(), SharingAgreementStatus.SUPERSEDED);
+        SharingAgreementEntity draft = persistAgreement(published.getPlant(), SharingAgreementStatus.DRAFT);
+        persist(supply, superseded, BigDecimal.valueOf(0.100000), T0, T1);
+        persist(supply, published, BigDecimal.valueOf(0.200000), T1, null);
+        persist(supply, draft, BigDecimal.valueOf(0.300000), null, null);
+
+        List<SupplyPartitionCoefficientDetail> withoutPending =
+                repository.findAllDetailsBySupplyId(supply.getId(), null, false);
+
+        assertEquals(2, withoutPending.size());
+        assertTrue(withoutPending.stream()
+                        .noneMatch(d -> d.getSharingAgreement().status() == SharingAgreementStatus.DRAFT),
+                "a caller without pending rows must never see a DRAFT agreement: " + withoutPending);
+        // The draft is only hidden by the filter, not by the fixture: it is there for an admin.
+        assertTrue(repository.findAllDetailsBySupplyId(supply.getId(), null, true).stream()
+                        .anyMatch(d -> d.getSharingAgreement().status() == SharingAgreementStatus.DRAFT),
+                "the fixture must contain a draft row, otherwise the assertion above proves nothing");
     }
 
     @Test
@@ -205,14 +270,14 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
 
         long oneRowCost = countStatements(() -> {
             List<SupplyPartitionCoefficientDetail> details =
-                    repository.findAllDetailsBySupplyId(oneRowSupply.getId(), null);
+                    repository.findAllDetailsBySupplyId(oneRowSupply.getId(), null, true);
             assertEquals(1, details.size());
             touchEveryReference(details);
         });
 
         long threeRowsAcrossTwoPlantsCost = countStatements(() -> {
             List<SupplyPartitionCoefficientDetail> details =
-                    repository.findAllDetailsBySupplyId(manyRowSupply.getId(), null);
+                    repository.findAllDetailsBySupplyId(manyRowSupply.getId(), null, true);
             assertEquals(3, details.size());
             touchEveryReference(details);
         });

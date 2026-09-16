@@ -130,13 +130,17 @@ public interface GetSupplyPartitionCoefficientRepository {
     List<SupplyPartitionCoefficient> findAllByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds);
 
     /**
-     * The full coefficient history of a supply, enriched with supply, plant and agreement display
-     * data, ordered by valid_from ascending. A null {@code plantId} means every plant the supply
+     * The coefficient history of a supply, enriched with supply, plant and agreement display data,
+     * ordered by valid_from ascending. A null {@code plantId} means every plant the supply
      * participates in; a plant the supply has no coefficient in yields an empty list.
      *
-     * <p>Pending rows (valid_from IS NULL) are included -- the history is the whole timeline.
+     * <p>{@code includePending} selects whether pending rows (valid_from IS NULL) are part of the
+     * timeline. They are authored inside a DRAFT agreement and never applied by the distributor, so
+     * only a Community Admin of the supply's community may see them; the caller decides, and the
+     * filter is applied by the query rather than after the fact.
      */
-    List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(UUID supplyId, UUID plantId);
+    List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(UUID supplyId, UUID plantId,
+                                                                    boolean includePending);
 
     /**
      * The active coefficient of a supply in each plant it participates in -- at most one per plant,

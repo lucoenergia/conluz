@@ -63,7 +63,7 @@ public class GetPartitionCoefficientHistoryController {
             @Parameter(description = "Optional plant filter. When omitted, every plant the supply "
                     + "participates in is included.")
             @RequestParam(required = false) UUID plantId) {
-        return service.findAllCoefficientHistory(supplyId, plantId).stream()
+        return service.findAllCoefficientHistory(supplyId, plantId, true).stream()
                 .map(PartitionCoefficientResponse::new)
                 .toList();
     }

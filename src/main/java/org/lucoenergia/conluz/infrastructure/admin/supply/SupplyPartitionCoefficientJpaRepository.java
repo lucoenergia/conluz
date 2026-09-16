@@ -159,12 +159,20 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
             + "e.coefficient, e.validFrom, e.validTo, e.createdAt) "
             + "FROM SupplyPartitionCoefficientEntity e ";
 
-    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId ORDER BY e.validFrom ASC")
-    List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(@Param("supplyId") UUID supplyId);
+    // includePending is a plain boolean predicate rather than a second pair of methods: the
+    // "one method per variant" rule above exists for the *null UUID* bind, and a non-null boolean
+    // compared against a literal carries its own type.
+    String INCLUDE_PENDING = "AND (:includePending = true OR e.validFrom IS NOT NULL) ";
 
-    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId AND e.plant.id = :plantId ORDER BY e.validFrom ASC")
+    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId " + INCLUDE_PENDING + "ORDER BY e.validFrom ASC")
+    List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(@Param("supplyId") UUID supplyId,
+                                                                   @Param("includePending") boolean includePending);
+
+    @Query(DETAIL_SELECT + "WHERE e.supply.id = :supplyId AND e.plant.id = :plantId " + INCLUDE_PENDING
+            + "ORDER BY e.validFrom ASC")
     List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyIdAndPlantId(@Param("supplyId") UUID supplyId,
-                                                                             @Param("plantId") UUID plantId);
+                                                                             @Param("plantId") UUID plantId,
+                                                                             @Param("includePending") boolean includePending);
 
     // Active means activated and still open: validFrom IS NOT NULL excludes pending rows, which also
     // have a null validTo and would otherwise be indistinguishable from an active one.

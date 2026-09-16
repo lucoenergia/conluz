@@ -22,6 +22,7 @@ class PartitionCoefficientServiceTest {
     private GetSupplyPartitionCoefficientRepository repository;
 
     private static final UUID SUPPLY_ID = UUID.randomUUID();
+    private static final UUID PLANT_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
@@ -153,15 +154,33 @@ class PartitionCoefficientServiceTest {
                 SupplyPartitionCoefficientDetailMother.of(buildRecord(t0, t1, BigDecimal.valueOf(1.0)));
         SupplyPartitionCoefficientDetail p2 =
                 SupplyPartitionCoefficientDetailMother.of(buildRecord(t1, null, BigDecimal.valueOf(2.0)));
-        when(repository.findAllDetailsBySupplyId(SUPPLY_ID, null)).thenReturn(List.of(p1, p2));
+        when(repository.findAllDetailsBySupplyId(SUPPLY_ID, null, true)).thenReturn(List.of(p1, p2));
 
-        List<SupplyPartitionCoefficientDetail> result = service.findAllCoefficientHistory(SUPPLY_ID, null);
+        List<SupplyPartitionCoefficientDetail> result = service.findAllCoefficientHistory(SUPPLY_ID, null, true);
 
         assertEquals(2, result.size());
         assertEquals(t0, result.get(0).getValidFrom());
         assertEquals(t1, result.get(1).getValidFrom());
         // A null plant means "every plant the supply participates in".
-        verify(repository).findAllDetailsBySupplyId(SUPPLY_ID, null);
+        verify(repository).findAllDetailsBySupplyId(SUPPLY_ID, null, true);
+    }
+
+    /**
+     * The service decides nothing about pending rows -- it carries the caller's decision to the
+     * query. A service that quietly forced the flag would make the controller's authorization-derived
+     * choice ineffective.
+     */
+    @Test
+    void findAllCoefficientHistory_carriesIncludePendingThroughToTheQuery() {
+        SupplyPartitionCoefficientDetail activated = SupplyPartitionCoefficientDetailMother.of(
+                buildRecord(Instant.parse("2023-01-01T00:00:00Z"), null, BigDecimal.valueOf(1.0)));
+        when(repository.findAllDetailsBySupplyId(SUPPLY_ID, PLANT_ID, false)).thenReturn(List.of(activated));
+
+        List<SupplyPartitionCoefficientDetail> result =
+                service.findAllCoefficientHistory(SUPPLY_ID, PLANT_ID, false);
+
+        assertEquals(1, result.size());
+        verify(repository).findAllDetailsBySupplyId(SUPPLY_ID, PLANT_ID, false);
     }
 
     // --- findActiveBySupplyId ---

@@ -121,10 +121,11 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     // Hibernate 6 + PostgreSQL fails with "could not determine data type of parameter".
 
     @Override
-    public List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(UUID supplyId, UUID plantId) {
+    public List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(UUID supplyId, UUID plantId,
+                                                                           boolean includePending) {
         return plantId == null
-                ? jpaRepository.findAllDetailsBySupplyId(supplyId)
-                : jpaRepository.findAllDetailsBySupplyIdAndPlantId(supplyId, plantId);
+                ? jpaRepository.findAllDetailsBySupplyId(supplyId, includePending)
+                : jpaRepository.findAllDetailsBySupplyIdAndPlantId(supplyId, plantId, includePending);
     }
 
     @Override
