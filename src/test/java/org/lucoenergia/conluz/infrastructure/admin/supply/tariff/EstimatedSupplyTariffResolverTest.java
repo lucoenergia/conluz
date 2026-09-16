@@ -21,7 +21,8 @@ class EstimatedSupplyTariffResolverTest {
     private static final BigDecimal VAT_RATE = new BigDecimal("0.21");
     private static final SupplyId SUPPLY_ID = SupplyId.of(UUID.randomUUID());
 
-    private final EstimatedSupplyTariffResolver resolver = new EstimatedSupplyTariffResolver(BASE_PRICE, VAT_RATE);
+    private final EstimatedSupplyTariffResolver resolver =
+            new EstimatedSupplyTariffResolver(new EstimatedTariffProperties(BASE_PRICE, VAT_RATE));
 
     @Test
     void returnsExactlyOneSegment() {

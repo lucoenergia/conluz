@@ -45,7 +45,8 @@ class SupplyTariffResolverQualifierTest {
          */
         @Bean
         EstimatedSupplyTariffResolver resolverUnderANonMatchingBeanName() {
-            return new EstimatedSupplyTariffResolver(new BigDecimal("0.15"), BigDecimal.ZERO);
+            return new EstimatedSupplyTariffResolver(
+                    new EstimatedTariffProperties(new BigDecimal("0.15"), BigDecimal.ZERO));
         }
 
         /**
