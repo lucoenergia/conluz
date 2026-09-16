@@ -59,6 +59,7 @@ public class UpdateMembershipRoleRepositoryDatabase implements UpdateMembershipR
                 .withCommunity(communityEntityMapper.map(communityEntity))
                 .withRole(saved.getRole())
                 .withEnabled(saved.isEnabled())
+                .withInvestmentEur(saved.getInvestmentEur())
                 .build();
     }
 }

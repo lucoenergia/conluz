@@ -73,6 +73,7 @@ public class GetMembershipsRepositoryDatabase implements GetMembershipsRepositor
                 .withCommunity(community)
                 .withRole(entity.getRole())
                 .withEnabled(entity.isEnabled())
+                .withInvestmentEur(entity.getInvestmentEur())
                 .build();
     }
 }
