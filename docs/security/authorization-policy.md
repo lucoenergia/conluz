@@ -23,7 +23,27 @@ This policy is MANDATORY. Every REST controller endpoint MUST enforce it via a `
   - See data about supplies they own.
   - See production data of their community/communities.
 - Any authenticated user can get prices.
-- Any user can modify their own data, but CANNOT enable/disable or delete themselves.
+- Any user can modify their **own contact details** — email, address and phone number — through
+  `PUT /api/v1/users/profile`. Name, DNI (`personalId`) and member number are an administrative
+  change: they go through `PUT /api/v1/users/{userId}`, which is Platform Admin or Community Admin
+  only. Nobody may enable, disable or delete themselves.
+
+### What a platform admin does **not** get
+
+Being a platform admin is scoped to the three bullets above — users, communities, and community-admin
+membership. It confers **no access to a supply, plant or sharing agreement**: on those, a platform
+admin who neither administers the owning community nor owns the supply is answered exactly like any
+other stranger, with a **404**. This is deliberate (`c8bd9554`, "Reviewed and fixed some
+missconceptions of the privilege surface of platform admin users"), and every affected endpoint's
+`@Operation` description says so — e.g. `GET /supplies/{supplyId}` reads *"Required: Community Admin
+of the supply's community, or the supply owner."* Do not "restore" the bypass as if it were an
+oversight.
+
+The consequence is an asymmetry that is intended, not a bug: on **community-scoped** endpoints a
+non-member platform admin gets **403** (`isMemberOfCommunity`, `canReadCommunityProduction`,
+`canListSupplies`, `canListPlants`), because they *can* see the community and the denial leaks
+nothing; on a **single object** they get **404** (`canReadSupply`, `canReadPlant`,
+`canReadSharingAgreement`), because they cannot see that object and a 403 would confirm it exists.
 
 ## Enforcement rules for developers and AI agents
 - **Every `@PreAuthorize` is either `isAuthenticated()` or exactly one `@communityAccessGuard.<method>(...)` call.** Composite expressions (`and`, `or`, `!`) and `hasRole(...)` are not permitted: an endpoint's decision must have a single name, so it can be reported to a client as a capability and evaluated outside a request. Enforced by `PreAuthorizeShapeArchTest`; `PreAuthorizePresenceArchTest` additionally requires every handler method to carry one (the `permitAll()` endpoints are an explicit allowlist).
@@ -35,6 +55,7 @@ This policy is MANDATORY. Every REST controller endpoint MUST enforce it via a `
 - List endpoints: compute the visible scope in the controller via the guard (`visibleCommunityIds()` for membership scope, `adminCommunityIds()` for admin-only scope) and pass it as a plain parameter to the service/repository query — the service must not call the guard itself.
 - `isAuthenticated()` alone is acceptable ONLY for endpoints any authenticated user may call without object scope (e.g. `GET /prices`). Otherwise use a `@communityAccessGuard` method.
 - Self-service: enabling, disabling or deleting one's own account MUST be rejected for everyone, including admins. That rule lives inside `canDeleteUser`, `canEnableUser` and `canDisableUser` rather than in SpEL; each settles the edit decision first and only then refuses a caller acting on themselves, so a caller who cannot see the target still gets a 404 and a caller who can gets a 403.
+- Self-service edits go through their **own endpoint**, not through a widened guard: `PUT /api/v1/users/profile` is `isAuthenticated()` and acts on the caller, so it needs no object-scoped rule and cannot be pointed at anyone else. `canEditUser` therefore stays an administrative decision — a plain member editing themselves via `PUT /users/{userId}` is a **403**, on purpose. Add a self-service endpoint rather than a self branch when a user needs to change their own data.
 - New endpoints without an authorization clause are NOT permitted. Add a controller test for every endpoint asserting **401** (no token); **404** when an authenticated caller cannot see the targeted object (object-scoped denial); and **403** when the caller can see the object but lacks permission for the action (role/scope denials and self-service).
 
 ## Error responses for denied access (401 / 403 / 404)
@@ -63,6 +84,22 @@ applied by **guard adapters** under `infrastructure/admin/community/access`.
   `ALLOWED` → `true`. An absent caller is `false` before any policy runs (→ 401).
 - `CallerMemberships` is the single spelling of the caller's standing — "enabled community admin of
   X", "can see community X", "is this user". Add membership questions there, not in a guard.
+
+### Null arguments reach a guard only from an unvalidated source
+
+Argument resolution and `@Valid` run **before** `@PreAuthorize`: `InvocableHandlerMethod` resolves
+every argument — deserialising and validating the body, converting `String` to `UUID` — and only then
+invokes the proxied controller method where method security evaluates the SpEL. A malformed path
+variable is therefore a 400, never a null, and a body field carrying `@NotNull`/`@NotBlank` is a 400
+before any guard runs (`CreateSupplyControllerTest` omits the required `communityId` and asserts 400,
+where a guard-first order would have produced 404).
+
+So a guard can only see a null from a **request-body field with no validation annotation** or a
+`@RequestParam(required = false)`. Today that is `CreateUserBody.communityId` (deliberate — a platform
+admin may create a user attached to no community) and `CreateSuppliesWithFileController`'s optional
+`communityId`. Every other null-argument branch in the guards is defence in depth and is not
+reachable over HTTP; do not treat those branches as live behaviour, and do not add null guards for
+path variables.
 
 **No access rule may be written outside `..admin.community.access.policy..`.** The split exists so
 the same rule can be evaluated two ways: in front of one request, where a denial must become a
