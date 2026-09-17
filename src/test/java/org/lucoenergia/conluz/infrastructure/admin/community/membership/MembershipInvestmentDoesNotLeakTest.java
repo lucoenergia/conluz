@@ -165,9 +165,7 @@ class MembershipInvestmentDoesNotLeakTest extends BaseControllerTest {
         createMembershipService.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         CommunityMembershipEntity membership = membershipJpaRepository
-                .findByUserId(member.getId()).stream()
-                .filter(m -> communityId.equals(m.getCommunity().getId()))
-                .findFirst()
+                .findByUserIdAndCommunityId(member.getId(), communityId)
                 .orElseThrow();
         membership.setInvestmentEur(INVESTMENT);
         membershipJpaRepository.save(membership);

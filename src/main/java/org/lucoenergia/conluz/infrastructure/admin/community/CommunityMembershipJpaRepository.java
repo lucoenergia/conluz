@@ -12,14 +12,29 @@ import java.util.UUID;
 
 public interface CommunityMembershipJpaRepository extends JpaRepository<CommunityMembershipEntity, UUID> {
 
-    List<CommunityMembershipEntity> findByUserId(UUID userId);
+    /**
+     * Finds all memberships of one user, eagerly fetching both the community and the user.
+     *
+     * <p>The single-user counterpart of {@link #findByUserIdInWithCommunityAndUser(Collection)}, and
+     * the one every authenticated request runs: the security principal is loaded this way, and
+     * {@code CallerMemberships} then reads the community id of each membership to answer every
+     * access rule. Without the fetch those reads are a lazy select per membership, on every request
+     * of every session.</p>
+     *
+     * @param userId the user ID
+     * @return list of memberships with their community and user loaded
+     */
+    @Query("SELECT m FROM community_memberships m " +
+            "LEFT JOIN FETCH m.community LEFT JOIN FETCH m.user " +
+            "WHERE m.user.id = :userId")
+    List<CommunityMembershipEntity> findByUserIdWithCommunityAndUser(@Param("userId") UUID userId);
 
     List<CommunityMembershipEntity> findByCommunityId(UUID communityId);
 
     /**
      * The one membership of a user in a community, if it exists. At most one row can match: the
      * {@code community_memberships_user_community_uq} constraint makes the pair unique. Prefer
-     * this over filtering {@link #findByUserId(UUID)} in memory, which loads every community the
+     * this over filtering {@link #findByUserIdWithCommunityAndUser(UUID)} in memory, which loads every community the
      * user belongs to in order to keep one row.
      */
     Optional<CommunityMembershipEntity> findByUserIdAndCommunityId(UUID userId, UUID communityId);
@@ -58,7 +73,7 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
      * The {@code WithCommunityAndUser} suffix indicates this method uses
      * {@code LEFT JOIN FETCH m.community LEFT JOIN FETCH m.user} to avoid N+1 lazy-load queries
      * when building response DTOs for a page of users. Prefer this over per-user calls to
-     * {@link #findByUserId(UUID)} when enriching multiple users at once.
+     * {@link #findByUserIdWithCommunityAndUser(UUID)} when enriching multiple users at once.
      *
      * @param userIds the user IDs
      * @return list of memberships with their community and user loaded
