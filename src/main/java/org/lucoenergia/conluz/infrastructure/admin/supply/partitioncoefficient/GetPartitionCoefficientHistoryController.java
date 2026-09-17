@@ -68,7 +68,7 @@ public class GetPartitionCoefficientHistoryController {
     @InternalServerErrorResponse
     // Same rule as GET /supplies/{supplyId}: a caller who cannot see the supply gets 404, never 403,
     // so this endpoint has no reachable forbidden outcome and does not document one.
-    @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
+    @PreAuthorize("@communityAccessGuard.canReadSupplyPartitionCoefficients(#supplyId)")
     public List<PartitionCoefficientResponse> getHistory(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
             @Parameter(description = "Optional plant filter. When omitted, every plant the supply "

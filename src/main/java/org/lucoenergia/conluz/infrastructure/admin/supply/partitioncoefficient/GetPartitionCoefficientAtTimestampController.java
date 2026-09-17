@@ -48,7 +48,7 @@ public class GetPartitionCoefficientAtTimestampController {
                     Pending coefficients are excluded: one the distributor never applied covered no
                     instant.
 
-                    **Required: Community Admin of the supply's community.**
+                    **Required: Community Admin of the supply's community, or the supply owner.**
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getPartitionCoefficientAtTimestamp",
@@ -61,7 +61,7 @@ public class GetPartitionCoefficientAtTimestampController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
+    @PreAuthorize("@communityAccessGuard.canReadSupplyPartitionCoefficients(#supplyId)")
     public List<CoefficientAtTimestampResponse> getAtTimestamp(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
             @Parameter(description = "ISO-8601 timestamp", example = "2025-01-15T12:00:00Z")

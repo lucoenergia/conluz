@@ -60,7 +60,7 @@ public class GetCommunityByIdController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("isAuthenticated() and @communityAccessGuard.canReadCommunity(#communityId)")
+    @PreAuthorize("@communityAccessGuard.canReadCommunity(#communityId)")
     public ResponseEntity<CommunityResponse> getCommunityById(@PathVariable("communityId") UUID communityId) {
         return service.findByIdWithStats(communityId)
                 .map(c -> ResponseEntity.ok(new CommunityResponse(c)))

@@ -406,7 +406,11 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
      * answer "which coefficient applies", which stays an administrative question.
      */
     @Test
-    void activeAndAtTimestampStillReturn403ForTheSupplyOwnerWhoIsNotAnAdmin() throws Exception {
+    void activeAndAtTimestampAreReadableByTheSupplyOwnerWhoIsNotAnAdmin() throws Exception {
+        // Coefficients say what share of the plant's production is assigned to this supply -- the
+        // owner's own share -- so all three reads are open to them, as history always was. Pending
+        // periods stay hidden, but that is the read's job: active and at-timestamp exclude them for
+        // everybody, so there is nothing here for the guard to protect.
         User owner = UserMother.randomUser();
         owner.enable();
         createUserRepository.create(owner);
@@ -415,12 +419,11 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         String authHeader = loginUser(owner);
 
         String base = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
-        // The owner can see the supply, so this is a permission failure rather than a hidden resource.
-        for (String path : List.of(base + "/active", base + "/at")) {
+        for (String path : List.of(base, base + "/active", base + "/at")) {
             mockMvc.perform(get(path).param("timestamp", "2024-06-15T12:00:00Z")
                             .header(HttpHeaders.AUTHORIZATION, authHeader)
                             .accept(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isOk());
         }
     }
 

@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.udpate;
+package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -293,7 +293,9 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithoutToken() throws Exception {
 
-        mockMvc.perform(put(URL)
+        // Against the real path: PUT /api/v1/users has no mapping, so this used to pass only
+        // because 401 precedes routing.
+        mockMvc.perform(put(URL + "/" + UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
@@ -304,16 +306,50 @@ class UpdateUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+    void testPartnerEditingAnotherUserIsToldTheUserIsMissing() throws Exception {
+        // This test used to GET the list endpoint, so the denial it claimed to prove for
+        // PUT /users/{userId} was asserted nowhere. A partner shares no community with the target,
+        // so they cannot see them at all -> 404, not 403.
+        User target = UserMother.randomUser();
+        createUserRepository.create(target);
 
         String authHeader = loginAsPartner();
 
-        // Test users endpoint
-        mockMvc.perform(get(URL)
+        mockMvc.perform(put(URL + "/" + target.getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validBody()))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+    }
+
+    @Test
+    void testPartnerEditingThemselvesIsForbidden() throws Exception {
+        // The administrative endpoint replaces personalId, fullName and number, so it stays closed
+        // even on one's own record. Contact details are self-service through PUT /users/profile.
+        User self = UserMother.randomUser();
+        self.enable();
+        createUserRepository.create(self);
+        String authHeader = loginUser(self);
+
+        mockMvc.perform(put(URL + "/" + self.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validBody()))
                 .andDo(print())
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
+
+    private static String validBody() {
+        return """
+                {
+                  "number": 7,
+                  "personalId": "12345678Z",
+                  "fullName": "John Doe",
+                  "email": "johndoe@email.com"
+                }
+                """;
     }
 }

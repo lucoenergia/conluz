@@ -2,6 +2,10 @@ package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.PlantAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.AccessDecision;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.PlantAccessPolicy;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.SharingAgreementAccessPolicy;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.SupplyAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -9,20 +13,27 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
-import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 
 import java.util.UUID;
 
+/**
+ * Adapter over {@link PlantAccessPolicy} and {@link SharingAgreementAccessPolicy}. Each method maps
+ * {@code NOT_VISIBLE} to the {@code *NotFoundException} of whichever resource must not be leaked —
+ * the plant, the supply behind it, or the community — and {@code FORBIDDEN} to {@code false}.
+ */
 class PlantAccessGuardImpl implements PlantAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
     private final GetPlantRepository getPlantRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final GetSharingAgreementRepository getSharingAgreementRepository;
+    private final PlantAccessPolicy policy;
+    private final SharingAgreementAccessPolicy sharingAgreementPolicy;
 
     public PlantAccessGuardImpl(CommunityAccessGuardHelper helper, GetPlantRepository getPlantRepository,
                                 GetSupplyRepository getSupplyRepository,
@@ -31,6 +42,8 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         this.getPlantRepository = getPlantRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.getSharingAgreementRepository = getSharingAgreementRepository;
+        this.policy = new PlantAccessPolicy(new SupplyAccessPolicy());
+        this.sharingAgreementPolicy = new SharingAgreementAccessPolicy();
     }
 
     @Override
@@ -39,10 +52,7 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        UUID communityId = getCommunityIdOfVisiblePlant(user, plantId);
-        // A member of the plant's community can see it but only community admins may manage it
-        // (member-non-admin -> 403). Non-members never get here (they received a 404 above).
-        return helper.hasCommunityAdminRoleIn(user, communityId);
+        return resolvePlant(policy.canManage(user, findPlant(plantId)), plantId);
     }
 
     @Override
@@ -51,8 +61,7 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        getCommunityIdOfVisiblePlant(user, plantId);
-        return true;
+        return resolvePlant(policy.canRead(user, findPlant(plantId)), plantId);
     }
 
     @Override
@@ -65,15 +74,12 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
             return false;
         }
         Supply supply = getSupplyRepository.findByCode(SupplyCode.of(supplyCode)).orElse(null);
-        UUID communityId = supply != null && supply.getCommunity() != null
-                ? supply.getCommunity().getId() : null;
-        // The supply is the resource whose existence must not leak: a caller who cannot see it
-        // (it does not exist, or they neither administer its community nor own it) gets a 404.
-        if (supply == null || !(helper.hasCommunityAdminRoleIn(user, communityId) || isOwner(supply, user))) {
+        AccessDecision decision = policy.canCreate(user, supply);
+        // The supply, not the plant, is the resource whose existence must not leak here.
+        if (decision == AccessDecision.NOT_VISIBLE) {
             throw new SupplyNotFoundException(SupplyCode.of(supplyCode));
         }
-        // Owners who are not community admins can see the supply but may not create plants (-> 403).
-        return helper.hasCommunityAdminRoleIn(user, communityId);
+        return decision.isAllowed();
     }
 
     @Override
@@ -82,21 +88,22 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!helper.canSeeCommunity(user, communityId)) {
+        AccessDecision decision = policy.canList(user, communityId);
+        if (decision == AccessDecision.NOT_VISIBLE) {
             throw new CommunityNotFoundException(communityId);
         }
-        // Any enabled member (regardless of role) of the community can list its plants.
-        return helper.hasMembershipInCommunity(user, communityId);
+        return decision.isAllowed();
     }
 
     @Override
     public boolean canReadSharingAgreement(UUID plantId, UUID sharingAgreementId) {
-        // Sharing agreement contents (coefficients, distributor files, participating supplies' CUPS)
-        // are admin-only, so a member-non-admin gets a 403. This is currently byte-for-byte identical
-        // to canManageSharingAgreement(plantId, sharingAgreementId) -- kept as a separate, deliberately
-        // duplicating method (not merged away) so the two rules can diverge later without touching
-        // call sites; do not delete this method as dead weight.
-        return canManageSharingAgreement(plantId, sharingAgreementId);
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        Plant plant = requireVisiblePlant(user, plantId);
+        SharingAgreement agreement = findAgreement(sharingAgreementId);
+        return resolveAgreement(sharingAgreementPolicy.canRead(user, plant, agreement), sharingAgreementId);
     }
 
     @Override
@@ -108,42 +115,55 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
     }
 
     @Override
+    public boolean canListSharingAgreements(UUID plantId) {
+        // The same decision as creating one under this plant, kept as its own method so the listing
+        // rule can diverge later without touching call sites.
+        return canManagePlant(plantId);
+    }
+
+    @Override
     public boolean canManageSharingAgreement(UUID plantId, UUID sharingAgreementId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
             return false;
         }
-        UUID communityId = getCommunityIdOfVisiblePlant(user, plantId);
-        // The agreement is the resource whose existence must not leak, same as canReadSharingAgreement.
-        SharingAgreement agreement = getSharingAgreementRepository.findById(sharingAgreementId).orElse(null);
-        if (agreement == null || !plantId.equals(agreement.getPlantId())) {
-            throw new SharingAgreementNotFoundException(sharingAgreementId);
-        }
-        // A member of the plant's community can see the agreement but only community admins may
-        // manage it (member-non-admin -> 403).
-        return helper.hasCommunityAdminRoleIn(user, communityId);
+        Plant plant = requireVisiblePlant(user, plantId);
+        SharingAgreement agreement = findAgreement(sharingAgreementId);
+        return resolveAgreement(sharingAgreementPolicy.canManage(user, plant, agreement), sharingAgreementId);
     }
 
     /**
-     * Resolves the community of the plant the user is allowed to see, throwing
-     * {@link PlantNotFoundException} (404) when the plant does not exist or the user is not a
-     * member of its community — so the plant's existence is never leaked to non-members.
+     * Settles the plant before the agreement is even looked up: the two carry different not-found
+     * identities, and a caller who cannot see the plant must be told the <em>plant</em> is missing,
+     * not the agreement.
      */
-    private UUID getCommunityIdOfVisiblePlant(User user, UUID plantId) {
-        Plant plant = getPlantRepository.findById(PlantId.of(plantId)).orElse(null);
-        if (plant == null) {
+    private Plant requireVisiblePlant(User user, UUID plantId) {
+        Plant plant = findPlant(plantId);
+        if (!policy.isVisible(user, plant)) {
             throw new PlantNotFoundException(PlantId.of(plantId));
         }
-        UUID communityId = plant.getSupply() != null && plant.getSupply().getCommunity() != null
-                ? plant.getSupply().getCommunity().getId() : null;
-        if (!helper.hasMembershipInCommunity(user, communityId)) {
-            throw new PlantNotFoundException(PlantId.of(plantId));
-        }
-        return communityId;
+        return plant;
     }
 
-    private boolean isOwner(Supply supply, User user) {
-        return supply.getUser() != null && supply.getUser().getId() != null
-                && supply.getUser().getId().equals(user.getId());
+    private boolean resolvePlant(AccessDecision decision, UUID plantId) {
+        if (decision == AccessDecision.NOT_VISIBLE) {
+            throw new PlantNotFoundException(PlantId.of(plantId));
+        }
+        return decision.isAllowed();
+    }
+
+    private boolean resolveAgreement(AccessDecision decision, UUID sharingAgreementId) {
+        if (decision == AccessDecision.NOT_VISIBLE) {
+            throw new SharingAgreementNotFoundException(sharingAgreementId);
+        }
+        return decision.isAllowed();
+    }
+
+    private Plant findPlant(UUID plantId) {
+        return getPlantRepository.findById(PlantId.of(plantId)).orElse(null);
+    }
+
+    private SharingAgreement findAgreement(UUID sharingAgreementId) {
+        return getSharingAgreementRepository.findById(sharingAgreementId).orElse(null);
     }
 }

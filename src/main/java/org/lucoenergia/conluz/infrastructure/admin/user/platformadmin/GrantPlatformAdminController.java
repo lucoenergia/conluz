@@ -59,7 +59,7 @@ public class GrantPlatformAdminController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canGrantPlatformAdmin(#userId)")
     public void grantPlatformAdmin(@PathVariable("userId") UUID userId) {
         service.grant(UserId.of(userId));
     }

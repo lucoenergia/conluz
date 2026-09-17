@@ -2,6 +2,9 @@ package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -23,6 +26,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -135,6 +140,96 @@ class CommunityAccessGuardImplTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         assertThrows(CommunityNotFoundException.class, () -> guard().isMemberOfCommunity(community.getId()));
+    }
+
+    // --- canReadCommunityProduction / canListSupplies ---
+    //
+    // Both are aliases of isMemberOfCommunity, named for the endpoints they guard. The cases below
+    // are the same ones isMemberOfCommunity is pinned on, so an alias rewired to a different (or
+    // inlined, and then drifting) rule fails here.
+
+    private static Stream<Arguments> memberScopedMethods() {
+        return Stream.of(
+                Arguments.of("canReadCommunityProduction",
+                        (BiFunction<CommunityAccessGuard, UUID, Boolean>)
+                                CommunityAccessGuard::canReadCommunityProduction),
+                Arguments.of("canListSupplies",
+                        (BiFunction<CommunityAccessGuard, UUID, Boolean>)
+                                CommunityAccessGuard::canListSupplies));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("memberScopedMethods")
+    void memberScopedMethod_returnsFalse_whenNoAuthenticatedUser(
+            String name, BiFunction<CommunityAccessGuard, UUID, Boolean> method) {
+        // No authenticated caller -> false, which the guard chain maps to a 401.
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(method.apply(guard(), UUID.randomUUID()));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("memberScopedMethods")
+    void memberScopedMethod_returnsTrue_whenUserIsEnabledMember(
+            String name, BiFunction<CommunityAccessGuard, UUID, Boolean> method) {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertTrue(method.apply(guard(), community.getId()));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("memberScopedMethods")
+    void memberScopedMethod_returnsTrue_whenUserIsEnabledAdminMember(
+            String name, BiFunction<CommunityAccessGuard, UUID, Boolean> method) {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertTrue(method.apply(guard(), community.getId()));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("memberScopedMethods")
+    void memberScopedMethod_returnsFalse_whenUserIsPlatformAdminButNotMember(
+            String name, BiFunction<CommunityAccessGuard, UUID, Boolean> method) {
+        // A platform admin can see every community (so no 404) but is not a member -> false (403).
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        admin.setMemberships(List.of());
+        when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+
+        assertFalse(method.apply(guard(), UUID.randomUUID()));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("memberScopedMethods")
+    void memberScopedMethod_throwsNotFound_whenUserIsNotMember(
+            String name, BiFunction<CommunityAccessGuard, UUID, Boolean> method) {
+        // A non-member cannot see the community -> 404 to avoid leaking its existence.
+        User user = UserMother.randomUser();
+        user.setPlatformAdmin(false);
+        user.setMemberships(List.of());
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        CommunityAccessGuard guard = guard();
+        UUID communityId = UUID.randomUUID();
+        assertThrows(CommunityNotFoundException.class, () -> method.apply(guard, communityId));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("memberScopedMethods")
+    void memberScopedMethod_throwsNotFound_whenMembershipIsDisabled(
+            String name, BiFunction<CommunityAccessGuard, UUID, Boolean> method) {
+        // A disabled membership does not let the user see the community -> 404.
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, false);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        CommunityAccessGuard guard = guard();
+        UUID communityId = community.getId();
+        assertThrows(CommunityNotFoundException.class, () -> method.apply(guard, communityId));
     }
 
     // --- canManageCommunity ---

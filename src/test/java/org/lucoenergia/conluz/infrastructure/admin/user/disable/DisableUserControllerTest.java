@@ -139,4 +139,19 @@ class DisableUserControllerTest extends BaseControllerTest {
         Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID))
                 .get().isEnabled());
     }
+    @Test
+    void testCannotActOnOwnAccount() throws Exception {
+        // Nobody may disable themselves, platform admin included: the guard settles the edit
+        // decision first and then refuses because the target is the caller -- a 403, not a 404.
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        User self = getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).get();
+
+        mockMvc.perform(post(String.format("/api/v1/users/%s/disable", self.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
 }
