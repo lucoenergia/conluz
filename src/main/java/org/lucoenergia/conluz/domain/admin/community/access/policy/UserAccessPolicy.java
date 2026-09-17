@@ -50,6 +50,26 @@ public class UserAccessPolicy {
     }
 
     /**
+     * Editing someone <em>other</em> than oneself. Backs deleting, enabling and disabling a user,
+     * all three of which must be refused for everyone acting on their own account, admins included.
+     *
+     * <p>The edit decision is settled first and the self check only then, which is the order the
+     * SpEL's short-circuiting {@code and} had: a caller who cannot see the target still gets
+     * not-visible (→ 404), and a platform admin acting on themselves gets forbidden (→ 403) rather
+     * than being told they do not exist.</p>
+     */
+    public AccessDecision canEditOther(User caller, UUID userId,
+                                       Supplier<List<CommunityMembership>> targetMemberships) {
+        AccessDecision edit = canEdit(caller, userId, targetMemberships);
+        if (edit != AccessDecision.ALLOWED) {
+            return edit;
+        }
+        return CallerMemberships.isCurrentUser(caller, userId)
+                ? AccessDecision.FORBIDDEN
+                : AccessDecision.ALLOWED;
+    }
+
+    /**
      * Listing the supplies of a user: the user themselves, or an enabled community admin of one of
      * their communities.
      *

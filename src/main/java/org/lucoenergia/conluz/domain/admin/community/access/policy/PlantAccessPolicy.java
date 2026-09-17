@@ -57,6 +57,25 @@ public class PlantAccessPolicy {
     }
 
     /**
+     * Whether the caller may create plants in a community at all, asked without a supply in hand —
+     * the community-admin half of {@link #canCreate}, which is the only half that does not depend
+     * on which supply is named. Equivalent to {@code canCreate} over any supply of the community:
+     * an enabled community admin passes both of its gates, and nobody else passes the second.
+     *
+     * <p>No guard method needs this, because no endpoint creates a plant without naming a supply.
+     * It exists so a community can report the capability, and it lives here rather than in the
+     * assembler because it is a rule.</p>
+     */
+    public AccessDecision canCreateIn(User caller, UUID communityId) {
+        if (!CallerMemberships.canSeeCommunity(caller, communityId)) {
+            return AccessDecision.NOT_VISIBLE;
+        }
+        return CallerMemberships.hasCommunityAdminRoleIn(caller, communityId)
+                ? AccessDecision.ALLOWED
+                : AccessDecision.FORBIDDEN;
+    }
+
+    /**
      * Listing the plants of a community is open to any enabled member. A platform admin who is not a
      * member can see the community, so they are forbidden rather than not-found — unlike a single
      * plant, where the same caller gets not-found.

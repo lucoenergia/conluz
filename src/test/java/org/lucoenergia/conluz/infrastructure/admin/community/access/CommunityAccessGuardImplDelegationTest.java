@@ -63,7 +63,7 @@ class CommunityAccessGuardImplDelegationTest {
 
     private CommunityAccessGuard guard() {
         return new CommunityAccessGuardImpl(authService, getCommunityRepository, getMembershipsRepository,
-                getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
+                getSupplyRepository, getPlantRepository, getSharingAgreementRepository, new AccessPolicies());
     }
 
     // --- delegation to SupplyAccessGuard ---

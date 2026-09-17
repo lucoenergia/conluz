@@ -21,7 +21,7 @@ import java.util.UUID;
 public class CommunityAccessGuardImpl implements CommunityAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
-    private final CommunityAccessPolicy communityAccessPolicy = new CommunityAccessPolicy();
+    private final CommunityAccessPolicy communityAccessPolicy;
     private final SupplyAccessGuard supplyAccessGuard;
     private final MembershipAccessGuard membershipAccessGuard;
     private final UserAccessGuard userAccessGuard;
@@ -33,14 +33,16 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
                                     GetMembershipsRepository getMembershipsRepository,
                                     GetSupplyRepository getSupplyRepository,
                                     GetPlantRepository getPlantRepository,
-                                    GetSharingAgreementRepository getSharingAgreementRepository) {
+                                    GetSharingAgreementRepository getSharingAgreementRepository,
+                                    AccessPolicies policies) {
         this.helper = new CommunityAccessGuardHelper(authService, getCommunityRepository);
-        this.supplyAccessGuard = new SupplyAccessGuardImpl(helper, getSupplyRepository);
-        this.membershipAccessGuard = new MembershipAccessGuardImpl(helper);
-        this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository);
+        this.communityAccessPolicy = policies.community();
+        this.supplyAccessGuard = new SupplyAccessGuardImpl(helper, getSupplyRepository, policies.supply());
+        this.membershipAccessGuard = new MembershipAccessGuardImpl(helper, policies.membership());
+        this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository, policies.user());
         this.plantAccessGuard = new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository,
-                getSharingAgreementRepository);
-        this.platformAccessGuard = new PlatformAccessGuardImpl(helper);
+                getSharingAgreementRepository, policies.plant(), policies.sharingAgreement());
+        this.platformAccessGuard = new PlatformAccessGuardImpl(helper, policies.platform());
     }
 
     @Override

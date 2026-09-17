@@ -4,7 +4,6 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.UserAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.AccessDecision;
-import org.lucoenergia.conluz.domain.admin.community.access.policy.CallerMemberships;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.UserAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -27,10 +26,11 @@ class UserAccessGuardImpl implements UserAccessGuard {
     private final UserAccessPolicy policy;
 
     public UserAccessGuardImpl(CommunityAccessGuardHelper helper,
-                               GetMembershipsRepository getMembershipsRepository) {
+                               GetMembershipsRepository getMembershipsRepository,
+                               UserAccessPolicy policy) {
         this.helper = helper;
         this.getMembershipsRepository = getMembershipsRepository;
-        this.policy = new UserAccessPolicy();
+        this.policy = policy;
     }
 
     @Override
@@ -98,20 +98,12 @@ class UserAccessGuardImpl implements UserAccessGuard {
         return policy.canList(user).isAllowed();
     }
 
-    /**
-     * The edit decision first, then the self check -- the order the SpEL's short-circuiting {@code and}
-     * had, so a caller who cannot see the target still gets a 404 and a platform admin acting on
-     * themselves still gets a 403.
-     */
     private boolean canEditSomeoneElse(UUID userId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
             return false;
         }
-        if (!resolveUser(policy.canEdit(user, userId, membershipsOf(userId)), userId)) {
-            return false;
-        }
-        return !CallerMemberships.isCurrentUser(user, userId);
+        return resolveUser(policy.canEditOther(user, userId, membershipsOf(userId)), userId);
     }
 
     private boolean resolveUser(AccessDecision decision, UUID userId) {
