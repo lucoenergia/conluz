@@ -50,6 +50,32 @@ public class UserAccessPolicy {
     }
 
     /**
+     * Listing the supplies of a user: the user themselves, or an enabled community admin of one of
+     * their communities.
+     *
+     * <p>Deliberately <strong>not</strong> {@link #canRead}, which lets every platform admin through.
+     * Reading a user is one thing; reading their supplies is reading supply data, and a platform
+     * admin who administers none of the user's communities has no access to those supplies when
+     * asked for them one by one — {@link SupplyAccessPolicy} answers not-visible. Routing the same
+     * data through the user aggregate must not be a way around that.</p>
+     *
+     * <p>A caller who can see the user but may not read their supplies is {@code FORBIDDEN}, not
+     * not-found: they already know the user exists, so nothing leaks by saying no.</p>
+     */
+    public AccessDecision canListSuppliesOf(User caller, UUID userId,
+                                            Supplier<List<CommunityMembership>> targetMemberships) {
+        if (!canSee(caller, userId, targetMemberships)) {
+            return AccessDecision.NOT_VISIBLE;
+        }
+        if (CallerMemberships.isCurrentUser(caller, userId)) {
+            return AccessDecision.ALLOWED;
+        }
+        return administersACommunityOf(caller, targetMemberships)
+                ? AccessDecision.ALLOWED
+                : AccessDecision.FORBIDDEN;
+    }
+
+    /**
      * Creating a user in a community: any platform admin, or an enabled community admin of that
      * community. The platform-admin branch runs before the community is even considered, so it does
      * not matter whether one was named.

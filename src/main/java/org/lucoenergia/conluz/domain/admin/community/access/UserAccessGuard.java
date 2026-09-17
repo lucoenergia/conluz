@@ -28,6 +28,16 @@ public interface UserAccessGuard {
      */
     boolean canDisableUser(UUID userId);
 
+    /**
+     * Whether the current user may list the supplies of the given user: the user themselves, or an
+     * enabled community admin of one of their communities.
+     *
+     * <p>Deliberately stricter than {@link #canReadUser(UUID)}, which lets every platform admin
+     * through. A platform admin who administers none of the user's communities cannot read those
+     * supplies one by one, so they must not be able to read them all at once through the user.</p>
+     */
+    boolean canListSuppliesOfUser(UUID userId);
+
     boolean canCreateUserIn(UUID communityId);
 
     boolean canListUsers();

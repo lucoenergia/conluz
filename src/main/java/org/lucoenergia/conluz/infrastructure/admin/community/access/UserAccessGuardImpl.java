@@ -52,6 +52,15 @@ class UserAccessGuardImpl implements UserAccessGuard {
     }
 
     @Override
+    public boolean canListSuppliesOfUser(UUID userId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        return resolveUser(policy.canListSuppliesOf(user, userId, membershipsOf(userId)), userId);
+    }
+
+    @Override
     public boolean canDeleteUser(UUID userId) {
         return canEditSomeoneElse(userId);
     }

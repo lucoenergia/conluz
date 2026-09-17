@@ -135,6 +135,67 @@ class UserAccessPolicyTest {
         assertEquals(1, calls.get());
     }
 
+    // --- canListSuppliesOf ---
+    // Stricter than canRead on purpose: these are supplies, and the supply rules give a platform
+    // admin nothing. The user route must not undo that.
+
+    @Test
+    void canListSuppliesOf_allows_aUserAskingAboutThemselves() {
+        User caller = PolicyFixtures.stranger();
+        assertEquals(AccessDecision.ALLOWED,
+                policy.canListSuppliesOf(caller, caller.getId(), noMemberships()));
+    }
+
+    @Test
+    void canListSuppliesOf_allows_aCommunityAdminOfTheTargetCommunity() {
+        Community shared = PolicyFixtures.community();
+        assertEquals(AccessDecision.ALLOWED, policy.canListSuppliesOf(PolicyFixtures.adminOf(shared),
+                UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    void canListSuppliesOf_forbids_aPlatformAdminWhoAdministersNoneOfTheTargetCommunities() {
+        // They can see the user, so this is a 403 rather than a 404 -- but it is a denial, unlike
+        // canRead, which would have allowed it.
+        Community shared = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN, policy.canListSuppliesOf(PolicyFixtures.platformAdmin(),
+                UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    void canListSuppliesOf_allows_aPlatformAdminWhoDoesAdministerOneOfThem() {
+        Community shared = PolicyFixtures.community();
+        User caller = PolicyFixtures.adminOf(shared);
+        caller.setPlatformAdmin(true);
+
+        assertEquals(AccessDecision.ALLOWED,
+                policy.canListSuppliesOf(caller, UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    void canListSuppliesOf_isNotVisible_whenTheCallerCannotSeeTheUserAtAll() {
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canListSuppliesOf(PolicyFixtures.stranger(), UUID.randomUUID(), noMemberships()));
+    }
+
+    @Test
+    void canListSuppliesOf_forbids_whenTheCallerAdminMembershipIsDisabled() {
+        // The disabled admin is a platform admin too, so they still see the user -> 403, not 404.
+        Community shared = PolicyFixtures.community();
+        User caller = PolicyFixtures.disabledAdminOf(shared);
+        caller.setPlatformAdmin(true);
+
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canListSuppliesOf(caller, UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    void canListSuppliesOf_isNotVisible_whenAPlainMemberAsksAboutSomeoneElse() {
+        Community shared = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE, policy.canListSuppliesOf(PolicyFixtures.memberOf(shared),
+                UUID.randomUUID(), memberOf(shared)));
+    }
+
     // --- canCreateIn ---
 
     @Test

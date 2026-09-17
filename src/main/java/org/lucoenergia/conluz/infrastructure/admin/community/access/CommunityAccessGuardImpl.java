@@ -126,6 +126,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canListSuppliesOfUser(UUID userId) {
+        return userAccessGuard.canListSuppliesOfUser(userId);
+    }
+
+    @Override
     public boolean canDeleteUser(UUID userId) {
         return userAccessGuard.canDeleteUser(userId);
     }

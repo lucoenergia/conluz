@@ -45,6 +45,8 @@ public class GetSuppliesByUserIdController {
                     **Authorization Rules:**
                     - Community Admins (of the target user's community) can retrieve supplies for that user
                     - A user can retrieve their own supplies
+                    - Being a Platform Admin is **not** sufficient: these are supplies, and a Platform Admin
+                      who administers none of the user's communities cannot read them one by one either
 
                     Authentication is required using a Bearer token.
                     """,
@@ -64,7 +66,7 @@ public class GetSuppliesByUserIdController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canReadUser(#userId)")
+    @PreAuthorize("@communityAccessGuard.canListSuppliesOfUser(#userId)")
     public List<SupplyResponse> getSuppliesByUserId(@PathVariable("userId") UUID userId) {
         List<Supply> supplies = supplyService.getByUserId(UserId.of(userId));
 

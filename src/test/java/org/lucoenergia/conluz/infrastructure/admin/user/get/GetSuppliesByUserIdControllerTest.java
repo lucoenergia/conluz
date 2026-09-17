@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -30,12 +33,16 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
 
     @Test
-    void testGetSuppliesByUserId_shouldReturnSuppliesWhenAdminRequestsAnyUser() throws Exception {
-        // Create a user with supplies
+    void testGetSuppliesByUserId_shouldReturnSuppliesWhenCommunityAdminRequestsAMemberOfTheirCommunity()
+            throws Exception {
+        // Create a user with supplies, in the community the caller administers
         User user = UserMother.randomUser();
         createUserRepository.create(user);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         Supply supply1 = new Supply.Builder()
                 .withId(UUID.randomUUID())
@@ -57,8 +64,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .build();
         createSupplyRepository.create(supply2, UserId.of(user.getId()));
 
-        // Login as default admin
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -163,12 +169,12 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSuppliesByUserId_shouldReturnEmptyListWhenUserHasNoSupplies() throws Exception {
-        // Create a user with no supplies
+        // Create a user with no supplies, and let them ask about themselves
         User user = UserMother.randomUser();
+        user.enable();
         createUserRepository.create(user);
 
-        // Login as default admin
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginUser(user);
 
         mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -177,5 +183,39 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+    @Test
+    void testGetSuppliesByUserId_shouldForbidAPlatformAdminWhoAdministersNoneOfTheUserCommunities()
+            throws Exception {
+        // The supply route and the user route must agree. A platform admin gets 404 asking for any
+        // one of these supplies directly, so listing them through their owner cannot be a way round
+        // it. They can see the user, so the denial is a 403 and leaks nothing.
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+
+        Supply supply = new Supply.Builder()
+                .withId(UUID.randomUUID())
+                .withCode("ES0031300119158001DL0H")
+                .withUser(user)
+                .withName("Supply")
+                .withAddress("Address")
+                .withEnabled(true)
+                .build();
+        createSupplyRepository.create(supply, UserId.of(user.getId()));
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        // ... and the same caller is told the supply itself does not exist.
+        mockMvc.perform(get(String.format("/api/v1/supplies/%s", supply.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
     }
 }
