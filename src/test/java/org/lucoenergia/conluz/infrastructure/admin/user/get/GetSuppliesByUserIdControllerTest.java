@@ -116,7 +116,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetSuppliesByUserId_shouldReturnForbiddenWhenNonAdminRequestsOtherUserSupplies() throws Exception {
+    void testGetSuppliesByUserId_shouldReturnNotFoundWhenNonAdminRequestsOtherUserSupplies() throws Exception {
         // Create two users
         User user1 = UserMother.randomUser();
         user1.enable();
