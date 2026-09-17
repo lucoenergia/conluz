@@ -32,7 +32,9 @@ public class UserNotFoundException extends RuntimeException {
             return personalId.get().getPersonalId();
         }
         if (id.isPresent()) {
-            return id.get().getId().toString();
+            // String.valueOf: UserId.of(null) is legal, and this string goes straight into the 404
+            // body. A dereference here would answer 500 where the caller asked for a missing user.
+            return String.valueOf(id.get().getId());
         }
         return "";
     }
