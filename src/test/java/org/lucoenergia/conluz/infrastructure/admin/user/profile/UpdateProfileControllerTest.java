@@ -162,6 +162,52 @@ class UpdateProfileControllerTest extends BaseControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void itAlwaysActsOnTheCallerAndCannotBeAimedAtAnotherUser() throws Exception {
+        // There is no guard method behind this endpoint because there is nothing to scope: the
+        // target is the authenticated principal, never a caller-supplied id. This test is what keeps
+        // that true -- adding a {userId} path variable or a userId body field to "make it flexible"
+        // has to fail here.
+        User caller = enabledMemberOfDefaultCommunity();
+        User victim = enabledMemberOfDefaultCommunity();
+        String victimEmailBefore = reload(victim).getEmail();
+        String authHeader = loginUser(caller);
+
+        // A userId in the body is an unknown property -> 400, nothing written at all.
+        mockMvc.perform(put(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(String.format(
+                                "{\"email\": \"tomado@email.com\", \"userId\": \"%s\"}", victim.getId())))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        // And the legitimate call touches the caller only.
+        mockMvc.perform(put(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("solo-el-llamante@email.com", null, null)))
+                .andExpect(status().isOk());
+
+        assertEquals("solo-el-llamante@email.com", reload(caller).getEmail());
+        assertEquals(victimEmailBefore, reload(victim).getEmail());
+    }
+
+    @Test
+    void thereIsNoPerUserVariantOfThisEndpoint() throws Exception {
+        // PUT /users/{userId} exists and is administrative; PUT /users/profile/{userId} must not.
+        User caller = enabledMemberOfDefaultCommunity();
+        User victim = enabledMemberOfDefaultCommunity();
+        String authHeader = loginUser(caller);
+
+        mockMvc.perform(put(URL + "/" + victim.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("nope@email.com", null, null)))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
     // --- helpers ---
 
     private User enabledMemberOfDefaultCommunity() throws Exception {
