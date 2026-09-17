@@ -111,6 +111,66 @@ class CommunityAccessGuardHelperTest {
         assertFalse(helper().hasMembershipInCommunity(user, community.getId()));
     }
 
+    // --- canSeeCommunity ---
+    // The 404-vs-403 hinge: whether the caller can see the community exists at all. Every
+    // object-scoped guard method leans on it, and until now it had no direct coverage.
+
+    @Test
+    void canSeeCommunity_returnsFalse_whenUserIsNull() {
+        assertFalse(helper().canSeeCommunity(null, UUID.randomUUID()));
+    }
+
+    @Test
+    void canSeeCommunity_returnsTrue_whenUserIsPlatformAdmin() {
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        assertTrue(helper().canSeeCommunity(admin, UUID.randomUUID()));
+    }
+
+    @Test
+    void canSeeCommunity_returnsTrue_whenPlatformAdminAndCommunityIdIsNull() {
+        // The platform-admin branch precedes the membership lookup, so a null id is still "visible".
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        assertTrue(helper().canSeeCommunity(admin, null));
+    }
+
+    @Test
+    void canSeeCommunity_returnsTrue_whenUserHasEnabledMembership() {
+        Community community = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        CommunityMembership membership = new CommunityMembership.Builder()
+                .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
+                .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(true).build();
+        user.setMemberships(List.of(membership));
+
+        assertTrue(helper().canSeeCommunity(user, community.getId()));
+    }
+
+    @Test
+    void canSeeCommunity_returnsFalse_whenMembershipIsDisabled() {
+        Community community = CommunityMother.random().build();
+        User user = UserMother.randomUser();
+        CommunityMembership membership = new CommunityMembership.Builder()
+                .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
+                .withRole(CommunityRole.COMMUNITY_ADMIN).withEnabled(false).build();
+        user.setMemberships(List.of(membership));
+
+        assertFalse(helper().canSeeCommunity(user, community.getId()));
+    }
+
+    @Test
+    void canSeeCommunity_returnsFalse_whenUserIsNotAMember() {
+        User user = UserMother.randomUser();
+        assertFalse(helper().canSeeCommunity(user, UUID.randomUUID()));
+    }
+
+    @Test
+    void canSeeCommunity_returnsFalse_whenCommunityIdIsNullAndUserIsNotPlatformAdmin() {
+        User user = UserMother.randomUser();
+        assertFalse(helper().canSeeCommunity(user, null));
+    }
+
     @Test
     void isCurrentUser_returnsTrue_whenIdsMatch() {
         User user = UserMother.randomUser();
