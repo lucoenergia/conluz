@@ -48,6 +48,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean isCommunityAdminOfSupply(UUID supplyId) {
+        return supplyAccessGuard.isCommunityAdminOfSupply(supplyId);
+    }
+
+    @Override
     public boolean canReadCommunity(UUID communityId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {

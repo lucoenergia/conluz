@@ -8,16 +8,12 @@ import java.util.UUID;
 
 public interface GetSupplyPartitionCoefficientRepository {
 
-    Optional<SupplyPartitionCoefficient> findActiveBySupplyId(UUID supplyId);
-
-    Optional<SupplyPartitionCoefficient> findBySupplyIdAtTimestamp(UUID supplyId, Instant timestamp);
-
     /**
      * The coefficient for a specific {@code (plantId, supplyId)} pair active at {@code timestamp}.
-     * Unlike {@link #findBySupplyIdAtTimestamp}, this is unambiguous even when the supply has
-     * concurrently-active coefficients across multiple plants (permitted by the
-     * {@code no_overlapping_coefficients} exclusion constraint, which is scoped to
-     * {@code (plant_id, supply_id)}, not {@code supply_id} alone).
+     * Scoping by plant is what makes this unambiguous: a supply may have concurrently-active
+     * coefficients across multiple plants, permitted by the {@code no_overlapping_coefficients}
+     * exclusion constraint, which is scoped to {@code (plant_id, supply_id)}, not {@code supply_id}
+     * alone.
      */
     Optional<SupplyPartitionCoefficient> findByPlantIdAndSupplyIdAtTimestamp(UUID plantId, UUID supplyId, Instant timestamp);
 
@@ -132,4 +128,49 @@ public interface GetSupplyPartitionCoefficientRepository {
      * the whole chain, not just the immediate predecessor/successor.
      */
     List<SupplyPartitionCoefficient> findAllByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds);
+
+    /**
+     * The coefficient history of a supply, enriched with supply, plant and agreement display data,
+     * ordered by valid_from ascending. A null {@code plantId} means every plant the supply
+     * participates in; a plant the supply has no coefficient in yields an empty list.
+     *
+     * <p>{@code includePending} selects whether pending rows (valid_from IS NULL) are part of the
+     * timeline. They are authored inside a DRAFT agreement and never applied by the distributor, so
+     * only a Community Admin of the supply's community may see them; the caller decides, and the
+     * filter is applied by the query rather than after the fact.
+     */
+    List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(UUID supplyId, UUID plantId,
+                                                                    boolean includePending);
+
+    /**
+     * The active coefficient of a supply in each plant it participates in -- at most one per plant,
+     * guaranteed by the {@code no_overlapping_coefficients} exclusion constraint. A null
+     * {@code plantId} means every plant.
+     *
+     * <p>Active means {@code validFrom IS NOT NULL AND validTo IS NULL}. A pending row also has a
+     * null valid_to, so the valid_from predicate is what separates "in force" from "authored but
+     * never applied"; without it a pending row would be reported as the supply's active coefficient.
+     */
+    List<SupplyPartitionCoefficientDetail> findActiveDetailsBySupplyId(UUID supplyId, UUID plantId);
+
+    /**
+     * One item per plant whose coefficient for {@code supplyId} covers {@code timestamp}, with
+     * valid_from inclusive and valid_to exclusive. A null {@code plantId} means every plant. Pending
+     * rows are excluded: a coefficient never applied by the distributor covered no instant.
+     */
+    List<SupplyPartitionCoefficientDetail> findDetailsBySupplyIdAtTimestamp(UUID supplyId, UUID plantId, Instant timestamp);
+
+    /**
+     * Details for the given coefficient ids, in no particular order. Used to enrich the result of a
+     * write in one query rather than per row; callers that care about order must restore it
+     * themselves, since SQL {@code IN} does not preserve argument order.
+     */
+    List<SupplyPartitionCoefficientDetail> findAllDetailsByIdIn(Collection<UUID> ids);
+
+    /**
+     * The active coefficient of each of {@code supplyIds} within one plant, in a single query -- the
+     * batch behind a sharing agreement's "current coefficient" column. At most one row per supply,
+     * for the reason given on {@link #findActiveDetailsBySupplyId}.
+     */
+    List<SupplyPartitionCoefficientDetail> findActiveDetailsByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds);
 }

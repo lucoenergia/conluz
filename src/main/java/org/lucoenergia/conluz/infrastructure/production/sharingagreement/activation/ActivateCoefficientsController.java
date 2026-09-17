@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationService;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -38,9 +39,12 @@ import java.util.UUID;
 public class ActivateCoefficientsController {
 
     private final CoefficientActivationService service;
+    private final PartitionCoefficientService partitionCoefficientService;
 
-    public ActivateCoefficientsController(CoefficientActivationService service) {
+    public ActivateCoefficientsController(CoefficientActivationService service,
+                                             PartitionCoefficientService partitionCoefficientService) {
         this.service = service;
+        this.partitionCoefficientService = partitionCoefficientService;
     }
 
     @PostMapping
@@ -97,6 +101,6 @@ public class ActivateCoefficientsController {
             @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody ActivateCoefficientsBody body) {
         List<SupplyPartitionCoefficient> touched = service.setValidFrom(plantId, sharingAgreementId, body.getAppliedOn(), body.getCoefficientIds());
-        return new CoefficientActivationResponse(touched);
+        return new CoefficientActivationResponse(partitionCoefficientService.findDetailsInOrderOf(touched));
     }
 }

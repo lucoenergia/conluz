@@ -118,39 +118,6 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
     }
 
     @Test
-    void findActiveBySupplyIdReturnsRowWithNullValidTo() {
-        SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
-        Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
-        Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(1.000000), t0, t1);
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(2.000000), t1, null);
-
-        Optional<SupplyPartitionCoefficient> result = repository.findActiveBySupplyId(supply.getId());
-
-        assertTrue(result.isPresent());
-        assertEquals(0, BigDecimal.valueOf(2.000000).compareTo(result.get().getCoefficient()));
-        assertNull(result.get().getValidTo());
-    }
-
-    @Test
-    void findBySupplyIdAtTimestampRespectsInclusiveLowerBound() {
-        SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
-        Instant changeAt = Instant.parse("2025-03-01T00:00:00Z");
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(),
-                BigDecimal.valueOf(3.000000), Instant.parse("2024-01-01T00:00:00Z"), changeAt);
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(),
-                BigDecimal.valueOf(4.000000), changeAt, null);
-
-        // Query at the exact change time should return the new period (valid_from inclusive)
-        Optional<SupplyPartitionCoefficient> result = repository.findBySupplyIdAtTimestamp(supply.getId(), changeAt);
-
-        assertTrue(result.isPresent());
-        assertEquals(0, BigDecimal.valueOf(4.000000).compareTo(result.get().getCoefficient()));
-    }
-
-    @Test
     void findBySupplyIdInRangeReturnsOverlappingPeriods() {
         SupplyEntity supply = persistSupply();
         SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);

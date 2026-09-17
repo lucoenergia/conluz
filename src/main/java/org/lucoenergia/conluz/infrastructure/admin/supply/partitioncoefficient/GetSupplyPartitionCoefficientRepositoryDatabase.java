@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPartitionCoefficientEntityMapper;
@@ -28,16 +29,6 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
             SupplyPartitionCoefficientEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
-    }
-
-    @Override
-    public Optional<SupplyPartitionCoefficient> findActiveBySupplyId(UUID supplyId) {
-        return jpaRepository.findActiveBySupplyId(supplyId).map(mapper::map);
-    }
-
-    @Override
-    public Optional<SupplyPartitionCoefficient> findBySupplyIdAtTimestamp(UUID supplyId, Instant timestamp) {
-        return jpaRepository.findBySupplyIdAtTimestamp(supplyId, timestamp).map(mapper::map);
     }
 
     @Override
@@ -123,5 +114,43 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     @Override
     public Optional<Instant> findEarliestValidFromByCommunityId(UUID communityId) {
         return jpaRepository.findEarliestValidFromByCommunityId(communityId);
+    }
+
+    // The plant filter picks a different query rather than binding a nullable parameter: a
+    // "(:plantId IS NULL OR e.plant.id = :plantId)" predicate needs a null UUID bind, which under
+    // Hibernate 6 + PostgreSQL fails with "could not determine data type of parameter".
+
+    @Override
+    public List<SupplyPartitionCoefficientDetail> findAllDetailsBySupplyId(UUID supplyId, UUID plantId,
+                                                                           boolean includePending) {
+        return plantId == null
+                ? jpaRepository.findAllDetailsBySupplyId(supplyId, includePending)
+                : jpaRepository.findAllDetailsBySupplyIdAndPlantId(supplyId, plantId, includePending);
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficientDetail> findActiveDetailsBySupplyId(UUID supplyId, UUID plantId) {
+        return plantId == null
+                ? jpaRepository.findActiveDetailsBySupplyId(supplyId)
+                : jpaRepository.findActiveDetailsBySupplyIdAndPlantId(supplyId, plantId);
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficientDetail> findDetailsBySupplyIdAtTimestamp(UUID supplyId, UUID plantId,
+                                                                                   Instant timestamp) {
+        return plantId == null
+                ? jpaRepository.findDetailsBySupplyIdAtTimestamp(supplyId, timestamp)
+                : jpaRepository.findDetailsBySupplyIdAndPlantIdAtTimestamp(supplyId, plantId, timestamp);
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficientDetail> findAllDetailsByIdIn(Collection<UUID> ids) {
+        return ids.isEmpty() ? List.of() : jpaRepository.findAllDetailsByIdIn(ids);
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficientDetail> findActiveDetailsByPlantIdAndSupplyIdIn(UUID plantId,
+                                                                                          Collection<UUID> supplyIds) {
+        return supplyIds.isEmpty() ? List.of() : jpaRepository.findActiveDetailsByPlantIdAndSupplyIdIn(plantId, supplyIds);
     }
 }
