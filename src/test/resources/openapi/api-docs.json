@@ -1058,7 +1058,8 @@
             ]
           },
           "supply" : {
-            "$ref" : "#/components/schemas/SupplyResponse"
+            "$ref" : "#/components/schemas/SupplyReferenceResponse",
+            "description" : "The supply this plant produces onto. A reference: the full supply, including its owner, is fetched from GET /supplies/{supplyId}, which not every caller who may list plants is allowed to call."
           },
           "totalPower" : {
             "format" : "double",

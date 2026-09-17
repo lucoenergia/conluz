@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.reference.SupplyReferenceResponse;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -22,7 +22,10 @@ public class PlantResponse {
             "(Codigo de Autoconsumo). It is not the provider's station code (provider_code) and " +
             "not a CUPS.", types = {"string", "null"})
     private final String regulatoryCode;
-    private final SupplyResponse supply;
+    @Schema(description = "The supply this plant produces onto. A reference: the full supply, "
+            + "including its owner, is fetched from GET /supplies/{supplyId}, which not every "
+            + "caller who may list plants is allowed to call.")
+    private final SupplyReferenceResponse supply;
     private final String name;
     private final String address;
     @Schema(types = {"string", "null"})
@@ -38,7 +41,8 @@ public class PlantResponse {
         this.id = plant.getId();
         this.providerCode = plant.getProviderCode();
         this.regulatoryCode = plant.getRegulatoryCode();
-        this.supply = new SupplyResponse(plant.getSupply());
+        this.supply = new SupplyReferenceResponse(plant.getSupply().getId(), plant.getSupply().getCode(),
+                plant.getSupply().getName());
         this.name = plant.getName();
         this.address = plant.getAddress();
         this.description = plant.getDescription();
@@ -60,7 +64,7 @@ public class PlantResponse {
         return regulatoryCode;
     }
 
-    public SupplyResponse getSupply() {
+    public SupplyReferenceResponse getSupply() {
         return supply;
     }
 
