@@ -115,6 +115,23 @@ With the app running:
 - OpenAPI spec: https://localhost:8443/api-docs
 - Swagger UI: https://localhost:8443/api-docs/swagger-ui/index.html
 
+### The OpenAPI snapshot
+
+`src/test/resources/openapi/api-docs.json` is a committed, normalised copy of the whole generated
+document, checked by `OpenApiSnapshotTest`. Its diff in a pull request **is** the API diff a
+reviewer needs — so any commit that changes the API must update it in the same commit, and a commit
+that was not meant to change the API will fail the test.
+
+When it fails, the actual document is written to `build/openapi/api-docs.actual.json`. Review the
+difference first; if the change is intended, accept it with:
+
+```bash
+cp build/openapi/api-docs.actual.json src/test/resources/openapi/api-docs.json
+```
+
+There is deliberately **no** flag or task that rewrites the snapshot in place: CI could run it, and
+an API change would then land unreviewed.
+
 ## Git Workflow
 
 - Main branch: `main`
