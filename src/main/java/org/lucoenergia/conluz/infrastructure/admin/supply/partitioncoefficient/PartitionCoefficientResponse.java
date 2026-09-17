@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
+import org.lucoenergia.conluz.infrastructure.shared.web.reference.CommunityReferenceResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.PlantReferenceResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.SharingAgreementReferenceResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.SupplyReferenceResponse;
@@ -10,7 +11,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(requiredProperties = {"id", "supply", "plant", "sharingAgreement", "coefficient", "validFrom",
+@Schema(requiredProperties = {"id", "supply", "community", "plant", "sharingAgreement", "coefficient", "validFrom",
         "validTo", "createdAt"})
 public class PartitionCoefficientResponse {
 
@@ -19,6 +20,9 @@ public class PartitionCoefficientResponse {
 
     @Schema(description = "Supply this coefficient belongs to")
     private final SupplyReferenceResponse supply;
+
+    @Schema(description = "Community the supply belongs to")
+    private final CommunityReferenceResponse community;
 
     @Schema(description = "Plant this coefficient belongs to. Disambiguates a supply's timeline " +
             "when it participates in more than one plant.")
@@ -48,6 +52,8 @@ public class PartitionCoefficientResponse {
         this.id = detail.getId();
         this.supply = new SupplyReferenceResponse(detail.getSupply().id(), detail.getSupply().code(),
                 detail.getSupply().name());
+        this.community = new CommunityReferenceResponse(detail.getCommunity().id(),
+                detail.getCommunity().name());
         this.plant = new PlantReferenceResponse(detail.getPlant().id(), detail.getPlant().name());
         this.sharingAgreement = new SharingAgreementReferenceResponse(detail.getSharingAgreement().id(),
                 detail.getSharingAgreement().name(), detail.getSharingAgreement().status());
@@ -63,6 +69,10 @@ public class PartitionCoefficientResponse {
 
     public SupplyReferenceResponse getSupply() {
         return supply;
+    }
+
+    public CommunityReferenceResponse getCommunity() {
+        return community;
     }
 
     public PlantReferenceResponse getPlant() {

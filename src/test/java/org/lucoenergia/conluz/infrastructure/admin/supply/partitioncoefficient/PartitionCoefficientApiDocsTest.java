@@ -89,9 +89,11 @@ class PartitionCoefficientApiDocsTest extends BaseControllerTest {
                 .path("PartitionCoefficientResponse").path("properties");
 
         assertTrue(properties.has("supply"), properties.toString());
+        assertTrue(properties.has("community"), properties.toString());
         assertTrue(properties.has("plant"), properties.toString());
         assertTrue(properties.has("sharingAgreement"), properties.toString());
         assertFalse(properties.has("supplyId"), "flat supplyId must be gone: " + properties);
+        assertFalse(properties.has("communityId"), "the community must stay a nested reference: " + properties);
         assertFalse(properties.has("plantId"), "flat plantId must be gone: " + properties);
         assertFalse(properties.has("sharingAgreementId"), "flat sharingAgreementId must be gone: " + properties);
     }
@@ -102,8 +104,10 @@ class PartitionCoefficientApiDocsTest extends BaseControllerTest {
                 .path("CoefficientAtTimestampResponse").path("properties");
 
         assertTrue(properties.has("supply"), properties.toString());
+        assertTrue(properties.has("community"), properties.toString());
         assertTrue(properties.has("plant"), properties.toString());
         assertFalse(properties.has("supplyId"), "flat supplyId must be gone: " + properties);
+        assertFalse(properties.has("communityId"), "the community must stay a nested reference: " + properties);
     }
 
     /**
@@ -147,5 +151,18 @@ class PartitionCoefficientApiDocsTest extends BaseControllerTest {
         assertTrue(schemas.has("SupplyReferenceResponse"), "SupplyReferenceResponse is missing");
         assertFalse(schemas.has("SharingAgreementCoefficientSupplyResponse"),
                 "the pre-rename schema is still generated");
+    }
+
+    /**
+     * The community reference is a schema of its own, so clients generate one type for it rather
+     * than an inline object per response that embeds it.
+     */
+    @Test
+    void theCommunityReferenceIsItsOwnSchemaCarryingIdAndName() throws Exception {
+        JsonNode schema = apiDocs().path("components").path("schemas").path("CommunityReferenceResponse");
+
+        assertFalse(schema.isMissingNode(), "CommunityReferenceResponse is missing");
+        assertTrue(schema.path("properties").has("id"), schema.toString());
+        assertTrue(schema.path("properties").has("name"), schema.toString());
     }
 }

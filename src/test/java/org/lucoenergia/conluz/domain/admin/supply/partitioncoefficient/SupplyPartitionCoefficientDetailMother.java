@@ -11,7 +11,7 @@ public class SupplyPartitionCoefficientDetailMother {
 
     /**
      * Wraps an existing coefficient in plausible references, for tests that care about the
-     * coefficient itself rather than about which supply, plant or agreement it points at.
+     * coefficient itself rather than about which supply, community, plant or agreement it points at.
      */
     public static SupplyPartitionCoefficientDetail of(SupplyPartitionCoefficient coefficient) {
         return new SupplyPartitionCoefficientDetail(
@@ -19,6 +19,7 @@ public class SupplyPartitionCoefficientDetailMother {
                 new SupplyReference(
                         coefficient.getSupplyId() != null ? coefficient.getSupplyId() : UUID.randomUUID(),
                         "ES0031607648137001RC0F", "A supply"),
+                new CommunityReference(UUID.randomUUID(), "A community"),
                 new PlantReference(
                         coefficient.getPlantId() != null ? coefficient.getPlantId() : UUID.randomUUID(),
                         "A plant"),

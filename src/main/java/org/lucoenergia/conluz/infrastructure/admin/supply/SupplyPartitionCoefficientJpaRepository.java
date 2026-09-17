@@ -154,6 +154,9 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
     String DETAIL_SELECT = "SELECT new org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient."
             + "SupplyPartitionCoefficientDetail("
             + "e.id, e.supply.id, e.supply.code, e.supply.name, "
+            // The coefficient-owning supply's community, not the plant's (e.plant.supply.community).
+            // supplies.community_id is NOT NULL, so this implicit inner join drops no row.
+            + "e.supply.community.id, e.supply.community.name, "
             + "e.plant.id, e.plant.name, "
             + "e.sharingAgreement.id, e.sharingAgreement.name, e.sharingAgreement.status, "
             + "e.coefficient, e.validFrom, e.validTo, e.createdAt) "

@@ -85,6 +85,8 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].plant.name").value(agreement.getPlant().getName()))
                 .andExpect(jsonPath("$[0].supply.id").value(supply.getId().toString()))
                 .andExpect(jsonPath("$[0].supply.code").value(supply.getCode()))
+                .andExpect(jsonPath("$[0].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
+                .andExpect(jsonPath("$[0].community.name").value(defaultCommunityName()))
                 .andExpect(jsonPath("$[0].sharingAgreement.id").value(agreement.getId().toString()))
                 .andExpect(jsonPath("$[0].sharingAgreement.name").value(agreement.getName()))
                 .andExpect(jsonPath("$[0].sharingAgreement.status").value("PUBLISHED"))
@@ -94,6 +96,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 // No flat entity reference survives anywhere in the payload.
                 .andExpect(jsonPath("$[0].supplyId").doesNotExist())
                 .andExpect(jsonPath("$[0].plantId").doesNotExist())
+                .andExpect(jsonPath("$[0].communityId").doesNotExist())
                 .andExpect(jsonPath("$[0].sharingAgreementId").doesNotExist());
     }
 
@@ -200,11 +203,14 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].coefficient").value("3.0763"))
                 .andExpect(jsonPath("$[0].supply.id").value(supply.getId().toString()))
                 .andExpect(jsonPath("$[0].supply.code").value(supply.getCode()))
+                .andExpect(jsonPath("$[0].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
+                .andExpect(jsonPath("$[0].community.name").value(defaultCommunityName()))
                 .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlant().getId().toString()))
                 .andExpect(jsonPath("$[0].plant.name").value(agreement.getPlant().getName()))
                 .andExpect(jsonPath("$[0].timestamp").value("2024-06-15T12:00:00Z"))
                 .andExpect(jsonPath("$[0].supplyId").doesNotExist())
-                .andExpect(jsonPath("$[0].plantId").doesNotExist());
+                .andExpect(jsonPath("$[0].plantId").doesNotExist())
+                .andExpect(jsonPath("$[0].communityId").doesNotExist());
     }
 
     @Test
@@ -568,6 +574,10 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     private List<String> coefficientPaths(Supply supply) {
         String base = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
         return List.of(base, base + "/active", base + "/at");
+    }
+
+    private String defaultCommunityName() {
+        return getCommunityRepository.findById(DEFAULT_COMMUNITY_ID).orElseThrow().getName();
     }
 
     private Supply createTestSupply() {
