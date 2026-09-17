@@ -67,7 +67,7 @@ public class GetSharingAgreementsController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId)")
+    @PreAuthorize("@communityAccessGuard.canListSharingAgreements(#plantId)")
     public List<SharingAgreementResponse> getSharingAgreements(
             @PathVariable UUID plantId,
             @Parameter(description = "Filter by status") @RequestParam(required = false) SharingAgreementStatus status) {

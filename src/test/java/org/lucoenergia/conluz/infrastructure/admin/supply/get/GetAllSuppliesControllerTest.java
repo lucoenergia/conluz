@@ -154,6 +154,18 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void testNonMemberIsToldTheCommunityIsMissing() throws Exception {
+        // A caller who is not a platform admin and holds no membership cannot see the community at
+        // all, so listing its supplies is a 404 -- not the 403 a non-member platform admin gets.
+        String authHeader = loginAsPartner();
+
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void testWithCustomSortingByUnknownField() throws Exception {
 
         // Create two users

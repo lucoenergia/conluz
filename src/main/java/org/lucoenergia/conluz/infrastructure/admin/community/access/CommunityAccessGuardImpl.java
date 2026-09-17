@@ -26,6 +26,7 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     private final MembershipAccessGuard membershipAccessGuard;
     private final UserAccessGuard userAccessGuard;
     private final PlantAccessGuard plantAccessGuard;
+    private final PlatformAccessGuard platformAccessGuard;
 
     public CommunityAccessGuardImpl(AuthService authService,
                                     GetCommunityRepository getCommunityRepository,
@@ -39,6 +40,7 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository);
         this.plantAccessGuard = new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository,
                 getSharingAgreementRepository);
+        this.platformAccessGuard = new PlatformAccessGuardImpl(helper);
     }
 
     @Override
@@ -49,6 +51,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canEditSupply(UUID supplyId) {
         return supplyAccessGuard.canEditSupply(supplyId);
+    }
+
+    @Override
+    public boolean canReadSupplyPartitionCoefficients(UUID supplyId) {
+        return supplyAccessGuard.canReadSupplyPartitionCoefficients(supplyId);
     }
 
     @Override
@@ -72,6 +79,16 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
             return false;
         }
         return resolveCommunity(communityAccessPolicy.isMember(user, communityId), communityId);
+    }
+
+    @Override
+    public boolean canReadCommunityProduction(UUID communityId) {
+        return isMemberOfCommunity(communityId);
+    }
+
+    @Override
+    public boolean canListSupplies(UUID communityId) {
+        return isMemberOfCommunity(communityId);
     }
 
     @Override
@@ -106,6 +123,21 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canEditUser(UUID userId) {
         return userAccessGuard.canEditUser(userId);
+    }
+
+    @Override
+    public boolean canDeleteUser(UUID userId) {
+        return userAccessGuard.canDeleteUser(userId);
+    }
+
+    @Override
+    public boolean canEnableUser(UUID userId) {
+        return userAccessGuard.canEnableUser(userId);
+    }
+
+    @Override
+    public boolean canDisableUser(UUID userId) {
+        return userAccessGuard.canDisableUser(userId);
     }
 
     @Override
@@ -149,6 +181,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canListSharingAgreements(UUID plantId) {
+        return plantAccessGuard.canListSharingAgreements(plantId);
+    }
+
+    @Override
     public boolean canManageSharingAgreement(UUID plantId, UUID sharingAgreementId) {
         return plantAccessGuard.canManageSharingAgreement(plantId, sharingAgreementId);
     }
@@ -169,6 +206,36 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     public boolean isCurrentUser(UUID userId) {
         User user = helper.getCurrentUser().orElse(null);
         return CallerMemberships.isCurrentUser(user, userId);
+    }
+
+    @Override
+    public boolean canCreateCommunity() {
+        return platformAccessGuard.canCreateCommunity();
+    }
+
+    @Override
+    public boolean canUpdateCommunity(UUID communityId) {
+        return platformAccessGuard.canUpdateCommunity(communityId);
+    }
+
+    @Override
+    public boolean canEnableCommunity(UUID communityId) {
+        return platformAccessGuard.canEnableCommunity(communityId);
+    }
+
+    @Override
+    public boolean canDisableCommunity(UUID communityId) {
+        return platformAccessGuard.canDisableCommunity(communityId);
+    }
+
+    @Override
+    public boolean canGrantPlatformAdmin(UUID userId) {
+        return platformAccessGuard.canGrantPlatformAdmin(userId);
+    }
+
+    @Override
+    public boolean canRevokePlatformAdmin(UUID userId) {
+        return platformAccessGuard.canRevokePlatformAdmin(userId);
     }
 
     private boolean resolveCommunity(AccessDecision decision, UUID communityId) {

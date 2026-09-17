@@ -73,7 +73,7 @@ public class GetAllSuppliesController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PageableAsQueryParam
-    @PreAuthorize("isAuthenticated() and @communityAccessGuard.isMemberOfCommunity(#communityId)")
+    @PreAuthorize("@communityAccessGuard.canListSupplies(#communityId)")
     public PagedResult<SupplyResponse> getAllSupplies(@AuthenticationPrincipal User currentUser,
                                                       @PathVariable UUID communityId,
                                                       @Parameter(hidden = true) Pageable page) {

@@ -100,7 +100,7 @@ public class CreateCommunityController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canCreateCommunity()")
     public ResponseEntity<CommunityResponse> createCommunity(@Valid @RequestBody CreateCommunityBody body) {
         if (!multiCommunityEnabled) {
             return ResponseEntity.notFound().build();

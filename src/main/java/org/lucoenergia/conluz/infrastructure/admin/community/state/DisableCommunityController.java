@@ -52,7 +52,7 @@ public class DisableCommunityController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canDisableCommunity(#communityId)")
     public void disableCommunity(@PathVariable("communityId") UUID communityId) {
         stateService.disable(communityId);
     }

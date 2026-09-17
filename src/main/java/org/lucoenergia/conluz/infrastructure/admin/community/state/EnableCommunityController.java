@@ -52,7 +52,7 @@ public class EnableCommunityController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canEnableCommunity(#communityId)")
     public void enableCommunity(@PathVariable("communityId") UUID communityId) {
         stateService.enable(communityId);
     }

@@ -61,7 +61,7 @@ public class GetActivePartitionCoefficientController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
+    @PreAuthorize("@communityAccessGuard.canReadSupplyPartitionCoefficients(#supplyId)")
     public List<PartitionCoefficientResponse> getActive(
             @Parameter(description = "Supply UUID") @PathVariable UUID supplyId,
             @Parameter(description = "Optional plant filter. When omitted, every plant the supply "

@@ -98,7 +98,7 @@ public class UpdateCommunityController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("@communityAccessGuard.canUpdateCommunity(#communityId)")
     public CommunityResponse updateCommunity(@PathVariable("communityId") UUID communityId,
                                               @Valid @RequestBody UpdateCommunityBody body) {
         Community community = service.update(communityId, body.mapToCommunity());

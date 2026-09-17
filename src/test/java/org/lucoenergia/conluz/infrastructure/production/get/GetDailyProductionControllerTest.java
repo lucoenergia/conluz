@@ -160,4 +160,11 @@ class GetDailyProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(content().string(containsString(String.format("\"message\":\"El punto de suministro con identificador '%s' no ha sido encontrado. Revise que el identificador sea correcto.\"", supplyId))));
     }
+    @Test
+    void testGetDailyProduction_whenNoToken_thenUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/daily")
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
+                .andExpect(status().isUnauthorized());
+    }
 }

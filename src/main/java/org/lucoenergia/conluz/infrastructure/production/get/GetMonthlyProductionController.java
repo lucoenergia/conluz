@@ -58,7 +58,7 @@ public class GetMonthlyProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated() and @communityAccessGuard.isMemberOfCommunity(#communityId)")
+    @PreAuthorize("@communityAccessGuard.canReadCommunityProduction(#communityId)")
     public List<ProductionByTime> getMonthlyProduction(
             @PathVariable UUID communityId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,

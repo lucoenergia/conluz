@@ -127,6 +127,42 @@ class CreateCommunityControllerTest extends BaseControllerTest {
                 () -> "the POST operation declares no 409: " + fieldNames(responses));
     }
 
+    // --- authorization ---
+    // Creating a community is platform-wide: it is guarded by canCreateCommunity(), which is a role
+    // check and makes no statement about any object, so a denial is always a 403 and never a 404.
+
+    @Test
+    void creatingACommunityWithoutATokenIsUnauthorized() throws Exception {
+        mockMvc.perform(post(PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("A brand new community", uniqueCode(), uniqueLegalId())))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aCommunityAdminMayNotCreateACommunity() throws Exception {
+        CommunityEntity existing = persistCommunity();
+        String authHeader = loginAsCommunityAdmin(existing.getId());
+
+        mockMvc.perform(post(PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("A brand new community", uniqueCode(), uniqueLegalId())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void aCommunityMemberMayNotCreateACommunity() throws Exception {
+        CommunityEntity existing = persistCommunity();
+        String authHeader = loginAsCommunityMember(existing.getId());
+
+        mockMvc.perform(post(PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("A brand new community", uniqueCode(), uniqueLegalId())))
+                .andExpect(status().isForbidden());
+    }
+
     private CommunityEntity persistCommunity() {
         return communityJpaRepository.save(CommunityMother.randomEntity().build());
     }

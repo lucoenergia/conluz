@@ -115,6 +115,13 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
     }
 
     @Override
+    public boolean canListSharingAgreements(UUID plantId) {
+        // The same decision as creating one under this plant, kept as its own method so the listing
+        // rule can diverge later without touching call sites.
+        return canManagePlant(plantId);
+    }
+
+    @Override
     public boolean canManageSharingAgreement(UUID plantId, UUID sharingAgreementId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
