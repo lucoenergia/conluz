@@ -46,13 +46,22 @@ public class SupplyAccessPolicy {
     }
 
     /**
-     * Reading the partition coefficients of a single supply. Byte-for-byte {@link #canEdit} today,
-     * and deliberately kept as its own rule: it is a read, and separating it now means the read and
-     * the write can diverge later without touching any call site. Do not merge it away as
-     * duplication.
+     * Reading the partition coefficients of a single supply: the same access reading the supply
+     * itself requires, so its owner may read them as well as the community admins.
+     *
+     * <p>Coefficients say what share of a plant's production is assigned to this supply — the
+     * owner's own share — so they are not admin-only data, and the history endpoint has always let
+     * the owner read them. What the owner must not see is <em>pending</em> periods, authored inside
+     * a draft agreement; that is handled where it belongs, by the read itself (history passes
+     * {@code includePending = isCommunityAdminOfSupply}, while the active and at-timestamp reads
+     * exclude pending unconditionally for everyone), not by refusing the request.</p>
+     *
+     * <p>Byte-for-byte {@link #canRead} today, and deliberately kept as its own rule so a
+     * coefficient read and a plain supply read can diverge later without touching any call site.
+     * Do not merge it away as duplication.</p>
      */
     public AccessDecision canReadPartitionCoefficients(User caller, Supply supply) {
-        return canEdit(caller, supply);
+        return canRead(caller, supply);
     }
 
     /**

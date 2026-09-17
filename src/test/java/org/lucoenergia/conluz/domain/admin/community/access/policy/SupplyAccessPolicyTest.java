@@ -97,10 +97,10 @@ class SupplyAccessPolicyTest {
     }
 
     // --- canReadPartitionCoefficients ---
-    // Byte-for-byte canEdit today; kept separate so the two can diverge later.
+    // Byte-for-byte canRead today; kept separate so the two can diverge later.
 
     @Test
-    void canReadPartitionCoefficients_matchesCanEdit_forEveryCaller() {
+    void canReadPartitionCoefficients_matchesCanRead_forEveryCaller() {
         Community community = PolicyFixtures.community();
         User admin = PolicyFixtures.adminOf(community);
         User member = PolicyFixtures.memberOf(community);
@@ -108,13 +108,13 @@ class SupplyAccessPolicyTest {
         Supply supplyInCommunity = PolicyFixtures.supplyIn(community, UUID.randomUUID());
         Supply ownedSupply = PolicyFixtures.supplyWithoutCommunity(owner.getId());
 
-        assertEquals(policy.canEdit(admin, supplyInCommunity),
+        assertEquals(policy.canRead(admin, supplyInCommunity),
                 policy.canReadPartitionCoefficients(admin, supplyInCommunity));
-        assertEquals(policy.canEdit(member, supplyInCommunity),
+        assertEquals(policy.canRead(member, supplyInCommunity),
                 policy.canReadPartitionCoefficients(member, supplyInCommunity));
-        assertEquals(policy.canEdit(owner, ownedSupply),
+        assertEquals(policy.canRead(owner, ownedSupply),
                 policy.canReadPartitionCoefficients(owner, ownedSupply));
-        assertEquals(policy.canEdit(admin, null), policy.canReadPartitionCoefficients(admin, null));
+        assertEquals(policy.canRead(admin, null), policy.canReadPartitionCoefficients(admin, null));
     }
 
     @Test
@@ -125,10 +125,19 @@ class SupplyAccessPolicyTest {
     }
 
     @Test
-    void canReadPartitionCoefficients_forbids_theOwnerWhoIsNotACommunityAdmin() {
+    void canReadPartitionCoefficients_allows_theOwnerWhoIsNotACommunityAdmin() {
+        // The coefficients describe the owner's own share; hiding pending periods is the read's
+        // job, not the guard's.
         User owner = PolicyFixtures.stranger();
-        assertEquals(AccessDecision.FORBIDDEN, policy.canReadPartitionCoefficients(
+        assertEquals(AccessDecision.ALLOWED, policy.canReadPartitionCoefficients(
                 owner, PolicyFixtures.supplyWithoutCommunity(owner.getId())));
+    }
+
+    @Test
+    void canReadPartitionCoefficients_isNotVisible_forAPlainMemberOfTheSupplyCommunity() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE, policy.canReadPartitionCoefficients(
+                PolicyFixtures.memberOf(community), PolicyFixtures.supplyIn(community, UUID.randomUUID())));
     }
 
     // --- isCommunityAdminOfSupply ---

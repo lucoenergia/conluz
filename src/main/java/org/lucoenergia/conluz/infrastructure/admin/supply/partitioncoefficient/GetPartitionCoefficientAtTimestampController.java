@@ -48,7 +48,7 @@ public class GetPartitionCoefficientAtTimestampController {
                     Pending coefficients are excluded: one the distributor never applied covered no
                     instant.
 
-                    **Required: Community Admin of the supply's community.**
+                    **Required: Community Admin of the supply's community, or the supply owner.**
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getPartitionCoefficientAtTimestamp",

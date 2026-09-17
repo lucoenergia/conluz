@@ -48,7 +48,7 @@ public class GetActivePartitionCoefficientController {
                     when the supply has no active coefficient anywhere, which is a normal result
                     rather than an error. Pass plantId to restrict the result to a single plant.
 
-                    **Required: Community Admin of the supply's community.**
+                    **Required: Community Admin of the supply's community, or the supply owner.**
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getActivePartitionCoefficient",
