@@ -1,26 +1,35 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.UserAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.AccessDecision;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.UserAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
 
-import java.util.Objects;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
+/**
+ * Adapter over {@link UserAccessPolicy}: {@code NOT_VISIBLE} becomes {@link UserNotFoundException}
+ * (or {@link CommunityNotFoundException} when the community is the resource at stake), and
+ * {@code FORBIDDEN} becomes {@code false}.
+ */
 class UserAccessGuardImpl implements UserAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
     private final GetMembershipsRepository getMembershipsRepository;
+    private final UserAccessPolicy policy;
 
-    public UserAccessGuardImpl(CommunityAccessGuardHelper helper, GetMembershipsRepository getMembershipsRepository) {
+    public UserAccessGuardImpl(CommunityAccessGuardHelper helper,
+                               GetMembershipsRepository getMembershipsRepository) {
         this.helper = helper;
         this.getMembershipsRepository = getMembershipsRepository;
+        this.policy = new UserAccessPolicy();
     }
 
     @Override
@@ -29,10 +38,7 @@ class UserAccessGuardImpl implements UserAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!canSeeUser(user, userId)) {
-            throw new UserNotFoundException(UserId.of(userId));
-        }
-        return true;
+        return resolveUser(policy.canRead(user, userId, membershipsOf(userId)), userId);
     }
 
     @Override
@@ -41,13 +47,7 @@ class UserAccessGuardImpl implements UserAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!canSeeUser(user, userId)) {
-            throw new UserNotFoundException(UserId.of(userId));
-        }
-        if (user.isPlatformAdmin()) {
-            return true;
-        }
-        return isCommunityAdminOfAnyCommunityOfTargetUser(user, userId);
+        return resolveUser(policy.canEdit(user, userId, membershipsOf(userId)), userId);
     }
 
     @Override
@@ -56,32 +56,11 @@ class UserAccessGuardImpl implements UserAccessGuard {
         if (user == null) {
             return false;
         }
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
-            return true;
-        }
-        if (communityId == null) {
-            return false;
-        }
-        if (!helper.canSeeCommunity(user, communityId)) {
+        AccessDecision decision = policy.canCreateIn(user, communityId);
+        if (decision == AccessDecision.NOT_VISIBLE) {
             throw new CommunityNotFoundException(communityId);
         }
-        return helper.hasCommunityAdminRoleIn(user, communityId);
-    }
-
-    /**
-     * Whether the caller is able to <em>see</em> the target user exists: platform admins see
-     * everyone, a user sees themselves, and a community admin sees the members of the communities
-     * they administer. Used to decide between a 404 (cannot see the user) and a 403 (can see but
-     * lacks permission for the action).
-     */
-    private boolean canSeeUser(User caller, UUID userId) {
-        if (Boolean.TRUE.equals(caller.isPlatformAdmin())) {
-            return true;
-        }
-        if (caller.getId().equals(userId)) {
-            return true;
-        }
-        return isCommunityAdminOfAnyCommunityOfTargetUser(caller, userId);
+        return decision.isAllowed();
     }
 
     @Override
@@ -90,28 +69,32 @@ class UserAccessGuardImpl implements UserAccessGuard {
         if (user == null) {
             return false;
         }
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
-            return true;
-        }
-        if (user.getMemberships() == null) {
-            return false;
-        }
-        return user.getMemberships().stream()
-                .anyMatch(m ->
-                        m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()));
+        // Never throws: there is no object whose existence could leak.
+        return policy.canList(user).isAllowed();
     }
 
-    private boolean isCommunityAdminOfAnyCommunityOfTargetUser(User caller, UUID targetUserId) {
-        Set<UUID> targetCommunityIds = getMembershipsRepository.findByUserId(targetUserId).stream()
-                .filter(m -> Boolean.TRUE.equals(m.isEnabled()))
-                .map(m -> m.getCommunity() != null ? m.getCommunity().getId() : null)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (targetCommunityIds.isEmpty()) return false;
-        if (caller.getMemberships() == null) return false;
-        return caller.getMemberships().stream()
-                .anyMatch(m -> targetCommunityIds.contains(m.getCommunity().getId())
-                        && m.getRole() == CommunityRole.COMMUNITY_ADMIN
-                        && Boolean.TRUE.equals(m.isEnabled()));
+    private boolean resolveUser(AccessDecision decision, UUID userId) {
+        if (decision == AccessDecision.NOT_VISIBLE) {
+            throw new UserNotFoundException(UserId.of(userId));
+        }
+        return decision.isAllowed();
+    }
+
+    /**
+     * The target user's memberships, fetched at most once and only if a branch asks for them —
+     * a platform admin and a self-read never do.
+     */
+    private Supplier<List<CommunityMembership>> membershipsOf(UUID userId) {
+        return new Supplier<>() {
+            private List<CommunityMembership> memberships;
+
+            @Override
+            public List<CommunityMembership> get() {
+                if (memberships == null) {
+                    memberships = getMembershipsRepository.findByUserId(userId);
+                }
+                return memberships;
+            }
+        };
     }
 }

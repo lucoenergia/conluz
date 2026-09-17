@@ -2,6 +2,9 @@ package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.*;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.AccessDecision;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.CallerMemberships;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.CommunityAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -18,6 +21,7 @@ import java.util.UUID;
 public class CommunityAccessGuardImpl implements CommunityAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
+    private final CommunityAccessPolicy communityAccessPolicy = new CommunityAccessPolicy();
     private final SupplyAccessGuard supplyAccessGuard;
     private final MembershipAccessGuard membershipAccessGuard;
     private final UserAccessGuard userAccessGuard;
@@ -58,10 +62,7 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!helper.canSeeCommunity(user, communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-        return true;
+        return resolveCommunity(communityAccessPolicy.canRead(user, communityId), communityId);
     }
 
     @Override
@@ -70,10 +71,7 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!helper.canSeeCommunity(user, communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-        return helper.hasMembershipInCommunity(user, communityId);
+        return resolveCommunity(communityAccessPolicy.isMember(user, communityId), communityId);
     }
 
     @Override
@@ -82,10 +80,7 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!helper.canSeeCommunity(user, communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-        return helper.hasCommunityAdminRoleIn(user, communityId);
+        return resolveCommunity(communityAccessPolicy.canManage(user, communityId), communityId);
     }
 
     @Override
@@ -167,12 +162,19 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public Set<UUID> adminCommunityIds() {
         User user = helper.getCurrentUser().orElse(null);
-        return helper.adminCommunityIds(user);
+        return CallerMemberships.adminCommunityIds(user);
     }
 
     @Override
     public boolean isCurrentUser(UUID userId) {
         User user = helper.getCurrentUser().orElse(null);
-        return helper.isCurrentUser(user, userId);
+        return CallerMemberships.isCurrentUser(user, userId);
+    }
+
+    private boolean resolveCommunity(AccessDecision decision, UUID communityId) {
+        if (decision == AccessDecision.NOT_VISIBLE) {
+            throw new CommunityNotFoundException(communityId);
+        }
+        return decision.isAllowed();
     }
 }

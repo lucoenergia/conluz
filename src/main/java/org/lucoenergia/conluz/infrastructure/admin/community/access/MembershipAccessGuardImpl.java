@@ -2,16 +2,24 @@ package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.MembershipAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.AccessDecision;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.MembershipAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
 import java.util.UUID;
 
+/**
+ * Adapter over {@link MembershipAccessPolicy}: {@code NOT_VISIBLE} becomes
+ * {@link CommunityNotFoundException} (404), {@code FORBIDDEN} becomes {@code false} (403).
+ */
 class MembershipAccessGuardImpl implements MembershipAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
+    private final MembershipAccessPolicy policy;
 
     public MembershipAccessGuardImpl(CommunityAccessGuardHelper helper) {
         this.helper = helper;
+        this.policy = new MembershipAccessPolicy();
     }
 
     @Override
@@ -20,47 +28,31 @@ class MembershipAccessGuardImpl implements MembershipAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!helper.canSeeCommunity(user, communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-        if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
-            return true;
-        }
-        return helper.hasCommunityAdminRoleIn(user, communityId);
+        return resolve(policy.canManageMemberships(user, communityId), communityId);
     }
 
     @Override
     public boolean canManageMembershipInvestment(UUID communityId) {
         User user = helper.getCurrentUser().orElse(null);
-        if (user == null || communityId == null) {
+        if (user == null) {
             return false;
         }
-        // No platform-admin bypass, deliberately, and no 403 branch: anyone who is not a community
-        // admin here is told the community is not there rather than that they may not touch it.
-        if (!helper.hasCommunityAdminRoleIn(user, communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-        return true;
+        return resolve(policy.canManageInvestment(user, communityId), communityId);
     }
 
     @Override
     public boolean canReadMembershipPayback(UUID communityId, UUID userId) {
         User user = helper.getCurrentUser().orElse(null);
-        if (user == null || communityId == null || userId == null) {
+        if (user == null) {
             return false;
         }
-        // The self branch requires an enabled membership, not merely being the named user: a
-        // disabled membership already makes its community invisible to its holder everywhere else,
-        // and payback must not be the one endpoint where it does not.
-        boolean self = helper.isCurrentUser(user, userId)
-                && helper.hasMembershipInCommunity(user, communityId);
-        boolean communityAdmin = helper.hasCommunityAdminRoleIn(user, communityId);
+        return resolve(policy.canReadPayback(user, communityId, userId), communityId);
+    }
 
-        // No platform-admin bypass, and no 403 branch: anyone qualifying for neither is told the
-        // community is not there rather than that the membership is off limits.
-        if (!(self || communityAdmin)) {
+    private boolean resolve(AccessDecision decision, UUID communityId) {
+        if (decision == AccessDecision.NOT_VISIBLE) {
             throw new CommunityNotFoundException(communityId);
         }
-        return true;
+        return decision.isAllowed();
     }
 }
