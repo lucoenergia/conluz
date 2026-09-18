@@ -1050,6 +1050,39 @@
         ],
         "type" : "object"
       },
+      "PlantCapabilitiesResponse" : {
+        "description" : "What the caller may do with this plant.",
+        "properties" : {
+          "canListSharingAgreements" : {
+            "description" : "Whether the caller may list this plant's sharing agreements. Admin-only: their contents are not member-readable.",
+            "type" : "boolean"
+          },
+          "canManage" : {
+            "description" : "Whether the caller may update or delete this plant, and read and write its Huawei configuration.",
+            "type" : "boolean"
+          },
+          "canManageSharingAgreements" : {
+            "description" : "Whether the caller may create a sharing agreement under this plant.",
+            "type" : "boolean"
+          },
+          "canRead" : {
+            "description" : "Whether the caller may read this plant. Open to any enabled member of its community.",
+            "type" : "boolean"
+          },
+          "canReadSupply" : {
+            "description" : "Whether the caller may open the supply referenced by this plant (GET /api/v1/supplies/{supplyId}). Listing plants is open to any member, but the supply behind one is not, so the reference carries no owner and this says whether following it would succeed.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [
+          "canListSharingAgreements",
+          "canManage",
+          "canManageSharingAgreements",
+          "canRead",
+          "canReadSupply"
+        ],
+        "type" : "object"
+      },
       "PlantCommunityResponse" : {
         "properties" : {
           "id" : {
@@ -1088,6 +1121,10 @@
         "properties" : {
           "address" : {
             "type" : "string"
+          },
+          "capabilities" : {
+            "$ref" : "#/components/schemas/PlantCapabilitiesResponse",
+            "description" : "What the caller may do with this plant."
           },
           "community" : {
             "$ref" : "#/components/schemas/PlantCommunityResponse",
@@ -1141,6 +1178,7 @@
         },
         "required" : [
           "address",
+          "capabilities",
           "community",
           "connectionDate",
           "description",

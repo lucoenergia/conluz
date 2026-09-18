@@ -3,13 +3,14 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PlantCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.SupplyReferenceResponse;
 
 import java.time.LocalDate;
 import java.util.UUID;
 
 @Schema(requiredProperties = {"id", "providerCode", "regulatoryCode", "supply", "name", "address",
-        "description", "inverterProvider", "totalPower", "connectionDate", "community"})
+        "description", "inverterProvider", "totalPower", "connectionDate", "community", "capabilities"})
 public class PlantResponse {
 
     private final UUID id;
@@ -37,7 +38,10 @@ public class PlantResponse {
     @Schema(description = "The community that owns the plant.")
     private final PlantCommunityResponse community;
 
-    public PlantResponse(Plant plant) {
+    @Schema(description = "What the caller may do with this plant.")
+    private final PlantCapabilitiesResponse capabilities;
+
+    public PlantResponse(Plant plant, PlantCapabilitiesResponse capabilities) {
         this.id = plant.getId();
         this.providerCode = plant.getProviderCode();
         this.regulatoryCode = plant.getRegulatoryCode();
@@ -50,6 +54,7 @@ public class PlantResponse {
         this.totalPower = plant.getTotalPower();
         this.connectionDate = plant.getConnectionDate();
         this.community = new PlantCommunityResponse(plant.getCommunity().getId());
+        this.capabilities = capabilities;
     }
 
     public UUID getId() {
@@ -94,5 +99,9 @@ public class PlantResponse {
 
     public PlantCommunityResponse getCommunity() {
         return community;
+    }
+
+    public PlantCapabilitiesResponse getCapabilities() {
+        return capabilities;
     }
 }

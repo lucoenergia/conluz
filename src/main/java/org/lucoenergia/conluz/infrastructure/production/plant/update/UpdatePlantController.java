@@ -14,6 +14,10 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PlantCapabilitiesAssembler;
 
 /**
  * Updates an existing plant
@@ -24,9 +28,12 @@ import java.util.UUID;
 public class UpdatePlantController {
 
     private final UpdatePlantService service;
+    private final PlantCapabilitiesAssembler capabilitiesAssembler;
 
-    public UpdatePlantController(UpdatePlantService service) {
+    public UpdatePlantController(UpdatePlantService service,
+                                 PlantCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PutMapping("/plants/{plantId}")
@@ -63,7 +70,10 @@ public class UpdatePlantController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
-    public PlantResponse updatePlant(@PathVariable("plantId") UUID plantId, @Valid @RequestBody UpdatePlantBody body) {
-        return new PlantResponse(service.update(body.toPlant(plantId)));
+    public PlantResponse updatePlant(@AuthenticationPrincipal User currentUser,
+                                     @PathVariable("plantId") UUID plantId,
+                                     @Valid @RequestBody UpdatePlantBody body) {
+        Plant updated = service.update(body.toPlant(plantId));
+        return new PlantResponse(updated, capabilitiesAssembler.assemble(currentUser, updated));
     }
 }
