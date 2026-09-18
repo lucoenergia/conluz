@@ -60,7 +60,12 @@ final class CapabilityInventory {
         report("canReadCommunityProduction", capability(COMMUNITY, "canReadProduction"));
         report("canListSupplies", capability(COMMUNITY, "canListSupplies"));
         report("canListPlants", capability(COMMUNITY, "canListPlants"));
-        report("canCreateUserIn", capability(COMMUNITY, "canCreateUsers"));
+        // One guard, two capabilities, as canReadSupply already is: the community reports whether
+        // the caller may create a user in that community, and the platform reports the no-community
+        // case the same guard answers when @PreAuthorize passes it a null communityId.
+        report("canCreateUserIn",
+                capability(COMMUNITY, "canCreateUsers"),
+                capability(PLATFORM, "canCreateUsers"));
 
         // Community-wide rules that a membership also reports, because they are what a client needs
         // to decide whether to offer the control on one row of the roster.
@@ -126,6 +131,12 @@ final class CapabilityInventory {
         // The community reports it anyway, because a client has to decide whether to offer the
         // action before any supply is chosen.
         withoutGuard(capability(COMMUNITY, "canCreatePlants"));
+
+        // No endpoint asks whether the caller may administer the platform: the capability gates a
+        // surface -- the communities administration page, the platform overview, the landing route
+        // -- and every endpoint behind that surface reports its own decision. The client still needs
+        // a name for "may I open this at all", which is what this is.
+        withoutGuard(capability(PLATFORM, "canAdministerPlatform"));
     }
 
     static Map<String, Set<Capability>> reported() {

@@ -36,6 +36,20 @@ final class CapabilityFixtures {
         return UserMother.randomUser();
     }
 
+    /**
+     * A platform admin who is also inside the community -- the row where almost every asymmetry in
+     * this codebase turns.
+     *
+     * <p>Not the same object as {@code CapabilityGuardEquivalenceTest}'s identically named helper,
+     * and not interchangeable with it: this one is in-memory, for the unit assembler tests, while
+     * that one persists the user and grants the flag through {@code ManagePlatformAdminRepository}
+     * because the equivalence test authenticates its callers through {@code UserDetailsService}.
+     * Adjust one and check the other.</p>
+     */
+    static User platformAdminMemberOf(Community community) {
+        return withMembership(platformAdmin(), community, CommunityRole.COMMUNITY_MEMBER, true);
+    }
+
     static User adminOf(Community community) {
         return withMembership(UserMother.randomUser(), community, CommunityRole.COMMUNITY_ADMIN, true);
     }
