@@ -7,7 +7,12 @@ This policy is MANDATORY. Every REST controller endpoint MUST enforce it via a `
 - **Community admin** — enabled membership with `CommunityRole.COMMUNITY_ADMIN`.
 - **Member / regular user** — enabled membership without admin role.
 
-## Capabilities
+## Role privileges
+
+What each role may do, in prose. Not to be confused with the `capabilities`
+objects the API returns, which report one endpoint's decision each and are listed in
+[`capability-inventory.md`](capability-inventory.md).
+
 - Platform admins can:
   - List, view, create, edit and remove users globally.
   - List, view, create, edit and remove communities.
@@ -46,7 +51,8 @@ nothing; on a **single object** they get **404** (`canReadSupply`, `canReadPlant
 `canReadSharingAgreement`), because they cannot see that object and a 403 would confirm it exists.
 
 ## Enforcement rules for developers and AI agents
-- **Every `@PreAuthorize` is either `isAuthenticated()` or exactly one `@communityAccessGuard.<method>(...)` call.** Composite expressions (`and`, `or`, `!`) and `hasRole(...)` are not permitted: an endpoint's decision must have a single name, so it can be reported to a client as a capability and evaluated outside a request. Enforced by `PreAuthorizeShapeArchTest`; `PreAuthorizePresenceArchTest` additionally requires every handler method to carry one (the `permitAll()` endpoints are an explicit allowlist).
+- **Every `@PreAuthorize` is either `isAuthenticated()` or exactly one `@communityAccessGuard.<method>(...)` call.** Composite expressions (`and`, `or`, `!`) and `hasRole(...)` are not permitted: an endpoint's decision must have a single name, so it can be reported to a client as a capability (see
+[`capability-inventory.md`](capability-inventory.md)) and evaluated outside a request. Enforced by `PreAuthorizeShapeArchTest`; `PreAuthorizePresenceArchTest` additionally requires every handler method to carry one (the `permitAll()` endpoints are an explicit allowlist).
 - Platform-wide actions: use the platform guard methods — `canCreateCommunity()`, `canUpdateCommunity(#communityId)`, `canEnableCommunity(#communityId)`, `canDisableCommunity(#communityId)`, `canGrantPlatformAdmin(#userId)`, `canRevokePlatformAdmin(#userId)` — never `hasRole('PLATFORM_ADMIN')` in SpEL. These are role checks: they take the object id only so the decision has a subject to be named against, they never inspect it, and they never throw. A denial is always **403**, never 404, exactly as `hasRole` behaved.
 - Self-service writes get their own endpoint with `isAuthenticated()` and `@AuthenticationPrincipal`, acting on the caller with no id in the path (`PUT /api/v1/users/profile`). Prefer that over widening an object-scoped guard: the administrative endpoint keeps its narrow rule, and an endpoint with no id cannot be pointed at somebody else.
 - Community-scoped actions: `@PreAuthorize("@communityAccessGuard.<method>(...)")` using the matching guard method (`canManageCommunity`, `canManageMemberships`, `canManagePlant`, `canCreatePlant`, `canManageSharingAgreement`, `canEditSupply`, `canCreateUserIn`, `canReadUser`, `canEditUser`, `canListUsers`).
@@ -86,6 +92,11 @@ applied by **guard adapters** under `infrastructure/admin/community/access`.
   `ALLOWED` → `true`. An absent caller is `false` before any policy runs (→ 401).
 - `CallerMemberships` is the single spelling of the caller's standing — "enabled community admin of
   X", "can see community X", "is this user". Add membership questions there, not in a guard.
+- The second evaluator is real, not hypothetical: every resource response carries a `capabilities`
+  object assembled from these policies over already-loaded entities. Each guard is mapped to the
+  capability that reports it — or recorded as reported to nobody, with the reason — in
+  [`capability-inventory.md`](capability-inventory.md), and the build fails if a new guard is
+  neither.
 
 ### Null arguments reach a guard only from an unvalidated source
 
