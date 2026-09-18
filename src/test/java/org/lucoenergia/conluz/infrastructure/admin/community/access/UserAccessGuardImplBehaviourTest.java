@@ -48,7 +48,7 @@ class UserAccessGuardImplBehaviourTest {
 
     private UserAccessGuard guard() {
         return new UserAccessGuardImpl(new CommunityAccessGuardHelper(authService, getCommunityRepository),
-                getMembershipsRepository);
+                getMembershipsRepository, new AccessPolicies().user());
     }
 
     // --- canReadUser ---

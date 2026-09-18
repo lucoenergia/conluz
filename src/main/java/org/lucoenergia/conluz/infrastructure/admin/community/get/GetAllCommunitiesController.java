@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.CommunityCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(
@@ -31,8 +34,11 @@ public class GetAllCommunitiesController {
 
     private final GetCommunityService service;
     private final CommunityAccessGuard communityAccessGuard;
+    private final CommunityCapabilitiesAssembler capabilitiesAssembler;
 
-    public GetAllCommunitiesController(GetCommunityService service, CommunityAccessGuard communityAccessGuard) {
+    public GetAllCommunitiesController(GetCommunityService service, CommunityAccessGuard communityAccessGuard,
+                                       CommunityCapabilitiesAssembler capabilitiesAssembler) {
+        this.capabilitiesAssembler = capabilitiesAssembler;
         this.service = service;
         this.communityAccessGuard = communityAccessGuard;
     }
@@ -60,10 +66,11 @@ public class GetAllCommunitiesController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @PreAuthorize("isAuthenticated()")
-    public List<CommunityResponse> getAllCommunities() {
+    public List<CommunityResponse> getAllCommunities(@AuthenticationPrincipal User currentUser) {
         Set<UUID> visibleCommunityIds = communityAccessGuard.visibleCommunityIds();
         return service.findAllWithStats(visibleCommunityIds).stream()
-                .map(CommunityResponse::new)
+                .map(community -> new CommunityResponse(community,
+                        capabilitiesAssembler.assemble(currentUser, community.getId())))
                 .toList();
     }
 }

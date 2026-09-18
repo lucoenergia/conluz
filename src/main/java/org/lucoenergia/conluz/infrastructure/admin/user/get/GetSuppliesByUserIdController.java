@@ -22,6 +22,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
+import java.util.Objects;
+import java.util.Map;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Get supplies for a specific user
@@ -31,9 +38,15 @@ import java.util.UUID;
 public class GetSuppliesByUserIdController {
 
     private final GetSupplyService supplyService;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
+    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
 
-    public GetSuppliesByUserIdController(GetSupplyService supplyService) {
+    public GetSuppliesByUserIdController(GetSupplyService supplyService,
+                                         SupplyCapabilitiesAssembler capabilitiesAssembler,
+                                         UserCapabilitiesAssembler userCapabilitiesAssembler) {
         this.supplyService = supplyService;
+        this.capabilitiesAssembler = capabilitiesAssembler;
+        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
     }
 
     @GetMapping("/{userId}/supplies")
@@ -67,11 +80,24 @@ public class GetSuppliesByUserIdController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canListSuppliesOfUser(#userId)")
-    public List<SupplyResponse> getSuppliesByUserId(@PathVariable("userId") UUID userId) {
+    public List<SupplyResponse> getSuppliesByUserId(@AuthenticationPrincipal User currentUser,
+                                                    @PathVariable("userId") UUID userId) {
         List<Supply> supplies = supplyService.getByUserId(UserId.of(userId));
 
+        // One query for every owner on this page, not one per supply: the owners embedded in a
+        // supply carry no memberships, and the rules deciding what may be done with them need those.
+        Map<UUID, UserCapabilitiesResponse> ownerCapabilities =
+                userCapabilitiesAssembler.assembleAllFetchingMemberships(currentUser,
+                        supplies.stream().map(Supply::getUser).filter(Objects::nonNull).toList());
+
         return supplies.stream()
-                .map(SupplyResponse::new)
+                .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
+                        ownerCapabilitiesOf(supply, ownerCapabilities)))
                 .toList();
+    }
+
+    private UserCapabilitiesResponse ownerCapabilitiesOf(Supply supply,
+                                                         Map<UUID, UserCapabilitiesResponse> byUserId) {
+        return supply.getUser() == null ? null : byUserId.get(supply.getUser().getId());
     }
 }

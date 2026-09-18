@@ -50,7 +50,7 @@ class CommunityAccessGuardImplTest {
 
     private CommunityAccessGuard guard() {
         return new CommunityAccessGuardImpl(authService, getCommunityRepository, getMembershipsRepository,
-                getSupplyRepository, getPlantRepository, getSharingAgreementRepository);
+                getSupplyRepository, getPlantRepository, getSharingAgreementRepository, new AccessPolicies());
     }
 
     // --- canReadCommunity ---

@@ -17,9 +17,9 @@ class MembershipAccessGuardImpl implements MembershipAccessGuard {
     private final CommunityAccessGuardHelper helper;
     private final MembershipAccessPolicy policy;
 
-    public MembershipAccessGuardImpl(CommunityAccessGuardHelper helper) {
+    public MembershipAccessGuardImpl(CommunityAccessGuardHelper helper, MembershipAccessPolicy policy) {
         this.helper = helper;
-        this.policy = new MembershipAccessPolicy();
+        this.policy = policy;
     }
 
     @Override

@@ -25,6 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PlantCapabilitiesAssembler;
 
 /**
  * Get all plants of a community
@@ -35,10 +38,13 @@ public class GetAllPlantsController {
 
     private final GetPlantService service;
     private final PaginationRequestMapper paginationRequestMapper;
+    private final PlantCapabilitiesAssembler capabilitiesAssembler;
 
-    public GetAllPlantsController(GetPlantService service, PaginationRequestMapper paginationRequestMapper) {
+    public GetAllPlantsController(GetPlantService service, PaginationRequestMapper paginationRequestMapper,
+                                  PlantCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @GetMapping
@@ -65,13 +71,14 @@ public class GetAllPlantsController {
     @InternalServerErrorResponse
     @PageableAsQueryParam
     @PreAuthorize("@communityAccessGuard.canListPlants(#communityId)")
-    public PagedResult<PlantResponse> getAllPlants(@PathVariable("communityId") UUID communityId,
+    public PagedResult<PlantResponse> getAllPlants(@AuthenticationPrincipal User currentUser,
+                                                  @PathVariable("communityId") UUID communityId,
                                                    @Parameter(hidden = true) Pageable page) {
         PagedResult<Plant> plants = service.findAllByCommunities(paginationRequestMapper.mapRequest(page),
                 Set.of(communityId));
 
         List<PlantResponse> plantsResponse = plants.getItems().stream()
-                .map(PlantResponse::new)
+                .map(plant -> new PlantResponse(plant, capabilitiesAssembler.assemble(currentUser, plant)))
                 .toList();
 
         return new PagedResult<>(plantsResponse, plants.getSize(), plants.getTotalElements(),

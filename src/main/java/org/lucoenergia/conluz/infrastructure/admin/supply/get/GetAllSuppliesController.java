@@ -25,6 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
+import java.util.Objects;
+import java.util.Map;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Get the supplies of a community visible to the current user. The caller must be a member of the
@@ -36,13 +41,19 @@ public class GetAllSuppliesController {
 
     private final GetSupplyService service;
     private final PaginationRequestMapper paginationRequestMapper;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
+    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
     private final CommunityAccessGuard communityAccessGuard;
 
     public GetAllSuppliesController(GetSupplyService service, PaginationRequestMapper paginationRequestMapper,
-                                    CommunityAccessGuard communityAccessGuard) {
+                                    CommunityAccessGuard communityAccessGuard,
+                                    SupplyCapabilitiesAssembler capabilitiesAssembler,
+                                    UserCapabilitiesAssembler userCapabilitiesAssembler) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
         this.communityAccessGuard = communityAccessGuard;
+        this.capabilitiesAssembler = capabilitiesAssembler;
+        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
     }
 
 
@@ -87,11 +98,23 @@ public class GetAllSuppliesController {
                     UserId.of(currentUser.getId()), communityId);
         }
 
+        // One query for every owner on this page, not one per supply: the owners embedded in a
+        // supply carry no memberships, and the rules deciding what may be done with them need those.
+        Map<UUID, UserCapabilitiesResponse> ownerCapabilities =
+                userCapabilitiesAssembler.assembleAllFetchingMemberships(currentUser,
+                        supplies.getItems().stream().map(Supply::getUser).filter(Objects::nonNull).toList());
+
         List<SupplyResponse> suppliesResponse = supplies.getItems().stream()
-                .map(SupplyResponse::new)
+                .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
+                        ownerCapabilitiesOf(supply, ownerCapabilities)))
                 .toList();
 
         return new PagedResult<>(suppliesResponse, supplies.getSize(), supplies.getTotalElements(),
                 supplies.getTotalPages(), supplies.getNumber());
+    }
+
+    private UserCapabilitiesResponse ownerCapabilitiesOf(Supply supply,
+                                                         Map<UUID, UserCapabilitiesResponse> byUserId) {
+        return supply.getUser() == null ? null : byUserId.get(supply.getUser().getId());
     }
 }

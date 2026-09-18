@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Lets a user change their own contact details.
@@ -36,9 +37,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class UpdateProfileController {
 
     private final UpdateProfileService service;
+    private final UserCapabilitiesAssembler capabilitiesAssembler;
 
-    public UpdateProfileController(UpdateProfileService service) {
+    public UpdateProfileController(UpdateProfileService service,
+                                   UserCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PutMapping("/users/profile")
@@ -73,7 +77,8 @@ public class UpdateProfileController {
     @PreAuthorize("isAuthenticated()")
     public UserResponse updateProfile(@AuthenticationPrincipal User currentUser,
                                       @Valid @RequestBody UpdateProfileBody body) {
-        return new UserResponse(
-                service.updateContactDetails(UserId.of(currentUser.getId()), body.toContactDetails()));
+        User updated = service.updateContactDetails(UserId.of(currentUser.getId()), body.toContactDetails());
+        return new UserResponse(updated,
+                capabilitiesAssembler.assembleFetchingMemberships(currentUser, updated));
     }
 }

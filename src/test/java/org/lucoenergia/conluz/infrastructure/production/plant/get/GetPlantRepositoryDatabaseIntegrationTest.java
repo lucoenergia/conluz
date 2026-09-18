@@ -36,6 +36,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PlantCapabilitiesAssembler;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 
 @Transactional
 class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
@@ -53,6 +56,8 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+    private PlantCapabilitiesAssembler capabilitiesAssembler;
 
 
     @Test
@@ -252,20 +257,40 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        // GetPlantRepositoryDatabase already fully resolves Plant.supply.community for every item
-        // (a pre-existing, unrelated per-plant lazy load) -- that cost is not what this test measures.
         PagedResult<Plant> plants = getPlantRepositoryDatabase.findByCommunities(PagedRequest.of(0, 10),
                 Set.of(community.getId()));
+        User caller = communityAdminOf(community);
 
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
-        List<PlantResponse> responses = plants.getItems().stream().map(PlantResponse::new).toList();
+        List<PlantResponse> responses = plants.getItems().stream()
+                .map(plant -> new PlantResponse(plant, capabilitiesAssembler.assemble(caller, plant)))
+                .toList();
 
         assertEquals(0, statistics.getPrepareStatementCount(),
-                "constructing PlantResponse must not issue further queries: community is already resolved");
+                "assembling capabilities and constructing PlantResponse must not issue further queries: "
+                        + "the plant, its supply and its community are already resolved");
         for (PlantResponse response : responses) {
             assertNotNull(response.getCommunity().getId());
+            assertTrue(response.getCapabilities().isCanManage());
+            assertTrue(response.getCapabilities().isCanReadSupply());
         }
+    }
+
+    /**
+     * An in-memory caller: the assembler must decide from the memberships the principal already
+     * carries, so building one here is not a shortcut -- it is the shape the production path has.
+     */
+    private User communityAdminOf(Community community) {
+        User caller = UserMother.randomUser();
+        caller.setMemberships(List.of(new CommunityMembership.Builder()
+                .withId(UUID.randomUUID())
+                .withUser(caller)
+                .withCommunity(community)
+                .withRole(CommunityRole.COMMUNITY_ADMIN)
+                .withEnabled(true)
+                .build()));
+        return caller;
     }
 }

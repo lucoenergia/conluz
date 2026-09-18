@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PlantCapabilitiesAssembler;
 
 /**
  * Get plant by ID
@@ -30,9 +33,12 @@ import java.util.UUID;
 public class GetPlantByIdController {
 
     private final GetPlantService service;
+    private final PlantCapabilitiesAssembler capabilitiesAssembler;
 
-    public GetPlantByIdController(GetPlantService service) {
+    public GetPlantByIdController(GetPlantService service,
+                                  PlantCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @GetMapping("/plants/{plantId}")
@@ -65,8 +71,9 @@ public class GetPlantByIdController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canReadPlant(#plantId)")
-    public PlantResponse getPlantById(@PathVariable("plantId") UUID plantId) {
+    public PlantResponse getPlantById(@AuthenticationPrincipal User currentUser,
+                                      @PathVariable("plantId") UUID plantId) {
         Plant plant = service.findById(PlantId.of(plantId));
-        return new PlantResponse(plant);
+        return new PlantResponse(plant, capabilitiesAssembler.assemble(currentUser, plant));
     }
 }

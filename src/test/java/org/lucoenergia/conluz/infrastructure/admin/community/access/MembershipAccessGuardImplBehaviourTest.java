@@ -44,7 +44,8 @@ class MembershipAccessGuardImplBehaviourTest {
 
     private MembershipAccessGuard guard() {
         return new MembershipAccessGuardImpl(
-                new CommunityAccessGuardHelper(authService, getCommunityRepository));
+                new CommunityAccessGuardHelper(authService, getCommunityRepository),
+                new AccessPolicies().membership());
     }
 
     // --- canManageMemberships ---

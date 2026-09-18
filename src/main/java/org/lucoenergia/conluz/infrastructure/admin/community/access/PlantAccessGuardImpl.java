@@ -5,7 +5,6 @@ import org.lucoenergia.conluz.domain.admin.community.access.PlantAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.AccessDecision;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.PlantAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.SharingAgreementAccessPolicy;
-import org.lucoenergia.conluz.domain.admin.community.access.policy.SupplyAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -37,13 +36,15 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
 
     public PlantAccessGuardImpl(CommunityAccessGuardHelper helper, GetPlantRepository getPlantRepository,
                                 GetSupplyRepository getSupplyRepository,
-                                GetSharingAgreementRepository getSharingAgreementRepository) {
+                                GetSharingAgreementRepository getSharingAgreementRepository,
+                                PlantAccessPolicy policy,
+                                SharingAgreementAccessPolicy sharingAgreementPolicy) {
         this.helper = helper;
         this.getPlantRepository = getPlantRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.getSharingAgreementRepository = getSharingAgreementRepository;
-        this.policy = new PlantAccessPolicy(new SupplyAccessPolicy());
-        this.sharingAgreementPolicy = new SharingAgreementAccessPolicy();
+        this.policy = policy;
+        this.sharingAgreementPolicy = sharingAgreementPolicy;
     }
 
     @Override
@@ -101,9 +102,10 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        Plant plant = requireVisiblePlant(user, plantId);
+        Plant plant = findPlant(plantId);
         SharingAgreement agreement = findAgreement(sharingAgreementId);
-        return resolveAgreement(sharingAgreementPolicy.canRead(user, plant, agreement), sharingAgreementId);
+        return resolveThroughPlant(sharingAgreementPolicy.canReadThroughPlant(user, plant, agreement),
+                user, plant, plantId, sharingAgreementId);
     }
 
     @Override
@@ -127,22 +129,24 @@ class PlantAccessGuardImpl implements PlantAccessGuard {
         if (user == null) {
             return false;
         }
-        Plant plant = requireVisiblePlant(user, plantId);
+        Plant plant = findPlant(plantId);
         SharingAgreement agreement = findAgreement(sharingAgreementId);
-        return resolveAgreement(sharingAgreementPolicy.canManage(user, plant, agreement), sharingAgreementId);
+        return resolveThroughPlant(sharingAgreementPolicy.canManageThroughPlant(user, plant, agreement),
+                user, plant, plantId, sharingAgreementId);
     }
 
     /**
-     * Settles the plant before the agreement is even looked up: the two carry different not-found
-     * identities, and a caller who cannot see the plant must be told the <em>plant</em> is missing,
-     * not the agreement.
+     * The plant and the agreement carry different not-found identities, and a caller who cannot see
+     * the plant must be told the <em>plant</em> is missing, not the agreement. The policy composes
+     * the two rules and answers with one decision, so this asks it which resource the denial was
+     * about -- choosing an exception, not deciding access.
      */
-    private Plant requireVisiblePlant(User user, UUID plantId) {
-        Plant plant = findPlant(plantId);
-        if (!policy.isVisible(user, plant)) {
+    private boolean resolveThroughPlant(AccessDecision decision, User user, Plant plant, UUID plantId,
+                                        UUID sharingAgreementId) {
+        if (decision == AccessDecision.NOT_VISIBLE && !sharingAgreementPolicy.isPlantVisible(user, plant)) {
             throw new PlantNotFoundException(PlantId.of(plantId));
         }
-        return plant;
+        return resolveAgreement(decision, sharingAgreementId);
     }
 
     private boolean resolvePlant(AccessDecision decision, UUID plantId) {

@@ -273,6 +273,69 @@ class UserAccessPolicyTest {
         assertEquals(AccessDecision.FORBIDDEN, policy.canList(caller));
     }
 
+    // --- canEditOther ---
+    // Backs deleting, enabling and disabling. It is canEdit plus "not yourself", in that order --
+    // the order matters, and these tests pin it.
+
+    @Test
+    void canEditOther_allows_aPlatformAdminActingOnSomebodyElse() {
+        assertEquals(AccessDecision.ALLOWED,
+                policy.canEditOther(PolicyFixtures.platformAdmin(), UUID.randomUUID(), noMemberships()));
+    }
+
+    @Test
+    void canEditOther_allows_aCommunityAdminActingOnAMemberOfThatCommunity() {
+        Community shared = PolicyFixtures.community();
+        assertEquals(AccessDecision.ALLOWED,
+                policy.canEditOther(PolicyFixtures.adminOf(shared), UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    void canEditOther_isForbidden_forAPlatformAdminActingOnThemselves() {
+        User caller = PolicyFixtures.platformAdmin();
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canEditOther(caller, caller.getId(), noMemberships()));
+    }
+
+    @Test
+    void canEditOther_isForbidden_forACommunityAdminActingOnThemselves() {
+        Community shared = PolicyFixtures.community();
+        User caller = PolicyFixtures.adminOf(shared);
+        assertEquals(AccessDecision.FORBIDDEN, policy.canEditOther(caller, caller.getId(), memberOf(shared)));
+    }
+
+    /**
+     * The edit decision is settled before the self check, so a plain member acting on themselves is
+     * forbidden for want of the edit right -- not not-visible, which they would be if the self
+     * check ran first and the visibility branch never got to pass.
+     */
+    @Test
+    void canEditOther_isForbidden_forAPlainMemberActingOnThemselves() {
+        User caller = PolicyFixtures.memberOf(PolicyFixtures.community());
+        assertEquals(AccessDecision.FORBIDDEN, policy.canEditOther(caller, caller.getId(), noMemberships()));
+    }
+
+    /**
+     * Visibility still comes first: a caller who cannot see the target must be told it does not
+     * exist, even though the answer would have been "no" either way.
+     */
+    @Test
+    void canEditOther_isNotVisible_whenTheCallerCannotSeeTheTarget() {
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canEditOther(PolicyFixtures.stranger(), UUID.randomUUID(), noMemberships()));
+    }
+
+    /**
+     * Sharing a community is not seeing its members: only an admin of it can. So a plain member
+     * acting on a fellow member is told the target does not exist, exactly as canEdit says.
+     */
+    @Test
+    void canEditOther_isNotVisible_forAPlainMemberOfTheTargetCommunity() {
+        Community shared = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canEditOther(PolicyFixtures.memberOf(shared), UUID.randomUUID(), memberOf(shared)));
+    }
+
     // --- canSee ---
 
     @Test

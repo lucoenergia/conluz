@@ -8,8 +8,9 @@ import java.util.UUID;
 
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SharingAgreementCapabilitiesResponse;
 
-@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "installedPowerKw", "createdAt", "createdBy", "updatedAt", "updatedBy", "file"})
+@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "installedPowerKw", "createdAt", "createdBy", "updatedAt", "updatedBy", "file", "capabilities"})
 public class SharingAgreementResponse {
 
     @Schema(description = "Internal unique identifier of the sharing agreement", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
@@ -35,7 +36,11 @@ public class SharingAgreementResponse {
     @Schema(description = "Metadata of the latest evidence file uploaded for this agreement. Null means no file has been uploaded, never that it wasn't loaded", types = {"object", "null"})
     private final SharingAgreementFileResponse file;
 
-    public SharingAgreementResponse(SharingAgreement sharingAgreement) {
+    @Schema(description = "What the caller may do with this sharing agreement.")
+    private final SharingAgreementCapabilitiesResponse capabilities;
+
+    public SharingAgreementResponse(SharingAgreement sharingAgreement,
+                                    SharingAgreementCapabilitiesResponse capabilities) {
         this.id = sharingAgreement.getId();
         this.plantId = sharingAgreement.getPlantId();
         this.name = sharingAgreement.getName();
@@ -50,6 +55,7 @@ public class SharingAgreementResponse {
                 sharingAgreement.getFile().getId(),
                 sharingAgreement.getFile().getFilename(),
                 sharingAgreement.getFile().getUploadedAt());
+        this.capabilities = capabilities;
     }
 
     public UUID getId() {
@@ -94,5 +100,9 @@ public class SharingAgreementResponse {
 
     public SharingAgreementFileResponse getFile() {
         return file;
+    }
+
+    public SharingAgreementCapabilitiesResponse getCapabilities() {
+        return capabilities;
     }
 }

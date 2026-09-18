@@ -21,6 +21,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
+import java.util.UUID;
+import java.util.Map;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Adds a new supply
@@ -34,9 +41,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class CreateSupplyController {
 
     private final CreateSupplyService service;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
+    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
 
-    public CreateSupplyController(CreateSupplyService service) {
+    public CreateSupplyController(CreateSupplyService service,
+                                  SupplyCapabilitiesAssembler capabilitiesAssembler,
+                                  UserCapabilitiesAssembler userCapabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
+        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
     }
 
     @PostMapping
@@ -75,8 +88,19 @@ public class CreateSupplyController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
-    public SupplyResponse createSupply(@Valid @RequestBody CreateSupplyBody body) {
+    public SupplyResponse createSupply(@AuthenticationPrincipal User currentUser,
+                                      @Valid @RequestBody CreateSupplyBody body) {
         Supply newSupply = service.create(body.mapToSupply(), UserPersonalId.of(body.getPersonalId()), body.getCommunityId());
-        return new SupplyResponse(newSupply);
+        return new SupplyResponse(newSupply, capabilitiesAssembler.assemble(currentUser, newSupply),
+                ownerCapabilities(currentUser, newSupply));
+    }
+
+    /**
+     * The owner's capabilities, for the UserResponse embedded in the supply. One supply means one
+     * owner, so the single-target lookup is the right shape here; the listings batch instead.
+     */
+    private UserCapabilitiesResponse ownerCapabilities(User caller, Supply supply) {
+        return supply.getUser() == null ? null
+                : userCapabilitiesAssembler.assembleFetchingMemberships(caller, supply.getUser());
     }
 }

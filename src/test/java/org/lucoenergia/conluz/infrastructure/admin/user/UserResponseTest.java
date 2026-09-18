@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 
 class UserResponseTest {
 
@@ -42,7 +43,7 @@ class UserResponseTest {
 
         user.setMemberships(List.of(membership1, membership2));
 
-        UserResponse response = new UserResponse(user);
+        UserResponse response = new UserResponse(user, anyCapabilities());
 
         assertTrue(response.getIsPlatformAdmin());
         Map<String, String> memberships = response.getMemberships();
@@ -55,9 +56,18 @@ class UserResponseTest {
     void testMapsIsPlatformAdminFalseWhenNotSet() {
         User user = UserMother.randomUser();
 
-        UserResponse response = new UserResponse(user);
+        UserResponse response = new UserResponse(user, anyCapabilities());
 
         assertFalse(response.getIsPlatformAdmin());
         assertTrue(response.getMemberships().isEmpty());
+    }
+
+    /**
+     * These tests are about the mapping of the user's own fields, not about access. The capabilities
+     * are a precomputed argument here, exactly as they are in production -- the response never
+     * decides them.
+     */
+    private UserCapabilitiesResponse anyCapabilities() {
+        return UserCapabilitiesResponse.builder().build();
     }
 }

@@ -48,7 +48,7 @@ class SupplyAccessGuardImplBehaviourTest {
 
     private SupplyAccessGuard guard() {
         return new SupplyAccessGuardImpl(new CommunityAccessGuardHelper(authService, getCommunityRepository),
-                getSupplyRepository);
+                getSupplyRepository, new AccessPolicies().supply());
     }
 
     // --- canReadSupply ---

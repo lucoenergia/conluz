@@ -22,10 +22,11 @@ class SupplyAccessGuardImpl implements SupplyAccessGuard {
     private final GetSupplyRepository getSupplyRepository;
     private final SupplyAccessPolicy policy;
 
-    public SupplyAccessGuardImpl(CommunityAccessGuardHelper helper, GetSupplyRepository getSupplyRepository) {
+    public SupplyAccessGuardImpl(CommunityAccessGuardHelper helper, GetSupplyRepository getSupplyRepository,
+                                SupplyAccessPolicy policy) {
         this.helper = helper;
         this.getSupplyRepository = getSupplyRepository;
-        this.policy = new SupplyAccessPolicy();
+        this.policy = policy;
     }
 
     @Override

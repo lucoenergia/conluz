@@ -16,9 +16,9 @@ class PlatformAccessGuardImpl implements PlatformAccessGuard {
     private final CommunityAccessGuardHelper helper;
     private final PlatformAccessPolicy policy;
 
-    public PlatformAccessGuardImpl(CommunityAccessGuardHelper helper) {
+    public PlatformAccessGuardImpl(CommunityAccessGuardHelper helper, PlatformAccessPolicy policy) {
         this.helper = helper;
-        this.policy = new PlatformAccessPolicy();
+        this.policy = policy;
     }
 
     @Override

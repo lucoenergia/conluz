@@ -189,4 +189,63 @@ class PlantAccessPolicyTest {
         Supply supply = PolicyFixtures.supplyIn(community, UUID.randomUUID());
         return PolicyFixtures.plantOf(supply);
     }
+    // --- canCreateIn ---
+    // The community-admin half of canCreate, asked without a supply. Every case below must match
+    // what canCreate answers for a supply of that community, which is what makes it reportable as a
+    // capability of the community itself.
+
+    @Test
+    void canCreateIn_allows_anEnabledCommunityAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.ALLOWED,
+                policy.canCreateIn(PolicyFixtures.adminOf(community), community.getId()));
+    }
+
+    @Test
+    void canCreateIn_isForbidden_forAPlainMember() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canCreateIn(PolicyFixtures.memberOf(community), community.getId()));
+    }
+
+    /**
+     * A disabled membership makes the community invisible to its holder, so this is not-visible
+     * rather than forbidden -- and canCreate says the same of a supply of that community.
+     */
+    @Test
+    void canCreateIn_isNotVisible_forADisabledCommunityAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canCreateIn(PolicyFixtures.disabledAdminOf(community), community.getId()));
+    }
+
+    /**
+     * A platform admin can see every community, so the denial is a 403 rather than a 404 -- the same
+     * asymmetry canList has, and for the same reason.
+     */
+    @Test
+    void canCreateIn_isForbidden_forANonMemberPlatformAdmin() {
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canCreateIn(PolicyFixtures.platformAdmin(), UUID.randomUUID()));
+    }
+
+    @Test
+    void canCreateIn_isNotVisible_forAStranger() {
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canCreateIn(PolicyFixtures.stranger(), UUID.randomUUID()));
+    }
+
+    @Test
+    void canCreateIn_agreesWithCanCreateOverASupplyOfTheCommunity() {
+        Community community = PolicyFixtures.community();
+        User admin = PolicyFixtures.adminOf(community);
+        User member = PolicyFixtures.memberOf(community);
+        Supply supply = PolicyFixtures.supplyIn(community, UUID.randomUUID());
+
+        assertEquals(policy.canCreate(admin, supply).isAllowed(),
+                policy.canCreateIn(admin, community.getId()).isAllowed());
+        assertEquals(policy.canCreate(member, supply).isAllowed(),
+                policy.canCreateIn(member, community.getId()).isAllowed());
+    }
+
 }

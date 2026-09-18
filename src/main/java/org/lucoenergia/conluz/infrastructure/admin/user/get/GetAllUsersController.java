@@ -27,6 +27,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Get all users — platform admin sees all; community admin sees only their communities' users.
@@ -38,12 +41,15 @@ public class GetAllUsersController {
     private final GetUserService service;
     private final PaginationRequestMapper paginationRequestMapper;
     private final CommunityAccessGuard communityAccessGuard;
+    private final UserCapabilitiesAssembler capabilitiesAssembler;
 
     public GetAllUsersController(GetUserService service, PaginationRequestMapper paginationRequestMapper,
+                                 UserCapabilitiesAssembler capabilitiesAssembler,
                                  CommunityAccessGuard communityAccessGuard) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
         this.communityAccessGuard = communityAccessGuard;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @GetMapping
@@ -92,8 +98,12 @@ public class GetAllUsersController {
             users = service.findAllByCommunities(paginationRequestMapper.mapRequest(page), visibleCommunityIds);
         }
 
+        // GetUserService has already attached every user's memberships in one batch query, so the
+        // assembler reads them rather than loading anything of its own.
+        Map<UUID, UserCapabilitiesResponse> capabilities =
+                capabilitiesAssembler.assembleAllWithLoadedMemberships(currentUser, users.getItems());
         List<UserResponse> responseUsers = users.getItems().stream()
-                .map(UserResponse::new).toList();
+                .map(user -> new UserResponse(user, capabilities.get(user.getId()))).toList();
 
         return new PagedResult<>(responseUsers, users.getSize(), users.getTotalElements(), users.getTotalPages(),
                 users.getNumber());

@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Get user by ID
@@ -30,9 +32,12 @@ import java.util.UUID;
 public class GetUserByIdController {
 
     private final GetUserService service;
+    private final UserCapabilitiesAssembler capabilitiesAssembler;
 
-    public GetUserByIdController(GetUserService service) {
+    public GetUserByIdController(GetUserService service,
+                                 UserCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @GetMapping("/{userId}")
@@ -62,8 +67,10 @@ public class GetUserByIdController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canReadUser(#userId)")
-    public UserResponse getUserById(@PathVariable("userId") UUID userId) {
+    public UserResponse getUserById(@AuthenticationPrincipal User currentUser,
+                                    @PathVariable("userId") UUID userId) {
         User user = service.findById(UserId.of(userId));
-        return new UserResponse(user);
+        // GetUserService attaches the memberships of a single user too.
+        return new UserResponse(user, capabilitiesAssembler.assembleWithLoadedMemberships(currentUser, user));
     }
 }

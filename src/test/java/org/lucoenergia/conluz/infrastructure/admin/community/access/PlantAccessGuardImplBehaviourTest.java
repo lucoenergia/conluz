@@ -59,8 +59,10 @@ class PlantAccessGuardImplBehaviourTest {
     private GetSharingAgreementRepository getSharingAgreementRepository;
 
     private PlantAccessGuard guard() {
+        AccessPolicies policies = new AccessPolicies();
         return new PlantAccessGuardImpl(new CommunityAccessGuardHelper(authService, getCommunityRepository),
-                getPlantRepository, getSupplyRepository, getSharingAgreementRepository);
+                getPlantRepository, getSupplyRepository, getSharingAgreementRepository,
+                policies.plant(), policies.sharingAgreement());
     }
 
     // --- canManagePlant ---
