@@ -75,29 +75,24 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
 
+    /**
+     * Address and phone number are genuinely optional: clearing them is a legitimate edit, and the
+     * columns allow it. The email is not, so it is supplied here -- the case that omits it is
+     * {@link #testWithoutEmail()}.
+     */
     @Test
     void testWithMissingNotRequiredFields() throws Exception {
 
         String authHeader = loginAsDefaultPlatformAdmin();
 
-        // Creates a user
-        User user = new User();
-        user.setId(UUID.randomUUID());
-        user.setPersonalId("12345678Z");
-        user.setNumber(1);
-        user.setFullName("John Doe");
-        user.setAddress("Fake Street 123");
-        user.setEmail("johndoe@email.com");
-        user.setPhoneNumber("+34666555444");
-        user.setPassword(UserMother.randomPassword());
-        user.setEnabled(true);
-        createUserRepository.create(user);
+        User user = persistUser("12345678Z");
 
         // Modify data of the user
         UpdateUserBody userModified = new UpdateUserBody();
         userModified.setNumber(2);
         userModified.setPersonalId("12345666A");
         userModified.setFullName("Alice Smith");
+        userModified.setEmail("alice.smith@email.com");
 
         String bodyAsString = objectMapper.writeValueAsString(userModified);
 
@@ -115,6 +110,103 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.email").value(userModified.getEmail()))
                 .andExpect(jsonPath("$.phoneNumber").isEmpty())
                 .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    /**
+     * Omitting the email used to answer 200 with {@code "email": null} while describing an update
+     * the database could never accept: this endpoint overwrites the stored value with whatever the
+     * body carries, and {@code users.email} is NOT NULL. The violation surfaced only once the
+     * transaction flushed, after the response had been rendered, so the caller was told an edit had
+     * succeeded that had in fact been rolled back.
+     *
+     * <p>A user must have an email, as creation and the self-service profile edit already required.
+     * So the request is rejected up front instead.</p>
+     */
+    @Test
+    void testWithoutEmail() throws Exception {
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        User user = persistUser("12345679R");
+
+        UpdateUserBody userModified = new UpdateUserBody();
+        userModified.setNumber(2);
+        userModified.setPersonalId("12345667B");
+        userModified.setFullName("Alice Smith");
+
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userModified)))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    /**
+     * The stored email must be untouched by the rejected request -- the point of rejecting it is
+     * that the previous behaviour left the caller unable to tell.
+     */
+    @Test
+    void testWithoutEmailLeavesTheStoredEmailIntact() throws Exception {
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        User user = persistUser("12345680T");
+
+        UpdateUserBody userModified = new UpdateUserBody();
+        userModified.setNumber(2);
+        userModified.setPersonalId("12345668C");
+        userModified.setFullName("Alice Smith");
+
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userModified)))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("johndoe@email.com"))
+                .andExpect(jsonPath("$.fullName").value("John Doe"));
+    }
+
+    @Test
+    void testWithBlankEmail() throws Exception {
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        User user = persistUser("12345681W");
+
+        String body = """
+                        {
+                          "number": 2,
+                          "personalId": "12345669D",
+                          "fullName": "Alice Smith",
+                          "email": "  "
+                        }
+                """;
+
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    private User persistUser(String personalId) {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setPersonalId(personalId);
+        user.setNumber(1);
+        user.setFullName("John Doe");
+        user.setAddress("Fake Street 123");
+        user.setEmail("johndoe@email.com");
+        user.setPhoneNumber("+34666555444");
+        user.setPassword(UserMother.randomPassword());
+        user.setEnabled(true);
+        createUserRepository.create(user);
+        return user;
     }
 
     @Test

@@ -2565,6 +2565,7 @@
             "type" : "string"
           },
           "email" : {
+            "minLength" : 1,
             "type" : "string"
           },
           "fullName" : {
@@ -2585,6 +2586,7 @@
           }
         },
         "required" : [
+          "email",
           "fullName",
           "number",
           "personalId"
