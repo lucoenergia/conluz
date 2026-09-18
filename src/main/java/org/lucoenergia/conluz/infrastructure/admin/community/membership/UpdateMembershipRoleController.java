@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(
@@ -36,11 +37,14 @@ public class UpdateMembershipRoleController {
 
     private final UpdateMembershipRoleService service;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MembershipCapabilitiesAssembler capabilitiesAssembler;
 
     public UpdateMembershipRoleController(UpdateMembershipRoleService service,
-                                    UserCapabilitiesAssembler userCapabilitiesAssembler) {
+                                    UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                    MembershipCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PatchMapping("/{userId}")
@@ -70,6 +74,7 @@ public class UpdateMembershipRoleController {
                                                     @Valid @RequestBody UpdateMembershipRoleBody body) {
         CommunityMembership membership = service.updateRole(communityId, userId, body.getRole());
         return new MembershipResponse(membership, membership.getUser() == null ? null
-                : userCapabilitiesAssembler.assembleFetchingMemberships(currentUser, membership.getUser()));
+                : userCapabilitiesAssembler.assembleFetchingMemberships(currentUser, membership.getUser()),
+                capabilitiesAssembler.assemble(currentUser, membership));
     }
 }

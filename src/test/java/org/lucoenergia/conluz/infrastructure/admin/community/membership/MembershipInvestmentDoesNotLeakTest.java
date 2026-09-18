@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -155,27 +156,47 @@ class MembershipInvestmentDoesNotLeakTest extends BaseControllerTest {
         assertThrows(AssertionError.class,
                 () -> assertNoInvestment("{\"x\":\"1500.00\"}"));
 
+        assertThrows(AssertionError.class,
+                () -> assertNoInvestment("{\"membership\":{\"investmentEur\":42.00}}"));
+        assertThrows(AssertionError.class,
+                () -> assertNoInvestment("{\"membership\":{\"investmentEur\":\"unknown\"}}"));
+
         assertNoInvestment("{\"sub\":\"a1500f2e-0000-4000-8000-000000001500\",\"communities\":[\"1500abcd\"]}");
+        // A capability names the action without disclosing the figure.
+        assertNoInvestment("{\"capabilities\":{\"canManageInvestment\":true}}");
     }
 
     /**
-     * Checks for the field under any name, and for the amount under either rendering.
+     * Two independent checks, both over the parsed document rather than its text.
      *
-     * <p>The amount is compared against the JSON's <em>values</em> rather than against the raw text.
-     * A substring search cannot express "1500 appears as a number here": the payload is full of
-     * UUIDs, a UUID is hexadecimal, and {@code 1500} turns up inside one often enough to fail a
-     * run at random. This walks the parsed document instead, so both {@code 1500.00} and
-     * {@code 1500} are caught wherever they are nested, and a hex digit sequence is not.</p>
+     * <p>No field whose name mentions an investment may carry anything but a boolean, and no value
+     * anywhere may equal the amount. The first catches the figure arriving under any name or
+     * nesting; the boolean exemption exists because a capability such as
+     * {@code canManageInvestment} names the action without disclosing the figure -- it says the
+     * caller may write one, which they could learn by trying.</p>
+     *
+     * <p>Neither check is a substring search, and that is deliberate: the payload is full of UUIDs,
+     * a UUID is hexadecimal, and {@code 1500} turns up inside one often enough to fail a run at
+     * random. That is what this test used to do.</p>
      */
     private void assertNoInvestment(String payload) {
-        assertFalse(payload.toLowerCase(Locale.ROOT).contains("investment"),
-                () -> "the payload mentions an investment: " + payload);
-        assertNoValueEquals(readTree(payload), payload);
+        assertNoInvestmentIn(readTree(payload), payload);
     }
 
-    private void assertNoValueEquals(JsonNode node, String payload) {
-        if (node.isObject() || node.isArray()) {
-            node.forEach(child -> assertNoValueEquals(child, payload));
+    private void assertNoInvestmentIn(JsonNode node, String payload) {
+        if (node.isObject()) {
+            node.fields().forEachRemaining(field -> {
+                if (field.getKey().toLowerCase(Locale.ROOT).contains("investment")
+                        && !field.getValue().isBoolean()) {
+                    fail("the payload carries an investment field that is not a mere permission: "
+                            + field.getKey() + " -> " + field.getValue() + " in " + payload);
+                }
+                assertNoInvestmentIn(field.getValue(), payload);
+            });
+            return;
+        }
+        if (node.isArray()) {
+            node.forEach(child -> assertNoInvestmentIn(child, payload));
             return;
         }
         if (node.isNumber()) {
@@ -195,7 +216,7 @@ class MembershipInvestmentDoesNotLeakTest extends BaseControllerTest {
         try {
             return objectMapper.readTree(payload);
         } catch (Exception e) {
-            throw new IllegalStateException("the JWT payload is not JSON: " + payload, e);
+            throw new IllegalStateException("the payload is not JSON: " + payload, e);
         }
     }
 

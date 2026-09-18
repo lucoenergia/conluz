@@ -29,6 +29,7 @@ import java.util.UUID;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(
@@ -40,11 +41,14 @@ public class CreateMembershipController {
 
     private final CreateMembershipService service;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MembershipCapabilitiesAssembler capabilitiesAssembler;
 
     public CreateMembershipController(CreateMembershipService service,
-                                    UserCapabilitiesAssembler userCapabilitiesAssembler) {
+                                    UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                    MembershipCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PostMapping
@@ -108,6 +112,7 @@ public class CreateMembershipController {
                                                 @Valid @RequestBody CreateMembershipBody body) {
         CommunityMembership membership = service.create(communityId, body.getUserId(), body.getRole());
         return new MembershipResponse(membership, membership.getUser() == null ? null
-                : userCapabilitiesAssembler.assembleFetchingMemberships(currentUser, membership.getUser()));
+                : userCapabilitiesAssembler.assembleFetchingMemberships(currentUser, membership.getUser()),
+                capabilitiesAssembler.assemble(currentUser, membership));
     }
 }

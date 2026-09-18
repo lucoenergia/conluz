@@ -27,6 +27,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(
@@ -37,11 +38,14 @@ public class GetMembershipsController {
 
     private final GetMembershipsService service;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MembershipCapabilitiesAssembler capabilitiesAssembler;
 
     public GetMembershipsController(GetMembershipsService service,
-                                    UserCapabilitiesAssembler userCapabilitiesAssembler) {
+                                    UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                    MembershipCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @GetMapping
@@ -76,7 +80,8 @@ public class GetMembershipsController {
 
         return memberships.stream()
                 .map(membership -> new MembershipResponse(membership,
-                        userCapabilitiesOf(membership, userCapabilities)))
+                        userCapabilitiesOf(membership, userCapabilities),
+                        capabilitiesAssembler.assemble(currentUser, membership)))
                 .toList();
     }
 

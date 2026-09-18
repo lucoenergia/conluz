@@ -860,6 +860,34 @@
         },
         "type" : "object"
       },
+      "MembershipCapabilitiesResponse" : {
+        "description" : "What the caller may do with this membership.",
+        "properties" : {
+          "canDelete" : {
+            "description" : "Whether the caller may remove this membership from the community.",
+            "type" : "boolean"
+          },
+          "canManageInvestment" : {
+            "description" : "Whether the caller may set or clear the investment recorded on this membership.",
+            "type" : "boolean"
+          },
+          "canReadPayback" : {
+            "description" : "Whether the caller may read this membership's payback progress. Either an admin of the community, or the member themselves.",
+            "type" : "boolean"
+          },
+          "canUpdateRole" : {
+            "description" : "Whether the caller may change this membership's role.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [
+          "canDelete",
+          "canManageInvestment",
+          "canReadPayback",
+          "canUpdateRole"
+        ],
+        "type" : "object"
+      },
       "MembershipPaybackResponse" : {
         "properties" : {
           "estimatedRemainingMonths" : {
@@ -935,6 +963,10 @@
       },
       "MembershipResponse" : {
         "properties" : {
+          "capabilities" : {
+            "$ref" : "#/components/schemas/MembershipCapabilitiesResponse",
+            "description" : "What the caller may do with this membership."
+          },
           "communityId" : {
             "format" : "uuid",
             "type" : "string"
@@ -963,6 +995,7 @@
           }
         },
         "required" : [
+          "capabilities",
           "communityId",
           "enabled",
           "id",

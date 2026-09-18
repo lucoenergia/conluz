@@ -3,12 +3,13 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
 import java.util.UUID;
-import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 
-@Schema(requiredProperties = {"id", "user", "communityId", "role", "enabled"})
+@Schema(requiredProperties = {"id", "user", "communityId", "role", "enabled", "capabilities"})
 public class MembershipResponse {
 
     private final UUID id;
@@ -18,7 +19,11 @@ public class MembershipResponse {
     private final CommunityRole role;
     private final Boolean enabled;
 
-    public MembershipResponse(CommunityMembership membership, UserCapabilitiesResponse userCapabilities) {
+    @Schema(description = "What the caller may do with this membership.")
+    private final MembershipCapabilitiesResponse capabilities;
+
+    public MembershipResponse(CommunityMembership membership, UserCapabilitiesResponse userCapabilities,
+                              MembershipCapabilitiesResponse capabilities) {
         this.id = membership.getId();
         this.user = membership.getUser() != null
                 ? new UserResponse(membership.getUser(), userCapabilities)
@@ -26,6 +31,7 @@ public class MembershipResponse {
         this.communityId = membership.getCommunity().getId();
         this.role = membership.getRole();
         this.enabled = membership.isEnabled();
+        this.capabilities = capabilities;
     }
 
     public UUID getId() {
@@ -46,5 +52,9 @@ public class MembershipResponse {
 
     public Boolean getEnabled() {
         return enabled;
+    }
+
+    public MembershipCapabilitiesResponse getCapabilities() {
+        return capabilities;
     }
 }
