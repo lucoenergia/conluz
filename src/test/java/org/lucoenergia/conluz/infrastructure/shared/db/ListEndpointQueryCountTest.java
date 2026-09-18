@@ -25,6 +25,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
+import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
+import java.time.Instant;
+import java.util.UUID;
 
 /**
  * A listing must cost the same number of statements whatever its page holds. Anything else is an
@@ -53,6 +64,12 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     private CreatePlantRepository createPlantRepository;
     @Autowired
     private CreateMembershipService createMembershipService;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private PlantRepository plantRepository;
+    @Autowired
+    private SharingAgreementRepository sharingAgreementRepository;
 
     @Test
     void listingACommunitysSuppliesCostsTheSameForOneAndForFive() throws Exception {
@@ -99,6 +116,76 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         assertEquals(forOne, forFive, "listing plants must not issue a query per plant");
     }
 
+    @Test
+    void listingCommunitiesCostsTheSameForOneAndForFive() throws Exception {
+        String adminToken = loginAsDefaultPlatformAdmin();
+        String url = "/api/v1/communities";
+
+        persistCommunities(1);
+        long forOne = statementsFor(url, adminToken);
+
+        persistCommunities(4);
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "listing communities must not issue a query per community");
+    }
+
+    /**
+     * The roster is where the user-capability batch has to hold: every member embedded in it carries
+     * no memberships of its own, so a naive implementation would look them up one at a time.
+     */
+    @Test
+    void listingACommunitysMembershipsCostsTheSameForOneAndForFive() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String adminToken = loginAsCommunityAdmin(community.getId());
+        String url = "/api/v1/communities/" + community.getId() + "/memberships";
+
+        persistMembersOf(community, 1);
+        long forOne = statementsFor(url, adminToken);
+
+        persistMembersOf(community, 4);
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "listing memberships must not issue a query per member");
+    }
+
+    @Test
+    void listingUsersCostsTheSameForOneAndForFive() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String adminToken = loginAsCommunityAdmin(community.getId());
+        String url = "/api/v1/users";
+
+        persistMembersOf(community, 1);
+        long forOne = statementsFor(url, adminToken);
+
+        persistMembersOf(community, 4);
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "listing users must not issue a query per user");
+    }
+
+    /**
+     * The plant behind the agreements is resolved once for the page, not once per agreement.
+     */
+    @Test
+    void listingAPlantsSharingAgreementsCostsTheSameForOneAndForFive() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(),
+                UserId.of(persistUser().getId()), community.getId());
+        Plant plant = createPlantRepository.create(PlantMother.random(supply).build(),
+                SupplyId.of(supply.getId()));
+        String adminToken = loginAsCommunityAdmin(community.getId());
+        String url = "/api/v1/plants/" + plant.getId() + "/sharing-agreements";
+
+        persistAgreements(plant, 1);
+        long forOne = statementsFor(url, adminToken);
+
+        persistAgreements(plant, 4);
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "listing sharing agreements must not issue a query per agreement");
+    }
+
     private long statementsFor(String url, String authHeader) throws Exception {
         entityManager.flush();
         entityManager.clear();
@@ -143,5 +230,31 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         User user = persistUser();
         createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
         return user;
+    }
+
+    private void persistCommunities(int count) {
+        for (int i = 0; i < count; i++) {
+            createCommunityRepository.create(CommunityMother.random().build());
+        }
+    }
+
+    private void persistMembersOf(Community community, int count) {
+        for (int i = 0; i < count; i++) {
+            User user = persistUser();
+            createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        }
+    }
+
+    private void persistAgreements(Plant plant, int count) {
+        for (int i = 0; i < count; i++) {
+            PlantEntity plantEntity = plantRepository.getReferenceById(plant.getId());
+            SharingAgreementEntity agreement = new SharingAgreementEntity();
+            agreement.setId(UUID.randomUUID());
+            agreement.setPlant(plantEntity);
+            agreement.setName("Agreement " + UUID.randomUUID());
+            agreement.setStatus(SharingAgreementStatus.DRAFT);
+            agreement.setCreatedAt(Instant.now());
+            sharingAgreementRepository.save(agreement);
+        }
     }
 }
