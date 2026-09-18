@@ -25,9 +25,11 @@ import java.util.Locale;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * A membership's investment is personal financial data. It is exposed by exactly one endpoint --
@@ -137,17 +139,64 @@ class MembershipInvestmentDoesNotLeakTest extends BaseControllerTest {
     }
 
     /**
-     * Checks for the field under any name and for the amount under either rendering. The amount is
-     * matched with its decimal point rather than as a bare {@code 1500}, because a UUID is
-     * hexadecimal and would collide with the digits alone often enough to make this flaky.
+     * The detector itself, because it was narrowed to fix a flake and a narrowing can go too far.
+     *
+     * <p>The amount must still be caught wherever it is nested and under either rendering, while a
+     * hexadecimal id that merely contains the digits must not be. The second case is not
+     * hypothetical: it is what made this test fail at random before, since the payload carries
+     * UUIDs and {@code 1500} appears inside one regularly.</p>
+     */
+    @Test
+    void theDetectorCatchesTheAmountButNotAUuidThatMerelyContainsTheDigits() {
+        assertThrows(AssertionError.class,
+                () -> assertNoInvestment("{\"claims\":{\"nested\":[{\"x\":1500.00}]}}"));
+        assertThrows(AssertionError.class,
+                () -> assertNoInvestment("{\"claims\":{\"nested\":[{\"x\":\"1500\"}]}}"));
+        assertThrows(AssertionError.class,
+                () -> assertNoInvestment("{\"x\":\"1500.00\"}"));
+
+        assertNoInvestment("{\"sub\":\"a1500f2e-0000-4000-8000-000000001500\",\"communities\":[\"1500abcd\"]}");
+    }
+
+    /**
+     * Checks for the field under any name, and for the amount under either rendering.
+     *
+     * <p>The amount is compared against the JSON's <em>values</em> rather than against the raw text.
+     * A substring search cannot express "1500 appears as a number here": the payload is full of
+     * UUIDs, a UUID is hexadecimal, and {@code 1500} turns up inside one often enough to fail a
+     * run at random. This walks the parsed document instead, so both {@code 1500.00} and
+     * {@code 1500} are caught wherever they are nested, and a hex digit sequence is not.</p>
      */
     private void assertNoInvestment(String payload) {
         assertFalse(payload.toLowerCase(Locale.ROOT).contains("investment"),
                 () -> "the payload mentions an investment: " + payload);
-        assertFalse(payload.contains(INVESTMENT.toPlainString()),
-                () -> "the payload carries the investment amount: " + payload);
-        assertFalse(payload.contains(INVESTMENT.stripTrailingZeros().toPlainString()),
-                () -> "the payload carries the investment amount: " + payload);
+        assertNoValueEquals(readTree(payload), payload);
+    }
+
+    private void assertNoValueEquals(JsonNode node, String payload) {
+        if (node.isObject() || node.isArray()) {
+            node.forEach(child -> assertNoValueEquals(child, payload));
+            return;
+        }
+        if (node.isNumber()) {
+            assertFalse(INVESTMENT.compareTo(node.decimalValue()) == 0,
+                    () -> "the payload carries the investment amount: " + payload);
+            return;
+        }
+        if (node.isTextual()) {
+            String text = node.asText();
+            assertFalse(text.equals(INVESTMENT.toPlainString())
+                            || text.equals(INVESTMENT.stripTrailingZeros().toPlainString()),
+                    () -> "the payload carries the investment amount: " + payload);
+        }
+    }
+
+    private JsonNode readTree(String payload) {
+        try {
+            return objectMapper.readTree(payload);
+        } catch (Exception e) {
+            throw new IllegalStateException("the JWT payload is not JSON: " + payload, e);
+        }
     }
 
     private CommunityEntity persistCommunity() {
