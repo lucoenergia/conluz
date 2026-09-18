@@ -120,6 +120,12 @@ class GetMembershipPaybackControllerApiDocsTest extends BaseControllerTest {
      *
      * <p>Request schemas are exempt: {@code SetMembershipInvestmentBody} carries the amount by
      * definition, and a body is what the client sends rather than what it is told.
+     *
+     * <p>Boolean properties are exempt too, and only boolean ones. What must not escape is the
+     * <em>amount</em>, and an amount cannot be a boolean. A capability such as
+     * {@code canManageMembershipInvestment} names the action without disclosing the figure -- it
+     * says the caller may write one, which they could discover by trying. Anything numeric or
+     * textual still fails, so a real leak cannot hide behind this exemption by being renamed.
      */
     @Test
     void noOtherResponseSchemaCarriesTheInvestment() throws Exception {
@@ -129,10 +135,22 @@ class GetMembershipPaybackControllerApiDocsTest extends BaseControllerTest {
             if (SCHEMA.equals(name) || name.endsWith("Body")) {
                 continue;
             }
-            List<String> properties = fieldNames(schemas.path(name).path("properties"));
-            assertTrue(properties.stream().noneMatch(property -> property.toLowerCase().contains("investment")),
-                    () -> name + " carries an investment property: " + properties);
+            JsonNode properties = schemas.path(name).path("properties");
+            List<String> offenders = fieldNames(properties).stream()
+                    .filter(property -> property.toLowerCase().contains("investment"))
+                    .filter(property -> !isBoolean(properties.path(property)))
+                    .toList();
+            assertTrue(offenders.isEmpty(),
+                    () -> name + " carries an investment property: " + offenders);
         }
+    }
+
+    private boolean isBoolean(JsonNode propertySchema) {
+        JsonNode type = propertySchema.path("type");
+        if (type.isTextual()) {
+            return "boolean".equals(type.asText());
+        }
+        return textValues(type).contains("boolean");
     }
 
     private void assertNullableWithBaseType(JsonNode properties, String field, String baseType) {

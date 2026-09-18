@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.CommunityCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(
@@ -30,8 +33,11 @@ import java.util.UUID;
 public class GetCommunityByIdController {
 
     private final GetCommunityService service;
+    private final CommunityCapabilitiesAssembler capabilitiesAssembler;
 
-    public GetCommunityByIdController(GetCommunityService service) {
+    public GetCommunityByIdController(GetCommunityService service,
+                                      CommunityCapabilitiesAssembler capabilitiesAssembler) {
+        this.capabilitiesAssembler = capabilitiesAssembler;
         this.service = service;
     }
 
@@ -61,9 +67,11 @@ public class GetCommunityByIdController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canReadCommunity(#communityId)")
-    public ResponseEntity<CommunityResponse> getCommunityById(@PathVariable("communityId") UUID communityId) {
+    public ResponseEntity<CommunityResponse> getCommunityById(@AuthenticationPrincipal User currentUser,
+                                                              @PathVariable("communityId") UUID communityId) {
         return service.findByIdWithStats(communityId)
-                .map(c -> ResponseEntity.ok(new CommunityResponse(c)))
+                .map(c -> ResponseEntity.ok(new CommunityResponse(c,
+                        capabilitiesAssembler.assemble(currentUser, communityId))))
                 .orElse(ResponseEntity.notFound().build());
     }
 }

@@ -108,6 +108,74 @@
         ],
         "type" : "object"
       },
+      "CommunityCapabilitiesResponse" : {
+        "description" : "What the caller may do with this community.",
+        "properties" : {
+          "canCreatePlants" : {
+            "description" : "Whether the caller may create plants in this community. Creating one also requires a supply the caller can see, so a true here is necessary but not sufficient for any particular supply -- SupplyCapabilitiesResponse.canCreatePlant answers that.",
+            "type" : "boolean"
+          },
+          "canCreateUsers" : {
+            "description" : "Whether the caller may create users in this community (POST /api/v1/users, POST /api/v1/users/import).",
+            "type" : "boolean"
+          },
+          "canDisable" : {
+            "description" : "Whether the caller may disable this community (POST /api/v1/communities/{communityId}/disable). A platform-wide decision.",
+            "type" : "boolean"
+          },
+          "canEnable" : {
+            "description" : "Whether the caller may enable this community (POST /api/v1/communities/{communityId}/enable). A platform-wide decision.",
+            "type" : "boolean"
+          },
+          "canListPlants" : {
+            "description" : "Whether the caller may list this community's plants (GET /api/v1/communities/{communityId}/plants).",
+            "type" : "boolean"
+          },
+          "canListSupplies" : {
+            "description" : "Whether the caller may list this community's supplies (GET /api/v1/communities/{communityId}/supplies). A non-admin member gets only their own.",
+            "type" : "boolean"
+          },
+          "canManage" : {
+            "description" : "Whether the caller administers this community: creating and importing its supplies, reading and writing its Datadis and Shelly configuration, and triggering its synchronisation endpoints.",
+            "type" : "boolean"
+          },
+          "canManageMembershipInvestment" : {
+            "description" : "Whether the caller may set or clear the investment recorded on this community's memberships. Stricter than canManageMemberships: an investment is the member's own money, so there is no platform-admin bypass.",
+            "type" : "boolean"
+          },
+          "canManageMemberships" : {
+            "description" : "Whether the caller may administer this community's roster: creating, deleting and re-roling its memberships.",
+            "type" : "boolean"
+          },
+          "canRead" : {
+            "description" : "Whether the caller may read this community (GET /api/v1/communities/{communityId}).",
+            "type" : "boolean"
+          },
+          "canReadProduction" : {
+            "description" : "Whether the caller may read this community's communal production data. Membership, not administration: a platform admin who is not a member may not.",
+            "type" : "boolean"
+          },
+          "canUpdate" : {
+            "description" : "Whether the caller may update this community (PUT /api/v1/communities/{communityId}). A platform-wide decision: being a community admin does not confer it.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [
+          "canCreatePlants",
+          "canCreateUsers",
+          "canDisable",
+          "canEnable",
+          "canListPlants",
+          "canListSupplies",
+          "canManage",
+          "canManageMembershipInvestment",
+          "canManageMemberships",
+          "canRead",
+          "canReadProduction",
+          "canUpdate"
+        ],
+        "type" : "object"
+      },
       "CommunityReferenceResponse" : {
         "properties" : {
           "id" : {
@@ -143,6 +211,10 @@
             },
             "type" : "array"
           },
+          "capabilities" : {
+            "$ref" : "#/components/schemas/CommunityCapabilitiesResponse",
+            "description" : "What the caller may do with this community."
+          },
           "code" : {
             "type" : "string"
           },
@@ -176,6 +248,7 @@
         "required" : [
           "address",
           "adminNames",
+          "capabilities",
           "code",
           "enabled",
           "id",

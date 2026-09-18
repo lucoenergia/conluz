@@ -26,6 +26,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.CommunityCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(
@@ -37,11 +40,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class CreateCommunityController {
 
     private final CreateCommunityService service;
+    private final CommunityCapabilitiesAssembler capabilitiesAssembler;
     private final boolean multiCommunityEnabled;
 
     public CreateCommunityController(CreateCommunityService service,
+                                     CommunityCapabilitiesAssembler capabilitiesAssembler,
                                      @Value("${conluz.multi-community.enabled}") boolean multiCommunityEnabled) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
         this.multiCommunityEnabled = multiCommunityEnabled;
     }
 
@@ -101,11 +107,13 @@ public class CreateCommunityController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canCreateCommunity()")
-    public ResponseEntity<CommunityResponse> createCommunity(@Valid @RequestBody CreateCommunityBody body) {
+    public ResponseEntity<CommunityResponse> createCommunity(@AuthenticationPrincipal User currentUser,
+                                                            @Valid @RequestBody CreateCommunityBody body) {
         if (!multiCommunityEnabled) {
             return ResponseEntity.notFound().build();
         }
         Community community = service.create(body.mapToCommunity());
-        return ResponseEntity.ok(new CommunityResponse(community));
+        return ResponseEntity.ok(new CommunityResponse(community,
+                capabilitiesAssembler.assemble(currentUser, community.getId())));
     }
 }
