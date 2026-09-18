@@ -625,6 +625,75 @@
         ],
         "type" : "object"
       },
+      "CurrentUserResponse" : {
+        "description" : "The authenticated caller's own user, with what they may do.",
+        "properties" : {
+          "address" : {
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "capabilities" : {
+            "$ref" : "#/components/schemas/UserCapabilitiesResponse",
+            "description" : "What the caller may do with their own user record."
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "fullName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "isPlatformAdmin" : {
+            "type" : "boolean"
+          },
+          "memberships" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "type" : "object"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "personalId" : {
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "platformCapabilities" : {
+            "$ref" : "#/components/schemas/PlatformCapabilitiesResponse",
+            "description" : "What the caller may do on the platform as a whole, independently of any one resource."
+          }
+        },
+        "required" : [
+          "address",
+          "capabilities",
+          "email",
+          "enabled",
+          "fullName",
+          "id",
+          "isPlatformAdmin",
+          "memberships",
+          "number",
+          "personalId",
+          "phoneNumber",
+          "platformCapabilities"
+        ],
+        "type" : "object"
+      },
       "DatadisConsumption" : {
         "properties" : {
           "consumptionKWh" : {
@@ -1189,6 +1258,24 @@
           "regulatoryCode",
           "supply",
           "totalPower"
+        ],
+        "type" : "object"
+      },
+      "PlatformCapabilitiesResponse" : {
+        "description" : "What the caller may do on the platform as a whole.",
+        "properties" : {
+          "canCreateCommunity" : {
+            "description" : "Whether the caller may create a community (POST /api/v1/communities).",
+            "type" : "boolean"
+          },
+          "canListUsers" : {
+            "description" : "Whether the caller may list users (GET /api/v1/users).",
+            "type" : "boolean"
+          }
+        },
+        "required" : [
+          "canCreateCommunity",
+          "canListUsers"
         ],
         "type" : "object"
       },
@@ -2531,6 +2618,54 @@
         ],
         "type" : "object"
       },
+      "UserCapabilitiesResponse" : {
+        "description" : "What the caller may do with this user.",
+        "properties" : {
+          "canDelete" : {
+            "description" : "Whether the caller may delete this user. Always false when the user is the caller: nobody may delete themselves, admins included.",
+            "type" : "boolean"
+          },
+          "canDisable" : {
+            "description" : "Whether the caller may disable this user. Always false when the user is the caller.",
+            "type" : "boolean"
+          },
+          "canEdit" : {
+            "description" : "Whether the caller may edit this user administratively (PUT /api/v1/users/{userId}). This is false for an ordinary member looking at their own record: changing one's own contact details goes through PUT /api/v1/users/profile, which any authenticated caller may use.",
+            "type" : "boolean"
+          },
+          "canEnable" : {
+            "description" : "Whether the caller may enable this user. Always false when the user is the caller.",
+            "type" : "boolean"
+          },
+          "canGrantPlatformAdmin" : {
+            "description" : "Whether the caller may grant this user the platform-admin flag.",
+            "type" : "boolean"
+          },
+          "canListSupplies" : {
+            "description" : "Whether the caller may list this user's supplies (GET /api/v1/users/{userId}/supplies). Deliberately narrower than canRead: reading a user is not reading their supply data, so a platform admin who administers none of their communities may not.",
+            "type" : "boolean"
+          },
+          "canRead" : {
+            "description" : "Whether the caller may read this user (GET /api/v1/users/{userId}).",
+            "type" : "boolean"
+          },
+          "canRevokePlatformAdmin" : {
+            "description" : "Whether the caller may revoke this user's platform-admin flag. Always false when the user is the caller: an admin may not strip their own flag.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [
+          "canDelete",
+          "canDisable",
+          "canEdit",
+          "canEnable",
+          "canGrantPlatformAdmin",
+          "canListSupplies",
+          "canRead",
+          "canRevokePlatformAdmin"
+        ],
+        "type" : "object"
+      },
       "UserResponse" : {
         "properties" : {
           "address" : {
@@ -2538,6 +2673,10 @@
               "string",
               "null"
             ]
+          },
+          "capabilities" : {
+            "$ref" : "#/components/schemas/UserCapabilitiesResponse",
+            "description" : "What the caller may do with this user."
           },
           "email" : {
             "type" : "string"
@@ -2577,6 +2716,7 @@
         },
         "required" : [
           "address",
+          "capabilities",
           "email",
           "enabled",
           "fullName",
@@ -11766,7 +11906,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/UserResponse"
+                  "$ref" : "#/components/schemas/CurrentUserResponse"
                 }
               }
             },

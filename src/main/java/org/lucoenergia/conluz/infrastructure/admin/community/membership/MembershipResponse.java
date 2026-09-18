@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
 import java.util.UUID;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 
 @Schema(requiredProperties = {"id", "user", "communityId", "role", "enabled"})
 public class MembershipResponse {
@@ -17,9 +18,11 @@ public class MembershipResponse {
     private final CommunityRole role;
     private final Boolean enabled;
 
-    public MembershipResponse(CommunityMembership membership) {
+    public MembershipResponse(CommunityMembership membership, UserCapabilitiesResponse userCapabilities) {
         this.id = membership.getId();
-        this.user = membership.getUser() != null ? new UserResponse(membership.getUser()) : null;
+        this.user = membership.getUser() != null
+                ? new UserResponse(membership.getUser(), userCapabilities)
+                : null;
         this.communityId = membership.getCommunity().getId();
         this.role = membership.getRole();
         this.enabled = membership.isEnabled();

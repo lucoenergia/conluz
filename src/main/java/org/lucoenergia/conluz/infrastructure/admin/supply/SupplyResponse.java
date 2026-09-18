@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyResponse;
@@ -38,14 +39,21 @@ public class SupplyResponse {
     @Schema(description = "What the caller may do with this supply.")
     private final SupplyCapabilitiesResponse capabilities;
 
-    public SupplyResponse(Supply supply, SupplyCapabilitiesResponse capabilities) {
+    /**
+     * @param ownerCapabilities what the caller may do with the supply's owner. Passed in rather than
+     *                          assembled here because deciding it needs the owner's memberships,
+     *                          which a supply does not carry: a listing batches that lookup once for
+     *                          the whole page.
+     */
+    public SupplyResponse(Supply supply, SupplyCapabilitiesResponse capabilities,
+                          UserCapabilitiesResponse ownerCapabilities) {
         this.id = supply.getId();
         this.code = supply.getCode();
         this.name = supply.getName();
         this.address = supply.getAddress();
         this.addressRef = supply.getAddressRef();
         this.enabled = supply.getEnabled();
-        this.user = supply.getUser() != null ? new UserResponse(supply.getUser()) : null;
+        this.user = supply.getUser() != null ? new UserResponse(supply.getUser(), ownerCapabilities) : null;
         this.contract = supply.getContract() != null ? new SupplyContractResponse(supply.getContract()) : null;
         this.distributor = supply.getDistributor() != null ? new SupplyDistributorResponse(supply.getDistributor()) : null;
         this.shelly = supply.getShelly() != null ? new SupplyShellyResponse(supply.getShelly()) : null;

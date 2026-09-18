@@ -18,6 +18,9 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
+import java.util.Map;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Updates an existing supply
@@ -29,11 +32,14 @@ public class UpdateSupplyController {
 
     private final UpdateSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
+    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
 
     public UpdateSupplyController(UpdateSupplyService service,
-                                  SupplyCapabilitiesAssembler capabilitiesAssembler) {
+                                  SupplyCapabilitiesAssembler capabilitiesAssembler,
+                                  UserCapabilitiesAssembler userCapabilitiesAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
+        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
     }
 
     @PutMapping("/supplies/{supplyId}")
@@ -68,6 +74,16 @@ public class UpdateSupplyController {
                                       @PathVariable("supplyId") UUID supplyId,
                                       @Valid @RequestBody UpdateSupplyBody body) {
         Supply updated = service.update(SupplyId.of(supplyId), body.mapToSupply());
-        return new SupplyResponse(updated, capabilitiesAssembler.assemble(currentUser, updated));
+        return new SupplyResponse(updated, capabilitiesAssembler.assemble(currentUser, updated),
+                ownerCapabilities(currentUser, updated));
+    }
+
+    /**
+     * The owner's capabilities, for the UserResponse embedded in the supply. One supply means one
+     * owner, so the single-target lookup is the right shape here; the listings batch instead.
+     */
+    private UserCapabilitiesResponse ownerCapabilities(User caller, Supply supply) {
+        return supply.getUser() == null ? null
+                : userCapabilitiesAssembler.assembleFetchingMemberships(caller, supply.getUser());
     }
 }

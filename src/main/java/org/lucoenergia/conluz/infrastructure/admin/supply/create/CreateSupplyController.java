@@ -24,6 +24,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
+import java.util.UUID;
+import java.util.Map;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Adds a new supply
@@ -38,11 +42,14 @@ public class CreateSupplyController {
 
     private final CreateSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
+    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
 
     public CreateSupplyController(CreateSupplyService service,
-                                  SupplyCapabilitiesAssembler capabilitiesAssembler) {
+                                  SupplyCapabilitiesAssembler capabilitiesAssembler,
+                                  UserCapabilitiesAssembler userCapabilitiesAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
+        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
     }
 
     @PostMapping
@@ -84,6 +91,16 @@ public class CreateSupplyController {
     public SupplyResponse createSupply(@AuthenticationPrincipal User currentUser,
                                       @Valid @RequestBody CreateSupplyBody body) {
         Supply newSupply = service.create(body.mapToSupply(), UserPersonalId.of(body.getPersonalId()), body.getCommunityId());
-        return new SupplyResponse(newSupply, capabilitiesAssembler.assemble(currentUser, newSupply));
+        return new SupplyResponse(newSupply, capabilitiesAssembler.assemble(currentUser, newSupply),
+                ownerCapabilities(currentUser, newSupply));
+    }
+
+    /**
+     * The owner's capabilities, for the UserResponse embedded in the supply. One supply means one
+     * owner, so the single-target lookup is the right shape here; the listings batch instead.
+     */
+    private UserCapabilitiesResponse ownerCapabilities(User caller, Supply supply) {
+        return supply.getUser() == null ? null
+                : userCapabilitiesAssembler.assembleFetchingMemberships(caller, supply.getUser());
     }
 }
