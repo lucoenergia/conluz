@@ -51,6 +51,33 @@ must not read another person's record and conclude something about its own permi
 |---|---|---|
 | `canCreateCommunity` | `canCreateCommunity` | `POST /communities` |
 | `canListUsers` | `canListUsers` | `GET /users` |
+| `canAdministerPlatform` | *(no guard — see below)* | — |
+| `canCreateUsers` | `canCreateUserIn(null)` | `POST /users` with no `communityId` |
+
+Both of the last two sit on the **platform** scope because neither names a resource.
+`canAdministerPlatform` gates a *surface* — the communities administration page, the platform
+overview, the landing route. `canCreateUsers` is the no-community case of creating a user;
+`CommunityResponse.capabilities.canCreateUsers` answers the same question for one community, which is
+what a community admin gets.
+
+Note what `canAdministerPlatform` is *not*. `GET /api/v1/communities` is deliberately ungated — any
+authenticated caller may call it, scoped to the communities they can see — so who reaches the
+communities **administration page** is not a fact about that listing. It is a decision about
+administering the platform, and this is the capability that says so.
+
+Three of the four coincide today, and the doc says so rather than leaving a reader to discover it:
+`canCreateCommunity` and `canAdministerPlatform` are the *same expression*, both reading
+`PlatformAccessPolicy.canAdministerPlatform` — there is no `canCreateCommunity` policy method — and
+`UserAccessPolicy.canCreateIn(caller, null)` reduces to the same predicate a third time, since its
+platform-admin branch runs before the community is considered. They answer different questions —
+"may I open the administration surface", "may I create a community", "may I create a user belonging
+to no community" — and are kept apart so any one can diverge without a call site changing, the same
+argument made below for the sharing-agreement pair.
+
+The cost of that, stated plainly: while they coincide **no test can tell them apart**, so swapping
+one for another would be caught only once the rules diverge. The guard against it is a comment on
+`PlatformCapabilitiesAssembler` and the `isPlatformAdmin` assertion described under "Capabilities
+with no guard".
 
 ### Community — `CommunityResponse.capabilities`
 
@@ -161,6 +188,20 @@ which is the community-admin half of `canCreate`, and a policy test pins the two
 A `true` here is necessary but not sufficient for any particular supply —
 `SupplyCapabilitiesResponse.canCreatePlant` answers that.
 
+`platform.canAdministerPlatform` has none either, for a different reason: no endpoint asks the
+question at all. It gates a surface rather than an action, and every endpoint behind that surface
+reports its own decision — the client needs a name for "may I open this at all", which is what this
+is. It reads `PlatformAccessPolicy.canAdministerPlatform` directly, the same rule the platform guards
+adapt.
+
+Having no guard means `CapabilityGuardEquivalenceTest` cannot cover it, and asserting it against
+`PlatformAccessPolicy.canAdministerPlatform` would only re-run the line the assembler itself runs. So
+its anchor is an assertion in `MembershipAndPlatformCapabilitiesAssemblerTest` that it equals the
+`isPlatformAdmin` flag, over the whole caller matrix. That assertion hard-codes today's rule on
+purpose: if `canAdministerPlatform` ever stops being `isPlatformAdmin`, it must be **changed
+deliberately** as part of deciding what the rule now is, never adjusted to whatever the code has
+started returning.
+
 ## How to add a capability
 
 1. **Put the rule in a policy.** `..admin.community.access.policy..`, returning an `AccessDecision`.
@@ -177,7 +218,9 @@ A `true` here is necessary but not sufficient for any particular supply —
    `SERVER_ONLY` with the reason, or add the capability to `withoutGuard()`. The build fails until
    you do.
 6. **Extend the equivalence test** so the new field is computed both ways, and the **HTTP test** for
-   that resource so a client's view of it is asserted.
+   that resource so a client's view of it is asserted. A capability with **no guard** has nothing to
+   be equal to, so it is omitted there — say so in a comment, and give it an anchor in its assembler
+   test that does not merely re-run the assembler's own line.
 7. **Refresh the OpenAPI snapshot** (`cp build/openapi/api-docs.actual.json
    src/test/resources/openapi/api-docs.json`) in the same commit, and note the change for
    `conluz-web` — a new required field is a breaking change for a generated client.
