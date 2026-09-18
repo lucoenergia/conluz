@@ -17,15 +17,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
 
 @RestController
 @RequestMapping("/api/v1")
 public class DisableSupplyController {
 
     private final DisableSupplyService service;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
 
-    public DisableSupplyController(DisableSupplyService service) {
+    public DisableSupplyController(DisableSupplyService service,
+                                   SupplyCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PostMapping(path = "/supplies/{supplyId}/disable")
@@ -56,8 +62,9 @@ public class DisableSupplyController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
-    public SupplyResponse disableSupply(@PathVariable("supplyId") UUID supplyId) {
+    public SupplyResponse disableSupply(@AuthenticationPrincipal User currentUser,
+                                       @PathVariable("supplyId") UUID supplyId) {
         Supply updated = service.disable(SupplyId.of(supplyId));
-        return new SupplyResponse(updated);
+        return new SupplyResponse(updated, capabilitiesAssembler.assemble(currentUser, updated));
     }
 }

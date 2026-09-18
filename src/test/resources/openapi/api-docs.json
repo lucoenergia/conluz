@@ -1600,6 +1600,34 @@
         ],
         "type" : "object"
       },
+      "SupplyCapabilitiesResponse" : {
+        "description" : "What the caller may do with this supply.",
+        "properties" : {
+          "canCreatePlant" : {
+            "description" : "Whether the caller may create a plant on this supply (POST /api/v1/plants).",
+            "type" : "boolean"
+          },
+          "canEdit" : {
+            "description" : "Whether the caller may update, enable or disable this supply. Narrower than canRead: the owner can read their supply but only a community admin may change it.",
+            "type" : "boolean"
+          },
+          "canRead" : {
+            "description" : "Whether the caller may read this supply and its consumption and production series.",
+            "type" : "boolean"
+          },
+          "canReadPartitionCoefficients" : {
+            "description" : "Whether the caller may read this supply's partition coefficients. The same access reading the supply requires -- the coefficients describe the owner's own share.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [
+          "canCreatePlant",
+          "canEdit",
+          "canRead",
+          "canReadPartitionCoefficients"
+        ],
+        "type" : "object"
+      },
       "SupplyConsumptionBucketResponse" : {
         "properties" : {
           "consumptionKWh" : {
@@ -1970,6 +1998,10 @@
               "null"
             ]
           },
+          "capabilities" : {
+            "$ref" : "#/components/schemas/SupplyCapabilitiesResponse",
+            "description" : "What the caller may do with this supply."
+          },
           "code" : {
             "description" : "Code that identifies the supply",
             "example" : "ES0031300119158001DL0Y",
@@ -2030,6 +2062,7 @@
         "required" : [
           "address",
           "addressRef",
+          "capabilities",
           "code",
           "contract",
           "distributor",

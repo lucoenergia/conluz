@@ -17,15 +17,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
 
 @RestController
 @RequestMapping("/api/v1")
 public class EnableSupplyController {
 
     private final EnableSupplyService service;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
 
-    public EnableSupplyController(EnableSupplyService service) {
+    public EnableSupplyController(EnableSupplyService service,
+                                  SupplyCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PostMapping(path = "/supplies/{supplyId}/enable")
@@ -56,8 +62,9 @@ public class EnableSupplyController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
-    public SupplyResponse enableSupply(@PathVariable("supplyId") UUID supplyId) {
+    public SupplyResponse enableSupply(@AuthenticationPrincipal User currentUser,
+                                      @PathVariable("supplyId") UUID supplyId) {
         Supply updated = service.enable(SupplyId.of(supplyId));
-        return new SupplyResponse(updated);
+        return new SupplyResponse(updated, capabilitiesAssembler.assemble(currentUser, updated));
     }
 }

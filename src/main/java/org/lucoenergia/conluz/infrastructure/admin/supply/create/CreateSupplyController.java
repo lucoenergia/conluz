@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
 
 /**
  * Adds a new supply
@@ -34,9 +37,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class CreateSupplyController {
 
     private final CreateSupplyService service;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
 
-    public CreateSupplyController(CreateSupplyService service) {
+    public CreateSupplyController(CreateSupplyService service,
+                                  SupplyCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PostMapping
@@ -75,8 +81,9 @@ public class CreateSupplyController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#body.communityId)")
-    public SupplyResponse createSupply(@Valid @RequestBody CreateSupplyBody body) {
+    public SupplyResponse createSupply(@AuthenticationPrincipal User currentUser,
+                                      @Valid @RequestBody CreateSupplyBody body) {
         Supply newSupply = service.create(body.mapToSupply(), UserPersonalId.of(body.getPersonalId()), body.getCommunityId());
-        return new SupplyResponse(newSupply);
+        return new SupplyResponse(newSupply, capabilitiesAssembler.assemble(currentUser, newSupply));
     }
 }

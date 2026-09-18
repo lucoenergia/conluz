@@ -14,6 +14,10 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
 
 /**
  * Updates an existing supply
@@ -24,9 +28,12 @@ import java.util.UUID;
 public class UpdateSupplyController {
 
     private final UpdateSupplyService service;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
 
-    public UpdateSupplyController(UpdateSupplyService service) {
+    public UpdateSupplyController(UpdateSupplyService service,
+                                  SupplyCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PutMapping("/supplies/{supplyId}")
@@ -57,7 +64,10 @@ public class UpdateSupplyController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditSupply(#supplyId)")
-    public SupplyResponse updateSupply(@PathVariable("supplyId") UUID supplyId, @Valid @RequestBody UpdateSupplyBody body) {
-        return new SupplyResponse(service.update(SupplyId.of(supplyId), body.mapToSupply()));
+    public SupplyResponse updateSupply(@AuthenticationPrincipal User currentUser,
+                                      @PathVariable("supplyId") UUID supplyId,
+                                      @Valid @RequestBody UpdateSupplyBody body) {
+        Supply updated = service.update(SupplyId.of(supplyId), body.mapToSupply());
+        return new SupplyResponse(updated, capabilitiesAssembler.assemble(currentUser, updated));
     }
 }

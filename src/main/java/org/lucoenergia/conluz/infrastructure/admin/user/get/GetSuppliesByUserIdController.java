@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
 
 /**
  * Get supplies for a specific user
@@ -31,9 +34,12 @@ import java.util.UUID;
 public class GetSuppliesByUserIdController {
 
     private final GetSupplyService supplyService;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
 
-    public GetSuppliesByUserIdController(GetSupplyService supplyService) {
+    public GetSuppliesByUserIdController(GetSupplyService supplyService,
+                                         SupplyCapabilitiesAssembler capabilitiesAssembler) {
         this.supplyService = supplyService;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @GetMapping("/{userId}/supplies")
@@ -67,11 +73,12 @@ public class GetSuppliesByUserIdController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canListSuppliesOfUser(#userId)")
-    public List<SupplyResponse> getSuppliesByUserId(@PathVariable("userId") UUID userId) {
+    public List<SupplyResponse> getSuppliesByUserId(@AuthenticationPrincipal User currentUser,
+                                                    @PathVariable("userId") UUID userId) {
         List<Supply> supplies = supplyService.getByUserId(UserId.of(userId));
 
         return supplies.stream()
-                .map(SupplyResponse::new)
+                .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply)))
                 .toList();
     }
 }

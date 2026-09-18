@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
 
 /**
  * Get the supplies of a community visible to the current user. The caller must be a member of the
@@ -36,13 +37,16 @@ public class GetAllSuppliesController {
 
     private final GetSupplyService service;
     private final PaginationRequestMapper paginationRequestMapper;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final CommunityAccessGuard communityAccessGuard;
 
     public GetAllSuppliesController(GetSupplyService service, PaginationRequestMapper paginationRequestMapper,
-                                    CommunityAccessGuard communityAccessGuard) {
+                                    CommunityAccessGuard communityAccessGuard,
+                                    SupplyCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
         this.communityAccessGuard = communityAccessGuard;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
 
@@ -88,7 +92,7 @@ public class GetAllSuppliesController {
         }
 
         List<SupplyResponse> suppliesResponse = supplies.getItems().stream()
-                .map(SupplyResponse::new)
+                .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply)))
                 .toList();
 
         return new PagedResult<>(suppliesResponse, supplies.getSize(), supplies.getTotalElements(),
