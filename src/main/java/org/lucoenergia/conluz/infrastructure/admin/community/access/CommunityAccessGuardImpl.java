@@ -48,6 +48,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean isCommunityAdminOfSupply(UUID supplyId) {
+        return supplyAccessGuard.isCommunityAdminOfSupply(supplyId);
+    }
+
+    @Override
     public boolean canReadCommunity(UUID communityId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
@@ -86,6 +91,16 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canManageMemberships(UUID communityId) {
         return membershipAccessGuard.canManageMemberships(communityId);
+    }
+
+    @Override
+    public boolean canManageMembershipInvestment(UUID communityId) {
+        return membershipAccessGuard.canManageMembershipInvestment(communityId);
+    }
+
+    @Override
+    public boolean canReadMembershipPayback(UUID communityId, UUID userId) {
+        return membershipAccessGuard.canReadMembershipPayback(communityId, userId);
     }
 
     @Override

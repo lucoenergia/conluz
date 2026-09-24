@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.infrastructure.production.sharingagreement.Sharing
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Transactional
@@ -40,6 +41,8 @@ public class UpdateSharingAgreementRepositoryDatabase implements UpdateSharingAg
         entity.setName(update.getName());
         entity.setNotes(update.getNotes());
         entity.setInstalledPowerKw(update.getInstalledPowerKw());
+        entity.setUpdatedAt(Instant.now());
+        entity.setUpdatedBy(update.getUpdatedBy());
 
         SharingAgreement agreement = mapper.map(sharingAgreementRepository.save(entity));
         return agreement.withFile(fileSummaryRepository.findLatestBySharingAgreementId(agreement.getId()).orElse(null));

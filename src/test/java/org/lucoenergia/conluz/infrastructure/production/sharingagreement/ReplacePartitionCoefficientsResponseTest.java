@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement;
 
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetailMother;
 import org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient.PartitionCoefficientResponse;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.ReplacePartitionCoefficientsResponse;
 
@@ -35,7 +36,7 @@ class ReplacePartitionCoefficientsResponseTest {
         List<SupplyPartitionCoefficient> coefficients = List.of(coefficient1, coefficient2);
 
         // Act
-        ReplacePartitionCoefficientsResponse response = new ReplacePartitionCoefficientsResponse(coefficients);
+        ReplacePartitionCoefficientsResponse response = new ReplacePartitionCoefficientsResponse(SupplyPartitionCoefficientDetailMother.of(coefficients));
         List<PartitionCoefficientResponse> result = response.getCoefficients();
 
         // Assert
@@ -64,7 +65,7 @@ class ReplacePartitionCoefficientsResponseTest {
         List<SupplyPartitionCoefficient> coefficients = List.of(coefficient1, coefficient2);
 
         // Act
-        ReplacePartitionCoefficientsResponse response = new ReplacePartitionCoefficientsResponse(coefficients);
+        ReplacePartitionCoefficientsResponse response = new ReplacePartitionCoefficientsResponse(SupplyPartitionCoefficientDetailMother.of(coefficients));
         String warning = response.getCoefficientSumWarning();
 
         // Assert
@@ -90,7 +91,7 @@ class ReplacePartitionCoefficientsResponseTest {
         List<SupplyPartitionCoefficient> coefficients = List.of(coefficient1, coefficient2);
 
         // Act
-        ReplacePartitionCoefficientsResponse response = new ReplacePartitionCoefficientsResponse(coefficients);
+        ReplacePartitionCoefficientsResponse response = new ReplacePartitionCoefficientsResponse(SupplyPartitionCoefficientDetailMother.of(coefficients));
         String warning = response.getCoefficientSumWarning();
 
         // Assert
@@ -107,7 +108,7 @@ class ReplacePartitionCoefficientsResponseTest {
         List<SupplyPartitionCoefficient> coefficients = List.of();
 
         // Act
-        ReplacePartitionCoefficientsResponse response = new ReplacePartitionCoefficientsResponse(coefficients);
+        ReplacePartitionCoefficientsResponse response = new ReplacePartitionCoefficientsResponse(SupplyPartitionCoefficientDetailMother.of(coefficients));
 
         // Assert
         assertTrue(response.getCoefficients().isEmpty());

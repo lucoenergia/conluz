@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.update;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * The updatable fields of a sharing agreement. Bundling them here, rather than passing them as
@@ -12,11 +13,13 @@ public class UpdateSharingAgreement {
     private final String name;
     private final String notes;
     private final BigDecimal installedPowerKw;
+    private final UUID updatedBy;
 
     private UpdateSharingAgreement(Builder builder) {
         this.name = builder.name;
         this.notes = builder.notes;
         this.installedPowerKw = builder.installedPowerKw;
+        this.updatedBy = builder.updatedBy;
     }
 
     public String getName() {
@@ -31,10 +34,15 @@ public class UpdateSharingAgreement {
         return installedPowerKw;
     }
 
+    public UUID getUpdatedBy() {
+        return updatedBy;
+    }
+
     public static class Builder {
         private String name;
         private String notes;
         private BigDecimal installedPowerKw;
+        private UUID updatedBy;
 
         public Builder withName(String name) {
             this.name = name;
@@ -48,6 +56,11 @@ public class UpdateSharingAgreement {
 
         public Builder withInstalledPowerKw(BigDecimal installedPowerKw) {
             this.installedPowerKw = installedPowerKw;
+            return this;
+        }
+
+        public Builder withUpdatedBy(UUID updatedBy) {
+            this.updatedBy = updatedBy;
             return this;
         }
 

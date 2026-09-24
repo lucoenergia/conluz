@@ -42,7 +42,7 @@ public class SyncMonthlyDatadisConsumptionsController {
                     The request body must contain:
                     - **year** (required, integer): The year for which to aggregate data
                     - **month** (optional, integer 1-12): The month to aggregate. If not provided, all months of the year will be aggregated.
-                    - **supplyCode** (optional, string): The supply code (CUPS) to aggregate. If not provided, all active supplies will be aggregated.
+                    - **supplyCode** (optional, string): The supply code (CUPS) to aggregate. If not provided, every supply of the community is aggregated.
 
                     **Behavior:**
                     - If both month and supplyCode are provided: Aggregates only that specific supply for that month
@@ -51,6 +51,8 @@ public class SyncMonthlyDatadisConsumptionsController {
                     - If neither month nor supplyCode is provided: Aggregates all supplies for all months of the year
 
                     The community is taken from the path and only that community's supplies are aggregated.
+                    Disabled supplies are included: a supply that has since been switched off still
+                    consumed energy while it was on, and its pre-aggregates must stay recomputable.
 
                     Proper authentication, through an authentication token, is required for secure access to this endpoint.
                     **Required: Community Admin of the community. Returns 404 if the community does not exist or the

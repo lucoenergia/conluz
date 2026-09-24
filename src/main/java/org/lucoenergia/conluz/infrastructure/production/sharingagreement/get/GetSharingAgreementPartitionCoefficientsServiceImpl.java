@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.Coefficie
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSuccessionCascade;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementPartitionCoefficientsService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
@@ -21,6 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -55,10 +57,21 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
             return List.of();
         }
 
-        Map<UUID, Supply> suppliesById = getSupplyRepository.findAllByIds(
-                        coefficients.stream().map(SupplyPartitionCoefficient::getSupplyId).collect(Collectors.toSet()))
+        Set<UUID> supplyIds = coefficients.stream()
+                .map(SupplyPartitionCoefficient::getSupplyId)
+                .collect(Collectors.toSet());
+
+        Map<UUID, Supply> suppliesById = getSupplyRepository.findAllByIds(supplyIds)
                 .stream()
                 .collect(Collectors.toMap(Supply::getId, supply -> supply));
+
+        // One query for the whole set, not one per row. Scoped to this agreement's plant and to open
+        // activated rows, so the no_overlapping_coefficients exclusion constraint guarantees at most
+        // one per supply and the map cannot collide.
+        Map<UUID, SupplyPartitionCoefficientDetail> currentBySupplyId = getCoefficientRepository
+                .findActiveDetailsByPlantIdAndSupplyIdIn(plantId, supplyIds)
+                .stream()
+                .collect(Collectors.toMap(detail -> detail.getSupply().id(), detail -> detail));
 
         // Constant for the whole agreement (does not depend on supplyId): computed once so an open
         // row with no successor (the common case for a freshly-published agreement) resolves to
@@ -68,14 +81,15 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
 
         return coefficients.stream()
                 .map(coefficient -> map(plantId, agreement, coefficient, suppliesById.get(coefficient.getSupplyId()),
-                        laterAgreementExists))
+                        laterAgreementExists, currentBySupplyId.get(coefficient.getSupplyId())))
                 .sorted(Comparator.comparing(SharingAgreementCoefficient::getSupplyCode))
                 .toList();
     }
 
     private SharingAgreementCoefficient map(UUID plantId, SharingAgreement agreement,
                                             SupplyPartitionCoefficient coefficient, Supply supply,
-                                            boolean laterAgreementExists) {
+                                            boolean laterAgreementExists,
+                                            SupplyPartitionCoefficientDetail currentCoefficient) {
         CoefficientApplicationState applicationState = coefficient.getValidFrom() == null
                 ? CoefficientApplicationState.PENDING : CoefficientApplicationState.APPLIED;
 
@@ -112,6 +126,7 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
             }
         }
 
-        return new SharingAgreementCoefficient(coefficient, supply, applicationState, endState, endDate);
+        return new SharingAgreementCoefficient(coefficient, supply, applicationState, endState, endDate,
+                currentCoefficient);
     }
 }

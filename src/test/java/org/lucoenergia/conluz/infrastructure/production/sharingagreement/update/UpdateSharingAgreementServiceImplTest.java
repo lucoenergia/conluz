@@ -2,13 +2,13 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.update
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
-import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotDraftException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.update.UpdateSharingAgreementServiceImpl;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -16,7 +16,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,12 +23,10 @@ import static org.mockito.Mockito.when;
 class UpdateSharingAgreementServiceImplTest {
 
     @Mock
-    private GetSharingAgreementService getSharingAgreementService;
-    @Mock
     private UpdateSharingAgreementRepository repository;
 
     private UpdateSharingAgreementServiceImpl service() {
-        return new UpdateSharingAgreementServiceImpl(getSharingAgreementService, repository);
+        return new UpdateSharingAgreementServiceImpl(repository);
     }
 
     private UpdateSharingAgreement anUpdate() {
@@ -37,33 +34,17 @@ class UpdateSharingAgreementServiceImplTest {
                 .withName("name")
                 .withNotes("notes")
                 .withInstalledPowerKw(BigDecimal.TEN)
+                .withUpdatedBy(UUID.randomUUID())
                 .build();
     }
 
-    @Test
-    void update_throwsNotDraft_whenAgreementIsPublished() {
-        UUID agreementId = UUID.randomUUID();
-        SharingAgreement published = new SharingAgreement.Builder()
-                .withId(agreementId)
-                .withStatus(SharingAgreementStatus.PUBLISHED)
-                .build();
-        when(getSharingAgreementService.findById(agreementId)).thenReturn(published);
-
-        assertThrows(SharingAgreementNotDraftException.class,
-                () -> service().update(UUID.randomUUID(), agreementId, anUpdate()));
-    }
-
-    @Test
-    void update_delegatesToRepository_whenAgreementIsDraft() {
+    @ParameterizedTest
+    @EnumSource(SharingAgreementStatus.class)
+    void update_delegatesToRepository_regardlessOfStatus(SharingAgreementStatus status) {
         UUID plantId = UUID.randomUUID();
         UUID agreementId = UUID.randomUUID();
-        SharingAgreement draft = new SharingAgreement.Builder()
-                .withId(agreementId)
-                .withStatus(SharingAgreementStatus.DRAFT)
-                .build();
-        when(getSharingAgreementService.findById(agreementId)).thenReturn(draft);
         UpdateSharingAgreement update = anUpdate();
-        SharingAgreement updated = new SharingAgreement.Builder().withId(agreementId).build();
+        SharingAgreement updated = new SharingAgreement.Builder().withId(agreementId).withStatus(status).build();
         when(repository.update(plantId, agreementId, update)).thenReturn(updated);
 
         SharingAgreement result = service().update(plantId, agreementId, update);

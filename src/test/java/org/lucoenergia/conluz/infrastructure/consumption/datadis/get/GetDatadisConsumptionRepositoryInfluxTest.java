@@ -42,6 +42,12 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         datadisConsumptionInfluxLoader.clearData();
     }
 
+    /**
+     * Daily buckets follow the local calendar (Europe/Madrid), not UTC days. The requested range is
+     * expressed in UTC, so its bounds fall mid-day locally and the first and last buckets are
+     * partial: 2023-04-01T00:00:00Z is 02:00 local on April 1 and 2023-04-30T23:59:59Z is 01:59:59
+     * local on May 1, which is why the range covers 31 local days rather than 30.
+     */
     @Test
     void testGetDailyConsumptionsByRangeOfDates() {
         User user = UserMother.randomUser();
@@ -57,22 +63,20 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         assertNotNull(result);
         assertFalse(result.isEmpty());
 
-        // The loader loads 30 hourly data points (24 hours for April 1 + 6 hours for April 2)
-        // When grouped by day, we expect 2 daily aggregated results, the rest of the 28 days will be empty but returned
-        assertEquals(30, result.size());
+        // Local days April 1 through May 1; the days in between have no data and come back as zeros.
+        assertEquals(31, result.size());
 
-        // Verify first day (April 1, 2023) - 24 hours of data
+        // Verify first day (April 1, 2023)
         DatadisConsumption day1 = result.get(0);
         assertNotNull(day1);
         assertEquals("ES0031406912345678JN0F", day1.getCups());
 
-        // Verify date and time
-        // First timestamp: 1680307200000000000L = 2023-04-01T00:00:00Z
-        // In Europe/Madrid timezone (UTC+2 in April - CEST), this becomes 2023-04-01T02:00:00
+        // The bucket starts at local midnight, 2023-03-31T22:00:00Z, so it is labelled 00:00 and not
+        // 02:00 as it was while buckets started at UTC midnight.
         assertNotNull(day1.getDate());
         assertEquals("2023/04/01", day1.getDate(), "Date should be April 1, 2023 in Europe/Madrid timezone");
         assertNotNull(day1.getTime());
-        assertEquals("02:00", day1.getTime(), "Time should be 02:00 in Europe/Madrid timezone (UTC+2)");
+        assertEquals("00:00", day1.getTime(), "Buckets start at local midnight");
 
         assertNotNull(day1.getConsumptionKWh());
         assertTrue(day1.getConsumptionKWh() > 0, "Consumption should be greater than 0");
@@ -83,30 +87,25 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         assertNotNull(day1.getSelfConsumptionEnergyKWh());
         assertTrue(day1.getSelfConsumptionEnergyKWh() >= 0, "Self-consumption energy should be >= 0");
 
-        // Expected total consumption for April 1: sum of all 24 hourly values
-        // Sum = 0.45+0.42+0.38+0.35+0.33+0.32+0.40+0.55+0.68+0.72+0.75+0.78+0.80+0.76+0.70+0.65+0.58+0.50+0.55+0.60+0.58+0.52+0.48+0.46 = 13.31
-        assertEquals(13.31f, day1.getConsumptionKWh(), 0.01f, "Day 1 total consumption should match sum of hourly values");
+        // Local April 1 spans [2023-03-31T22:00Z, 2023-04-01T22:00Z), so it holds the first 22 of the
+        // loader's 24 hourly records: 13.31 total minus the 22:00Z (0.48) and 23:00Z (0.46) ones,
+        // which belong to local April 2.
+        assertEquals(12.37f, day1.getConsumptionKWh(), 0.01f, "Day 1 total consumption should match sum of hourly values");
 
-        // Expected total surplus for April 1: sum of all 24 hourly values
-        // Sum = 0.0+0.0+0.0+0.0+0.0+0.0+0.0+0.0+0.10+0.20+0.25+0.30+0.35+0.28+0.22+0.15+0.08+0.0+0.0+0.0+0.0+0.0+0.0+0.0 = 1.93
+        // All of the loader's surplus and self-consumption sits between 08:00Z and 16:00Z, well
+        // inside local April 1, so those totals are unchanged by the local alignment.
         assertEquals(1.93f, day1.getSurplusEnergyKWh(), 0.01f, "Day 1 total surplus should match sum of hourly values");
-
-        // Expected total self-consumption for April 1: sum of all 24 hourly values
-        // Sum = 0.0+0.0+0.0+0.0+0.0+0.0+0.0+0.0+0.15+0.25+0.30+0.35+0.40+0.33+0.27+0.20+0.12+0.0+0.0+0.0+0.0+0.0+0.0+0.0 = 2.37
         assertEquals(2.37f, day1.getSelfConsumptionEnergyKWh(), 0.01f, "Day 1 total self-consumption should match sum of hourly values");
 
-        // Verify second day (April 2, 2023) - 6 hours of data
+        // Verify second day (April 2, 2023)
         DatadisConsumption day2 = result.get(1);
         assertNotNull(day2);
         assertEquals("ES0031406912345678JN0F", day2.getCups());
 
-        // Verify date and time
-        // First timestamp of day 2: 1680393600000000000L = 2023-04-02T00:00:00Z
-        // In Europe/Madrid timezone (UTC+2), this becomes 2023-04-02T02:00:00
         assertNotNull(day2.getDate());
         assertEquals("2023/04/02", day2.getDate(), "Date should be April 2, 2023 in Europe/Madrid timezone");
         assertNotNull(day2.getTime());
-        assertEquals("02:00", day2.getTime(), "Time should be 02:00 in Europe/Madrid timezone (UTC+2)");
+        assertEquals("00:00", day2.getTime(), "Buckets start at local midnight");
 
         assertNotNull(day2.getConsumptionKWh());
         assertTrue(day2.getConsumptionKWh() > 0, "Consumption should be greater than 0");
@@ -115,13 +114,26 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         assertNotNull(day2.getSurplusEnergyKWh());
         assertNotNull(day2.getSelfConsumptionEnergyKWh());
 
-        // Expected total consumption for April 2: sum of 6 hourly values
-        // Sum = 0.44+0.40+0.37+0.36+0.34+0.35 = 2.26
-        assertEquals(2.26f, day2.getConsumptionKWh(), 0.01f, "Day 2 total consumption should match sum of hourly values");
+        // Local April 2 picks up the last two records of the UTC April 1 run (0.48 + 0.46) plus the
+        // six records of UTC April 2 (2.26).
+        assertEquals(3.20f, day2.getConsumptionKWh(), 0.01f, "Day 2 total consumption should match sum of hourly values");
 
         // April 2 has no surplus or self-consumption in the test data
         assertEquals(0.0f, day2.getSurplusEnergyKWh(), 0.01f, "Day 2 should have no surplus energy");
         assertEquals(0.0f, day2.getSelfConsumptionEnergyKWh(), 0.01f, "Day 2 should have no self-consumption energy");
+
+        // The loader's month-boundary records all sit at or after 2023-04-30T22:00Z, which is already
+        // May 1 locally, so April 30 holds nothing while UTC bucketing counted two of them there. The
+        // other two (2023-05-01T00:00Z and 01:00Z) fall past endDate and are not returned at all.
+        DatadisConsumption april30 = result.get(29);
+        assertEquals("2023/04/30", april30.getDate());
+        assertEquals(0.0f, april30.getConsumptionKWh(), 0.01f,
+                "April 30 has no local records; UTC bucketing wrongly credited it with the May 1 ones");
+
+        DatadisConsumption may1 = result.get(30);
+        assertEquals("2023/05/01", may1.getDate());
+        assertEquals(0.84f, may1.getConsumptionKWh(), 0.01f,
+                "May 1 should hold the 00:00 and 01:00 local records that fall inside the range");
     }
 
     @Test

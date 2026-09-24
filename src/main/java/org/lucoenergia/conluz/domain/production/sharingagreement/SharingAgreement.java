@@ -21,6 +21,8 @@ public class SharingAgreement {
     private final BigDecimal installedPowerKw;
     private final Instant createdAt;
     private final UUID createdBy;
+    private final Instant updatedAt;
+    private final UUID updatedBy;
     private final SharingAgreementFileSummary file;
 
     private SharingAgreement(Builder builder) {
@@ -32,6 +34,8 @@ public class SharingAgreement {
         this.installedPowerKw = builder.installedPowerKw;
         this.createdAt = builder.createdAt;
         this.createdBy = builder.createdBy;
+        this.updatedAt = builder.updatedAt;
+        this.updatedBy = builder.updatedBy;
         this.file = builder.file;
     }
 
@@ -67,6 +71,14 @@ public class SharingAgreement {
         return createdBy;
     }
 
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public UUID getUpdatedBy() {
+        return updatedBy;
+    }
+
     public SharingAgreementFileSummary getFile() {
         return file;
     }
@@ -87,6 +99,8 @@ public class SharingAgreement {
                 .withInstalledPowerKw(installedPowerKw)
                 .withCreatedAt(createdAt)
                 .withCreatedBy(createdBy)
+                .withUpdatedAt(updatedAt)
+                .withUpdatedBy(updatedBy)
                 .withFile(file)
                 .build();
     }
@@ -139,6 +153,8 @@ public class SharingAgreement {
         private BigDecimal installedPowerKw;
         private Instant createdAt;
         private UUID createdBy;
+        private Instant updatedAt;
+        private UUID updatedBy;
         private SharingAgreementFileSummary file;
 
         public Builder withId(UUID id) {
@@ -178,6 +194,16 @@ public class SharingAgreement {
 
         public Builder withCreatedBy(UUID createdBy) {
             this.createdBy = createdBy;
+            return this;
+        }
+
+        public Builder withUpdatedAt(Instant updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
+
+        public Builder withUpdatedBy(UUID updatedBy) {
+            this.updatedBy = updatedBy;
             return this;
         }
 

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -20,6 +21,12 @@ public class CommunityMembership {
     private final CommunityRole role;
     @NotNull
     private final Boolean enabled;
+    /**
+     * The member's initial contribution in euros, or null when none has been recorded. Personal
+     * financial data: it reaches the outside only through the payback endpoint, under that
+     * endpoint's guard, and is deliberately absent from every membership and user response.
+     */
+    private final BigDecimal investmentEur;
 
     private CommunityMembership(Builder builder) {
         this.id = builder.id;
@@ -27,6 +34,7 @@ public class CommunityMembership {
         this.community = builder.community;
         this.role = builder.role;
         this.enabled = builder.enabled != null ? builder.enabled : true;
+        this.investmentEur = builder.investmentEur;
     }
 
     public UUID getId() {
@@ -49,12 +57,17 @@ public class CommunityMembership {
         return enabled;
     }
 
+    public BigDecimal getInvestmentEur() {
+        return investmentEur;
+    }
+
     public static class Builder {
         private UUID id;
         private User user;
         private Community community;
         private CommunityRole role;
         private Boolean enabled;
+        private BigDecimal investmentEur;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -78,6 +91,11 @@ public class CommunityMembership {
 
         public Builder withEnabled(Boolean enabled) {
             this.enabled = enabled;
+            return this;
+        }
+
+        public Builder withInvestmentEur(BigDecimal investmentEur) {
+            this.investmentEur = investmentEur;
             return this;
         }
 

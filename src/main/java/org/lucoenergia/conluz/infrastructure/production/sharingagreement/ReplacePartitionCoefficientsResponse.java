@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
 import org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient.PartitionCoefficientResponse;
 
 import java.math.BigDecimal;
@@ -20,10 +20,10 @@ public class ReplacePartitionCoefficientsResponse {
             example = "Coefficient set sum is 0.958347, expected 1")
     private final String coefficientSumWarning;
 
-    public ReplacePartitionCoefficientsResponse(List<SupplyPartitionCoefficient> saved) {
+    public ReplacePartitionCoefficientsResponse(List<SupplyPartitionCoefficientDetail> saved) {
         this.coefficients = saved.stream().map(PartitionCoefficientResponse::new).collect(Collectors.toList());
         BigDecimal sum = saved.stream()
-                .map(SupplyPartitionCoefficient::getCoefficient)
+                .map(SupplyPartitionCoefficientDetail::getCoefficientValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         this.coefficientSumWarning = PartitionCoefficientSetSumWarning.build(sum);
     }

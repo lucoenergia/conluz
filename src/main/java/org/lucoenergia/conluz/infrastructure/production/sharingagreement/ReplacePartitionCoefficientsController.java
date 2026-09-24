@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.production.sharingagreement.MaterializeSharingAgreementCoefficientsService;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -38,9 +39,12 @@ import java.util.UUID;
 public class ReplacePartitionCoefficientsController {
 
     private final MaterializeSharingAgreementCoefficientsService service;
+    private final PartitionCoefficientService partitionCoefficientService;
 
-    public ReplacePartitionCoefficientsController(MaterializeSharingAgreementCoefficientsService service) {
+    public ReplacePartitionCoefficientsController(MaterializeSharingAgreementCoefficientsService service,
+                                             PartitionCoefficientService partitionCoefficientService) {
         this.service = service;
+        this.partitionCoefficientService = partitionCoefficientService;
     }
 
     @PutMapping
@@ -90,6 +94,6 @@ public class ReplacePartitionCoefficientsController {
             @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody ReplacePartitionCoefficientsBody body) {
         List<SupplyPartitionCoefficient> saved = service.replaceAllBySupplyId(plantId, sharingAgreementId, body.mapToEntries());
-        return new ReplacePartitionCoefficientsResponse(saved);
+        return new ReplacePartitionCoefficientsResponse(partitionCoefficientService.findDetailsInOrderOf(saved));
     }
 }

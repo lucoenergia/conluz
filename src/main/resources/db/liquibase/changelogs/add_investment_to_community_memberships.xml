@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- A membership can now record what the member initially contributed to the community, so
+         the payback card can report how much of it has been recovered. Only the current value is
+         kept: there is no history table and no previous-value column, because the amount is a
+         standing fact about the membership rather than a series of events.
+
+         The column is nullable and NULL for every existing row. No backfill: NULL means "no
+         investment has been recorded", which is exactly true of every membership created before
+         this changeset, and any number written here instead would be invented. Reads must
+         therefore treat NULL as absent rather than as zero, because zero would claim the member
+         contributed nothing, which is a different statement.
+
+         NUMERIC(12,2) is euros with cents: two decimals because the write endpoint rejects more,
+         and twelve digits because a community-scale contribution has no plausible need for more
+         than ten digits before the decimal point. -->
+    <changeSet id="add_investment_to_community_memberships" author="Víctor Cañizares">
+        <preConditions onFail="HALT">
+            <not>
+                <columnExists tableName="community_memberships" columnName="investment_eur"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="community_memberships">
+            <column name="investment_eur" type="NUMERIC(12,2)"
+                    remarks="The member's initial contribution to the community, in euros. Only the current value is stored, never a history of changes. NULL means no investment has been recorded for this membership, which is not the same as an investment of zero.">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="community_memberships" columnName="investment_eur"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

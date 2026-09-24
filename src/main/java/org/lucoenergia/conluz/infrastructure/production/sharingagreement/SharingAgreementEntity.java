@@ -37,6 +37,16 @@ public class SharingAgreementEntity {
      */
     @Column(name = "created_by")
     private UUID createdBy;
+    /**
+     * NULL means the agreement has never been edited since creation.
+     */
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+    /**
+     * NULL means the agreement has never been edited since creation.
+     */
+    @Column(name = "updated_by")
+    private UUID updatedBy;
 
     public UUID getId() {
         return id;
@@ -100,5 +110,21 @@ public class SharingAgreementEntity {
 
     public void setCreatedBy(UUID createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public UUID getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(UUID updatedBy) {
+        this.updatedBy = updatedBy;
     }
 }

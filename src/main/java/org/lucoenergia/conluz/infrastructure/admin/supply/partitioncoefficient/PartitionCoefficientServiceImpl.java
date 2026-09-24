@@ -3,15 +3,16 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Transactional(readOnly = true)
@@ -25,10 +26,8 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
     }
 
     @Override
-    public BigDecimal findCoefficientByInstant(UUID supplyId, Instant timestamp) {
-        return repository.findBySupplyIdAtTimestamp(supplyId, timestamp)
-                .map(SupplyPartitionCoefficient::getCoefficient)
-                .orElseThrow(() -> new SupplyPartitionCoefficientNotFoundException(supplyId, timestamp));
+    public List<SupplyPartitionCoefficientDetail> findCoefficientsByInstant(UUID supplyId, UUID plantId, Instant timestamp) {
+        return repository.findDetailsBySupplyIdAtTimestamp(supplyId, plantId, timestamp);
     }
 
     @Override
@@ -40,13 +39,29 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
     }
 
     @Override
-    public List<SupplyPartitionCoefficient> findAllCoefficientHistory(UUID supplyId) {
-        return repository.findAllBySupplyIdOrderByValidFromAsc(supplyId);
+    public List<SupplyPartitionCoefficientDetail> findAllCoefficientHistory(UUID supplyId, UUID plantId,
+                                                                            boolean includePending) {
+        return repository.findAllDetailsBySupplyId(supplyId, plantId, includePending);
     }
 
     @Override
-    public Optional<SupplyPartitionCoefficient> findActiveBySupplyId(UUID supplyId) {
-        return repository.findActiveBySupplyId(supplyId);
+    public List<SupplyPartitionCoefficientDetail> findActiveBySupplyId(UUID supplyId, UUID plantId) {
+        return repository.findActiveDetailsBySupplyId(supplyId, plantId);
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficientDetail> findDetailsInOrderOf(List<SupplyPartitionCoefficient> coefficients) {
+        if (coefficients.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> ids = coefficients.stream().map(SupplyPartitionCoefficient::getId).toList();
+        Map<UUID, SupplyPartitionCoefficientDetail> byId = repository.findAllDetailsByIdIn(ids).stream()
+                .collect(Collectors.toMap(SupplyPartitionCoefficientDetail::getId, Function.identity()));
+        // SQL IN returns rows in whatever order the database finds them, so the caller's order is
+        // reimposed here. Callers such as the activation endpoints document their order ("the
+        // requested targets and any predecessor cascaded as a result"), so losing it would be a
+        // silent contract change.
+        return ids.stream().map(byId::get).filter(Objects::nonNull).toList();
     }
 
     private SupplyPartitionCoefficient clipToRange(SupplyPartitionCoefficient period, Instant from, Instant to) {

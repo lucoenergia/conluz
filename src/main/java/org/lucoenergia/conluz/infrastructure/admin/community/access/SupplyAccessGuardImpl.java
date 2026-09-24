@@ -25,11 +25,7 @@ class SupplyAccessGuardImpl implements SupplyAccessGuard {
         if (user == null || supplyId == null) {
             return false;
         }
-        // A caller who cannot see the supply (it does not exist, or they neither administer its
-        // community nor own it) gets a 404, never a 403, to avoid leaking the supply's existence.
-        if (!canSeeSupply(user, supplyId)) {
-            throw new SupplyNotFoundException(SupplyId.of(supplyId));
-        }
+        requireVisible(findSupply(supplyId), user, supplyId);
         return true;
     }
 
@@ -39,30 +35,47 @@ class SupplyAccessGuardImpl implements SupplyAccessGuard {
         if (user == null || supplyId == null) {
             return false;
         }
-        // A caller who cannot see the supply (it does not exist, or they neither administer its
-        // community nor own it) gets a 404, never a 403, to avoid leaking the supply's existence.
-        if (!canSeeSupply(user, supplyId)) {
-            throw new SupplyNotFoundException(SupplyId.of(supplyId));
-        }
-        Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
-        if (supply == null) {
-            return false;
-        }
-        UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
-        return helper.hasCommunityAdminRoleIn(user, communityId);
+        Supply supply = requireVisible(findSupply(supplyId), user, supplyId);
+        return isCommunityAdminOf(supply, user);
     }
 
-    private boolean canSeeSupply(User user, UUID supplyId) {
-        Supply supply = getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
-        if (supply == null) {
+    @Override
+    public boolean isCommunityAdminOfSupply(UUID supplyId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null || supplyId == null) {
             return false;
         }
+        Supply supply = findSupply(supplyId);
+        return supply != null && isCommunityAdminOf(supply, user);
+    }
+
+    /**
+     * Resolves the supply once and returns it, or throws: a caller who cannot see the supply (it does
+     * not exist, or they neither administer its community nor own it) gets a 404, never a 403, to
+     * avoid leaking the supply's existence.
+     */
+    private Supply requireVisible(Supply supply, User user, UUID supplyId) {
+        if (supply == null || !(isCommunityAdminOf(supply, user) || isOwner(supply, user))) {
+            throw new SupplyNotFoundException(SupplyId.of(supplyId));
+        }
+        return supply;
+    }
+
+    /**
+     * The single spelling of "Community Admin of this supply's community". Every caller passes an
+     * already-resolved supply so the rule -- and the lookup behind it -- exists exactly once.
+     */
+    private boolean isCommunityAdminOf(Supply supply, User user) {
         UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
-        return helper.hasCommunityAdminRoleIn(user, communityId) || isOwner(supply, user);
+        return helper.hasCommunityAdminRoleIn(user, communityId);
     }
 
     private boolean isOwner(Supply supply, User user) {
         return supply.getUser() != null && supply.getUser().getId() != null
                 && supply.getUser().getId().equals(user.getId());
+    }
+
+    private Supply findSupply(UUID supplyId) {
+        return getSupplyRepository.findById(SupplyId.of(supplyId)).orElse(null);
     }
 }

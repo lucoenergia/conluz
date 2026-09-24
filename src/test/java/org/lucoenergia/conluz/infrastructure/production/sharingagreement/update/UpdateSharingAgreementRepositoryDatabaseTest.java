@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.update;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
@@ -31,6 +33,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
@@ -62,21 +66,30 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
     }
 
     private SharingAgreementEntity persistAgreement(PlantEntity plant) {
+        return persistAgreement(plant, SharingAgreementStatus.DRAFT);
+    }
+
+    private SharingAgreementEntity persistAgreement(PlantEntity plant, SharingAgreementStatus status) {
         SharingAgreementEntity agreement = new SharingAgreementEntity();
         agreement.setId(UUID.randomUUID());
         agreement.setPlant(plant);
         agreement.setName("Original name");
-        agreement.setStatus(SharingAgreementStatus.DRAFT);
+        agreement.setStatus(status);
         agreement.setCreatedAt(Instant.now());
         agreement.setCreatedBy(null);
         return sharingAgreementRepository.save(agreement);
     }
 
     private UpdateSharingAgreement anUpdate(String name, String notes, BigDecimal installedPowerKw) {
+        return anUpdate(name, notes, installedPowerKw, null);
+    }
+
+    private UpdateSharingAgreement anUpdate(String name, String notes, BigDecimal installedPowerKw, UUID updatedBy) {
         return new UpdateSharingAgreement.Builder()
                 .withName(name)
                 .withNotes(notes)
                 .withInstalledPowerKw(installedPowerKw)
+                .withUpdatedBy(updatedBy)
                 .build();
     }
 
@@ -111,6 +124,40 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         assertEquals(0, BigDecimal.valueOf(9.5).compareTo(result.getInstalledPowerKw()));
         assertEquals(SharingAgreementStatus.DRAFT, result.getStatus());
         assertEquals(plant.getId(), result.getPlantId());
+    }
+
+    @ParameterizedTest
+    @EnumSource(SharingAgreementStatus.class)
+    void update_changesInstalledPowerKw_regardlessOfStatus(SharingAgreementStatus status) {
+        PlantEntity plant = persistPlant();
+        SharingAgreementEntity entity = persistAgreement(plant, status);
+        Instant originalCreatedAt = entity.getCreatedAt();
+
+        SharingAgreement result = repository.update(plant.getId(), entity.getId(),
+                anUpdate("New name", "New notes", BigDecimal.valueOf(9.5)));
+
+        assertEquals(0, BigDecimal.valueOf(9.5).compareTo(result.getInstalledPowerKw()));
+        assertEquals(status, result.getStatus());
+        assertEquals(plant.getId(), result.getPlantId());
+        assertEquals(originalCreatedAt, result.getCreatedAt());
+        assertNull(result.getCreatedBy());
+    }
+
+    @Test
+    void update_recordsUpdatedAtAndUpdatedBy() {
+        PlantEntity plant = persistPlant();
+        SharingAgreementEntity entity = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        assertNull(entity.getUpdatedAt());
+        assertNull(entity.getUpdatedBy());
+        UUID editorId = persistUser().getId();
+        Instant before = Instant.now();
+
+        SharingAgreement result = repository.update(plant.getId(), entity.getId(),
+                anUpdate("New name", "New notes", BigDecimal.valueOf(9.5), editorId));
+
+        assertEquals(editorId, result.getUpdatedBy());
+        assertNotNull(result.getUpdatedAt());
+        assertFalse(result.getUpdatedAt().isBefore(before));
     }
 
     @Test

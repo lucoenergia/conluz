@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -25,6 +26,13 @@ public class CommunityMembershipEntity {
     private CommunityRole role;
 
     private Boolean enabled;
+
+    /**
+     * The member's initial contribution in euros, or null when none has been recorded. Null is
+     * not zero: no amount is stored for a membership that has never had one set.
+     */
+    @Column(name = "investment_eur", precision = 12, scale = 2)
+    private BigDecimal investmentEur;
 
     public UUID getId() {
         return id;
@@ -66,6 +74,14 @@ public class CommunityMembershipEntity {
         this.enabled = enabled;
     }
 
+    public BigDecimal getInvestmentEur() {
+        return investmentEur;
+    }
+
+    public void setInvestmentEur(BigDecimal investmentEur) {
+        this.investmentEur = investmentEur;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -85,6 +101,7 @@ public class CommunityMembershipEntity {
         private CommunityEntity community;
         private CommunityRole role;
         private Boolean enabled;
+        private BigDecimal investmentEur;
 
         public Builder withId(UUID id) {
             this.id = id;
@@ -111,6 +128,11 @@ public class CommunityMembershipEntity {
             return this;
         }
 
+        public Builder withInvestmentEur(BigDecimal investmentEur) {
+            this.investmentEur = investmentEur;
+            return this;
+        }
+
         public CommunityMembershipEntity build() {
             CommunityMembershipEntity entity = new CommunityMembershipEntity();
             entity.setId(id);
@@ -118,6 +140,7 @@ public class CommunityMembershipEntity {
             entity.setCommunity(community);
             entity.setRole(role);
             entity.setEnabled(enabled);
+            entity.setInvestmentEur(investmentEur);
             return entity;
         }
     }

@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientNotFoundException;
+import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.context.MessageSource;
@@ -44,17 +44,27 @@ public class SupplyExceptionHandler {
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(SupplyPartitionCoefficientNotFoundException.class)
-    public ResponseEntity<RestError> handleException(SupplyPartitionCoefficientNotFoundException e) {
-        return errorBuilder.build(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
-
     @ExceptionHandler(SupplyAlreadyExistsException.class)
     public ResponseEntity<RestError> handleException(SupplyAlreadyExistsException e) {
 
         String message = messageSource.getMessage(
                 "error.supply.already.exists",
                 List.of(e.getCode().getCode()).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidEnergyMetricsPeriodException.class)
+    public ResponseEntity<RestError> handleException(InvalidEnergyMetricsPeriodException e) {
+
+        String messageKey = e.getReason() == InvalidEnergyMetricsPeriodException.Reason.START_AFTER_END
+                ? "error.energy.metrics.period.start.after.end"
+                : "error.energy.metrics.period.incomplete";
+
+        String message = messageSource.getMessage(
+                messageKey,
+                List.of("startDate", "endDate").toArray(),
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.BAD_REQUEST);

@@ -22,6 +22,7 @@ class PartitionCoefficientServiceTest {
     private GetSupplyPartitionCoefficientRepository repository;
 
     private static final UUID SUPPLY_ID = UUID.randomUUID();
+    private static final UUID PLANT_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
@@ -29,52 +30,55 @@ class PartitionCoefficientServiceTest {
         service = new PartitionCoefficientServiceImpl(repository);
     }
 
-    // --- resolveCoefficient ---
+    // --- findCoefficientsByInstant ---
 
     @Test
-    void findCoefficientByInstantAtMidnightTimestamp() {
+    void findCoefficientsByInstantAtMidnightTimestamp() {
         Instant midnight = LocalDate.of(2025, 1, 15).atStartOfDay().toInstant(ZoneOffset.UTC);
-        SupplyPartitionCoefficient record = buildRecord(
-                midnight.minusSeconds(3600), null, BigDecimal.valueOf(3.076300));
-        when(repository.findBySupplyIdAtTimestamp(SUPPLY_ID, midnight)).thenReturn(Optional.of(record));
+        SupplyPartitionCoefficientDetail record = SupplyPartitionCoefficientDetailMother.of(
+                buildRecord(midnight.minusSeconds(3600), null, BigDecimal.valueOf(3.076300)));
+        when(repository.findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, midnight)).thenReturn(List.of(record));
 
-        BigDecimal result = service.findCoefficientByInstant(SUPPLY_ID, midnight);
+        List<SupplyPartitionCoefficientDetail> result = service.findCoefficientsByInstant(SUPPLY_ID, null, midnight);
 
-        assertEquals(BigDecimal.valueOf(3.076300), result);
+        assertEquals(1, result.size());
+        assertEquals(BigDecimal.valueOf(3.076300), result.get(0).getCoefficientValue());
     }
 
     @Test
-    void findCoefficientByInstantAtMidHourTimestamp() {
+    void findCoefficientsByInstantAtMidHourTimestamp() {
         Instant midHour = Instant.parse("2025-03-10T14:30:00Z");
-        SupplyPartitionCoefficient record = buildRecord(
-                Instant.parse("2025-01-01T00:00:00Z"), null, BigDecimal.valueOf(2.543200));
-        when(repository.findBySupplyIdAtTimestamp(SUPPLY_ID, midHour)).thenReturn(Optional.of(record));
+        SupplyPartitionCoefficientDetail record = SupplyPartitionCoefficientDetailMother.of(
+                buildRecord(Instant.parse("2025-01-01T00:00:00Z"), null, BigDecimal.valueOf(2.543200)));
+        when(repository.findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, midHour)).thenReturn(List.of(record));
 
-        BigDecimal result = service.findCoefficientByInstant(SUPPLY_ID, midHour);
+        List<SupplyPartitionCoefficientDetail> result = service.findCoefficientsByInstant(SUPPLY_ID, null, midHour);
 
-        assertEquals(BigDecimal.valueOf(2.543200), result);
+        assertEquals(1, result.size());
+        assertEquals(BigDecimal.valueOf(2.543200), result.get(0).getCoefficientValue());
     }
 
     @Test
-    void findCoefficientByInstant() {
-        // Boundary rule: valid_from inclusive, valid_to exclusive.
-        // A query at T2 (the exact change time) should return the NEW period (valid_from = T2).
-        Instant changeAt = Instant.parse("2025-06-01T00:00:00Z");
-        SupplyPartitionCoefficient newPeriod = buildRecord(changeAt, null, BigDecimal.valueOf(4.000000));
-        when(repository.findBySupplyIdAtTimestamp(SUPPLY_ID, changeAt)).thenReturn(Optional.of(newPeriod));
+    void findCoefficientsByInstantReturnsOneEntryPerPlantCoveringTheInstant() {
+        Instant instant = Instant.parse("2025-06-01T12:00:00Z");
+        SupplyPartitionCoefficientDetail inX = SupplyPartitionCoefficientDetailMother.random(
+                BigDecimal.valueOf(0.4), instant.minusSeconds(3600), null);
+        SupplyPartitionCoefficientDetail inY = SupplyPartitionCoefficientDetailMother.random(
+                BigDecimal.valueOf(0.6), instant.minusSeconds(3600), null);
+        when(repository.findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, instant)).thenReturn(List.of(inX, inY));
 
-        BigDecimal result = service.findCoefficientByInstant(SUPPLY_ID, changeAt);
-
-        assertEquals(BigDecimal.valueOf(4.000000), result);
+        assertEquals(2, service.findCoefficientsByInstant(SUPPLY_ID, null, instant).size());
+        // A null plant means "every plant the supply participates in".
+        verify(repository).findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, instant);
     }
 
     @Test
-    void findCoefficientByInstantThrowsWhenNoHistoryExists() {
+    void findCoefficientsByInstantReturnsEmptyListWhenNoPeriodCoversTheInstant() {
         Instant timestamp = Instant.parse("2020-01-01T00:00:00Z");
-        when(repository.findBySupplyIdAtTimestamp(SUPPLY_ID, timestamp)).thenReturn(Optional.empty());
+        when(repository.findDetailsBySupplyIdAtTimestamp(SUPPLY_ID, null, timestamp)).thenReturn(List.of());
 
-        assertThrows(SupplyPartitionCoefficientNotFoundException.class,
-                () -> service.findCoefficientByInstant(SUPPLY_ID, timestamp));
+        // An empty collection, not a 404: nothing covering an instant is a normal answer.
+        assertTrue(service.findCoefficientsByInstant(SUPPLY_ID, null, timestamp).isEmpty());
     }
 
     // --- resolveCoefficientsInRange ---
@@ -143,41 +147,63 @@ class PartitionCoefficientServiceTest {
     // --- findAllCoefficientHistory ---
 
     @Test
-    void findAllCoefficientHistory_delegatesAndReturnsOrderedList() {
+    void findAllCoefficientHistory_delegatesAcrossEveryPlantAndReturnsOrderedList() {
         Instant t0 = Instant.parse("2023-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2024-01-01T00:00:00Z");
-        SupplyPartitionCoefficient p1 = buildRecord(t0, t1, BigDecimal.valueOf(1.0));
-        SupplyPartitionCoefficient p2 = buildRecord(t1, null, BigDecimal.valueOf(2.0));
-        when(repository.findAllBySupplyIdOrderByValidFromAsc(SUPPLY_ID)).thenReturn(List.of(p1, p2));
+        SupplyPartitionCoefficientDetail p1 =
+                SupplyPartitionCoefficientDetailMother.of(buildRecord(t0, t1, BigDecimal.valueOf(1.0)));
+        SupplyPartitionCoefficientDetail p2 =
+                SupplyPartitionCoefficientDetailMother.of(buildRecord(t1, null, BigDecimal.valueOf(2.0)));
+        when(repository.findAllDetailsBySupplyId(SUPPLY_ID, null, true)).thenReturn(List.of(p1, p2));
 
-        List<SupplyPartitionCoefficient> result = service.findAllCoefficientHistory(SUPPLY_ID);
+        List<SupplyPartitionCoefficientDetail> result = service.findAllCoefficientHistory(SUPPLY_ID, null, true);
 
         assertEquals(2, result.size());
         assertEquals(t0, result.get(0).getValidFrom());
         assertEquals(t1, result.get(1).getValidFrom());
-        verify(repository).findAllBySupplyIdOrderByValidFromAsc(SUPPLY_ID);
+        // A null plant means "every plant the supply participates in".
+        verify(repository).findAllDetailsBySupplyId(SUPPLY_ID, null, true);
+    }
+
+    /**
+     * The service decides nothing about pending rows -- it carries the caller's decision to the
+     * query. A service that quietly forced the flag would make the controller's authorization-derived
+     * choice ineffective.
+     */
+    @Test
+    void findAllCoefficientHistory_carriesIncludePendingThroughToTheQuery() {
+        SupplyPartitionCoefficientDetail activated = SupplyPartitionCoefficientDetailMother.of(
+                buildRecord(Instant.parse("2023-01-01T00:00:00Z"), null, BigDecimal.valueOf(1.0)));
+        when(repository.findAllDetailsBySupplyId(SUPPLY_ID, PLANT_ID, false)).thenReturn(List.of(activated));
+
+        List<SupplyPartitionCoefficientDetail> result =
+                service.findAllCoefficientHistory(SUPPLY_ID, PLANT_ID, false);
+
+        assertEquals(1, result.size());
+        verify(repository).findAllDetailsBySupplyId(SUPPLY_ID, PLANT_ID, false);
     }
 
     // --- findActiveBySupplyId ---
 
     @Test
-    void findActiveBySupplyId_delegatesAndReturnsOptional() {
-        SupplyPartitionCoefficient active = buildRecord(Instant.now().minusSeconds(3600), null, BigDecimal.valueOf(5.0));
-        when(repository.findActiveBySupplyId(SUPPLY_ID)).thenReturn(Optional.of(active));
+    void findActiveBySupplyId_returnsOneEntryPerPlantTheSupplyIsActiveIn() {
+        SupplyPartitionCoefficientDetail inX = SupplyPartitionCoefficientDetailMother.random(
+                BigDecimal.valueOf(0.4), Instant.now().minusSeconds(3600), null);
+        SupplyPartitionCoefficientDetail inY = SupplyPartitionCoefficientDetailMother.random(
+                BigDecimal.valueOf(0.6), Instant.now().minusSeconds(3600), null);
+        when(repository.findActiveDetailsBySupplyId(SUPPLY_ID, null)).thenReturn(List.of(inX, inY));
 
-        Optional<SupplyPartitionCoefficient> result = service.findActiveBySupplyId(SUPPLY_ID);
+        List<SupplyPartitionCoefficientDetail> result = service.findActiveBySupplyId(SUPPLY_ID, null);
 
-        assertTrue(result.isPresent());
-        assertEquals(active, result.get());
+        assertEquals(2, result.size());
+        verify(repository).findActiveDetailsBySupplyId(SUPPLY_ID, null);
     }
 
     @Test
-    void findActiveBySupplyId_returnsEmpty_whenNoActiveRecord() {
-        when(repository.findActiveBySupplyId(SUPPLY_ID)).thenReturn(Optional.empty());
+    void findActiveBySupplyId_returnsEmptyList_whenNoActiveRecord() {
+        when(repository.findActiveDetailsBySupplyId(SUPPLY_ID, null)).thenReturn(List.of());
 
-        Optional<SupplyPartitionCoefficient> result = service.findActiveBySupplyId(SUPPLY_ID);
-
-        assertTrue(result.isEmpty());
+        assertTrue(service.findActiveBySupplyId(SUPPLY_ID, null).isEmpty());
     }
 
     // --- helpers ---
