@@ -45,6 +45,8 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(true))
                 .andExpect(jsonPath("$.platformCapabilities.canListUsers").value(true))
+                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(true))
+                .andExpect(jsonPath("$.platformCapabilities.canCreateUsers").value(true))
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
                 // Nobody may delete, disable or de-admin themselves, platform admins included.
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
@@ -64,7 +66,11 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.platformCapabilities.canListUsers").value(true))
-                .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(false));
+                .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(false))
+                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false))
+                // Creating users in their own community is a community capability; creating one
+                // belonging to no community is not theirs to offer.
+                .andExpect(jsonPath("$.platformCapabilities.canCreateUsers").value(false));
     }
 
     /**
@@ -84,7 +90,9 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canEdit").value(false))
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
                 .andExpect(jsonPath("$.platformCapabilities.canListUsers").value(false))
-                .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(false));
+                .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(false))
+                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false))
+                .andExpect(jsonPath("$.platformCapabilities.canCreateUsers").value(false));
     }
 
     @Test

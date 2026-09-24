@@ -273,6 +273,14 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canCreateCommunity", capabilities.isCanCreateCommunity(),
                     () -> guard.canCreateCommunity());
             assertSame("canListUsers", capabilities.isCanListUsers(), () -> guard.canListUsers());
+            // The null is the decision itself: POST /api/v1/users carries an optional communityId,
+            // so this is the guard call the endpoint makes when none is given.
+            assertSame("canCreateUsers", capabilities.isCanCreateUsers(),
+                    () -> guard.canCreateUserIn(null));
+            // canAdministerPlatform is deliberately absent: it has no guard to be equal to -- it
+            // gates a surface rather than an endpoint -- exactly as community.canCreatePlants is
+            // absent from theCommunityCapabilitiesEqualTheirGuards. Its anchor is
+            // MembershipAndPlatformCapabilitiesAssemblerTest instead.
         });
     }
 
@@ -344,6 +352,12 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         return grantPlatformAdmin(persistUser());
     }
 
+    /**
+     * Persisted, unlike {@code CapabilityFixtures.platformAdminMemberOf} which builds the same
+     * caller in memory for the unit assembler tests. The two are not interchangeable: authenticate()
+     * below loads the principal through UserDetailsService, so the row has to exist, and the flag is
+     * granted the way production grants it. Adjust one and check the other.
+     */
     private User platformAdminMemberOf(Community community) {
         return grantPlatformAdmin(memberOf(community, CommunityRole.COMMUNITY_MEMBER));
     }

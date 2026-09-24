@@ -1297,8 +1297,16 @@
       "PlatformCapabilitiesResponse" : {
         "description" : "What the caller may do on the platform as a whole.",
         "properties" : {
+          "canAdministerPlatform" : {
+            "description" : "Whether the caller may use the platform administration surfaces -- the communities administration page, the platform overview and the landing route. No single endpoint asks this question: it gates a surface, and the endpoints behind that surface report their own capabilities.",
+            "type" : "boolean"
+          },
           "canCreateCommunity" : {
             "description" : "Whether the caller may create a community (POST /api/v1/communities).",
+            "type" : "boolean"
+          },
+          "canCreateUsers" : {
+            "description" : "Whether the caller may create a user attached to no community (POST /api/v1/users with no communityId). CommunityCapabilitiesResponse.canCreateUsers answers the same question for one community.",
             "type" : "boolean"
           },
           "canListUsers" : {
@@ -1307,7 +1315,9 @@
           }
         },
         "required" : [
+          "canAdministerPlatform",
           "canCreateCommunity",
+          "canCreateUsers",
           "canListUsers"
         ],
         "type" : "object"
