@@ -14,6 +14,23 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
                 <constraints nullable="false"/>
             </column>
         </addColumn>
+        <!-- conluz-281: installs upgrading from <= 1.0.76 already had a working Datadis integration
+             with no base_url/enabled concept; it was unconditionally active. Any datadis_config row
+             that already exists when this changeset runs predates these columns by definition, so
+             point it at the real Datadis API and re-enable it instead of silently disabling the
+             integration. base_url is domain-only: GetDatadisConsumptionRepositoryRest and
+             GetSupplyRepositoryDatadisRest both append their own /api-private/api path, and
+             DatadisAuthorizer appends /nikola-auth/tokens/login; two different subpaths on the same
+             base, so the legacy .../api-private/api constant is NOT used here. -->
+        <sql>
+            UPDATE datadis_config
+            SET base_url = 'https://datadis.es',
+                enabled = true;
+        </sql>
+        <rollback>
+            <dropColumn tableName="datadis_config" columnName="base_url"/>
+            <dropColumn tableName="datadis_config" columnName="enabled"/>
+        </rollback>
     </changeSet>
 
 </databaseChangeLog>
