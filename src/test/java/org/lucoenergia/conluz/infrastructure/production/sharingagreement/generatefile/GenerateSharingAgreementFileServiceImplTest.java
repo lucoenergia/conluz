@@ -154,7 +154,7 @@ class GenerateSharingAgreementFileServiceImplTest {
 
         GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
 
-        String expected = CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n";
+        String expected = CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334";
         assertEquals(expected, new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8));
     }
 
@@ -179,7 +179,7 @@ class GenerateSharingAgreementFileServiceImplTest {
 
         GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
 
-        String expected = CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n";
+        String expected = CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334";
         assertEquals(expected, new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8));
     }
 
@@ -221,7 +221,27 @@ class GenerateSharingAgreementFileServiceImplTest {
         GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
 
         String content = new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8);
-        assertEquals(shortCups1 + "0F;0,500000\n" + shortCups2 + "0F;0,500000\n", content);
+        assertEquals(shortCups1 + "0F;0,500000\r\n" + shortCups2 + "0F;0,500000", content);
+    }
+
+    @Test
+    void generate_endsTheFileWithoutALineBreak() {
+        stubAgreementAndPlant();
+        UUID supplyId1 = UUID.randomUUID();
+        UUID supplyId2 = UUID.randomUUID();
+        List<SupplyPartitionCoefficient> coefficients = List.of(
+                coefficient(supplyId1, new BigDecimal("0.500000"), null, null),
+                coefficient(supplyId2, new BigDecimal("0.500000"), null, null));
+        when(getCoefficientRepository.findAllBySharingAgreementId(AGREEMENT_ID)).thenReturn(coefficients);
+        when(getSupplyRepository.findAllByIds(Set.of(supplyId1, supplyId2)))
+                .thenReturn(List.of(supply(supplyId1, CUPS_1), supply(supplyId2, CUPS_2)));
+
+        byte[] content = service().generate(PLANT_ID, AGREEMENT_ID, 2023).getContent();
+
+        // The specification counts a line break after the last CUPS as an extra, malformed line.
+        assertEquals((byte) '0', content[content.length - 1]);
+        assertEquals(CUPS_1 + ";0,500000\r\n" + CUPS_2 + ";0,500000",
+                new String(content, java.nio.charset.StandardCharsets.UTF_8));
     }
 
     @Test
@@ -290,7 +310,7 @@ class GenerateSharingAgreementFileServiceImplTest {
         GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
 
         assertEquals(REGULATORY_CODE + "_2023.txt", file.getFilename());
-        String expected = CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n";
+        String expected = CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334";
         assertEquals(expected, new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8));
     }
 }

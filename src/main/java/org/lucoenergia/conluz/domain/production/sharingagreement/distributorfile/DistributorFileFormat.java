@@ -19,7 +19,11 @@ import java.util.regex.Pattern;
 public final class DistributorFileFormat {
 
     public static final String SEPARATOR = ";";
-    public static final String LINE_SEPARATOR = "\n";
+    /**
+     * CRLF, matching the files the format specification illustrates. The parser accepts LF and
+     * CR too, so this governs only what is written.
+     */
+    public static final String LINE_SEPARATOR = "\r\n";
     public static final int CUPS_LENGTH = 22;
     public static final int SHORT_CUPS_LENGTH = 20;
     public static final String SHORT_CUPS_SUFFIX = "0F";

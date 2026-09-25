@@ -363,7 +363,7 @@ class GenerateSharingAgreementFileControllerTest extends BaseControllerTest {
                 .andReturn().getResponse().getContentAsByteArray();
 
         String content = new String(responseBytes, StandardCharsets.UTF_8);
-        assertEquals(CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n", content);
+        assertEquals(CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334", content);
 
         DistributorFileParseResult result = distributorFileParser.parse(expectedFilename, responseBytes,
                 REGULATORY_CODE, Set.of(CUPS_1, CUPS_2, CUPS_3));
@@ -402,7 +402,7 @@ class GenerateSharingAgreementFileControllerTest extends BaseControllerTest {
                 .andReturn().getResponse().getContentAsByteArray();
 
         String content = new String(responseBytes, StandardCharsets.UTF_8);
-        assertEquals(CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n", content);
+        assertEquals(CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334", content);
     }
 
     @Test
@@ -429,7 +429,7 @@ class GenerateSharingAgreementFileControllerTest extends BaseControllerTest {
                 .andReturn().getResponse().getContentAsByteArray();
 
         String content = new String(responseBytes, StandardCharsets.UTF_8);
-        assertEquals(CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n", content);
+        assertEquals(CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334", content);
 
         DistributorFileParseResult result = distributorFileParser.parse(expectedFilename, responseBytes,
                 REGULATORY_CODE, Set.of(CUPS_1, CUPS_2, CUPS_3));

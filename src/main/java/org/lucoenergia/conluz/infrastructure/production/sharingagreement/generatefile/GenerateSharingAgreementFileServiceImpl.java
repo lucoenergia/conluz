@@ -87,7 +87,9 @@ public class GenerateSharingAgreementFileServiceImpl implements GenerateSharingA
         String text = coefficients.stream()
                 .sorted(Comparator.comparing(c -> cupsBySupplyId.get(c.getSupplyId())))
                 .map(c -> DistributorFileFormat.formatCoefficientLine(cupsBySupplyId.get(c.getSupplyId()), c.getCoefficient()))
-                .collect(Collectors.joining(DistributorFileFormat.LINE_SEPARATOR, "", DistributorFileFormat.LINE_SEPARATOR));
+                // No trailing separator: the specification counts a line break after the last CUPS as
+                // an extra, malformed line.
+                .collect(Collectors.joining(DistributorFileFormat.LINE_SEPARATOR));
 
         byte[] content = text.getBytes(DistributorFileFormat.CHARSET);
         String filename = DistributorFileFormat.buildFilename(regulatoryCode, year);
