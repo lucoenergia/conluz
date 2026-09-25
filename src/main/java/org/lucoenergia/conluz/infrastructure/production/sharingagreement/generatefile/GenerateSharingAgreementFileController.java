@@ -46,9 +46,9 @@ public class GenerateSharingAgreementFileController {
 
     @PostMapping
     @Operation(
-            summary = "Generates the i-DE distributor coefficient-partition file for a sharing agreement",
+            summary = "Generates the distributor coefficient-partition file for a sharing agreement",
             description = """
-                    Builds the i-DE distributor TXT file from this agreement's complete, immutable
+                    Builds the distributor TXT file from this agreement's complete, immutable
                     partition-coefficient set -- one row per supply, regardless of status or
                     activation state -- and streams it back as a file download. Nothing is
                     persisted -- the file is built in memory from the current state and returned.

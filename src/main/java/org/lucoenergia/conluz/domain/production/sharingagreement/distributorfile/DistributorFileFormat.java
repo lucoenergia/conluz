@@ -9,7 +9,8 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * The i-DE distributor coefficient-partition file format: lines {@code CUPS;coefficient}, comma
+ * The Spanish distributor coefficient-partition file format (Orden TED/1247/2021): lines
+ * {@code CUPS;coefficient}, comma
  * decimal separator, exactly six decimal digits, sum of all coefficients exactly {@code 1.000000}.
  * Filename {@code {code}_{YYYY}.txt} where {@code code} is the plant's regulatory code (CAU).
  *

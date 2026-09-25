@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import java.util.UUID;
 
 /**
- * Builds the i-DE distributor coefficient-partition file for a sharing agreement on demand, from
+ * Builds the distributor coefficient-partition file for a sharing agreement on demand, from
  * its full, immutable coefficient set (one row per supply, regardless of {@code validFrom}/
  * {@code validTo} -- those are application-lifecycle metadata, not part of the file content).
  * Nothing is persisted.
