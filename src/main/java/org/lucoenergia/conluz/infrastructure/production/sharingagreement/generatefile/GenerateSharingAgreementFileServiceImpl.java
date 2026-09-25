@@ -11,6 +11,8 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementCoefficientSumInvalidException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotFoundException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.DistributorFileFormat;
+import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.SupplyCupsCollisionException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.SupplyCupsNotNormalizableException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.generatefile.GenerateSharingAgreementFileService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.generatefile.GeneratedDistributorFile;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
@@ -19,9 +21,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -75,14 +82,55 @@ public class GenerateSharingAgreementFileServiceImpl implements GenerateSharingA
                 .stream()
                 .collect(Collectors.toMap(Supply::getId, supply -> supply));
 
+        Map<UUID, String> cupsBySupplyId = normalizeCups(suppliesById);
+
         String text = coefficients.stream()
-                .sorted(Comparator.comparing(c -> suppliesById.get(c.getSupplyId()).getCode()))
-                .map(c -> DistributorFileFormat.formatCoefficientLine(suppliesById.get(c.getSupplyId()).getCode(), c.getCoefficient()))
+                .sorted(Comparator.comparing(c -> cupsBySupplyId.get(c.getSupplyId())))
+                .map(c -> DistributorFileFormat.formatCoefficientLine(cupsBySupplyId.get(c.getSupplyId()), c.getCoefficient()))
                 .collect(Collectors.joining(DistributorFileFormat.LINE_SEPARATOR, "", DistributorFileFormat.LINE_SEPARATOR));
 
         byte[] content = text.getBytes(DistributorFileFormat.CHARSET);
         String filename = DistributorFileFormat.buildFilename(regulatoryCode, year);
 
         return new GeneratedDistributorFile(filename, content);
+    }
+
+    /**
+     * Maps each supply to the CUPS that will be written for it, rejecting the two data shapes that
+     * cannot produce a valid file. Every unnormalizable code is collected before throwing, so a
+     * community fixing its supplies sees the full list at once rather than one code per attempt.
+     * A collision -- two stored codes normalizing to the same CUPS -- would put the same CUPS on two
+     * lines, which the distributor rejects.
+     */
+    private Map<UUID, String> normalizeCups(Map<UUID, Supply> suppliesById) {
+        Map<UUID, String> cupsBySupplyId = new HashMap<>();
+        // Sorted so that the codes reported in an error are stable across runs: iteration order of
+        // the supplies is not.
+        Map<String, List<String>> codesByCups = new TreeMap<>();
+        List<String> notNormalizable = new ArrayList<>();
+
+        for (Supply supply : suppliesById.values()) {
+            Optional<String> cups = DistributorFileFormat.normalizeCups(supply.getCode());
+            if (cups.isEmpty()) {
+                notNormalizable.add(supply.getCode());
+                continue;
+            }
+            cupsBySupplyId.put(supply.getId(), cups.get());
+            codesByCups.computeIfAbsent(cups.get(), key -> new ArrayList<>()).add(supply.getCode());
+        }
+
+        if (!notNormalizable.isEmpty()) {
+            Collections.sort(notNormalizable);
+            throw new SupplyCupsNotNormalizableException(notNormalizable);
+        }
+        for (Map.Entry<String, List<String>> entry : codesByCups.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                List<String> collidingCodes = new ArrayList<>(entry.getValue());
+                Collections.sort(collidingCodes);
+                throw new SupplyCupsCollisionException(entry.getKey(), collidingCodes);
+            }
+        }
+
+        return cupsBySupplyId;
     }
 }

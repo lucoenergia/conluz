@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -13,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DistributorFileFormatTest {
 
     private static final String CUPS = "ES0031300325733001FH0F";
+    private static final String SHORT_CUPS = "ES0031300325733001FH";
 
     @Test
     void normalizeScalePadsFewerThanSixDecimalPlaces() {
@@ -23,6 +25,58 @@ class DistributorFileFormatTest {
     void normalizeScaleThrowsWhenMoreThanSixDecimalPlaces() {
         assertThrows(ArithmeticException.class,
                 () -> DistributorFileFormat.normalizeScale(new BigDecimal("0.1234567")));
+    }
+
+    @Test
+    void normalizeCupsLeavesAFullLengthCupsUnchanged() {
+        assertEquals(Optional.of(CUPS), DistributorFileFormat.normalizeCups(CUPS));
+    }
+
+    @Test
+    void normalizeCupsCompletesATwentyCharacterCupsWithZeroF() {
+        assertEquals(Optional.of(SHORT_CUPS + "0F"), DistributorFileFormat.normalizeCups(SHORT_CUPS));
+        assertEquals(22, DistributorFileFormat.normalizeCups(SHORT_CUPS).orElseThrow().length());
+    }
+
+    @Test
+    void normalizeCupsIsIdempotent() {
+        String once = DistributorFileFormat.normalizeCups(SHORT_CUPS).orElseThrow();
+
+        assertEquals(Optional.of(once), DistributorFileFormat.normalizeCups(once));
+    }
+
+    @Test
+    void normalizeCupsRejectsAnyOtherLength() {
+        assertTrue(DistributorFileFormat.normalizeCups(CUPS.substring(0, 19)).isEmpty());
+        assertTrue(DistributorFileFormat.normalizeCups(CUPS.substring(0, 21)).isEmpty());
+        assertTrue(DistributorFileFormat.normalizeCups(CUPS + "X").isEmpty());
+    }
+
+    @Test
+    void normalizeCupsRejectsWhitespaceRatherThanStrippingIt() {
+        // The format forbids blank spaces; trimming them would change the identifier being filed.
+        assertTrue(DistributorFileFormat.normalizeCups("ES00313003257330 1FH0F").isEmpty());
+        assertTrue(DistributorFileFormat.normalizeCups(" " + CUPS.substring(1)).isEmpty());
+        assertTrue(DistributorFileFormat.normalizeCups(CUPS + " ").isEmpty());
+    }
+
+    @Test
+    void normalizeCupsRejectsNullAndEmpty() {
+        assertTrue(DistributorFileFormat.normalizeCups(null).isEmpty());
+        assertTrue(DistributorFileFormat.normalizeCups("").isEmpty());
+    }
+
+    @Test
+    void formatCoefficientLineCompletesAShortCups() {
+        String line = DistributorFileFormat.formatCoefficientLine(SHORT_CUPS, new BigDecimal("0.333333"));
+
+        assertEquals(SHORT_CUPS + "0F;0,333333", line);
+    }
+
+    @Test
+    void formatCoefficientLineThrowsWhenCupsCannotBeNormalized() {
+        assertThrows(IllegalArgumentException.class,
+                () -> DistributorFileFormat.formatCoefficientLine("ES0031", new BigDecimal("0.333333")));
     }
 
     @Test

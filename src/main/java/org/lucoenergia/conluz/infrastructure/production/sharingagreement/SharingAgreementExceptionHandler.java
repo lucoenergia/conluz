@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientOverlapException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.*;
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.DistributorFileValidationException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.SupplyCupsCollisionException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.SupplyCupsNotNormalizableException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementFileNotFoundException;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.activation.CoefficientActivationErrorMapper;
@@ -173,6 +175,32 @@ public class SharingAgreementExceptionHandler {
         );
         Map<String, String> params = Map.of("actualSum", e.getActualSum().toPlainString());
         return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID, params, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(SupplyCupsNotNormalizableException.class)
+    public ResponseEntity<RestError> handleException(SupplyCupsNotNormalizableException e) {
+
+        String codes = String.join(", ", e.getCodes());
+        String message = messageSource.getMessage(
+                "error.supply.cups.not.normalizable",
+                new Object[]{codes},
+                LocaleContextHolder.getLocale()
+        );
+        Map<String, String> params = Map.of("codes", codes);
+        return errorBuilder.build(message, RestErrorCode.SUPPLY_CUPS_NOT_NORMALIZABLE, params, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(SupplyCupsCollisionException.class)
+    public ResponseEntity<RestError> handleException(SupplyCupsCollisionException e) {
+
+        String codes = String.join(", ", e.getCodes());
+        String message = messageSource.getMessage(
+                "error.supply.cups.collision",
+                new Object[]{e.getNormalizedCups(), codes},
+                LocaleContextHolder.getLocale()
+        );
+        Map<String, String> params = Map.of("cups", e.getNormalizedCups(), "codes", codes);
+        return errorBuilder.build(message, RestErrorCode.SUPPLY_CUPS_COLLISION, params, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(DistributorFileValidationException.class)

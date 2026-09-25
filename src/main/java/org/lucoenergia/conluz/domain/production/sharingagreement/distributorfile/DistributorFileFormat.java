@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -20,6 +21,8 @@ public final class DistributorFileFormat {
     public static final String SEPARATOR = ";";
     public static final String LINE_SEPARATOR = "\n";
     public static final int CUPS_LENGTH = 22;
+    public static final int SHORT_CUPS_LENGTH = 20;
+    public static final String SHORT_CUPS_SUFFIX = "0F";
     public static final int REQUIRED_DECIMAL_DIGITS = 6;
     public static final Charset CHARSET = StandardCharsets.UTF_8;
     public static final Pattern FILENAME_PATTERN = Pattern.compile("^(?<code>[^_]+)_(?<year>\\d{4})\\.txt$");
@@ -39,11 +42,51 @@ public final class DistributorFileFormat {
     }
 
     /**
-     * Formats one {@code CUPS;coefficient} line, comma decimal separator, six decimal digits.
+     * Normalizes a stored supply code into the {@link #CUPS_LENGTH}-character CUPS the file format
+     * requires, or empty when the code cannot produce one. A {@link #SHORT_CUPS_LENGTH}-character
+     * CUPS is completed with {@link #SHORT_CUPS_SUFFIX}; a CUPS that is already the full length is
+     * returned unchanged, which makes this idempotent.
+     *
+     * <p>Whitespace is rejected rather than trimmed: the format forbids blank spaces in the field,
+     * and silently stripping them would change the identifier being filed.
+     *
+     * <p>Returns {@link Optional} rather than throwing because the two callers need different
+     * policies for a code that cannot be normalized -- generation reports every offending supply at
+     * once, while the upload path skips them so one unusable supply cannot block a whole community.
+     */
+    public static Optional<String> normalizeCups(String cups) {
+        if (cups == null || cups.isEmpty() || containsWhitespace(cups)) {
+            return Optional.empty();
+        }
+        if (cups.length() == SHORT_CUPS_LENGTH) {
+            return Optional.of(cups + SHORT_CUPS_SUFFIX);
+        }
+        if (cups.length() == CUPS_LENGTH) {
+            return Optional.of(cups);
+        }
+        return Optional.empty();
+    }
+
+    private static boolean containsWhitespace(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            if (Character.isWhitespace(value.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Formats one {@code CUPS;coefficient} line, comma decimal separator, six decimal digits, with
+     * the CUPS normalized to {@link #CUPS_LENGTH} characters. Callers are expected to have screened
+     * their codes with {@link #normalizeCups} already; the throw here is the backstop that keeps a
+     * malformed CUPS from reaching a file rather than an error path callers are meant to use.
      */
     public static String formatCoefficientLine(String cups, BigDecimal coefficient) {
+        String normalizedCups = normalizeCups(cups)
+                .orElseThrow(() -> new IllegalArgumentException("CUPS cannot be normalized: " + cups));
         String value = normalizeScale(coefficient).toPlainString().replace('.', ',');
-        return cups + SEPARATOR + value;
+        return normalizedCups + SEPARATOR + value;
     }
 
     /**
