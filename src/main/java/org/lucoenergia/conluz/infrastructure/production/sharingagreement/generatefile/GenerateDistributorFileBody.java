@@ -12,7 +12,7 @@ public class GenerateDistributorFileBody {
     @Min(2000)
     @Max(2100)
     @Schema(description = "Used only to build the generated filename ({regulatoryCode}_{year}.txt); " +
-            "the i-DE file content itself never encodes a year or period.", example = "2026")
+            "the file content itself never encodes a year or period.", example = "2026")
     private Integer year;
 
     public Integer getYear() {

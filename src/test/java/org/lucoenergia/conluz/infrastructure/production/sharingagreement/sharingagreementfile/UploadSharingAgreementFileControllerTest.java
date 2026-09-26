@@ -227,6 +227,95 @@ class UploadSharingAgreementFileControllerTest extends BaseControllerTest {
         assertTrue(containsError(errors, "DISTRIBUTOR_FILE_LINE_MALFORMED", "4"));
     }
 
+    @Test
+    void resolvesAFileCupsAgainstASupplyStoredWithTheTwentyCharacterCode() throws Exception {
+        // A real distributor file always carries the 22-character CUPS. A community that registered
+        // its supplies with the 20-character form must still be able to import one.
+        communityA = persistCommunity();
+        UserEntity user = persistUser();
+        SupplyEntity supply1 = persistSupply(user, communityA, "ES0031300325733001FH");
+        persistSupply(user, communityA, "ES0031300325733002FH");
+        plantA = persistPlant(supply1, REGULATORY_CODE);
+        draftAgreement = persistAgreement(plantA, SharingAgreementStatus.DRAFT);
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(multipart(url(plantA.getId(), draftAgreement.getId())).file(validFile())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void ignoresASupplyWhoseStoredCodeIsNotAValidCups() throws Exception {
+        // One unusable supply must not block a community from importing a file that does not
+        // reference it, and the generation-only 409 must never surface here.
+        setUpBaseFixture();
+        persistSupply(persistUser(), communityA, "ES00313003257330 7FH0F");
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        MvcResult result = mockMvc.perform(multipart(url(plantA.getId(), draftAgreement.getId())).file(validFile())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertFalse(result.getResponse().getContentAsString().contains("SUPPLY_CUPS_NOT_NORMALIZABLE"));
+    }
+
+    @Test
+    void reportsUnknownCupsWhenTheFileReferencesASupplyWithAnUnusableCode() throws Exception {
+        setUpBaseFixture();
+        persistSupply(persistUser(), communityA, "ES003130032573");
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        String content = CUPS_1 + ";0,500000\n" + "ES003130032573" + ";0,500000";
+        MockMultipartFile invalid = new MockMultipartFile("file", FILENAME, TXT_CONTENT_TYPE,
+                content.getBytes(StandardCharsets.UTF_8));
+
+        MvcResult result = mockMvc.perform(multipart(url(plantA.getId(), draftAgreement.getId())).file(invalid)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertTrue(body.contains("DISTRIBUTOR_FILE_CUPS_UNKNOWN"), body);
+        assertFalse(body.contains("SUPPLY_CUPS_NOT_NORMALIZABLE"), body);
+    }
+
+    @Test
+    void stillRejectsANonTwentyTwoCharacterCupsInsideTheUploadedFile() throws Exception {
+        // Normalization is a write-side concern: an inbound file is the distributor's own artifact
+        // and must already carry the full-length CUPS.
+        setUpBaseFixture();
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        String content = CUPS_1 + ";0,500000\n" + "ES0031300325733002FH" + ";0,500000";
+        MockMultipartFile invalid = new MockMultipartFile("file", FILENAME, TXT_CONTENT_TYPE,
+                content.getBytes(StandardCharsets.UTF_8));
+
+        MvcResult result = mockMvc.perform(multipart(url(plantA.getId(), draftAgreement.getId())).file(invalid)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        assertTrue(result.getResponse().getContentAsString().contains("DISTRIBUTOR_FILE_CUPS_LENGTH_INVALID"));
+    }
+
+    @Test
+    void returnsConflictWhenTwoSupplyCodesNormalizeToTheSameCups() throws Exception {
+        setUpBaseFixture();
+        // CUPS_2 is already stored at 22 characters; this adds its 20-character twin.
+        persistSupply(persistUser(), communityA, "ES0031300325733002FH");
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(multipart(url(plantA.getId(), draftAgreement.getId())).file(validFile())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("SUPPLY_CUPS_COLLISION"))
+                .andExpect(jsonPath("$.errors[0].params.cups").value(CUPS_2));
+    }
+
     private boolean containsError(JsonNode errors, String code, String line) {
         for (JsonNode error : errors) {
             if (error.get("code").asText().equals(code) && line.equals(error.path("params").path("line").asText(null))) {

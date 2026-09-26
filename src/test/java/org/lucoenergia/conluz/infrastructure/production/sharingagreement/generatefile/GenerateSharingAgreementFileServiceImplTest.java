@@ -12,6 +12,8 @@ import org.lucoenergia.conluz.domain.production.plant.get.GetPlantService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementCoefficientSumInvalidException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.SupplyCupsCollisionException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.SupplyCupsNotNormalizableException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.generatefile.GeneratedDistributorFile;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.shared.PlantId;
@@ -25,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
@@ -151,7 +154,7 @@ class GenerateSharingAgreementFileServiceImplTest {
 
         GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
 
-        String expected = CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n";
+        String expected = CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334";
         assertEquals(expected, new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8));
     }
 
@@ -176,7 +179,7 @@ class GenerateSharingAgreementFileServiceImplTest {
 
         GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
 
-        String expected = CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n";
+        String expected = CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334";
         assertEquals(expected, new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8));
     }
 
@@ -200,6 +203,97 @@ class GenerateSharingAgreementFileServiceImplTest {
     }
 
     @Test
+    void generate_completesTwentyCharacterCupsWithZeroF() {
+        stubAgreementAndPlant();
+        UUID supplyId1 = UUID.randomUUID();
+        UUID supplyId2 = UUID.randomUUID();
+        // A community whose supplies were registered with the 20-character CUPS: the file must
+        // still carry the 22-character form the distributor requires.
+        String shortCups1 = "ES0031300325733001FH";
+        String shortCups2 = "ES0031300325733002FH";
+        List<SupplyPartitionCoefficient> coefficients = List.of(
+                coefficient(supplyId1, new BigDecimal("0.500000"), null, null),
+                coefficient(supplyId2, new BigDecimal("0.500000"), null, null));
+        when(getCoefficientRepository.findAllBySharingAgreementId(AGREEMENT_ID)).thenReturn(coefficients);
+        when(getSupplyRepository.findAllByIds(Set.of(supplyId1, supplyId2)))
+                .thenReturn(List.of(supply(supplyId1, shortCups1), supply(supplyId2, shortCups2)));
+
+        GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
+
+        String content = new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals(shortCups1 + "0F;0,500000\r\n" + shortCups2 + "0F;0,500000", content);
+    }
+
+    @Test
+    void generate_endsTheFileWithoutALineBreak() {
+        stubAgreementAndPlant();
+        UUID supplyId1 = UUID.randomUUID();
+        UUID supplyId2 = UUID.randomUUID();
+        List<SupplyPartitionCoefficient> coefficients = List.of(
+                coefficient(supplyId1, new BigDecimal("0.500000"), null, null),
+                coefficient(supplyId2, new BigDecimal("0.500000"), null, null));
+        when(getCoefficientRepository.findAllBySharingAgreementId(AGREEMENT_ID)).thenReturn(coefficients);
+        when(getSupplyRepository.findAllByIds(Set.of(supplyId1, supplyId2)))
+                .thenReturn(List.of(supply(supplyId1, CUPS_1), supply(supplyId2, CUPS_2)));
+
+        byte[] content = service().generate(PLANT_ID, AGREEMENT_ID, 2023).getContent();
+
+        // The specification counts a line break after the last CUPS as an extra, malformed line.
+        assertEquals((byte) '0', content[content.length - 1]);
+        assertEquals(CUPS_1 + ";0,500000\r\n" + CUPS_2 + ";0,500000",
+                new String(content, java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void generate_reportsEveryUnnormalizableCups_notJustTheFirst() {
+        stubAgreementAndPlant();
+        UUID supplyId1 = UUID.randomUUID();
+        UUID supplyId2 = UUID.randomUUID();
+        UUID supplyId3 = UUID.randomUUID();
+        // Two bad codes: a wrong length and an embedded space. Both must appear in one response so
+        // the community fixes them in a single pass.
+        String tooShort = "ES003130032573";
+        String withSpace = "ES00313003257330 2FH0F";
+        List<SupplyPartitionCoefficient> coefficients = List.of(
+                coefficient(supplyId1, new BigDecimal("0.333333"), null, null),
+                coefficient(supplyId2, new BigDecimal("0.333333"), null, null),
+                coefficient(supplyId3, new BigDecimal("0.333334"), null, null));
+        when(getCoefficientRepository.findAllBySharingAgreementId(AGREEMENT_ID)).thenReturn(coefficients);
+        when(getSupplyRepository.findAllByIds(Set.of(supplyId1, supplyId2, supplyId3)))
+                .thenReturn(List.of(supply(supplyId1, tooShort), supply(supplyId2, withSpace), supply(supplyId3, CUPS_3)));
+
+        SupplyCupsNotNormalizableException e = assertThrows(SupplyCupsNotNormalizableException.class,
+                () -> service().generate(PLANT_ID, AGREEMENT_ID, 2023));
+
+        assertEquals(2, e.getCodes().size());
+        assertTrue(e.getCodes().contains(tooShort));
+        assertTrue(e.getCodes().contains(withSpace));
+    }
+
+    @Test
+    void generate_throwsCollisionException_whenTwoCodesNormalizeToTheSameCups() {
+        stubAgreementAndPlant();
+        UUID supplyId1 = UUID.randomUUID();
+        UUID supplyId2 = UUID.randomUUID();
+        // "X" stored at 20 characters and "X0F" stored at 22 both normalize to "X0F"; emitting both
+        // would put the same CUPS on two lines.
+        String shortCups = "ES0031300325733001FH";
+        String longCups = shortCups + "0F";
+        List<SupplyPartitionCoefficient> coefficients = List.of(
+                coefficient(supplyId1, new BigDecimal("0.500000"), null, null),
+                coefficient(supplyId2, new BigDecimal("0.500000"), null, null));
+        when(getCoefficientRepository.findAllBySharingAgreementId(AGREEMENT_ID)).thenReturn(coefficients);
+        when(getSupplyRepository.findAllByIds(Set.of(supplyId1, supplyId2)))
+                .thenReturn(List.of(supply(supplyId1, shortCups), supply(supplyId2, longCups)));
+
+        SupplyCupsCollisionException e = assertThrows(SupplyCupsCollisionException.class,
+                () -> service().generate(PLANT_ID, AGREEMENT_ID, 2023));
+
+        assertEquals(longCups, e.getNormalizedCups());
+        assertEquals(List.of(shortCups, longCups), e.getCodes());
+    }
+
+    @Test
     void generate_buildsCorrectFilenameAndFormattedSortedLines() {
         stubAgreementAndPlant();
         UUID supplyId1 = UUID.randomUUID();
@@ -216,7 +310,7 @@ class GenerateSharingAgreementFileServiceImplTest {
         GeneratedDistributorFile file = service().generate(PLANT_ID, AGREEMENT_ID, 2023);
 
         assertEquals(REGULATORY_CODE + "_2023.txt", file.getFilename());
-        String expected = CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n";
+        String expected = CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334";
         assertEquals(expected, new String(file.getContent(), java.nio.charset.StandardCharsets.UTF_8));
     }
 }

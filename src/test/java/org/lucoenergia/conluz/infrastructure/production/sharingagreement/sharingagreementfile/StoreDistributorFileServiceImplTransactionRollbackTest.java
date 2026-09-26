@@ -86,7 +86,7 @@ class StoreDistributorFileServiceImplTransactionRollbackTest extends BaseIntegra
         agreement.setCreatedBy(null);
         agreement = sharingAgreementRepository.save(agreement);
 
-        when(materializeSharingAgreementCoefficientsService.replaceAll(any(), any(), any()))
+        when(materializeSharingAgreementCoefficientsService.replaceAllBySupplyId(any(), any(), any()))
                 .thenThrow(new RuntimeException("Injected materialisation failure for test"));
 
         byte[] file = (CUPS_1 + ";1,000000\n").getBytes(StandardCharsets.UTF_8);

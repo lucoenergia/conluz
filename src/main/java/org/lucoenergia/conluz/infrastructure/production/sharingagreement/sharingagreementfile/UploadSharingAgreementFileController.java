@@ -55,7 +55,8 @@ public class UploadSharingAgreementFileController {
 
                     Returns 404 if the plant or the agreement does not exist, does not belong to this
                     plant, or the caller is not a member of its community, to avoid leaking existence.
-                    Returns 409 if the agreement is not in DRAFT status.
+                    Returns 409 if the agreement is not in DRAFT status, or if two of the community's
+                    supply codes normalize to the same CUPS, making that CUPS ambiguous to resolve.
                     Returns 400 with a collection of typed errors, one per violated file rule, if the
                     file fails validation.
 
@@ -81,7 +82,7 @@ public class UploadSharingAgreementFileController {
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "The agreement is not in DRAFT status.",
+                    description = "The agreement is not in DRAFT status, or two of the community's supply codes normalize to the same CUPS.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = RestError.class))
             )
     })
