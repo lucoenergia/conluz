@@ -153,4 +153,9 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
                                                                                           Collection<UUID> supplyIds) {
         return supplyIds.isEmpty() ? List.of() : jpaRepository.findActiveDetailsByPlantIdAndSupplyIdIn(plantId, supplyIds);
     }
+
+    @Override
+    public List<SupplyPartitionCoefficientDetail> findActiveDetailsByPlantId(UUID plantId) {
+        return jpaRepository.findActiveDetailsByPlantId(plantId);
+    }
 }

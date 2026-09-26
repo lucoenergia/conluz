@@ -53,6 +53,22 @@ public interface PartitionCoefficientService {
     List<SupplyPartitionCoefficientDetail> findActiveBySupplyId(UUID supplyId, UUID plantId);
 
     /**
+     * Every coefficient in force in the plant, one per supply, ordered by CUPS ascending.
+     *
+     * <p>Active means {@code validFrom != null && validTo == null} -- the same definition as
+     * {@link #findActiveBySupplyId}, seen from the plant instead of from the supply. At most one entry
+     * per supply, guaranteed by the {@code no_overlapping_coefficients} exclusion constraint.
+     *
+     * <p>The status of the agreement that authored each coefficient is not a filter, and the entries
+     * need not sum to 1: while the distributor is applying a new agreement, some supplies have already
+     * moved to it and the rest are still on the previous one. The values are reported as stored; this
+     * method neither normalises them nor validates their sum.
+     *
+     * <p>Empty for a plant with nothing in force, which is a legitimate state rather than an error.
+     */
+    List<SupplyPartitionCoefficientDetail> findActiveByPlantId(UUID plantId);
+
+    /**
      * Details for the given coefficients, in the same order they were given. Enriches the result of
      * a write in one query; the order is restored explicitly because SQL {@code IN} does not
      * preserve it.
