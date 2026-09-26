@@ -34,5 +34,16 @@ public class CoefficientOverlapCheckRepositoryDatabase implements CoefficientOve
             }
             throw e;
         }
+        // Back to DEFERRED before returning. SET CONSTRAINTS lasts for the rest of the transaction, so
+        // without this the check would silently revoke the deferral for every later write in the same
+        // transaction -- and a cascade's intermediate state (two open-ended rows for one supply between
+        // its two UPDATEs) is only legal while the constraint is deferred. A second cascading batch in
+        // one transaction would then fail on a transaction whose final state is consistent, which is
+        // exactly what ADR-0001 deferred the constraint to prevent. Restoring it keeps this method
+        // self-contained: it resolves the checks staged so far and leaves the mode as it found it.
+        //
+        // Only on the success path: the catch above rethrows as a typed 409 and the transaction is
+        // being rolled back, so the session's constraint mode no longer matters there.
+        entityManager.createNativeQuery("SET CONSTRAINTS " + CONSTRAINT_NAME + " DEFERRED").executeUpdate();
     }
 }

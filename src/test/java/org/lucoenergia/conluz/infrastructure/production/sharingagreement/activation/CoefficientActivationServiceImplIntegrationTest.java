@@ -147,6 +147,38 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
     }
 
     @Test
+    void twoCascadingBatchesSurviveOneTransaction() {
+        // flushAndCheckNoOverlap resolves the deferred checks by setting the constraint to IMMEDIATE,
+        // and SET CONSTRAINTS lasts for the rest of the transaction. If it did not restore DEFERRED
+        // before returning, the first batch would revoke the deferral for the second, whose cascade
+        // also passes through an intermediate state with two open-ended rows for this supply -- and
+        // Postgres would reject a transaction whose final state is perfectly consistent.
+        //
+        // Only reachable with more than one batch per transaction, which no HTTP request does today:
+        // one request, one batch. It is reachable from any other caller that batches twice, so the
+        // regression is pinned here rather than left to the endpoint test that first hit it.
+        SupplyEntity supply = persistSupply();
+        PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
+        SharingAgreementEntity first = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        persistCoefficient(supply, plant, first, Instant.parse("2023-01-01T00:00:00Z"), null);
+        SharingAgreementEntity second = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        SupplyPartitionCoefficient secondRow = persistCoefficient(supply, plant, second, null, null);
+        SharingAgreementEntity third = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        SupplyPartitionCoefficient thirdRow = persistCoefficient(supply, plant, third, null, null);
+
+        LocalDate secondAppliedOn = LocalDate.of(2024, 1, 1);
+        service.setValidFrom(plant.getId(), second.getId(), secondAppliedOn, List.of(secondRow.getId()));
+
+        LocalDate thirdAppliedOn = LocalDate.of(2025, 1, 1);
+        List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), third.getId(), thirdAppliedOn,
+                List.of(thirdRow.getId()));
+
+        Instant expected = thirdAppliedOn.atStartOfDay(zone(plant.getId())).toInstant();
+        assertTrue(result.stream().anyMatch(c -> c.getId().equals(thirdRow.getId()) && expected.equals(c.getValidFrom())));
+        assertTrue(result.stream().anyMatch(c -> c.getId().equals(secondRow.getId()) && expected.equals(c.getValidTo())));
+    }
+
+    @Test
     void activationRejectedWhenItOverlapsARowFurtherBackInTheChainThanTheImmediatePredecessor() {
         SupplyEntity supply = persistSupply();
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
