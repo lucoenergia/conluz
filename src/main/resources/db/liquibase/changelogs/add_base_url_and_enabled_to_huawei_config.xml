@@ -14,6 +14,21 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
                 <constraints nullable="false"/>
             </column>
         </addColumn>
+        <!-- conluz-281: same rationale as add_base_url_and_enabled_to_datadis_config; any
+             huawei_config row that already exists when this changeset runs belongs to an install
+             upgrading from <= 1.0.76, where Huawei was unconditionally active with no base_url/enabled
+             concept. base_url includes the /thirdData path here (unlike Datadis): HuaweiAuthorizer and
+             the production repositories append only their leaf endpoint path on top of base_url, with
+             no shared prefix inserted by the client code. -->
+        <sql>
+            UPDATE huawei_config
+            SET base_url = 'https://eu5.fusionsolar.huawei.com/thirdData',
+                enabled = true;
+        </sql>
+        <rollback>
+            <dropColumn tableName="huawei_config" columnName="base_url"/>
+            <dropColumn tableName="huawei_config" columnName="enabled"/>
+        </rollback>
     </changeSet>
 
 </databaseChangeLog>

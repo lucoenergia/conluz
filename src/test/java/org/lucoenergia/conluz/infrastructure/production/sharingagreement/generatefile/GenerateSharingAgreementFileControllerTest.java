@@ -39,6 +39,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
@@ -239,6 +240,48 @@ class GenerateSharingAgreementFileControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void returnsConflictWithEveryUnnormalizableCupsWhenSupplyCodesAreInvalid() throws Exception {
+        setUpBaseFixture();
+        UserEntity user = persistUser();
+        SupplyEntity tooShort = persistSupply(user, communityA, "ES003130032573");
+        SupplyEntity withSpace = persistSupply(user, communityA, "ES00313003257330 9FH0F");
+        seedCoefficient(tooShort, plantA, draftAgreement, new BigDecimal("0.500000"), null, null);
+        seedCoefficient(withSpace, plantA, draftAgreement, new BigDecimal("0.500000"), null, null);
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(post(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body(2023)))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("SUPPLY_CUPS_NOT_NORMALIZABLE"))
+                // Both offending codes, not just the first one found.
+                .andExpect(jsonPath("$.errors[0].params.codes", containsString("ES003130032573")))
+                .andExpect(jsonPath("$.errors[0].params.codes", containsString("ES00313003257330 9FH0F")));
+    }
+
+    @Test
+    void returnsConflictWhenTwoSupplyCodesNormalizeToTheSameCups() throws Exception {
+        setUpBaseFixture();
+        UserEntity user = persistUser();
+        SupplyEntity shortCups = persistSupply(user, communityA, "ES0031300325733009FH");
+        SupplyEntity longCups = persistSupply(user, communityA, "ES0031300325733009FH0F");
+        seedCoefficient(shortCups, plantA, draftAgreement, new BigDecimal("0.500000"), null, null);
+        seedCoefficient(longCups, plantA, draftAgreement, new BigDecimal("0.500000"), null, null);
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(post(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body(2023)))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("SUPPLY_CUPS_COLLISION"))
+                .andExpect(jsonPath("$.errors[0].params.cups").value("ES0031300325733009FH0F"));
+    }
+
+    @Test
     void returnsConflictWhenPlantHasNullRegulatoryCode() throws Exception {
         setUpBaseFixture();
         PlantEntity plantWithoutCau = persistPlant(persistSupply(persistUser(), communityA, "ES0031300325733010FH0F"), null);
@@ -320,7 +363,7 @@ class GenerateSharingAgreementFileControllerTest extends BaseControllerTest {
                 .andReturn().getResponse().getContentAsByteArray();
 
         String content = new String(responseBytes, StandardCharsets.UTF_8);
-        assertEquals(CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n", content);
+        assertEquals(CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334", content);
 
         DistributorFileParseResult result = distributorFileParser.parse(expectedFilename, responseBytes,
                 REGULATORY_CODE, Set.of(CUPS_1, CUPS_2, CUPS_3));
@@ -359,7 +402,7 @@ class GenerateSharingAgreementFileControllerTest extends BaseControllerTest {
                 .andReturn().getResponse().getContentAsByteArray();
 
         String content = new String(responseBytes, StandardCharsets.UTF_8);
-        assertEquals(CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n", content);
+        assertEquals(CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334", content);
     }
 
     @Test
@@ -386,7 +429,7 @@ class GenerateSharingAgreementFileControllerTest extends BaseControllerTest {
                 .andReturn().getResponse().getContentAsByteArray();
 
         String content = new String(responseBytes, StandardCharsets.UTF_8);
-        assertEquals(CUPS_1 + ";0,333333\n" + CUPS_2 + ";0,333333\n" + CUPS_3 + ";0,333334\n", content);
+        assertEquals(CUPS_1 + ";0,333333\r\n" + CUPS_2 + ";0,333333\r\n" + CUPS_3 + ";0,333334", content);
 
         DistributorFileParseResult result = distributorFileParser.parse(expectedFilename, responseBytes,
                 REGULATORY_CODE, Set.of(CUPS_1, CUPS_2, CUPS_3));

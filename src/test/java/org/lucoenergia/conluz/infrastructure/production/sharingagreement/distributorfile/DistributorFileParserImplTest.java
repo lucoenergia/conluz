@@ -9,6 +9,7 @@ import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Locale;
@@ -227,6 +228,69 @@ class DistributorFileParserImplTest {
         return result.getErrors().stream()
                 .filter(e -> e.getCode() == code)
                 .toList();
+    }
+
+    // Line-ending coverage is written with literal separators rather than
+    // DistributorFileFormat.LINE_SEPARATOR: the parser must accept all three styles whatever the
+    // generator currently emits, so binding these to the constant would silently drop a style the
+    // day it changes.
+
+    @Test
+    void acceptsLfSeparatedLines() {
+        byte[] content = bytes(CUPS1 + ";0,333333\n" + CUPS2 + ";0,333333\n" + CUPS3 + ";0,333334");
+
+        DistributorFileParseResult result = parser.parse(VALID_FILENAME, content, PLANT_REGULATORY_CODE, KNOWN_CUPS);
+
+        assertTrue(result.isValid());
+        assertEquals(3, result.getEntries().size());
+    }
+
+    @Test
+    void acceptsCrLfSeparatedLines() {
+        byte[] content = bytes(CUPS1 + ";0,333333\r\n" + CUPS2 + ";0,333333\r\n" + CUPS3 + ";0,333334");
+
+        DistributorFileParseResult result = parser.parse(VALID_FILENAME, content, PLANT_REGULATORY_CODE, KNOWN_CUPS);
+
+        assertTrue(result.isValid());
+        assertEquals(3, result.getEntries().size());
+        assertEquals(CUPS2, result.getEntries().get(1).getCups());
+    }
+
+    @Test
+    void acceptsCrSeparatedLines() {
+        byte[] content = bytes(CUPS1 + ";0,333333\r" + CUPS2 + ";0,333333\r" + CUPS3 + ";0,333334");
+
+        DistributorFileParseResult result = parser.parse(VALID_FILENAME, content, PLANT_REGULATORY_CODE, KNOWN_CUPS);
+
+        assertTrue(result.isValid());
+        assertEquals(3, result.getEntries().size());
+    }
+
+    @Test
+    void acceptsAFileWithNoTrailingSeparator() {
+        // The shape the generator now emits: the specification forbids a line break after the last
+        // CUPS.
+        byte[] content = bytes(CUPS1 + ";0,333333\r\n" + CUPS2 + ";0,333333\r\n" + CUPS3 + ";0,333334");
+
+        DistributorFileParseResult result = parser.parse(VALID_FILENAME, content, PLANT_REGULATORY_CODE, KNOWN_CUPS);
+
+        assertTrue(result.isValid());
+        assertEquals(3, result.getEntries().size());
+        assertEquals(3, result.getEntries().get(2).getLineNumber());
+    }
+
+    @Test
+    void toleratesExactlyOneTrailingSeparator() {
+        byte[] content = bytes(CUPS1 + ";0,333333\r\n" + CUPS2 + ";0,333333\r\n" + CUPS3 + ";0,333334\r\n");
+
+        DistributorFileParseResult result = parser.parse(VALID_FILENAME, content, PLANT_REGULATORY_CODE, KNOWN_CUPS);
+
+        assertTrue(result.isValid());
+        assertEquals(3, result.getEntries().size());
+    }
+
+    private byte[] bytes(String content) {
+        return content.getBytes(StandardCharsets.UTF_8);
     }
 
     private byte[] loadFixture(String name) throws IOException {
