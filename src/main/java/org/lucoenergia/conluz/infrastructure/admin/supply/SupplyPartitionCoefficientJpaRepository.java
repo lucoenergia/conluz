@@ -212,4 +212,12 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
             + "AND e.validFrom IS NOT NULL AND e.validTo IS NULL")
     List<SupplyPartitionCoefficientDetail> findActiveDetailsByPlantIdAndSupplyIdIn(@Param("plantId") UUID plantId,
                                                                                   @Param("supplyIds") Collection<UUID> supplyIds);
+
+    // Every coefficient in force in one plant, whichever agreement authored it -- the unfiltered
+    // sibling of findActiveDetailsByPlantIdAndSupplyIdIn. Same "active" predicate, and deliberately
+    // no e.sharingAgreement.status filter: during a distributor activation transition different
+    // supplies are legitimately on coefficients authored by different agreements.
+    @Query(DETAIL_SELECT + "WHERE e.plant.id = :plantId "
+            + "AND e.validFrom IS NOT NULL AND e.validTo IS NULL ORDER BY e.supply.code ASC")
+    List<SupplyPartitionCoefficientDetail> findActiveDetailsByPlantId(@Param("plantId") UUID plantId);
 }

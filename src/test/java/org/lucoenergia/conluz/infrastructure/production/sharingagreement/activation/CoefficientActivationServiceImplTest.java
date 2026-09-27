@@ -747,12 +747,29 @@ class CoefficientActivationServiceImplTest {
     void setValidFrom_convertsThroughResolvedZone_persistedInstantsDifferByDstOffset(String zoneIdValue) {
         ZoneId zoneId = ZoneId.of(zoneIdValue);
         ZoneRules rules = zoneId.getRules();
+        LocalDate today = LocalDate.now(zoneId);
+
         // A past transition, deliberately -- appliedOn must never be in the future (D5), so both
-        // fixture dates below need to already be behind "today".
+        // fixture dates below need to already be behind "today". The *most recent* transition does not
+        // guarantee that: dayAfterTransition is a day past the transition itself, so a zone whose
+        // transition falls today or yesterday yields a future date and the activation is rejected with
+        // DATE_IN_FUTURE. Walk back until both dates are behind today, instead of assuming the newest
+        // transition is old enough -- otherwise this test breaks for a couple of days after every DST
+        // change in either test zone (Pacific/Auckland switches in late September, Europe/Madrid in
+        // late March and late October).
         ZoneOffsetTransition transition = rules.previousTransition(Instant.now());
-        assertNotEquals(null, transition, "test zone must have at least one past DST transition");
-        LocalDate dayBeforeTransition = transition.getDateTimeBefore().toLocalDate().minusDays(1);
-        LocalDate dayAfterTransition = transition.getDateTimeAfter().toLocalDate().plusDays(1);
+        LocalDate dayBeforeTransition = null;
+        LocalDate dayAfterTransition = null;
+        while (transition != null) {
+            dayBeforeTransition = transition.getDateTimeBefore().toLocalDate().minusDays(1);
+            dayAfterTransition = transition.getDateTimeAfter().toLocalDate().plusDays(1);
+            if (dayAfterTransition.isBefore(today)) {
+                break;
+            }
+            transition = rules.previousTransition(transition.getInstant());
+        }
+        assertNotEquals(null, transition,
+                "test zone must have a past DST transition with both fixture dates behind today");
 
         Instant instantBefore = activateAndCaptureValidFrom(zoneId, dayBeforeTransition);
         Instant instantAfter = activateAndCaptureValidFrom(zoneId, dayAfterTransition);
