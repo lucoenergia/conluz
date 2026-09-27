@@ -50,6 +50,11 @@ public class PartitionCoefficientServiceImpl implements PartitionCoefficientServ
     }
 
     @Override
+    public List<SupplyPartitionCoefficientDetail> findActiveByPlantId(UUID plantId) {
+        return repository.findActiveDetailsByPlantId(plantId);
+    }
+
+    @Override
     public List<SupplyPartitionCoefficientDetail> findDetailsInOrderOf(List<SupplyPartitionCoefficient> coefficients) {
         if (coefficients.isEmpty()) {
             return List.of();

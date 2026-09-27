@@ -47,6 +47,52 @@ class PartitionCoefficientApiDocsTest extends BaseControllerTest {
     }
 
     @Test
+    void thePlantLevelInForceEndpointIsDocumentedAsAnArrayOfPartitionCoefficients() throws Exception {
+        JsonNode root = apiDocs();
+        String path = "/api/v1/plants/{plantId}/partition-coefficients/active";
+        JsonNode schema = okSchemaOf(root, path);
+
+        assertEquals("array", schema.path("type").asText(null), path + " -> " + schema);
+        // It reuses PartitionCoefficientResponse rather than introducing a schema of its own, so the
+        // generated client gains no new type. A future change to a dedicated schema should be a
+        // deliberate one that updates this assertion.
+        assertTrue(schema.path("items").path("$ref").asText().endsWith("/PartitionCoefficientResponse"),
+                path + " must reuse PartitionCoefficientResponse: " + schema);
+    }
+
+    /**
+     * Guarded by canManageSharingAgreement(plantId), so all three denial statuses are reachable: 401
+     * for an anonymous caller, 404 when the plant is invisible to the caller, 403 for a member of its
+     * community who is not an admin. Unlike the supply history, none of them is a false promise here.
+     */
+    @Test
+    void thePlantLevelInForceEndpointDocumentsEveryReachableDenial() throws Exception {
+        JsonNode responses = apiDocs().path("paths")
+                .path("/api/v1/plants/{plantId}/partition-coefficients/active")
+                .path("get").path("responses");
+
+        assertTrue(responses.has("200"), "200 must be documented: " + responses);
+        assertTrue(responses.has("401"), "401 is reachable and must be documented: " + responses);
+        assertTrue(responses.has("403"), "403 is reachable and must be documented: " + responses);
+        assertTrue(responses.has("404"), "404 is reachable and must be documented: " + responses);
+    }
+
+    /**
+     * The plant is the whole scope of this endpoint, so it takes no plantId query parameter -- that
+     * parameter belongs to the supply-level reads, where it narrows a multi-plant timeline.
+     */
+    @Test
+    void thePlantLevelInForceEndpointTakesOnlyThePlantPathParameter() throws Exception {
+        JsonNode parameters = apiDocs().path("paths")
+                .path("/api/v1/plants/{plantId}/partition-coefficients/active")
+                .path("get").path("parameters");
+
+        assertEquals(1, parameters.size(), parameters.toString());
+        assertEquals("plantId", parameters.path(0).path("name").asText(), parameters.toString());
+        assertEquals("path", parameters.path(0).path("in").asText(), parameters.toString());
+    }
+
+    @Test
     void theThreeReadEndpointsAcceptAnOptionalPlantIdQueryParameter() throws Exception {
         JsonNode root = apiDocs();
 

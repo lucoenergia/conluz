@@ -173,4 +173,22 @@ public interface GetSupplyPartitionCoefficientRepository {
      * for the reason given on {@link #findActiveDetailsBySupplyId}.
      */
     List<SupplyPartitionCoefficientDetail> findActiveDetailsByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds);
+
+    /**
+     * Every coefficient in force in {@code plantId}, one per supply, ordered by CUPS ascending -- the
+     * unfiltered sibling of {@link #findActiveDetailsByPlantIdAndSupplyIdIn}. At most one row per
+     * supply, for the reason given on {@link #findActiveDetailsBySupplyId}.
+     *
+     * <p>Active means {@code validFrom IS NOT NULL AND validTo IS NULL}, exactly as elsewhere in this
+     * port: pending rows (authored but never applied by the distributor) also carry a null valid_to,
+     * so the valid_from predicate is what separates them from the rows actually in force.
+     *
+     * <p>The authoring agreement's status is not a filter. A plant's newest agreement is often only
+     * partially applied, so supplies legitimately sit on coefficients authored by different
+     * agreements, and those coefficients do not have to sum to 1.
+     *
+     * <p>Empty when the plant has nothing in force -- a plant that has not started sharing yet, not
+     * an error.
+     */
+    List<SupplyPartitionCoefficientDetail> findActiveDetailsByPlantId(UUID plantId);
 }

@@ -60,6 +60,22 @@ At the end of the cascade method, still inside the transaction:
    resolve the deferred checks at that point.
 3. Catch the resulting `DataIntegrityViolationException`, identify the constraint **by name** — never
    by parsing the message text — and rethrow a typed domain exception mapped to a 409.
+4. On the success path, set the constraint back to `DEFERRED` before returning.
+
+Step 4 is not housekeeping. `SET CONSTRAINTS` lasts for the **rest of the transaction**, so without it
+the first batch's re-check silently revokes the deferral for every later write in the same transaction —
+and a cascade's intermediate state is only legal while the constraint is deferred. A second cascading
+batch in one transaction would then be rejected on a transaction whose final state is consistent: the
+original defect, one call later. Restoring the mode keeps the re-check self-contained — it resolves the
+checks staged so far and leaves the session as it found it.
+
+This was latent for a while because one HTTP request is one transaction running one batch, so nothing
+in production reached a second batch. It surfaced from an integration test whose fixture drove two
+successive activations through the service to build a SUPERSEDED agreement, and it is pinned by
+`CoefficientActivationServiceImplIntegrationTest.twoCascadingBatchesSurviveOneTransaction`.
+
+The failure path needs no restore: it rethrows as a typed 409 and the transaction is rolled back, so
+the session's constraint mode stops mattering.
 
 Without this, deferring alone moves the failure to commit, *outside* the `@Transactional` method
 body, where no service code can catch it and no domain context survives to explain it. The endpoint
@@ -114,7 +130,9 @@ because the ordering is deterministic per request shape, not a race.
 **Negative**
 
 - **Any future temporal cascade must follow this pattern.** Deferring without the explicit re-check
-  produces an unhandleable commit-time failure. The two changes are one decision, not two.
+  produces an unhandleable commit-time failure. The two changes are one decision, not two — and the
+  re-check must restore `DEFERRED` (step 4 above), or it breaks the next cascade in its own
+  transaction.
 - The constraint no longer catches a mistake at the statement that caused it, so a stack trace points
   at the re-check rather than at the offending write. The re-check's message must carry enough
   context to locate the cause.
@@ -148,3 +166,4 @@ because the ordering is deterministic per request shape, not a race.
 - Original constraint:
   `src/main/resources/db/liquibase/changelogs/add_supply_partition_coefficient_no_overlapping_exclusion_constraint.xml`
 - Cascade: `CoefficientActivationServiceImpl`
+- Explicit re-check: `CoefficientOverlapCheckRepositoryDatabase.flushAndCheckNoOverlap`
