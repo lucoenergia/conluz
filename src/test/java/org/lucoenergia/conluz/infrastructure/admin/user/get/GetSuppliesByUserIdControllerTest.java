@@ -1,6 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -15,7 +20,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -30,6 +39,8 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
 
     @Test
     void testGetSuppliesByUserId_shouldReturnSuppliesWhenAdminRequestsAnyUser() throws Exception {
@@ -107,6 +118,47 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(createdSupply.getId().toString()))
                 .andExpect(jsonPath("$[0].code").value(createdSupply.getCode()));
+    }
+
+    /**
+     * The endpoint is user-scoped, so a single response can span communities. Each supply must carry
+     * its own -- a fixture with one community would not tell a correct mapping from a constant one.
+     */
+    @Test
+    void testGetSuppliesByUserId_eachSupplyReportsItsOwnCommunity() throws Exception {
+        Community communityA = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityB = createCommunityRepository.create(CommunityMother.random().build());
+
+        User user = UserMother.randomUser();
+        user.enable();
+        createUserRepository.create(user);
+
+        Supply supplyInA = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), communityA.getId());
+        Supply supplyInB = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), communityB.getId());
+
+        String authHeader = loginUser(user);
+
+        MvcResult result = mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Map<String, String> communityIdBySupplyId = new HashMap<>();
+        Map<String, String> communityNameBySupplyId = new HashMap<>();
+        for (JsonNode supply : objectMapper.readTree(result.getResponse().getContentAsString())) {
+            communityIdBySupplyId.put(supply.get("id").asText(), supply.get("community").get("id").asText());
+            communityNameBySupplyId.put(supply.get("id").asText(), supply.get("community").get("name").asText());
+        }
+
+        assertEquals(2, communityIdBySupplyId.size());
+        assertEquals(communityA.getId().toString(), communityIdBySupplyId.get(supplyInA.getId().toString()));
+        assertEquals(communityB.getId().toString(), communityIdBySupplyId.get(supplyInB.getId().toString()));
+        assertEquals(communityA.getName(), communityNameBySupplyId.get(supplyInA.getId().toString()));
+        assertEquals(communityB.getName(), communityNameBySupplyId.get(supplyInB.getId().toString()));
     }
 
     @Test

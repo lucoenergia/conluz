@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.disable;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -38,6 +41,8 @@ class DisableSupplyControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private GetSupplyRepository getSupplyRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
 
     @Test
     void testDisableSupply_success() throws Exception {
@@ -103,6 +108,24 @@ class DisableSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.enabled").value(false));
 
         assertThat(getSupplyRepository.findById(SupplyId.of(supply.getId())).get().getEnabled()).isFalse();
+    }
+
+    @Test
+    void testDisableSupply_reportsTheOwningCommunity() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsCommunityAdmin(community.getId());
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), community.getId());
+
+        mockMvc.perform(post(String.format("%s/%s/disable", PATH, supply.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.community.id").value(community.getId().toString()))
+                .andExpect(jsonPath("$.community.name").value(community.getName()));
     }
 
     @Test
