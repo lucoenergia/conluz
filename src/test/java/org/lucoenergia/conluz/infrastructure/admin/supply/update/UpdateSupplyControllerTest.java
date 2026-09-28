@@ -88,6 +88,33 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.user.personalId").value(userOne.getPersonalId()));
     }
 
+    /**
+     * addressRef is absent from the schema's requiredProperties, and this endpoint documents that an
+     * omitted optional property is written as null. Both require the server to accept its absence.
+     */
+    @Test
+    void testUpdateSupplyWithoutAddressRefClearsIt() throws Exception {
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()));
+
+        UpdateSupplyBody supplyModified = new UpdateSupplyBody();
+        supplyModified.setCode("code");
+        supplyModified.setAddress("address");
+
+        mockMvc.perform(put(String.format("%s/%s", PATH, supply.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(supplyModified)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.address").value("address"))
+                .andExpect(jsonPath("$.addressRef").isEmpty());
+    }
+
     @Test
     void testUpdateSupplyReportsTheOwningCommunity() throws Exception {
 
@@ -210,12 +237,6 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                                   "code": "code",
                                   "addressRef": "4ASDF654ASDF89ASD",
                                   "address": "Fake Street 123",
-                                }
-                        """,
-                """
-                                {
-                                  "code": "code",
-                                  "address": "Fake Street 123"
                                 }
                         """);
     }

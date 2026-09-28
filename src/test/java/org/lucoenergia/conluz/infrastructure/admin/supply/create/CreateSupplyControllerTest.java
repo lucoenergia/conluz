@@ -91,6 +91,39 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333AA0A"));
     }
 
+    /**
+     * addressRef is absent from the schema's requiredProperties and its column is nullable, so the
+     * server must accept a body without it rather than contradict its own published contract.
+     */
+    @Test
+    void testCreateSupplyWithoutAddressRef() throws Exception {
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        String userPersonalId = "54889216G";
+        User user = UserMother.randomUser();
+        user.setPersonalId(userPersonalId);
+        createUserRepository.create(user);
+
+        String body = String.format("""
+                {
+                  "code": "ES0066666666666666AA0A",
+                  "communityId": "%s",
+                  "personalId": "%s",
+                  "address": "Fake Street 123"
+                }
+        """, DEFAULT_COMMUNITY_ID, userPersonalId);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ES0066666666666666AA0A"))
+                .andExpect(jsonPath("$.addressRef").isEmpty());
+    }
+
     @Test
     void testCreateSupplyReportsTheCommunityItWasCreatedIn() throws Exception {
 
@@ -243,14 +276,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                           "addressRef": "4ASDF654ASDF89ASD"
                         }
                 """,
-                """
-                        {
-                          "code": "ES0033333333333333BB0B",
-                          "personalId": "54889216G",
-                          "address": "Fake Street 456"
-                        }
-                """,
-                // Missing communityId (now required) -> 400
+                // Missing communityId (required) -> 400
                 """
                         {
                           "code": "ES0033333333333333BB0B",

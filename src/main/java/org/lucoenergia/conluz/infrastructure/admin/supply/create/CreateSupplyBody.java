@@ -19,7 +19,6 @@ public class CreateSupplyBody {
     private String personalId;
     @NotEmpty
     private String address;
-    @NotEmpty
     private String addressRef;
     private String name;
     @NotNull
