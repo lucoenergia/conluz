@@ -3,6 +3,9 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.update;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -39,6 +42,8 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private DateConverter dateConverter;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
 
     @Test
     void testUpdateSupplyModifyingAll() throws Exception {
@@ -81,6 +86,33 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.shelly.id").value(supply.getShelly().getId()))
                 .andExpect(jsonPath("$.shelly.mqttPrefix").value(supply.getShelly().getMqttPrefix()))
                 .andExpect(jsonPath("$.user.personalId").value(userOne.getPersonalId()));
+    }
+
+    @Test
+    void testUpdateSupplyReportsTheOwningCommunity() throws Exception {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+
+        String authHeader = loginAsCommunityAdmin(community.getId());
+
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), community.getId());
+
+        UpdateSupplyBody supplyModified = new UpdateSupplyBody();
+        supplyModified.setCode("code");
+        supplyModified.setName("name");
+        supplyModified.setAddress("address");
+        supplyModified.setAddressRef("4ASDF654ASDF89ASD");
+
+        mockMvc.perform(put(String.format("%s/%s", PATH, supply.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(supplyModified)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.community.id").value(community.getId().toString()))
+                .andExpect(jsonPath("$.community.name").value(community.getName()));
     }
 
     @Test

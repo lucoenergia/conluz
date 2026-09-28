@@ -1,5 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
+import jakarta.persistence.EntityManager;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -16,6 +19,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +39,8 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private EntityManager entityManager;
 
     @Test
     void findAllReturnsZero() {
@@ -318,5 +324,78 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
         Assertions.assertTrue(result.contains(supplyOne));
         Assertions.assertTrue(result.contains(supplyTwo));
         Assertions.assertFalse(result.contains(supplyInOtherCommunity));
+    }
+
+    /**
+     * The community reaches the response as a fully materialised domain object, so building the
+     * response issues nothing. Mirrors the equivalent guarantee asserted for PlantResponse.
+     */
+    @Test
+    void mappingSuppliesToSupplyResponseAddsNoAdditionalQueriesToExposeTheOwningCommunity() {
+        User user = createUserRepository.create(UserMother.randomUser());
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        for (int i = 0; i < 3; i++) {
+            createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()),
+                    community.getId());
+        }
+        entityManager.flush();
+        entityManager.clear();
+
+        List<Supply> supplies = getSupplyRepositoryDatabase.findByUserId(UserId.of(user.getId()));
+
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+
+        List<SupplyResponse> responses = supplies.stream().map(SupplyResponse::new).toList();
+
+        Assertions.assertEquals(0, statistics.getPrepareStatementCount(),
+                "constructing SupplyResponse must not issue further queries: the community is already resolved");
+        for (SupplyResponse response : responses) {
+            Assertions.assertEquals(community.getId(), response.getCommunity().getId());
+            Assertions.assertEquals(community.getName(), response.getCommunity().getName());
+        }
+    }
+
+    /**
+     * A differential assertion: both arms hold the same number of supplies owned by one user, and
+     * differ only in how many communities those supplies span. Were the community resolved by lazy
+     * initialisation, the two-community arm would cost one statement more. The absolute count is
+     * deliberately not asserted -- it also covers per-supply loads unrelated to the community.
+     */
+    @Test
+    void findByUserIdResolvesTheCommunityWithoutAQueryPerCommunity() {
+        Community communityOne = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityTwo = createCommunityRepository.create(CommunityMother.random().build());
+
+        User singleCommunityOwner = createUserRepository.create(UserMother.randomUser());
+        User twoCommunityOwner = createUserRepository.create(UserMother.randomUser());
+
+        for (int i = 0; i < 4; i++) {
+            createSupplyRepository.create(SupplyMother.random(singleCommunityOwner).build(),
+                    UserId.of(singleCommunityOwner.getId()), communityOne.getId());
+            createSupplyRepository.create(SupplyMother.random(twoCommunityOwner).build(),
+                    UserId.of(twoCommunityOwner.getId()), i % 2 == 0 ? communityOne.getId() : communityTwo.getId());
+        }
+        entityManager.flush();
+
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+
+        entityManager.clear();
+        statistics.clear();
+        List<Supply> singleCommunitySupplies = getSupplyRepositoryDatabase.findByUserId(
+                UserId.of(singleCommunityOwner.getId()));
+        long singleCommunityStatements = statistics.getPrepareStatementCount();
+
+        entityManager.clear();
+        statistics.clear();
+        List<Supply> twoCommunitySupplies = getSupplyRepositoryDatabase.findByUserId(
+                UserId.of(twoCommunityOwner.getId()));
+        long twoCommunityStatements = statistics.getPrepareStatementCount();
+
+        Assertions.assertEquals(4, singleCommunitySupplies.size());
+        Assertions.assertEquals(4, twoCommunitySupplies.size());
+        Assertions.assertEquals(singleCommunityStatements, twoCommunityStatements,
+                "spanning a second community must not cost an extra query");
+        Assertions.assertTrue(twoCommunitySupplies.stream().allMatch(supply -> supply.getCommunity() != null));
     }
 }

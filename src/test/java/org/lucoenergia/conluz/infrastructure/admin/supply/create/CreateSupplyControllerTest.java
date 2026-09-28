@@ -5,6 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
@@ -41,6 +44,8 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     private CreateSupplyService createSupplyService;
     @Autowired
     private GetCommunityRepository getCommunityRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
 
     @Test
     void testCreateSupplyWithoutName() throws Exception {
@@ -84,6 +89,36 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.user.enabled").value(user.isEnabled()));
 
         Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333AA0A"));
+    }
+
+    @Test
+    void testCreateSupplyReportsTheCommunityItWasCreatedIn() throws Exception {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+
+        String authHeader = loginAsCommunityAdmin(community.getId());
+
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
+
+        String body = String.format("""
+                {
+                  "code": "ES0055555555555555AA0A",
+                  "communityId": "%s",
+                  "personalId": "%s",
+                  "address": "Fake Street 123",
+                  "addressRef": "4ASDF654ASDF89ASD"
+                }
+        """, community.getId(), user.getPersonalId());
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.community.id").value(community.getId().toString()))
+                .andExpect(jsonPath("$.community.name").value(community.getName()));
     }
 
     @Test

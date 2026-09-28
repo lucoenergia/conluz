@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -31,6 +34,8 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
 
     @Test
     void testWithDefaultPagination() throws Exception {
@@ -60,6 +65,30 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.totalPages").value("1"))
                 .andExpect(jsonPath("$.number").value("0"))
                 .andExpect(jsonPath("$.items.size()").value(3));
+    }
+
+    @Test
+    void testEverySupplyInThePageReportsTheOwningCommunity() throws Exception {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User user = createUserRepository.create(UserMother.randomUser());
+
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()),
+                community.getId());
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()),
+                community.getId());
+
+        String authHeader = loginAsCommunityAdmin(community.getId());
+
+        mockMvc.perform(get("/api/v1/communities/" + community.getId() + "/supplies")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.size()").value(2))
+                .andExpect(jsonPath("$.items[0].community.id").value(community.getId().toString()))
+                .andExpect(jsonPath("$.items[0].community.name").value(community.getName()))
+                .andExpect(jsonPath("$.items[1].community.id").value(community.getId().toString()))
+                .andExpect(jsonPath("$.items[1].community.name").value(community.getName()));
     }
 
     @Test
