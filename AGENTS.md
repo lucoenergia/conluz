@@ -150,3 +150,44 @@ With the app running:
 ## Security & Authorization Policy
 
 This policy is MANDATORY. Every REST controller endpoint MUST enforce it via a `@PreAuthorize` clause (delegating to the `@communityAccessGuard` bean when community/object scope is required). **All authorization lives in the controller layer** — services and repositories must contain no access-control logic. See the full policy (roles, capabilities, enforcement rules, 401/403/404 error mapping, and 409 state conflicts) in [`docs/security/authorization-policy.md`](docs/security/authorization-policy.md).
+
+# CLAUDE.md / AGENTS.md — GitHub CLI section
+
+Repository-agnostic. Paste as-is into any repo.
+
+---
+
+## GitHub CLI
+
+`gh` is authenticated with a **read-only** credential and is available for reading. Use it whenever
+it saves a guess: checking an issue number before referencing it, reading a pull request's review
+comments, looking at why a workflow run failed, listing releases, labels or tags.
+
+**Never perform a write.** That covers creating, editing, closing, commenting on, reviewing or
+merging issues and pull requests; labels, releases and milestones; running, re-running or cancelling
+workflows; changing repository or organisation settings; and any `gh api` call with a method other
+than GET, GraphQL mutations included. `gh auth login`, `gh auth refresh`, `gh alias set` and
+`gh extension install` are equally off limits — they are ways to change what the tool can do.
+
+Writes fail twice over: the credential has no write permission, and `permissions.deny` blocks the
+commands. Do not work around either. If a command is refused, report it; do not look for a spelling
+that gets through, and never propose changing the deny rules or the credential.
+
+When a task appears to need a write — "open an issue for this", "comment on that PR", "merge it" —
+produce the content and say exactly where it goes (repository, issue or PR number, and the label or
+milestone if relevant), so a human can post it in one paste. Do not treat the restriction as a
+blocker to report and stop at: the deliverable is the text, not the API call.
+
+`git push` is likewise not yours to run. Commit locally, and leave pushing and opening pull requests
+to a human.
+
+### Referring to issues in code
+
+When a comment, a suppression justification, a `TODO` or a test name refers to work, use an issue
+number (`#412`) or its URL — never an epic's internal ordering ("epic PR 5"), a branch name, a
+milestone or a date. Branches are deleted after merge and plans are not in the repository; an issue
+number resolves years later from a fresh clone.
+
+`gh issue list` and `gh issue view` are there precisely so the number can be checked rather than
+invented. If the issue does not exist yet, ask for it: a temporary exemption with no issue behind it
+is a permanent one.
