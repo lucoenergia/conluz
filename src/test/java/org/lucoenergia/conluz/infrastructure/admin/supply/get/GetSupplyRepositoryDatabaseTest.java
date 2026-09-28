@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -397,5 +398,71 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
         Assertions.assertEquals(singleCommunityStatements, twoCommunityStatements,
                 "spanning a second community must not cost an extra query");
         Assertions.assertTrue(twoCommunitySupplies.stream().allMatch(supply -> supply.getCommunity() != null));
+    }
+
+    /**
+     * Every association SupplyEntityMapper traverses is fetched with the supplies, so listing a
+     * community costs the same whether it holds two supplies or six. Asserting flatness rather than
+     * an absolute count keeps the test readable and independent of how many statements the paged
+     * read itself needs.
+     */
+    @Test
+    void findByCommunityResolvesEverySupplyWithoutAQueryPerSupply() {
+        long twoSupplies = statementsToListCommunity(2);
+        long sixSupplies = statementsToListCommunity(6);
+
+        Assertions.assertEquals(twoSupplies, sixSupplies,
+                "listing a community must not cost a query per supply");
+    }
+
+    /**
+     * The same guarantee for the unpaginated read behind the scheduled jobs, which iterate every
+     * supply and so pay a per-supply query in full.
+     */
+    @Test
+    void findAllResolvesEverySupplyWithoutAQueryPerSupply() {
+        long twoSupplies = statementsToListAll(2);
+        long sixSupplies = statementsToListAll(6);
+
+        Assertions.assertEquals(twoSupplies, sixSupplies,
+                "listing every supply must not cost a query per supply");
+    }
+
+    private long statementsToListCommunity(int supplies) {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        createSuppliesWithDistinctOwners(supplies, community);
+
+        return measure(() -> getSupplyRepositoryDatabase.findByCommunity(PagedRequest.of(0, 50),
+                community.getId()).getItems().size());
+    }
+
+    private long statementsToListAll(int supplies) {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        createSuppliesWithDistinctOwners(supplies, community);
+
+        return measure(() -> getSupplyRepositoryDatabase.findAllByCommunityId(community.getId()).size());
+    }
+
+    /**
+     * Distinct owners on purpose: a shared owner would be resolved once by the persistence context
+     * and hide a per-supply load.
+     */
+    private void createSuppliesWithDistinctOwners(int supplies, Community community) {
+        for (int i = 0; i < supplies; i++) {
+            User owner = createUserRepository.create(UserMother.randomUser());
+            createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()),
+                    community.getId());
+        }
+        entityManager.flush();
+    }
+
+    private long measure(Supplier<Integer> read) {
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        entityManager.clear();
+        statistics.clear();
+
+        read.get();
+
+        return statistics.getPrepareStatementCount();
     }
 }
