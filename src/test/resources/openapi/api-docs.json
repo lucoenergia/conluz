@@ -468,7 +468,6 @@
             "type" : "string"
           },
           "addressRef" : {
-            "minLength" : 1,
             "type" : "string"
           },
           "code" : {
@@ -489,7 +488,6 @@
         },
         "required" : [
           "address",
-          "addressRef",
           "code",
           "communityId",
           "personalId"
@@ -771,7 +769,7 @@
       "GenerateDistributorFileBody" : {
         "properties" : {
           "year" : {
-            "description" : "Used only to build the generated filename ({regulatoryCode}_{year}.txt); the i-DE file content itself never encodes a year or period.",
+            "description" : "Used only to build the generated filename ({regulatoryCode}_{year}.txt); the file content itself never encodes a year or period.",
             "example" : 2026,
             "format" : "int32",
             "maximum" : 2100,
@@ -1490,7 +1488,9 @@
               "DISTRIBUTOR_FILE_CUPS_UNKNOWN",
               "DISTRIBUTOR_FILE_LINE_MALFORMED",
               "SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID",
-              "PLANT_MISSING_REGULATORY_CODE"
+              "PLANT_MISSING_REGULATORY_CODE",
+              "SUPPLY_CUPS_NOT_NORMALIZABLE",
+              "SUPPLY_CUPS_COLLISION"
             ],
             "type" : [
               "string",
@@ -2198,6 +2198,10 @@
             "example" : "ES0031300119158001DL0Y",
             "type" : "string"
           },
+          "community" : {
+            "$ref" : "#/components/schemas/CommunityReferenceResponse",
+            "description" : "Community the supply belongs to"
+          },
           "contract" : {
             "$ref" : "#/components/schemas/SupplyContractResponse",
             "description" : "Contract information of the supply",
@@ -2255,6 +2259,7 @@
           "addressRef",
           "capabilities",
           "code",
+          "community",
           "contract",
           "distributor",
           "enabled",
@@ -2584,7 +2589,6 @@
             "type" : "string"
           },
           "addressRef" : {
-            "minLength" : 1,
             "type" : "string"
           },
           "code" : {
@@ -2597,7 +2601,6 @@
         },
         "required" : [
           "address",
-          "addressRef",
           "code"
         ],
         "type" : "object"
@@ -7553,6 +7556,112 @@
         ]
       }
     },
+    "/api/v1/plants/{plantId}/partition-coefficients/active" : {
+      "get" : {
+        "description" : "Returns every partition coefficient currently in force in this plant, one per\nsupply. A coefficient is in force when it has been activated (validFrom is set)\nand has not been closed (validTo is null); pending coefficients, including every\ncoefficient of a DRAFT agreement, and closed coefficients are excluded.\n\nCoefficients are returned whatever the status of the agreement that authored\nthem, and different supplies may be on coefficients authored by different\nagreements -- while the distributor is applying a plant's newest agreement, some\nsupplies have already moved to it and the rest are still on the previous one.\nThe coefficients therefore do not necessarily sum to 1: values are reported\nexactly as stored, without normalisation.\n\nOnly coefficients of this plant are returned; a supply that participates in more\nthan one plant appears here only for this one. Ordered by CUPS ascending. A plant\nwith nothing in force returns an empty list.\n\n**Required: community admin of the plant's community.**\n\nReturns 404 if the plant does not exist or if the caller is not a member of its\ncommunity, to avoid leaking the existence of plants by ID.\nReturns 403 if the caller is an enabled member of the plant's community but\nnot a community admin.\n\nAuthentication is required using a Bearer token.\n",
+        "operationId" : "getPlantActivePartitionCoefficients",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PartitionCoefficientResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Coefficients in force retrieved successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 403,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Retrieves the partition coefficients currently in force in a plant",
+        "tags" : [
+          "Sharing agreements"
+        ]
+      }
+    },
     "/api/v1/plants/{plantId}/production/huawei/config" : {
       "get" : {
         "description" : "This endpoint returns the Huawei FusionSolar API configuration for a specific plant.\n\nThe password is never returned in the response. Instead, a boolean field\n`passwordSet` indicates whether a password has been configured.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: Community Admin**\n\nUpon successful request, the server responds with an HTTP status code of 200, along with\nthe current configuration. If no configuration has been set yet, a 404 is returned.\n",
@@ -8429,7 +8538,7 @@
         ]
       },
       "post" : {
-        "description" : "Validates the uploaded file, stores it as evidence on the agreement, and materialises\nits parsed entries as pending partition coefficients (not yet active). Re-uploading\natomically replaces the agreement's entire pending coefficient set.\n\n**Required: Community Admin**\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\nReturns 409 if the agreement is not in DRAFT status.\nReturns 400 with a collection of typed errors, one per violated file rule, if the\nfile fails validation.\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "Validates the uploaded file, stores it as evidence on the agreement, and materialises\nits parsed entries as pending partition coefficients (not yet active). Re-uploading\natomically replaces the agreement's entire pending coefficient set.\n\n**Required: Community Admin**\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\nReturns 409 if the agreement is not in DRAFT status, or if two of the community's\nsupply codes normalize to the same CUPS, making that CUPS ambiguous to resolve.\nReturns 400 with a collection of typed errors, one per violated file rule, if the\nfile fails validation.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "uploadSharingAgreementFile",
         "parameters" : [
           {
@@ -8538,7 +8647,7 @@
                 }
               }
             },
-            "description" : "The agreement is not in DRAFT status."
+            "description" : "The agreement is not in DRAFT status, or two of the community's supply codes normalize to the same CUPS."
           },
           "500" : {
             "content" : {
@@ -8567,7 +8676,7 @@
     },
     "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/generate-file" : {
       "post" : {
-        "description" : "Builds the i-DE distributor TXT file from this agreement's complete, immutable\npartition-coefficient set -- one row per supply, regardless of status or\nactivation state -- and streams it back as a file download. Nothing is\npersisted -- the file is built in memory from the current state and returned.\n\n**Required: Community Admin**\n\nAllowed for any agreement status (DRAFT, PUBLISHED, SUPERSEDED).\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\nReturns 409 if the plant has no regulatory code (CAU) configured, or if the\nagreement's coefficient set does not sum to exactly 1.\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "Builds the distributor TXT file from this agreement's complete, immutable\npartition-coefficient set -- one row per supply, regardless of status or\nactivation state -- and streams it back as a file download. Nothing is\npersisted -- the file is built in memory from the current state and returned.\n\n**Required: Community Admin**\n\nAllowed for any agreement status (DRAFT, PUBLISHED, SUPERSEDED).\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\nReturns 409 if the plant has no regulatory code (CAU) configured, if the\nagreement's coefficient set does not sum to exactly 1, if any participating\nsupply's code is not a valid CUPS (22 characters, or 20 to be completed with\n\"0F\", and free of spaces), or if two supply codes normalize to the same CUPS.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "generateSharingAgreementDistributorFile",
         "parameters" : [
           {
@@ -8671,7 +8780,7 @@
                 }
               }
             },
-            "description" : "The plant has no regulatory code configured, or the agreement's coefficient set does not sum to exactly 1."
+            "description" : "The plant has no regulatory code configured, the agreement's coefficient set does not sum to exactly 1, a participating supply's code is not a valid CUPS, or two supply codes normalize to the same CUPS."
           },
           "500" : {
             "content" : {
@@ -8692,7 +8801,7 @@
             "bearerToken" : [ ]
           }
         ],
-        "summary" : "Generates the i-DE distributor coefficient-partition file for a sharing agreement",
+        "summary" : "Generates the distributor coefficient-partition file for a sharing agreement",
         "tags" : [
           "Sharing agreements"
         ]
