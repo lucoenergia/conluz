@@ -14,7 +14,12 @@ public class InvalidEnergyMetricsPeriodException extends RuntimeException {
         /**
          * The start date is after the end date.
          */
-        START_AFTER_END
+        START_AFTER_END,
+        /**
+         * A reference period was requested together with explicit dates. The period is either
+         * resolved by the server or supplied by the caller, never both.
+         */
+        CONFLICTING_PERIOD
     }
 
     private final Reason reason;

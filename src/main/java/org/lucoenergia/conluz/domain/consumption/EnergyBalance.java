@@ -6,7 +6,8 @@ package org.lucoenergia.conluz.domain.consumption;
  *
  * <p>The ratios are computed by summing every record first and dividing once, never by averaging
  * per-record ratios: an hour consuming 100 kWh and an hour consuming 1 kWh must not weigh the
- * same.</p>
+ * same. The same holds across supplies: {@link #plus(EnergyBalance)} adds the raw totals, and the
+ * ratios of the sum are derived from those sums, never from the ratios of the parts.</p>
  */
 public class EnergyBalance {
 
@@ -32,6 +33,24 @@ public class EnergyBalance {
         this.assignedProductionKWh = selfConsumptionKWh + surplusKWh;
         this.selfSufficiencyRatio = ratio(selfConsumptionKWh, this.totalConsumptionKWh);
         this.selfConsumptionRatio = ratio(selfConsumptionKWh, this.assignedProductionKWh);
+    }
+
+    /**
+     * The balance of a period without any energy: every total zero and both ratios null.
+     */
+    public static EnergyBalance empty() {
+        return new EnergyBalance(0d, 0d, 0d);
+    }
+
+    /**
+     * The balance of both sets of records together. The raw totals are added and the ratios are
+     * derived again from the sums.
+     */
+    public EnergyBalance plus(EnergyBalance other) {
+        return new EnergyBalance(
+                gridImportKWh + other.gridImportKWh,
+                selfConsumptionKWh + other.selfConsumptionKWh,
+                surplusKWh + other.surplusKWh);
     }
 
     /**

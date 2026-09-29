@@ -28,4 +28,21 @@ public final class EnergyMetricsPeriodValidator {
                     InvalidEnergyMetricsPeriodException.Reason.START_AFTER_END);
         }
     }
+
+    /**
+     * As {@link #validate(OffsetDateTime, OffsetDateTime)}, for an endpoint that can also resolve a
+     * reference period itself: requesting one together with either date is rejected first.
+     *
+     * @param referencePeriod the reference period requested, or null when none was
+     * @throws InvalidEnergyMetricsPeriodException when a reference period is requested together
+     *         with a date, or when the dates themselves are invalid
+     */
+    public static void validate(OffsetDateTime startDate, OffsetDateTime endDate,
+                                EnergyMetricsReferencePeriod referencePeriod) {
+        if (referencePeriod != null && (startDate != null || endDate != null)) {
+            throw new InvalidEnergyMetricsPeriodException(
+                    InvalidEnergyMetricsPeriodException.Reason.CONFLICTING_PERIOD);
+        }
+        validate(startDate, endDate);
+    }
 }
