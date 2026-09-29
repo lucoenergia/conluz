@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -18,14 +19,18 @@ import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticat
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.closeTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
@@ -407,6 +412,89 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
                 // Pins the serialisation: the key is present and explicitly null.
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"amountEur\":null")));
+    }
+
+    // --- Estimated price (#313) ---
+
+    /**
+     * AC1 (#313). The default configuration prices the estimate at 0.15 EUR/kWh, and that is the
+     * price the savings carry, serialised exactly as configured rather than rounded to cents.
+     */
+    @Test
+    void testEstimatedSavingsCarryTheConfiguredEstimatedPrice() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+
+        writeRecords(
+                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 9.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 100.0f, 50.0f, 0.5f));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2024-02-01T00:00:00+01:00")
+                        .queryParam("endDate", "2024-02-01T01:00:00+01:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "\"estimatedPrice\":{\"eurPerKWh\":0.15}")));
+    }
+
+    /**
+     * AC3 (#313). No stored record and no requested period: nothing was priced, so there is no
+     * price behind the absent amount. The key is present and explicitly null, never an object
+     * holding a null price.
+     */
+    @Test
+    void testSupplyWithoutAnyRecordAndWithoutAPeriodReportsNoEstimatedPrice() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.savings.amountEur").value(nullValue()))
+                .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"estimatedPrice\":null")));
+    }
+
+    /**
+     * The "Estimate · price before taxes" label shown next to the amount is only truthful if the
+     * amount is the self-consumed energy times that price, rounded once. With the default
+     * configuration (VAT rate 0) it must be exactly that.
+     *
+     * <p>The self-consumption of 1.50 + 2.50 + 0.25 = 4.25 kWh is worth 4.25 x 0.15 = 0.6375, so
+     * 0.64 rounded once; rounding each hour first would give 0.23 + 0.38 + 0.04 = 0.65. If this
+     * fails, the amount is not the simple product the label implies and the label must be revisited
+     * -- a tolerance here would hide exactly that. It also fails if a non-zero VAT rate is ever
+     * configured, since the exposed price is the pre-VAT base.
+     */
+    @Test
+    void amountEqualsSelfConsumedKWhTimesExposedPriceUnderDefaultVat() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+
+        writeRecords(
+                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.5f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 2.5f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 1.0f, 0.25f, 0.0f));
+
+        MvcResult result = mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2024-02-01T00:00:00+01:00")
+                        .queryParam("endDate", "2024-02-01T02:00:00+01:00"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
+        BigDecimal selfConsumedKWh = BigDecimal.valueOf(body.path("energy").path("selfConsumptionKWh").asDouble());
+        BigDecimal eurPerKWh = body.path("savings").path("estimatedPrice").path("eurPerKWh").decimalValue();
+        BigDecimal amountEur = body.path("savings").path("amountEur").decimalValue();
+
+        BigDecimal expected = selfConsumedKWh.multiply(eurPerKWh).setScale(2, RoundingMode.HALF_UP);
+        assertEquals(0, new BigDecimal("0.64").compareTo(expected),
+                () -> "the dataset no longer exercises single rounding: expected " + expected);
+        assertEquals(0, expected.compareTo(amountEur),
+                () -> "amountEur " + amountEur + " is not " + selfConsumedKWh + " kWh x " + eurPerKWh);
     }
 
     /**

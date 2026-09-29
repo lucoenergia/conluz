@@ -22,6 +22,7 @@ class GetSupplyEnergyMetricsControllerApiDocsTest extends BaseControllerTest {
 
     private static final String SAVINGS_SCHEMA = "SupplyEnergyMetricsSavingsResponse";
     private static final String METRICS_SCHEMA = "SupplyEnergyMetricsResponse";
+    private static final String ESTIMATED_PRICE_SCHEMA = "EstimatedPriceResponse";
 
     @Test
     void documentsSavingsAsARequiredPropertyOfTheMetricsResponse() throws Exception {
@@ -55,6 +56,46 @@ class GetSupplyEnergyMetricsControllerApiDocsTest extends BaseControllerTest {
 
         assertTrue(!textValues(savings.path("tariffSource").path("type")).contains("null"),
                 () -> "tariffSource must not be nullable: " + savings.path("tariffSource"));
+    }
+
+    /**
+     * AC9 (#313). The key is always present and its value may be null, so the reference has to be
+     * both required and nullable in the document. It renders as a {@code $ref} with a
+     * {@code ["object", "null"]} type sibling, which conluz-web's Orval transformer rewrites into an
+     * {@code anyOf} so that the generated type keeps its nullability.
+     */
+    @Test
+    void documentsTheEstimatedPriceAsARequiredNullableReference() throws Exception {
+        JsonNode savings = schema(SAVINGS_SCHEMA);
+        JsonNode estimatedPrice = savings.path("properties").path("estimatedPrice");
+
+        assertTrue(textValues(savings.path("required")).contains("estimatedPrice"),
+                () -> SAVINGS_SCHEMA + ".required was " + savings.path("required"));
+        assertTrue(estimatedPrice.path("$ref").asText().endsWith("/" + ESTIMATED_PRICE_SCHEMA),
+                () -> "estimatedPrice is not a reference to " + ESTIMATED_PRICE_SCHEMA + ": " + estimatedPrice);
+        assertTrue(textValues(estimatedPrice.path("type")).contains("null"),
+                () -> "estimatedPrice must be nullable: " + estimatedPrice);
+    }
+
+    /**
+     * AC9 (#313). Nullability lives on the reference alone: inside the object the price is always
+     * present and always holds a value, and its description states the unit and the scope.
+     */
+    @Test
+    void documentsTheEstimatedPriceValueAsRequiredAndNotNullable() throws Exception {
+        JsonNode estimatedPriceSchema = schema(ESTIMATED_PRICE_SCHEMA);
+        JsonNode eurPerKWh = estimatedPriceSchema.path("properties").path("eurPerKWh");
+
+        assertTrue(textValues(estimatedPriceSchema.path("required")).contains("eurPerKWh"),
+                () -> ESTIMATED_PRICE_SCHEMA + ".required was " + estimatedPriceSchema.path("required"));
+        List<String> types = textValues(eurPerKWh.path("type"));
+        assertTrue(types.contains("number"), () -> "eurPerKWh.type was " + eurPerKWh);
+        assertTrue(!types.contains("null"), () -> "eurPerKWh must not be nullable: " + eurPerKWh);
+
+        String description = eurPerKWh.path("description").asText();
+        assertTrue(description.contains("euros per kWh"), () -> "unit missing: " + description);
+        assertTrue(description.contains("energy term"), () -> "scope missing: " + description);
+        assertTrue(description.contains("before taxes"), () -> "tax scope missing: " + description);
     }
 
     /**
