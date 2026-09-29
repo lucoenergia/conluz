@@ -260,6 +260,11 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
      * the 25th, at 00:00Z and at 01:00Z. Local 02:00 therefore holds 31 + 1 = 32 samples and every
      * other hour 31. Each record consumes 1 kWh except the second 02:00 of the 25th, which consumes
      * 32, so bucket 2 averages (31 + 32) / 32 = 1.96875: both records of that day reached it.
+     *
+     * <p>Both records are written at their exact instants, bypassing the Datadis write path. This
+     * pins what the profile does with two stored records of the repeated hour; it is not evidence
+     * that ingestion stores both. The write path resolves a local date and time to the earlier
+     * offset, so two records labelled with the same local 02:00 would collide on one instant (#322).
      */
     @Test
     void ac8_theHourRepeatedByTheOctoberTransitionReceivesBothRecordsOfThatDay() throws Exception {
