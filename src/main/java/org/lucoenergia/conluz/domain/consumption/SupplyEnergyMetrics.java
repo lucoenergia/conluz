@@ -24,13 +24,7 @@ public class SupplyEnergyMetrics {
     private final OffsetDateTime endDate;
     private final long hoursWithData;
     private final long expectedHours;
-    private final double gridImportKWh;
-    private final double selfConsumptionKWh;
-    private final double surplusKWh;
-    private final double totalConsumptionKWh;
-    private final double assignedProductionKWh;
-    private final Double selfSufficiencyRatio;
-    private final Double selfConsumptionRatio;
+    private final EnergyBalance energyBalance;
     private final SupplySavings savings;
 
     /**
@@ -49,13 +43,7 @@ public class SupplyEnergyMetrics {
         this.endDate = endDate;
         this.hoursWithData = hoursWithData;
         this.expectedHours = expectedHours;
-        this.gridImportKWh = gridImportKWh;
-        this.selfConsumptionKWh = selfConsumptionKWh;
-        this.surplusKWh = surplusKWh;
-        this.totalConsumptionKWh = gridImportKWh + selfConsumptionKWh;
-        this.assignedProductionKWh = selfConsumptionKWh + surplusKWh;
-        this.selfSufficiencyRatio = ratio(selfConsumptionKWh, this.totalConsumptionKWh);
-        this.selfConsumptionRatio = ratio(selfConsumptionKWh, this.assignedProductionKWh);
+        this.energyBalance = new EnergyBalance(gridImportKWh, selfConsumptionKWh, surplusKWh);
         this.savings = savings;
     }
 
@@ -67,18 +55,6 @@ public class SupplyEnergyMetrics {
                                             long expectedHours) {
         return new SupplyEnergyMetrics(supply, startDate, endDate, 0L, expectedHours, 0d, 0d, 0d,
                 SupplySavings.unpriced());
-    }
-
-    /**
-     * Divides only once the denominator is known to be non-zero, so a ratio is either a finite
-     * number or null. Dividing first would yield {@code NaN} or {@code Infinity}, which Jackson
-     * serialises as bare tokens that are not valid JSON.
-     */
-    private static Double ratio(double numerator, double denominator) {
-        if (denominator == 0d) {
-            return null;
-        }
-        return numerator / denominator;
     }
 
     public Supply getSupply() {
@@ -102,31 +78,35 @@ public class SupplyEnergyMetrics {
     }
 
     public double getGridImportKWh() {
-        return gridImportKWh;
+        return energyBalance.getGridImportKWh();
     }
 
     public double getSelfConsumptionKWh() {
-        return selfConsumptionKWh;
+        return energyBalance.getSelfConsumptionKWh();
     }
 
     public double getSurplusKWh() {
-        return surplusKWh;
+        return energyBalance.getSurplusKWh();
     }
 
     public double getTotalConsumptionKWh() {
-        return totalConsumptionKWh;
+        return energyBalance.getTotalConsumptionKWh();
     }
 
     public double getAssignedProductionKWh() {
-        return assignedProductionKWh;
+        return energyBalance.getAssignedProductionKWh();
     }
 
     public Double getSelfSufficiencyRatio() {
-        return selfSufficiencyRatio;
+        return energyBalance.getSelfSufficiencyRatio();
     }
 
     public Double getSelfConsumptionRatio() {
-        return selfConsumptionRatio;
+        return energyBalance.getSelfConsumptionRatio();
+    }
+
+    public EnergyBalance getEnergyBalance() {
+        return energyBalance;
     }
 
     public SupplySavings getSavings() {
