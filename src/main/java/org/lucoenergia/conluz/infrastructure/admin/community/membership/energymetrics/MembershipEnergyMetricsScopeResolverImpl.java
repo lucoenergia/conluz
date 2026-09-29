@@ -84,6 +84,11 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
         return new MembershipEnergyMetricsScope(supplies, period.orElse(null));
     }
 
+    @Override
+    public MembershipEnergyMetricsScope resolveLatestPublishedMonth(UUID communityId, UUID userId) {
+        return resolve(communityId, userId, null, null, EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH);
+    }
+
     /**
      * The period to compute over, or empty when none can be resolved. An explicit period always
      * resolves, even for a membership without supplies.

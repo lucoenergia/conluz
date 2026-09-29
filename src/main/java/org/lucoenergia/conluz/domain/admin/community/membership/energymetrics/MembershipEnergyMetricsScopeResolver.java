@@ -37,7 +37,5 @@ public interface MembershipEnergyMetricsScopeResolver {
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException when the
      *         user holds no membership in the community
      */
-    default MembershipEnergyMetricsScope resolveLatestPublishedMonth(UUID communityId, UUID userId) {
-        return resolve(communityId, userId, null, null, EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH);
-    }
+    MembershipEnergyMetricsScope resolveLatestPublishedMonth(UUID communityId, UUID userId);
 }
