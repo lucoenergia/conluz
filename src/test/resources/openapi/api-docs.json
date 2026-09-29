@@ -1083,8 +1083,25 @@
         },
         "type" : "object"
       },
+      "PartitionCoefficientCapabilitiesResponse" : {
+        "description" : "What the caller may do from this partition coefficient period.",
+        "properties" : {
+          "canReadSharingAgreement" : {
+            "description" : "Whether the caller may open the sharing agreement referenced by this period (GET /api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}). The reference carries no capabilities of its own, so the period says whether following it would succeed.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [
+          "canReadSharingAgreement"
+        ],
+        "type" : "object"
+      },
       "PartitionCoefficientResponse" : {
         "properties" : {
+          "capabilities" : {
+            "$ref" : "#/components/schemas/PartitionCoefficientCapabilitiesResponse",
+            "description" : "What the caller may do from this period, including whether its sharingAgreement reference can be followed."
+          },
           "coefficient" : {
             "description" : "Partition coefficient value",
             "example" : 0.030763,
@@ -1138,6 +1155,7 @@
           }
         },
         "required" : [
+          "capabilities",
           "coefficient",
           "community",
           "createdAt",

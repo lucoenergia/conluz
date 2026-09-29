@@ -286,7 +286,7 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
         setUpBaseFixture();
         String authHeader = loginAsCommunityAdmin(communityA.getId());
 
-        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+        String response = mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyWithSumOne()))
@@ -294,7 +294,14 @@ class ReplacePartitionCoefficientsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.coefficients", hasSize(2)))
                 .andExpect(jsonPath("$.coefficients[0].validFrom").value(nullValue()))
-                .andExpect(jsonPath("$.coefficientSumWarning").value(nullValue()));
+                .andExpect(jsonPath("$.coefficients[*].capabilities.canReadSharingAgreement",
+                        org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is(true))))
+                .andExpect(jsonPath("$.coefficientSumWarning").value(nullValue()))
+                .andReturn().getResponse().getContentAsString();
+
+        // Capabilities are keyed by coefficient id, so no id may repeat within one response.
+        java.util.List<String> ids = com.jayway.jsonpath.JsonPath.read(response, "$.coefficients[*].id");
+        assertEquals(ids.size(), new java.util.HashSet<>(ids).size(), "a coefficient id repeats: " + ids);
     }
 
     @Test

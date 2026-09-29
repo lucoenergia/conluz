@@ -12,6 +12,12 @@ import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembership
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CommunityReference;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PlantReference;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SharingAgreementReference;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyReference;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -37,6 +43,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -109,6 +116,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     private MembershipCapabilitiesAssembler membershipAssembler;
     @Autowired
     private PlatformCapabilitiesAssembler platformAssembler;
+    @Autowired
+    private PartitionCoefficientCapabilitiesAssembler partitionCoefficientAssembler;
 
     private Community communityA;
     private Community communityB;
@@ -205,6 +214,54 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canManage", capabilities.isCanManage(),
                     () -> guard.canManageSharingAgreement(plantId, agreementId));
         });
+    }
+
+    /**
+     * The period is built in memory because the capability is decided from its plant and agreement
+     * ids alone; the assembler loads both from the database exactly as a request does.
+     */
+    @Test
+    void thePartitionCoefficientCapabilitiesEqualTheirGuards() {
+        UUID plantId = plant.getId();
+        UUID agreementId = agreement.getId();
+        SupplyPartitionCoefficientDetail period = periodOf(plant, agreement);
+        forEachCaller(caller -> {
+            PartitionCoefficientCapabilitiesResponse capabilities =
+                    partitionCoefficientAssembler.assembleAll(caller, List.of(period)).get(period.getId());
+            // The reason this one exists: the period's sharingAgreement reference carries no
+            // capabilities, and this is the guard of the endpoint that following it calls.
+            assertSame("canReadSharingAgreement", capabilities.isCanReadSharingAgreement(),
+                    () -> guard.canReadSharingAgreement(plantId, agreementId));
+        });
+    }
+
+    /**
+     * conluz-web links a period to its agreement's page, and that route is guarded client-side on the
+     * plant's {@code canListSharingAgreements}. The capability predicts the API endpoint, not the
+     * route, so it is only a safe basis for showing the link while the one implies the other. Today
+     * they are the same rule; this fails the moment somebody splits them in a way that breaks it.
+     */
+    @Test
+    void readingACoefficientsSharingAgreementImpliesListingThePlantsAgreements() {
+        UUID plantId = plant.getId();
+        SupplyPartitionCoefficientDetail period = periodOf(plant, agreement);
+        List<String> exercised = new ArrayList<>();
+        forEachCaller(caller -> {
+            boolean canReadSharingAgreement = partitionCoefficientAssembler
+                    .assembleAll(caller, List.of(period)).get(period.getId()).isCanReadSharingAgreement();
+            if (!canReadSharingAgreement) {
+                return;
+            }
+            exercised.add(currentCaller);
+            boolean canListSharingAgreements = guardOutcome(() -> guard.canListSharingAgreements(plantId));
+            assertTrue(canListSharingAgreements, () -> String.format(
+                    "partitionCoefficient.canReadSharingAgreement is true for '%s' but the "
+                            + "canListSharingAgreements guard refuses them: the capability predicts a web "
+                            + "route (CapabilityRoute on plant.canListSharingAgreements) that would redirect "
+                            + "home. Keep canReadSharingAgreement => canListSharingAgreements, or have the "
+                            + "web gate the link on both.", currentCaller));
+        });
+        assertTrue(!exercised.isEmpty(), "no caller could read the agreement, so the implication was never tested");
     }
 
     @Test
@@ -315,18 +372,20 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
      * is saying the caller cannot see the object, which for a capability is the same as no.
      */
     private void assertSame(String capability, boolean assembled, BooleanSupplier guardCall) {
-        boolean guarded;
-        try {
-            guarded = guardCall.getAsBoolean();
-        } catch (RuntimeException e) {
-            assertTrue(e.getClass().getSimpleName().endsWith("NotFoundException"),
-                    () -> "the guard threw something other than a not-found: " + e);
-            guarded = false;
-        }
-        boolean expected = guarded;
+        boolean expected = guardOutcome(guardCall);
         assertEquals(expected, assembled,
                 () -> String.format("%s disagrees with its guard for '%s': assembler said %s, guard said %s",
                         capability, currentCaller, assembled, expected));
+    }
+
+    private boolean guardOutcome(BooleanSupplier guardCall) {
+        try {
+            return guardCall.getAsBoolean();
+        } catch (RuntimeException e) {
+            assertTrue(e.getClass().getSimpleName().endsWith("NotFoundException"),
+                    () -> "the guard threw something other than a not-found: " + e);
+            return false;
+        }
     }
 
     /**
@@ -385,6 +444,23 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         membership.setEnabled(false);
         membershipJpaRepository.save(membership);
         return user;
+    }
+
+    private SupplyPartitionCoefficientDetail periodOf(Plant plant, SharingAgreement agreement) {
+        return new SupplyPartitionCoefficientDetail(
+                new SupplyPartitionCoefficient.Builder()
+                        .withId(UUID.randomUUID())
+                        .withSupplyId(supply.getId())
+                        .withPlantId(plant.getId())
+                        .withSharingAgreementId(agreement.getId())
+                        .withCoefficient(BigDecimal.ONE)
+                        .withValidFrom(Instant.parse("2025-01-01T00:00:00Z"))
+                        .withCreatedAt(Instant.now())
+                        .build(),
+                new SupplyReference(supply.getId(), supply.getCode(), supply.getName()),
+                new CommunityReference(communityA.getId(), communityA.getName()),
+                new PlantReference(plant.getId(), plant.getName()),
+                new SharingAgreementReference(agreement.getId(), agreement.getName(), agreement.getStatus()));
     }
 
     private SharingAgreement persistAgreement(Plant plant) {

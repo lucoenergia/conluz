@@ -9,6 +9,8 @@ import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembership
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -34,7 +36,11 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -54,6 +60,8 @@ import java.util.UUID;
 @Transactional
 class ListEndpointQueryCountTest extends BaseControllerTest {
 
+    private static final Instant ACTIVATED = Instant.parse("2023-06-01T00:00:00Z");
+
     @Autowired
     private EntityManager entityManager;
     @Autowired
@@ -70,6 +78,8 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     private PlantRepository plantRepository;
     @Autowired
     private SharingAgreementRepository sharingAgreementRepository;
+    @Autowired
+    private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
 
     @Test
     void listingACommunitysSuppliesCostsTheSameForOneAndForFive() throws Exception {
@@ -186,6 +196,59 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         assertEquals(forOne, forFive, "listing sharing agreements must not issue a query per agreement");
     }
 
+    /**
+     * The coefficient capabilities load every distinct plant and agreement once for the whole list,
+     * so five periods spread over three plants cost what one period in one plant does.
+     */
+    @Test
+    void aSupplysCoefficientHistoryCostsTheSameForOnePeriodAndForFiveAcrossThreePlants() throws Exception {
+        String adminToken = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply one = persistSupplyInDefaultCommunity();
+        persistPeriods(one, 1, 1);
+        Supply five = persistSupplyInDefaultCommunity();
+        persistPeriods(five, 3, 5);
+
+        long forOne = statementsFor("/api/v1/supplies/" + one.getId() + "/partition-coefficients", adminToken);
+        long forFive = statementsFor("/api/v1/supplies/" + five.getId() + "/partition-coefficients", adminToken);
+
+        assertEquals(forOne, forFive, "a coefficient history must not issue a query per period or per plant");
+    }
+
+    @Test
+    void aSupplysActiveCoefficientsCostTheSameForOnePlantAndForThree() throws Exception {
+        String adminToken = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply one = persistSupplyInDefaultCommunity();
+        persistPeriods(one, 1, 1);
+        Supply three = persistSupplyInDefaultCommunity();
+        persistPeriods(three, 3, 3);
+
+        long forOne = statementsFor("/api/v1/supplies/" + one.getId() + "/partition-coefficients/active", adminToken);
+        long forThree = statementsFor("/api/v1/supplies/" + three.getId() + "/partition-coefficients/active",
+                adminToken);
+
+        assertEquals(forOne, forThree, "active coefficients must not issue a query per plant");
+    }
+
+    @Test
+    void aPlantsActiveCoefficientsCostTheSameForOneSupplyAndForFive() throws Exception {
+        String adminToken = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply plantSupply = persistSupplyInDefaultCommunity();
+        Plant plant = createPlantRepository.create(PlantMother.random(plantSupply).build(),
+                SupplyId.of(plantSupply.getId()));
+        SharingAgreementEntity agreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        String url = "/api/v1/plants/" + plant.getId() + "/partition-coefficients/active";
+
+        persistActiveCoefficient(persistSupplyInDefaultCommunity(), plant, agreement, ACTIVATED);
+        long forOne = statementsFor(url, adminToken);
+
+        for (int i = 0; i < 4; i++) {
+            persistActiveCoefficient(persistSupplyInDefaultCommunity(), plant, agreement, ACTIVATED);
+        }
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "a plant's active coefficients must not issue a query per supply");
+    }
+
     private long statementsFor(String url, String authHeader) throws Exception {
         entityManager.flush();
         entityManager.clear();
@@ -243,6 +306,65 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
             User user = persistUser();
             createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
         }
+    }
+
+    private Supply persistSupplyInDefaultCommunity() {
+        return createSupplyRepository.create(SupplyMother.random().build(), UserId.of(persistUser().getId()),
+                DEFAULT_COMMUNITY_ID);
+    }
+
+    /**
+     * {@code periods} consecutive periods of the supply spread round-robin over {@code plants} plants,
+     * each plant with an agreement of its own. The last period of each plant stays open.
+     */
+    private void persistPeriods(Supply supply, int plants, int periods) {
+        List<Plant> plantList = new ArrayList<>();
+        List<SharingAgreementEntity> agreements = new ArrayList<>();
+        for (int i = 0; i < plants; i++) {
+            Supply plantSupply = persistSupplyInDefaultCommunity();
+            Plant plant = createPlantRepository.create(PlantMother.random(plantSupply).build(),
+                    SupplyId.of(plantSupply.getId()));
+            plantList.add(plant);
+            agreements.add(persistAgreement(plant, SharingAgreementStatus.PUBLISHED));
+        }
+        int perPlant = (periods + plants - 1) / plants;
+        int created = 0;
+        for (int i = 0; i < plants && created < periods; i++) {
+            for (int k = 0; k < perPlant && created < periods; k++, created++) {
+                Instant from = ACTIVATED.plus(Duration.ofDays(30L * k));
+                boolean last = k == perPlant - 1 || created == periods - 1;
+                persistCoefficient(supply, plantList.get(i), agreements.get(i), from,
+                        last ? null : from.plus(Duration.ofDays(30)));
+            }
+        }
+    }
+
+    private void persistActiveCoefficient(Supply supply, Plant plant, SharingAgreementEntity agreement, Instant from) {
+        persistCoefficient(supply, plant, agreement, from, null);
+    }
+
+    private void persistCoefficient(Supply supply, Plant plant, SharingAgreementEntity agreement, Instant from,
+                                    Instant to) {
+        saveCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
+                .withId(UUID.randomUUID())
+                .withSupplyId(supply.getId())
+                .withPlantId(plant.getId())
+                .withSharingAgreementId(agreement.getId())
+                .withCoefficient(BigDecimal.ONE)
+                .withValidFrom(from)
+                .withValidTo(to)
+                .withCreatedAt(Instant.now())
+                .build());
+    }
+
+    private SharingAgreementEntity persistAgreement(Plant plant, SharingAgreementStatus status) {
+        SharingAgreementEntity agreement = new SharingAgreementEntity();
+        agreement.setId(UUID.randomUUID());
+        agreement.setPlant(plantRepository.getReferenceById(plant.getId()));
+        agreement.setName("Agreement " + UUID.randomUUID());
+        agreement.setStatus(status);
+        agreement.setCreatedAt(Instant.now());
+        return sharingAgreementRepository.save(agreement);
     }
 
     private void persistAgreements(Plant plant, int count) {

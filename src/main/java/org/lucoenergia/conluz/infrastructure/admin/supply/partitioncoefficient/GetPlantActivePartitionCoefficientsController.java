@@ -6,6 +6,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PartitionCoefficientCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PartitionCoefficientCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -14,12 +18,14 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoun
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -29,9 +35,12 @@ import java.util.UUID;
 public class GetPlantActivePartitionCoefficientsController {
 
     private final PartitionCoefficientService service;
+    private final PartitionCoefficientCapabilitiesAssembler capabilitiesAssembler;
 
-    public GetPlantActivePartitionCoefficientsController(PartitionCoefficientService service) {
+    public GetPlantActivePartitionCoefficientsController(PartitionCoefficientService service,
+                                                         PartitionCoefficientCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @GetMapping
@@ -80,9 +89,14 @@ public class GetPlantActivePartitionCoefficientsController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId)")
-    public List<PartitionCoefficientResponse> getActiveByPlant(@PathVariable UUID plantId) {
-        return service.findActiveByPlantId(plantId).stream()
-                .map(PartitionCoefficientResponse::new)
+    public List<PartitionCoefficientResponse> getActiveByPlant(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID plantId) {
+        List<SupplyPartitionCoefficientDetail> active = service.findActiveByPlantId(plantId);
+        Map<UUID, PartitionCoefficientCapabilitiesResponse> capabilities =
+                capabilitiesAssembler.assembleAll(currentUser, active);
+        return active.stream()
+                .map(detail -> new PartitionCoefficientResponse(detail, capabilities.get(detail.getId())))
                 .toList();
     }
 }
