@@ -21,6 +21,8 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -344,10 +346,17 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
 
         List<Supply> supplies = getSupplyRepositoryDatabase.findByUserId(UserId.of(user.getId()));
 
+        // Fixed capabilities: this asserts what the response constructor costs, not the assemblers,
+        // which ListEndpointQueryCountTest covers.
+        SupplyCapabilitiesResponse capabilities = SupplyCapabilitiesResponse.builder().build();
+        UserCapabilitiesResponse ownerCapabilities = UserCapabilitiesResponse.builder().build();
+
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
-        List<SupplyResponse> responses = supplies.stream().map(SupplyResponse::new).toList();
+        List<SupplyResponse> responses = supplies.stream()
+                .map(supply -> new SupplyResponse(supply, capabilities, ownerCapabilities))
+                .toList();
 
         Assertions.assertEquals(0, statistics.getPrepareStatementCount(),
                 "constructing SupplyResponse must not issue further queries: the community is already resolved");
