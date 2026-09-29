@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 @Service
@@ -70,7 +70,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 resolvedStartDate,
                 resolvedEndDate,
                 aggregate.getHoursWithData(),
-                expectedHours(resolvedStartDate, resolvedEndDate),
+                new EnergyMetricsPeriod(resolvedStartDate, resolvedEndDate).getExpectedHours(),
                 aggregate.getConsumptionKWh(),
                 aggregate.getSelfConsumptionEnergyKWh(),
                 aggregate.getSurplusEnergyKWh(),
@@ -98,15 +98,6 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 startDate.toInstant(),
                 DateConverter.toExclusiveUpperBound(endDate),
                 totalSelfConsumptionKWh);
-    }
-
-    /**
-     * The number of hourly slots the period spans, both bounds inclusive. Counting the elapsed
-     * time between two instants that carry their offset is what makes a day with a daylight
-     * saving transition come out as 23 or 25 hours instead of 24.
-     */
-    private long expectedHours(OffsetDateTime startDate, OffsetDateTime endDate) {
-        return ChronoUnit.HOURS.between(startDate, endDate) + 1;
     }
 
     private Supply getSupplyOrThrow(SupplyId supplyId) {
