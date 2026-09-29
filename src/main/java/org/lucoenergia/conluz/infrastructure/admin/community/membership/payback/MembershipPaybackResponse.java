@@ -27,7 +27,7 @@ public class MembershipPaybackResponse {
             example = "1500.00", types = {"number", "null"})
     private final BigDecimal investmentEur;
 
-    @Schema(description = "Estimated value of the self-consumed energy of all the member's supplies in this community since startDate, in euros, taxes included. Null when the community has never activated a partition coefficient, so there is no period to price; zero when the period exists but the member's supplies consumed nothing from it.",
+    @Schema(description = "Estimated value of the self-consumed energy of all the member's supplies in this community since startDate, in euros. It prices the energy term before taxes only; VAT is applied only where the resolved tariff carries a rate. Null when the community has never activated a partition coefficient, so there is no period to price; zero when the period exists but the member's supplies consumed nothing from it.",
             example = "372.75", types = {"number", "null"})
     private final BigDecimal savedEur;
 

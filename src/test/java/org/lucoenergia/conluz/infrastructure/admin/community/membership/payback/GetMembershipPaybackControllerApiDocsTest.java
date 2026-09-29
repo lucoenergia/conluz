@@ -101,6 +101,24 @@ class GetMembershipPaybackControllerApiDocsTest extends BaseControllerTest {
     }
 
     /**
+     * AC10 (#313). savedEur prices the energy term before taxes, consistently with energy-metrics;
+     * neither the operation nor the field may claim otherwise.
+     */
+    @Test
+    void describesSavedEurAsTheEnergyTermBeforeTaxes() throws Exception {
+        String operationDescription = operation(PAYBACK_PATH, "get").path("description").asText();
+        String savedEurDescription = schema(SCHEMA).path("properties").path("savedEur")
+                .path("description").asText();
+
+        for (String description : List.of(operationDescription, savedEurDescription)) {
+            assertTrue(!description.toLowerCase().contains("taxes included"),
+                    () -> "still claims taxes are included: " + description);
+            assertTrue(description.contains("energy term before taxes"),
+                    () -> "does not state the energy term before taxes: " + description);
+        }
+    }
+
+    /**
      * springdoc drops `nullable` under OpenAPI 3.1 without warning, so its absence from the schema
      * is the only proof the `types` convention is the one in force.
      */

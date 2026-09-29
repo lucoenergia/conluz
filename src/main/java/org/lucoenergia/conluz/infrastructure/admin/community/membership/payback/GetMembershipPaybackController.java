@@ -43,9 +43,11 @@ public class GetMembershipPaybackController {
 
                     `savedEur` is the estimated value of the self-consumed energy of **all** the
                     member's supplies in this community, from `startDate` until now, priced per
-                    tariff segment with taxes included. It is computed on each request and never
-                    stored, so it reflects both new consumption and any later correction. Supplies
-                    in the member's other communities are not counted.
+                    tariff segment. It prices the **energy term before taxes** only: the power term,
+                    access tolls, charges and electricity tax are all excluded, and VAT is applied
+                    only where the resolved tariff carries a rate. It is computed on each request and
+                    never stored, so it reflects both new consumption and any later correction.
+                    Supplies in the member's other communities are not counted.
 
                     `startDate` is the civil date the community first activated a partition
                     coefficient, and is therefore **community-wide rather than per member**. A
