@@ -15,7 +15,6 @@ public class UpdateSupplyBody {
     private String name;
     @NotEmpty
     private String address;
-    @NotEmpty
     private String addressRef;
 
 

@@ -8,11 +8,12 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContrac
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyResponse;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.reference.CommunityReferenceResponse;
 
 import java.util.UUID;
 
 @Schema(requiredProperties = {"id", "code", "user", "name", "address", "addressRef", "enabled",
-        "contract", "distributor", "shelly", "capabilities"})
+        "contract", "distributor", "shelly", "capabilities", "community"})
 public class SupplyResponse {
 
     @Schema(description = "Internal unique identifier of the supply", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
@@ -35,6 +36,8 @@ public class SupplyResponse {
     private final SupplyDistributorResponse distributor;
     @Schema(description = "Shelly device information of the supply", types = {"object", "null"})
     private final SupplyShellyResponse shelly;
+    @Schema(description = "Community the supply belongs to")
+    private final CommunityReferenceResponse community;
 
     @Schema(description = "What the caller may do with this supply.")
     private final SupplyCapabilitiesResponse capabilities;
@@ -58,6 +61,10 @@ public class SupplyResponse {
         this.distributor = supply.getDistributor() != null ? new SupplyDistributorResponse(supply.getDistributor()) : null;
         this.shelly = supply.getShelly() != null ? new SupplyShellyResponse(supply.getShelly()) : null;
         this.capabilities = capabilities;
+        // Dereferenced unguarded: supplies.community_id is NOT NULL with a foreign key, so a null
+        // here is a bug that must surface rather than serialise into a non-nullable field.
+        this.community = new CommunityReferenceResponse(supply.getCommunity().getId(),
+                supply.getCommunity().getName());
     }
 
     public UUID getId() {
@@ -102,5 +109,9 @@ public class SupplyResponse {
 
     public SupplyCapabilitiesResponse getCapabilities() {
         return capabilities;
+    }
+
+    public CommunityReferenceResponse getCommunity() {
+        return community;
     }
 }

@@ -8,11 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, JpaSpecificationExecutor<SupplyEntity> {
 
@@ -30,6 +26,17 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
     @Override
     Optional<SupplyEntity> findById(UUID id);
 
+    /**
+     * The associations {@code SupplyEntityMapper} traverses for every supply it maps. Without them a
+     * query returning N supplies costs a further query per supply -- a cost the scheduled jobs that
+     * iterate every supply pay in full. All five are to-one, so fetching them cannot multiply rows
+     * and stays compatible with pagination.
+     * <p>
+     * Binds the aliases {@code c} (community) and {@code u} (user) for use in the where clause.
+     */
+    String MAPPED_ASSOCIATIONS = "LEFT JOIN FETCH s.community c LEFT JOIN FETCH s.user u " +
+            "LEFT JOIN FETCH s.shelly LEFT JOIN FETCH s.distributor LEFT JOIN FETCH s.contract";
+
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     Optional<SupplyEntity> findByCode(String code);
 
@@ -42,22 +49,66 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
     List<SupplyEntity> findByCommunityId(UUID communityId);
 
     /**
-     * Supplies belonging to the given community (paginated).
+     * Every supply (paginated), with the mapped associations fetched.
+     * <p>
+     * The count query deliberately omits the fetch joins: Spring Data cannot derive a count from a
+     * {@code JOIN FETCH} query.
+     */
+    @Query(value = "SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS,
+            countQuery = "SELECT COUNT(s) FROM supplies s")
+    Page<SupplyEntity> findAllWithAssociations(Pageable pageable);
+
+    /**
+     * Supplies owned by the given user, with the mapped associations fetched.
      */
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     Page<SupplyEntity> findByCommunityId(UUID communityId, Pageable pageable);
 
+    @Query("SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE u.id = :userId")
+    List<SupplyEntity> findByUserIdWithAssociations(@Param("userId") UUID userId);
+
     /**
-     * Supplies owned by the given user that belong to the given community (paginated).
+     * Supplies belonging to the given community, with the mapped associations fetched.
      */
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     Page<SupplyEntity> findByUserIdAndCommunityId(UUID userId, UUID communityId, Pageable pageable);
 
+    @Query("SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE c.id = :communityId")
+    List<SupplyEntity> findByCommunityIdWithAssociations(@Param("communityId") UUID communityId);
+
     /**
-     * Supplies owned by the given user that belong to the given community, unpaginated.
+     * Supplies belonging to the given community (paginated), with the mapped associations fetched.
      */
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     List<SupplyEntity> findByUserIdAndCommunityId(UUID userId, UUID communityId);
+
+    @Query(value = "SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE c.id = :communityId",
+            countQuery = "SELECT COUNT(s) FROM supplies s WHERE s.community.id = :communityId")
+    Page<SupplyEntity> findByCommunityIdWithAssociations(@Param("communityId") UUID communityId, Pageable pageable);
+
+    /**
+     * Supplies owned by the given user within the given community, with the mapped associations
+     * fetched.
+     */
+    @Query("SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE u.id = :userId AND c.id = :communityId")
+    List<SupplyEntity> findByUserIdAndCommunityIdWithAssociations(@Param("userId") UUID userId,
+                                                                  @Param("communityId") UUID communityId);
+
+    /**
+     * Supplies owned by the given user within the given community (paginated), with the mapped
+     * associations fetched.
+     */
+    @Query(value = "SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE u.id = :userId AND c.id = :communityId",
+            countQuery = "SELECT COUNT(s) FROM supplies s WHERE s.user.id = :userId AND s.community.id = :communityId")
+    Page<SupplyEntity> findByUserIdAndCommunityIdWithAssociations(@Param("userId") UUID userId,
+                                                                  @Param("communityId") UUID communityId,
+                                                                  Pageable pageable);
+
+    /**
+     * Supplies with any of the given ids, with the mapped associations fetched.
+     */
+    @Query("SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE s.id IN :ids")
+    List<SupplyEntity> findByIdInWithAssociations(@Param("ids") Collection<UUID> ids);
 
     /**
      * Supplies owned by the given user OR belonging to any of the given communities.

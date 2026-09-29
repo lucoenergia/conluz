@@ -66,7 +66,7 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
 
     @Override
     public PagedResult<Supply> findAll(PagedRequest pagedRequest) {
-        Page<SupplyEntity> result = supplyRepository.findAll(paginationRequestMapper.mapRequest(pagedRequest));
+        Page<SupplyEntity> result = supplyRepository.findAllWithAssociations(paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
     }
 
@@ -80,37 +80,40 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
 
     @Override
     public PagedResult<Supply> findByCommunity(PagedRequest pagedRequest, UUID communityId) {
-        Page<SupplyEntity> result = supplyRepository.findByCommunityId(communityId,
+        Page<SupplyEntity> result = supplyRepository.findByCommunityIdWithAssociations(communityId,
                 paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
     }
 
     @Override
     public PagedResult<Supply> findByOwnerAndCommunity(PagedRequest pagedRequest, UserId ownerId, UUID communityId) {
-        Page<SupplyEntity> result = supplyRepository.findByUserIdAndCommunityId(ownerId.getId(), communityId,
-                paginationRequestMapper.mapRequest(pagedRequest));
+        Page<SupplyEntity> result = supplyRepository.findByUserIdAndCommunityIdWithAssociations(ownerId.getId(),
+                communityId, paginationRequestMapper.mapRequest(pagedRequest));
         return paginationResultMapper.mapResult(result, supplyEntityMapper.mapList(result.toList()));
     }
 
     @Override
     public List<Supply> findAllByOwnerAndCommunityId(UserId ownerId, UUID communityId) {
         return supplyEntityMapper.mapList(
-                supplyRepository.findByUserIdAndCommunityId(ownerId.getId(), communityId));
+                supplyRepository.findByUserIdAndCommunityIdWithAssociations(ownerId.getId(), communityId));
     }
 
     @Override
     public List<Supply> findByUserId(UserId userId) {
-        List<SupplyEntity> supplyEntities = supplyRepository.findByUserId(userId.getId());
+        List<SupplyEntity> supplyEntities = supplyRepository.findByUserIdWithAssociations(userId.getId());
         return supplyEntityMapper.mapList(supplyEntities);
     }
 
     @Override
     public List<Supply> findAllByCommunityId(UUID communityId) {
-        return supplyEntityMapper.mapList(supplyRepository.findByCommunityId(communityId));
+        return supplyEntityMapper.mapList(supplyRepository.findByCommunityIdWithAssociations(communityId));
     }
 
     @Override
     public List<Supply> findAllByIds(Set<UUID> ids) {
-        return supplyEntityMapper.mapList(supplyRepository.findAllById(ids));
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return supplyEntityMapper.mapList(supplyRepository.findByIdInWithAssociations(ids));
     }
 }

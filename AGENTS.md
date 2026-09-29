@@ -220,3 +220,6 @@ number resolves years later from a fresh clone.
 `gh issue list` and `gh issue view` are there precisely so the number can be checked rather than
 invented. If the issue does not exist yet, ask for it: a temporary exemption with no issue behind it
 is a permanent one.
+
+## PR description
+Once every work finishes on a branch, generate a PR description in english and markdown format ready to be pasted in GitHub. Generate it in a file on /tmp folder and give me the full path to the file.
