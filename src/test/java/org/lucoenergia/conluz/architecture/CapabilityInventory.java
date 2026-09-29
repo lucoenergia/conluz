@@ -15,7 +15,8 @@ import java.util.Set;
  *
  * <p>Keyed by method <em>name</em>, not signature, because that is what a {@code @PreAuthorize}
  * expression carries. One name can map to several capabilities: {@code canReadSupply} is both the
- * supply's own {@code canRead} and the plant's {@code canReadSupply}, and
+ * supply's own {@code canRead} and the plant's {@code canReadSupply}, {@code canReadSharingAgreement}
+ * is both the agreement's {@code canRead} and a coefficient period's {@code canReadSharingAgreement}, and
  * {@code canManageSharingAgreement} is two overloads reported on two different resources.</p>
  */
 final class CapabilityInventory {
@@ -41,6 +42,7 @@ final class CapabilityInventory {
     static final String SHARING_AGREEMENT = "sharingAgreement";
     static final String USER = "user";
     static final String MEMBERSHIP = "membership";
+    static final String PARTITION_COEFFICIENT = "partitionCoefficient";
 
     private static final Map<String, Set<Capability>> REPORTED = new LinkedHashMap<>();
     private static final Map<String, String> SERVER_ONLY = new LinkedHashMap<>();
@@ -95,7 +97,12 @@ final class CapabilityInventory {
         report("canManageSharingAgreement",
                 capability(PLANT, "canManageSharingAgreements"),
                 capability(SHARING_AGREEMENT, "canManage"));
-        report("canReadSharingAgreement", capability(SHARING_AGREEMENT, "canRead"));
+        // Also the coefficient period's canReadSharingAgreement: PartitionCoefficientResponse.sharingAgreement
+        // is a reference, so the period reports whether following it would succeed -- the same shape
+        // as the plant's canReadSupply.
+        report("canReadSharingAgreement",
+                capability(SHARING_AGREEMENT, "canRead"),
+                capability(PARTITION_COEFFICIENT, "canReadSharingAgreement"));
 
         // --- user ---
         report("canReadUser", capability(USER, "canRead"));

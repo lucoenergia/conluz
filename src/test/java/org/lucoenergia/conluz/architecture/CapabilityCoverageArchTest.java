@@ -42,7 +42,8 @@ class CapabilityCoverageArchTest extends BaseArchTest {
             CapabilityInventory.PLANT, "PlantCapabilitiesResponse",
             CapabilityInventory.SHARING_AGREEMENT, "SharingAgreementCapabilitiesResponse",
             CapabilityInventory.USER, "UserCapabilitiesResponse",
-            CapabilityInventory.MEMBERSHIP, "MembershipCapabilitiesResponse");
+            CapabilityInventory.MEMBERSHIP, "MembershipCapabilitiesResponse",
+            CapabilityInventory.PARTITION_COEFFICIENT, "PartitionCoefficientCapabilitiesResponse");
 
     private static final String CAPABILITY_PACKAGE =
             "org.lucoenergia.conluz.infrastructure.admin.community.access.capability.";

@@ -227,7 +227,8 @@ class CloseCoefficientsControllerTest extends BaseControllerTest {
                         .content(requestBody))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.coefficients", org.hamcrest.Matchers.hasSize(1)));
+                .andExpect(jsonPath("$.coefficients", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.coefficients[0].capabilities.canReadSharingAgreement").value(true));
 
         mockMvc.perform(post(url(plantA.getId(), agreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

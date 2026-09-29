@@ -257,7 +257,8 @@ class ActivateCoefficientsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.coefficients", org.hamcrest.Matchers.hasSize(1)))
                 // application-test.properties configures conluz.time.zone.id=Europe/Madrid (CET, UTC+1
                 // in January), so local midnight 2024-01-01 is 2023-12-31T23:00:00Z.
-                .andExpect(jsonPath("$.coefficients[0].validFrom").value("2023-12-31T23:00:00Z"));
+                .andExpect(jsonPath("$.coefficients[0].validFrom").value("2023-12-31T23:00:00Z"))
+                .andExpect(jsonPath("$.coefficients[0].capabilities.canReadSharingAgreement").value(true));
 
         // Idempotent: resending the identical batch is a no-op, not an error.
         mockMvc.perform(post(url(plantA.getId(), agreement.getId()))
@@ -267,5 +268,37 @@ class ActivateCoefficientsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.coefficients", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    /**
+     * Activation closes the open predecessor, which belongs to an older agreement: the response spans
+     * two agreements, each row answers for its own, and no coefficient appears twice -- the
+     * capabilities are keyed by coefficient id.
+     */
+    @Test
+    void theCascadedPredecessorCarriesItsOwnCapabilitiesAndNoIdRepeats() throws Exception {
+        setUpBaseFixture();
+        SharingAgreementEntity older = persistAgreement(plantA, SharingAgreementStatus.PUBLISHED);
+        SharingAgreementEntity newer = persistAgreement(plantA, SharingAgreementStatus.PUBLISHED);
+        SupplyPartitionCoefficientEntity predecessor =
+                persistCoefficient(supplyA, plantA, older, Instant.parse("2023-06-01T00:00:00Z"));
+        SupplyPartitionCoefficientEntity target = persistCoefficient(supplyA, plantA, newer, null);
+
+        String response = mockMvc.perform(post(url(plantA.getId(), newer.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(communityA.getId()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("2024-01-01", target.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.coefficients[*].sharingAgreement.id", org.hamcrest.Matchers.containsInAnyOrder(
+                        newer.getId().toString(), older.getId().toString())))
+                .andExpect(jsonPath("$.coefficients[*].capabilities.canReadSharingAgreement",
+                        org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is(true))))
+                .andReturn().getResponse().getContentAsString();
+
+        java.util.List<String> ids = com.jayway.jsonpath.JsonPath.read(response, "$.coefficients[*].id");
+        org.junit.jupiter.api.Assertions.assertEquals(ids.size(), new java.util.HashSet<>(ids).size(),
+                "a coefficient id repeats in the response: " + ids);
+        org.junit.jupiter.api.Assertions.assertTrue(ids.contains(predecessor.getId().toString()));
     }
 }

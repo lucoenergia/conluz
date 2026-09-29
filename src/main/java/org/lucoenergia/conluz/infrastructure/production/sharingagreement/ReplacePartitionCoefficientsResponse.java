@@ -2,10 +2,13 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PartitionCoefficientCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient.PartitionCoefficientResponse;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Schema(requiredProperties = {"coefficients", "coefficientSumWarning"})
@@ -20,8 +23,11 @@ public class ReplacePartitionCoefficientsResponse {
             example = "Coefficient set sum is 0.958347, expected 1")
     private final String coefficientSumWarning;
 
-    public ReplacePartitionCoefficientsResponse(List<SupplyPartitionCoefficientDetail> saved) {
-        this.coefficients = saved.stream().map(PartitionCoefficientResponse::new).collect(Collectors.toList());
+    public ReplacePartitionCoefficientsResponse(List<SupplyPartitionCoefficientDetail> saved,
+                                                Map<UUID, PartitionCoefficientCapabilitiesResponse> capabilitiesById) {
+        this.coefficients = saved.stream()
+                .map(detail -> new PartitionCoefficientResponse(detail, capabilitiesById.get(detail.getId())))
+                .collect(Collectors.toList());
         BigDecimal sum = saved.stream()
                 .map(SupplyPartitionCoefficientDetail::getCoefficientValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

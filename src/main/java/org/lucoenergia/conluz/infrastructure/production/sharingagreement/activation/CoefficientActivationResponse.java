@@ -2,9 +2,12 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.activa
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PartitionCoefficientCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient.PartitionCoefficientResponse;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Schema(requiredProperties = {"coefficients"})
@@ -14,8 +17,11 @@ public class CoefficientActivationResponse {
             "and any predecessor cascaded as a result. Empty when the whole batch was a no-op.")
     private final List<PartitionCoefficientResponse> coefficients;
 
-    public CoefficientActivationResponse(List<SupplyPartitionCoefficientDetail> touched) {
-        this.coefficients = touched.stream().map(PartitionCoefficientResponse::new).collect(Collectors.toList());
+    public CoefficientActivationResponse(List<SupplyPartitionCoefficientDetail> touched,
+                                         Map<UUID, PartitionCoefficientCapabilitiesResponse> capabilitiesById) {
+        this.coefficients = touched.stream()
+                .map(detail -> new PartitionCoefficientResponse(detail, capabilitiesById.get(detail.getId())))
+                .collect(Collectors.toList());
     }
 
     public List<PartitionCoefficientResponse> getCoefficients() {

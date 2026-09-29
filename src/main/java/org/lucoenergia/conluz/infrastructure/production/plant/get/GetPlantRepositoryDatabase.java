@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +43,14 @@ public class GetPlantRepositoryDatabase implements GetPlantRepository {
     public Optional<Plant> findById(PlantId id) {
         Optional<PlantEntity> entity = plantRepository.findById(id.getId());
         return entity.map(plantEntityMapper::map);
+    }
+
+    @Override
+    public List<Plant> findAllByIds(Collection<PlantId> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return plantEntityMapper.mapList(plantRepository.findAllByIdIn(ids.stream().map(PlantId::getId).toList()));
     }
 
     @Override

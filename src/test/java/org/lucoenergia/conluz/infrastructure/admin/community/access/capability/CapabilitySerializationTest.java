@@ -3,7 +3,11 @@ package org.lucoenergia.conluz.infrastructure.admin.community.access.capability;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetailMother;
+import org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient.PartitionCoefficientResponse;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -49,6 +53,9 @@ class CapabilitySerializationTest {
 
         assertKeys(MembershipCapabilitiesResponse.builder().build(),
                 Set.of("canUpdateRole", "canDelete", "canManageInvestment", "canReadPayback"));
+
+        assertKeys(PartitionCoefficientCapabilitiesResponse.builder().build(),
+                Set.of("canReadSharingAgreement"));
     }
 
     /**
@@ -64,6 +71,25 @@ class CapabilitySerializationTest {
         assertTrue(json.get("canRead").asBoolean());
         assertTrue(json.get("canEdit").isBoolean(), "an unset capability is false, not absent or null");
         assertEquals(false, json.get("canEdit").asBoolean());
+    }
+
+    /**
+     * The coefficient period carries its capabilities under the same key every other resource uses,
+     * and the unset value is a present false -- conluz-web's visual fixtures are untyped, so an absent
+     * key would read as false there without anyone noticing.
+     */
+    @Test
+    void aCoefficientPeriodCarriesItsCapabilitiesUnderCapabilities() throws Exception {
+        PartitionCoefficientResponse response = new PartitionCoefficientResponse(
+                SupplyPartitionCoefficientDetailMother.random(BigDecimal.ONE, Instant.parse("2025-01-01T00:00:00Z"), null),
+                PartitionCoefficientCapabilitiesResponse.builder().withCanReadSharingAgreement(true).build());
+
+        JsonNode json = objectMapper.findAndRegisterModules().readTree(objectMapper.writeValueAsString(response));
+
+        assertTrue(json.get("capabilities").get("canReadSharingAgreement").asBoolean());
+        JsonNode unset = objectMapper.readTree(objectMapper.writeValueAsString(
+                PartitionCoefficientCapabilitiesResponse.builder().build()));
+        assertTrue(unset.get("canReadSharingAgreement").isBoolean(), "an unset capability is false, not absent");
     }
 
     private void assertKeys(Object capabilities, Set<String> expected) throws Exception {
