@@ -6,7 +6,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
-import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
@@ -43,7 +43,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
     @Override
     public SupplyEnergyMetrics getEnergyMetrics(SupplyId supplyId, OffsetDateTime startDate, OffsetDateTime endDate) {
 
-        validatePeriod(startDate, endDate);
+        EnergyMetricsPeriodValidator.validate(startDate, endDate);
 
         Supply supply = getSupplyOrThrow(supplyId);
 
@@ -98,17 +98,6 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 startDate.toInstant(),
                 DateConverter.toExclusiveUpperBound(endDate),
                 totalSelfConsumptionKWh);
-    }
-
-    private void validatePeriod(OffsetDateTime startDate, OffsetDateTime endDate) {
-        if ((startDate == null) != (endDate == null)) {
-            throw new InvalidEnergyMetricsPeriodException(
-                    InvalidEnergyMetricsPeriodException.Reason.INCOMPLETE_PERIOD);
-        }
-        if (startDate != null && startDate.isAfter(endDate)) {
-            throw new InvalidEnergyMetricsPeriodException(
-                    InvalidEnergyMetricsPeriodException.Reason.START_AFTER_END);
-        }
     }
 
     /**
