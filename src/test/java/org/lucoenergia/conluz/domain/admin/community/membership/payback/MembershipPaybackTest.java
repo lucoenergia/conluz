@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.admin.community.membership.payback;
 
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
+import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -156,7 +157,7 @@ class MembershipPaybackTest {
     @Test
     void anAbsentInvestmentLeavesEveryDerivedFigureAbsent() {
         MembershipPayback payback = MembershipPayback.of(null, new BigDecimal("250.00"), START, TODAY,
-                TariffSource.ESTIMATE);
+                TariffSource.ESTIMATE, null);
 
         assertNull(payback.getInvestmentEur());
         assertNull(payback.getRemainingEur());
@@ -170,7 +171,7 @@ class MembershipPaybackTest {
     @Test
     void absentSavingsLeaveEveryDerivedFigureAbsent() {
         MembershipPayback payback = MembershipPayback.of(new BigDecimal("1000.00"), null, null, TODAY,
-                TariffSource.ESTIMATE);
+                TariffSource.ESTIMATE, null);
 
         assertNull(payback.getSavedEur());
         assertNull(payback.getRemainingEur());
@@ -188,7 +189,7 @@ class MembershipPaybackTest {
     @Test
     void anAbsentStartDateLeavesOnlyTheMonthsAbsent() {
         MembershipPayback payback = MembershipPayback.of(new BigDecimal("1000.00"),
-                new BigDecimal("250.00"), null, TODAY, TariffSource.ESTIMATE);
+                new BigDecimal("250.00"), null, TODAY, TariffSource.ESTIMATE, null);
 
         assertNull(payback.getEstimatedRemainingMonths());
         assertNull(payback.getStartDate());
@@ -202,10 +203,10 @@ class MembershipPaybackTest {
     void theTariffSourceIsCarriedThroughUnchanged() {
         assertEquals(TariffSource.REAL_TARIFF,
                 MembershipPayback.of(new BigDecimal("1000.00"), new BigDecimal("250.00"), START, TODAY,
-                        TariffSource.REAL_TARIFF).getTariffSource());
+                        TariffSource.REAL_TARIFF, null).getTariffSource());
         assertEquals(TariffSource.ESTIMATE,
                 MembershipPayback.of(new BigDecimal("1000.00"), new BigDecimal("250.00"), START, TODAY,
-                        TariffSource.ESTIMATE).getTariffSource());
+                        TariffSource.ESTIMATE, null).getTariffSource());
     }
 
     /**
@@ -216,7 +217,32 @@ class MembershipPaybackTest {
     void anAbsentTariffSourceIsRejected() {
         assertThrows(NullPointerException.class,
                 () -> MembershipPayback.of(new BigDecimal("1000.00"), new BigDecimal("250.00"),
-                        START, TODAY, null));
+                        START, TODAY, null, null));
+    }
+
+    // --- estimated price ---
+
+    @Test
+    void theEstimatedPriceIsCarriedThroughUnchanged() {
+        EstimatedPrice price = EstimatedPrice.of(new BigDecimal("0.15"));
+
+        MembershipPayback payback = MembershipPayback.of(new BigDecimal("1000.00"), new BigDecimal("250.00"),
+                START, TODAY, TariffSource.ESTIMATE, price);
+
+        assertEquals(price, payback.getEstimatedPrice());
+    }
+
+    /**
+     * A total priced entirely with contracted tariffs was never computed from the estimate, so it
+     * cannot be labelled with the estimated price.
+     */
+    @Test
+    void aRealTariffTotalCannotCarryAnEstimatedPrice() {
+        EstimatedPrice price = EstimatedPrice.of(new BigDecimal("0.15"));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> MembershipPayback.of(new BigDecimal("1000.00"), new BigDecimal("250.00"),
+                        START, TODAY, TariffSource.REAL_TARIFF, price));
     }
 
     /**
@@ -225,7 +251,7 @@ class MembershipPaybackTest {
      */
     @Test
     void aMembershipWithNoInvestmentAndNoSharingIsEntirelyAbsentButValid() {
-        MembershipPayback payback = MembershipPayback.of(null, null, null, TODAY, TariffSource.ESTIMATE);
+        MembershipPayback payback = MembershipPayback.of(null, null, null, TODAY, TariffSource.ESTIMATE, null);
 
         assertNull(payback.getInvestmentEur());
         assertNull(payback.getSavedEur());
@@ -239,6 +265,6 @@ class MembershipPaybackTest {
     private static MembershipPayback payback(String investmentEur, String savedEur, LocalDate startDate,
                                              LocalDate today) {
         return MembershipPayback.of(new BigDecimal(investmentEur), new BigDecimal(savedEur), startDate,
-                today, TariffSource.ESTIMATE);
+                today, TariffSource.ESTIMATE, null);
     }
 }

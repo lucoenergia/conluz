@@ -15,6 +15,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -60,6 +61,9 @@ class GetMembershipPaybackServiceTest {
     private static final Instant START = Instant.parse("2024-12-31T23:00:00Z");
     /** 100 civil days later, 2025-04-11 local. */
     private static final Instant NOW = Instant.parse("2025-04-11T10:00:00Z");
+
+    /** What the calculator reports for a supply priced partly or wholly with the estimate. */
+    private static final EstimatedPrice ESTIMATED_PRICE = EstimatedPrice.of(new BigDecimal("0.15"));
 
     private final GetMembershipsRepository getMembershipsRepository = mock(GetMembershipsRepository.class);
     private final GetSupplyPartitionCoefficientRepository coefficientRepository =
@@ -294,6 +298,90 @@ class GetMembershipPaybackServiceTest {
         assertEquals(TariffSource.ESTIMATE, service.getPayback(COMMUNITY_ID, USER_ID).getTariffSource());
     }
 
+    // --- estimatedPrice: present only when the estimate priced part of savedEur (#313) ---
+
+    /**
+     * AC4. The estimated supply is second, so the price cannot come from reading the first alone.
+     */
+    @Test
+    void aTotalPricedPartlyWithTheEstimateReportsTheEstimatedPrice() {
+        givenMembershipWithInvestment("1000.00");
+        givenCommunityStartedSharing();
+        Supply first = SupplyMother.random().build();
+        Supply second = SupplyMother.random().build();
+        givenSupplies(first, second);
+        givenSavings(first, "10.00", TariffSource.REAL_TARIFF);
+        givenSavings(second, "20.00", TariffSource.ESTIMATE);
+
+        MembershipPayback payback = service.getPayback(COMMUNITY_ID, USER_ID);
+
+        assertEquals(TariffSource.ESTIMATE, payback.getTariffSource());
+        assertEquals(ESTIMATED_PRICE, payback.getEstimatedPrice());
+    }
+
+    @Test
+    void aTotalPricedWhollyWithTheEstimateAcrossSeveralSuppliesReportsTheEstimatedPrice() {
+        givenMembershipWithInvestment("1000.00");
+        givenCommunityStartedSharing();
+        Supply first = SupplyMother.random().build();
+        Supply second = SupplyMother.random().build();
+        givenSupplies(first, second);
+        givenSavings(first, "10.00", TariffSource.ESTIMATE);
+        givenSavings(second, "20.00", TariffSource.ESTIMATE);
+
+        assertEquals(ESTIMATED_PRICE, service.getPayback(COMMUNITY_ID, USER_ID).getEstimatedPrice());
+    }
+
+    /**
+     * AC5. No production resolver yields a contracted tariff yet, so it is stubbed here.
+     */
+    @Test
+    void aTotalPricedOnlyWithContractedTariffsReportsNoEstimatedPrice() {
+        givenMembershipWithInvestment("1000.00");
+        givenCommunityStartedSharing();
+        Supply first = SupplyMother.random().build();
+        Supply second = SupplyMother.random().build();
+        givenSupplies(first, second);
+        givenSavings(first, "10.00", TariffSource.REAL_TARIFF);
+        givenSavings(second, "20.00", TariffSource.REAL_TARIFF);
+
+        assertNull(service.getPayback(COMMUNITY_ID, USER_ID).getEstimatedPrice());
+    }
+
+    /**
+     * AC6. The source is still ESTIMATE, but nothing was priced, so there is no price behind it.
+     */
+    @Test
+    void aCommunityThatNeverSharedReportsNoEstimatedPrice() {
+        givenMembershipWithInvestment("1000.00");
+        when(coefficientRepository.findEarliestValidFromByCommunityId(COMMUNITY_ID))
+                .thenReturn(Optional.empty());
+
+        MembershipPayback payback = service.getPayback(COMMUNITY_ID, USER_ID);
+
+        assertEquals(TariffSource.ESTIMATE, payback.getTariffSource());
+        assertNull(payback.getEstimatedPrice());
+    }
+
+    @Test
+    void aMemberWithNoSuppliesReportsNoEstimatedPrice() {
+        givenMembershipWithInvestment("1000.00");
+        givenCommunityStartedSharing();
+        givenSupplies();
+
+        assertNull(service.getPayback(COMMUNITY_ID, USER_ID).getEstimatedPrice());
+    }
+
+    @Test
+    void aFirstActivationInTheFutureReportsNoEstimatedPrice() {
+        givenMembershipWithInvestment("1000.00");
+        when(coefficientRepository.findEarliestValidFromByCommunityId(COMMUNITY_ID))
+                .thenReturn(Optional.of(NOW.plusSeconds(86_400)));
+        givenSupplies(SupplyMother.random().build());
+
+        assertNull(service.getPayback(COMMUNITY_ID, USER_ID).getEstimatedPrice());
+    }
+
     // --- the investment is read from the membership ---
 
     @Test
@@ -368,8 +456,13 @@ class GetMembershipPaybackServiceTest {
         return actual -> actual != null && expected.equals(actual.getId());
     }
 
+    /**
+     * Mirrors the calculator's contract: an estimated figure carries the estimated price, a
+     * contracted one carries none.
+     */
     private void givenSavings(Supply supply, String amountEur, TariffSource source) {
+        EstimatedPrice price = source == TariffSource.ESTIMATE ? ESTIMATED_PRICE : null;
         when(savingsCalculator.estimate(eq(supply), any(Instant.class), any(Instant.class)))
-                .thenReturn(SupplySavings.of(new BigDecimal(amountEur), source, null));
+                .thenReturn(SupplySavings.of(new BigDecimal(amountEur), source, price));
     }
 }
