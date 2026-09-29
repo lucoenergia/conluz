@@ -26,18 +26,30 @@ See also [`authorization-policy.md`](authorization-policy.md) for the rules them
    fails if they disagree.
 3. **No per-item queries.** A listing must cost the same number of statements whatever its page
    holds. Most capabilities are decided from the caller's memberships and the entity already loaded,
-   so they cost nothing; where a rule needs more (the target's memberships, or an agreement's
-   plant), the controller loads it **once for the page**. `ListEndpointQueryCountTest` compares one
-   item against five on all seven listings.
+   so they cost nothing; where a rule needs more (the target's memberships, an agreement's plant, a
+   coefficient period's plant and agreement), it is loaded **once for the page** — by the controller,
+   or by an assembler that takes the whole page (`UserCapabilitiesAssembler.assembleAll…`,
+   `PartitionCoefficientCapabilitiesAssembler.assembleAll`). `ListEndpointQueryCountTest` compares one
+   item against five on all seven listings and on the three coefficient reads;
+   `CoefficientWriteQueryCountTest` does the same for the write endpoints that return coefficients.
 4. **References carry no capabilities.** The `*ReferenceResponse` types in `shared/web/reference` are
    identifiers, not resources. When a response embeds a reference the client may navigate to, the
-   permission to open it is a capability of the **embedding** resource, named `canRead<Reference>`.
-   `PlantResponse.supply` is the one case implemented today: it is a `SupplyReferenceResponse`
-   carrying no owner, and the plant reports `canReadSupply`.
+   permission to open it is a capability of the **embedding** resource, named `canRead<Reference>`,
+   and it is computed from the rule of **the endpoint that following the reference calls** — so a
+   link that is shown can never be refused. The cases implemented today:
 
-Nested value objects (contract, distributor, Shelly, files, coefficients) carry no capabilities
-either, and neither do the responses of `permitAll` or plain `isAuthenticated()` endpoints —
-including `PUT /users/profile`, which any authenticated caller may use on themselves.
+   | Embedding response | Reference | Capability | Rule of |
+   |---|---|---|---|
+   | `PlantResponse` | `supply` | `capabilities.canReadSupply` | `GET /supplies/{supplyId}` |
+   | `PartitionCoefficientResponse` | `sharingAgreement` | `capabilities.canReadSharingAgreement` | `GET /plants/{plantId}/sharing-agreements/{sharingAgreementId}` |
+
+   A new reference a client may follow gets a row here, a capability on its embedding resource, and
+   an equivalence assertion against that endpoint's guard.
+
+Nested value objects (contract, distributor, Shelly, files) carry no capabilities either, and
+neither do the responses of `permitAll` or plain `isAuthenticated()` endpoints — including
+`PUT /users/profile`, which any authenticated caller may use on themselves. A partition coefficient
+period is not a resource a caller acts on either; it carries capabilities only because of rule 4.
 
 ## What is reported
 
@@ -136,6 +148,35 @@ caller can observe a `false`: one who would have was refused the response. They 
 because clients read capabilities uniformly, and the two rules are kept apart so they can diverge
 without a call site changing.
 
+### Partition coefficient — `PartitionCoefficientResponse.capabilities`
+
+| Capability | Guard |
+|---|---|
+| `canReadSharingAgreement` | `canReadSharingAgreement(plantId, sharingAgreementId)` |
+
+This is rule 4: a period's `sharingAgreement` is a reference, so the period says whether following
+it would succeed. It is computed from `SharingAgreementAccessPolicy.canReadThroughPlant` — the rule
+of the endpoint the link opens — over the period's **plant**, not the supply's community. A plant can
+be repointed at a supply of another community, taking its coefficients with it, so the two
+communities are not guaranteed to match. A period whose plant or agreement no longer resolves
+answers `false`.
+
+Every response that embeds `PartitionCoefficientResponse` carries it:
+`GET /supplies/{supplyId}/partition-coefficients`, `…/partition-coefficients/active`,
+`GET /plants/{plantId}/partition-coefficients/active`, and the replace, activate, deactivate, close
+and reopen endpoints under `/plants/{plantId}/sharing-agreements/{sharingAgreementId}/partition-coefficients`.
+On the plant and write endpoints it is effectively always `true` — they already demand the same
+admin rule — but it is computed, not assumed, and its cost is pinned like any other.
+
+**What depends on it.** conluz-web links each period to
+`/production/{plantId}/sharing-agreements/{sharingAgreementId}`, a route guarded client-side on the
+plant's `canListSharingAgreements`, not on this capability's guard. The link is safe to show only
+while **`canReadSharingAgreement` ⇒ `canListSharingAgreements`**. That holds today because both
+reduce to "enabled community admin of the plant's community", and
+`CapabilityGuardEquivalenceTest.readingACoefficientsSharingAgreementImpliesListingThePlantsAgreements`
+asserts it over the caller matrix. Whoever splits those rules must keep the implication, or have the
+web gate the link on both capabilities.
+
 ### User — `UserResponse.capabilities`
 
 | Capability | Guard |
@@ -212,8 +253,10 @@ started returning.
 3. **Add the field** to the resource's `*CapabilitiesResponse`, as a `boolean` listed in the
    class-level `@Schema(requiredProperties = {...})` with a `description`. Use the builder.
 4. **Assemble it** in the resource's assembler, from the policy, mapping `ALLOWED` to `true`. If the
-   rule needs data the entity does not carry, load it **once per page** in the controller — never per
-   item.
+   rule needs data the entity does not carry, load it **once per page** — in the controller, or in an
+   assembler method that takes the whole page — never per item. If a client will use the capability
+   to decide something another guard enforces (a client-side route, say), assert that implication
+   too.
 5. **Record it** in `CapabilityInventory`: map the guard to `(resource, field)`, or mark the guard
    `SERVER_ONLY` with the reason, or add the capability to `withoutGuard()`. The build fails until
    you do.
@@ -233,6 +276,7 @@ started returning.
 | `CapabilityCoverageArchTest` | Every guard is classified, every field is backed by one, nothing stale in either direction. |
 | `CapabilityGuardEquivalenceTest` | Every capability equals its guard's outcome, over a matrix of callers. |
 | `ListEndpointQueryCountTest` | No listing issues a query per item. |
+| `CoefficientWriteQueryCountTest` | The write endpoints returning coefficients build their response at a fixed cost. |
 | `*CapabilitiesAssemblerTest` | The rules themselves, per assembler. |
 | `*CapabilitiesEndpointTest` | What a client actually receives, per resource. |
 | `OpenApiSnapshotTest` | The published contract, so a schema change is visible in review. |
