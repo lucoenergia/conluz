@@ -125,11 +125,11 @@ class CommunityAccessGuardImplDelegationTest {
     }
 
     @Test
-    void canReadMembershipPayback_isDelegatedToTheMembershipGuard() {
+    void canReadMembershipPrivateData_isDelegatedToTheMembershipGuard() {
         authenticated(UserMother.randomUser());
 
         assertThrows(CommunityNotFoundException.class,
-                () -> guard().canReadMembershipPayback(UUID.randomUUID(), UUID.randomUUID()));
+                () -> guard().canReadMembershipPrivateData(UUID.randomUUID(), UUID.randomUUID()));
     }
 
     // --- delegation to UserAccessGuard ---

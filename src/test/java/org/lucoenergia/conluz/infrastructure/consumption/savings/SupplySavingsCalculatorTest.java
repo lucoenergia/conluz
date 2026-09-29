@@ -12,11 +12,13 @@ import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSegment;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TimeOfUsePlan;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.UnsupportedTariffPlanException;
+import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
+import org.lucoenergia.conluz.infrastructure.admin.supply.tariff.EstimatedTariffProperties;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
@@ -27,6 +29,7 @@ import java.time.ZoneId;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,13 +53,22 @@ class SupplySavingsCalculatorTest {
 
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
+    /**
+     * The estimated price the calculator reports, as the application would bind it from
+     * configuration. Deliberately equal to the base the stubbed estimated segments carry, as it is
+     * in production, where the estimated resolver builds its segments from this same value.
+     */
+    private static final EstimatedTariffProperties CONFIGURED_ESTIMATE =
+            new EstimatedTariffProperties(new BigDecimal("0.15"), BigDecimal.ZERO);
+
     private final GetDatadisConsumptionAggregateRepository aggregateRepository =
             mock(GetDatadisConsumptionAggregateRepository.class);
     private final SupplyTariffResolver tariffResolver = mock(SupplyTariffResolver.class);
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
 
     private final SupplySavingsCalculator calculator =
-            new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver);
+            new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
+                    CONFIGURED_ESTIMATE);
 
     private final Supply supply = SupplyMother.random().build();
 
@@ -262,6 +274,72 @@ class SupplySavingsCalculatorTest {
                 madrid("2024-02-01T00:00+01:00"), madrid("2024-02-05T00:00+01:00"));
 
         assertEquals(TariffSource.ESTIMATE, savings.getTariffSource());
+    }
+
+    /**
+     * The estimated segment is placed second, among several, so the price cannot come from reading
+     * the first segment alone.
+     */
+    @Test
+    void aPartlyEstimatedAmountReportsTheConfiguredEstimatedPrice() {
+        givenSegments(
+                segment("2024-02-01", "2024-02-03", "0.10", TariffSource.REAL_TARIFF),
+                segment("2024-02-03", "2024-02-05", "0.15", TariffSource.ESTIMATE));
+
+        SupplySavings savings = calculator.estimate(supply,
+                madrid("2024-02-01T00:00+01:00"), madrid("2024-02-05T00:00+01:00"));
+
+        assertEquals(EstimatedPrice.of(new BigDecimal("0.15")), savings.getEstimatedPrice());
+    }
+
+    @Test
+    void aWhollyEstimatedAmountOverSeveralSegmentsReportsTheConfiguredEstimatedPrice() {
+        givenSegments(
+                segment("2024-02-01", "2024-02-03", "0.15", TariffSource.ESTIMATE),
+                segment("2024-02-03", "2024-02-05", "0.15", TariffSource.ESTIMATE));
+
+        SupplySavings savings = calculator.estimate(supply,
+                madrid("2024-02-01T00:00+01:00"), madrid("2024-02-05T00:00+01:00"));
+
+        assertEquals(EstimatedPrice.of(new BigDecimal("0.15")), savings.getEstimatedPrice());
+    }
+
+    /**
+     * No part was priced with the estimate, so labelling the figure with an estimated price would
+     * name a price it was never computed from.
+     */
+    @Test
+    void anAmountPricedOnlyWithContractedTariffsReportsNoEstimatedPrice() {
+        givenSegments(
+                segment("2024-02-01", "2024-02-03", "0.10", TariffSource.REAL_TARIFF),
+                segment("2024-02-03", "2024-02-05", "0.20", TariffSource.REAL_TARIFF));
+
+        SupplySavings savings = calculator.estimate(supply,
+                madrid("2024-02-01T00:00+01:00"), madrid("2024-02-05T00:00+01:00"));
+
+        assertNull(savings.getEstimatedPrice());
+    }
+
+    /**
+     * The accepted trade-off of sourcing the estimated price from configuration rather than from
+     * the segments that priced the amount: the reported price is the configured one even when an
+     * estimated segment carries another base. Today the two cannot differ, because the estimated
+     * resolver builds its segments from that same configuration; this test pins down what would be
+     * reported if they ever did, so that the day estimated prices become cached, dated or per
+     * supply, the divergence shows up here rather than silently in a member's savings label.
+     */
+    @Test
+    void reportsTheConfiguredPriceEvenWhenSegmentsCarryADifferentBase() {
+        givenSegments(segment("2024-02-01", "2024-02-02", "0.30", TariffSource.ESTIMATE));
+
+        SupplySavings savings = calculator.estimate(supply,
+                madrid("2024-02-01T00:00+01:00"), madrid("2024-02-02T00:00+01:00"), 10d);
+
+        // The amount is priced with the segment's base: 10 kWh * 0.30 = 3.00 ...
+        assertEquals(0, new BigDecimal("3.00").compareTo(savings.getAmountEur()),
+                () -> "amount was " + savings.getAmountEur());
+        // ... while the reported price is the configured 0.15, not the segment's 0.30.
+        assertEquals(EstimatedPrice.of(CONFIGURED_ESTIMATE.getBaseEurPerKwh()), savings.getEstimatedPrice());
     }
 
     @Test

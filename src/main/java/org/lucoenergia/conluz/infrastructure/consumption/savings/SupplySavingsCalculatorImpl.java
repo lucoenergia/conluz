@@ -8,11 +8,13 @@ import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSchedule;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSegment;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.UnsupportedTariffPlanException;
+import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
+import org.lucoenergia.conluz.infrastructure.admin.supply.tariff.EstimatedTariffProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -37,14 +39,17 @@ public class SupplySavingsCalculatorImpl implements SupplySavingsCalculator {
     private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
     private final SupplyTariffResolver supplyTariffResolver;
     private final ZoneResolver zoneResolver;
+    private final EstimatedTariffProperties estimatedTariffProperties;
 
     public SupplySavingsCalculatorImpl(
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
             @Qualifier("estimatedSupplyTariffResolver") SupplyTariffResolver supplyTariffResolver,
-            ZoneResolver zoneResolver) {
+            ZoneResolver zoneResolver,
+            EstimatedTariffProperties estimatedTariffProperties) {
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.supplyTariffResolver = supplyTariffResolver;
         this.zoneResolver = zoneResolver;
+        this.estimatedTariffProperties = estimatedTariffProperties;
     }
 
     @Override
@@ -88,7 +93,28 @@ public class SupplySavingsCalculatorImpl implements SupplySavingsCalculator {
             amount = amount.add(pricePerKwhIncludingVat(segment).multiply(BigDecimal.valueOf(kWh)));
         }
 
-        return SupplySavings.of(amount, aggregateSourceOf(schedule));
+        TariffSource source = aggregateSourceOf(schedule);
+        return SupplySavings.of(amount, source, estimatedPriceFor(source));
+    }
+
+    /**
+     * The estimated price behind a figure whose source is {@code ESTIMATE}, or null for one priced
+     * entirely with contracted tariffs.
+     *
+     * <p>It is read from the same configuration the estimated resolver builds its segments from,
+     * rather than from the segments that priced the amount. That makes it a single value by
+     * construction: the estimate is global and not versioned by date, so every estimated segment
+     * carries this same base. The accepted trade-off is that, if estimated prices ever became
+     * cached, dated or per supply, this would report the configured value even where a segment
+     * priced with another one.
+     *
+     * <p>It is the energy-term price before taxes -- the plan's taxable base, without the
+     * segment's VAT factor.
+     */
+    private EstimatedPrice estimatedPriceFor(TariffSource source) {
+        return source == TariffSource.ESTIMATE
+                ? EstimatedPrice.of(estimatedTariffProperties.getBaseEurPerKwh())
+                : null;
     }
 
     /**

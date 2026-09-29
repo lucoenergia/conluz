@@ -19,9 +19,11 @@ import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsu
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
 import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
+import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
+import org.lucoenergia.conluz.infrastructure.admin.supply.tariff.EstimatedTariffProperties;
 import org.lucoenergia.conluz.infrastructure.consumption.GetSupplyEnergyMetricsServiceImpl;
 import org.lucoenergia.conluz.infrastructure.consumption.savings.SupplySavingsCalculatorImpl;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
@@ -65,6 +67,14 @@ class GetSupplyEnergyMetricsServiceTest {
 
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
+    /**
+     * The estimated price the calculator reports, as the application would bind it from
+     * configuration. Deliberately equal to the base the stubbed estimated segments carry, as it is
+     * in production, where the estimated resolver builds its segments from this same value.
+     */
+    private static final EstimatedTariffProperties CONFIGURED_ESTIMATE =
+            new EstimatedTariffProperties(new BigDecimal("0.15"), BigDecimal.ZERO);
+
     private final GetDatadisConsumptionAggregateRepository aggregateRepository =
             mock(GetDatadisConsumptionAggregateRepository.class);
     private final GetSupplyRepository getSupplyRepository = mock(GetSupplyRepository.class);
@@ -73,7 +83,8 @@ class GetSupplyEnergyMetricsServiceTest {
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
     private final GetSupplyEnergyMetricsService service = new GetSupplyEnergyMetricsServiceImpl(
             aggregateRepository, getSupplyRepository, new DateConverter(timeConfiguration),
-            new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver));
+            new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
+                    CONFIGURED_ESTIMATE));
 
     private final Supply supply = SupplyMother.random().build();
     private final SupplyId supplyId = SupplyId.of(supply.getId());
@@ -356,6 +367,54 @@ class GetSupplyEnergyMetricsServiceTest {
         assertNull(metrics.getSavings().getAmountEur());
         assertEquals(TariffSource.ESTIMATE, metrics.getSavings().getTariffSource());
         verifyNoInteractions(tariffResolver);
+    }
+
+    /**
+     * AC1 (#315): a period priced partly with the estimate reports the configured estimated price.
+     */
+    @Test
+    void aPartlyEstimatedPeriodReportsTheConfiguredEstimatedPrice() {
+        givenSupplyExists();
+        givenAggregate(new DatadisConsumptionAggregate(0d, 10d, 0d, 3L));
+        givenSegments(
+                segment("2024-02-01", "2024-02-02", "0.10", TariffSource.REAL_TARIFF),
+                segment("2024-02-02", "2024-02-03", "0.15", TariffSource.ESTIMATE));
+
+        SupplyEnergyMetrics metrics = service.getEnergyMetrics(supplyId, START_DATE, END_DATE);
+
+        assertEquals(TariffSource.ESTIMATE, metrics.getSavings().getTariffSource());
+        assertEquals(EstimatedPrice.of(new BigDecimal("0.15")), metrics.getSavings().getEstimatedPrice());
+    }
+
+    /**
+     * AC2 (#315): no production resolver yields a contracted tariff yet, so a period priced
+     * entirely with contracted tariffs is stubbed here.
+     */
+    @Test
+    void aPeriodPricedOnlyWithContractedTariffsReportsNoEstimatedPrice() {
+        givenSupplyExists();
+        givenAggregate(new DatadisConsumptionAggregate(0d, 10d, 0d, 3L));
+        givenSegments(
+                segment("2024-02-01", "2024-02-02", "0.10", TariffSource.REAL_TARIFF),
+                segment("2024-02-02", "2024-02-03", "0.20", TariffSource.REAL_TARIFF));
+
+        SupplyEnergyMetrics metrics = service.getEnergyMetrics(supplyId, START_DATE, END_DATE);
+
+        assertEquals(TariffSource.REAL_TARIFF, metrics.getSavings().getTariffSource());
+        assertNull(metrics.getSavings().getEstimatedPrice());
+    }
+
+    /**
+     * AC3 (#315): with no period to price, nothing was priced with the estimate either.
+     */
+    @Test
+    void anUnresolvablePeriodReportsNoEstimatedPrice() {
+        givenSupplyExists();
+        when(aggregateRepository.findRecordedPeriod(supply)).thenReturn(Optional.empty());
+
+        SupplyEnergyMetrics metrics = service.getEnergyMetrics(supplyId, null, null);
+
+        assertNull(metrics.getSavings().getEstimatedPrice());
     }
 
     @Test

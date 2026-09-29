@@ -103,70 +103,70 @@ class MembershipAccessPolicyTest {
         assertEquals(AccessDecision.FORBIDDEN, policy.canManageInvestment(null, UUID.randomUUID()));
     }
 
-    // --- canReadPayback ---
+    // --- canReadMembershipPrivateData ---
 
     @Test
-    void canReadPayback_allows_aMemberReadingTheirOwnPayback() {
+    void canReadMembershipPrivateData_allows_aMemberReadingTheirOwnPayback() {
         Community community = PolicyFixtures.community();
         User caller = PolicyFixtures.memberOf(community);
 
         assertEquals(AccessDecision.ALLOWED,
-                policy.canReadPayback(caller, community.getId(), caller.getId()));
+                policy.canReadMembershipPrivateData(caller, community.getId(), caller.getId()));
     }
 
     @Test
-    void canReadPayback_isNotVisible_whenTheirOwnMembershipIsDisabled() {
+    void canReadMembershipPrivateData_isNotVisible_whenTheirOwnMembershipIsDisabled() {
         Community community = PolicyFixtures.community();
         User caller = PolicyFixtures.disabledMemberOf(community);
 
         assertEquals(AccessDecision.NOT_VISIBLE,
-                policy.canReadPayback(caller, community.getId(), caller.getId()));
+                policy.canReadMembershipPrivateData(caller, community.getId(), caller.getId()));
     }
 
     @Test
-    void canReadPayback_isNotVisible_whenReadingOwnPaybackInACommunityTheyDoNotBelongTo() {
+    void canReadMembershipPrivateData_isNotVisible_whenReadingOwnPaybackInACommunityTheyDoNotBelongTo() {
         User caller = PolicyFixtures.memberOf(PolicyFixtures.community());
 
         assertEquals(AccessDecision.NOT_VISIBLE,
-                policy.canReadPayback(caller, UUID.randomUUID(), caller.getId()));
+                policy.canReadMembershipPrivateData(caller, UUID.randomUUID(), caller.getId()));
     }
 
     @Test
-    void canReadPayback_allows_anEnabledCommunityAdminReadingAnotherMember() {
+    void canReadMembershipPrivateData_allows_anEnabledCommunityAdminReadingAnotherMember() {
         Community community = PolicyFixtures.community();
         assertEquals(AccessDecision.ALLOWED,
-                policy.canReadPayback(PolicyFixtures.adminOf(community), community.getId(), UUID.randomUUID()));
+                policy.canReadMembershipPrivateData(PolicyFixtures.adminOf(community), community.getId(), UUID.randomUUID()));
     }
 
     @Test
-    void canReadPayback_isNotVisible_whenAPlainMemberReadsAnotherMember() {
+    void canReadMembershipPrivateData_isNotVisible_whenAPlainMemberReadsAnotherMember() {
         Community community = PolicyFixtures.community();
         assertEquals(AccessDecision.NOT_VISIBLE,
-                policy.canReadPayback(PolicyFixtures.memberOf(community), community.getId(), UUID.randomUUID()));
+                policy.canReadMembershipPrivateData(PolicyFixtures.memberOf(community), community.getId(), UUID.randomUUID()));
     }
 
     @Test
-    void canReadPayback_isNotVisible_forAPlatformAdminWhoIsNeitherMemberNorAdmin() {
+    void canReadMembershipPrivateData_isNotVisible_forAPlatformAdminWhoIsNeitherMemberNorAdmin() {
         assertEquals(AccessDecision.NOT_VISIBLE,
-                policy.canReadPayback(PolicyFixtures.platformAdmin(), UUID.randomUUID(), UUID.randomUUID()));
+                policy.canReadMembershipPrivateData(PolicyFixtures.platformAdmin(), UUID.randomUUID(), UUID.randomUUID()));
     }
 
     @Test
-    void canReadPayback_forbids_whenTheCommunityIdIsMissing() {
+    void canReadMembershipPrivateData_forbids_whenTheCommunityIdIsMissing() {
         User caller = PolicyFixtures.memberOf(PolicyFixtures.community());
-        assertEquals(AccessDecision.FORBIDDEN, policy.canReadPayback(caller, null, caller.getId()));
+        assertEquals(AccessDecision.FORBIDDEN, policy.canReadMembershipPrivateData(caller, null, caller.getId()));
     }
 
     @Test
-    void canReadPayback_forbids_whenTheUserIdIsMissing() {
+    void canReadMembershipPrivateData_forbids_whenTheUserIdIsMissing() {
         Community community = PolicyFixtures.community();
         assertEquals(AccessDecision.FORBIDDEN,
-                policy.canReadPayback(PolicyFixtures.adminOf(community), community.getId(), null));
+                policy.canReadMembershipPrivateData(PolicyFixtures.adminOf(community), community.getId(), null));
     }
 
     @Test
-    void canReadPayback_forbids_whenTheCallerIsNull() {
+    void canReadMembershipPrivateData_forbids_whenTheCallerIsNull() {
         assertEquals(AccessDecision.FORBIDDEN,
-                policy.canReadPayback(null, UUID.randomUUID(), UUID.randomUUID()));
+                policy.canReadMembershipPrivateData(null, UUID.randomUUID(), UUID.randomUUID()));
     }
 }

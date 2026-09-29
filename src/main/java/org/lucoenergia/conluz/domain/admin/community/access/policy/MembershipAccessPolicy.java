@@ -46,20 +46,20 @@ public class MembershipAccessPolicy {
     }
 
     /**
-     * Reading the payback progress of a membership: either the caller is {@code userId} themselves
+     * Reading the private data of a membership (its payback progress and its energy metrics): either the caller is {@code userId} themselves
      * <em>and</em> holds an enabled membership in the community, or they are one of its enabled
      * community admins.
      *
      * <p>The self branch requires an enabled membership, not merely being the named user: a disabled
-     * membership already makes its community invisible to its holder everywhere else, and payback
-     * must not be the one endpoint where it does not. As with
+     * membership already makes its community invisible to its holder everywhere else, and a
+     * membership's private figures must not be the one place where it does not. As with
      * {@link #canManageInvestment}, there is no forbidden-by-role outcome — and no platform-admin
-     * bypass, so a platform admin reaches their own payback through the self branch like anyone
+     * bypass, so a platform admin reaches their own private data through the self branch like anyone
      * else.</p>
      *
      * <p>Whether the membership exists is not decided here; the service performs that lookup.</p>
      */
-    public AccessDecision canReadPayback(User caller, UUID communityId, UUID userId) {
+    public AccessDecision canReadMembershipPrivateData(User caller, UUID communityId, UUID userId) {
         if (caller == null || communityId == null || userId == null) {
             return AccessDecision.FORBIDDEN;
         }

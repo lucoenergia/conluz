@@ -133,13 +133,46 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
         }
     }
 
+    @Override
+    public Optional<Instant> findLatestAssignedProductionRecord(Supply supply, Instant from,
+                                                                  Instant toExclusive) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // The selector reads consumption_kwh, which every record carries, and the filter does
+            // the selecting: LAST over one of the two filtered fields would skip a record where
+            // that field is absent even though the other one qualifies it.
+            Query query = new Query(String.format(
+                    """
+                            SELECT LAST("consumption_kwh")
+                            FROM "%s"
+                            WHERE cups = '%s'
+                                AND time >= '%s'
+                                AND time < '%s'
+                                AND ("self_consumption_energy_kwh" > 0 OR "surplus_energy_kwh" > 0)
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    supply.getCode(),
+                    dateConverter.convertToString(from),
+                    dateConverter.convertToString(toExclusive)));
+
+            return Optional.ofNullable(recordTime(connection, query));
+        }
+    }
+
     private Instant selectorTime(InfluxDB connection, String selector, Supply supply) {
         Query query = new Query(String.format(
                 "SELECT %s(\"consumption_kwh\") FROM \"%s\" WHERE cups = '%s'",
                 selector,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                 supply.getCode()));
+        return recordTime(connection, query);
+    }
 
+    /**
+     * The timestamp of the single record a selector query returns, or null when the query matched
+     * no record at all.
+     */
+    private Instant recordTime(InfluxDB connection, Query query) {
         // Times are requested in milliseconds so they come back as a number rather than as a
         // formatted string whose precision varies with the server configuration.
         QueryResult.Series series = firstSeries(connection.query(query, TimeUnit.MILLISECONDS));

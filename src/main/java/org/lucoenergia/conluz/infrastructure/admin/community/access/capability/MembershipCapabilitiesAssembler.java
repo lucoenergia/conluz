@@ -34,7 +34,7 @@ public class MembershipCapabilitiesAssembler {
                 .withCanUpdateRole(canManageMemberships)
                 .withCanDelete(canManageMemberships)
                 .withCanManageInvestment(policies.membership().canManageInvestment(caller, communityId).isAllowed())
-                .withCanReadPayback(policies.membership().canReadPayback(caller, communityId, userId).isAllowed())
+                .withCanReadPayback(policies.membership().canReadMembershipPrivateData(caller, communityId, userId).isAllowed())
                 .build();
     }
 }

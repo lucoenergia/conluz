@@ -60,13 +60,15 @@ public class SupplyExceptionHandler {
     @ExceptionHandler(InvalidEnergyMetricsPeriodException.class)
     public ResponseEntity<RestError> handleException(InvalidEnergyMetricsPeriodException e) {
 
-        String messageKey = e.getReason() == InvalidEnergyMetricsPeriodException.Reason.START_AFTER_END
-                ? "error.energy.metrics.period.start.after.end"
-                : "error.energy.metrics.period.incomplete";
+        String messageKey = switch (e.getReason()) {
+            case START_AFTER_END -> "error.energy.metrics.period.start.after.end";
+            case INCOMPLETE_PERIOD -> "error.energy.metrics.period.incomplete";
+            case CONFLICTING_PERIOD -> "error.energy.metrics.period.conflicting";
+        };
 
         String message = messageSource.getMessage(
                 messageKey,
-                List.of("startDate", "endDate").toArray(),
+                List.of("startDate", "endDate", "period").toArray(),
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, HttpStatus.BAD_REQUEST);

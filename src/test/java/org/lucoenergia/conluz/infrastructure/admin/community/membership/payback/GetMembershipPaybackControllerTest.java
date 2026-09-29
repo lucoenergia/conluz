@@ -40,9 +40,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -185,6 +187,44 @@ class GetMembershipPaybackControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, loginUser(member)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.savedEur").value(37.50));
+    }
+
+    // --- Estimated price (#315) ---
+
+    /**
+     * AC4 (#315). Two supplies, both priced with the estimate: the total carries the configured
+     * estimated price, serialised exactly as configured.
+     */
+    @Test
+    void anEstimatedTotalCarriesTheConfiguredEstimatedPrice() throws Exception {
+        CommunityEntity community = persistSharingCommunity();
+        User member = persistMember(community.getId());
+        givenSupplyWithSelfConsumption(member, community, 200f);
+        givenSupplyWithSelfConsumption(member, community, 50f);
+
+        mockMvc.perform(get(PAYBACK_PATH, community.getId(), member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(member)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tariffSource").value("ESTIMATE"))
+                .andExpect(content().string(containsString("\"estimatedPrice\":{\"eurPerKWh\":0.15}")));
+    }
+
+    /**
+     * AC6 (#315). No period to price, so nothing was priced with the estimate: the source is still
+     * ESTIMATE, but there is no price behind it. The key is present and explicitly null.
+     */
+    @Test
+    void aCommunityThatHasNeverSharedReportsNoEstimatedPrice() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        givenSupplyWithSelfConsumption(member, community, 200f);
+
+        mockMvc.perform(get(PAYBACK_PATH, community.getId(), member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(member)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.savedEur").isEmpty())
+                .andExpect(jsonPath("$.tariffSource").value("ESTIMATE"))
+                .andExpect(content().string(containsString("\"estimatedPrice\":null")));
     }
 
     // --- AC7: only the requested community's supplies count ---

@@ -766,6 +766,19 @@
         ],
         "type" : "object"
       },
+      "EstimatedPriceResponse" : {
+        "properties" : {
+          "eurPerKWh" : {
+            "description" : "Estimated price of the energy term, in euros per kWh, before taxes. The power term, access tolls, charges, electricity tax and VAT are not included. Returned exactly as configured, without rounding.",
+            "example" : 0.15,
+            "type" : "number"
+          }
+        },
+        "required" : [
+          "eurPerKWh"
+        ],
+        "type" : "object"
+      },
       "GenerateDistributorFileBody" : {
         "properties" : {
           "year" : {
@@ -886,8 +899,175 @@
         ],
         "type" : "object"
       },
+      "MembershipEnergyMetricsCoverageResponse" : {
+        "properties" : {
+          "expectedHours" : {
+            "description" : "Number of hours the period spans, times the number of supplies of the membership. A supply without any record therefore lowers coverage even when the rest are complete. Accounts for daylight saving transitions.",
+            "example" : 2232,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "hoursWithData" : {
+            "description" : "Number of hourly consumption records found in the period, summed across every supply of the membership",
+            "example" : 1450,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "suppliesWithData" : {
+            "description" : "Number of those supplies with at least one hourly record in the period",
+            "example" : 2,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "supplyCount" : {
+            "description" : "Number of supplies of the membership in this community",
+            "example" : 3,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [
+          "expectedHours",
+          "hoursWithData",
+          "suppliesWithData",
+          "supplyCount"
+        ],
+        "type" : "object"
+      },
+      "MembershipEnergyMetricsEnergyResponse" : {
+        "properties" : {
+          "assignedProductionKWh" : {
+            "description" : "Energy assigned to the membership's supplies: selfConsumptionKWh plus surplusKWh",
+            "example" : 724.0,
+            "format" : "double",
+            "type" : "number"
+          },
+          "gridImportKWh" : {
+            "description" : "Energy taken from the grid. Does not include self-consumed energy.",
+            "example" : 670.0,
+            "format" : "double",
+            "type" : "number"
+          },
+          "selfConsumptionKWh" : {
+            "description" : "Energy produced by the community and consumed by the membership's supplies, as reported by the distributor",
+            "example" : 485.0,
+            "format" : "double",
+            "type" : "number"
+          },
+          "surplusKWh" : {
+            "description" : "Energy assigned to the membership's supplies and fed back to the grid",
+            "example" : 239.0,
+            "format" : "double",
+            "type" : "number"
+          },
+          "totalConsumptionKWh" : {
+            "description" : "Energy consumed, whatever its origin: gridImportKWh plus selfConsumptionKWh",
+            "example" : 1155.0,
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [
+          "assignedProductionKWh",
+          "gridImportKWh",
+          "selfConsumptionKWh",
+          "surplusKWh",
+          "totalConsumptionKWh"
+        ],
+        "type" : "object"
+      },
+      "MembershipEnergyMetricsResponse" : {
+        "properties" : {
+          "coverage" : {
+            "$ref" : "#/components/schemas/MembershipEnergyMetricsCoverageResponse",
+            "description" : "How much of the period is backed by stored records, across every supply of the membership."
+          },
+          "energy" : {
+            "$ref" : "#/components/schemas/MembershipEnergyMetricsEnergyResponse",
+            "description" : "The energy totals of every supply of the membership, summed."
+          },
+          "period" : {
+            "$ref" : "#/components/schemas/SupplyEnergyMetricsPeriodResponse",
+            "description" : "The period the metrics were computed over, the same for every supply."
+          },
+          "savings" : {
+            "$ref" : "#/components/schemas/MembershipEnergyMetricsSavingsResponse",
+            "description" : "What the self-consumed energy of the membership's supplies was worth over the period."
+          },
+          "selfConsumptionRatio" : {
+            "description" : "Share of the energy assigned to the membership's supplies that they consumed rather than fed back to the grid, on a 0-1 scale, computed from the summed totals. Null when nothing was assigned to them in the period.",
+            "example" : 0.67,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "selfSufficiencyRatio" : {
+            "description" : "Share of the energy the membership's supplies consumed that came from the community rather than from the grid, on a 0-1 scale, computed from the summed totals. Null when nothing was consumed in the period.",
+            "example" : 0.42,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "coverage",
+          "energy",
+          "period",
+          "savings",
+          "selfConsumptionRatio",
+          "selfSufficiencyRatio"
+        ],
+        "type" : "object"
+      },
+      "MembershipEnergyMetricsSavingsResponse" : {
+        "properties" : {
+          "amountEur" : {
+            "description" : "Estimated amount saved over the period by every supply of the membership, in euros, rounded to cents. Null only when no period could be resolved; whenever a period exists it is a figure, 0.00 when nothing was priced.",
+            "example" : 72.75,
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "estimatedPrice" : {
+            "$ref" : "#/components/schemas/EstimatedPriceResponse",
+            "description" : "The estimated energy-term price, before taxes, the amount was priced with. Present only when the estimated price was used to price at least part of the period for at least one supply; null when every supply was priced with its contracted tariff, and when nothing was priced with the estimate at all.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "tariffSource" : {
+            "description" : "Whether the prices behind the amount are the supplies' contracted tariffs or an estimate. A single estimated stretch of any supply makes the whole amount an estimate.",
+            "enum" : [
+              "REAL_TARIFF",
+              "ESTIMATE"
+            ],
+            "example" : "ESTIMATE",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "amountEur",
+          "estimatedPrice",
+          "tariffSource"
+        ],
+        "type" : "object"
+      },
       "MembershipPaybackResponse" : {
         "properties" : {
+          "estimatedPrice" : {
+            "$ref" : "#/components/schemas/EstimatedPriceResponse",
+            "description" : "The estimated energy-term price, before taxes, savedEur was priced with. Present only when the estimated price was used to price at least part of savedEur; null when every supply was priced with its contracted tariff, and when nothing was priced at all (no period to price, or no supplies).",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
           "estimatedRemainingMonths" : {
             "description" : "Whole months to recover the rest at the average daily rate observed since startDate, rounded up. Zero when the investment has already been recovered. Null when no rate can be established: no investment, no savings yet, or today being startDate itself.",
             "example" : 34,
@@ -922,7 +1102,7 @@
             ]
           },
           "savedEur" : {
-            "description" : "Estimated value of the self-consumed energy of all the member's supplies in this community since startDate, in euros, taxes included. Null when the community has never activated a partition coefficient, so there is no period to price; zero when the period exists but the member's supplies consumed nothing from it.",
+            "description" : "Estimated value of the self-consumed energy of all the member's supplies in this community since startDate, in euros. It prices the energy term before taxes only; VAT is applied only where the resolved tariff carries a rate. Null when the community has never activated a partition coefficient, so there is no period to price; zero when the period exists but the member's supplies consumed nothing from it.",
             "example" : 372.75,
             "type" : [
               "number",
@@ -949,6 +1129,7 @@
           }
         },
         "required" : [
+          "estimatedPrice",
           "estimatedRemainingMonths",
           "investmentEur",
           "progressRatio",
@@ -2118,6 +2299,14 @@
               "null"
             ]
           },
+          "estimatedPrice" : {
+            "$ref" : "#/components/schemas/EstimatedPriceResponse",
+            "description" : "The estimated energy-term price, before taxes, the amount was priced with. Present only when the estimated price was used to price at least part of the period; null when the whole period was priced with the supply's contracted tariff, and when no period could be resolved.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
           "tariffSource" : {
             "description" : "Whether the prices behind the amount are the supply's contracted tariff or an estimate. A single estimated stretch of the period makes the whole amount an estimate.",
             "enum" : [
@@ -2130,6 +2319,7 @@
         },
         "required" : [
           "amountEur",
+          "estimatedPrice",
           "tariffSource"
         ],
         "type" : "object"
@@ -4732,6 +4922,150 @@
         ]
       }
     },
+    "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics" : {
+      "get" : {
+        "description" : "Aggregates the consumption data stored for **every** supply the member owns in\nthis community into energy totals and two ratios, on a 0-1 scale. Supplies in the\nmember's other communities are not counted.\n\n- `selfSufficiencyRatio`: self-consumed energy divided by total consumed energy.\n- `selfConsumptionRatio`: self-consumed energy divided by the assigned energy.\n\nEvery supply is computed over the same period, exactly as the per-supply\nenergy-metrics endpoint computes it, and the results are added up: the energy\ntotals are summed across supplies and each ratio is derived **once** from those\nsums, never by averaging the per-supply ratios. A ratio whose summed denominator\nis zero is returned as `null`, never as `0`.\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them.\n\n- `startDate` and `endDate`: an explicit period, with the same semantics as the\n  per-supply endpoint. They must be supplied together, and a `startDate` after\n  the `endDate` is a bad request. **Both bounds are inclusive**: a single\n  calendar day runs from `00:00` to `23:00` of that day.\n- `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in\n  the community's time zone, in which any of the member's supplies has stored\n  assigned production (self-consumed or surplus energy). The distributor\n  publishes a month's assigned production only some days after it ends, so this\n  is not necessarily the previous month: an unpublished previous month is\n  skipped and the search continues backwards through the 24 complete months\n  before the current one. The current month is never a candidate. The period\n  runs from `00:00` of the first day to `23:00` of the last day. Combining it\n  with `startDate` or `endDate` is a bad request.\n- Neither: from the earliest to the latest record stored for any of the member's\n  supplies.\n\nWhen no period can be resolved -- no assigned production in the search window, no\nstored record at all, or no supplies to search -- the response is still\nsuccessful, with null period bounds, zero totals and null ratios.\n\n**Coverage:**\n`coverage.hoursWithData` counts the hourly records found across every supply.\n`coverage.expectedHours` is the number of hours the period spans **times the\nnumber of supplies of the membership**, so a single supply without any record\nlowers coverage even when every other supply is complete. `supplyCount` and\n`suppliesWithData` tell one silent supply apart from gaps spread across all of\nthem. Hours without a record are left out of the sums; they are never counted as\nzero.\n\n**Savings:**\n`savings.amountEur` is an **estimate** of what the self-consumed energy of all\nthe member's supplies was worth, pricing the **energy term before taxes** only,\nexactly as the per-supply endpoint does, and summed before being rounded.\nIt is `null` only when no period could be resolved; whenever a period exists it\nis a figure, `0.00` when nothing was priced. An explicit period always resolves,\nso it never yields `null`. `savings.tariffSource` is `ESTIMATE` when any part of\nany supply was priced with the estimate, and `savings.estimatedPrice` then carries\nthe estimated price; it is `null` when every supply was priced with its contracted\ntariff, and when nothing was priced with the estimate.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404.\n",
+        "operationId" : "getMembershipEnergyMetrics",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "First instant of an explicit period, inclusive. Requires endDate.",
+            "in" : "query",
+            "name" : "startDate",
+            "required" : false,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "Last instant of an explicit period, inclusive. Requires startDate.",
+            "in" : "query",
+            "name" : "endDate",
+            "required" : false,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "A period the server resolves by itself. Cannot be combined with startDate or endDate.",
+            "in" : "query",
+            "name" : "period",
+            "required" : false,
+            "schema" : {
+              "enum" : [
+                "LATEST_PUBLISHED_MONTH"
+              ],
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MembershipEnergyMetricsResponse"
+                }
+              }
+            },
+            "description" : "Energy metrics retrieved successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 403,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Retrieves the energy metrics of every supply of a membership, added up.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
     "/api/v1/communities/{communityId}/memberships/{userId}/investment" : {
       "delete" : {
         "description" : "Clears the amount recorded for this member, returning the membership to having\nno investment. Payback then reports no investment rather than an investment of\nzero, which are different statements.\n\nIdempotent: clearing a membership that has no investment succeeds, because the\nend state is the one the caller asked for. Requires COMMUNITY_ADMIN of this\ncommunity, with the same 404-not-403 mapping as the write.\n",
@@ -4952,7 +5286,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/payback" : {
       "get" : {
-        "description" : "How much of the member's recorded investment their share of the community's\nenergy has recovered, and roughly how long the rest would take.\n\n`savedEur` is the estimated value of the self-consumed energy of **all** the\nmember's supplies in this community, from `startDate` until now, priced per\ntariff segment with taxes included. It is computed on each request and never\nstored, so it reflects both new consumption and any later correction. Supplies\nin the member's other communities are not counted.\n\n`startDate` is the civil date the community first activated a partition\ncoefficient, and is therefore **community-wide rather than per member**. A\nmember who joined later has their savings divided by the community's elapsed\ndays rather than their own, so their apparent daily rate is lower than their\nreal one and `estimatedRemainingMonths` is correspondingly pessimistic. This is\na known limitation.\n\nNull and zero mean different things throughout. A null `investmentEur` means\nnone has been recorded, not a contribution of zero; a null `savedEur` means the\ncommunity has never shared energy, whereas zero means it has and this member\nconsumed nothing from it. `estimatedRemainingMonths` is null whenever no rate\ncan be established, and 0 once the investment is recovered.\n\n`progressRatio` is not capped and exceeds 1 for a member who has recovered more\nthan they contributed. `tariffSource` is never null and is `ESTIMATE` whenever\nany part of the amount came from an estimated tariff, or when no tariff was\nconsulted at all.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed.\n",
+        "description" : "How much of the member's recorded investment their share of the community's\nenergy has recovered, and roughly how long the rest would take.\n\n`savedEur` is the estimated value of the self-consumed energy of **all** the\nmember's supplies in this community, from `startDate` until now, priced per\ntariff segment. It prices the **energy term before taxes** only: the power term,\naccess tolls, charges and electricity tax are all excluded, and VAT is applied\nonly where the resolved tariff carries a rate. It is computed on each request and\nnever stored, so it reflects both new consumption and any later correction.\nSupplies in the member's other communities are not counted.\n\n`startDate` is the civil date the community first activated a partition\ncoefficient, and is therefore **community-wide rather than per member**. A\nmember who joined later has their savings divided by the community's elapsed\ndays rather than their own, so their apparent daily rate is lower than their\nreal one and `estimatedRemainingMonths` is correspondingly pessimistic. This is\na known limitation.\n\nNull and zero mean different things throughout. A null `investmentEur` means\nnone has been recorded, not a contribution of zero; a null `savedEur` means the\ncommunity has never shared energy, whereas zero means it has and this member\nconsumed nothing from it. `estimatedRemainingMonths` is null whenever no rate\ncan be established, and 0 once the investment is recovered.\n\n`progressRatio` is not capped and exceeds 1 for a member who has recovered more\nthan they contributed. `tariffSource` is never null and is `ESTIMATE` whenever\nany part of the amount came from an estimated tariff, or when no tariff was\nconsulted at all.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed.\n",
         "operationId" : "getMembershipPayback",
         "parameters" : [
           {

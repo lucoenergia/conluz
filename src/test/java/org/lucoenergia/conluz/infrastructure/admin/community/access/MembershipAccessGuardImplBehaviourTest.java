@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
  * {@link User} and the real helper, with only {@link AuthService} mocked.
  *
  * <p>The {@code canManageMemberships} tests mirror {@code MembershipAccessGuardImplTest} one to one.
- * {@code canManageMembershipInvestment} and {@code canReadMembershipPayback} had no tests at all
+ * {@code canManageMembershipInvestment} and {@code canReadMembershipPrivateData} had no tests at all
  * before this suite, despite detailed contract Javadoc on {@link MembershipAccessGuard}: anonymous
  * → {@code false} (401), every other denial → {@code CommunityNotFoundException} (404), never a
  * 403, and no platform-admin bypass on either.</p>
@@ -196,21 +196,21 @@ class MembershipAccessGuardImplBehaviourTest {
         assertFalse(guard().canManageMembershipInvestment(null));
     }
 
-    // --- canReadMembershipPayback ---
+    // --- canReadMembershipPrivateData ---
     // Either the caller is the named user AND holds an enabled membership in the community, or they
     // are an enabled community admin of it. No platform-admin bypass, no 403 branch.
 
     @Test
-    void canReadMembershipPayback_returnsTrue_whenCallerReadsOwnPaybackAsEnabledMember() {
+    void canReadMembershipPrivateData_returnsTrue_whenCallerReadsOwnPaybackAsEnabledMember() {
         Community community = CommunityMother.random().build();
         User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
-        assertTrue(guard().canReadMembershipPayback(community.getId(), user.getId()));
+        assertTrue(guard().canReadMembershipPrivateData(community.getId(), user.getId()));
     }
 
     @Test
-    void canReadMembershipPayback_throwsNotFound_whenCallerReadsOwnPaybackButMembershipIsDisabled() {
+    void canReadMembershipPrivateData_throwsNotFound_whenCallerReadsOwnPaybackButMembershipIsDisabled() {
         // A disabled membership already makes its community invisible to its holder everywhere else;
         // payback must not be the one endpoint where it does not.
         Community community = CommunityMother.random().build();
@@ -218,40 +218,40 @@ class MembershipAccessGuardImplBehaviourTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         assertThrows(CommunityNotFoundException.class,
-                () -> guard().canReadMembershipPayback(community.getId(), user.getId()));
+                () -> guard().canReadMembershipPrivateData(community.getId(), user.getId()));
     }
 
     @Test
-    void canReadMembershipPayback_throwsNotFound_whenCallerReadsOwnPaybackInACommunityTheyDoNotBelongTo() {
+    void canReadMembershipPrivateData_throwsNotFound_whenCallerReadsOwnPaybackInACommunityTheyDoNotBelongTo() {
         Community community = CommunityMother.random().build();
         User user = userWithMembership(CommunityMother.random().build(), CommunityRole.COMMUNITY_MEMBER, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         assertThrows(CommunityNotFoundException.class,
-                () -> guard().canReadMembershipPayback(community.getId(), user.getId()));
+                () -> guard().canReadMembershipPrivateData(community.getId(), user.getId()));
     }
 
     @Test
-    void canReadMembershipPayback_returnsTrue_whenCallerIsCommunityAdminOfTheCommunity() {
+    void canReadMembershipPrivateData_returnsTrue_whenCallerIsCommunityAdminOfTheCommunity() {
         Community community = CommunityMother.random().build();
         User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
-        assertTrue(guard().canReadMembershipPayback(community.getId(), UUID.randomUUID()));
+        assertTrue(guard().canReadMembershipPrivateData(community.getId(), UUID.randomUUID()));
     }
 
     @Test
-    void canReadMembershipPayback_throwsNotFound_whenCallerIsAPlainMemberReadingAnotherUser() {
+    void canReadMembershipPrivateData_throwsNotFound_whenCallerIsAPlainMemberReadingAnotherUser() {
         Community community = CommunityMother.random().build();
         User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         assertThrows(CommunityNotFoundException.class,
-                () -> guard().canReadMembershipPayback(community.getId(), UUID.randomUUID()));
+                () -> guard().canReadMembershipPrivateData(community.getId(), UUID.randomUUID()));
     }
 
     @Test
-    void canReadMembershipPayback_throwsNotFound_whenCallerIsPlatformAdminButNotAMemberOrAdmin() {
+    void canReadMembershipPrivateData_throwsNotFound_whenCallerIsPlatformAdminButNotAMemberOrAdmin() {
         // A platform admin reaches their own payback through the self branch, like anyone else --
         // administering the platform does not confer another member's financial position.
         Community community = CommunityMother.random().build();
@@ -260,42 +260,42 @@ class MembershipAccessGuardImplBehaviourTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
 
         assertThrows(CommunityNotFoundException.class,
-                () -> guard().canReadMembershipPayback(community.getId(), UUID.randomUUID()));
+                () -> guard().canReadMembershipPrivateData(community.getId(), UUID.randomUUID()));
     }
 
     @Test
-    void canReadMembershipPayback_throwsNotFound_whenAdminMembershipIsDisabled() {
+    void canReadMembershipPrivateData_throwsNotFound_whenAdminMembershipIsDisabled() {
         Community community = CommunityMother.random().build();
         User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, false);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         assertThrows(CommunityNotFoundException.class,
-                () -> guard().canReadMembershipPayback(community.getId(), UUID.randomUUID()));
+                () -> guard().canReadMembershipPrivateData(community.getId(), UUID.randomUUID()));
     }
 
     @Test
-    void canReadMembershipPayback_returnsFalse_whenNoAuthenticatedUser() {
+    void canReadMembershipPrivateData_returnsFalse_whenNoAuthenticatedUser() {
         when(authService.getCurrentUser()).thenReturn(Optional.empty());
 
-        assertFalse(guard().canReadMembershipPayback(UUID.randomUUID(), UUID.randomUUID()));
+        assertFalse(guard().canReadMembershipPrivateData(UUID.randomUUID(), UUID.randomUUID()));
     }
 
     @Test
-    void canReadMembershipPayback_returnsFalse_whenCommunityIdIsNull() {
+    void canReadMembershipPrivateData_returnsFalse_whenCommunityIdIsNull() {
         Community community = CommunityMother.random().build();
         User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
-        assertFalse(guard().canReadMembershipPayback(null, user.getId()));
+        assertFalse(guard().canReadMembershipPrivateData(null, user.getId()));
     }
 
     @Test
-    void canReadMembershipPayback_returnsFalse_whenUserIdIsNull() {
+    void canReadMembershipPrivateData_returnsFalse_whenUserIdIsNull() {
         Community community = CommunityMother.random().build();
         User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
-        assertFalse(guard().canReadMembershipPayback(community.getId(), null));
+        assertFalse(guard().canReadMembershipPrivateData(community.getId(), null));
     }
 
     // --- helpers ---

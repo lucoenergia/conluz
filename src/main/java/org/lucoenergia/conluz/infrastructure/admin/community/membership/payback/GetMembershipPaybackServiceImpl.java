@@ -98,7 +98,7 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
             // absent rather than zero: zero would claim the member saved nothing over a period
             // that does not exist.
             return MembershipPayback.of(membership.getInvestmentEur(), null, null,
-                    now.atZone(zone).toLocalDate(), TariffSource.ESTIMATE);
+                    now.atZone(zone).toLocalDate(), TariffSource.ESTIMATE, null);
         }
 
         List<Supply> supplies = getSupplyRepository
@@ -111,38 +111,24 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
                 total.getAmountEur(),
                 startInstant.get().atZone(zone).toLocalDate(),
                 now.atZone(zone).toLocalDate(),
-                total.getTariffSource());
+                total.getTariffSource(),
+                total.getEstimatedPrice());
     }
 
     /**
-     * The member's savings over {@code [from, now)}, summed across their supplies without rounding
-     * in between.
-     *
-     * <p>A member with no supplies has saved zero, not an unknown amount: the period exists and
-     * they took nothing from it. That is a different statement from the absent amount returned
-     * when the community has no period at all.
-     *
-     * <p>The source aggregates the same way it does within one supply: any estimated part makes
-     * the whole total an estimate, since a total is only as trustworthy as its least trustworthy
-     * part. With no supplies to ask, it falls back to {@code ESTIMATE}, matching
-     * {@link SupplySavings#unpriced()} -- claiming a real tariff for a figure no tariff was
-     * consulted for is the one direction that actively misleads.
+     * The member's savings over {@code [from, now)}, summed across their supplies by
+     * {@link SupplySavings#total(List)}. A member with no supplies has saved zero, not an unknown
+     * amount: the period exists and they took nothing from it.
      */
     private SupplySavings sumSavings(List<Supply> supplies, Instant from, Instant now) {
         if (!from.isBefore(now)) {
             // The community's first activation is in the future, or exactly now: a period with no
             // instants in it, which the calculator cannot be asked to price.
-            return SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE);
+            return SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE, null);
         }
 
-        BigDecimal amount = BigDecimal.ZERO;
-        boolean anyEstimated = supplies.isEmpty();
-        for (Supply supply : supplies) {
-            SupplySavings savings = supplySavingsCalculator.estimate(supply, from, now);
-            amount = amount.add(savings.getAmountEur());
-            anyEstimated = anyEstimated || savings.getTariffSource() == TariffSource.ESTIMATE;
-        }
-
-        return SupplySavings.of(amount, anyEstimated ? TariffSource.ESTIMATE : TariffSource.REAL_TARIFF);
+        return SupplySavings.total(supplies.stream()
+                .map(supply -> supplySavingsCalculator.estimate(supply, from, now))
+                .toList());
     }
 }

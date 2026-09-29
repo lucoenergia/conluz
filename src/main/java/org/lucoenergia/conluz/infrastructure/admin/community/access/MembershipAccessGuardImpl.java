@@ -41,12 +41,12 @@ class MembershipAccessGuardImpl implements MembershipAccessGuard {
     }
 
     @Override
-    public boolean canReadMembershipPayback(UUID communityId, UUID userId) {
+    public boolean canReadMembershipPrivateData(UUID communityId, UUID userId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
             return false;
         }
-        return resolve(policy.canReadPayback(user, communityId, userId), communityId);
+        return resolve(policy.canReadMembershipPrivateData(user, communityId, userId), communityId);
     }
 
     private boolean resolve(AccessDecision decision, UUID communityId) {

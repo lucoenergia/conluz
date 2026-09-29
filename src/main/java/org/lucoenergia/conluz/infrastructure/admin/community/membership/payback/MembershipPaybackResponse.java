@@ -3,13 +3,14 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.payback
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.membership.payback.MembershipPayback;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
+import org.lucoenergia.conluz.infrastructure.admin.supply.consumption.EstimatedPriceResponse;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 
 /**
- * Every field's JSON key is always present, so all seven are required; the values of all but
+ * Every field's JSON key is always present, so all eight are required; the values of all but
  * {@code tariffSource} may be null, which is what the {@code types} declarations say. A client
  * must be able to tell "no investment recorded" from "an investment of zero", and collapsing the
  * two would make the payback card show a recovered investment where none exists.
@@ -19,14 +20,14 @@ import java.time.LocalDate;
  * part.
  */
 @Schema(requiredProperties = {"investmentEur", "savedEur", "remainingEur", "progressRatio",
-        "startDate", "estimatedRemainingMonths", "tariffSource"})
+        "startDate", "estimatedRemainingMonths", "tariffSource", "estimatedPrice"})
 public class MembershipPaybackResponse {
 
     @Schema(description = "What the member initially contributed, in euros. Null when no investment has been recorded for this membership, which is not the same as an investment of zero.",
             example = "1500.00", types = {"number", "null"})
     private final BigDecimal investmentEur;
 
-    @Schema(description = "Estimated value of the self-consumed energy of all the member's supplies in this community since startDate, in euros, taxes included. Null when the community has never activated a partition coefficient, so there is no period to price; zero when the period exists but the member's supplies consumed nothing from it.",
+    @Schema(description = "Estimated value of the self-consumed energy of all the member's supplies in this community since startDate, in euros. It prices the energy term before taxes only; VAT is applied only where the resolved tariff carries a rate. Null when the community has never activated a partition coefficient, so there is no period to price; zero when the period exists but the member's supplies consumed nothing from it.",
             example = "372.75", types = {"number", "null"})
     private final BigDecimal savedEur;
 
@@ -50,6 +51,10 @@ public class MembershipPaybackResponse {
             example = "ESTIMATE")
     private final TariffSource tariffSource;
 
+    @Schema(description = "The estimated energy-term price, before taxes, savedEur was priced with. Present only when the estimated price was used to price at least part of savedEur; null when every supply was priced with its contracted tariff, and when nothing was priced at all (no period to price, or no supplies).",
+            types = {"object", "null"})
+    private final EstimatedPriceResponse estimatedPrice;
+
     public MembershipPaybackResponse(MembershipPayback payback) {
         int cents = 2;
         this.investmentEur = round(payback.getInvestmentEur(), cents);
@@ -61,6 +66,7 @@ public class MembershipPaybackResponse {
         this.startDate = payback.getStartDate();
         this.estimatedRemainingMonths = payback.getEstimatedRemainingMonths();
         this.tariffSource = payback.getTariffSource();
+        this.estimatedPrice = EstimatedPriceResponse.from(payback.getEstimatedPrice());
     }
 
     private static BigDecimal round(BigDecimal amount, int scale) {
@@ -93,5 +99,9 @@ public class MembershipPaybackResponse {
 
     public TariffSource getTariffSource() {
         return tariffSource;
+    }
+
+    public EstimatedPriceResponse getEstimatedPrice() {
+        return estimatedPrice;
     }
 }
