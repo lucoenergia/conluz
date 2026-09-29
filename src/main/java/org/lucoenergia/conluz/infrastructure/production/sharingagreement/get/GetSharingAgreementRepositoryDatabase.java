@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +48,14 @@ public class GetSharingAgreementRepositoryDatabase implements GetSharingAgreemen
                 .map(mapper::map)
                 .map(agreement -> agreement.withFile(
                         fileSummaryRepository.findLatestBySharingAgreementId(agreement.getId()).orElse(null)));
+    }
+
+    @Override
+    public List<SharingAgreement> findAllByIdsWithoutFile(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return mapper.mapList(sharingAgreementRepository.findAllByIdIn(ids));
     }
 
     @Override

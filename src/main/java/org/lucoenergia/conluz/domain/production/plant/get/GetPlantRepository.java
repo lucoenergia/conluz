@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -13,6 +14,12 @@ import java.util.UUID;
 public interface GetPlantRepository {
 
     Optional<Plant> findById(PlantId id);
+
+    /**
+     * The plants with the given ids, in one query and in no particular order. An id that matches no
+     * plant is absent from the result rather than an error, and an empty collection issues no query.
+     */
+    List<Plant> findAllByIds(Collection<PlantId> ids);
 
     PagedResult<Plant> findAll(PagedRequest pagedRequest);
 

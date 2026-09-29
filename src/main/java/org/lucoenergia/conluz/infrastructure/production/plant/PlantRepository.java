@@ -28,6 +28,14 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
 
     List<PlantEntity> findAllByInverterProvider(InverterProvider provider);
 
+    /**
+     * The plants with the given ids, in one query, carrying the same graph as {@link #findById}. Ids
+     * that match no plant are simply absent.
+     */
+    @EntityGraph(attributePaths = {"supply", "supply.user", "supply.community", "supply.contract",
+            "supply.distributor", "supply.shelly"})
+    List<PlantEntity> findAllByIdIn(Collection<UUID> ids);
+
     int countByProviderCode(String providerCode);
 
     @EntityGraph(attributePaths = {"supply", "supply.user", "supply.community", "supply.contract",

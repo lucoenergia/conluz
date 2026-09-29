@@ -278,6 +278,44 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         }
     }
 
+    @Test
+    void findAllByIds_loadsEveryRequestedPlantWithItsCommunityInOneQuery() {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User user = createUserRepository.create(UserMother.randomUser());
+        Set<PlantId> ids = new java.util.HashSet<>();
+        for (int i = 0; i < 3; i++) {
+            Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(),
+                    UserId.of(user.getId()), community.getId());
+            Plant plant = createPlantRepository.create(PlantMother.random(supply).build(),
+                    SupplyId.of(supply.getId()));
+            ids.add(PlantId.of(plant.getId()));
+        }
+        ids.add(PlantId.of(UUID.randomUUID()));
+
+        entityManager.flush();
+        entityManager.clear();
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+
+        List<Plant> plants = getPlantRepositoryDatabase.findAllByIds(ids);
+        // The access rules read the community through the supply; it must already be there.
+        plants.forEach(plant -> assertEquals(community.getId(), plant.getSupply().getCommunity().getId()));
+
+        assertEquals(1, statistics.getPrepareStatementCount(),
+                "the plants, their supplies and communities must come back in a single query");
+        assertEquals(3, plants.size(), "an id that matches no plant is absent, not an error");
+    }
+
+    @Test
+    void findAllByIds_issuesNoQueryForAnEmptyCollection() {
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+
+        assertTrue(getPlantRepositoryDatabase.findAllByIds(Set.of()).isEmpty());
+        assertEquals(0, statistics.getPrepareStatementCount());
+    }
+
     /**
      * An in-memory caller: the assembler must decide from the memberships the principal already
      * carries, so building one here is not a shortcut -- it is the shape the production path has.

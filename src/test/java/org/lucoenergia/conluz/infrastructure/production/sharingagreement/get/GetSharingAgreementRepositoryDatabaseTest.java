@@ -159,6 +159,43 @@ class GetSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         assertTrue(result.isEmpty());
     }
 
+    // --- findAllByIdsWithoutFile ---
+
+    @Test
+    void findAllByIdsWithoutFile_loadsEveryRequestedAgreementWithItsPlantIdInOneQuery() {
+        PlantEntity plantA = persistPlant();
+        PlantEntity plantB = persistPlant();
+        SharingAgreementEntity first = persistAgreement(plantA, SharingAgreementStatus.PUBLISHED, Instant.now());
+        SharingAgreementEntity second = persistAgreement(plantB, SharingAgreementStatus.DRAFT, Instant.now());
+        persistFile(first, UUID.randomUUID(), "agreement.txt", Instant.now());
+
+        entityManager.flush();
+        entityManager.clear();
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+
+        List<SharingAgreement> result = repository.findAllByIdsWithoutFile(
+                List.of(first.getId(), second.getId(), UUID.randomUUID()));
+
+        assertEquals(1, statistics.getPrepareStatementCount(),
+                "the agreements must come back in one query, the plant id read without loading the plant");
+        assertEquals(2, result.size(), "an id that matches no agreement is absent, not an error");
+        SharingAgreement loadedFirst = result.stream().filter(a -> a.getId().equals(first.getId())).findFirst().orElseThrow();
+        SharingAgreement loadedSecond = result.stream().filter(a -> a.getId().equals(second.getId())).findFirst().orElseThrow();
+        assertEquals(plantA.getId(), loadedFirst.getPlantId());
+        assertEquals(plantB.getId(), loadedSecond.getPlantId());
+        assertNull(loadedFirst.getFile(), "the file summary is deliberately not attached");
+    }
+
+    @Test
+    void findAllByIdsWithoutFile_issuesNoQueryForAnEmptyCollection() {
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+
+        assertTrue(repository.findAllByIdsWithoutFile(List.of()).isEmpty());
+        assertEquals(0, statistics.getPrepareStatementCount());
+    }
+
     // --- findByPlantId ---
 
     @Test
