@@ -139,7 +139,14 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                 selector,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                 supply.getCode()));
+        return recordTime(connection, query);
+    }
 
+    /**
+     * The timestamp of the single record a selector query returns, or null when the query matched
+     * no record at all.
+     */
+    private Instant recordTime(InfluxDB connection, Query query) {
         // Times are requested in milliseconds so they come back as a number rather than as a
         // formatted string whose precision varies with the server configuration.
         QueryResult.Series series = firstSeries(connection.query(query, TimeUnit.MILLISECONDS));
