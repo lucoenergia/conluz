@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.consumption;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -66,6 +67,38 @@ public class SupplySavings {
      */
     public static SupplySavings unpriced() {
         return new SupplySavings(null, TariffSource.ESTIMATE, null);
+    }
+
+    /**
+     * The savings of several supplies over one same period, summed without rounding in between.
+     * Every part must carry an amount: each one was priced over a resolved period.
+     *
+     * <p>No parts at all is a total of zero, not an unknown amount: the period exists and nothing
+     * in it was priced. That is a different statement from {@link #unpriced()}, which is reserved
+     * for the case where there is no period at all.
+     *
+     * <p>The source aggregates the same way it does within one supply: any estimated part makes
+     * the whole total an estimate, since a total is only as trustworthy as its least trustworthy
+     * part. With no parts to ask, it falls back to {@code ESTIMATE}, matching {@link #unpriced()}
+     * -- claiming a real tariff for a figure no tariff was consulted for is the one direction that
+     * actively misleads.
+     *
+     * <p>The estimated price is the one reported by any part priced partly or wholly with the
+     * estimate, and is absent when none was. Every supply's estimated price is read from the same
+     * global configuration, so the first one found stands for all of them.
+     */
+    public static SupplySavings total(List<SupplySavings> parts) {
+        BigDecimal amount = BigDecimal.ZERO;
+        boolean anyEstimated = parts.isEmpty();
+        EstimatedPrice estimatedPrice = null;
+        for (SupplySavings part : parts) {
+            amount = amount.add(part.getAmountEur());
+            anyEstimated = anyEstimated || part.getTariffSource() == TariffSource.ESTIMATE;
+            if (estimatedPrice == null) {
+                estimatedPrice = part.getEstimatedPrice();
+            }
+        }
+        return of(amount, anyEstimated ? TariffSource.ESTIMATE : TariffSource.REAL_TARIFF, estimatedPrice);
     }
 
     /**
