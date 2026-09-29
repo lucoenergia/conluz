@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.membership.payback;
 
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
+import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -45,10 +46,16 @@ public class MembershipPayback {
     private final LocalDate startDate;
     private final Integer estimatedRemainingMonths;
     private final TariffSource tariffSource;
+    private final EstimatedPrice estimatedPrice;
 
     private MembershipPayback(BigDecimal investmentEur, BigDecimal savedEur, BigDecimal remainingEur,
                               BigDecimal progressRatio, LocalDate startDate,
-                              Integer estimatedRemainingMonths, TariffSource tariffSource) {
+                              Integer estimatedRemainingMonths, TariffSource tariffSource,
+                              EstimatedPrice estimatedPrice) {
+        if (estimatedPrice != null && tariffSource != TariffSource.ESTIMATE) {
+            throw new IllegalArgumentException(
+                    "An estimated price can only accompany an ESTIMATE source, not " + tariffSource);
+        }
         this.investmentEur = investmentEur;
         this.savedEur = savedEur;
         this.remainingEur = remainingEur;
@@ -56,6 +63,7 @@ public class MembershipPayback {
         this.startDate = startDate;
         this.estimatedRemainingMonths = estimatedRemainingMonths;
         this.tariffSource = tariffSource;
+        this.estimatedPrice = estimatedPrice;
     }
 
     /**
@@ -65,9 +73,12 @@ public class MembershipPayback {
      * @param startDate     the community's first activation date, or null when it has never shared
      * @param today         the civil date "now" falls on, in the community's zone
      * @param tariffSource  where the prices behind {@code savedEur} came from; never null
+     * @param estimatedPrice the estimated price {@code savedEur} was partly or wholly priced with, or
+     *                       null when the estimate priced no part of it
      */
     public static MembershipPayback of(BigDecimal investmentEur, BigDecimal savedEur, LocalDate startDate,
-                                       LocalDate today, TariffSource tariffSource) {
+                                       LocalDate today, TariffSource tariffSource,
+                                       EstimatedPrice estimatedPrice) {
         BigDecimal remainingEur = remainingEur(investmentEur, savedEur);
         return new MembershipPayback(
                 investmentEur,
@@ -76,7 +87,8 @@ public class MembershipPayback {
                 progressRatio(investmentEur, savedEur),
                 startDate,
                 estimatedRemainingMonths(investmentEur, savedEur, remainingEur, startDate, today),
-                Objects.requireNonNull(tariffSource));
+                Objects.requireNonNull(tariffSource),
+                estimatedPrice);
     }
 
     /**
@@ -201,5 +213,13 @@ public class MembershipPayback {
      */
     public TariffSource getTariffSource() {
         return tariffSource;
+    }
+
+    /**
+     * The estimated price behind {@link #getSavedEur()}, or null when the estimate priced no part of
+     * it: every supply was priced with a contracted tariff, or nothing was priced at all.
+     */
+    public EstimatedPrice getEstimatedPrice() {
+        return estimatedPrice;
     }
 }

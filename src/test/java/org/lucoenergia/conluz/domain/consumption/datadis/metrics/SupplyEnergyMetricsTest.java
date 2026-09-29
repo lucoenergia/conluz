@@ -94,7 +94,7 @@ class SupplyEnergyMetricsTest {
     private SupplyEnergyMetrics metrics(double gridImportKWh, double selfConsumptionKWh, double surplusKWh) {
         return new SupplyEnergyMetrics(supply, START_DATE, END_DATE, 3L, 3L,
                 gridImportKWh, selfConsumptionKWh, surplusKWh,
-                SupplySavings.of(new BigDecimal("1.23"), TariffSource.ESTIMATE));
+                SupplySavings.of(new BigDecimal("1.23"), TariffSource.ESTIMATE, null));
     }
 
     private void assertFinite(Double ratio) {

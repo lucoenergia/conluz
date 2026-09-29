@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
+import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -98,7 +99,7 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
             // absent rather than zero: zero would claim the member saved nothing over a period
             // that does not exist.
             return MembershipPayback.of(membership.getInvestmentEur(), null, null,
-                    now.atZone(zone).toLocalDate(), TariffSource.ESTIMATE);
+                    now.atZone(zone).toLocalDate(), TariffSource.ESTIMATE, null);
         }
 
         List<Supply> supplies = getSupplyRepository
@@ -111,7 +112,8 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
                 total.getAmountEur(),
                 startInstant.get().atZone(zone).toLocalDate(),
                 now.atZone(zone).toLocalDate(),
-                total.getTariffSource());
+                total.getTariffSource(),
+                total.getEstimatedPrice());
     }
 
     /**
@@ -127,22 +129,32 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
      * part. With no supplies to ask, it falls back to {@code ESTIMATE}, matching
      * {@link SupplySavings#unpriced()} -- claiming a real tariff for a figure no tariff was
      * consulted for is the one direction that actively misleads.
+     *
+     * <p>The estimated price is the one reported by any supply priced partly or wholly with the
+     * estimate, and is absent when none was. Every supply's estimated price is read from the same
+     * global configuration, so the first one found stands for all of them. With no supplies, or no
+     * period to price, nothing was priced with the estimate and there is no price to report.
      */
     private SupplySavings sumSavings(List<Supply> supplies, Instant from, Instant now) {
         if (!from.isBefore(now)) {
             // The community's first activation is in the future, or exactly now: a period with no
             // instants in it, which the calculator cannot be asked to price.
-            return SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE);
+            return SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE, null);
         }
 
         BigDecimal amount = BigDecimal.ZERO;
         boolean anyEstimated = supplies.isEmpty();
+        EstimatedPrice estimatedPrice = null;
         for (Supply supply : supplies) {
             SupplySavings savings = supplySavingsCalculator.estimate(supply, from, now);
             amount = amount.add(savings.getAmountEur());
             anyEstimated = anyEstimated || savings.getTariffSource() == TariffSource.ESTIMATE;
+            if (estimatedPrice == null) {
+                estimatedPrice = savings.getEstimatedPrice();
+            }
         }
 
-        return SupplySavings.of(amount, anyEstimated ? TariffSource.ESTIMATE : TariffSource.REAL_TARIFF);
+        return SupplySavings.of(amount, anyEstimated ? TariffSource.ESTIMATE : TariffSource.REAL_TARIFF,
+                estimatedPrice);
     }
 }

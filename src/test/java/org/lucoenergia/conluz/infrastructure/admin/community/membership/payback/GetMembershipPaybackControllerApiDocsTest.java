@@ -26,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GetMembershipPaybackControllerApiDocsTest extends BaseControllerTest {
 
     private static final String SCHEMA = "MembershipPaybackResponse";
+    private static final String ESTIMATED_PRICE_SCHEMA = "EstimatedPriceResponse";
     private static final String PAYBACK_PATH =
             "/api/v1/communities/{communityId}/memberships/{userId}/payback";
     private static final String INVESTMENT_PATH =
@@ -36,7 +37,8 @@ class GetMembershipPaybackControllerApiDocsTest extends BaseControllerTest {
         List<String> required = textValues(schema(SCHEMA).path("required"));
 
         assertTrue(required.containsAll(List.of("investmentEur", "savedEur", "remainingEur",
-                        "progressRatio", "startDate", "estimatedRemainingMonths", "tariffSource")),
+                        "progressRatio", "startDate", "estimatedRemainingMonths", "tariffSource",
+                        "estimatedPrice")),
                 () -> SCHEMA + ".required was " + required);
     }
 
@@ -74,6 +76,46 @@ class GetMembershipPaybackControllerApiDocsTest extends BaseControllerTest {
 
         assertTrue(!textValues(tariffSource.path("type")).contains("null"),
                 () -> "tariffSource must not be nullable: " + tariffSource);
+    }
+
+    /**
+     * AC9 (#315). A required, nullable reference to the shared estimated-price schema; its single
+     * field is required and never null, so nullability lives on the reference alone.
+     */
+    @Test
+    void documentsTheEstimatedPriceAsANullableReferenceToANonNullablePrice() throws Exception {
+        JsonNode estimatedPrice = schema(SCHEMA).path("properties").path("estimatedPrice");
+
+        assertTrue(estimatedPrice.path("$ref").asText().endsWith("/" + ESTIMATED_PRICE_SCHEMA),
+                () -> "estimatedPrice is not a reference to " + ESTIMATED_PRICE_SCHEMA + ": " + estimatedPrice);
+        assertTrue(textValues(estimatedPrice.path("type")).contains("null"),
+                () -> "estimatedPrice must be nullable: " + estimatedPrice);
+
+        JsonNode priceSchema = schema(ESTIMATED_PRICE_SCHEMA);
+        JsonNode eurPerKWh = priceSchema.path("properties").path("eurPerKWh");
+        assertTrue(textValues(priceSchema.path("required")).contains("eurPerKWh"),
+                () -> ESTIMATED_PRICE_SCHEMA + ".required was " + priceSchema.path("required"));
+        assertTrue(textValues(eurPerKWh.path("type")).contains("number"), () -> "eurPerKWh.type was " + eurPerKWh);
+        assertTrue(!textValues(eurPerKWh.path("type")).contains("null"),
+                () -> "eurPerKWh must not be nullable: " + eurPerKWh);
+    }
+
+    /**
+     * AC10 (#315). savedEur prices the energy term before taxes, consistently with energy-metrics;
+     * neither the operation nor the field may claim otherwise.
+     */
+    @Test
+    void describesSavedEurAsTheEnergyTermBeforeTaxes() throws Exception {
+        String operationDescription = operation(PAYBACK_PATH, "get").path("description").asText();
+        String savedEurDescription = schema(SCHEMA).path("properties").path("savedEur")
+                .path("description").asText();
+
+        for (String description : List.of(operationDescription, savedEurDescription)) {
+            assertTrue(!description.toLowerCase().contains("taxes included"),
+                    () -> "still claims taxes are included: " + description);
+            assertTrue(description.contains("energy term before taxes"),
+                    () -> "does not state the energy term before taxes: " + description);
+        }
     }
 
     /**

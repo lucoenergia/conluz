@@ -33,7 +33,7 @@ class SupplySavingsTest {
 
     @Test
     void aPricedAmountTravelsWithItsSource() {
-        SupplySavings savings = SupplySavings.of(new BigDecimal("7.95"), TariffSource.REAL_TARIFF);
+        SupplySavings savings = SupplySavings.of(new BigDecimal("7.95"), TariffSource.REAL_TARIFF, null);
 
         assertEquals(0, new BigDecimal("7.95").compareTo(savings.getAmountEur()));
         assertEquals(TariffSource.REAL_TARIFF, savings.getTariffSource());
@@ -45,12 +45,12 @@ class SupplySavingsTest {
      */
     @Test
     void aPricedAmountCannotBeNull() {
-        assertThrows(NullPointerException.class, () -> SupplySavings.of(null, TariffSource.ESTIMATE));
+        assertThrows(NullPointerException.class, () -> SupplySavings.of(null, TariffSource.ESTIMATE, null));
     }
 
     @Test
     void aSourceIsAlwaysRequired() {
-        assertThrows(NullPointerException.class, () -> SupplySavings.of(BigDecimal.ONE, null));
+        assertThrows(NullPointerException.class, () -> SupplySavings.of(BigDecimal.ONE, null, null));
     }
 
     /**
@@ -59,21 +59,69 @@ class SupplySavingsTest {
      */
     @Test
     void equalityComparesAmountsRatherThanScales() {
-        assertEquals(SupplySavings.of(new BigDecimal("0.00"), TariffSource.ESTIMATE),
-                SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE));
-        assertEquals(SupplySavings.of(new BigDecimal("0.00"), TariffSource.ESTIMATE).hashCode(),
-                SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE).hashCode());
+        assertEquals(SupplySavings.of(new BigDecimal("0.00"), TariffSource.ESTIMATE, null),
+                SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE, null));
+        assertEquals(SupplySavings.of(new BigDecimal("0.00"), TariffSource.ESTIMATE, null).hashCode(),
+                SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE, null).hashCode());
     }
 
     @Test
     void savingsFromDifferentSourcesAreNotEqual() {
-        assertNotEquals(SupplySavings.of(BigDecimal.ONE, TariffSource.ESTIMATE),
-                SupplySavings.of(BigDecimal.ONE, TariffSource.REAL_TARIFF));
+        assertNotEquals(SupplySavings.of(BigDecimal.ONE, TariffSource.ESTIMATE, null),
+                SupplySavings.of(BigDecimal.ONE, TariffSource.REAL_TARIFF, null));
     }
 
     @Test
     void anUnpricedAmountIsNotEqualToAZeroOne() {
         assertNotEquals(SupplySavings.unpriced(),
-                SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE));
+                SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE, null));
+    }
+
+    /**
+     * The unpriced path consulted no tariff at all, so nothing was priced with the estimate either.
+     */
+    @Test
+    void unpricedSavingsCarryNoEstimatedPrice() {
+        assertNull(SupplySavings.unpriced().getEstimatedPrice());
+    }
+
+    @Test
+    void anEstimatedAmountTravelsWithTheEstimatedPriceBehindIt() {
+        EstimatedPrice price = EstimatedPrice.of(new BigDecimal("0.15"));
+
+        SupplySavings savings = SupplySavings.of(new BigDecimal("7.95"), TariffSource.ESTIMATE, price);
+
+        assertEquals(price, savings.getEstimatedPrice());
+    }
+
+    /**
+     * An ESTIMATE source without a price is legitimate -- it is what a figure no tariff was
+     * consulted for reports -- so absence of the price is not tied to the source in that direction.
+     */
+    @Test
+    void anEstimateMayComeWithoutAnEstimatedPrice() {
+        assertNull(SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE, null).getEstimatedPrice());
+    }
+
+    /**
+     * A figure priced entirely with contracted tariffs was not priced with the estimate, so
+     * attaching an estimated price to it would label it with a price it was never computed from.
+     */
+    @Test
+    void aRealTariffAmountCannotCarryAnEstimatedPrice() {
+        EstimatedPrice price = EstimatedPrice.of(new BigDecimal("0.15"));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> SupplySavings.of(BigDecimal.ONE, TariffSource.REAL_TARIFF, price));
+    }
+
+    @Test
+    void savingsWithDifferentEstimatedPricesAreNotEqual() {
+        assertNotEquals(
+                SupplySavings.of(BigDecimal.ONE, TariffSource.ESTIMATE, EstimatedPrice.of(new BigDecimal("0.15"))),
+                SupplySavings.of(BigDecimal.ONE, TariffSource.ESTIMATE, EstimatedPrice.of(new BigDecimal("0.16"))));
+        assertNotEquals(
+                SupplySavings.of(BigDecimal.ONE, TariffSource.ESTIMATE, EstimatedPrice.of(new BigDecimal("0.15"))),
+                SupplySavings.of(BigDecimal.ONE, TariffSource.ESTIMATE, null));
     }
 }

@@ -15,7 +15,7 @@ import java.math.RoundingMode;
  * full precision, so a period cut into several tariff segments is rounded as a whole rather than
  * once per segment.
  */
-@Schema(requiredProperties = {"amountEur", "tariffSource"})
+@Schema(requiredProperties = {"amountEur", "tariffSource", "estimatedPrice"})
 public class SupplyEnergyMetricsSavingsResponse {
 
     @Schema(description = "Estimated amount saved over the period, in euros, rounded to cents. " +
@@ -27,6 +27,12 @@ public class SupplyEnergyMetricsSavingsResponse {
             "amount an estimate.",
             example = "ESTIMATE")
     private final TariffSource tariffSource;
+    @Schema(description = "The estimated energy-term price, before taxes, the amount was priced " +
+            "with. Present only when the estimated price was used to price at least part of the " +
+            "period; null when the whole period was priced with the supply's contracted tariff, " +
+            "and when no period could be resolved.",
+            types = {"object", "null"})
+    private final EstimatedPriceResponse estimatedPrice;
 
     public SupplyEnergyMetricsSavingsResponse(SupplySavings savings) {
         // Scale is declared inline rather than as a constant: ResponseSchemaNullabilityArchTest
@@ -37,6 +43,7 @@ public class SupplyEnergyMetricsSavingsResponse {
                 ? null
                 : savings.getAmountEur().setScale(cents, RoundingMode.HALF_UP);
         this.tariffSource = savings.getTariffSource();
+        this.estimatedPrice = EstimatedPriceResponse.from(savings.getEstimatedPrice());
     }
 
     public BigDecimal getAmountEur() {
@@ -45,5 +52,9 @@ public class SupplyEnergyMetricsSavingsResponse {
 
     public TariffSource getTariffSource() {
         return tariffSource;
+    }
+
+    public EstimatedPriceResponse getEstimatedPrice() {
+        return estimatedPrice;
     }
 }
