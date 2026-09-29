@@ -370,6 +370,6 @@ class GetMembershipPaybackServiceTest {
 
     private void givenSavings(Supply supply, String amountEur, TariffSource source) {
         when(savingsCalculator.estimate(eq(supply), any(Instant.class), any(Instant.class)))
-                .thenReturn(SupplySavings.of(new BigDecimal(amountEur), source));
+                .thenReturn(SupplySavings.of(new BigDecimal(amountEur), source, null));
     }
 }

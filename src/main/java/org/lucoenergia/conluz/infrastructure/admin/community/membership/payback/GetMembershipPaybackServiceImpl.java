@@ -132,7 +132,7 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
         if (!from.isBefore(now)) {
             // The community's first activation is in the future, or exactly now: a period with no
             // instants in it, which the calculator cannot be asked to price.
-            return SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE);
+            return SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE, null);
         }
 
         BigDecimal amount = BigDecimal.ZERO;
@@ -143,6 +143,6 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
             anyEstimated = anyEstimated || savings.getTariffSource() == TariffSource.ESTIMATE;
         }
 
-        return SupplySavings.of(amount, anyEstimated ? TariffSource.ESTIMATE : TariffSource.REAL_TARIFF);
+        return SupplySavings.of(amount, anyEstimated ? TariffSource.ESTIMATE : TariffSource.REAL_TARIFF, null);
     }
 }

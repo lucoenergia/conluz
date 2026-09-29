@@ -18,6 +18,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumpti
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
+import org.lucoenergia.conluz.infrastructure.admin.supply.tariff.EstimatedTariffProperties;
 import org.lucoenergia.conluz.infrastructure.consumption.savings.SupplySavingsCalculatorImpl;
 import org.mockito.ArgumentCaptor;
 
@@ -52,6 +53,14 @@ class GetDatadisConsumptionServiceTest {
 
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
+    /**
+     * The estimated price the calculator reports, as the application would bind it from
+     * configuration. Deliberately equal to the base the stubbed estimated segments carry, as it is
+     * in production, where the estimated resolver builds its segments from this same value.
+     */
+    private static final EstimatedTariffProperties CONFIGURED_ESTIMATE =
+            new EstimatedTariffProperties(new BigDecimal("0.15"), BigDecimal.ZERO);
+
     private final GetDatadisConsumptionRepository consumptionRepository =
             mock(GetDatadisConsumptionRepository.class);
     private final GetSupplyRepository getSupplyRepository = mock(GetSupplyRepository.class);
@@ -63,7 +72,8 @@ class GetDatadisConsumptionServiceTest {
     private final GetDatadisConsumptionService service = new GetDatadisConsumptionServiceImpl(
             consumptionRepository,
             getSupplyRepository,
-            new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver),
+            new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
+                    CONFIGURED_ESTIMATE),
             zoneResolver);
 
     private final Supply supply = SupplyMother.random().build();
