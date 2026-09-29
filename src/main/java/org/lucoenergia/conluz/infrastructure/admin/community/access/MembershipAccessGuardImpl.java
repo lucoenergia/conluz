@@ -44,14 +44,14 @@ class MembershipAccessGuardImpl implements MembershipAccessGuard {
     }
 
     @Override
-    public boolean canReadMembershipPayback(UUID communityId, UUID userId) {
+    public boolean canReadMembershipPrivateData(UUID communityId, UUID userId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null || communityId == null || userId == null) {
             return false;
         }
         // The self branch requires an enabled membership, not merely being the named user: a
         // disabled membership already makes its community invisible to its holder everywhere else,
-        // and payback must not be the one endpoint where it does not.
+        // and a membership's private figures must not be the one place where it does not.
         boolean self = helper.isCurrentUser(user, userId)
                 && helper.hasMembershipInCommunity(user, communityId);
         boolean communityAdmin = helper.hasCommunityAdminRoleIn(user, communityId);

@@ -99,8 +99,8 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
-    public boolean canReadMembershipPayback(UUID communityId, UUID userId) {
-        return membershipAccessGuard.canReadMembershipPayback(communityId, userId);
+    public boolean canReadMembershipPrivateData(UUID communityId, UUID userId) {
+        return membershipAccessGuard.canReadMembershipPrivateData(communityId, userId);
     }
 
     @Override

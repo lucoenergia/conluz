@@ -88,7 +88,7 @@ public class GetMembershipPaybackController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("@communityAccessGuard.canReadMembershipPayback(#communityId, #userId)")
+    @PreAuthorize("@communityAccessGuard.canReadMembershipPrivateData(#communityId, #userId)")
     public MembershipPaybackResponse getMembershipPayback(@PathVariable("communityId") UUID communityId,
                                                           @PathVariable("userId") UUID userId) {
         MembershipPayback payback = service.getPayback(communityId, userId);

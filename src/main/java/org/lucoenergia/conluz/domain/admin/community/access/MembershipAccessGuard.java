@@ -30,14 +30,15 @@ public interface MembershipAccessGuard {
     boolean canManageMembershipInvestment(UUID communityId);
 
     /**
-     * Whether the current user may read the payback progress of this membership: either they are
-     * {@code userId} themselves and hold an enabled membership in {@code communityId}, or they are
-     * an enabled {@code COMMUNITY_ADMIN} of it.
+     * Whether the current user may read the private figures of this membership -- its payback
+     * progress and the energy metrics of its supplies: either they are {@code userId} themselves
+     * and hold an enabled membership in {@code communityId}, or they are an enabled
+     * {@code COMMUNITY_ADMIN} of it.
      *
      * <p>Deliberately not expressed through {@code canReadCommunity}, which grants every platform
-     * admin access to every community. Payback is a member's own financial position, so
-     * administering the platform does not confer it; a platform admin reaches their own payback
-     * here through the self branch, like anyone else.
+     * admin access to every community. These figures describe a member's own energy use and
+     * financial position, so administering the platform does not confer them; a platform admin
+     * reaches their own figures here through the self branch, like anyone else.
      *
      * <p>Maps denials by visibility, never by role:
      * <ul>
@@ -51,5 +52,5 @@ public interface MembershipAccessGuard {
      * <p>Authorization only. Whether the membership exists is the service's lookup, so the two
      * concerns do not have to be kept in step in two places.
      */
-    boolean canReadMembershipPayback(UUID communityId, UUID userId);
+    boolean canReadMembershipPrivateData(UUID communityId, UUID userId);
 }
