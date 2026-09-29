@@ -298,7 +298,7 @@ class GetMembershipPaybackServiceTest {
         assertEquals(TariffSource.ESTIMATE, service.getPayback(COMMUNITY_ID, USER_ID).getTariffSource());
     }
 
-    // --- estimatedPrice: present only when the estimate priced part of savedEur (#313) ---
+    // --- estimatedPrice: present only when the estimate priced part of savedEur (#315) ---
 
     /**
      * AC4. The estimated supply is second, so the price cannot come from reading the first alone.

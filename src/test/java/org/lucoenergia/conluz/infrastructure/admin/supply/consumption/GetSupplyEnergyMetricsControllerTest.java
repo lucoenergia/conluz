@@ -414,10 +414,10 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"amountEur\":null")));
     }
 
-    // --- Estimated price (#313) ---
+    // --- Estimated price (#315) ---
 
     /**
-     * AC1 (#313). The default configuration prices the estimate at 0.15 EUR/kWh, and that is the
+     * AC1 (#315). The default configuration prices the estimate at 0.15 EUR/kWh, and that is the
      * price the savings carry, serialised exactly as configured rather than rounded to cents.
      */
     @Test
@@ -440,7 +440,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * AC3 (#313). No stored record and no requested period: nothing was priced, so there is no
+     * AC3 (#315). No stored record and no requested period: nothing was priced, so there is no
      * price behind the absent amount. The key is present and explicitly null, never an object
      * holding a null price.
      */

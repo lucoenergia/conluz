@@ -46,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * AC7 (#313). The estimated price both endpoints return is the configured one, not a literal: the
+ * AC7 (#315). The estimated price both endpoints return is the configured one, not a literal: the
  * configuration is overridden here with a value that is neither the default 0.15 nor representable
  * in cents, so a hard-coded price or a price rounded like the amounts beside it would both fail.
  */

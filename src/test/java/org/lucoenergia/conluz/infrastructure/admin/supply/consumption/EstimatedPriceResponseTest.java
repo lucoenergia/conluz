@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class EstimatedPriceResponseTest {
 
     /**
-     * AC8 (#313). An absent price is an absent object, never an object holding a null.
+     * AC8 (#315). An absent price is an absent object, never an object holding a null.
      */
     @Test
     void anAbsentPriceYieldsNoObjectAtAll() {

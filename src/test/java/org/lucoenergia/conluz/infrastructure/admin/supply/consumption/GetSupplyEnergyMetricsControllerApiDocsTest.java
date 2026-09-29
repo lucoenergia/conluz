@@ -59,7 +59,7 @@ class GetSupplyEnergyMetricsControllerApiDocsTest extends BaseControllerTest {
     }
 
     /**
-     * AC9 (#313). The key is always present and its value may be null, so the reference has to be
+     * AC9 (#315). The key is always present and its value may be null, so the reference has to be
      * both required and nullable in the document. It renders as a {@code $ref} with a
      * {@code ["object", "null"]} type sibling, which conluz-web's Orval transformer rewrites into an
      * {@code anyOf} so that the generated type keeps its nullability.
@@ -78,7 +78,7 @@ class GetSupplyEnergyMetricsControllerApiDocsTest extends BaseControllerTest {
     }
 
     /**
-     * AC9 (#313). Nullability lives on the reference alone: inside the object the price is always
+     * AC9 (#315). Nullability lives on the reference alone: inside the object the price is always
      * present and always holds a value, and its description states the unit and the scope.
      */
     @Test

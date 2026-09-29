@@ -189,10 +189,10 @@ class GetMembershipPaybackControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.savedEur").value(37.50));
     }
 
-    // --- Estimated price (#313) ---
+    // --- Estimated price (#315) ---
 
     /**
-     * AC4 (#313). Two supplies, both priced with the estimate: the total carries the configured
+     * AC4 (#315). Two supplies, both priced with the estimate: the total carries the configured
      * estimated price, serialised exactly as configured.
      */
     @Test
@@ -210,7 +210,7 @@ class GetMembershipPaybackControllerTest extends BaseControllerTest {
     }
 
     /**
-     * AC6 (#313). No period to price, so nothing was priced with the estimate: the source is still
+     * AC6 (#315). No period to price, so nothing was priced with the estimate: the source is still
      * ESTIMATE, but there is no price behind it. The key is present and explicitly null.
      */
     @Test

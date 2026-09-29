@@ -79,7 +79,7 @@ class GetMembershipPaybackControllerApiDocsTest extends BaseControllerTest {
     }
 
     /**
-     * AC9 (#313). A required, nullable reference to the shared estimated-price schema; its single
+     * AC9 (#315). A required, nullable reference to the shared estimated-price schema; its single
      * field is required and never null, so nullability lives on the reference alone.
      */
     @Test
@@ -101,7 +101,7 @@ class GetMembershipPaybackControllerApiDocsTest extends BaseControllerTest {
     }
 
     /**
-     * AC10 (#313). savedEur prices the energy term before taxes, consistently with energy-metrics;
+     * AC10 (#315). savedEur prices the energy term before taxes, consistently with energy-metrics;
      * neither the operation nor the field may claim otherwise.
      */
     @Test

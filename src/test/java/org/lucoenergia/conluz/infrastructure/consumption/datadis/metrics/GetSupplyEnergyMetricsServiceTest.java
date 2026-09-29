@@ -370,7 +370,7 @@ class GetSupplyEnergyMetricsServiceTest {
     }
 
     /**
-     * AC1 (#313): a period priced partly with the estimate reports the configured estimated price.
+     * AC1 (#315): a period priced partly with the estimate reports the configured estimated price.
      */
     @Test
     void aPartlyEstimatedPeriodReportsTheConfiguredEstimatedPrice() {
@@ -387,7 +387,7 @@ class GetSupplyEnergyMetricsServiceTest {
     }
 
     /**
-     * AC2 (#313): no production resolver yields a contracted tariff yet, so a period priced
+     * AC2 (#315): no production resolver yields a contracted tariff yet, so a period priced
      * entirely with contracted tariffs is stubbed here.
      */
     @Test
@@ -405,7 +405,7 @@ class GetSupplyEnergyMetricsServiceTest {
     }
 
     /**
-     * AC3 (#313): with no period to price, nothing was priced with the estimate either.
+     * AC3 (#315): with no period to price, nothing was priced with the estimate either.
      */
     @Test
     void anUnresolvablePeriodReportsNoEstimatedPrice() {
