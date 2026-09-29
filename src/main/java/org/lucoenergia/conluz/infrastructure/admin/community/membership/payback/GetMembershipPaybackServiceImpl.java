@@ -9,7 +9,6 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
-import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -117,23 +116,9 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
     }
 
     /**
-     * The member's savings over {@code [from, now)}, summed across their supplies without rounding
-     * in between.
-     *
-     * <p>A member with no supplies has saved zero, not an unknown amount: the period exists and
-     * they took nothing from it. That is a different statement from the absent amount returned
-     * when the community has no period at all.
-     *
-     * <p>The source aggregates the same way it does within one supply: any estimated part makes
-     * the whole total an estimate, since a total is only as trustworthy as its least trustworthy
-     * part. With no supplies to ask, it falls back to {@code ESTIMATE}, matching
-     * {@link SupplySavings#unpriced()} -- claiming a real tariff for a figure no tariff was
-     * consulted for is the one direction that actively misleads.
-     *
-     * <p>The estimated price is the one reported by any supply priced partly or wholly with the
-     * estimate, and is absent when none was. Every supply's estimated price is read from the same
-     * global configuration, so the first one found stands for all of them. With no supplies, or no
-     * period to price, nothing was priced with the estimate and there is no price to report.
+     * The member's savings over {@code [from, now)}, summed across their supplies by
+     * {@link SupplySavings#total(List)}. A member with no supplies has saved zero, not an unknown
+     * amount: the period exists and they took nothing from it.
      */
     private SupplySavings sumSavings(List<Supply> supplies, Instant from, Instant now) {
         if (!from.isBefore(now)) {
@@ -142,19 +127,8 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
             return SupplySavings.of(BigDecimal.ZERO, TariffSource.ESTIMATE, null);
         }
 
-        BigDecimal amount = BigDecimal.ZERO;
-        boolean anyEstimated = supplies.isEmpty();
-        EstimatedPrice estimatedPrice = null;
-        for (Supply supply : supplies) {
-            SupplySavings savings = supplySavingsCalculator.estimate(supply, from, now);
-            amount = amount.add(savings.getAmountEur());
-            anyEstimated = anyEstimated || savings.getTariffSource() == TariffSource.ESTIMATE;
-            if (estimatedPrice == null) {
-                estimatedPrice = savings.getEstimatedPrice();
-            }
-        }
-
-        return SupplySavings.of(amount, anyEstimated ? TariffSource.ESTIMATE : TariffSource.REAL_TARIFF,
-                estimatedPrice);
+        return SupplySavings.total(supplies.stream()
+                .map(supply -> supplySavingsCalculator.estimate(supply, from, now))
+                .toList());
     }
 }
