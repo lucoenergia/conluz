@@ -74,8 +74,9 @@ class GetMembershipEnergyMetricsServiceTest {
     private final TimeConfiguration timeConfiguration = mock(TimeConfiguration.class);
 
     private final GetMembershipEnergyMetricsService service = new GetMembershipEnergyMetricsServiceImpl(
-            getMembershipsRepository, getSupplyRepository, supplyMetricsService, aggregateRepository,
-            referenceMonthResolver, zoneResolver, new DateConverter(timeConfiguration));
+            new MembershipEnergyMetricsScopeResolverImpl(getMembershipsRepository, getSupplyRepository,
+                    aggregateRepository, referenceMonthResolver, zoneResolver, new DateConverter(timeConfiguration)),
+            supplyMetricsService);
 
     private final Supply first = SupplyMother.random().build();
     private final Supply second = SupplyMother.random().build();
