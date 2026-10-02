@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembership
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserService;
+import org.lucoenergia.conluz.domain.admin.user.create.ImportRowCommunityMismatchException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,5 +43,23 @@ public class CreateUserServiceImpl implements CreateUserService {
         }
 
         return created;
+    }
+
+    @Override
+    public User createFromImport(User user, String rowCommunityId, UUID importCommunityId,
+                                 CommunityRole communityRole) {
+        if (rowCommunityId != null && !rowCommunityId.isBlank()
+                && !isSameCommunity(rowCommunityId, importCommunityId)) {
+            throw new ImportRowCommunityMismatchException();
+        }
+        return create(user, importCommunityId, communityRole);
+    }
+
+    private static boolean isSameCommunity(String rowCommunityId, UUID importCommunityId) {
+        try {
+            return UUID.fromString(rowCommunityId.trim()).equals(importCommunityId);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 }
