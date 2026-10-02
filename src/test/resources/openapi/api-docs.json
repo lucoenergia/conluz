@@ -1058,6 +1058,158 @@
         ],
         "type" : "object"
       },
+      "MembershipHourlyProfileBucketResponse" : {
+        "properties" : {
+          "assignedProductionSampleCount" : {
+            "description" : "Number of hourly records carrying assigned production found for this hour across every supply and every day of the month. A sample count, not a day count, and independent of consumptionSampleCount, since a record can carry consumption alone.",
+            "example" : 62,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "averageAssignedProductionKWh" : {
+            "description" : "Average energy assigned to the membership's supplies in this hour (self-consumed plus surplus energy), over the assigned production samples found. Null when there is no sample; 0 when there are samples and all of them are zero.",
+            "example" : 1.18,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "averageConsumptionKWh" : {
+            "description" : "Average energy consumed in this hour, whatever its origin (grid import plus self-consumed energy), over the consumption samples found. Null when there is no sample, never 0.",
+            "example" : 0.42,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "consumptionSampleCount" : {
+            "description" : "Number of hourly records carrying consumption found for this hour across every supply and every day of the month. A sample count, not a day count: on a daylight saving day one local hour holds two samples and another none.",
+            "example" : 62,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "hour" : {
+            "description" : "Hour of the local day in the community's time zone, from 0 to 23",
+            "example" : 13,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [
+          "assignedProductionSampleCount",
+          "averageAssignedProductionKWh",
+          "averageConsumptionKWh",
+          "consumptionSampleCount",
+          "hour"
+        ],
+        "type" : "object"
+      },
+      "MembershipHourlyProfileResponse" : {
+        "properties" : {
+          "buckets" : {
+            "description" : "Exactly 24 buckets, one per hour of the local day, ordered from hour 0 to hour 23, including the hours without any sample.",
+            "items" : {
+              "$ref" : "#/components/schemas/MembershipHourlyProfileBucketResponse"
+            },
+            "type" : "array"
+          },
+          "coverage" : {
+            "$ref" : "#/components/schemas/MembershipEnergyMetricsCoverageResponse",
+            "description" : "How much of the month is backed by stored records, across every supply of the membership, counted exactly as the aggregated energy metrics count it."
+          },
+          "period" : {
+            "$ref" : "#/components/schemas/SupplyEnergyMetricsPeriodResponse",
+            "description" : "The latest published month the profile was computed over. Both bounds are null when no month could be resolved."
+          }
+        },
+        "required" : [
+          "buckets",
+          "coverage",
+          "period"
+        ],
+        "type" : "object"
+      },
+      "MembershipMonthlyConsumptionBucketResponse" : {
+        "properties" : {
+          "consumptionKWh" : {
+            "description" : "Energy consumed from the grid over the month by every supply of the membership, in kWh. 0 when no supply stored a record.",
+            "example" : 107.75,
+            "type" : "number"
+          },
+          "date" : {
+            "description" : "First day of the month, a local calendar date in the community's time zone.",
+            "example" : "2024/01/01",
+            "type" : "string"
+          },
+          "generationEnergyKWh" : {
+            "description" : "Energy generated and assigned to every supply of the membership over the month, in kWh.",
+            "example" : 63,
+            "type" : "number"
+          },
+          "savingsEur" : {
+            "description" : "Estimated amount the month's self-consumed energy saved across every supply that stored a record, in euros, rounded to cents. Null when no supply stored a record that month: a month with nothing stored is not a month that saved nothing. Unlike the per-supply series, which never reports null here. A supply that did store a record with no self-consumption is a measured zero and makes the amount 0.00, not null. Null exactly when tariffSource is null.",
+            "example" : 6.38,
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "selfConsumptionEnergyKWh" : {
+            "description" : "Energy generated and consumed on site over the month by every supply of the membership, in kWh.",
+            "example" : 42.5,
+            "type" : "number"
+          },
+          "suppliesWithData" : {
+            "description" : "Number of those supplies that stored a monthly record for this month. Measured from stored monthly records, month by month, whereas the aggregated energy metrics measure their suppliesWithData from hourly records over the whole period: same name and intent, different unit, so the two figures are not comparable across endpoints. Below supplyCount, the month is incomplete.",
+            "example" : 2,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "supplyCount" : {
+            "description" : "Number of supplies the member currently owns in the community. The model records no date a supply joined, so the same count applies to every month, including months before a supply started reporting.",
+            "example" : 3,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "surplusEnergyKWh" : {
+            "description" : "Energy exported to the grid over the month by every supply of the membership, in kWh.",
+            "example" : 21.75,
+            "type" : "number"
+          },
+          "tariffSource" : {
+            "description" : "Whether the prices behind savingsEur are the supplies' contracted tariffs or an estimate. A single estimated stretch of any supply makes the whole amount an estimate. Null exactly when savingsEur is null: with no amount there is nothing whose prices to describe.",
+            "enum" : [
+              "REAL_TARIFF",
+              "ESTIMATE"
+            ],
+            "example" : "ESTIMATE",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "time" : {
+            "description" : "Local time the month starts at in the community's time zone: always midnight.",
+            "example" : "00:00",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "consumptionKWh",
+          "date",
+          "generationEnergyKWh",
+          "savingsEur",
+          "selfConsumptionEnergyKWh",
+          "suppliesWithData",
+          "supplyCount",
+          "surplusEnergyKWh",
+          "tariffSource",
+          "time"
+        ],
+        "type" : "object"
+      },
       "MembershipPaybackResponse" : {
         "properties" : {
           "estimatedPrice" : {
@@ -4922,6 +5074,141 @@
         ]
       }
     },
+    "/api/v1/communities/{communityId}/memberships/{userId}/consumption/monthly" : {
+      "get" : {
+        "description" : "For each month of the requested period, the energy and the estimated savings of\n**every** supply the member owns in this community, added up: each figure is the\nsum of what the per-supply monthly series reports for that supply and month.\nSupplies in the member's other communities are not counted.\n\n**Every month is emitted:**\nA bucket is returned for every month in range, in chronological order, whether or\nnot any supply stored a record in it, so the series has a regular time axis. This\ndiffers from the per-supply monthly series, which omits months without a stored\nrecord.\n\n**Time zone and month selection:**\nMonths are local calendar months of the community's time zone, not UTC ones.\n`startDate` and `endDate` are both required and both inclusive, and a month is in\nrange if and only if its local midnight on day 1 falls inside them -- the rule the\nper-supply monthly series selects its pre-aggregated points by. Once in range a\nmonth always carries its whole energy and its whole savings: bounds falling\nmid-month never trim it. Pass the bounds with the zone's offset: a bound expressed\nin UTC can select one month too few or too many.\n\n**Completeness:**\n`supplyCount` is the number of supplies the member **currently** owns in the\ncommunity, and `suppliesWithData` how many of them stored a monthly record that\nmonth. A month with `suppliesWithData` below `supplyCount` is incomplete. The\nmodel records no date a supply joined its community, so the count is the same\nfor every month, and the months before a supply started reporting show as\nincomplete. `suppliesWithData` is measured from stored monthly records, month by\nmonth; the aggregated energy metrics measure theirs from hourly records over the\nwhole period, so the two are not comparable.\n\n**Savings:**\n`savingsEur` is an **estimate** of what the month's self-consumed energy was\nworth, pricing the **energy term before taxes** only, exactly as the per-supply\nseries does. It is `null` when no supply stored a record that month, and only\nthen: a month with nothing stored is a different statement from a month that\nsaved nothing, which reports `0.00` -- as does a month whose stored records carry\nno self-consumption, a measured zero. This differs from the per-supply series,\nwhich reports `0.00` for every bucket it emits. `tariffSource` says where the\nprices came from -- `ESTIMATE` or `REAL_TARIFF` -- and a single estimated supply\nmakes the whole month an estimate; it is `null` exactly when `savingsEur` is.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404: every month in range, with zero totals, null savings and a\n`supplyCount` of 0.\n",
+        "operationId" : "getMembershipMonthlyConsumption",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "First instant of the period, inclusive.",
+            "in" : "query",
+            "name" : "startDate",
+            "required" : true,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "Last instant of the period, inclusive.",
+            "in" : "query",
+            "name" : "endDate",
+            "required" : true,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MembershipMonthlyConsumptionBucketResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Monthly consumption retrieved successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 403,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Retrieves the monthly consumption of every supply of a membership, added up per month.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
     "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics" : {
       "get" : {
         "description" : "Aggregates the consumption data stored for **every** supply the member owns in\nthis community into energy totals and two ratios, on a 0-1 scale. Supplies in the\nmember's other communities are not counted.\n\n- `selfSufficiencyRatio`: self-consumed energy divided by total consumed energy.\n- `selfConsumptionRatio`: self-consumed energy divided by the assigned energy.\n\nEvery supply is computed over the same period, exactly as the per-supply\nenergy-metrics endpoint computes it, and the results are added up: the energy\ntotals are summed across supplies and each ratio is derived **once** from those\nsums, never by averaging the per-supply ratios. A ratio whose summed denominator\nis zero is returned as `null`, never as `0`.\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them.\n\n- `startDate` and `endDate`: an explicit period, with the same semantics as the\n  per-supply endpoint. They must be supplied together, and a `startDate` after\n  the `endDate` is a bad request. **Both bounds are inclusive**: a single\n  calendar day runs from `00:00` to `23:00` of that day.\n- `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in\n  the community's time zone, in which any of the member's supplies has stored\n  assigned production (self-consumed or surplus energy). The distributor\n  publishes a month's assigned production only some days after it ends, so this\n  is not necessarily the previous month: an unpublished previous month is\n  skipped and the search continues backwards through the 24 complete months\n  before the current one. The current month is never a candidate. The period\n  runs from `00:00` of the first day to `23:00` of the last day. Combining it\n  with `startDate` or `endDate` is a bad request.\n- Neither: from the earliest to the latest record stored for any of the member's\n  supplies.\n\nWhen no period can be resolved -- no assigned production in the search window, no\nstored record at all, or no supplies to search -- the response is still\nsuccessful, with null period bounds, zero totals and null ratios.\n\n**Coverage:**\n`coverage.hoursWithData` counts the hourly records found across every supply.\n`coverage.expectedHours` is the number of hours the period spans **times the\nnumber of supplies of the membership**, so a single supply without any record\nlowers coverage even when every other supply is complete. `supplyCount` and\n`suppliesWithData` tell one silent supply apart from gaps spread across all of\nthem. Hours without a record are left out of the sums; they are never counted as\nzero.\n\n**Savings:**\n`savings.amountEur` is an **estimate** of what the self-consumed energy of all\nthe member's supplies was worth, pricing the **energy term before taxes** only,\nexactly as the per-supply endpoint does, and summed before being rounded.\nIt is `null` only when no period could be resolved; whenever a period exists it\nis a figure, `0.00` when nothing was priced. An explicit period always resolves,\nso it never yields `null`. `savings.tariffSource` is `ESTIMATE` when any part of\nany supply was priced with the estimate, and `savings.estimatedPrice` then carries\nthe estimated price; it is `null` when every supply was priced with its contracted\ntariff, and when nothing was priced with the estimate.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404.\n",
@@ -5061,6 +5348,118 @@
           }
         ],
         "summary" : "Retrieves the energy metrics of every supply of a membership, added up.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics/hourly-profile" : {
+      "get" : {
+        "description" : "For each hour of the local day, the average energy consumed and the average\nenergy assigned by **every** supply the member owns in this community, so the\nmember can see at which hours assigned energy goes to waste. Supplies in the\nmember's other communities are not counted.\n\n- `averageConsumptionKWh`: grid import plus self-consumed energy.\n- `averageAssignedProductionKWh`: self-consumed plus surplus energy.\n\n**Period:**\nAlways the latest published month, resolved exactly as the aggregated energy\nmetrics resolve `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar\nmonth, in the community's time zone, in which any of the member's supplies has\nstored assigned production. It **cannot be chosen**: only inside a published month\nis a stored zero a measured zero rather than a value not published yet. The\nresolved bounds are reported in `period`. When no month can be resolved -- no\nassigned production in the search window, or no supplies to search -- the response\nis still successful, with null period bounds and 24 buckets without any sample.\n\n**Buckets:**\nAlways 24, ordered from hour 0 to hour 23. The hour is **local to the community**,\nnot UTC: each record falls in the bucket of its hour of the day in the community's\ntime zone.\n\n**Averages:**\nEvery record of every supply and every day of the month counts as one sample of\nits hour, and each average **divides by the records found**: never by the days of\nthe month, and never by averaging per-supply averages. Each series has its own\nsample count, `consumptionSampleCount` and `assignedProductionSampleCount`, and the\ntwo can differ, since a record can carry consumption without carrying assigned\nproduction. An average is `null` when its hour has no sample of that series, which\nis never the same as `0`: an hour whose samples are all zero, such as a night hour\nof assigned production, averages `0`.\n\n**Daylight saving:**\nThe counts are sample counts, not day counts, and no hour is corrected. On the\nOctober transition day the repeated local hour holds two samples of that day; on\nthe March transition day the skipped local hour holds none. No bucket is ever\nshifted.\n\n**Coverage:**\n`coverage` is counted exactly as in the aggregated energy metrics:\n`coverage.expectedHours` is the number of hours the month spans **times the number\nof supplies of the membership**, so missing records -- including days of a month\npublished piecemeal -- show up as `hoursWithData` below `expectedHours`.\n`supplyCount` and `suppliesWithData` tell one silent supply apart from gaps spread\nacross all of them.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404.\n",
+        "operationId" : "getMembershipHourlyProfile",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MembershipHourlyProfileResponse"
+                }
+              }
+            },
+            "description" : "Hourly profile retrieved successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 403,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Retrieves the average day of every supply of a membership over its latest published month.",
         "tags" : [
           "Memberships"
         ]
