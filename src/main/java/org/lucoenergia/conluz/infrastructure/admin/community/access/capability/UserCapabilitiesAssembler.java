@@ -52,6 +52,10 @@ public class UserCapabilitiesAssembler {
     /**
      * For a user whose memberships are already attached — the security principal, and anything that
      * came through {@code GetUserService}. Issues no query.
+     *
+     * <p>The attached memberships must be the target's <em>full</em> set: the rules read them to
+     * decide. A response that shows the caller fewer of them (a {@code UserScope}) narrows them after
+     * this has run, never before.</p>
      */
     public UserCapabilitiesResponse assembleWithLoadedMemberships(User caller, User target) {
         return assemble(caller, target.getId(), attachedMembershipsOf(target));
@@ -59,6 +63,7 @@ public class UserCapabilitiesAssembler {
 
     /**
      * For a page of users whose memberships are already attached, keyed by user id. Issues no query.
+     * As {@link #assembleWithLoadedMemberships(User, User)}, the memberships must be the full set.
      */
     public Map<UUID, UserCapabilitiesResponse> assembleAllWithLoadedMemberships(User caller, List<User> targets) {
         Map<UUID, UserCapabilitiesResponse> byUserId = new LinkedHashMap<>();

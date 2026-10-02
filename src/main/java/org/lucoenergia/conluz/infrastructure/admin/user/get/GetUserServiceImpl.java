@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserService;
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.Direction;
 import org.lucoenergia.conluz.domain.shared.pagination.Order;
@@ -16,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 @Transactional(readOnly = true)
@@ -42,15 +42,15 @@ public class GetUserServiceImpl implements GetUserService {
     }
 
     @Override
-    public PagedResult<User> findAllByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds) {
-        if (communityIds == null) {
+    public PagedResult<User> findAllVisible(PagedRequest pagedRequest, UserScope scope) {
+        if (scope.isUnrestricted()) {
             return findAll(pagedRequest);
         }
         if (!pagedRequest.isSorted()) {
             final Order defaultOrder = new Order(Direction.ASC, "number");
             pagedRequest.addOrder(defaultOrder);
         }
-        return withMemberships(getUserRepository.findAllByCommunities(pagedRequest, communityIds));
+        return withMemberships(getUserRepository.findAllVisible(pagedRequest, scope.selfId(), scope.communityIds()));
     }
 
     @Override
@@ -63,7 +63,8 @@ public class GetUserServiceImpl implements GetUserService {
 
     /**
      * Enriches a page of users with their community memberships using a single batch query,
-     * avoiding N+1 lookups. Users without memberships get an empty list.
+     * avoiding N+1 lookups. Users without memberships get an empty list. Always every membership:
+     * the capabilities are decided on them, so any narrowing belongs to the response.
      */
     private PagedResult<User> withMemberships(PagedResult<User> users) {
         List<UUID> userIds = users.getItems().stream()

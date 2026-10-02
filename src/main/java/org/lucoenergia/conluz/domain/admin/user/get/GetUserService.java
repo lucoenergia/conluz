@@ -5,14 +5,16 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
-import java.util.Set;
-import java.util.UUID;
-
 public interface GetUserService {
 
     PagedResult<User> findAll(PagedRequest pagedRequest);
 
-    PagedResult<User> findAllByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds);
+    /**
+     * Retrieves the users within the given scope, as decided by the access policy, each with every one
+     * of their memberships attached. Bounding which memberships a response may show is left to the
+     * response, after anything that decides on the full memberships has run.
+     */
+    PagedResult<User> findAllVisible(PagedRequest pagedRequest, UserScope scope);
 
     User findById(UserId id);
 }

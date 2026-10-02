@@ -133,6 +133,11 @@ final class CapabilityInventory {
                 "As visibleCommunityIds: it bounds which of a user's supplies the listing returns, "
                         + "after canListSuppliesOfUser -- reported as user.canListSupplies -- has let "
                         + "the request through. Each returned supply carries its own capabilities.");
+        serverOnly("visibleUsers",
+                "As visibleCommunityIds: it bounds which users GET /users returns, and which of their "
+                        + "memberships each row carries, after canListUsers -- reported as "
+                        + "platform.canListUsers -- has let the request through. Each returned user "
+                        + "carries its own capabilities.");
         serverOnly("isCurrentUser",
                 "A fact the client already has -- it knows who it is. The rules that care about it "
                         + "(canDeleteUser and friends) fold it in and are reported themselves.");

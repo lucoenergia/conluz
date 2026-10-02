@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.access.policy.UserAccessPol
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 import org.lucoenergia.conluz.domain.shared.UserId;
 
 import java.util.List;
@@ -96,6 +97,12 @@ class UserAccessGuardImpl implements UserAccessGuard {
         }
         // Never throws: there is no object whose existence could leak.
         return policy.canList(user).isAllowed();
+    }
+
+    @Override
+    public UserScope visibleUsers() {
+        // An absent caller yields the empty scope: CallerMemberships answers "nobody" for null.
+        return policy.visibleUsers(helper.getCurrentUser().orElse(null));
     }
 
     private boolean canEditSomeoneElse(UUID userId) {

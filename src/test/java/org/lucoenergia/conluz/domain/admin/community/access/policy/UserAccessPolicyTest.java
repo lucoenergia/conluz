@@ -5,8 +5,12 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -359,5 +363,147 @@ class UserAccessPolicyTest {
             calls.incrementAndGet();
             return List.of();
         };
+    }
+
+    // --- visibleUsers ---
+    // The set form of canSee. The equivalence tests below are what make "a listing never carries a
+    // user, or a membership, the caller could not read directly" a property of the policy.
+
+    @Test
+    void visibleUsers_isEveryone_forAPlatformAdmin() {
+        assertEquals(UserScope.all(), policy.visibleUsers(PolicyFixtures.platformAdmin()));
+    }
+
+    @Test
+    void visibleUsers_isThemselvesAndTheAdministeredCommunity_forAnAdminOfOneCommunity() {
+        Community a = PolicyFixtures.community();
+        User caller = PolicyFixtures.adminOf(a);
+        assertEquals(UserScope.visibleTo(caller.getId(), Set.of(a.getId())), policy.visibleUsers(caller));
+    }
+
+    @Test
+    void visibleUsers_leavesOutACommunityTheCallerOnlyBelongsTo() {
+        Community a = PolicyFixtures.community();
+        Community b = PolicyFixtures.community();
+        User caller = withMemberships(
+                PolicyFixtures.membershipIn(a, CommunityRole.COMMUNITY_ADMIN, true),
+                PolicyFixtures.membershipIn(b, CommunityRole.COMMUNITY_MEMBER, true));
+        assertEquals(UserScope.visibleTo(caller.getId(), Set.of(a.getId())), policy.visibleUsers(caller));
+    }
+
+    @Test
+    void visibleUsers_isEveryAdministeredCommunity_forAnAdminOfSeveral() {
+        Community a = PolicyFixtures.community();
+        Community b = PolicyFixtures.community();
+        User caller = withMemberships(
+                PolicyFixtures.membershipIn(a, CommunityRole.COMMUNITY_ADMIN, true),
+                PolicyFixtures.membershipIn(b, CommunityRole.COMMUNITY_ADMIN, true));
+        assertEquals(UserScope.visibleTo(caller.getId(), Set.of(a.getId(), b.getId())), policy.visibleUsers(caller));
+    }
+
+    @Test
+    void visibleUsers_isOnlyThemselves_forACallerWhoAdministersNothing() {
+        User caller = PolicyFixtures.memberOf(PolicyFixtures.community());
+        assertEquals(UserScope.visibleTo(caller.getId(), Set.of()), policy.visibleUsers(caller));
+    }
+
+    @Test
+    void visibleUsers_isNobody_forAnAbsentCaller() {
+        assertEquals(UserScope.visibleTo(null, Set.of()), policy.visibleUsers(null));
+    }
+
+    @Test
+    void visibleUsers_includesExactlyTheUsersCanSeeAllows() {
+        Matrix matrix = new Matrix();
+
+        int included = 0;
+        int excluded = 0;
+        for (Map.Entry<String, User> caller : matrix.callers.entrySet()) {
+            UserScope scope = policy.visibleUsers(caller.getValue());
+            for (Map.Entry<String, User> user : matrix.users.entrySet()) {
+                User target = user.getValue();
+                boolean visible = policy.canSee(caller.getValue(), target.getId(), target::getMemberships);
+                assertEquals(visible, scope.includes(target),
+                        caller.getKey() + ", user " + user.getKey() + ": scope " + scope
+                                + " disagrees with canSee=" + visible);
+                if (visible) included++; else excluded++;
+            }
+        }
+        // Both outcomes must occur, or the agreement above proves nothing.
+        assertTrue(included > 0 && excluded > 0, "included=" + included + ", excluded=" + excluded);
+    }
+
+    @Test
+    void visibleUsers_showsExactlyTheMembershipsTheCallerCouldReadDirectly() {
+        // A membership can be read directly by the user it belongs to (GET /users/current) or by
+        // whoever may list that community's memberships (canManageMemberships). The scope must
+        // admit, on every row it lets through, exactly those.
+        MembershipAccessPolicy membershipPolicy = new MembershipAccessPolicy();
+        Matrix matrix = new Matrix();
+
+        int shown = 0;
+        int hidden = 0;
+        for (Map.Entry<String, User> caller : matrix.callers.entrySet()) {
+            UserScope scope = policy.visibleUsers(caller.getValue());
+            for (Map.Entry<String, User> user : matrix.users.entrySet()) {
+                User target = user.getValue();
+                if (!scope.includes(target)) {
+                    continue;
+                }
+                for (CommunityMembership membership : target.getMemberships()) {
+                    boolean readable = CallerMemberships.isCurrentUser(caller.getValue(), target.getId())
+                            || membershipPolicy.canManageMemberships(caller.getValue(),
+                            membership.getCommunity().getId()).isAllowed();
+                    assertEquals(readable, scope.includesMembershipOf(target, membership),
+                            caller.getKey() + ", user " + user.getKey() + ", membership in "
+                                    + membership.getCommunity().getId() + ": scope " + scope
+                                    + " disagrees with readable=" + readable);
+                    if (readable) shown++; else hidden++;
+                }
+            }
+        }
+        assertTrue(shown > 0 && hidden > 0, "shown=" + shown + ", hidden=" + hidden);
+    }
+
+    /**
+     * Callers and users across communities A and B. The user "in A and B" is also a caller, so the
+     * self branch is exercised by a caller who administers nothing.
+     */
+    private static final class Matrix {
+        final Map<String, User> callers = new LinkedHashMap<>();
+        final Map<String, User> users = new LinkedHashMap<>();
+
+        Matrix() {
+            Community a = PolicyFixtures.community();
+            Community b = PolicyFixtures.community();
+
+            users.put("in A", PolicyFixtures.memberOf(a));
+            users.put("in B", PolicyFixtures.memberOf(b));
+            users.put("in A and B", withMemberships(
+                    PolicyFixtures.membershipIn(a, CommunityRole.COMMUNITY_MEMBER, true),
+                    PolicyFixtures.membershipIn(b, CommunityRole.COMMUNITY_MEMBER, true)));
+            users.put("in no community", PolicyFixtures.stranger());
+            users.put("disabled in A", PolicyFixtures.disabledMemberOf(a));
+
+            callers.put("platform admin", PolicyFixtures.platformAdmin());
+            callers.put("platform admin, member of A", PolicyFixtures.platformAdminMemberOf(a));
+            callers.put("admin of A", PolicyFixtures.adminOf(a));
+            callers.put("admin of A and B", withMemberships(
+                    PolicyFixtures.membershipIn(a, CommunityRole.COMMUNITY_ADMIN, true),
+                    PolicyFixtures.membershipIn(b, CommunityRole.COMMUNITY_ADMIN, true)));
+            callers.put("admin of A, member of B", withMemberships(
+                    PolicyFixtures.membershipIn(a, CommunityRole.COMMUNITY_ADMIN, true),
+                    PolicyFixtures.membershipIn(b, CommunityRole.COMMUNITY_MEMBER, true)));
+            callers.put("plain member of A", PolicyFixtures.memberOf(a));
+            callers.put("disabled admin of A", PolicyFixtures.disabledAdminOf(a));
+            callers.put("the user in A and B", users.get("in A and B"));
+            callers.put("stranger", PolicyFixtures.stranger());
+        }
+    }
+
+    private static User withMemberships(CommunityMembership... memberships) {
+        User user = PolicyFixtures.stranger();
+        user.setMemberships(List.of(memberships));
+        return user;
     }
 }

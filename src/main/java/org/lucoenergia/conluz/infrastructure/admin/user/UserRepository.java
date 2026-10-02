@@ -24,6 +24,17 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("SELECT u FROM users u WHERE EXISTS(SELECT s FROM supplies s WHERE s.user = u)")
     List<UserEntity> findAllUsersWithAtLeastOneSupply();
 
-    @Query("SELECT DISTINCT u FROM users u JOIN community_memberships m ON m.user = u WHERE m.community.id IN :communityIds AND m.enabled = true")
-    Page<UserEntity> findAllByCommunityIdIn(@Param("communityIds") Collection<UUID> communityIds, Pageable pageable);
+    /**
+     * The given user plus every user with an enabled membership in any of the given communities, in
+     * one statement however many communities there are. A filter rather than a join, so each user
+     * appears once and the given user sorts among the others. {@code communityIds} must not be empty:
+     * {@code IN ()} is not valid SQL.
+     */
+    @Query("SELECT u FROM users u WHERE u.id = :selfId OR EXISTS (SELECT 1 FROM community_memberships m "
+            + "WHERE m.user = u AND m.enabled = true AND m.community.id IN :communityIds)")
+    Page<UserEntity> findAllVisible(@Param("selfId") UUID selfId,
+                                    @Param("communityIds") Collection<UUID> communityIds,
+                                    Pageable pageable);
+
+    Page<UserEntity> findByIdIn(Collection<UUID> ids, Pageable pageable);
 }
