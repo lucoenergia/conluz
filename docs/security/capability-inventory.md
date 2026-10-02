@@ -213,6 +213,8 @@ what `GET /communities/{communityId}/memberships` would show them. A row no long
 role in a community the caller has nothing to administer. The capabilities on the row are assembled
 from the user's **full** memberships *before* the response narrows them, so the narrowing cannot move
 any of them.
+`GET /users/{userId}` narrows its `memberships` by the same scope, so asking for the user directly
+does not reveal what the listing withholds.
 
 `canEdit` is `false` for an ordinary member reading their own record, on purpose: name, DNI and
 member number are an administrative change, and contact details go through `PUT /users/profile`.

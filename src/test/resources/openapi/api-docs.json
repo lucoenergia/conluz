@@ -13137,7 +13137,7 @@
         ]
       },
       "get" : {
-        "description" : "This endpoint retrieves detailed information about a specific user by their unique identifier.\n\n**Required: Platform Admin, Community Admin, or the user themselves**\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "This endpoint retrieves detailed information about a specific user by their unique identifier.\n\n**Required: Platform Admin, Community Admin, or the user themselves**\n\n**What `memberships` contains:** platform admins see every membership, and a user reading\nthemselves sees all of their own; otherwise only the memberships in communities the\ncaller administers.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "getUserById",
         "parameters" : [
           {

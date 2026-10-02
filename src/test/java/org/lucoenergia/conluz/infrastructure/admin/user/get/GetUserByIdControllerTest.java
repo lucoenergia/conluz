@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -41,6 +42,8 @@ class GetUserByIdControllerTest extends BaseControllerTest {
     private CommunityJpaRepository communityJpaRepository;
     @Autowired
     private CommunityMembershipJpaRepository communityMembershipJpaRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
 
     @Test
     void testGetUserById_shouldReturnMemberships() throws Exception {
@@ -148,6 +151,59 @@ class GetUserByIdControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+    }
+
+    // --- #336: memberships are limited to what the caller could read directly ---
+
+    @Test
+    void testGetUserById_anAdminOfOneCommunitySeesOnlyThatCommunitysMembership() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+        String adminOfA = loginAsCommunityAdmin(target.communityA.getId());
+
+        mockMvc.perform(get(String.format("/api/v1/users/%s", target.user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, adminOfA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberships.length()").value(1))
+                .andExpect(jsonPath("$.memberships['" + target.communityA.getId() + "']")
+                        .value(CommunityRole.COMMUNITY_MEMBER.name()))
+                // Decided on the full memberships, before the response narrowed them.
+                .andExpect(jsonPath("$.capabilities.canEdit").value(true));
+    }
+
+    @Test
+    void testGetUserById_aPlatformAdminSeesEveryMembership() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+
+        mockMvc.perform(get(String.format("/api/v1/users/%s", target.user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberships.length()").value(2))
+                .andExpect(jsonPath("$.memberships['" + target.communityB.getId() + "']")
+                        .value(CommunityRole.COMMUNITY_ADMIN.name()));
+    }
+
+    @Test
+    void testGetUserById_aUserReadingThemselvesSeesEveryOneOfTheirMemberships() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+
+        mockMvc.perform(get(String.format("/api/v1/users/%s", target.user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(target.user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberships.length()").value(2));
+    }
+
+    private record TwoCommunityMember(User user, Community communityA, Community communityB) {
+    }
+
+    private TwoCommunityMember twoCommunityMember() {
+        Community communityA = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityB = createCommunityRepository.create(CommunityMother.random().build());
+        User user = UserMother.randomUser();
+        user.enable();
+        createUserRepository.create(user);
+        createMembershipService.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipService.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        return new TwoCommunityMember(user, communityA, communityB);
     }
 
     private void createMembership(User user, Community community, CommunityRole role) {
