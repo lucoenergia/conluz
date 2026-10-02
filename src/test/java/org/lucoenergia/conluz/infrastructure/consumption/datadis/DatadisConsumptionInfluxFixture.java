@@ -93,6 +93,18 @@ public class DatadisConsumptionInfluxFixture {
         }
     }
 
+    /**
+     * Removes the monthly pre-aggregates of the CUPS, for tests that build them through the
+     * production aggregation from the hourly records they write.
+     */
+    public void clearMonthlyAggregates(String cups) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            connection.query(new Query(String.format(
+                    "DROP SERIES FROM \"%s\" WHERE \"cups\" = '%s'",
+                    DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT, cups)));
+        }
+    }
+
     public void clear(String cups) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             connection.query(new Query(String.format(

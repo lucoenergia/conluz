@@ -192,5 +192,18 @@ number resolves years later from a fresh clone.
 invented. If the issue does not exist yet, ask for it: a temporary exemption with no issue behind it
 is a permanent one.
 
+### Never create a branch
+
+**Do not run `git checkout -b`, `git branch`, `git switch -c` or `git worktree add`.** Branches are
+created by a human, usually from the right remote base and often before the work is handed over.
+
+Work on the branch that is already checked out. If the task needs a branch that is not there:
+**stop and ask for it by name**, saying which base it should come from. Do not create it "to
+unblock yourself" — that is the slowest option available, not the fastest.
+
+The same staleness rule applies to reading git facts at all: establish them from `git fetch` plus
+`git ls-remote` or `origin/<branch>`, never from a local branch ref that may not have moved in
+weeks.
+
 ## PR description
 Once every work finishes on a branch, generate a PR description in english and markdown format ready to be pasted in GitHub. Generate it in a file on /tmp folder and give me the full path to the file.
