@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.access;
 
+import org.lucoenergia.conluz.domain.admin.supply.get.SupplyOwnerScope;
+
 import java.util.UUID;
 
 public interface SupplyAccessGuard {
@@ -25,4 +27,12 @@ public interface SupplyAccessGuard {
      * unknown supplies are simply {@code false}.
      */
     boolean isCommunityAdminOfSupply(UUID supplyId);
+
+    /**
+     * Which of the given user's supplies the current user may see, as a scope for a listing query
+     * rather than a decision about one object. It does not decide whether the request proceeds —
+     * {@code canListSuppliesOfUser} does — it bounds what a permitted request returns, so a listing
+     * never carries a supply {@link #canReadSupply(UUID)} would answer 404 on. Never throws.
+     */
+    SupplyOwnerScope visibleSuppliesOfUser(UUID userId);
 }

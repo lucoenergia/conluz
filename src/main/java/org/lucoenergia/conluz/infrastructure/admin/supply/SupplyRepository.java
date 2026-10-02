@@ -59,25 +59,33 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
     Page<SupplyEntity> findAllWithAssociations(Pageable pageable);
 
     /**
-     * Supplies owned by the given user, with the mapped associations fetched.
+     * Supplies belonging to the given community (paginated), with the mapped associations fetched.
      */
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     Page<SupplyEntity> findByCommunityId(UUID communityId, Pageable pageable);
 
+    /**
+     * Supplies owned by the given user, with the mapped associations fetched.
+     */
     @Query("SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE u.id = :userId")
     List<SupplyEntity> findByUserIdWithAssociations(@Param("userId") UUID userId);
 
     /**
-     * Supplies belonging to the given community, with the mapped associations fetched.
+     * Supplies owned by the given user within the given community (paginated), with the mapped
+     * associations fetched.
      */
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     Page<SupplyEntity> findByUserIdAndCommunityId(UUID userId, UUID communityId, Pageable pageable);
 
+    /**
+     * Supplies belonging to the given community, with the mapped associations fetched.
+     */
     @Query("SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE c.id = :communityId")
     List<SupplyEntity> findByCommunityIdWithAssociations(@Param("communityId") UUID communityId);
 
     /**
-     * Supplies belonging to the given community (paginated), with the mapped associations fetched.
+     * Supplies owned by the given user within the given community, with the mapped associations
+     * fetched.
      */
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     List<SupplyEntity> findByUserIdAndCommunityId(UUID userId, UUID communityId);
@@ -93,6 +101,15 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
     @Query("SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE u.id = :userId AND c.id = :communityId")
     List<SupplyEntity> findByUserIdAndCommunityIdWithAssociations(@Param("userId") UUID userId,
                                                                   @Param("communityId") UUID communityId);
+
+    /**
+     * Supplies owned by the given user within any of the given communities, with the mapped
+     * associations fetched. One statement however many communities there are. {@code communityIds}
+     * must not be empty: {@code IN ()} is not valid SQL.
+     */
+    @Query("SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE u.id = :userId AND c.id IN :communityIds")
+    List<SupplyEntity> findByUserIdAndCommunityIdInWithAssociations(@Param("userId") UUID userId,
+                                                                    @Param("communityIds") Collection<UUID> communityIds);
 
     /**
      * Supplies owned by the given user within the given community (paginated), with the mapped

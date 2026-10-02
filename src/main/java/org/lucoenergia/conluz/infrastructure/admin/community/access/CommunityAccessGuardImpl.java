@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.access.policy.CommunityAcce
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.SupplyOwnerScope;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
@@ -53,6 +54,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canEditSupply(UUID supplyId) {
         return supplyAccessGuard.canEditSupply(supplyId);
+    }
+
+    @Override
+    public SupplyOwnerScope visibleSuppliesOfUser(UUID userId) {
+        return supplyAccessGuard.visibleSuppliesOfUser(userId);
     }
 
     @Override

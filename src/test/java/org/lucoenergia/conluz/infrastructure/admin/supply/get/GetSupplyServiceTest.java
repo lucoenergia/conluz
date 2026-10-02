@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
+import org.lucoenergia.conluz.domain.admin.supply.get.SupplyOwnerScope;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -13,6 +14,7 @@ import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,7 +30,7 @@ class GetSupplyServiceTest {
     private final GetSupplyService service = new GetSupplyServiceImpl(repository);
 
     @Test
-    void getByUserId_returnsSuppliesFromRepository() {
+    void getByUserId_returnsEverySupply_whenTheScopeIsUnrestricted() {
         UUID userId = UUID.randomUUID();
         UserId userIdValue = UserId.of(userId);
 
@@ -43,11 +45,28 @@ class GetSupplyServiceTest {
         List<Supply> expectedSupplies = Arrays.asList(supply1, supply2);
         when(repository.findByUserId(userIdValue)).thenReturn(expectedSupplies);
 
-        List<Supply> result = service.getByUserId(userIdValue);
+        List<Supply> result = service.getByUserId(userIdValue, SupplyOwnerScope.all());
 
         assertEquals(2, result.size());
         assertEquals(expectedSupplies, result);
         verify(repository).findByUserId(userIdValue);
+        verify(repository, never()).findByUserIdAndCommunityIds(any(), any());
+    }
+
+    @Test
+    void getByUserId_queriesOnlyTheScopedCommunities_whenTheScopeIsRestricted() {
+        UserId userId = UserId.of(UUID.randomUUID());
+        Set<UUID> communityIds = Set.of(UUID.randomUUID(), UUID.randomUUID());
+        List<Supply> expected = List.of(new Supply.Builder()
+                .withId(UUID.randomUUID()).withCode("ES001").withName("Supply 1")
+                .withAddress("Address 1").withEnabled(true).build());
+        when(repository.findByUserIdAndCommunityIds(userId, communityIds)).thenReturn(expected);
+
+        List<Supply> result = service.getByUserId(userId, SupplyOwnerScope.inCommunities(communityIds));
+
+        assertEquals(expected, result);
+        verify(repository).findByUserIdAndCommunityIds(userId, communityIds);
+        verify(repository, never()).findByUserId(any());
     }
 
     @Test

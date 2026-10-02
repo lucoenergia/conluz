@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.community.access.policy.SupplyAccessP
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.SupplyOwnerScope;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 
@@ -64,6 +65,12 @@ class SupplyAccessGuardImpl implements SupplyAccessGuard {
         }
         // Never throws: the policy has no not-visible outcome for this question.
         return policy.isCommunityAdminOfSupply(user, findSupply(supplyId)).isAllowed();
+    }
+
+    @Override
+    public SupplyOwnerScope visibleSuppliesOfUser(UUID userId) {
+        // An absent caller yields the empty scope: CallerMemberships answers "nobody" for null.
+        return policy.visibleSuppliesOwnedBy(helper.getCurrentUser().orElse(null), userId);
     }
 
     private boolean resolve(AccessDecision decision, UUID supplyId) {

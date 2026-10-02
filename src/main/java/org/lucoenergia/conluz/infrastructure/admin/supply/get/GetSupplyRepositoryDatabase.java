@@ -105,6 +105,15 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
     }
 
     @Override
+    public List<Supply> findByUserIdAndCommunityIds(UserId userId, Set<UUID> communityIds) {
+        if (communityIds.isEmpty()) {
+            return List.of();
+        }
+        return supplyEntityMapper.mapList(
+                supplyRepository.findByUserIdAndCommunityIdInWithAssociations(userId.getId(), communityIds));
+    }
+
+    @Override
     public List<Supply> findAllByCommunityId(UUID communityId) {
         return supplyEntityMapper.mapList(supplyRepository.findByCommunityIdWithAssociations(communityId));
     }

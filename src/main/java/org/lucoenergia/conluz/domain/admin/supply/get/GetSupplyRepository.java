@@ -51,5 +51,11 @@ public interface GetSupplyRepository {
 
     List<Supply> findByUserId(UserId userId);
 
+    /**
+     * Supplies owned by the given user whose community is one of {@code communityIds}, in one
+     * query. An empty set yields an empty list.
+     */
+    List<Supply> findByUserIdAndCommunityIds(UserId userId, Set<UUID> communityIds);
+
     List<Supply> findAllByCommunityId(UUID communityId);
 }

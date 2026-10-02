@@ -113,6 +113,38 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     }
 
     @Test
+    void listingAUsersSuppliesCostsTheSameWhateverTheNumberOfCommunitiesInScope() throws Exception {
+        // The scope is applied in one IN query, not one lookup per administered community: one supply
+        // in one community must cost what five supplies spread over three communities cost.
+        List<Community> communities = List.of(
+                createCommunityRepository.create(CommunityMother.random().build()),
+                createCommunityRepository.create(CommunityMother.random().build()),
+                createCommunityRepository.create(CommunityMother.random().build()));
+        User admin = UserMother.randomUser();
+        admin.enable();
+        createUserRepository.create(admin);
+        User owner = persistUser();
+        for (Community community : communities) {
+            createMembershipService.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+            createMembershipService.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        }
+        String adminToken = loginUser(admin);
+        String url = "/api/v1/users/" + owner.getId() + "/supplies";
+
+        persistSupplyOwnedBy(owner, communities.get(0));
+        long forOne = statementsFor(url, adminToken);
+
+        persistSupplyOwnedBy(owner, communities.get(0));
+        persistSupplyOwnedBy(owner, communities.get(1));
+        persistSupplyOwnedBy(owner, communities.get(1));
+        persistSupplyOwnedBy(owner, communities.get(2));
+        long forFiveAcrossThree = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFiveAcrossThree,
+                "scoping a user's supplies must not issue a query per community or per supply");
+    }
+
+    @Test
     void listingACommunitysPlantsCostsTheSameForOneAndForFive() throws Exception {
         String memberToken = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
         String url = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/plants";
@@ -273,6 +305,10 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         for (int i = 0; i < count; i++) {
             createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()));
         }
+    }
+
+    private void persistSupplyOwnedBy(User owner, Community community) {
+        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()), community.getId());
     }
 
     private void persistPlants(int count) {
