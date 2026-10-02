@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
@@ -143,14 +144,10 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     }
 
     /**
-     * The bucket's self-consumption as a double. Widening the float directly would carry its binary
-     * error into digits the caller never sees -- {@code 2.37f} widens to {@code 2.3700001239776611}
-     * -- so the value is read back through the float's shortest decimal representation, which is
-     * the very text the response carries.
+     * The bucket's self-consumption as a double, read exactly as Datadis reported it.
      */
     private double selfConsumptionOf(DatadisConsumption consumption) {
-        Float selfConsumption = consumption.getSelfConsumptionEnergyKWh();
-        return selfConsumption == null ? 0d : Double.parseDouble(selfConsumption.toString());
+        return DatadisEnergyValues.exactlyAsReported(consumption.getSelfConsumptionEnergyKWh()).doubleValue();
     }
 
     private static Instant latest(Instant left, Instant right) {
