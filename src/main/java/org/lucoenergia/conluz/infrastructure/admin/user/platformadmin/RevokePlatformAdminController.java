@@ -89,7 +89,7 @@ public class RevokePlatformAdminController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("hasRole('PLATFORM_ADMIN') and !@communityAccessGuard.isCurrentUser(#userId)")
+    @PreAuthorize("@communityAccessGuard.canRevokePlatformAdmin(#userId)")
     public void revokePlatformAdmin(@PathVariable("userId") UUID userId) {
         service.revoke(UserId.of(userId));
     }

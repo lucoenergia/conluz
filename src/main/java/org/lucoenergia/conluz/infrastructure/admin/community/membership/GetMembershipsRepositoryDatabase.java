@@ -48,7 +48,7 @@ public class GetMembershipsRepositoryDatabase implements GetMembershipsRepositor
 
     @Override
     public List<CommunityMembership> findByUserId(UUID userId) {
-        return membershipJpaRepository.findByUserId(userId).stream()
+        return membershipJpaRepository.findByUserIdWithCommunityAndUser(userId).stream()
                 .map(e -> toDomain(e, e.getCommunity() != null ? communityEntityMapper.map(e.getCommunity()) : null))
                 .toList();
     }

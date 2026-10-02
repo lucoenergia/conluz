@@ -31,7 +31,9 @@ public class SupplyExceptionHandler {
 
         String identifier;
         if (e.getId() != null) {
-            identifier = e.getId().getId().toString();
+            // String.valueOf: SupplyId.of(null) is legal, and a dereference here would turn this
+            // 404 into a 500.
+            identifier = String.valueOf(e.getId().getId());
         } else {
             identifier = e.getCode().getCode();
         }

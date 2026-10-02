@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -22,6 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
+import java.util.Objects;
+import java.util.Map;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Get supplies for a specific user
@@ -31,9 +39,18 @@ import java.util.UUID;
 public class GetSuppliesByUserIdController {
 
     private final GetSupplyService supplyService;
+    private final CommunityAccessGuard communityAccessGuard;
+    private final SupplyCapabilitiesAssembler capabilitiesAssembler;
+    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
 
-    public GetSuppliesByUserIdController(GetSupplyService supplyService) {
+    public GetSuppliesByUserIdController(GetSupplyService supplyService,
+                                         CommunityAccessGuard communityAccessGuard,
+                                         SupplyCapabilitiesAssembler capabilitiesAssembler,
+                                         UserCapabilitiesAssembler userCapabilitiesAssembler) {
         this.supplyService = supplyService;
+        this.communityAccessGuard = communityAccessGuard;
+        this.capabilitiesAssembler = capabilitiesAssembler;
+        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
     }
 
     @GetMapping("/{userId}/supplies")
@@ -45,6 +62,12 @@ public class GetSuppliesByUserIdController {
                     **Authorization Rules:**
                     - Community Admins (of the target user's community) can retrieve supplies for that user
                     - A user can retrieve their own supplies
+                    - Being a Platform Admin is **not** sufficient: these are supplies, and a Platform Admin
+                      who administers none of the user's communities cannot read them one by one either
+
+                    **What the listing contains:** only the supplies the caller may read one by one
+                    (`GET /api/v1/supplies/{supplyId}`) — all of them for the user themselves, otherwise only
+                    those in the communities the caller administers.
 
                     Authentication is required using a Bearer token.
                     """,
@@ -64,12 +87,28 @@ public class GetSuppliesByUserIdController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canReadUser(#userId)")
-    public List<SupplyResponse> getSuppliesByUserId(@PathVariable("userId") UUID userId) {
-        List<Supply> supplies = supplyService.getByUserId(UserId.of(userId));
+    @PreAuthorize("@communityAccessGuard.canListSuppliesOfUser(#userId)")
+    public List<SupplyResponse> getSuppliesByUserId(@AuthenticationPrincipal User currentUser,
+                                                    @PathVariable("userId") UUID userId) {
+        // The guard decided the caller may ask; the scope bounds what they get, so the listing
+        // never carries a supply GET /supplies/{supplyId} would answer 404 on for them.
+        List<Supply> supplies = supplyService.getByUserId(UserId.of(userId),
+                communityAccessGuard.visibleSuppliesOfUser(userId));
+
+        // One query for every owner on this page, not one per supply: the owners embedded in a
+        // supply carry no memberships, and the rules deciding what may be done with them need those.
+        Map<UUID, UserCapabilitiesResponse> ownerCapabilities =
+                userCapabilitiesAssembler.assembleAllFetchingMemberships(currentUser,
+                        supplies.stream().map(Supply::getUser).filter(Objects::nonNull).toList());
 
         return supplies.stream()
-                .map(SupplyResponse::new)
+                .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
+                        ownerCapabilitiesOf(supply, ownerCapabilities)))
                 .toList();
+    }
+
+    private UserCapabilitiesResponse ownerCapabilitiesOf(Supply supply,
+                                                         Map<UUID, UserCapabilitiesResponse> byUserId) {
+        return supply.getUser() == null ? null : byUserId.get(supply.getUser().getId());
     }
 }

@@ -58,7 +58,7 @@ public class DisableUserController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("@communityAccessGuard.canEditUser(#userId) and !@communityAccessGuard.isCurrentUser(#userId)")
+    @PreAuthorize("@communityAccessGuard.canDisableUser(#userId)")
     public void disableUser(@PathVariable("userId") UUID userId) {
         service.disable(UserId.of(userId));
     }

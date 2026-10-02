@@ -150,4 +150,22 @@ class DeleteUserControllerTest extends BaseControllerTest {
         // The default admin still exists.
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(PERSONAL_ID)));
     }
+    @Test
+    void testCannotActOnOwnAccount() throws Exception {
+        // Nobody may delete themselves, platform admin included: the guard settles the edit
+        // decision first and then refuses because the target is the caller -- a 403, not a 404.
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        User self = getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).get();
+
+        mockMvc.perform(delete(String.format("/api/v1/users/%s", self.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+
+        // The account is still there.
+        Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).isPresent());
+    }
 }

@@ -29,6 +29,14 @@ public interface PlantAccessGuard {
     boolean canManageSharingAgreement(UUID plantId);
 
     /**
+     * Whether the current user may list the sharing agreements of the given plant. The same decision
+     * as {@link #canManageSharingAgreement(UUID)} today, kept separate on purpose so a listing rule
+     * and a creation rule can diverge later without touching call sites, mirroring
+     * {@link #canReadSharingAgreement(UUID, UUID)}.
+     */
+    boolean canListSharingAgreements(UUID plantId);
+
+    /**
      * Whether the current user may patch, delete or publish the given sharing agreement, which
      * must belong to the given plant. Only community admins of the plant's community.
      */

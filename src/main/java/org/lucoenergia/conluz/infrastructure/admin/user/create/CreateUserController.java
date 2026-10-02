@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Add a new user
@@ -34,9 +36,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class CreateUserController {
 
     private final CreateUserService service;
+    private final UserCapabilitiesAssembler capabilitiesAssembler;
 
-    public CreateUserController(CreateUserService service) {
+    public CreateUserController(CreateUserService service,
+                                UserCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PostMapping
@@ -76,8 +81,10 @@ public class CreateUserController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canCreateUserIn(#body.communityId)")
-    public UserResponse createUser(@Valid @RequestBody CreateUserBody body) {
+    public UserResponse createUser(@AuthenticationPrincipal User currentUser,
+                                   @Valid @RequestBody CreateUserBody body) {
         User user = service.create(body.mapToUser(), body.getCommunityId(), body.getCommunityRole());
-        return new UserResponse(user);
+        return new UserResponse(user,
+                capabilitiesAssembler.assembleFetchingMemberships(currentUser, user));
     }
 }

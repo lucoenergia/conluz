@@ -7,7 +7,8 @@ public interface CommunityAccessGuard extends
         SupplyAccessGuard,
         MembershipAccessGuard,
         UserAccessGuard,
-        PlantAccessGuard {
+        PlantAccessGuard,
+        PlatformAccessGuard {
 
     boolean canReadCommunity(UUID communityId);
 
@@ -26,6 +27,21 @@ public interface CommunityAccessGuard extends
      * Used for communal data (e.g. Datadis production) that only members of the community may read.
      */
     boolean isMemberOfCommunity(UUID communityId);
+
+    /**
+     * Whether the current user may read the community's communal production data. The same decision
+     * as {@link #isMemberOfCommunity(UUID)}, and so the same 401/404/403/200 mapping; named for the
+     * endpoints it guards so the decision can be reported as a capability on the community.
+     */
+    boolean canReadCommunityProduction(UUID communityId);
+
+    /**
+     * Whether the current user may list the community's supplies. Also the same decision as
+     * {@link #isMemberOfCommunity(UUID)}; kept apart from
+     * {@link #canReadCommunityProduction(UUID)} because listing supplies and reading production are
+     * different things to be allowed to do, however alike the rule behind them is today.
+     */
+    boolean canListSupplies(UUID communityId);
 
     boolean canManageCommunity(UUID communityId);
 

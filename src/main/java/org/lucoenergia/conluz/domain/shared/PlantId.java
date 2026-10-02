@@ -33,8 +33,11 @@ public class PlantId {
 
     @Override
     public String toString() {
+        // String.valueOf, not id.toString(): of(null) is legal, and PlantExceptionHandler renders a
+        // PlantNotFoundException's id straight into the 404 body. Dereferencing here would turn that
+        // 404 into a 500 -- the one outcome a not-found handler must never produce.
         return "PlantId{" +
-                "id=" + id.toString() +
+                "id=" + String.valueOf(id) +
                 '}';
     }
 }

@@ -15,6 +15,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PlatformCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 
 /**
  * Returns the currently authenticated user basic information
@@ -22,6 +24,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/users/current")
 public class GetCurrentUserController {
+
+    private final UserCapabilitiesAssembler capabilitiesAssembler;
+    private final PlatformCapabilitiesAssembler platformCapabilitiesAssembler;
+
+    public GetCurrentUserController(UserCapabilitiesAssembler capabilitiesAssembler,
+                                    PlatformCapabilitiesAssembler platformCapabilitiesAssembler) {
+        this.capabilitiesAssembler = capabilitiesAssembler;
+        this.platformCapabilitiesAssembler = platformCapabilitiesAssembler;
+    }
 
     @GetMapping
     @Operation(
@@ -41,7 +52,11 @@ public class GetCurrentUserController {
     @UnauthorizedErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(new UserResponse(currentUser));
+    public ResponseEntity<CurrentUserResponse> getCurrentUser(@AuthenticationPrincipal User currentUser) {
+        // The principal already carries its memberships -- UserDetailsServiceFromDatabase attaches
+        // them on every request -- so nothing is loaded here.
+        return ResponseEntity.ok(new CurrentUserResponse(currentUser,
+                capabilitiesAssembler.assembleWithLoadedMemberships(currentUser, currentUser),
+                platformCapabilitiesAssembler.assemble(currentUser)));
     }
 }

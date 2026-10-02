@@ -21,12 +21,15 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Transactional
@@ -181,6 +184,50 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
         Assertions.assertTrue(result.contains(ownedOne));
         Assertions.assertTrue(result.contains(ownedTwo));
         Assertions.assertFalse(result.contains(otherUsersSupply));
+    }
+
+    @Test
+    void findByUserIdAndCommunityIdsReturnsOnlyTheOwnersSuppliesInThoseCommunities() {
+        // Given
+        Community communityA = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityB = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityC = createCommunityRepository.create(CommunityMother.random().build());
+        User owner = createUserRepository.create(UserMother.randomUser());
+        User otherUser = createUserRepository.create(UserMother.randomUser());
+
+        Supply inA = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()),
+                communityA.getId());
+        Supply inB = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()),
+                communityB.getId());
+        Supply inC = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()),
+                communityC.getId());
+        Supply otherUsersInA = createSupplyRepository.create(SupplyMother.random(otherUser).build(),
+                UserId.of(otherUser.getId()), communityA.getId());
+
+        // When
+        List<Supply> result = getSupplyRepositoryDatabase.findByUserIdAndCommunityIds(UserId.of(owner.getId()),
+                Set.of(communityA.getId(), communityB.getId()));
+
+        // Then
+        Assertions.assertEquals(2, result.size());
+        Assertions.assertTrue(result.contains(inA));
+        Assertions.assertTrue(result.contains(inB));
+        Assertions.assertFalse(result.contains(inC));
+        Assertions.assertFalse(result.contains(otherUsersInA));
+    }
+
+    @Test
+    void findByUserIdAndCommunityIdsReturnsEmptyListForAnEmptySetOfCommunities() {
+        // Given
+        User owner = createUserRepository.create(UserMother.randomUser());
+        createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()));
+
+        // When
+        List<Supply> result = getSupplyRepositoryDatabase.findByUserIdAndCommunityIds(UserId.of(owner.getId()),
+                Set.of());
+
+        // Then
+        Assertions.assertTrue(result.isEmpty());
     }
 
     @Test
@@ -344,10 +391,17 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
 
         List<Supply> supplies = getSupplyRepositoryDatabase.findByUserId(UserId.of(user.getId()));
 
+        // Fixed capabilities: this asserts what the response constructor costs, not the assemblers,
+        // which ListEndpointQueryCountTest covers.
+        SupplyCapabilitiesResponse capabilities = SupplyCapabilitiesResponse.builder().build();
+        UserCapabilitiesResponse ownerCapabilities = UserCapabilitiesResponse.builder().build();
+
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
-        List<SupplyResponse> responses = supplies.stream().map(SupplyResponse::new).toList();
+        List<SupplyResponse> responses = supplies.stream()
+                .map(supply -> new SupplyResponse(supply, capabilities, ownerCapabilities))
+                .toList();
 
         Assertions.assertEquals(0, statistics.getPrepareStatementCount(),
                 "constructing SupplyResponse must not issue further queries: the community is already resolved");

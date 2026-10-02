@@ -55,7 +55,7 @@ public class GetInstantProductionController {
     @BadRequestErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
-    @PreAuthorize("isAuthenticated() and @communityAccessGuard.isMemberOfCommunity(#communityId)")
+    @PreAuthorize("@communityAccessGuard.canReadCommunityProduction(#communityId)")
     public InstantProduction getInstantProduction(@PathVariable UUID communityId,
                                                   @RequestParam(required = false) UUID supplyId) {
         if (Objects.isNull(supplyId)) {

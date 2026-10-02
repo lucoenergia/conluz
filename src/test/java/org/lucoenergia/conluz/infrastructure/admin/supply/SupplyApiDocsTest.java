@@ -73,14 +73,15 @@ class SupplyApiDocsTest extends BaseControllerTest {
     void supplyResponseKeepsEveryPreviouslyDeclaredField() throws Exception {
         JsonNode supplyResponse = schemas().path("SupplyResponse");
 
+        // capabilities arrived with conluz-292, community with conluz-291; both are pinned here.
         for (String field : List.of("id", "code", "user", "name", "address", "addressRef", "enabled",
-                "contract", "distributor", "shelly")) {
+                "contract", "distributor", "shelly", "capabilities")) {
             assertTrue(supplyResponse.path("properties").has(field),
                     field + " must still be a property of SupplyResponse");
             assertTrue(textValues(supplyResponse.path("required")).contains(field),
                     field + " must still be required");
         }
-        assertEquals(11, supplyResponse.path("properties").size(),
+        assertEquals(12, supplyResponse.path("properties").size(),
                 "SupplyResponse gains community and nothing else: " + supplyResponse.path("properties"));
     }
 

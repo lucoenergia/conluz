@@ -14,6 +14,10 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 
 /**
  * Updates an existing user
@@ -24,9 +28,12 @@ import java.util.UUID;
 public class UpdateUserController {
 
     private final UpdateUserService service;
+    private final UserCapabilitiesAssembler capabilitiesAssembler;
 
-    public UpdateUserController(UpdateUserService service) {
+    public UpdateUserController(UpdateUserService service,
+                                UserCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PutMapping("/users/{userId}")
@@ -58,7 +65,17 @@ public class UpdateUserController {
     @InternalServerErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEditUser(#userId)")
-    public UserResponse updateUser(@PathVariable("userId") UUID userId, @Valid @RequestBody UpdateUserBody body) {
-        return new UserResponse(service.update(body.toUser(userId)));
+    public UserResponse updateUser(@AuthenticationPrincipal User currentUser,
+                                   @PathVariable("userId") UUID userId,
+                                   @Valid @RequestBody UpdateUserBody body) {
+        // Settled before the write rather than after. Editing a user's number, DNI, name or contact
+        // details cannot change anybody's community memberships, so the decision is identical either
+        // way -- and asking for the target's memberships afterwards would auto-flush the pending
+        // update (the query join touches `users`), turning any failure of the write itself into a
+        // 500 raised from inside this method rather than at the end of the request.
+        UserCapabilitiesResponse capabilities =
+                capabilitiesAssembler.assembleFetchingMemberships(currentUser, userId);
+        User updated = service.update(body.toUser(userId));
+        return new UserResponse(updated, capabilities);
     }
 }

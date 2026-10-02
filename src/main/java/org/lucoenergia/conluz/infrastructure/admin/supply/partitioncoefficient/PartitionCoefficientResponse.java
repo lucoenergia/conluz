@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PartitionCoefficientCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.CommunityReferenceResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.PlantReferenceResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.SharingAgreementReferenceResponse;
@@ -12,7 +13,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Schema(requiredProperties = {"id", "supply", "community", "plant", "sharingAgreement", "coefficient", "validFrom",
-        "validTo", "createdAt"})
+        "validTo", "createdAt", "capabilities"})
 public class PartitionCoefficientResponse {
 
     @Schema(description = "Internal unique identifier", example = "b3d1a2f0-1234-5678-abcd-000000000001")
@@ -48,7 +49,12 @@ public class PartitionCoefficientResponse {
     @Schema(description = "Timestamp when this record was created", example = "2024-05-23T10:30:00Z")
     private final Instant createdAt;
 
-    public PartitionCoefficientResponse(SupplyPartitionCoefficientDetail detail) {
+    @Schema(description = "What the caller may do from this period, including whether its sharingAgreement "
+            + "reference can be followed.")
+    private final PartitionCoefficientCapabilitiesResponse capabilities;
+
+    public PartitionCoefficientResponse(SupplyPartitionCoefficientDetail detail,
+                                        PartitionCoefficientCapabilitiesResponse capabilities) {
         this.id = detail.getId();
         this.supply = new SupplyReferenceResponse(detail.getSupply().id(), detail.getSupply().code(),
                 detail.getSupply().name());
@@ -61,6 +67,7 @@ public class PartitionCoefficientResponse {
         this.validFrom = detail.getValidFrom();
         this.validTo = detail.getValidTo();
         this.createdAt = detail.getCreatedAt();
+        this.capabilities = capabilities;
     }
 
     public UUID getId() {
@@ -97,5 +104,9 @@ public class PartitionCoefficientResponse {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public PartitionCoefficientCapabilitiesResponse getCapabilities() {
+        return capabilities;
     }
 }

@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import java.util.UUID;
 
 @Schema(requiredProperties = {
-        "number", "fullName", "personalId"
+        "number", "fullName", "personalId", "email"
 })
 public class UpdateUserBody {
 
@@ -22,6 +22,12 @@ public class UpdateUserBody {
     @NotBlank
     private String fullName;
     private String address;
+    /**
+     * Mandatory, like it is on creation and on the self-service profile edit. {@code users.email} is
+     * NOT NULL, and this endpoint overwrites the stored value with whatever the body carries, so
+     * omitting it used to answer 200 while describing an update the database refused.
+     */
+    @NotBlank
     @Email
     private String email;
     private String phoneNumber;

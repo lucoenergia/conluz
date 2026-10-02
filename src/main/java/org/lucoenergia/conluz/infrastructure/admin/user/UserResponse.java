@@ -4,13 +4,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 @Schema(requiredProperties = {"id", "personalId", "number", "fullName", "address", "email",
-        "phoneNumber", "enabled", "isPlatformAdmin", "memberships"})
+        "phoneNumber", "enabled", "isPlatformAdmin", "memberships", "capabilities"})
 public class UserResponse {
 
     private final UUID id;
@@ -26,7 +28,20 @@ public class UserResponse {
     private final Boolean isPlatformAdmin;
     private final Map<String, String> memberships;
 
-    public UserResponse(User user) {
+    @Schema(description = "What the caller may do with this user.")
+    private final UserCapabilitiesResponse capabilities;
+
+    public UserResponse(User user, UserCapabilitiesResponse capabilities) {
+        this(user, capabilities, UserScope.all());
+    }
+
+    /**
+     * A user as the given scope lets the caller see them: only the memberships the scope admits are
+     * carried. The capabilities must already have been assembled from the user's <em>full</em>
+     * memberships — narrowing happens here, after every decision has been taken, so it can never
+     * change one.
+     */
+    public UserResponse(User user, UserCapabilitiesResponse capabilities, UserScope scope) {
         id = user.getId();
         personalId = user.getPersonalId();
         number = user.getNumber();
@@ -39,10 +54,14 @@ public class UserResponse {
         Map<String, String> membershipMap = new HashMap<>();
         if (user.getMemberships() != null) {
             for (CommunityMembership m : user.getMemberships()) {
+                if (!scope.includesMembershipOf(user, m)) {
+                    continue;
+                }
                 membershipMap.put(m.getCommunity().getId().toString(), m.getRole().name());
             }
         }
         memberships = membershipMap;
+        this.capabilities = capabilities;
     }
 
     public UUID getId() {
@@ -84,5 +103,9 @@ public class UserResponse {
 
     public Map<String, String> getMemberships() {
         return memberships;
+    }
+
+    public UserCapabilitiesResponse getCapabilities() {
+        return capabilities;
     }
 }

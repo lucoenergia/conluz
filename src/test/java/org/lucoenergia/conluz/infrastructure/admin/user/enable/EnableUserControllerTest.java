@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.PERSONAL_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -94,5 +95,20 @@ class EnableUserControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+    }
+    @Test
+    void testCannotActOnOwnAccount() throws Exception {
+        // Nobody may enable themselves, platform admin included: the guard settles the edit
+        // decision first and then refuses because the target is the caller -- a 403, not a 404.
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        User self = getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).get();
+
+        mockMvc.perform(post(String.format("/api/v1/users/%s/enable", self.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
     }
 }

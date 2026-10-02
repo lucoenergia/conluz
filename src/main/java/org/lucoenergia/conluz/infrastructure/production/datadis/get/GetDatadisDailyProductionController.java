@@ -70,7 +70,7 @@ public class GetDatadisDailyProductionController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("isAuthenticated() and @communityAccessGuard.isMemberOfCommunity(#communityId)")
+    @PreAuthorize("@communityAccessGuard.canReadCommunityProduction(#communityId)")
     public List<DatadisProduction> getDatadisDailyProduction(
             @PathVariable UUID communityId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,

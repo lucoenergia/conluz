@@ -21,6 +21,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
+import java.util.Map;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(
@@ -30,9 +37,15 @@ import java.util.UUID;
 public class GetMembershipsController {
 
     private final GetMembershipsService service;
+    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MembershipCapabilitiesAssembler capabilitiesAssembler;
 
-    public GetMembershipsController(GetMembershipsService service) {
+    public GetMembershipsController(GetMembershipsService service,
+                                    UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                    MembershipCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @GetMapping
@@ -56,10 +69,24 @@ public class GetMembershipsController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageMemberships(#communityId)")
-    public List<MembershipResponse> getMemberships(@PathVariable("communityId") UUID communityId) {
+    public List<MembershipResponse> getMemberships(@AuthenticationPrincipal User currentUser,
+                                                   @PathVariable("communityId") UUID communityId) {
         List<CommunityMembership> memberships = service.findByCommunityId(communityId);
+        // One query for every member on this roster. The users join-fetched with the memberships
+        // carry no memberships of their own, and the rules about them need those.
+        Map<UUID, UserCapabilitiesResponse> userCapabilities =
+                userCapabilitiesAssembler.assembleAllFetchingMemberships(currentUser,
+                        memberships.stream().map(CommunityMembership::getUser).filter(Objects::nonNull).toList());
+
         return memberships.stream()
-                .map(MembershipResponse::new)
+                .map(membership -> new MembershipResponse(membership,
+                        userCapabilitiesOf(membership, userCapabilities),
+                        capabilitiesAssembler.assemble(currentUser, membership)))
                 .toList();
+    }
+
+    private UserCapabilitiesResponse userCapabilitiesOf(CommunityMembership membership,
+                                                        Map<UUID, UserCapabilitiesResponse> byUserId) {
+        return membership.getUser() == null ? null : byUserId.get(membership.getUser().getId());
     }
 }

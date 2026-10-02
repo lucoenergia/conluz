@@ -116,7 +116,8 @@ class GetPlantActivePartitionCoefficientsControllerTest extends BaseControllerTe
                 .andExpect(jsonPath("$[*].supply.id",
                         containsInAnyOrder(supplyA.getId().toString(), supplyB.getId().toString())))
                 .andExpect(jsonPath("$[*].sharingAgreement.id",
-                        everyItem(is(published.getId().toString()))));
+                        everyItem(is(published.getId().toString()))))
+                .andExpect(jsonPath("$[*].capabilities.canReadSharingAgreement", everyItem(is(true))));
     }
 
     @Test

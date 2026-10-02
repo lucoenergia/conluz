@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -23,7 +24,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.test.web.servlet.MvcResult;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -45,6 +57,8 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     private CommunityJpaRepository communityJpaRepository;
     @Autowired
     private CommunityMembershipJpaRepository communityMembershipJpaRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
 
     @Test
     void testMembershipsArePopulatedForMembers() throws Exception {
@@ -347,6 +361,141 @@ class GetAllUsersControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
+
+    // --- #336: the listing carries only what the caller may read one by one ---
+
+    @Test
+    void anAdminOfOneCommunityWhoIsAPlainMemberOfAnotherReceivesOnlyTheUsersOfTheFirst() throws Exception {
+        TwoCommunities world = twoCommunities();
+
+        Set<String> listed = listedUserIds(world.adminOfAMemberOfBToken);
+
+        assertEquals(Set.of(world.adminOfAMemberOfB.getId().toString(), world.onlyInA.getId().toString(),
+                world.inAAndB.getId().toString()), listed);
+        // Both halves, because the point is that the listing and the single read agree: every user the
+        // listing returns is readable one by one, and every user it omits is a 404 one by one.
+        for (User user : world.all()) {
+            HttpStatus expected = listed.contains(user.getId().toString()) ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+            assertUserStatus(user, world.adminOfAMemberOfBToken, expected);
+        }
+    }
+
+    @Test
+    void theCallersOwnRowIsListedEvenThoughTheyAreOnlyAdminOfACommunity() throws Exception {
+        TwoCommunities world = twoCommunities();
+
+        assertTrue(listedUserIds(world.adminOfAMemberOfBToken).contains(world.adminOfAMemberOfB.getId().toString()));
+    }
+
+    @Test
+    void aPlatformAdminStillReceivesEveryUserWithEveryMembership() throws Exception {
+        TwoCommunities world = twoCommunities();
+        String platformAdminToken = loginAsDefaultPlatformAdmin();
+
+        Set<String> listed = listedUserIds(platformAdminToken);
+
+        for (User user : world.all()) {
+            assertTrue(listed.contains(user.getId().toString()), user.getFullName() + " missing");
+        }
+        assertEquals(Set.of(world.communityA.getId().toString(), world.communityB.getId().toString()),
+                membershipsOf(world.inAAndB, platformAdminToken).keySet());
+    }
+
+    @Test
+    void eachRowCarriesOnlyTheMembershipsInCommunitiesTheCallerAdministers() throws Exception {
+        TwoCommunities world = twoCommunities();
+
+        // The admin of A sees inAAndB's membership in A, not their role in B.
+        assertEquals(Map.of(world.communityA.getId().toString(), CommunityRole.COMMUNITY_MEMBER.name()),
+                membershipsOf(world.inAAndB, world.adminOfAMemberOfBToken));
+        // Their own row is theirs: both memberships.
+        assertEquals(Map.of(world.communityA.getId().toString(), CommunityRole.COMMUNITY_ADMIN.name(),
+                        world.communityB.getId().toString(), CommunityRole.COMMUNITY_MEMBER.name()),
+                membershipsOf(world.adminOfAMemberOfB, world.adminOfAMemberOfBToken));
+    }
+
+    @Test
+    void theCapabilitiesOnARowAreUnaffectedByTheNarrowedMemberships() throws Exception {
+        TwoCommunities world = twoCommunities();
+
+        JsonNode row = rowOf(world.inAAndB, world.adminOfAMemberOfBToken);
+
+        // Decided on inAAndB's full memberships: the admin of A administers one of them.
+        assertTrue(row.get("capabilities").get("canEdit").asBoolean());
+        assertTrue(row.get("capabilities").get("canListSupplies").asBoolean());
+    }
+
+    private record TwoCommunities(Community communityA, Community communityB, User adminOfAMemberOfB,
+                                  String adminOfAMemberOfBToken, User onlyInA, User onlyInB, User inAAndB) {
+        Set<User> all() {
+            return Set.of(adminOfAMemberOfB, onlyInA, onlyInB, inAAndB);
+        }
+    }
+
+    private TwoCommunities twoCommunities() throws Exception {
+        Community communityA = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityB = createCommunityRepository.create(CommunityMother.random().build());
+        User adminOfAMemberOfB = enabledUser();
+        createMembershipService.create(communityA.getId(), adminOfAMemberOfB.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipService.create(communityB.getId(), adminOfAMemberOfB.getId(), CommunityRole.COMMUNITY_MEMBER);
+        User onlyInA = enabledUser();
+        createMembershipService.create(communityA.getId(), onlyInA.getId(), CommunityRole.COMMUNITY_MEMBER);
+        User onlyInB = enabledUser();
+        createMembershipService.create(communityB.getId(), onlyInB.getId(), CommunityRole.COMMUNITY_MEMBER);
+        User inAAndB = enabledUser();
+        createMembershipService.create(communityA.getId(), inAAndB.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipService.create(communityB.getId(), inAAndB.getId(), CommunityRole.COMMUNITY_ADMIN);
+        return new TwoCommunities(communityA, communityB, adminOfAMemberOfB, loginUser(adminOfAMemberOfB),
+                onlyInA, onlyInB, inAAndB);
+    }
+
+    private User enabledUser() {
+        User user = UserMother.randomUser();
+        user.enable();
+        createUserRepository.create(user);
+        return user;
+    }
+
+    private JsonNode listedRows(String authHeader) throws Exception {
+        MvcResult result = mockMvc.perform(get(URL).param("size", "100")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("items");
+    }
+
+    private Set<String> listedUserIds(String authHeader) throws Exception {
+        Set<String> ids = new HashSet<>();
+        for (JsonNode row : listedRows(authHeader)) {
+            ids.add(row.get("id").asText());
+        }
+        return ids;
+    }
+
+    private JsonNode rowOf(User user, String authHeader) throws Exception {
+        for (JsonNode row : listedRows(authHeader)) {
+            if (row.get("id").asText().equals(user.getId().toString())) {
+                return row;
+            }
+        }
+        throw new AssertionError(user.getFullName() + " is not listed");
+    }
+
+    private Map<String, String> membershipsOf(User user, String authHeader) throws Exception {
+        Map<String, String> memberships = new HashMap<>();
+        Iterator<Map.Entry<String, JsonNode>> fields = rowOf(user, authHeader).get("memberships").fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            memberships.put(field.getKey(), field.getValue().asText());
+        }
+        return memberships;
+    }
+
+    private void assertUserStatus(User user, String authHeader, HttpStatus expected) throws Exception {
+        mockMvc.perform(get(URL + "/" + user.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().is(expected.value()));
     }
 
     private void createMembership(User user, Community community, CommunityRole role) {

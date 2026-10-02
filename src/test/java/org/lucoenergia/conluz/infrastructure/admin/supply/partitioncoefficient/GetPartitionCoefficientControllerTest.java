@@ -406,7 +406,11 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
      * answer "which coefficient applies", which stays an administrative question.
      */
     @Test
-    void activeAndAtTimestampStillReturn403ForTheSupplyOwnerWhoIsNotAnAdmin() throws Exception {
+    void activeAndAtTimestampAreReadableByTheSupplyOwnerWhoIsNotAnAdmin() throws Exception {
+        // Coefficients say what share of the plant's production is assigned to this supply -- the
+        // owner's own share -- so all three reads are open to them, as history always was. Pending
+        // periods stay hidden, but that is the read's job: active and at-timestamp exclude them for
+        // everybody, so there is nothing here for the guard to protect.
         User owner = UserMother.randomUser();
         owner.enable();
         createUserRepository.create(owner);
@@ -415,12 +419,11 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         String authHeader = loginUser(owner);
 
         String base = "/api/v1/supplies/" + supply.getId() + "/partition-coefficients";
-        // The owner can see the supply, so this is a permission failure rather than a hidden resource.
-        for (String path : List.of(base + "/active", base + "/at")) {
+        for (String path : List.of(base, base + "/active", base + "/at")) {
             mockMvc.perform(get(path).param("timestamp", "2024-06-15T12:00:00Z")
                             .header(HttpHeaders.AUTHORIZATION, authHeader)
                             .accept(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isOk());
         }
     }
 
@@ -530,6 +533,59 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(otherCommunity.getId());
 
         assertHistoryDeniedLikeGetSupply(supply, authHeader);
+    }
+
+    // --- capabilities.canReadSharingAgreement ---
+
+    /**
+     * The agreement behind every period is admin-only, so an admin of the plants' community is told
+     * each link would open -- on the history, pending periods included, and on the active list.
+     */
+    @Test
+    void historyAndActiveTellAnAdminThatEveryAgreementCanBeOpened() throws Exception {
+        Supply supply = createTestSupply();
+        twoPlantsWithActivatedAndPendingCoefficients(supply);
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(get(historyPath(supply))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[*].capabilities.canReadSharingAgreement")
+                        .value(Matchers.everyItem(Matchers.is(true))));
+        mockMvc.perform(get(historyPath(supply) + "/active")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].capabilities.canReadSharingAgreement")
+                        .value(Matchers.everyItem(Matchers.is(true))));
+    }
+
+    /**
+     * The owner may read their own coefficients, but not the agreements behind them: each period
+     * says so, rather than leaving the client to guess from the owner's role.
+     */
+    @Test
+    void historyAndActiveTellAnOwnerWhoIsNotAnAdminThatNoAgreementCanBeOpened() throws Exception {
+        User owner = UserMother.randomUser();
+        owner.enable();
+        createUserRepository.create(owner);
+        Supply supply = createSupplyService.create(SupplyMother.random(owner).build(),
+                UserPersonalId.of(owner.getPersonalId()), DEFAULT_COMMUNITY_ID);
+        twoPlantsWithActivatedAndPendingCoefficients(supply);
+        String authHeader = loginUser(owner);
+
+        for (String path : List.of(historyPath(supply), historyPath(supply) + "/active")) {
+            mockMvc.perform(get(path)
+                            .header(HttpHeaders.AUTHORIZATION, authHeader)
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[*].capabilities.canReadSharingAgreement")
+                            .value(Matchers.everyItem(Matchers.is(false))));
+        }
     }
 
     private void assertHistoryDeniedLikeGetSupply(Supply supply, String authHeader) throws Exception {

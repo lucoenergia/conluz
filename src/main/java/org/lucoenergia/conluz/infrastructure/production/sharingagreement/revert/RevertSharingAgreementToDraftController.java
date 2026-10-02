@@ -25,15 +25,26 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import org.lucoenergia.conluz.domain.shared.PlantId;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantService;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SharingAgreementCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(value = "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/revert-to-draft", produces = MediaType.APPLICATION_JSON_VALUE)
 public class RevertSharingAgreementToDraftController {
 
     private final RevertSharingAgreementToDraftService service;
+    private final GetPlantService plantService;
+    private final SharingAgreementCapabilitiesAssembler capabilitiesAssembler;
 
-    public RevertSharingAgreementToDraftController(RevertSharingAgreementToDraftService service) {
+    public RevertSharingAgreementToDraftController(RevertSharingAgreementToDraftService service, GetPlantService plantService,
+                                    SharingAgreementCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.plantService = plantService;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PostMapping
@@ -91,8 +102,12 @@ public class RevertSharingAgreementToDraftController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
-    public SharingAgreementResponse revertSharingAgreementToDraft(@PathVariable UUID plantId, @PathVariable UUID sharingAgreementId) {
+    public SharingAgreementResponse revertSharingAgreementToDraft(@AuthenticationPrincipal User currentUser,
+                                                                  @PathVariable UUID plantId,
+                                                                  @PathVariable UUID sharingAgreementId) {
         SharingAgreement agreement = service.revertToDraft(plantId, sharingAgreementId);
-        return new SharingAgreementResponse(agreement);
+        Plant plant = plantService.findById(PlantId.of(plantId));
+        return new SharingAgreementResponse(agreement,
+                capabilitiesAssembler.assemble(currentUser, plant, agreement));
     }
 }

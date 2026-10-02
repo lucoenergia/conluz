@@ -8,8 +8,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.sharingagreement.MaterializeSharingAgreementCoefficientsService;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PartitionCoefficientCapabilitiesAssembler;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -19,6 +22,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -40,11 +44,14 @@ public class ReplacePartitionCoefficientsController {
 
     private final MaterializeSharingAgreementCoefficientsService service;
     private final PartitionCoefficientService partitionCoefficientService;
+    private final PartitionCoefficientCapabilitiesAssembler capabilitiesAssembler;
 
     public ReplacePartitionCoefficientsController(MaterializeSharingAgreementCoefficientsService service,
-                                             PartitionCoefficientService partitionCoefficientService) {
+                                             PartitionCoefficientService partitionCoefficientService,
+                                             PartitionCoefficientCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
         this.partitionCoefficientService = partitionCoefficientService;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PutMapping
@@ -90,10 +97,12 @@ public class ReplacePartitionCoefficientsController {
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
     public ReplacePartitionCoefficientsResponse replacePartitionCoefficients(
+            @AuthenticationPrincipal User currentUser,
             @PathVariable UUID plantId,
             @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody ReplacePartitionCoefficientsBody body) {
         List<SupplyPartitionCoefficient> saved = service.replaceAllBySupplyId(plantId, sharingAgreementId, body.mapToEntries());
-        return new ReplacePartitionCoefficientsResponse(partitionCoefficientService.findDetailsInOrderOf(saved));
+        List<SupplyPartitionCoefficientDetail> details = partitionCoefficientService.findDetailsInOrderOf(saved);
+        return new ReplacePartitionCoefficientsResponse(details, capabilitiesAssembler.assembleAll(currentUser, details));
     }
 }

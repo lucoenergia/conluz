@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PlantCapabilitiesAssembler;
 
 /**
  * Adds a new plant
@@ -35,9 +38,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class CreatePlantController {
 
     private final CreatePlantService service;
+    private final PlantCapabilitiesAssembler capabilitiesAssembler;
 
-    public CreatePlantController(CreatePlantService service) {
+    public CreatePlantController(CreatePlantService service,
+                                 PlantCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PostMapping
@@ -74,8 +80,9 @@ public class CreatePlantController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @PreAuthorize("@communityAccessGuard.canCreatePlant(#body.supplyCode)")
-    public PlantResponse createPlant(@Valid @RequestBody CreatePlantBody body) {
+    public PlantResponse createPlant(@AuthenticationPrincipal User currentUser,
+                                     @Valid @RequestBody CreatePlantBody body) {
         Plant newPlant = service.create(body.mapToPlant(), SupplyCode.of(body.getSupplyCode()));
-        return new PlantResponse(newPlant);
+        return new PlantResponse(newPlant, capabilitiesAssembler.assemble(currentUser, newPlant));
     }
 }

@@ -149,6 +149,58 @@ class UpdateCommunityControllerTest extends BaseControllerTest {
         return communityJpaRepository.findById(id).orElseThrow();
     }
 
+    // --- authorization ---
+    // Updating a community is platform-wide: canUpdateCommunity() is a role check and makes no
+    // statement about the community, so a community admin is refused with a 403 even for a
+    // community they administer, and even an unknown id is a 403 rather than a 404.
+
+    @Test
+    void updatingACommunityWithoutATokenIsUnauthorized() throws Exception {
+        CommunityEntity target = persistCommunity();
+
+        mockMvc.perform(put(PATH, target.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("A new name", uniqueCode(), uniqueLegalId())))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aCommunityAdminMayNotUpdateTheirOwnCommunity() throws Exception {
+        CommunityEntity target = persistCommunity();
+        String authHeader = loginAsCommunityAdmin(target.getId());
+
+        mockMvc.perform(put(PATH, target.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("A new name", uniqueCode(), uniqueLegalId())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void aCommunityAdminIsForbiddenRatherThanToldTheCommunityIsMissing() throws Exception {
+        CommunityEntity own = persistCommunity();
+        String authHeader = loginAsCommunityAdmin(own.getId());
+
+        mockMvc.perform(put(PATH, UUID.randomUUID())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("A new name", uniqueCode(), uniqueLegalId())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void aPlatformAdminIsToldAnUnknownCommunityIsMissing() throws Exception {
+        // The guard passes on the role alone; it is the service's lookup that answers 404. Pinned
+        // here so the 403 above is known to come from the role check rather than from the id.
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        mockMvc.perform(put(PATH, UUID.randomUUID())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("A new name", uniqueCode(), uniqueLegalId())))
+                .andExpect(status().isNotFound());
+    }
+
     private CommunityEntity persistCommunity() {
         return communityJpaRepository.save(CommunityMother.randomEntity().build());
     }

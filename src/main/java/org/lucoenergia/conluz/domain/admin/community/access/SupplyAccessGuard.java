@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.access;
 
+import org.lucoenergia.conluz.domain.admin.supply.get.SupplyOwnerScope;
+
 import java.util.UUID;
 
 public interface SupplyAccessGuard {
@@ -9,6 +11,15 @@ public interface SupplyAccessGuard {
     boolean canEditSupply(UUID supplyId);
 
     /**
+     * Whether the current user may read the partition coefficients of the given supply. This is
+     * currently byte-for-byte identical to {@link #canEditSupply(UUID)} -- kept as a separate,
+     * deliberately duplicating method (not merged away) so a read rule and a write rule can diverge
+     * later without touching call sites; do not delete this method as dead weight. Mirrors the way
+     * {@code canReadSharingAgreement} is kept apart from {@code canManageSharingAgreement}.
+     */
+    boolean canReadSupplyPartitionCoefficients(UUID supplyId);
+
+    /**
      * Whether the current user is a Community Admin of the supply's community. Unlike
      * {@link #canReadSupply(UUID)} and {@link #canEditSupply(UUID)} this never throws and never
      * decides whether a request proceeds: it answers a question a controller asks <em>after</em> its
@@ -16,4 +27,12 @@ public interface SupplyAccessGuard {
      * unknown supplies are simply {@code false}.
      */
     boolean isCommunityAdminOfSupply(UUID supplyId);
+
+    /**
+     * Which of the given user's supplies the current user may see, as a scope for a listing query
+     * rather than a decision about one object. It does not decide whether the request proceeds —
+     * {@code canListSuppliesOfUser} does — it bounds what a permitted request returns, so a listing
+     * never carries a supply {@link #canReadSupply(UUID)} would answer 404 on. Never throws.
+     */
+    SupplyOwnerScope visibleSuppliesOfUser(UUID userId);
 }

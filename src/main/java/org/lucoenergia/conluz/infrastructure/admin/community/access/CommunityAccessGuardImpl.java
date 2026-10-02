@@ -2,10 +2,15 @@ package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.*;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.AccessDecision;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.CallerMemberships;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.CommunityAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.SupplyOwnerScope;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
@@ -18,23 +23,28 @@ import java.util.UUID;
 public class CommunityAccessGuardImpl implements CommunityAccessGuard {
 
     private final CommunityAccessGuardHelper helper;
+    private final CommunityAccessPolicy communityAccessPolicy;
     private final SupplyAccessGuard supplyAccessGuard;
     private final MembershipAccessGuard membershipAccessGuard;
     private final UserAccessGuard userAccessGuard;
     private final PlantAccessGuard plantAccessGuard;
+    private final PlatformAccessGuard platformAccessGuard;
 
     public CommunityAccessGuardImpl(AuthService authService,
                                     GetCommunityRepository getCommunityRepository,
                                     GetMembershipsRepository getMembershipsRepository,
                                     GetSupplyRepository getSupplyRepository,
                                     GetPlantRepository getPlantRepository,
-                                    GetSharingAgreementRepository getSharingAgreementRepository) {
+                                    GetSharingAgreementRepository getSharingAgreementRepository,
+                                    AccessPolicies policies) {
         this.helper = new CommunityAccessGuardHelper(authService, getCommunityRepository);
-        this.supplyAccessGuard = new SupplyAccessGuardImpl(helper, getSupplyRepository);
-        this.membershipAccessGuard = new MembershipAccessGuardImpl(helper);
-        this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository);
+        this.communityAccessPolicy = policies.community();
+        this.supplyAccessGuard = new SupplyAccessGuardImpl(helper, getSupplyRepository, policies.supply());
+        this.membershipAccessGuard = new MembershipAccessGuardImpl(helper, policies.membership());
+        this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository, policies.user());
         this.plantAccessGuard = new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository,
-                getSharingAgreementRepository);
+                getSharingAgreementRepository, policies.plant(), policies.sharingAgreement());
+        this.platformAccessGuard = new PlatformAccessGuardImpl(helper, policies.platform());
     }
 
     @Override
@@ -48,6 +58,16 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public SupplyOwnerScope visibleSuppliesOfUser(UUID userId) {
+        return supplyAccessGuard.visibleSuppliesOfUser(userId);
+    }
+
+    @Override
+    public boolean canReadSupplyPartitionCoefficients(UUID supplyId) {
+        return supplyAccessGuard.canReadSupplyPartitionCoefficients(supplyId);
+    }
+
+    @Override
     public boolean isCommunityAdminOfSupply(UUID supplyId) {
         return supplyAccessGuard.isCommunityAdminOfSupply(supplyId);
     }
@@ -58,10 +78,7 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!helper.canSeeCommunity(user, communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-        return true;
+        return resolveCommunity(communityAccessPolicy.canRead(user, communityId), communityId);
     }
 
     @Override
@@ -70,10 +87,17 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!helper.canSeeCommunity(user, communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-        return helper.hasMembershipInCommunity(user, communityId);
+        return resolveCommunity(communityAccessPolicy.isMember(user, communityId), communityId);
+    }
+
+    @Override
+    public boolean canReadCommunityProduction(UUID communityId) {
+        return isMemberOfCommunity(communityId);
+    }
+
+    @Override
+    public boolean canListSupplies(UUID communityId) {
+        return isMemberOfCommunity(communityId);
     }
 
     @Override
@@ -82,10 +106,7 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         if (user == null) {
             return false;
         }
-        if (!helper.canSeeCommunity(user, communityId)) {
-            throw new CommunityNotFoundException(communityId);
-        }
-        return helper.hasCommunityAdminRoleIn(user, communityId);
+        return resolveCommunity(communityAccessPolicy.canManage(user, communityId), communityId);
     }
 
     @Override
@@ -114,6 +135,26 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canListSuppliesOfUser(UUID userId) {
+        return userAccessGuard.canListSuppliesOfUser(userId);
+    }
+
+    @Override
+    public boolean canDeleteUser(UUID userId) {
+        return userAccessGuard.canDeleteUser(userId);
+    }
+
+    @Override
+    public boolean canEnableUser(UUID userId) {
+        return userAccessGuard.canEnableUser(userId);
+    }
+
+    @Override
+    public boolean canDisableUser(UUID userId) {
+        return userAccessGuard.canDisableUser(userId);
+    }
+
+    @Override
     public boolean canCreateUserIn(UUID communityId) {
         return userAccessGuard.canCreateUserIn(communityId);
     }
@@ -121,6 +162,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canListUsers() {
         return userAccessGuard.canListUsers();
+    }
+
+    @Override
+    public UserScope visibleUsers() {
+        return userAccessGuard.visibleUsers();
     }
 
     @Override
@@ -154,6 +200,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canListSharingAgreements(UUID plantId) {
+        return plantAccessGuard.canListSharingAgreements(plantId);
+    }
+
+    @Override
     public boolean canManageSharingAgreement(UUID plantId, UUID sharingAgreementId) {
         return plantAccessGuard.canManageSharingAgreement(plantId, sharingAgreementId);
     }
@@ -167,12 +218,49 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public Set<UUID> adminCommunityIds() {
         User user = helper.getCurrentUser().orElse(null);
-        return helper.adminCommunityIds(user);
+        return CallerMemberships.adminCommunityIds(user);
     }
 
     @Override
     public boolean isCurrentUser(UUID userId) {
         User user = helper.getCurrentUser().orElse(null);
-        return helper.isCurrentUser(user, userId);
+        return CallerMemberships.isCurrentUser(user, userId);
+    }
+
+    @Override
+    public boolean canCreateCommunity() {
+        return platformAccessGuard.canCreateCommunity();
+    }
+
+    @Override
+    public boolean canUpdateCommunity(UUID communityId) {
+        return platformAccessGuard.canUpdateCommunity(communityId);
+    }
+
+    @Override
+    public boolean canEnableCommunity(UUID communityId) {
+        return platformAccessGuard.canEnableCommunity(communityId);
+    }
+
+    @Override
+    public boolean canDisableCommunity(UUID communityId) {
+        return platformAccessGuard.canDisableCommunity(communityId);
+    }
+
+    @Override
+    public boolean canGrantPlatformAdmin(UUID userId) {
+        return platformAccessGuard.canGrantPlatformAdmin(userId);
+    }
+
+    @Override
+    public boolean canRevokePlatformAdmin(UUID userId) {
+        return platformAccessGuard.canRevokePlatformAdmin(userId);
+    }
+
+    private boolean resolveCommunity(AccessDecision decision, UUID communityId) {
+        if (decision == AccessDecision.NOT_VISIBLE) {
+            throw new CommunityNotFoundException(communityId);
+        }
+        return decision.isAllowed();
     }
 }

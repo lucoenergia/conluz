@@ -120,4 +120,9 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("power")));
     }
+    @Test
+    void testGetInstantProduction_whenNoToken_thenUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production"))
+                .andExpect(status().isUnauthorized());
+    }
 }

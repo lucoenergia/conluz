@@ -10,7 +10,9 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.pagination.Direction;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.mockito.Mockito;
@@ -23,6 +25,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class GetUserServiceImplTest {
@@ -132,23 +135,73 @@ class GetUserServiceImplTest {
     }
 
     @Test
-    void findAllByCommunities_shouldPopulateMemberships() {
+    void findAllVisible_queriesEveryUser_whenTheScopeIsUnrestricted() {
         // Given
         UUID userId = UUID.randomUUID();
         User user = UserMother.randomUserWithId(userId);
-        CommunityMembership membership = randomMembership(user);
         PagedResult<User> page = new PagedResult<>(List.of(user), 1, 1, 1, 0);
-        Set<UUID> communityIds = Set.of(UUID.randomUUID());
-
-        when(getUserRepository.findAllByCommunities(any(PagedRequest.class), eq(communityIds))).thenReturn(page);
-        when(getMembershipsRepository.findByUserIds(List.of(userId)))
-                .thenReturn(Map.of(userId, List.of(membership)));
+        when(getUserRepository.findAll(any(PagedRequest.class))).thenReturn(page);
+        when(getMembershipsRepository.findByUserIds(List.of(userId))).thenReturn(Map.of());
 
         // When
-        PagedResult<User> result = getUserService.findAllByCommunities(PagedRequest.of(0, 10), communityIds);
+        PagedResult<User> result = getUserService.findAllVisible(PagedRequest.of(0, 10), UserScope.all());
 
         // Then
-        assertEquals(1, result.getItems().get(0).getMemberships().size());
+        assertEquals(List.of(user), result.getItems());
+        verify(getUserRepository, never()).findAllVisible(any(), any(), any());
+    }
+
+    @Test
+    void findAllVisible_queriesTheScope_whenTheScopeIsRestricted() {
+        // Given
+        UUID selfId = UUID.randomUUID();
+        Set<UUID> communityIds = Set.of(UUID.randomUUID(), UUID.randomUUID());
+        when(getUserRepository.findAllVisible(any(PagedRequest.class), eq(selfId), eq(communityIds)))
+                .thenReturn(new PagedResult<>(List.of(), 10, 0, 0, 0));
+
+        // When
+        getUserService.findAllVisible(PagedRequest.of(0, 10), UserScope.visibleTo(selfId, communityIds));
+
+        // Then
+        verify(getUserRepository).findAllVisible(any(PagedRequest.class), eq(selfId), eq(communityIds));
+        verify(getUserRepository, never()).findAll(any(PagedRequest.class));
+    }
+
+    @Test
+    void findAllVisible_sortsByNumber_whenTheRequestIsUnsorted() {
+        // Given
+        when(getUserRepository.findAllVisible(any(PagedRequest.class), any(), any()))
+                .thenReturn(new PagedResult<>(List.of(), 10, 0, 0, 0));
+        PagedRequest request = PagedRequest.of(0, 10);
+
+        // When
+        getUserService.findAllVisible(request, UserScope.visibleTo(UUID.randomUUID(), Set.of(UUID.randomUUID())));
+
+        // Then
+        assertEquals(1, request.getOrders().size());
+        assertEquals("number", request.getOrders().get(0).getProperty());
+        assertEquals(Direction.ASC, request.getOrders().get(0).getDirection());
+    }
+
+    @Test
+    void findAllVisible_attachesEveryMembership_evenThoseOutsideTheScope() {
+        // The capabilities are decided on a user's full memberships, so narrowing them is the
+        // response's job, not the service's.
+        UUID userId = UUID.randomUUID();
+        User user = UserMother.randomUserWithId(userId);
+        CommunityMembership inScope = randomMembership(user);
+        CommunityMembership outOfScope = randomMembership(user);
+        when(getUserRepository.findAllVisible(any(PagedRequest.class), any(), any()))
+                .thenReturn(new PagedResult<>(List.of(user), 1, 1, 1, 0));
+        when(getMembershipsRepository.findByUserIds(List.of(userId)))
+                .thenReturn(Map.of(userId, List.of(inScope, outOfScope)));
+
+        // When
+        PagedResult<User> result = getUserService.findAllVisible(PagedRequest.of(0, 10),
+                UserScope.visibleTo(UUID.randomUUID(), Set.of(inScope.getCommunity().getId())));
+
+        // Then
+        assertEquals(List.of(inScope, outOfScope), result.getItems().get(0).getMemberships());
         verify(getMembershipsRepository, times(1)).findByUserIds(List.of(userId));
     }
 

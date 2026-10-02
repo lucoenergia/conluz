@@ -27,6 +27,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.CommunityCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(
@@ -37,8 +40,11 @@ import java.util.UUID;
 public class UpdateCommunityController {
 
     private final UpdateCommunityService service;
+    private final CommunityCapabilitiesAssembler capabilitiesAssembler;
 
-    public UpdateCommunityController(UpdateCommunityService service) {
+    public UpdateCommunityController(UpdateCommunityService service,
+                                     CommunityCapabilitiesAssembler capabilitiesAssembler) {
+        this.capabilitiesAssembler = capabilitiesAssembler;
         this.service = service;
     }
 
@@ -98,10 +104,12 @@ public class UpdateCommunityController {
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
-    public CommunityResponse updateCommunity(@PathVariable("communityId") UUID communityId,
-                                              @Valid @RequestBody UpdateCommunityBody body) {
+    @PreAuthorize("@communityAccessGuard.canUpdateCommunity(#communityId)")
+    public CommunityResponse updateCommunity(@AuthenticationPrincipal User currentUser,
+                                             @PathVariable("communityId") UUID communityId,
+                                             @Valid @RequestBody UpdateCommunityBody body) {
         Community community = service.update(communityId, body.mapToCommunity());
-        return new CommunityResponse(community);
+        return new CommunityResponse(community,
+                capabilitiesAssembler.assemble(currentUser, communityId));
     }
 }

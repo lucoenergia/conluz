@@ -26,6 +26,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import org.lucoenergia.conluz.domain.shared.PlantId;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantService;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SharingAgreementCapabilitiesAssembler;
 
 @RestController
 @RequestMapping(
@@ -37,9 +41,14 @@ import java.util.UUID;
 public class CreateSharingAgreementController {
 
     private final CreateSharingAgreementService service;
+    private final GetPlantService plantService;
+    private final SharingAgreementCapabilitiesAssembler capabilitiesAssembler;
 
-    public CreateSharingAgreementController(CreateSharingAgreementService service) {
+    public CreateSharingAgreementController(CreateSharingAgreementService service, GetPlantService plantService,
+                                    SharingAgreementCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
+        this.plantService = plantService;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PostMapping
@@ -79,6 +88,8 @@ public class CreateSharingAgreementController {
                                                             @PathVariable UUID plantId,
                                                             @Valid @RequestBody CreateSharingAgreementBody body) {
         SharingAgreement agreement = service.create(plantId, body.mapToCreateSharingAgreement(currentUser.getId()));
-        return new SharingAgreementResponse(agreement);
+        Plant plant = plantService.findById(PlantId.of(plantId));
+        return new SharingAgreementResponse(agreement,
+                capabilitiesAssembler.assemble(currentUser, plant, agreement));
     }
 }

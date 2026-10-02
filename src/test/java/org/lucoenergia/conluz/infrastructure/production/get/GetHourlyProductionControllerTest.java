@@ -232,4 +232,11 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
                 .andExpect(content().encoding(StandardCharsets.UTF_8))
                 .andExpect(content().string(containsString("\"message\":\"El parámetro con nombre 'endDate' es obligatorio.\"")));
     }
+    @Test
+    void testGetHourlyProduction_whenNoToken_thenUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
+                .andExpect(status().isUnauthorized());
+    }
 }

@@ -3,13 +3,14 @@ package org.lucoenergia.conluz.infrastructure.admin.community;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityWithStats;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.CommunityCapabilitiesResponse;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 @Schema(requiredProperties = {"id", "name", "code", "legalId", "address", "enabled", "adminNames",
-        "memberCount", "supplyPointCount"})
+        "memberCount", "supplyPointCount", "capabilities"})
 public class CommunityResponse {
 
     private final UUID id;
@@ -30,11 +31,15 @@ public class CommunityResponse {
     @Schema(description = "Total number of supply points in the community")
     private final int supplyPointCount;
 
-    public CommunityResponse(Community community) {
-        this(community, Collections.emptyList(), 0, 0);
+    @Schema(description = "What the caller may do with this community.")
+    private final CommunityCapabilitiesResponse capabilities;
+
+    public CommunityResponse(Community community, CommunityCapabilitiesResponse capabilities) {
+        this(community, Collections.emptyList(), 0, 0, capabilities);
     }
 
-    public CommunityResponse(Community community, List<String> adminNames, int memberCount, int supplyPointCount) {
+    public CommunityResponse(Community community, List<String> adminNames, int memberCount, int supplyPointCount,
+                             CommunityCapabilitiesResponse capabilities) {
         this.id = community.getId();
         this.name = community.getName();
         this.code = community.getCode();
@@ -44,9 +49,10 @@ public class CommunityResponse {
         this.adminNames = adminNames;
         this.memberCount = memberCount;
         this.supplyPointCount = supplyPointCount;
+        this.capabilities = capabilities;
     }
 
-    public CommunityResponse(CommunityWithStats community) {
+    public CommunityResponse(CommunityWithStats community, CommunityCapabilitiesResponse capabilities) {
         this.id = community.getId();
         this.name = community.getName();
         this.code = community.getCode();
@@ -56,6 +62,7 @@ public class CommunityResponse {
         this.adminNames = community.getAdminNames();
         this.memberCount = community.getMemberCount();
         this.supplyPointCount = community.getSupplyPointCount();
+        this.capabilities = capabilities;
     }
 
     public UUID getId() {
@@ -92,5 +99,9 @@ public class CommunityResponse {
 
     public int getSupplyPointCount() {
         return supplyPointCount;
+    }
+
+    public CommunityCapabilitiesResponse getCapabilities() {
+        return capabilities;
     }
 }

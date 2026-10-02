@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.admin.user.udpate;
+package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -75,29 +75,24 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
 
+    /**
+     * Address and phone number are genuinely optional: clearing them is a legitimate edit, and the
+     * columns allow it. The email is not, so it is supplied here -- the case that omits it is
+     * {@link #testWithoutEmail()}.
+     */
     @Test
     void testWithMissingNotRequiredFields() throws Exception {
 
         String authHeader = loginAsDefaultPlatformAdmin();
 
-        // Creates a user
-        User user = new User();
-        user.setId(UUID.randomUUID());
-        user.setPersonalId("12345678Z");
-        user.setNumber(1);
-        user.setFullName("John Doe");
-        user.setAddress("Fake Street 123");
-        user.setEmail("johndoe@email.com");
-        user.setPhoneNumber("+34666555444");
-        user.setPassword(UserMother.randomPassword());
-        user.setEnabled(true);
-        createUserRepository.create(user);
+        User user = persistUser("12345678Z");
 
         // Modify data of the user
         UpdateUserBody userModified = new UpdateUserBody();
         userModified.setNumber(2);
         userModified.setPersonalId("12345666A");
         userModified.setFullName("Alice Smith");
+        userModified.setEmail("alice.smith@email.com");
 
         String bodyAsString = objectMapper.writeValueAsString(userModified);
 
@@ -115,6 +110,103 @@ class UpdateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.email").value(userModified.getEmail()))
                 .andExpect(jsonPath("$.phoneNumber").isEmpty())
                 .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    /**
+     * Omitting the email used to answer 200 with {@code "email": null} while describing an update
+     * the database could never accept: this endpoint overwrites the stored value with whatever the
+     * body carries, and {@code users.email} is NOT NULL. The violation surfaced only once the
+     * transaction flushed, after the response had been rendered, so the caller was told an edit had
+     * succeeded that had in fact been rolled back.
+     *
+     * <p>A user must have an email, as creation and the self-service profile edit already required.
+     * So the request is rejected up front instead.</p>
+     */
+    @Test
+    void testWithoutEmail() throws Exception {
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        User user = persistUser("12345679R");
+
+        UpdateUserBody userModified = new UpdateUserBody();
+        userModified.setNumber(2);
+        userModified.setPersonalId("12345667B");
+        userModified.setFullName("Alice Smith");
+
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userModified)))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    /**
+     * The stored email must be untouched by the rejected request -- the point of rejecting it is
+     * that the previous behaviour left the caller unable to tell.
+     */
+    @Test
+    void testWithoutEmailLeavesTheStoredEmailIntact() throws Exception {
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        User user = persistUser("12345680T");
+
+        UpdateUserBody userModified = new UpdateUserBody();
+        userModified.setNumber(2);
+        userModified.setPersonalId("12345668C");
+        userModified.setFullName("Alice Smith");
+
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userModified)))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("johndoe@email.com"))
+                .andExpect(jsonPath("$.fullName").value("John Doe"));
+    }
+
+    @Test
+    void testWithBlankEmail() throws Exception {
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        User user = persistUser("12345681W");
+
+        String body = """
+                        {
+                          "number": 2,
+                          "personalId": "12345669D",
+                          "fullName": "Alice Smith",
+                          "email": "  "
+                        }
+                """;
+
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    private User persistUser(String personalId) {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setPersonalId(personalId);
+        user.setNumber(1);
+        user.setFullName("John Doe");
+        user.setAddress("Fake Street 123");
+        user.setEmail("johndoe@email.com");
+        user.setPhoneNumber("+34666555444");
+        user.setPassword(UserMother.randomPassword());
+        user.setEnabled(true);
+        createUserRepository.create(user);
+        return user;
     }
 
     @Test
@@ -293,7 +385,9 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithoutToken() throws Exception {
 
-        mockMvc.perform(put(URL)
+        // Against the real path: PUT /api/v1/users has no mapping, so this used to pass only
+        // because 401 precedes routing.
+        mockMvc.perform(put(URL + "/" + UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
@@ -304,16 +398,50 @@ class UpdateUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testAuthenticatedUserWithoutAdminRoleCannotAccess() throws Exception {
+    void testPartnerEditingAnotherUserIsToldTheUserIsMissing() throws Exception {
+        // This test used to GET the list endpoint, so the denial it claimed to prove for
+        // PUT /users/{userId} was asserted nowhere. A partner shares no community with the target,
+        // so they cannot see them at all -> 404, not 403.
+        User target = UserMother.randomUser();
+        createUserRepository.create(target);
 
         String authHeader = loginAsPartner();
 
-        // Test users endpoint
-        mockMvc.perform(get(URL)
+        mockMvc.perform(put(URL + "/" + target.getId())
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validBody()))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+    }
+
+    @Test
+    void testPartnerEditingThemselvesIsForbidden() throws Exception {
+        // The administrative endpoint replaces personalId, fullName and number, so it stays closed
+        // even on one's own record. Contact details are self-service through PUT /users/profile.
+        User self = UserMother.randomUser();
+        self.enable();
+        createUserRepository.create(self);
+        String authHeader = loginUser(self);
+
+        mockMvc.perform(put(URL + "/" + self.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validBody()))
                 .andDo(print())
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+    }
+
+    private static String validBody() {
+        return """
+                {
+                  "number": 7,
+                  "personalId": "12345678Z",
+                  "fullName": "John Doe",
+                  "email": "johndoe@email.com"
+                }
+                """;
     }
 }

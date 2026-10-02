@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
+import org.lucoenergia.conluz.domain.admin.supply.get.SupplyOwnerScope;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
@@ -40,7 +41,10 @@ public class GetSupplyServiceImpl implements GetSupplyService {
     }
 
     @Override
-    public List<Supply> getByUserId(UserId userId) {
-        return repository.findByUserId(userId);
+    public List<Supply> getByUserId(UserId userId, SupplyOwnerScope scope) {
+        if (scope.isUnrestricted()) {
+            return repository.findByUserId(userId);
+        }
+        return repository.findByUserIdAndCommunityIds(userId, scope.communityIds());
     }
 }

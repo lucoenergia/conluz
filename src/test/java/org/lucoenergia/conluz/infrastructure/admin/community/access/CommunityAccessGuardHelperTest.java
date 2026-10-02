@@ -14,12 +14,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+/**
+ * What is left of the helper once the membership predicates moved to
+ * {@code CallerMemberships}: resolving the caller, and the one scope question whose answer lives in
+ * the database. The predicates' assertions live on in {@code CallerMembershipsTest}.
+ */
 @ExtendWith(MockitoExtension.class)
 class CommunityAccessGuardHelperTest {
 
@@ -32,107 +39,24 @@ class CommunityAccessGuardHelperTest {
         return new CommunityAccessGuardHelper(authService, getCommunityRepository);
     }
 
+    // --- getCurrentUser ---
+
     @Test
-    void hasCommunityAdminRoleIn_returnsFalse_whenCommunityIdIsNull() {
+    void getCurrentUser_passesThroughTheAuthenticatedUser() {
         User user = UserMother.randomUser();
-        assertFalse(helper().hasCommunityAdminRoleIn(user, null));
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        assertEquals(Optional.of(user), helper().getCurrentUser());
     }
 
     @Test
-    void hasCommunityAdminRoleIn_returnsFalse_whenMembershipsIsNull() {
-        User user = UserMother.randomUser();
-        user.setMemberships(null);
-        assertFalse(helper().hasCommunityAdminRoleIn(user, UUID.randomUUID()));
+    void getCurrentUser_isEmpty_whenNobodyIsAuthenticated() {
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertTrue(helper().getCurrentUser().isEmpty());
     }
 
-    @Test
-    void hasCommunityAdminRoleIn_returnsTrue_whenUserHasEnabledAdminRole() {
-        Community community = CommunityMother.random().build();
-        User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
-                .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
-                .withRole(CommunityRole.COMMUNITY_ADMIN).withEnabled(true).build();
-        user.setMemberships(List.of(membership));
-
-        assertTrue(helper().hasCommunityAdminRoleIn(user, community.getId()));
-    }
-
-    @Test
-    void hasCommunityAdminRoleIn_returnsFalse_whenRoleIsMemberNotAdmin() {
-        Community community = CommunityMother.random().build();
-        User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
-                .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
-                .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(true).build();
-        user.setMemberships(List.of(membership));
-
-        assertFalse(helper().hasCommunityAdminRoleIn(user, community.getId()));
-    }
-
-    @Test
-    void hasCommunityAdminRoleIn_returnsFalse_whenMembershipIsDisabled() {
-        Community community = CommunityMother.random().build();
-        User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
-                .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
-                .withRole(CommunityRole.COMMUNITY_ADMIN).withEnabled(false).build();
-        user.setMemberships(List.of(membership));
-
-        assertFalse(helper().hasCommunityAdminRoleIn(user, community.getId()));
-    }
-
-    @Test
-    void hasMembershipInCommunity_returnsFalse_whenCommunityIdIsNull() {
-        User user = UserMother.randomUser();
-        assertFalse(helper().hasMembershipInCommunity(user, null));
-    }
-
-    @Test
-    void hasMembershipInCommunity_returnsTrue_whenUserHasEnabledMembership() {
-        Community community = CommunityMother.random().build();
-        User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
-                .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
-                .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(true).build();
-        user.setMemberships(List.of(membership));
-
-        assertTrue(helper().hasMembershipInCommunity(user, community.getId()));
-    }
-
-    @Test
-    void hasMembershipInCommunity_returnsFalse_whenMembershipIsDisabled() {
-        Community community = CommunityMother.random().build();
-        User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
-                .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
-                .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(false).build();
-        user.setMemberships(List.of(membership));
-
-        assertFalse(helper().hasMembershipInCommunity(user, community.getId()));
-    }
-
-    @Test
-    void isCurrentUser_returnsTrue_whenIdsMatch() {
-        User user = UserMother.randomUser();
-        assertTrue(helper().isCurrentUser(user, user.getId()));
-    }
-
-    @Test
-    void isCurrentUser_returnsFalse_whenIdsDontMatch() {
-        User user = UserMother.randomUser();
-        assertFalse(helper().isCurrentUser(user, UUID.randomUUID()));
-    }
-
-    @Test
-    void isCurrentUser_returnsFalse_whenUserIsNull() {
-        assertFalse(helper().isCurrentUser(null, UUID.randomUUID()));
-    }
-
-    @Test
-    void isCurrentUser_returnsFalse_whenUserIdIsNull() {
-        User user = UserMother.randomUser();
-        assertFalse(helper().isCurrentUser(user, null));
-    }
+    // --- visibleCommunityIds ---
 
     @Test
     void visibleCommunityIds_returnsEmpty_whenUserIsNull() {
@@ -171,30 +95,14 @@ class CommunityAccessGuardHelperTest {
     }
 
     @Test
-    void adminCommunityIds_returnsEmpty_whenUserIsPlatformAdminButIsNotAdminOfAnyCommunity() {
+    void visibleCommunityIds_excludesDisabledMemberships() {
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
-        user.setPlatformAdmin(true);
+        CommunityMembership membership = new CommunityMembership.Builder()
+                .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
+                .withRole(CommunityRole.COMMUNITY_ADMIN).withEnabled(false).build();
+        user.setMemberships(List.of(membership));
 
-        Set<UUID> result = helper().adminCommunityIds(user);
-        assertFalse(result.contains(community.getId()));
-    }
-
-    @Test
-    void adminCommunityIds_returnsOnlyAdminCommunities() {
-        Community adminCommunity = CommunityMother.random().build();
-        Community memberCommunity = CommunityMother.random().build();
-        User user = UserMother.randomUser();
-        CommunityMembership adminMembership = new CommunityMembership.Builder()
-                .withId(UUID.randomUUID()).withUser(user).withCommunity(adminCommunity)
-                .withRole(CommunityRole.COMMUNITY_ADMIN).withEnabled(true).build();
-        CommunityMembership memberMembership = new CommunityMembership.Builder()
-                .withId(UUID.randomUUID()).withUser(user).withCommunity(memberCommunity)
-                .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(true).build();
-        user.setMemberships(List.of(adminMembership, memberMembership));
-
-        Set<UUID> result = helper().adminCommunityIds(user);
-        assertTrue(result.contains(adminCommunity.getId()));
-        assertFalse(result.contains(memberCommunity.getId()));
+        assertTrue(helper().visibleCommunityIds(user).isEmpty());
     }
 }

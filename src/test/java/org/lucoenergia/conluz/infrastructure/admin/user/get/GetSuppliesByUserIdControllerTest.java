@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -21,11 +23,13 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -40,13 +44,17 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
+    private CreateMembershipService createMembershipService;
+    @Autowired
     private CreateCommunityRepository createCommunityRepository;
 
     @Test
-    void testGetSuppliesByUserId_shouldReturnSuppliesWhenAdminRequestsAnyUser() throws Exception {
-        // Create a user with supplies
+    void testGetSuppliesByUserId_shouldReturnSuppliesWhenCommunityAdminRequestsAMemberOfTheirCommunity()
+            throws Exception {
+        // Create a user with supplies, in the community the caller administers
         User user = UserMother.randomUser();
         createUserRepository.create(user);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         Supply supply1 = new Supply.Builder()
                 .withId(UUID.randomUUID())
@@ -68,8 +76,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .build();
         createSupplyRepository.create(supply2, UserId.of(user.getId()));
 
-        // Login as default admin
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -162,7 +169,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testGetSuppliesByUserId_shouldReturnForbiddenWhenNonAdminRequestsOtherUserSupplies() throws Exception {
+    void testGetSuppliesByUserId_shouldReturnNotFoundWhenNonAdminRequestsOtherUserSupplies() throws Exception {
         // Create two users
         User user1 = UserMother.randomUser();
         user1.enable();
@@ -215,12 +222,12 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
 
     @Test
     void testGetSuppliesByUserId_shouldReturnEmptyListWhenUserHasNoSupplies() throws Exception {
-        // Create a user with no supplies
+        // Create a user with no supplies, and let them ask about themselves
         User user = UserMother.randomUser();
+        user.enable();
         createUserRepository.create(user);
 
-        // Login as default admin
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginUser(user);
 
         mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -229,5 +236,123 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+    @Test
+    void testGetSuppliesByUserId_shouldForbidAPlatformAdminWhoAdministersNoneOfTheUserCommunities()
+            throws Exception {
+        // The supply route and the user route must agree. A platform admin gets 404 asking for any
+        // one of these supplies directly, so listing them through their owner cannot be a way round
+        // it. They can see the user, so the denial is a 403 and leaks nothing.
+        User user = UserMother.randomUser();
+        createUserRepository.create(user);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+
+        Supply supply = new Supply.Builder()
+                .withId(UUID.randomUUID())
+                .withCode("ES0031300119158001DL0H")
+                .withUser(user)
+                .withName("Supply")
+                .withAddress("Address")
+                .withEnabled(true)
+                .build();
+        createSupplyRepository.create(supply, UserId.of(user.getId()));
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        // ... and the same caller is told the supply itself does not exist.
+        mockMvc.perform(get(String.format("/api/v1/supplies/%s", supply.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- #326: the listing carries only what the caller may read one by one ---
+
+    @Test
+    void testGetSuppliesByUserId_anAdminOfOneCommunityReceivesOnlyThatCommunitysSupplies() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+        String adminOfA = loginAsCommunityAdmin(target.communityA.getId());
+
+        // Both halves, because the point is that the listing and the single read agree: every row the
+        // listing returns is readable one by one, and every row it omits is a 404 one by one.
+        assertEquals(Set.of(target.supplyInA.getId().toString()), listedSupplyIds(target.user, adminOfA));
+        assertSupplyStatus(target.supplyInA, adminOfA, HttpStatus.OK);
+        assertSupplyStatus(target.supplyInB, adminOfA, HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void testGetSuppliesByUserId_anAdminOfBothCommunitiesReceivesEverySupply() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+        User admin = UserMother.randomUser();
+        admin.enable();
+        createUserRepository.create(admin);
+        createMembershipService.create(target.communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipService.create(target.communityB.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+
+        assertEquals(Set.of(target.supplyInA.getId().toString(), target.supplyInB.getId().toString()),
+                listedSupplyIds(target.user, loginUser(admin)));
+    }
+
+    @Test
+    void testGetSuppliesByUserId_theUserThemselvesReceivesEverySupplyAcrossCommunities() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+
+        assertEquals(Set.of(target.supplyInA.getId().toString(), target.supplyInB.getId().toString()),
+                listedSupplyIds(target.user, loginUser(target.user)));
+    }
+
+    @Test
+    void testGetSuppliesByUserId_aPlainMemberOfACommunityOfTheUserIsStillNotFound() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+
+        mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", target.user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityMember(target.communityA.getId()))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    private record TwoCommunityMember(User user, Community communityA, Community communityB,
+                                      Supply supplyInA, Supply supplyInB) {
+    }
+
+    private TwoCommunityMember twoCommunityMember() {
+        Community communityA = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityB = createCommunityRepository.create(CommunityMother.random().build());
+        User user = UserMother.randomUser();
+        user.enable();
+        createUserRepository.create(user);
+        createMembershipService.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipService.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        Supply supplyInA = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), communityA.getId());
+        Supply supplyInB = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), communityB.getId());
+        return new TwoCommunityMember(user, communityA, communityB, supplyInA, supplyInB);
+    }
+
+    private Set<String> listedSupplyIds(User target, String authHeader) throws Exception {
+        MvcResult result = mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", target.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+        Set<String> ids = new HashSet<>();
+        for (JsonNode supply : objectMapper.readTree(result.getResponse().getContentAsString())) {
+            ids.add(supply.get("id").asText());
+        }
+        return ids;
+    }
+
+    private void assertSupplyStatus(Supply supply, String authHeader, HttpStatus expected) throws Exception {
+        mockMvc.perform(get(String.format("/api/v1/supplies/%s", supply.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is(expected.value()));
     }
 }

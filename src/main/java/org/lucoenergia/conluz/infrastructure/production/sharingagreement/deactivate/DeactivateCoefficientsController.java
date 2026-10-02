@@ -8,7 +8,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationService;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PartitionCoefficientCapabilitiesAssembler;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.activation.CoefficientActivationResponse;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -20,6 +23,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,11 +45,14 @@ public class DeactivateCoefficientsController {
 
     private final CoefficientActivationService service;
     private final PartitionCoefficientService partitionCoefficientService;
+    private final PartitionCoefficientCapabilitiesAssembler capabilitiesAssembler;
 
     public DeactivateCoefficientsController(CoefficientActivationService service,
-                                             PartitionCoefficientService partitionCoefficientService) {
+                                             PartitionCoefficientService partitionCoefficientService,
+                                             PartitionCoefficientCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
         this.partitionCoefficientService = partitionCoefficientService;
+        this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
     @PostMapping
@@ -96,10 +103,12 @@ public class DeactivateCoefficientsController {
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
     public CoefficientActivationResponse deactivateCoefficients(
+            @AuthenticationPrincipal User currentUser,
             @PathVariable UUID plantId,
             @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody DeactivateCoefficientsBody body) {
         List<SupplyPartitionCoefficient> touched = service.setValidFrom(plantId, sharingAgreementId, null, body.getCoefficientIds());
-        return new CoefficientActivationResponse(partitionCoefficientService.findDetailsInOrderOf(touched));
+        List<SupplyPartitionCoefficientDetail> details = partitionCoefficientService.findDetailsInOrderOf(touched);
+        return new CoefficientActivationResponse(details, capabilitiesAssembler.assembleAll(currentUser, details));
     }
 }
