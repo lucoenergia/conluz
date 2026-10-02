@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserService;
+import org.lucoenergia.conluz.domain.admin.user.create.ImportRowCommunityMismatchException;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
@@ -77,6 +78,8 @@ public class CreateUsersWithFileController {
                                     
                     This endpoint requires clients to send a request containing a file with essential details for each user, including username, password, and any additional relevant information.
                                     
+                    Every row is applied only to the community given by the `communityId` query parameter. A row whose `communityId` column is present and differs from the query parameter, or is not a valid UUID, is rejected and reported in `errors`; no user and no membership are created for it.
+                                    
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
                     **Required: Platform Admin or Community Admin**
                                     
@@ -102,7 +105,7 @@ public class CreateUsersWithFileController {
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canCreateUserIn(#communityId)")
     public ResponseEntity createUsersWithFile(
-            @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String), address(String), email(String), phoneNumber(String), role(String), password(String), communityId(UUID, optional), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).")
+            @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String), address(String), email(String), phoneNumber(String), role(String), password(String), communityId(UUID, optional; if present it must equal the communityId query parameter, otherwise the row is rejected), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).")
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "Target community UUID. Required for community admins; optional for platform admins.")
             @RequestParam(value = "communityId", required = false) UUID communityId) {
@@ -124,11 +127,13 @@ public class CreateUsersWithFileController {
 
             users.forEach(user -> {
                 try {
-                    UUID effectiveCommunityId = user.getCommunityId() != null
-                            ? UUID.fromString(user.getCommunityId())
-                            : communityId;
-                    User newUser = createUserService.create(user.mapToUser(), effectiveCommunityId, user.getCommunityRole());
+                    User newUser = createUserService.createFromImport(user.mapToUser(), user.getCommunityId(),
+                            communityId, user.getCommunityRole());
                     response.addCreated(UserPersonalId.of(newUser.getPersonalId()));
+                } catch (ImportRowCommunityMismatchException e) {
+                    response.addError(UserPersonalId.of(user.getPersonalId()),
+                            messageSource.getMessage("error.user.import.community.mismatch", new List[]{},
+                                    LocaleContextHolder.getLocale()));
                 } catch (UserAlreadyExistsException e) {
                     response.addError(UserPersonalId.of(user.getPersonalId()),
                             messageSource.getMessage("error.user.already.exists",
