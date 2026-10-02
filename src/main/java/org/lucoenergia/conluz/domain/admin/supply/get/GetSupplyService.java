@@ -27,10 +27,11 @@ public interface GetSupplyService {
     Supply getById(SupplyId id);
 
     /**
-     * Retrieves a list of supplies associated with a specified user.
+     * Retrieves the supplies owned by a specified user, limited to the given scope.
      *
      * @param userId the identifier of the user whose supplies are to be retrieved
-     * @return a list of supplies associated with the specified user
+     * @param scope  which of those supplies may be returned, as decided by the access policy
+     * @return the user's supplies that fall within the scope
      */
-    List<Supply> getByUserId(UserId userId);
+    List<Supply> getByUserId(UserId userId, SupplyOwnerScope scope);
 }

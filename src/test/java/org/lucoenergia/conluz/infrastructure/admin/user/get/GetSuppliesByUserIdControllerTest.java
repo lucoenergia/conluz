@@ -23,7 +23,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -268,5 +270,89 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- #326: the listing carries only what the caller may read one by one ---
+
+    @Test
+    void testGetSuppliesByUserId_anAdminOfOneCommunityReceivesOnlyThatCommunitysSupplies() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+        String adminOfA = loginAsCommunityAdmin(target.communityA.getId());
+
+        // Both halves, because the point is that the listing and the single read agree: every row the
+        // listing returns is readable one by one, and every row it omits is a 404 one by one.
+        assertEquals(Set.of(target.supplyInA.getId().toString()), listedSupplyIds(target.user, adminOfA));
+        assertSupplyStatus(target.supplyInA, adminOfA, HttpStatus.OK);
+        assertSupplyStatus(target.supplyInB, adminOfA, HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void testGetSuppliesByUserId_anAdminOfBothCommunitiesReceivesEverySupply() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+        User admin = UserMother.randomUser();
+        admin.enable();
+        createUserRepository.create(admin);
+        createMembershipService.create(target.communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipService.create(target.communityB.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+
+        assertEquals(Set.of(target.supplyInA.getId().toString(), target.supplyInB.getId().toString()),
+                listedSupplyIds(target.user, loginUser(admin)));
+    }
+
+    @Test
+    void testGetSuppliesByUserId_theUserThemselvesReceivesEverySupplyAcrossCommunities() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+
+        assertEquals(Set.of(target.supplyInA.getId().toString(), target.supplyInB.getId().toString()),
+                listedSupplyIds(target.user, loginUser(target.user)));
+    }
+
+    @Test
+    void testGetSuppliesByUserId_aPlainMemberOfACommunityOfTheUserIsStillNotFound() throws Exception {
+        TwoCommunityMember target = twoCommunityMember();
+
+        mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", target.user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityMember(target.communityA.getId()))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    private record TwoCommunityMember(User user, Community communityA, Community communityB,
+                                      Supply supplyInA, Supply supplyInB) {
+    }
+
+    private TwoCommunityMember twoCommunityMember() {
+        Community communityA = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityB = createCommunityRepository.create(CommunityMother.random().build());
+        User user = UserMother.randomUser();
+        user.enable();
+        createUserRepository.create(user);
+        createMembershipService.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipService.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        Supply supplyInA = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), communityA.getId());
+        Supply supplyInB = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), communityB.getId());
+        return new TwoCommunityMember(user, communityA, communityB, supplyInA, supplyInB);
+    }
+
+    private Set<String> listedSupplyIds(User target, String authHeader) throws Exception {
+        MvcResult result = mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", target.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+        Set<String> ids = new HashSet<>();
+        for (JsonNode supply : objectMapper.readTree(result.getResponse().getContentAsString())) {
+            ids.add(supply.get("id").asText());
+        }
+        return ids;
+    }
+
+    private void assertSupplyStatus(Supply supply, String authHeader, HttpStatus expected) throws Exception {
+        mockMvc.perform(get(String.format("/api/v1/supplies/%s", supply.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is(expected.value()));
     }
 }

@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Transactional
@@ -183,6 +184,50 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
         Assertions.assertTrue(result.contains(ownedOne));
         Assertions.assertTrue(result.contains(ownedTwo));
         Assertions.assertFalse(result.contains(otherUsersSupply));
+    }
+
+    @Test
+    void findByUserIdAndCommunityIdsReturnsOnlyTheOwnersSuppliesInThoseCommunities() {
+        // Given
+        Community communityA = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityB = createCommunityRepository.create(CommunityMother.random().build());
+        Community communityC = createCommunityRepository.create(CommunityMother.random().build());
+        User owner = createUserRepository.create(UserMother.randomUser());
+        User otherUser = createUserRepository.create(UserMother.randomUser());
+
+        Supply inA = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()),
+                communityA.getId());
+        Supply inB = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()),
+                communityB.getId());
+        Supply inC = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()),
+                communityC.getId());
+        Supply otherUsersInA = createSupplyRepository.create(SupplyMother.random(otherUser).build(),
+                UserId.of(otherUser.getId()), communityA.getId());
+
+        // When
+        List<Supply> result = getSupplyRepositoryDatabase.findByUserIdAndCommunityIds(UserId.of(owner.getId()),
+                Set.of(communityA.getId(), communityB.getId()));
+
+        // Then
+        Assertions.assertEquals(2, result.size());
+        Assertions.assertTrue(result.contains(inA));
+        Assertions.assertTrue(result.contains(inB));
+        Assertions.assertFalse(result.contains(inC));
+        Assertions.assertFalse(result.contains(otherUsersInA));
+    }
+
+    @Test
+    void findByUserIdAndCommunityIdsReturnsEmptyListForAnEmptySetOfCommunities() {
+        // Given
+        User owner = createUserRepository.create(UserMother.randomUser());
+        createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()));
+
+        // When
+        List<Supply> result = getSupplyRepositoryDatabase.findByUserIdAndCommunityIds(UserId.of(owner.getId()),
+                Set.of());
+
+        // Then
+        Assertions.assertTrue(result.isEmpty());
     }
 
     @Test

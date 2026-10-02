@@ -190,6 +190,15 @@ web gate the link on both capabilities.
 | `canRevokePlatformAdmin` | `canRevokePlatformAdmin` |
 | `canListSupplies` | `canListSuppliesOfUser` |
 
+`canListSupplies` predicts whether `GET /users/{userId}/supplies` is **allowed**, and it predicts
+that exactly: the guard behind it is unchanged by what the listing returns. What the listing is
+**scoped to** is a separate question, answered by `SupplyAccessPolicy.visibleSuppliesOwnedBy` — the
+set form of the rule `GET /supplies/{supplyId}` applies one supply at a time. The user themselves
+receives every supply they own; anyone else receives only those in the communities they administer.
+So an admin of A, listing a member of A and B, gets A's supplies and none of B's, and every supply
+the listing omits is one `GET /supplies/{supplyId}` would answer 404 on for them (#326). Being let
+through by the guard never widens what comes back.
+
 `canEdit` is `false` for an ordinary member reading their own record, on purpose: name, DNI and
 member number are an administrative change, and contact details go through `PUT /users/profile`.
 `canDelete`, `canEnable`, `canDisable` and `canRevokePlatformAdmin` are always `false` when the user
@@ -217,6 +226,7 @@ investment and payback rules have no platform-admin branch, and `canManageMember
 | `isMemberOfCommunity` | The rule behind `canReadCommunityProduction` and `canListSupplies`, which are what the endpoints use and what the community reports. Naming it again would report one decision twice. |
 | `visibleCommunityIds` | A scope for a query, not a decision about an object. The listing it scopes reports its own capabilities on each item. |
 | `adminCommunityIds` | As above. |
+| `visibleSuppliesOfUser` | As above: it bounds which of a user's supplies `GET /users/{userId}/supplies` returns, after `canListSuppliesOfUser` — reported as `user.canListSupplies` — has let the request through. |
 | `isCurrentUser` | A fact the client already has. The rules that care about it fold it in and are reported themselves. |
 
 ### Capabilities with no guard

@@ -2,9 +2,15 @@ package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.get.SupplyOwnerScope;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -201,5 +207,91 @@ class SupplyAccessPolicyTest {
     @Test
     void isOwner_isFalse_whenTheSupplyHasNoOwnerId() {
         assertFalse(policy.isOwner(PolicyFixtures.stranger(), PolicyFixtures.supplyWithoutCommunity(null)));
+    }
+
+    // --- visibleSuppliesOwnedBy ---
+    // The set form of isVisible for one owner's supplies. The equivalence test below is what makes
+    // "a listing never carries a supply its own GET would 404 on" a property of the policy.
+
+    @Test
+    void visibleSuppliesOwnedBy_isEverything_forTheOwnerThemselves() {
+        User owner = PolicyFixtures.memberOf(PolicyFixtures.community());
+        assertEquals(SupplyOwnerScope.all(), policy.visibleSuppliesOwnedBy(owner, owner.getId()));
+    }
+
+    @Test
+    void visibleSuppliesOwnedBy_isTheAdministeredCommunity_forAnAdminOfOneCommunity() {
+        Community a = PolicyFixtures.community();
+        assertEquals(SupplyOwnerScope.inCommunities(Set.of(a.getId())),
+                policy.visibleSuppliesOwnedBy(PolicyFixtures.adminOf(a), UUID.randomUUID()));
+    }
+
+    @Test
+    void visibleSuppliesOwnedBy_isEveryAdministeredCommunity_forAnAdminOfSeveral() {
+        Community a = PolicyFixtures.community();
+        Community b = PolicyFixtures.community();
+        assertEquals(SupplyOwnerScope.inCommunities(Set.of(a.getId(), b.getId())),
+                policy.visibleSuppliesOwnedBy(adminOfBoth(a, b), UUID.randomUUID()));
+    }
+
+    @Test
+    void visibleSuppliesOwnedBy_isEmpty_forAPlatformAdminWhoAdministersNothing() {
+        // No platform-admin bypass, as in isVisible.
+        assertEquals(SupplyOwnerScope.inCommunities(Set.of()),
+                policy.visibleSuppliesOwnedBy(PolicyFixtures.platformAdmin(), UUID.randomUUID()));
+    }
+
+    @Test
+    void visibleSuppliesOwnedBy_isEmpty_forAnAbsentCaller() {
+        assertEquals(SupplyOwnerScope.inCommunities(Set.of()),
+                policy.visibleSuppliesOwnedBy(null, UUID.randomUUID()));
+    }
+
+    @Test
+    void visibleSuppliesOwnedBy_includesExactlyTheSuppliesIsVisibleAllows() {
+        Community a = PolicyFixtures.community();
+        Community b = PolicyFixtures.community();
+        Community c = PolicyFixtures.community();
+        User owner = PolicyFixtures.withMembership(PolicyFixtures.stranger(), a, CommunityRole.COMMUNITY_MEMBER, true);
+        UUID ownerId = owner.getId();
+
+        Map<String, User> callers = new LinkedHashMap<>();
+        callers.put("the owner", owner);
+        callers.put("admin of A", PolicyFixtures.adminOf(a));
+        callers.put("admin of A and B", adminOfBoth(a, b));
+        callers.put("admin of C only", PolicyFixtures.adminOf(c));
+        callers.put("plain member of A", PolicyFixtures.memberOf(a));
+        callers.put("disabled admin of A", PolicyFixtures.disabledAdminOf(a));
+        callers.put("platform admin", PolicyFixtures.platformAdmin());
+        callers.put("platform admin, member of A", PolicyFixtures.platformAdminMemberOf(a));
+        callers.put("stranger", PolicyFixtures.stranger());
+
+        Map<String, Supply> supplies = new LinkedHashMap<>();
+        supplies.put("in A", PolicyFixtures.supplyIn(a, ownerId));
+        supplies.put("in B", PolicyFixtures.supplyIn(b, ownerId));
+        supplies.put("in no community", PolicyFixtures.supplyWithoutCommunity(ownerId));
+
+        int included = 0;
+        int excluded = 0;
+        for (Map.Entry<String, User> caller : callers.entrySet()) {
+            SupplyOwnerScope scope = policy.visibleSuppliesOwnedBy(caller.getValue(), ownerId);
+            for (Map.Entry<String, Supply> supply : supplies.entrySet()) {
+                boolean visible = policy.isVisible(caller.getValue(), supply.getValue());
+                assertEquals(visible, scope.includes(supply.getValue()),
+                        caller.getKey() + ", supply " + supply.getKey() + ": scope " + scope
+                                + " disagrees with isVisible=" + visible);
+                if (visible) included++; else excluded++;
+            }
+        }
+        // Both outcomes must occur, or the agreement above proves nothing.
+        assertTrue(included > 0 && excluded > 0, "included=" + included + ", excluded=" + excluded);
+    }
+
+    private static User adminOfBoth(Community a, Community b) {
+        User user = PolicyFixtures.stranger();
+        user.setMemberships(List.of(
+                PolicyFixtures.membershipIn(a, CommunityRole.COMMUNITY_ADMIN, true),
+                PolicyFixtures.membershipIn(b, CommunityRole.COMMUNITY_ADMIN, true)));
+        return user;
     }
 }

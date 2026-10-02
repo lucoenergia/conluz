@@ -3050,7 +3050,7 @@
             "type" : "boolean"
           },
           "canListSupplies" : {
-            "description" : "Whether the caller may list this user's supplies (GET /api/v1/users/{userId}/supplies). Deliberately narrower than canRead: reading a user is not reading their supply data, so a platform admin who administers none of their communities may not.",
+            "description" : "Whether the caller may list this user's supplies (GET /api/v1/users/{userId}/supplies). Deliberately narrower than canRead: reading a user is not reading their supply data, so a platform admin who administers none of their communities may not. Predicts whether the call is allowed, not what it returns: the listing carries only the supplies the caller may read one by one — all of them for the user themselves, otherwise those in communities the caller administers.",
             "type" : "boolean"
           },
           "canRead" : {
@@ -13732,7 +13732,7 @@
     },
     "/api/v1/users/{userId}/supplies" : {
       "get" : {
-        "description" : "This endpoint retrieves all supplies associated with a specific user by their unique identifier.\n\n**Authorization Rules:**\n- Community Admins (of the target user's community) can retrieve supplies for that user\n- A user can retrieve their own supplies\n- Being a Platform Admin is **not** sufficient: these are supplies, and a Platform Admin\n  who administers none of the user's communities cannot read them one by one either\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "This endpoint retrieves all supplies associated with a specific user by their unique identifier.\n\n**Authorization Rules:**\n- Community Admins (of the target user's community) can retrieve supplies for that user\n- A user can retrieve their own supplies\n- Being a Platform Admin is **not** sufficient: these are supplies, and a Platform Admin\n  who administers none of the user's communities cannot read them one by one either\n\n**What the listing contains:** only the supplies the caller may read one by one\n(`GET /api/v1/supplies/{supplyId}`) — all of them for the user themselves, otherwise only\nthose in the communities the caller administers.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "getSuppliesByUserId",
         "parameters" : [
           {

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -38,13 +39,16 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.U
 public class GetSuppliesByUserIdController {
 
     private final GetSupplyService supplyService;
+    private final CommunityAccessGuard communityAccessGuard;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
 
     public GetSuppliesByUserIdController(GetSupplyService supplyService,
+                                         CommunityAccessGuard communityAccessGuard,
                                          SupplyCapabilitiesAssembler capabilitiesAssembler,
                                          UserCapabilitiesAssembler userCapabilitiesAssembler) {
         this.supplyService = supplyService;
+        this.communityAccessGuard = communityAccessGuard;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
     }
@@ -60,6 +64,10 @@ public class GetSuppliesByUserIdController {
                     - A user can retrieve their own supplies
                     - Being a Platform Admin is **not** sufficient: these are supplies, and a Platform Admin
                       who administers none of the user's communities cannot read them one by one either
+
+                    **What the listing contains:** only the supplies the caller may read one by one
+                    (`GET /api/v1/supplies/{supplyId}`) — all of them for the user themselves, otherwise only
+                    those in the communities the caller administers.
 
                     Authentication is required using a Bearer token.
                     """,
@@ -82,7 +90,10 @@ public class GetSuppliesByUserIdController {
     @PreAuthorize("@communityAccessGuard.canListSuppliesOfUser(#userId)")
     public List<SupplyResponse> getSuppliesByUserId(@AuthenticationPrincipal User currentUser,
                                                     @PathVariable("userId") UUID userId) {
-        List<Supply> supplies = supplyService.getByUserId(UserId.of(userId));
+        // The guard decided the caller may ask; the scope bounds what they get, so the listing
+        // never carries a supply GET /supplies/{supplyId} would answer 404 on for them.
+        List<Supply> supplies = supplyService.getByUserId(UserId.of(userId),
+                communityAccessGuard.visibleSuppliesOfUser(userId));
 
         // One query for every owner on this page, not one per supply: the owners embedded in a
         // supply carry no memberships, and the rules deciding what may be done with them need those.

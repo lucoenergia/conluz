@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.get.SupplyOwnerScope;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
 import java.util.UUID;
@@ -70,6 +71,19 @@ public class SupplyAccessPolicy {
      */
     public boolean isVisible(User caller, Supply supply) {
         return supply != null && (isCommunityAdminOf(caller, supply) || isOwner(caller, supply));
+    }
+
+    /**
+     * {@link #isVisible(User, Supply)} in set form, for the supplies of one owner: which of them the
+     * caller may see, expressed so a listing can apply it in a single query instead of evaluating
+     * each row. The owner sees all of theirs; anyone else sees those in the communities they
+     * administer — never more than they could read one by one.
+     */
+    public SupplyOwnerScope visibleSuppliesOwnedBy(User caller, UUID ownerId) {
+        if (CallerMemberships.isCurrentUser(caller, ownerId)) {
+            return SupplyOwnerScope.all();
+        }
+        return SupplyOwnerScope.inCommunities(CallerMemberships.adminCommunityIds(caller));
     }
 
     /**

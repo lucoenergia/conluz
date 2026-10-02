@@ -95,6 +95,15 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
                                                                   @Param("communityId") UUID communityId);
 
     /**
+     * Supplies owned by the given user within any of the given communities, with the mapped
+     * associations fetched. One statement however many communities there are. {@code communityIds}
+     * must not be empty: {@code IN ()} is not valid SQL.
+     */
+    @Query("SELECT s FROM supplies s " + MAPPED_ASSOCIATIONS + " WHERE u.id = :userId AND c.id IN :communityIds")
+    List<SupplyEntity> findByUserIdAndCommunityIdInWithAssociations(@Param("userId") UUID userId,
+                                                                    @Param("communityIds") Collection<UUID> communityIds);
+
+    /**
      * Supplies owned by the given user within the given community (paginated), with the mapped
      * associations fetched.
      */
