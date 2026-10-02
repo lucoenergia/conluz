@@ -206,6 +206,35 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         assertEquals(forOne, forFive, "listing users must not issue a query per user");
     }
 
+    @Test
+    void listingUsersCostsTheSameWhateverTheNumberOfCommunitiesInScope() throws Exception {
+        // The scope is applied in one statement, not one lookup per administered community: one user
+        // in one community must cost what five users spread over three communities cost.
+        List<Community> communities = List.of(
+                createCommunityRepository.create(CommunityMother.random().build()),
+                createCommunityRepository.create(CommunityMother.random().build()),
+                createCommunityRepository.create(CommunityMother.random().build()));
+        User admin = UserMother.randomUser();
+        admin.enable();
+        createUserRepository.create(admin);
+        for (Community community : communities) {
+            createMembershipService.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        }
+        String adminToken = loginUser(admin);
+        String url = "/api/v1/users";
+
+        persistMembersOf(communities.get(0), 1);
+        long forOne = statementsFor(url, adminToken);
+
+        persistMembersOf(communities.get(0), 1);
+        persistMembersOf(communities.get(1), 2);
+        persistMembersOf(communities.get(2), 1);
+        long forFiveAcrossThree = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFiveAcrossThree,
+                "scoping the users listing must not issue a query per community or per user");
+    }
+
     /**
      * The plant behind the agreements is resolved once for the page, not once per agreement.
      */

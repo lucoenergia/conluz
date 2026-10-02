@@ -12,6 +12,7 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationRequestMapper;
 import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationResultMapper;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -74,8 +75,11 @@ public class GetUserRepositoryImpl implements GetUserRepository {
     }
 
     @Override
-    public PagedResult<User> findAllByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds) {
-        Page<UserEntity> result = userRepository.findAllByCommunityIdIn(communityIds, paginationRequestMapper.mapRequest(pagedRequest));
+    public PagedResult<User> findAllVisible(PagedRequest pagedRequest, UUID selfId, Set<UUID> communityIds) {
+        Pageable pageable = paginationRequestMapper.mapRequest(pagedRequest);
+        Page<UserEntity> result = communityIds.isEmpty()
+                ? userRepository.findByIdIn(selfId != null ? Set.of(selfId) : Set.of(), pageable)
+                : userRepository.findAllVisible(selfId, communityIds, pageable);
         return paginationResultMapper.mapResult(result, userEntityMapper.mapList(result.toList()));
     }
 

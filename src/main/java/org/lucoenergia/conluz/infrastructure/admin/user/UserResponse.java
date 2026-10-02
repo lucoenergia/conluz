@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 
 import java.util.HashMap;
@@ -31,6 +32,16 @@ public class UserResponse {
     private final UserCapabilitiesResponse capabilities;
 
     public UserResponse(User user, UserCapabilitiesResponse capabilities) {
+        this(user, capabilities, UserScope.all());
+    }
+
+    /**
+     * A user as the given scope lets the caller see them: only the memberships the scope admits are
+     * carried. The capabilities must already have been assembled from the user's <em>full</em>
+     * memberships — narrowing happens here, after every decision has been taken, so it can never
+     * change one.
+     */
+    public UserResponse(User user, UserCapabilitiesResponse capabilities, UserScope scope) {
         id = user.getId();
         personalId = user.getPersonalId();
         number = user.getNumber();
@@ -43,6 +54,9 @@ public class UserResponse {
         Map<String, String> membershipMap = new HashMap<>();
         if (user.getMemberships() != null) {
             for (CommunityMembership m : user.getMemberships()) {
+                if (!scope.includesMembershipOf(user, m)) {
+                    continue;
+                }
                 membershipMap.put(m.getCommunity().getId().toString(), m.getRole().name());
             }
         }

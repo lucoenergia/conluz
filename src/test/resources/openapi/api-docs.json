@@ -12607,7 +12607,7 @@
     },
     "/api/v1/users" : {
       "get" : {
-        "description" : "This endpoint facilitates the retrieval of all users within the system, allowing clients to access a\ncomprehensive list of user details.\n\n**Required: Platform Admin or Community Admin**\nPlatform admins see all users; community admins see only users belonging to their communities.\n\nFeatures:\n- Pagination support through page and limit parameters\n- Sorting options for customized result ordering\n\nAuthentication:\n- Requires valid authentication token\n- Bearer token authorization\n",
+        "description" : "This endpoint facilitates the retrieval of all users within the system, allowing clients to access a\ncomprehensive list of user details.\n\n**Required: Platform Admin or Community Admin**\n\n**What the listing contains:** only the users the caller may read one by one\n(`GET /api/v1/users/{userId}`). Platform admins see every user; anyone else sees themselves\nand the users with an enabled membership in a community they administer — not those of\ncommunities they merely belong to.\n\n**What each user's `memberships` contains:** platform admins see every membership, and\nevery caller sees all of their own; otherwise only the memberships in communities the\ncaller administers.\n\nFeatures:\n- Pagination support through page and limit parameters\n- Sorting options for customized result ordering\n\nAuthentication:\n- Requires valid authentication token\n- Bearer token authorization\n",
         "operationId" : "getAllUsers",
         "parameters" : [
           {
@@ -13137,7 +13137,7 @@
         ]
       },
       "get" : {
-        "description" : "This endpoint retrieves detailed information about a specific user by their unique identifier.\n\n**Required: Platform Admin, Community Admin, or the user themselves**\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "This endpoint retrieves detailed information about a specific user by their unique identifier.\n\n**Required: Platform Admin, Community Admin, or the user themselves**\n\n**What `memberships` contains:** platform admins see every membership, and a user reading\nthemselves sees all of their own; otherwise only the memberships in communities the\ncaller administers.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "getUserById",
         "parameters" : [
           {

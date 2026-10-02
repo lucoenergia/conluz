@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.admin.community.access.policy;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 
 import java.util.List;
 import java.util.Set;
@@ -140,6 +141,22 @@ public class UserAccessPolicy {
             return true;
         }
         return administersACommunityOf(caller, targetMemberships);
+    }
+
+    /**
+     * {@link #canSee} in set form: which users the caller may see, expressed so a listing can apply it
+     * in a single query instead of evaluating each row. A platform admin sees everyone; anyone else
+     * sees themselves and the users with an enabled membership in a community they administer — never
+     * more than they could read one by one. The same scope bounds which of a visible user's
+     * memberships a response may carry: those in the caller's administered communities, as
+     * {@code GET /communities/{communityId}/memberships} would show them, and all of the caller's own.
+     */
+    public UserScope visibleUsers(User caller) {
+        if (CallerMemberships.isPlatformAdmin(caller)) {
+            return UserScope.all();
+        }
+        return UserScope.visibleTo(caller != null ? caller.getId() : null,
+                CallerMemberships.adminCommunityIds(caller));
     }
 
     private boolean administersACommunityOf(User caller, Supplier<List<CommunityMembership>> targetMemberships) {

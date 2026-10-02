@@ -7,10 +7,12 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.AccessPolicies;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -237,5 +239,56 @@ class UserCapabilitiesAssemblerTest {
         return targets.stream().collect(java.util.stream.Collectors.toMap(User::getId,
                 target -> List.of(CapabilityFixtures.membershipOf(target, community,
                         CommunityRole.COMMUNITY_MEMBER, true))));
+    }
+
+    // --- #336: the capabilities are decided on the full memberships ---
+
+    /**
+     * A regression guard, not what makes this safe. GET /users and GET /users/{userId} narrow a
+     * user's memberships only when the response is built, after the capabilities have been assembled
+     * from the full set, so the narrowing cannot move a capability whatever this test says. This
+     * catches someone moving the narrowing earlier, into the service, and finding it then does.
+     */
+    @Test
+    void narrowingTheMembershipsToTheCallersScopeWouldNotChangeAnyCapability() {
+        Community a = CapabilityFixtures.community();
+        Community b = CapabilityFixtures.community();
+        User target = CapabilityFixtures.userWithNoMemberships();
+        target.setMemberships(List.of(
+                CapabilityFixtures.membershipOf(target, a, CommunityRole.COMMUNITY_MEMBER, true),
+                CapabilityFixtures.membershipOf(target, b, CommunityRole.COMMUNITY_MEMBER, true)));
+        User adminOfAMemberOfB = CapabilityFixtures.userWithNoMemberships();
+        adminOfAMemberOfB.setMemberships(List.of(
+                CapabilityFixtures.membershipOf(adminOfAMemberOfB, a, CommunityRole.COMMUNITY_ADMIN, true),
+                CapabilityFixtures.membershipOf(adminOfAMemberOfB, b, CommunityRole.COMMUNITY_MEMBER, true)));
+
+        Map<String, User> callers = new LinkedHashMap<>();
+        callers.put("platform admin", CapabilityFixtures.platformAdmin());
+        callers.put("admin of A", CapabilityFixtures.adminOf(a));
+        callers.put("admin of A, member of B", adminOfAMemberOfB);
+        callers.put("member of B", CapabilityFixtures.memberOf(b));
+        callers.put("the target", target);
+        callers.put("stranger", CapabilityFixtures.stranger());
+
+        int narrowed = 0;
+        for (Map.Entry<String, User> caller : callers.entrySet()) {
+            UserScope scope = new AccessPolicies().user().visibleUsers(caller.getValue());
+            User narrowedTarget = CapabilityFixtures.userWithNoMemberships();
+            narrowedTarget.setId(target.getId());
+            narrowedTarget.setMemberships(target.getMemberships().stream()
+                    .filter(m -> scope.includesMembershipOf(target, m)).toList());
+            if (narrowedTarget.getMemberships().size() < target.getMemberships().size()) narrowed++;
+
+            assertEquals(flags(assembler().assembleWithLoadedMemberships(caller.getValue(), target)),
+                    flags(assembler().assembleWithLoadedMemberships(caller.getValue(), narrowedTarget)),
+                    caller.getKey());
+        }
+        // Some caller must actually lose a membership, or the comparison above compares nothing.
+        assertTrue(narrowed > 0);
+    }
+
+    private static List<Boolean> flags(UserCapabilitiesResponse c) {
+        return List.of(c.isCanRead(), c.isCanEdit(), c.isCanDelete(), c.isCanEnable(), c.isCanDisable(),
+                c.isCanGrantPlatformAdmin(), c.isCanRevokePlatformAdmin(), c.isCanListSupplies());
     }
 }

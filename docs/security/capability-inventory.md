@@ -199,6 +199,23 @@ So an admin of A, listing a member of A and B, gets A's supplies and none of B's
 the listing omits is one `GET /supplies/{supplyId}` would answer 404 on for them (#326). Being let
 through by the guard never widens what comes back.
 
+`GET /users` follows the same split. `platform.canListUsers` predicts whether it is **allowed**; what
+it is **scoped to** is `UserAccessPolicy.visibleUsers`, the set form of the rule
+`GET /users/{userId}` applies one user at a time. A platform admin receives every user; anyone else
+receives themselves and the users with an enabled membership in a community they **administer** —
+not those of a community they merely belong to. So an admin of A who is a plain member of B gets A's
+users and none of B's, and every user the listing omits is one `GET /users/{userId}` would answer 404
+on for them (#336).
+
+The same scope bounds what each row's `memberships` map carries: everything for a platform admin and
+for the caller's own row; otherwise only the memberships in communities the caller administers —
+what `GET /communities/{communityId}/memberships` would show them. A row no longer reveals a user's
+role in a community the caller has nothing to administer. The capabilities on the row are assembled
+from the user's **full** memberships *before* the response narrows them, so the narrowing cannot move
+any of them.
+`GET /users/{userId}` narrows its `memberships` by the same scope, so asking for the user directly
+does not reveal what the listing withholds.
+
 `canEdit` is `false` for an ordinary member reading their own record, on purpose: name, DNI and
 member number are an administrative change, and contact details go through `PUT /users/profile`.
 `canDelete`, `canEnable`, `canDisable` and `canRevokePlatformAdmin` are always `false` when the user
@@ -227,6 +244,7 @@ investment and payback rules have no platform-admin branch, and `canManageMember
 | `visibleCommunityIds` | A scope for a query, not a decision about an object. The listing it scopes reports its own capabilities on each item. |
 | `adminCommunityIds` | As above. |
 | `visibleSuppliesOfUser` | As above: it bounds which of a user's supplies `GET /users/{userId}/supplies` returns, after `canListSuppliesOfUser` — reported as `user.canListSupplies` — has let the request through. |
+| `visibleUsers` | As above: it bounds which users `GET /users` returns, and which of their memberships each row carries, after `canListUsers` — reported as `platform.canListUsers` — has let the request through. |
 | `isCurrentUser` | A fact the client already has. The rules that care about it fold it in and are reported themselves. |
 
 ### Capabilities with no guard

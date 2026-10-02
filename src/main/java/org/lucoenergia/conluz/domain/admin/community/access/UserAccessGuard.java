@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.access;
 
+import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
+
 import java.util.UUID;
 
 public interface UserAccessGuard {
@@ -41,4 +43,12 @@ public interface UserAccessGuard {
     boolean canCreateUserIn(UUID communityId);
 
     boolean canListUsers();
+
+    /**
+     * Which users, and which of their memberships, the current user may see, as a scope for a
+     * listing query rather than a decision about one object. It does not decide whether the request
+     * proceeds — {@code canListUsers} does — it bounds what a permitted request returns, so a listing
+     * never carries a user {@link #canReadUser(UUID)} would answer 404 on. Never throws.
+     */
+    UserScope visibleUsers();
 }
