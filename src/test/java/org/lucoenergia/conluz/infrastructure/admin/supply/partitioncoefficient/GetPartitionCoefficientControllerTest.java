@@ -414,6 +414,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         User owner = UserMother.randomUser();
         owner.enable();
         createUserRepository.create(owner);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyService.create(SupplyMother.random(owner).build(),
                 UserPersonalId.of(owner.getPersonalId()), DEFAULT_COMMUNITY_ID);
         String authHeader = loginUser(owner);
@@ -434,6 +435,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         User owner = UserMother.randomUser();
         owner.enable();
         createUserRepository.create(owner);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyService.create(SupplyMother.random(owner).build(),
                 UserPersonalId.of(owner.getPersonalId()), DEFAULT_COMMUNITY_ID);
         TwoPlantFixture fixture = twoPlantsWithActivatedAndPendingCoefficients(supply);
@@ -457,6 +459,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         User owner = UserMother.randomUser();
         owner.enable();
         createUserRepository.create(owner);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyService.create(SupplyMother.random(owner).build(),
                 UserPersonalId.of(owner.getPersonalId()), DEFAULT_COMMUNITY_ID);
         TwoPlantFixture fixture = twoPlantsWithActivatedAndPendingCoefficients(supply);
@@ -572,6 +575,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         User owner = UserMother.randomUser();
         owner.enable();
         createUserRepository.create(owner);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyService.create(SupplyMother.random(owner).build(),
                 UserPersonalId.of(owner.getPersonalId()), DEFAULT_COMMUNITY_ID);
         twoPlantsWithActivatedAndPendingCoefficients(supply);
@@ -639,6 +643,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     private Supply createTestSupply() {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = SupplyMother.random(user).build();
         return createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), DEFAULT_COMMUNITY_ID);
     }

@@ -5,11 +5,19 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -23,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.not;
@@ -43,6 +53,12 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private SupplyRepository supplyRepository;
+    @Autowired
+    private GetSupplyRepository getSupplyRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
 
     private static final String URL = "/api/v1/supplies/import";
     public static final String SUPPLIES_CSV = "fixtures/supplies/supplies.csv";
@@ -58,6 +74,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
 
         User owner = UserMother.randomUserWithPersonalId("12345678A");
         createUserRepository.create(owner);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         String csv = "code,addressRef,address,partitionCoefficient,personalId\n"
                 + "ES0033333333333333FF0F,A9384752345OA124,Main St,0.078632," + variant + "\n";
         MockMultipartFile file = new MockMultipartFile(
@@ -78,6 +95,65 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
         Assertions.assertEquals(owner.getId(), storedOwnerId);
     }
 
+    /**
+     * #341: a row whose owner is a member of another community gets exactly the per-row error of a
+     * row whose personalId matches no user, and the rest of the file is still processed.
+     */
+    @Test
+    void testImportReportsAMemberOfAnotherCommunityExactlyLikeAnUnknownPersonalId() throws Exception {
+
+        Community communityA = createCommunityRepository.create(CommunityMother.random().build());
+
+        User memberOfB = UserMother.randomUser();
+        createUserRepository.create(memberOfB);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, memberOfB.getId(), CommunityRole.COMMUNITY_MEMBER);
+        User memberOfA = UserMother.randomUser();
+        createUserRepository.create(memberOfA);
+        createMembershipService.create(communityA.getId(), memberOfA.getId(), CommunityRole.COMMUNITY_MEMBER);
+        String unknownPersonalId = UserMother.randomUser().getPersonalId();
+
+        String csv = "code,addressRef,address,partitionCoefficient,personalId\n"
+                + "ES0033333333333333LL0L,A9384752345OA124,Main St,0.078632," + memberOfB.getPersonalId() + "\n"
+                + "ES0033333333333333MM0M,A9384752345OA125,Main St,0.078632," + unknownPersonalId + "\n"
+                + "ES0033333333333333NN0N,A9384752345OA126,Main St,0.078632," + memberOfA.getPersonalId() + "\n";
+        MockMultipartFile file = new MockMultipartFile(
+                MULTIPART_FILE_NAME, "supplies.csv", TEXT_CSV_MEDIA_TYPE, csv.getBytes(StandardCharsets.UTF_8));
+
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        String response = mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .param("communityId", communityA.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", hasSize(1)))
+                .andExpect(jsonPath("$.created", hasItem("ES0033333333333333NN0N")))
+                .andExpect(jsonPath("$.errors", hasSize(2)))
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, String> errorByCode = new HashMap<>();
+        for (JsonNode error : objectMapper.readTree(response).get("errors")) {
+            errorByCode.put(error.get("item").asText(), error.get("errorMessage").asText());
+        }
+        String memberOfBError = errorByCode.get("ES0033333333333333LL0L");
+        String unknownError = errorByCode.get("ES0033333333333333MM0M");
+        Assertions.assertNotNull(memberOfBError);
+        Assertions.assertNotNull(unknownError);
+        // The message quotes the personalId of the row, the only part that may differ.
+        Assertions.assertTrue(memberOfBError.contains(memberOfB.getPersonalId()));
+        Assertions.assertTrue(unknownError.contains(unknownPersonalId));
+        Assertions.assertEquals(
+                unknownError.replace(unknownPersonalId, "{personalId}"),
+                memberOfBError.replace(memberOfB.getPersonalId(), "{personalId}"));
+
+        Assertions.assertTrue(getSupplyRepository.findByCode(SupplyCode.of("ES0033333333333333LL0L")).isEmpty());
+        Assertions.assertTrue(getSupplyRepository.findByCode(SupplyCode.of("ES0033333333333333MM0M")).isEmpty());
+        Supply created = getSupplyRepository.findByCode(SupplyCode.of("ES0033333333333333NN0N")).orElseThrow();
+        Assertions.assertEquals(memberOfA.getId(), created.getUser().getId());
+        Assertions.assertEquals(communityA.getId(), created.getCommunity().getId());
+    }
+
     @Test
     void testMinimumBody() throws Exception {
 
@@ -85,6 +161,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
         User user = UserMother.randomUserWithId(UUID.fromString("e7ab39cd-9250-40a9-b829-f11f65aae27d"));
         user.setPersonalId(userPersonalId);
         createUserRepository.create(user);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         String supplyCode = "ES002100823465";
         Supply supply = new Supply.Builder()
