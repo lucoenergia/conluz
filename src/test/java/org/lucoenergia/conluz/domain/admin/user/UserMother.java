@@ -4,12 +4,13 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
+import java.util.Locale;
 import java.util.UUID;
 
 public class UserMother {
 
     public static UserEntity randomUserEntity() {
-        return randomUserEntityWithPersonalId(RandomStringUtils.randomAlphabetic(9));
+        return randomUserEntityWithPersonalId(randomPersonalId());
     }
 
     public static UserEntity randomUserEntityWithPersonalId(String personalId) {
@@ -28,7 +29,7 @@ public class UserMother {
     }
 
     public static User randomUser() {
-        return randomUserWithPersonalId(RandomStringUtils.randomAlphabetic(9));
+        return randomUserWithPersonalId(randomPersonalId());
     }
 
     public static User randomUserWithPersonalId(String personalId) {
@@ -49,7 +50,7 @@ public class UserMother {
         User user = new User();
         user.setId(id);
         user.setPassword(randomPassword());
-        user.setPersonalId(RandomStringUtils.randomAlphabetic(9));
+        user.setPersonalId(randomPersonalId());
         user.setNumber(RandomUtils.nextInt());
         user.setFullName(RandomStringUtils.random(15, true, false));
         user.setAddress(RandomStringUtils.randomAlphabetic(30));
@@ -57,6 +58,14 @@ public class UserMother {
         user.setPhoneNumber("+34666333111");
         user.setEnabled(RandomUtils.nextBoolean());
         return user;
+    }
+
+    /**
+     * Already in the normalised form the application stores (upper case, no separators), so a
+     * fixture saved straight through the JPA repository is found by the normalising lookups.
+     */
+    public static String randomPersonalId() {
+        return RandomStringUtils.randomAlphabetic(9).toUpperCase(Locale.ROOT);
     }
 
     public static String randomPassword() {

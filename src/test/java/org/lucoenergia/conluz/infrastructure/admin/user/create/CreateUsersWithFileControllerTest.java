@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
@@ -25,6 +27,8 @@ import java.nio.file.Files;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -462,6 +466,32 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
         assertTrue(getMembershipsRepository.findByCommunityId(communityB.getId()).isEmpty());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"331000001a", "\"331000001 A\"", "331000001-A", "331.000.001-A"})
+    void testRowWithAVariantOfAnExistingPersonalIdIsReportedWithoutTheValueAndOtherRowsAreCreated(String variant)
+            throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        createUserRepository.create(UserMother.randomUserWithPersonalId("331000001A"));
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        String csvContent = HEADER +
+                row(1, variant, "", "") +
+                row(2, "331000002A", "", "");
+
+        mockMvc.perform(multipart(URL)
+                        .file(csv(csvContent))
+                        .param("communityId", community.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", containsInAnyOrder("331000002A")))
+                .andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0].errorMessage").value(userAlreadyExistsMessage()))
+                .andExpect(jsonPath("$.errors[0].errorMessage", not(containsString("331"))));
+
+        assertMemberOf("331000002A", community.getId());
+    }
+
     private static String row(int number, String personalId, String communityId, String communityRole) {
         return number + ",Test User " + number + "," + personalId + ",1 Test St,user" + number + "@example.com,"
                 + "60000000" + number + ",partner,password" + number + "," + communityId + "," + communityRole + "\n";
@@ -469,6 +499,10 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
 
     private static MockMultipartFile csv(String content) {
         return new MockMultipartFile("file", "users_with_community.csv", "text/csv", content.getBytes());
+    }
+
+    private String userAlreadyExistsMessage() {
+        return messageSource.getMessage("error.user.already.exists", new Object[0], LocaleContextHolder.getLocale());
     }
 
     private String communityMismatchMessage() {

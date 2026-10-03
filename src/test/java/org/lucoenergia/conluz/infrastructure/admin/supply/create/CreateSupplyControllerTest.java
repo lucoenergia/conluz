@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -24,6 +25,8 @@ import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -152,6 +155,34 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.community.id").value(community.getId().toString()))
                 .andExpect(jsonPath("$.community.name").value(community.getName()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"12345678a", " 12345678 A ", "12345678-A", "12.345.678-A"})
+    void testCreateSupplyResolvesTheOwnerFromATypingVariantOfTheirPersonalId(String variant) throws Exception {
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        User owner = UserMother.randomUserWithPersonalId("12345678A");
+        createUserRepository.create(owner);
+
+        String body = objectMapper.writeValueAsString(Map.of(
+                "code", "ES0033333333333333EE0E",
+                "communityId", DEFAULT_COMMUNITY_ID.toString(),
+                "personalId", variant,
+                "address", "Fake Street 456"));
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.id").value(owner.getId().toString()))
+                .andExpect(jsonPath("$.user.personalId").value("12345678A"));
+
+        UUID storedOwnerId = supplyRepository.findByCode("ES0033333333333333EE0E").orElseThrow().getUser().getId();
+        Assertions.assertEquals(owner.getId(), storedOwnerId);
     }
 
     @Test

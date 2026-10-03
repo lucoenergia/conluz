@@ -19,6 +19,8 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     boolean existsByPersonalId(String personalId);
 
+    boolean existsByPersonalIdAndIdNot(String personalId, UUID id);
+
     long countByIsPlatformAdminTrueAndEnabledTrue();
 
     @Query("SELECT u FROM users u WHERE EXISTS(SELECT s FROM supplies s WHERE s.user = u)")

@@ -111,7 +111,7 @@ public class CreateSuppliesWithFileController {
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public ResponseEntity createSuppliesWithFile(
-            @Parameter(description = "CSV file format: code(String), address(String), addressRef(String), personalId(String).")
+            @Parameter(description = "CSV file format: code(String), address(String), addressRef(String), personalId(String; the DNI/NIE/NIF of the existing owner, normalised before the lookup: whitespace, dots and hyphens removed, letters upper-cased).")
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "Target community UUID.")
             @RequestParam(value = "communityId", required = false) UUID communityId) {

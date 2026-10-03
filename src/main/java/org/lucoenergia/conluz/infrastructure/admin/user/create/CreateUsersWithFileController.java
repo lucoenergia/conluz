@@ -21,6 +21,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.context.MessageSource;
@@ -39,7 +40,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -78,6 +78,8 @@ public class CreateUsersWithFileController {
                                     
                     This endpoint requires clients to send a request containing a file with essential details for each user, including username, password, and any additional relevant information.
                                     
+                    The `personalId` of every row is normalised before it is stored or compared: surrounding and inner whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so `12.345.678-a` is stored as `12345678A`. A row whose normalised `personalId` already belongs to a user is not created and is reported in `errors`; the error message does not repeat the value.
+                                    
                     Every row is applied only to the community given by the `communityId` query parameter. A row whose `communityId` column is present and differs from the query parameter, or is not a valid UUID, is rejected and reported in `errors`; no user and no membership are created for it.
                                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
@@ -103,9 +105,10 @@ public class CreateUsersWithFileController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
+    @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canCreateUserIn(#communityId)")
     public ResponseEntity createUsersWithFile(
-            @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String), address(String), email(String), phoneNumber(String), role(String), password(String), communityId(UUID, optional; if present it must equal the communityId query parameter, otherwise the row is rejected), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).")
+            @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String; normalised: whitespace, dots and hyphens removed, letters upper-cased), address(String), email(String), phoneNumber(String), role(String), password(String), communityId(UUID, optional; if present it must equal the communityId query parameter, otherwise the row is rejected), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).")
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "Target community UUID. Required for community admins; optional for platform admins.")
             @RequestParam(value = "communityId", required = false) UUID communityId) {
@@ -136,8 +139,7 @@ public class CreateUsersWithFileController {
                                     LocaleContextHolder.getLocale()));
                 } catch (UserAlreadyExistsException e) {
                     response.addError(UserPersonalId.of(user.getPersonalId()),
-                            messageSource.getMessage("error.user.already.exists",
-                                    Collections.singletonList(user.getPersonalId()).toArray(),
+                            messageSource.getMessage("error.user.already.exists", new List[]{},
                                     LocaleContextHolder.getLocale()));
                 } catch (Exception e) {
                     response.addError(UserPersonalId.of(user.getPersonalId()),

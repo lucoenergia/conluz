@@ -38,15 +38,20 @@ public class UserExceptionHandler {
         return errorBuilder.build(message, HttpStatus.FORBIDDEN);
     }
 
+    /**
+     * A duplicate personal ID is a conflict with existing state, answered 409 like the other
+     * "already exists" errors. Neither the message nor the params carry the personal ID, so the
+     * response cannot be used to confirm which personal IDs are registered.
+     */
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<RestError> handleException(UserAlreadyExistsException e) {
 
         String message = messageSource.getMessage(
                 "error.user.already.exists",
-                List.of(e.getUserId().getPersonalId()).toArray(),
+                List.of().toArray(),
                 LocaleContextHolder.getLocale()
         );
-        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
+        return errorBuilder.build(message, RestErrorCode.USER_ALREADY_EXISTS, null, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(UserNotFoundException.class)

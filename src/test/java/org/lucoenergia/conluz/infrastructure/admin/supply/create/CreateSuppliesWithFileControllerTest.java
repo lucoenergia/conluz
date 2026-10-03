@@ -1,13 +1,17 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -17,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
 
@@ -36,6 +41,8 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private SupplyRepository supplyRepository;
 
     private static final String URL = "/api/v1/supplies/import";
     public static final String SUPPLIES_CSV = "fixtures/supplies/supplies.csv";
@@ -44,6 +51,32 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
     public static final String SUPPLIES_MALFORMED_CSV = "fixtures/supplies/supplies_malformed.csv";
     public static final String MULTIPART_FILE_NAME = "file";
     public static final String TEXT_CSV_MEDIA_TYPE = "text/csv";
+
+    @ParameterizedTest
+    @ValueSource(strings = {"12345678a", "\"12345678 A\"", "12345678-A", "12.345.678-A"})
+    void testImportResolvesTheOwnerFromATypingVariantOfTheirPersonalId(String variant) throws Exception {
+
+        User owner = UserMother.randomUserWithPersonalId("12345678A");
+        createUserRepository.create(owner);
+        String csv = "code,addressRef,address,partitionCoefficient,personalId\n"
+                + "ES0033333333333333FF0F,A9384752345OA124,Main St,0.078632," + variant + "\n";
+        MockMultipartFile file = new MockMultipartFile(
+                MULTIPART_FILE_NAME, "supplies.csv", TEXT_CSV_MEDIA_TYPE, csv.getBytes(StandardCharsets.UTF_8));
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .param("communityId", DEFAULT_COMMUNITY_ID.toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", hasItem("ES0033333333333333FF0F")))
+                .andExpect(jsonPath("$.errors", hasSize(0)));
+
+        UUID storedOwnerId = supplyRepository.findByCode("ES0033333333333333FF0F").orElseThrow().getUser().getId();
+        Assertions.assertEquals(owner.getId(), storedOwnerId);
+    }
 
     @Test
     void testMinimumBody() throws Exception {

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- personal_id identifies a user (it is the login username and the key used to resolve a
+         supply's owner), but its uniqueness was only checked in code before the insert, so two
+         concurrent creations could both pass the check and leave a user who can no longer log in.
+         The constraint is the backstop: the application maps a violation of it, by name, to the same
+         409 as the code-level check. Runs after normalize_users_personal_id, so it is uniqueness of
+         the normalised value. -->
+    <changeSet id="add_unique_constraint_to_users_personal_id" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add users_personal_id_uq: it already exists, or users.personal_id has duplicate values.">
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM pg_constraint WHERE conname = 'users_personal_id_uq'
+            </sqlCheck>
+            <sqlCheck expectedResult="0">
+                SELECT count(*)
+                FROM (SELECT personal_id FROM users GROUP BY personal_id HAVING count(*) > 1) AS duplicates
+            </sqlCheck>
+        </preConditions>
+        <addUniqueConstraint tableName="users"
+                             columnNames="personal_id"
+                             constraintName="users_personal_id_uq"/>
+        <rollback>
+            <dropUniqueConstraint tableName="users" constraintName="users_personal_id_uq"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- users.personal_id (the DNI/NIE/NIF, also the login username) used to be stored exactly as
+         typed, so 12345678a, ' 12345678A ' and 12345678-A were three different users. The application
+         now normalises it on every write and lookup (UserPersonalId#normalize), and this changeset
+         brings the existing rows to the same canonical form, before
+         add_unique_constraint_to_users_personal_id makes it unique.
+
+         The expression must remove exactly the characters UserPersonalId#normalize removes: space,
+         tab, line feed, carriage return, form feed, vertical tab, no-break space (U+00A0), dot and
+         hyphen; then upper-case the rest. The set is spelled out instead of using \s or [[:space:]],
+         whose meaning depends on the database locale. UsersPersonalIdMigrationIntegrationTest pins
+         both implementations to the same examples.
+
+         If two existing rows become equal once normalised, they are the same person registered
+         twice. Which row to keep cannot be decided here, so the precondition HALTs and nothing is
+         changed until an operator resolves them. -->
+    <changeSet id="normalize_users_personal_id" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Some users.personal_id values collide once normalised (whitespace, no-break space, dots and hyphens removed, upper-cased): they are the same person registered more than once. Nothing was changed. List them with: SELECT upper(regexp_replace(personal_id, '[ \t\n\r\f\v .-]', '', 'g')) AS normalised, array_agg(id) AS user_ids FROM users GROUP BY 1 HAVING count(*) > 1; then merge or correct those users and run the migration again.">
+            <sqlCheck expectedResult="0">
+                SELECT count(*)
+                FROM (SELECT upper(regexp_replace(personal_id, '[ \t\n\r\f\v .-]', '', 'g'))
+                      FROM users
+                      GROUP BY 1
+                      HAVING count(*) > 1) AS collisions
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE users
+            SET personal_id = upper(regexp_replace(personal_id, '[ \t\n\r\f\v .-]', '', 'g'))
+            WHERE personal_id &lt;&gt; upper(regexp_replace(personal_id, '[ \t\n\r\f\v .-]', '', 'g'))
+        </sql>
+        <!-- Irreversible: the values as originally typed are not kept anywhere, so a rollback cannot
+             restore them. Rolling back only removes this changeset from the changelog; the
+             personal IDs stay normalised. -->
+        <rollback/>
+    </changeSet>
+</databaseChangeLog>
