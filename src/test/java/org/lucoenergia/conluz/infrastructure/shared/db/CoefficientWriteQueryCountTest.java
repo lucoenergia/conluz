@@ -1,8 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.db;
 
 import jakarta.persistence.EntityManager;
-import org.hibernate.SessionFactory;
-import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -46,6 +44,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -162,10 +161,11 @@ class CoefficientWriteQueryCountTest extends BaseControllerTest {
     }
 
     private long endpointStatements(MockHttpServletRequestBuilder request) throws Exception {
-        Statistics statistics = cleared();
-        mockMvc.perform(request).andExpect(status().isOk());
-        entityManager.flush();
-        return statistics.getPrepareStatementCount();
+        startFromAnEmptyPersistenceContext();
+        return measured(ThreadStatementCounter.count(() -> {
+            mockMvc.perform(request).andExpect(status().isOk());
+            entityManager.flush();
+        }));
     }
 
     /**
@@ -173,18 +173,26 @@ class CoefficientWriteQueryCountTest extends BaseControllerTest {
      * lookup for what it touched.
      */
     private long serviceStatements(Function<Fixture, List<SupplyPartitionCoefficient>> write, Fixture fixture) {
-        Statistics statistics = cleared();
-        partitionCoefficientService.findDetailsInOrderOf(write.apply(fixture));
-        entityManager.flush();
-        return statistics.getPrepareStatementCount();
+        startFromAnEmptyPersistenceContext();
+        return measured(ThreadStatementCounter.count(() -> {
+            partitionCoefficientService.findDetailsInOrderOf(write.apply(fixture));
+            entityManager.flush();
+        }));
     }
 
-    private Statistics cleared() {
+    private void startFromAnEmptyPersistenceContext() {
         entityManager.flush();
         entityManager.clear();
-        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
-        statistics.clear();
-        return statistics;
+    }
+
+    /**
+     * Every measured call runs statements, so a zero means the counter is not installed and the
+     * comparison would pass vacuously.
+     */
+    private static long measured(long statements) {
+        assertTrue(statements > 0, "No statements were counted: is ThreadStatementCounter installed as the "
+                + "Hibernate statement inspector in application-test.properties?");
+        return statements;
     }
 
     private static BigDecimal share(Fixture fixture) {
