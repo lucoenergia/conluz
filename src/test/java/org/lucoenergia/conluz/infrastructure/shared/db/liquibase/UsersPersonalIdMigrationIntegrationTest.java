@@ -56,7 +56,9 @@ class UsersPersonalIdMigrationIntegrationTest {
                 "12.345.678-c",
                 "\n00000001r\r",
                 "ab\u000Bcd\fef",
-                " 99999999z ",
+                "\u00A099999999z\u00A0",
+                "\u00A012345678\u00A0z",
+                "88\u00A0888\u00A0888y",
                 "b-12.345.678",
                 "ALREADY1A",
         };

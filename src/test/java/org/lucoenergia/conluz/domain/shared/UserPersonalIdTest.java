@@ -19,7 +19,7 @@ class UserPersonalIdTest {
             "12.345.678-A",
             "\t12345678A\n",
             "\r\n12345678\fA\u000B",
-            " 12345678 A ",
+            "\u00A012345678\u00A0A\u00A0",
             "1-2.3 4-5.6 7-8.a",
     })
     void normalisesEveryTypingVariantToTheSameValue(String variant) {
