@@ -8,8 +8,8 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserPersonalIdUniqueConstraint;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
+import org.lucoenergia.conluz.infrastructure.admin.user.password.UserPasswordEncoder;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +19,10 @@ public class CreateUserRepositoryImpl implements CreateUserRepository {
 
     private final UserRepository repository;
     private final UserEntityMapper mapper;
-    private final PasswordEncoder passwordEncoder;
+    private final UserPasswordEncoder passwordEncoder;
 
     public CreateUserRepositoryImpl(UserRepository repository, UserEntityMapper mapper,
-                                    PasswordEncoder passwordEncoder) {
+                                    UserPasswordEncoder passwordEncoder) {
         this.repository = repository;
         this.mapper = mapper;
         this.passwordEncoder = passwordEncoder;

@@ -46,6 +46,7 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.email").value(DefaultUserAdminMother.EMAIL))
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.isPlatformAdmin").value(true))
+                .andExpect(jsonPath("$.mustChangePassword").value(false))
                 .andExpect(jsonPath("$.memberships").isEmpty())
                 .andExpect(jsonPath("$.password").doesNotExist());
     }

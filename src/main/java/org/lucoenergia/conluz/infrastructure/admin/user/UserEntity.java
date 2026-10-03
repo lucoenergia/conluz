@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +25,10 @@ public class UserEntity {
     private Boolean enabled = true;
     @Column(name = "is_platform_admin")
     private Boolean isPlatformAdmin = false;
+    @Column(name = "must_change_password")
+    private Boolean mustChangePassword = false;
+    @Column(name = "password_changed_at")
+    private Instant passwordChangedAt;
     @OneToMany(
             mappedBy = "user",
             cascade = CascadeType.ALL,
@@ -112,6 +117,22 @@ public class UserEntity {
         this.isPlatformAdmin = isPlatformAdmin;
     }
 
+    public Boolean mustChangePassword() {
+        return mustChangePassword != null && mustChangePassword;
+    }
+
+    public void setMustChangePassword(Boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
+    }
+
+    public Instant getPasswordChangedAt() {
+        return passwordChangedAt;
+    }
+
+    public void setPasswordChangedAt(Instant passwordChangedAt) {
+        this.passwordChangedAt = passwordChangedAt;
+    }
+
     public List<SupplyEntity> getSupplies() {
         return supplies;
     }
@@ -138,6 +159,8 @@ public class UserEntity {
         entity.setPhoneNumber(user.getPhoneNumber());
         entity.setEnabled(user.isEnabled());
         entity.setPlatformAdmin(user.isPlatformAdmin());
+        entity.setMustChangePassword(user.mustChangePassword());
+        entity.setPasswordChangedAt(user.getPasswordChangedAt());
         return entity;
     }
 
@@ -153,6 +176,8 @@ public class UserEntity {
         user.setPhoneNumber(this.getPhoneNumber());
         user.setEnabled(this.isEnabled());
         user.setPlatformAdmin(this.isPlatformAdmin());
+        user.setMustChangePassword(this.mustChangePassword());
+        user.setPasswordChangedAt(this.getPasswordChangedAt());
 
         return user;
     }

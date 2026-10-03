@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -180,6 +181,8 @@ class UpdateProfileRepositoryDatabaseTest extends BaseIntegrationTest {
         entity.setPhoneNumber("+34600999888");
         entity.setEnabled(false);
         entity.setPlatformAdmin(true);
+        entity.setMustChangePassword(true);
+        entity.setPasswordChangedAt(Instant.parse("2026-01-02T03:04:05.678Z"));
         return userRepository.saveAndFlush(entity);
     }
 

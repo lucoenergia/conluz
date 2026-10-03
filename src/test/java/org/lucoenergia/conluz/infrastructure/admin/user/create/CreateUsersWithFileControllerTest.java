@@ -254,7 +254,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
 
         String csvContent = "number,fullName,personalId,address,email,phoneNumber,role,password,communityId,communityRole\n" +
-                "1,Test User,111111111A,1 Test St,test.user@example.com,600000001,partner,password1," +
+                "1,Test User,111111111A,1 Test St,test.user@example.com,600000001,partner,a secure password1!," +
                 community.getId() + ",COMMUNITY_MEMBER\n";
 
         MockMultipartFile file = new MockMultipartFile(
@@ -492,9 +492,63 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
         assertMemberOf("331000002A", community.getId());
     }
 
+    @Test
+    void rowWithAPasswordOf14CodePoints_isRejectedNamingTheRule_whileTheOtherRowsAreCreated() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        String csvContent = HEADER
+                + rowWithPassword(1, "335000001A", "a".repeat(14))
+                + rowWithPassword(2, "335000002B", "a".repeat(15));
+
+        mockMvc.perform(multipart(URL)
+                        .file(csv(csvContent))
+                        .param("communityId", community.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", containsInAnyOrder("335000002B")))
+                .andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0].personalId").value("335000001A"))
+                .andExpect(jsonPath("$.errors[0].errorMessage").value(passwordTooShortMessage()));
+
+        assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of("335000001A")).isEmpty());
+        mockMvc.perform(post("/api/v1/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\": \"335000002B\", \"password\": \"" + "a".repeat(15) + "\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void importedUsers_areFlaggedAsHavingToChangeThePassword() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        mockMvc.perform(multipart(URL)
+                        .file(csv(HEADER + rowWithPassword(1, "335000003C", "a secure password1!")))
+                        .param("communityId", community.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", containsInAnyOrder("335000003C")));
+
+        User imported = getUserRepository.findByPersonalId(UserPersonalId.of("335000003C")).orElseThrow();
+        assertTrue(imported.mustChangePassword());
+    }
+
+    private static String rowWithPassword(int number, String personalId, String password) {
+        return number + ",Test User " + number + "," + personalId + ",1 Test St,user" + number + "@example.com,"
+                + "60000000" + number + ",partner," + password + ",,\n";
+    }
+
+    private String passwordTooShortMessage() {
+        return messageSource.getMessage("error.user.password.policy.too.short", new Object[]{15},
+                LocaleContextHolder.getLocale());
+    }
+
     private static String row(int number, String personalId, String communityId, String communityRole) {
         return number + ",Test User " + number + "," + personalId + ",1 Test St,user" + number + "@example.com,"
-                + "60000000" + number + ",partner,password" + number + "," + communityId + "," + communityRole + "\n";
+                + "60000000" + number + ",partner,a secure password" + number + "!," + communityId + "," + communityRole + "\n";
     }
 
     private static MockMultipartFile csv(String content) {

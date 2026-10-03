@@ -14,6 +14,8 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserService;
 import org.lucoenergia.conluz.domain.admin.user.create.ImportRowCommunityMismatchException;
+import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyViolationException;
+import org.lucoenergia.conluz.infrastructure.admin.user.password.PasswordPolicyMessages;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
@@ -61,13 +63,16 @@ public class CreateUsersWithFileController {
     private final MessageSource messageSource;
     private final CreateUserService createUserService;
     private final ErrorBuilder errorBuilder;
+    private final PasswordPolicyMessages passwordPolicyMessages;
 
     public CreateUsersWithFileController(CsvFileRequestValidator csvFileRequestValidator, MessageSource messageSource,
-                                         CreateUserService createUserService, ErrorBuilder errorBuilder) {
+                                         CreateUserService createUserService, ErrorBuilder errorBuilder,
+                                         PasswordPolicyMessages passwordPolicyMessages) {
         this.csvFileRequestValidator = csvFileRequestValidator;
         this.messageSource = messageSource;
         this.createUserService = createUserService;
         this.errorBuilder = errorBuilder;
+        this.passwordPolicyMessages = passwordPolicyMessages;
     }
 
     @PostMapping
@@ -81,6 +86,8 @@ public class CreateUsersWithFileController {
                     The `personalId` of every row is normalised before it is stored or compared: surrounding and inner whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so `12.345.678-a` is stored as `12345678A`. A row whose normalised `personalId` already belongs to a user is not created and is reported in `errors`; the error message does not repeat the value.
                                     
                     Every row is applied only to the community given by the `communityId` query parameter. A row whose `communityId` column is present and differs from the query parameter, or is not a valid UUID, is rejected and reported in `errors`; no user and no membership are created for it.
+                                    
+                    The `password` of every row must satisfy the password policy: between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters, and there are no composition rules. A row whose password breaks the policy is not created and is reported in `errors` with a message naming the rule that failed; the other rows are still processed. Every user created by an import is flagged as having to change their password.
                                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
                     **Required: Platform Admin or Community Admin**
@@ -108,7 +115,7 @@ public class CreateUsersWithFileController {
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canCreateUserIn(#communityId)")
     public ResponseEntity createUsersWithFile(
-            @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String; normalised: whitespace, dots and hyphens removed, letters upper-cased), address(String), email(String), phoneNumber(String), role(String), password(String), communityId(UUID, optional; if present it must equal the communityId query parameter, otherwise the row is rejected), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).")
+            @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String; normalised: whitespace, dots and hyphens removed, letters upper-cased), address(String), email(String), phoneNumber(String), role(String), password(String; 15 to 64 characters counted as Unicode code points and at most 72 bytes in UTF-8, any character accepted, no composition rules; a row that breaks this is rejected and reported in errors), communityId(UUID, optional; if present it must equal the communityId query parameter, otherwise the row is rejected), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).")
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "Target community UUID. Required for community admins; optional for platform admins.")
             @RequestParam(value = "communityId", required = false) UUID communityId) {
@@ -137,6 +144,9 @@ public class CreateUsersWithFileController {
                     response.addError(UserPersonalId.of(user.getPersonalId()),
                             messageSource.getMessage("error.user.import.community.mismatch", new List[]{},
                                     LocaleContextHolder.getLocale()));
+                } catch (PasswordPolicyViolationException e) {
+                    response.addError(UserPersonalId.of(user.getPersonalId()),
+                            passwordPolicyMessages.messageFor(e.getRule()));
                 } catch (UserAlreadyExistsException e) {
                     response.addError(UserPersonalId.of(user.getPersonalId()),
                             messageSource.getMessage("error.user.already.exists", new List[]{},

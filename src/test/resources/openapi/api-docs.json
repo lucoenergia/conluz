@@ -34,6 +34,24 @@
         },
         "type" : "object"
       },
+      "ChangePasswordBody" : {
+        "properties" : {
+          "currentPassword" : {
+            "description" : "The caller's current password, exactly as it was set.",
+            "type" : "string"
+          },
+          "newPassword" : {
+            "description" : "The new password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. It may be equal to the current password.",
+            "minLength" : 15,
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type" : "object"
+      },
       "CloseCoefficientsBody" : {
         "properties" : {
           "closedOn" : {
@@ -351,19 +369,30 @@
             "type" : "string"
           },
           "email" : {
+            "minLength" : 1,
             "type" : "string"
           },
           "fullName" : {
+            "minLength" : 1,
             "type" : "string"
           },
           "password" : {
+            "description" : "The default admin's password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. The default admin chooses it, so they are not flagged as having to change it.",
+            "minLength" : 15,
             "type" : "string"
           },
           "personalId" : {
             "description" : "The default admin's DNI/NIE/NIF, used as login username. It is normalised before it is stored or compared: whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so 12.345.678-a and 12345678A are the same identifier.",
+            "minLength" : 1,
             "type" : "string"
           }
         },
+        "required" : [
+          "email",
+          "fullName",
+          "password",
+          "personalId"
+        ],
         "type" : "object"
       },
       "CreateMembershipBody" : {
@@ -526,7 +555,8 @@
             "type" : "integer"
           },
           "password" : {
-            "minLength" : 1,
+            "description" : "The initial password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. The new user is flagged as having to change it.",
+            "minLength" : 15,
             "type" : "string"
           },
           "personalId" : {
@@ -661,6 +691,10 @@
             },
             "type" : "object"
           },
+          "mustChangePassword" : {
+            "description" : "Whether the caller's password was chosen by someone else and should be changed through PUT /api/v1/users/current/password. Informational: no request is refused because of it.",
+            "type" : "boolean"
+          },
           "number" : {
             "format" : "int32",
             "type" : "integer"
@@ -688,6 +722,7 @@
           "id",
           "isPlatformAdmin",
           "memberships",
+          "mustChangePassword",
           "number",
           "personalId",
           "phoneNumber",
@@ -852,6 +887,9 @@
             "$ref" : "#/components/schemas/CreateDefaultAdminUserBody"
           }
         },
+        "required" : [
+          "defaultAdminUser"
+        ],
         "type" : "object"
       },
       "InstantProduction" : {
@@ -1815,6 +1853,8 @@
             "enum" : [
               "USER_LAST_PLATFORM_ADMIN",
               "USER_ALREADY_EXISTS",
+              "USER_PASSWORD_POLICY_VIOLATION",
+              "USER_CURRENT_PASSWORD_INCORRECT",
               "MEMBERSHIP_ALREADY_EXISTS",
               "COMMUNITY_ALREADY_EXISTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
@@ -7765,7 +7805,7 @@
     },
     "/api/v1/init" : {
       "post" : {
-        "description" : "This endpoint serves as a crucial initiation step for the application, allowing the configuration of foundational settings. This endpoint facilitates the establishment of the default admin user credentials, pivotal for initiating subsequent configurations. By executing this endpoint, users can set the groundwork for the app, enabling the seamless configuration of users, supplies, and other application settings. No authorization is required to execute this endpoint, and the response provides confirmation of successful initialization or relevant error messages.",
+        "description" : "This endpoint serves as a crucial initiation step for the application, allowing the configuration of foundational settings. This endpoint facilitates the establishment of the default admin user credentials, pivotal for initiating subsequent configurations. By executing this endpoint, users can set the groundwork for the app, enabling the seamless configuration of users, supplies, and other application settings. No authorization is required to execute this endpoint, and the response provides confirmation of successful initialization or relevant error messages.\n\nThe body is validated: `defaultAdminUser` and its `personalId`, `fullName`, `email` and `password` are required, and a missing or invalid field is answered 400. The `password` must satisfy the password policy: between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded; any character is accepted, including spaces and non-ASCII letters, and there are no composition rules. A password that breaks the policy is answered 400 with the `USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed: `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.\n\nThe application can only be initialised once: any later call is answered 403.",
         "operationId" : "init",
         "requestBody" : {
           "content" : {
@@ -7796,6 +7836,19 @@
               }
             },
             "description" : "The request contains invalid data."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "Admin user already initialized.",
+                  "status" : 403,
+                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "Conluz has already been initialized."
           },
           "500" : {
             "content" : {
@@ -12721,7 +12774,7 @@
         ]
       },
       "post" : {
-        "description" : "This endpoint facilitates the creation of a new user within the system.\n\nThis endpoint requires clients to send a request containing essential user details, including username, password, and any additional relevant information.\n\nOptionally, a communityId and communityRole can be specified to automatically create a membership\nfor the new user in the given community. If communityId is not provided and the caller is a\nCOMMUNITY_ADMIN, the community is derived from the caller's active context. If the caller is a\nPLATFORM_ADMIN and communityId is not provided, a user with no memberships is created\n(they can be attached later).\n\nThe `personalId` is normalised before it is stored or compared: surrounding and inner whitespace\n(including the no-break space), dots and hyphens are removed and letters are upper-cased, so\n`x1234567-l` is stored as `X1234567L`. If a user with the same normalised `personalId` already\nexists, the server responds 409 with the `USER_ALREADY_EXISTS` code; the error does not repeat\nthe value.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: Platform Admin, or Community Admin of the target community**\n\nUpon successful user creation, the server responds with an HTTP status code of 200, along with comprehensive details about the newly created user, such as a unique identifier and username.\n\nIn cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.\n",
+        "description" : "This endpoint facilitates the creation of a new user within the system.\n\nThis endpoint requires clients to send a request containing essential user details, including username, password, and any additional relevant information.\n\nOptionally, a communityId and communityRole can be specified to automatically create a membership\nfor the new user in the given community. If communityId is not provided and the caller is a\nCOMMUNITY_ADMIN, the community is derived from the caller's active context. If the caller is a\nPLATFORM_ADMIN and communityId is not provided, a user with no memberships is created\n(they can be attached later).\n\nThe `personalId` is normalised before it is stored or compared: surrounding and inner whitespace\n(including the no-break space), dots and hyphens are removed and letters are upper-cased, so\n`x1234567-l` is stored as `X1234567L`. If a user with the same normalised `personalId` already\nexists, the server responds 409 with the `USER_ALREADY_EXISTS` code; the error does not repeat\nthe value.\n\nThe `password` must satisfy the password policy: between 15 and 64 characters, counting each\nUnicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is\naccepted, including spaces and non-ASCII letters; there are no composition rules, and the value is\nnever trimmed or transformed. A password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:\n`TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`. Because the password is chosen by the creator, the new\nuser is flagged as having to change it (`mustChangePassword` on `GET /api/v1/users/current`).\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: Platform Admin, or Community Admin of the target community**\n\nUpon successful user creation, the server responds with an HTTP status code of 200, along with comprehensive details about the newly created user, such as a unique identifier and username.\n\nIn cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.\n",
         "operationId" : "createUser",
         "requestBody" : {
           "content" : {
@@ -12897,9 +12950,111 @@
         ]
       }
     },
+    "/api/v1/users/current/password" : {
+      "put" : {
+        "description" : "This endpoint lets the authenticated user replace their own password. It always acts on the\ncaller, so it cannot be used to change anybody else's password.\n\nThe current password must be supplied and must match. The new password must be between 15 and\n64 characters long, counting each Unicode code point as one, and no more than 72 bytes once\nUTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no\ncomposition rules, and the value is never trimmed or transformed. The new password may be equal\nto the current one.\n\nOn success the server answers 204, clears the \"must change password\" flag and ends every\nsession opened with the previous password: every token issued before the change, including the\none used for this request, is rejected with 401 from then on, and the access cookie is removed.\nThe client must log in again with the new password.\n\nA wrong current password is answered 400 with the `USER_CURRENT_PASSWORD_INCORRECT` code, never\n401, and changes nothing. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:\n`TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.\n\n**Required: any authenticated user (changes their own password).**",
+        "operationId" : "changePassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangePasswordBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "Password changed. Every previously issued token is now rejected."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Incorrect current password" : {
+                    "description" : "Incorrect current password",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_CURRENT_PASSWORD_INCORRECT",
+                          "message" : "The current password is incorrect.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "The current password is incorrect.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password policy violation" : {
+                    "description" : "Password policy violation",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_POLICY_VIOLATION",
+                          "message" : "The password must be at least 15 characters long.",
+                          "params" : {
+                            "rule" : "TOO_SHORT"
+                          }
+                        }
+                      ],
+                      "message" : "The password must be at least 15 characters long.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The body is invalid, the current password is incorrect (`USER_CURRENT_PASSWORD_INCORRECT`), or the new password breaks the password policy (`USER_PASSWORD_POLICY_VIOLATION`, with the failed rule in `params.rule`)."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Changes the password of the current user",
+        "tags" : [
+          "Users"
+        ]
+      }
+    },
     "/api/v1/users/import" : {
       "post" : {
-        "description" : "This endpoint facilitates the creation of a set of users within the system by importing a CSV file.\n\nThis endpoint requires clients to send a request containing a file with essential details for each user, including username, password, and any additional relevant information.\n\nThe `personalId` of every row is normalised before it is stored or compared: surrounding and inner whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so `12.345.678-a` is stored as `12345678A`. A row whose normalised `personalId` already belongs to a user is not created and is reported in `errors`; the error message does not repeat the value.\n\nEvery row is applied only to the community given by the `communityId` query parameter. A row whose `communityId` column is present and differs from the query parameter, or is not a valid UUID, is rejected and reported in `errors`; no user and no membership are created for it.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: Platform Admin or Community Admin**\n\nUpon successful file processing, the server responds with an HTTP status code of 200, along with comprehensive details about the result of the bulk operation, including what users have been created or any potential error.\n\nIn cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.\n",
+        "description" : "This endpoint facilitates the creation of a set of users within the system by importing a CSV file.\n\nThis endpoint requires clients to send a request containing a file with essential details for each user, including username, password, and any additional relevant information.\n\nThe `personalId` of every row is normalised before it is stored or compared: surrounding and inner whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so `12.345.678-a` is stored as `12345678A`. A row whose normalised `personalId` already belongs to a user is not created and is reported in `errors`; the error message does not repeat the value.\n\nEvery row is applied only to the community given by the `communityId` query parameter. A row whose `communityId` column is present and differs from the query parameter, or is not a valid UUID, is rejected and reported in `errors`; no user and no membership are created for it.\n\nThe `password` of every row must satisfy the password policy: between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters, and there are no composition rules. A row whose password breaks the policy is not created and is reported in `errors` with a message naming the rule that failed; the other rows are still processed. Every user created by an import is flagged as having to change their password.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: Platform Admin or Community Admin**\n\nUpon successful file processing, the server responds with an HTTP status code of 200, along with comprehensive details about the result of the bulk operation, including what users have been created or any potential error.\n\nIn cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.\n",
         "operationId" : "createUsersWithFile",
         "parameters" : [
           {
@@ -12919,7 +13074,7 @@
               "schema" : {
                 "properties" : {
                   "file" : {
-                    "description" : "CSV file format: number(Integer), fullName(String), personalId(String; normalised: whitespace, dots and hyphens removed, letters upper-cased), address(String), email(String), phoneNumber(String), role(String), password(String), communityId(UUID, optional; if present it must equal the communityId query parameter, otherwise the row is rejected), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).",
+                    "description" : "CSV file format: number(Integer), fullName(String), personalId(String; normalised: whitespace, dots and hyphens removed, letters upper-cased), address(String), email(String), phoneNumber(String), role(String), password(String; 15 to 64 characters counted as Unicode code points and at most 72 bytes in UTF-8, any character accepted, no composition rules; a row that breaks this is rejected and reported in errors), communityId(UUID, optional; if present it must equal the communityId query parameter, otherwise the row is rejected), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).",
                     "format" : "binary",
                     "type" : "string"
                   }

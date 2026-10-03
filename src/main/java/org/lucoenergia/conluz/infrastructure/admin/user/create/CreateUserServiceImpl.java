@@ -27,11 +27,18 @@ public class CreateUserServiceImpl implements CreateUserService {
 
     @Override
     public User create(User user) {
-        return create(user, null, null);
+        return create(user, null, null, false);
     }
 
     @Override
     public User create(User user, UUID communityId, CommunityRole communityRole) {
+        return create(user, communityId, communityRole, true);
+    }
+
+    private User create(User user, UUID communityId, CommunityRole communityRole, boolean passwordChosenByCreator) {
+        if (passwordChosenByCreator) {
+            user.requirePasswordChange();
+        }
         user.enable();
         user.initializeUuid();
 

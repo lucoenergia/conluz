@@ -17,6 +17,7 @@ import org.springframework.stereotype.Repository;
 import java.security.Key;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Function;
 
@@ -103,7 +104,7 @@ public class JwtAuthRepository implements AuthRepository {
     @Override
     public boolean isTokenValid(Token token, User user) {
         final UUID id = getUserIdFromToken(token);
-        return id.equals(user.getId()) && !isTokenExpired(token);
+        return id.equals(user.getId()) && !isTokenExpired(token) && !isIssuedBeforePasswordChange(token, user);
     }
 
     @Override
@@ -117,6 +118,26 @@ public class JwtAuthRepository implements AuthRepository {
 
     private boolean isTokenExpired(Token token) {
         return getExpirationDate(token).before(new Date());
+    }
+
+    /**
+     * A token issued before the user's last password change belongs to a session opened with the old password.
+     * <p>
+     * {@code iat} only has second precision, so the change instant is truncated to the second before comparing:
+     * a token issued right after the change, within the same second, must be accepted. The cost is that another
+     * token issued earlier within that same second is accepted too; the token used for the change itself is
+     * revoked explicitly through the blacklist instead.
+     */
+    private boolean isIssuedBeforePasswordChange(Token token, User user) {
+        Instant passwordChangedAt = user.getPasswordChangedAt();
+        if (passwordChangedAt == null) {
+            return false;
+        }
+        Date issuedAt = getClaim(token, Claims::getIssuedAt);
+        if (issuedAt == null) {
+            return true;
+        }
+        return issuedAt.toInstant().isBefore(passwordChangedAt.truncatedTo(ChronoUnit.SECONDS));
     }
 
     private Key getKey() {

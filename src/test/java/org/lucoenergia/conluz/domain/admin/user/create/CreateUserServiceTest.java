@@ -31,6 +31,47 @@ class CreateUserServiceTest {
     }
 
     @Test
+    void create_withCommunity_flagsTheUserAsHavingToChangeThePasswordChosenByTheCreator() {
+        User user = UserMother.randomUser();
+        when(repository.create(user)).thenReturn(user);
+
+        service().create(user, UUID.randomUUID(), CommunityRole.COMMUNITY_MEMBER);
+
+        verify(repository).create(argThat(User::mustChangePassword));
+    }
+
+    @Test
+    void create_withoutCommunity_flagsTheUserAsHavingToChangeThePasswordChosenByTheCreator() {
+        User user = UserMother.randomUser();
+        when(repository.create(user)).thenReturn(user);
+
+        service().create(user, null, null);
+
+        verify(repository).create(argThat(User::mustChangePassword));
+    }
+
+    @Test
+    void createFromImport_flagsTheUserAsHavingToChangeThePasswordChosenByTheImporter() {
+        User user = UserMother.randomUser();
+        UUID importCommunityId = UUID.randomUUID();
+        when(repository.create(user)).thenReturn(user);
+
+        service().createFromImport(user, null, importCommunityId, CommunityRole.COMMUNITY_MEMBER);
+
+        verify(repository).create(argThat(User::mustChangePassword));
+    }
+
+    @Test
+    void create_withTheUserOnly_doesNotFlagTheUserAsHavingToChangeThePassword() {
+        User user = UserMother.randomUser();
+        when(repository.create(user)).thenReturn(user);
+
+        service().create(user);
+
+        verify(repository).create(argThat(created -> !created.mustChangePassword()));
+    }
+
+    @Test
     void create_withExplicitCommunityId_createsMembershipInThatCommunity() {
         User user = UserMother.randomUser();
         UUID communityId = UUID.randomUUID();
