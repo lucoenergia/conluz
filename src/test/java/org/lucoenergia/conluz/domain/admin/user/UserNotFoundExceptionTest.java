@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.admin.user;
 
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 
 import java.util.UUID;
 
@@ -35,16 +36,15 @@ class UserNotFoundExceptionTest {
     }
 
     @Test
-    void notFoundByPersonalIdCarriesNoIdentifier() {
-        UserNotFoundException ex = UserNotFoundException.forPersonalId();
+    void idIsUserPersonalIdWhenUserPersonalIdConstructorIsCalled() {
+        // arrange
+        UserPersonalId personalId = UserPersonalId.of("SamplePersonalId");
+        UserNotFoundException ex = new UserNotFoundException(personalId);
 
-        assertTrue(ex.isLookedUpByPersonalId());
-        assertEquals("", ex.getId());
-        assertTrue(ex.getUserId().isEmpty());
-    }
+        // act
+        String id = ex.getId();
 
-    @Test
-    void notFoundByUserIdIsNotLookedUpByPersonalId() {
-        assertFalse(new UserNotFoundException(UserId.of(UUID.randomUUID())).isLookedUpByPersonalId());
+        // assert
+        assertEquals(personalId.getPersonalId(), id, "ID should match the UserPersonalId when UserPersonalId constructor is called");
     }
 }

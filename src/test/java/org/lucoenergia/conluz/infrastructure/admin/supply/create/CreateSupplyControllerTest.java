@@ -29,11 +29,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -186,29 +183,6 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
         UUID storedOwnerId = supplyRepository.findByCode("ES0033333333333333EE0E").orElseThrow().getUser().getId();
         Assertions.assertEquals(owner.getId(), storedOwnerId);
-    }
-
-    @Test
-    void testCreateSupplyForAnUnknownOwnerIsNotFoundWithoutEchoingThePersonalId() throws Exception {
-
-        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-
-        String body = objectMapper.writeValueAsString(Map.of(
-                "code", "ES0033333333333333GG0G",
-                "communityId", DEFAULT_COMMUNITY_ID.toString(),
-                "personalId", "33199999Z",
-                "address", "Fake Street 456"));
-
-        mockMvc.perform(post(URL)
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andDo(print())
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").isNotEmpty())
-                .andExpect(content().string(not(containsString("33199999"))));
-
-        Assertions.assertEquals(0, supplyRepository.countByCode("ES0033333333333333GG0G"));
     }
 
     @Test

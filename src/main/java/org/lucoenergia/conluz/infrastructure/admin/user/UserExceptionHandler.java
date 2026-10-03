@@ -57,16 +57,11 @@ public class UserExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<RestError> handleException(UserNotFoundException e) {
 
-        String message = e.isLookedUpByPersonalId()
-                ? messageSource.getMessage(
-                        "error.user.not.found.by.personal.id",
-                        List.of().toArray(),
-                        LocaleContextHolder.getLocale())
-                : messageSource.getMessage(
-                        "error.user.not.found",
-                        List.of(e.getId()).toArray(),
-                        LocaleContextHolder.getLocale()
-                );
+        String message = messageSource.getMessage(
+                "error.user.not.found",
+                List.of(e.getId()).toArray(),
+                LocaleContextHolder.getLocale()
+        );
         return errorBuilder.build(message, HttpStatus.NOT_FOUND);
     }
 

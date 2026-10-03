@@ -31,7 +31,7 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
     public Supply create(Supply supply, UserPersonalId id, UUID communityId) {
         Optional<User> user = getUserRepository.findByPersonalId(id);
         if (user.isEmpty()) {
-            throw UserNotFoundException.forPersonalId();
+            throw new UserNotFoundException(id);
         }
         supply.enable();
         supply.initializeUuid();
