@@ -144,8 +144,7 @@ public class CreateSuppliesWithFileController {
             } catch (UserNotFoundException e) {
                 LOGGER.error("User not found", e);
                 response.addError(supply.getCode(),
-                        messageSource.getMessage("error.user.not.found",
-                                Collections.singletonList(supply.getPersonalId()).toArray(),
+                        messageSource.getMessage("error.user.not.found.by.personal.id", new List[]{},
                                 LocaleContextHolder.getLocale()));
             } catch (Exception e) {
                 LOGGER.error("Unable to create supply", e);
