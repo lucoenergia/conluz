@@ -94,11 +94,7 @@ public class GetUserRepositoryImpl implements GetUserRepository {
 
     @Override
     public Optional<User> getDefaultAdminUser() {
-        Optional<UserEntity> entity = userRepository.findFirstByNumber(0);
-        if (entity.isEmpty()) {
-            Optional.empty();
-        }
-        return Optional.of(userEntityMapper.map(entity.get()));
+        return userRepository.findFirstByNumber(0).map(userEntityMapper::map);
     }
 
     @Override
