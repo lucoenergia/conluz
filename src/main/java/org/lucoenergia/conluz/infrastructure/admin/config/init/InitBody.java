@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.config.init;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.user.DefaultAdminUser;
 
 public class InitBody {
@@ -26,6 +27,7 @@ public class InitBody {
 
     public static class CreateDefaultAdminUserBody {
 
+        @Schema(description = "The default admin's DNI/NIE/NIF, used as login username. It is normalised before it is stored or compared: whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so 12.345.678-a and 12345678A are the same identifier.")
         private String personalId;
         private String fullName;
         private String address;

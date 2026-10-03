@@ -44,7 +44,7 @@ public class GetUserRepositoryImpl implements GetUserRepository {
 
     @Override
     public Optional<User> findByPersonalId(UserPersonalId id) {
-        Optional<UserEntity> entity = userRepository.findByPersonalId(id.getPersonalId());
+        Optional<UserEntity> entity = userRepository.findByPersonalId(UserPersonalId.normalize(id.getPersonalId()));
         if (entity.isEmpty()) {
             return Optional.empty();
         }
@@ -65,7 +65,7 @@ public class GetUserRepositoryImpl implements GetUserRepository {
 
     @Override
     public boolean existsByPersonalId(UserPersonalId id) {
-        return userRepository.existsByPersonalId(id.getPersonalId());
+        return userRepository.existsByPersonalId(UserPersonalId.normalize(id.getPersonalId()));
     }
 
     @Override
@@ -94,11 +94,7 @@ public class GetUserRepositoryImpl implements GetUserRepository {
 
     @Override
     public Optional<User> getDefaultAdminUser() {
-        Optional<UserEntity> entity = userRepository.findFirstByNumber(0);
-        if (entity.isEmpty()) {
-            Optional.empty();
-        }
-        return Optional.of(userEntityMapper.map(entity.get()));
+        return userRepository.findFirstByNumber(0).map(userEntityMapper::map);
     }
 
     @Override

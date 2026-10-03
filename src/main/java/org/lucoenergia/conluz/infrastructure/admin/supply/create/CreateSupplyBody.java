@@ -15,6 +15,7 @@ public class CreateSupplyBody {
 
     @NotEmpty
     private String code;
+    @Schema(description = "The DNI/NIE/NIF of the existing user who owns the supply. It is normalised before the owner is looked up: whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so 12.345.678-a and 12345678A are the same identifier.")
     @NotEmpty
     private String personalId;
     @NotEmpty

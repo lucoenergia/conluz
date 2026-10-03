@@ -1,26 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.shared.db.liquibase;
 
-import liquibase.changelog.ChangeLogParameters;
-import liquibase.changelog.ChangeSet;
-import liquibase.changelog.DatabaseChangeLog;
-import liquibase.command.CommandScope;
-import liquibase.command.core.RollbackCountCommandStep;
-import liquibase.command.core.UpdateCommandStep;
-import liquibase.command.core.UpdateCountCommandStep;
-import liquibase.command.core.helpers.DatabaseChangelogCommandStep;
-import liquibase.command.core.helpers.DbUrlConnectionArgumentsCommandStep;
-import liquibase.database.Database;
-import liquibase.database.DatabaseFactory;
-import liquibase.database.jvm.JdbcConnection;
-import liquibase.parser.ChangeLogParser;
-import liquibase.parser.ChangeLogParserFactory;
-import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -31,6 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyRest;
+import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyUpToChangeSet;
+import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.oneBasedCountUpTo;
+import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.rollbackCount;
+import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.seed;
 
 /**
  * Regression test for conluz-281: upgrading a database from &lt;= 1.0.76 must not silently disable
@@ -41,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class LiquibaseUpgradePathIntegrationTest {
 
-    private static final String CHANGELOG_PATH = "db/liquibase/db.changelog-main.xml";
     private static final String BOUNDARY_CHANGESET_ID = "add_address_ref_to_supplies_20250903T2347";
     private static final String SHELLY_TARGET_CHANGESET_ID = "create_shelly_config";
 
@@ -160,70 +148,12 @@ class LiquibaseUpgradePathIntegrationTest {
 
     // --- Liquibase driving helpers ---
 
-    private static int oneBasedCountUpTo(String changesetId) throws Exception {
-        ClassLoaderResourceAccessor resourceAccessor = new ClassLoaderResourceAccessor();
-        ChangeLogParser parser = ChangeLogParserFactory.getInstance().getParser(CHANGELOG_PATH, resourceAccessor);
-        DatabaseChangeLog changeLog = parser.parse(CHANGELOG_PATH, new ChangeLogParameters(), resourceAccessor);
-        List<ChangeSet> changeSets = changeLog.getChangeSets();
-        for (int i = 0; i < changeSets.size(); i++) {
-            if (changeSets.get(i).getId().equals(changesetId)) {
-                return i + 1;
-            }
-        }
-        throw new IllegalStateException("Changeset id '" + changesetId + "' was not found in " + CHANGELOG_PATH
-                + " -- this test's boundary constant is stale and must be updated to match the changelog.");
-    }
-
-    private static Database toLiquibaseDatabase(Connection connection) throws Exception {
-        return DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection));
-    }
-
     private static void applyUpToBoundary(Connection connection) throws Exception {
         applyUpToChangeSet(connection, BOUNDARY_CHANGESET_ID);
     }
 
-    private static void applyUpToChangeSet(Connection connection, String changesetId) throws Exception {
-        int count = oneBasedCountUpTo(changesetId);
-        new CommandScope(UpdateCountCommandStep.COMMAND_NAME)
-                .addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, toLiquibaseDatabase(connection))
-                .addArgumentValue(UpdateCountCommandStep.CHANGELOG_FILE_ARG, CHANGELOG_PATH)
-                .addArgumentValue(UpdateCountCommandStep.COUNT_ARG, count)
-                .execute();
-    }
-
-    private static void applyRest(Connection connection) throws Exception {
-        new CommandScope(UpdateCommandStep.COMMAND_NAME)
-                .addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, toLiquibaseDatabase(connection))
-                .addArgumentValue(UpdateCommandStep.CHANGELOG_FILE_ARG, CHANGELOG_PATH)
-                .execute();
-    }
-
-    private static void rollbackCount(Connection connection, int count) throws Exception {
-        new CommandScope(RollbackCountCommandStep.COMMAND_NAME)
-                .addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, toLiquibaseDatabase(connection))
-                .addArgumentValue(DatabaseChangelogCommandStep.CHANGELOG_FILE_ARG, CHANGELOG_PATH)
-                .addArgumentValue(RollbackCountCommandStep.COUNT_ARG, count)
-                .execute();
-    }
-
-    private static void seed(Connection connection, String sql) throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            statement.execute(sql);
-        }
-    }
-
-    // --- Per-scenario database isolation ---
-
-    private static String jdbcUrl(String databaseName) {
-        return "jdbc:postgresql://" + POSTGRES.getHost() + ":" + POSTGRES.getMappedPort(5432) + "/" + databaseName;
-    }
-
     private static Connection freshDatabase(String databaseName) throws SQLException {
-        try (Connection admin = DriverManager.getConnection(jdbcUrl("postgres"), POSTGRES.getUsername(), POSTGRES.getPassword());
-             Statement statement = admin.createStatement()) {
-            statement.execute("CREATE DATABASE " + databaseName);
-        }
-        return DriverManager.getConnection(jdbcUrl(databaseName), POSTGRES.getUsername(), POSTGRES.getPassword());
+        return LiquibaseTestSupport.freshDatabase(POSTGRES, databaseName);
     }
 
     // --- Assertions ---

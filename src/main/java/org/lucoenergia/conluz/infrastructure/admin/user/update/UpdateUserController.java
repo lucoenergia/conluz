@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -9,6 +12,8 @@ import org.lucoenergia.conluz.domain.admin.user.update.UpdateUserService;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -47,6 +52,8 @@ public class UpdateUserController {
                 
                 A successful update results in an HTTP status code of 200, indicating that the user information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.
                 
+                The `personalId` is normalised before it is stored or compared: surrounding and inner whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased. If another user already has the same normalised `personalId`, the server responds 409 with the `USER_ALREADY_EXISTS` code; the error does not repeat the value.
+                
                 If you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.""",
             tags = ApiTag.USERS,
             operationId = "updateUser",
@@ -57,6 +64,31 @@ public class UpdateUserController {
                     responseCode = "200",
                     description = "User successfully updated.",
                     useReturnTypeSchema = true
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Another user already has the same normalised personal ID.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RestError.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                               "timestamp": "2026-10-03T10:10:25.534035352+02:00",
+                                               "status": 409,
+                                               "message": "A user with this personal ID already exists.",
+                                               "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                               "errors": [
+                                                 {
+                                                   "message": "A user with this personal ID already exists.",
+                                                   "code": "USER_ALREADY_EXISTS",
+                                                   "params": null
+                                                 }
+                                               ]
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @ForbiddenErrorResponse

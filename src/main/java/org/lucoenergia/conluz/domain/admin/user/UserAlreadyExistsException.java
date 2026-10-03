@@ -1,16 +1,17 @@
 package org.lucoenergia.conluz.domain.admin.user;
 
-import org.lucoenergia.conluz.domain.shared.UserPersonalId;
-
+/**
+ * A user with the same (normalised) personal ID already exists. It deliberately carries no personal
+ * ID, so reporting it never echoes the value back and the error cannot be used to probe which personal
+ * IDs are registered.
+ */
 public class UserAlreadyExistsException extends RuntimeException {
 
-    private final UserPersonalId id;
-
-    public UserAlreadyExistsException(UserPersonalId id) {
-        this.id = id;
+    public UserAlreadyExistsException() {
+        super();
     }
 
-    public UserPersonalId getUserId() {
-        return id;
+    public UserAlreadyExistsException(Throwable cause) {
+        super(cause);
     }
 }

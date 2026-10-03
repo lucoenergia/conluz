@@ -3,10 +3,12 @@ package org.lucoenergia.conluz.infrastructure.admin.user.update;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.update.UpdateUserBody;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -17,7 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -29,6 +35,55 @@ class UpdateUserControllerTest extends BaseControllerTest {
 
     @Autowired
     private CreateUserRepository createUserRepository;
+    @Autowired
+    private UserRepository userRepository;
+
+    @ParameterizedTest
+    @ValueSource(strings = {"12345678a", " 12345678 A ", "12345678-A", "12.345.678-A"})
+    void testChangingThePersonalIdToAVariantOfAnotherUsersIsAConflict(String variant) throws Exception {
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+        User other = persistUser("12345678A");
+        User user = persistUser("87654321B");
+
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bodyWithPersonalId(variant))))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_ALREADY_EXISTS"))
+                .andExpect(content().string(not(containsString("12345678"))));
+
+        assertEquals("87654321B", userRepository.findById(user.getId()).orElseThrow().getPersonalId());
+        assertEquals("12345678A", userRepository.findById(other.getId()).orElseThrow().getPersonalId());
+    }
+
+    @Test
+    void testUpdatingWithAVariantOfTheUsersOwnPersonalIdStoresItNormalised() throws Exception {
+
+        String authHeader = loginAsDefaultPlatformAdmin();
+        User user = persistUser("12345678A");
+
+        mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bodyWithPersonalId("12.345.678-a"))))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.personalId").value("12345678A"));
+
+        assertEquals("12345678A", userRepository.findById(user.getId()).orElseThrow().getPersonalId());
+    }
+
+    private static UpdateUserBody bodyWithPersonalId(String personalId) {
+        UpdateUserBody body = new UpdateUserBody();
+        body.setNumber(2);
+        body.setPersonalId(personalId);
+        body.setFullName("Alice Smith");
+        body.setEmail("alice.smith@email.com");
+        return body;
+    }
 
     @Test
     void testUpdateUser() throws Exception {

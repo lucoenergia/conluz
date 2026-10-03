@@ -62,6 +62,39 @@ class GetUserRepositoryImplTest extends BaseIntegrationTest {
     }
 
     @Test
+    void getDefaultAdminUserIsEmptyWhenNoUserHasNumberZero() {
+        renumberUsersWithNumberZero();
+
+        Assertions.assertTrue(getUserRepository.getDefaultAdminUser().isEmpty());
+    }
+
+    @Test
+    void getDefaultAdminUserReturnsTheUserWithNumberZero() {
+        renumberUsersWithNumberZero();
+        UserEntity admin = UserMother.randomUserEntity();
+        admin.setNumber(0);
+        userRepository.saveAndFlush(admin);
+
+        Optional<User> result = getUserRepository.getDefaultAdminUser();
+
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals(admin.getId(), result.get().getId());
+    }
+
+    /**
+     * Other test classes may have committed a default admin to the shared database. Renumbering
+     * them inside this test's transaction (rolled back afterwards) makes "no user has number 0"
+     * true here without deleting rows that other tables reference.
+     */
+    private void renumberUsersWithNumberZero() {
+        Optional<UserEntity> existing;
+        while ((existing = userRepository.findFirstByNumber(0)).isPresent()) {
+            existing.get().setNumber(-1);
+            userRepository.saveAndFlush(existing.get());
+        }
+    }
+
+    @Test
     void findAllVisibleReturnsTheCallerAndTheEnabledMembersOfTheGivenCommunities() {
         // Given
         Community communityA = createCommunityRepository.create(CommunityMother.random().build());
