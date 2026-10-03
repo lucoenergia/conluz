@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 
+import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
@@ -21,16 +22,26 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
 
     private final CreateSupplyRepository repository;
     private final GetUserRepository getUserRepository;
+    private final GetMembershipsRepository getMembershipsRepository;
 
-    public CreateSupplyServiceImpl(CreateSupplyRepository repository, GetUserRepository getUserRepository) {
+    public CreateSupplyServiceImpl(CreateSupplyRepository repository, GetUserRepository getUserRepository,
+                                   GetMembershipsRepository getMembershipsRepository) {
         this.repository = repository;
         this.getUserRepository = getUserRepository;
+        this.getMembershipsRepository = getMembershipsRepository;
     }
 
     @Override
     public Supply create(Supply supply, UserPersonalId id, UUID communityId) {
         Optional<User> user = getUserRepository.findByPersonalId(id);
         if (user.isEmpty()) {
+            throw new UserNotFoundException(id);
+        }
+        // The owner must belong to the supply's community (#341). A user who does not is reported
+        // exactly like an unknown personalId, so the answer does not reveal that the personalId is
+        // registered in another community. Any membership counts, enabled or not: disabling a
+        // membership governs platform access, not who may own a supply.
+        if (getMembershipsRepository.findByUserIdAndCommunityId(user.get().getId(), communityId).isEmpty()) {
             throw new UserNotFoundException(id);
         }
         supply.enable();

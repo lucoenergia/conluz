@@ -67,6 +67,9 @@ public class CreateSupplyController {
                     community does not exist or the caller is not a member of it, or 403 if the caller is a member but
                     not one of its admins.**
 
+                    The owner identified by `personalId` must be a member of the supply's community. An owner who is
+                    not a member of it is reported as not found (404), exactly like a `personalId` that matches no user.
+
                     Upon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.
                     
                     In case of failure, the server returns an appropriate error status code along with a descriptive error message, aiding the client in diagnosing and addressing the issue. This endpoint plays a pivotal role in dynamically expanding the system's repertoire of energy supplies.

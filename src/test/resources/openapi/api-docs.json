@@ -10694,7 +10694,7 @@
     },
     "/api/v1/supplies" : {
       "post" : {
-        "description" : "This endpoint is designed to create a new supply within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the supply's address, partition coefficient, and any relevant parameters.\n\nThe supply's community is provided in the body via the required `communityId` field.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin of the community. Returns 400 if `communityId` is missing, 404 if the\ncommunity does not exist or the caller is not a member of it, or 403 if the caller is a member but\nnot one of its admins.**\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptive error message, aiding the client in diagnosing and addressing the issue. This endpoint plays a pivotal role in dynamically expanding the system's repertoire of energy supplies.\n",
+        "description" : "This endpoint is designed to create a new supply within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the supply's address, partition coefficient, and any relevant parameters.\n\nThe supply's community is provided in the body via the required `communityId` field.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin of the community. Returns 400 if `communityId` is missing, 404 if the\ncommunity does not exist or the caller is not a member of it, or 403 if the caller is a member but\nnot one of its admins.**\n\nThe owner identified by `personalId` must be a member of the supply's community. An owner who is\nnot a member of it is reported as not found (404), exactly like a `personalId` that matches no user.\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptive error message, aiding the client in diagnosing and addressing the issue. This endpoint plays a pivotal role in dynamically expanding the system's repertoire of energy supplies.\n",
         "operationId" : "createSupply",
         "requestBody" : {
           "content" : {
@@ -10816,7 +10816,7 @@
               "schema" : {
                 "properties" : {
                   "file" : {
-                    "description" : "CSV file format: code(String), address(String), addressRef(String), personalId(String; the DNI/NIE/NIF of the existing owner, normalised before the lookup: whitespace, dots and hyphens removed, letters upper-cased).",
+                    "description" : "CSV file format: code(String), address(String), addressRef(String), personalId(String; the DNI/NIE/NIF of the existing owner, normalised before the lookup: whitespace, dots and hyphens removed, letters upper-cased). The owner must be a member of the target community: a row whose owner is not a member of it gets the same per-row \"user not found\" error as a row whose personalId matches no user.",
                     "format" : "binary",
                     "type" : "string"
                   }
