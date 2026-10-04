@@ -6,14 +6,14 @@ package org.lucoenergia.conluz.domain.admin.user.password;
  */
 public class PasswordPolicyViolationException extends RuntimeException {
 
-    private final PasswordPolicyRule rule;
+    private final PasswordPolicyViolation rule;
 
-    public PasswordPolicyViolationException(PasswordPolicyRule rule) {
+    public PasswordPolicyViolationException(PasswordPolicyViolation rule) {
         super("Password rejected by the password policy: " + rule);
         this.rule = rule;
     }
 
-    public PasswordPolicyRule getRule() {
+    public PasswordPolicyViolation getRule() {
         return rule;
     }
 }

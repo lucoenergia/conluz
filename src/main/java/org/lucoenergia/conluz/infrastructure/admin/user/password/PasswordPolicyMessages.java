@@ -1,13 +1,13 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.password;
 
 import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicy;
-import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyRule;
+import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyViolation;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
- * Renders a {@link PasswordPolicyRule} as a localised message, shared by the 400 response and by the per-row
+ * Renders a {@link PasswordPolicyViolation} as a localised message, shared by the 400 response and by the per-row
  * errors of a user import so both say the same thing.
  */
 @Component
@@ -19,7 +19,7 @@ public class PasswordPolicyMessages {
         this.messageSource = messageSource;
     }
 
-    public String messageFor(PasswordPolicyRule rule) {
+    public String messageFor(PasswordPolicyViolation rule) {
         return switch (rule) {
             case TOO_SHORT -> message("error.user.password.policy.too.short", PasswordPolicy.MIN_CODE_POINTS);
             case TOO_LONG -> message("error.user.password.policy.too.long", PasswordPolicy.MAX_CODE_POINTS);

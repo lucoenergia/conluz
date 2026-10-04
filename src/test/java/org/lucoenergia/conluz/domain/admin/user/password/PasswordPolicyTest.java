@@ -20,7 +20,7 @@ class PasswordPolicyTest {
 
     @Test
     void fourteenCodePointsAreTooShort() {
-        assertRule(PasswordPolicyRule.TOO_SHORT, "a".repeat(14));
+        assertRule(PasswordPolicyViolation.TOO_SHORT, "a".repeat(14));
     }
 
     @Test
@@ -35,7 +35,7 @@ class PasswordPolicyTest {
 
     @Test
     void sixtyFiveCodePointsAreTooLong() {
-        assertRule(PasswordPolicyRule.TOO_LONG, "a".repeat(65));
+        assertRule(PasswordPolicyViolation.TOO_LONG, "a".repeat(65));
     }
 
     @Test
@@ -52,13 +52,13 @@ class PasswordPolicyTest {
         assertEquals(73, password.getBytes(StandardCharsets.UTF_8).length);
         assertEquals(37, password.codePointCount(0, password.length()));
 
-        assertRule(PasswordPolicyRule.TOO_MANY_BYTES, password);
+        assertRule(PasswordPolicyViolation.TOO_MANY_BYTES, password);
     }
 
     @Test
     void lengthIsCountedInCodePointsNotInJavaChars() {
         // 14 code points but 28 Java chars: counting chars would wrongly accept it
-        assertRule(PasswordPolicyRule.TOO_SHORT, EMOJI.repeat(14));
+        assertRule(PasswordPolicyViolation.TOO_SHORT, EMOJI.repeat(14));
         // 15 code points, 60 bytes
         assertDoesNotThrow(() -> PasswordPolicy.check(EMOJI.repeat(15)));
     }
@@ -66,19 +66,19 @@ class PasswordPolicyTest {
     @Test
     void charactersOutsideTheBmpCountFourBytesEach() {
         assertDoesNotThrow(() -> PasswordPolicy.check(EMOJI.repeat(18)));
-        assertRule(PasswordPolicyRule.TOO_MANY_BYTES, EMOJI.repeat(19));
+        assertRule(PasswordPolicyViolation.TOO_MANY_BYTES, EMOJI.repeat(19));
     }
 
     @Test
     void tooLongIsReportedBeforeTooManyBytes() {
-        assertRule(PasswordPolicyRule.TOO_LONG, "a".repeat(73));
+        assertRule(PasswordPolicyViolation.TOO_LONG, "a".repeat(73));
     }
 
     @Test
     void surroundingSpacesAreNotTrimmed() {
         // 13 visible characters: trimming would make it too short
         assertDoesNotThrow(() -> PasswordPolicy.check(" " + "a".repeat(13) + " "));
-        assertRule(PasswordPolicyRule.TOO_SHORT, " " + "a".repeat(12) + " ");
+        assertRule(PasswordPolicyViolation.TOO_SHORT, " " + "a".repeat(12) + " ");
     }
 
     @Test
@@ -95,7 +95,7 @@ class PasswordPolicyTest {
     @ParameterizedTest
     @NullAndEmptySource
     void absentPasswordsAreTooShort(String password) {
-        assertRule(PasswordPolicyRule.TOO_SHORT, password);
+        assertRule(PasswordPolicyViolation.TOO_SHORT, password);
     }
 
     @Test
@@ -109,7 +109,7 @@ class PasswordPolicyTest {
         assertFalse(e.getMessage().contains(password));
     }
 
-    private static void assertRule(PasswordPolicyRule expected, String password) {
+    private static void assertRule(PasswordPolicyViolation expected, String password) {
         PasswordPolicyViolationException e = assertThrows(PasswordPolicyViolationException.class,
                 () -> PasswordPolicy.check(password));
         assertEquals(expected, e.getRule());

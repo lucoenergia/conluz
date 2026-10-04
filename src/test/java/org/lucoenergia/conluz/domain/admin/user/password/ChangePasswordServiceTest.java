@@ -90,7 +90,7 @@ class ChangePasswordServiceTest {
         PasswordPolicyViolationException e = assertThrows(PasswordPolicyViolationException.class,
                 () -> service.changePassword(userId, CURRENT_PASSWORD, "too short", usedToken));
 
-        assertEquals(PasswordPolicyRule.TOO_SHORT, e.getRule());
+        assertEquals(PasswordPolicyViolation.TOO_SHORT, e.getRule());
         verify(changePasswordRepository, never()).changePassword(any(), any(), any());
         verifyNoInteractions(authService);
     }

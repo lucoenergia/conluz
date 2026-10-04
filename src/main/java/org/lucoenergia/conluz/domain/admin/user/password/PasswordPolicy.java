@@ -32,17 +32,17 @@ public final class PasswordPolicy {
      */
     public static void check(String password) {
         if (password == null) {
-            throw new PasswordPolicyViolationException(PasswordPolicyRule.TOO_SHORT);
+            throw new PasswordPolicyViolationException(PasswordPolicyViolation.TOO_SHORT);
         }
         int codePoints = password.codePointCount(0, password.length());
         if (codePoints < MIN_CODE_POINTS) {
-            throw new PasswordPolicyViolationException(PasswordPolicyRule.TOO_SHORT);
+            throw new PasswordPolicyViolationException(PasswordPolicyViolation.TOO_SHORT);
         }
         if (codePoints > MAX_CODE_POINTS) {
-            throw new PasswordPolicyViolationException(PasswordPolicyRule.TOO_LONG);
+            throw new PasswordPolicyViolationException(PasswordPolicyViolation.TOO_LONG);
         }
         if (password.getBytes(StandardCharsets.UTF_8).length > MAX_UTF8_BYTES) {
-            throw new PasswordPolicyViolationException(PasswordPolicyRule.TOO_MANY_BYTES);
+            throw new PasswordPolicyViolationException(PasswordPolicyViolation.TOO_MANY_BYTES);
         }
     }
 }
