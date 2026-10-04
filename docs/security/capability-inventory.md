@@ -48,7 +48,8 @@ See also [`authorization-policy.md`](authorization-policy.md) for the rules them
 
 Nested value objects (contract, distributor, Shelly, files) carry no capabilities either, and
 neither do the responses of `permitAll` or plain `isAuthenticated()` endpoints — including
-`PUT /users/profile`, which any authenticated caller may use on themselves. A partition coefficient
+`PUT /users/profile` and `PUT /users/current/password`, which any authenticated caller may use on
+themselves. A partition coefficient
 period is not a resource a caller acts on either; it carries capabilities only because of rule 4.
 
 ## What is reported

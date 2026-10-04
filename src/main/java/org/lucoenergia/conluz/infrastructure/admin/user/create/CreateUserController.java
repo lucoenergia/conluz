@@ -69,6 +69,14 @@ public class CreateUserController {
                 exists, the server responds 409 with the `USER_ALREADY_EXISTS` code; the error does not repeat
                 the value.
                 
+                The `password` must satisfy the password policy: between 15 and 64 characters, counting each
+                Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is
+                accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is
+                never trimmed or transformed. A password that breaks the policy is answered 400 with the
+                `USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:
+                `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`. Because the password is chosen by the creator, the new
+                user is flagged as having to change it (`mustChangePassword` on `GET /api/v1/users/current`).
+                
                 Authentication is mandated, utilizing an authentication token, to ensure secure access.
                 **Required: Platform Admin, or Community Admin of the target community**
                 

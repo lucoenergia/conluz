@@ -3,7 +3,10 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.create.DefaultAdminUserAlreadyInitializedException;
+import org.lucoenergia.conluz.domain.admin.user.password.IncorrectCurrentPasswordException;
+import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyViolationException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
+import org.lucoenergia.conluz.infrastructure.admin.user.password.PasswordPolicyMessages;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
@@ -15,16 +18,20 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
+import java.util.Map;
 
 @RestControllerAdvice
 public class UserExceptionHandler {
 
     private final MessageSource messageSource;
     private final ErrorBuilder errorBuilder;
+    private final PasswordPolicyMessages passwordPolicyMessages;
 
-    public UserExceptionHandler(MessageSource messageSource, ErrorBuilder errorBuilder) {
+    public UserExceptionHandler(MessageSource messageSource, ErrorBuilder errorBuilder,
+                                PasswordPolicyMessages passwordPolicyMessages) {
         this.messageSource = messageSource;
         this.errorBuilder = errorBuilder;
+        this.passwordPolicyMessages = passwordPolicyMessages;
     }
 
     @ExceptionHandler(DefaultAdminUserAlreadyInitializedException.class)
@@ -74,5 +81,31 @@ public class UserExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.USER_LAST_PLATFORM_ADMIN, null, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * Neither the message nor the params carry the rejected password: only the rule that failed.
+     */
+    @ExceptionHandler(PasswordPolicyViolationException.class)
+    public ResponseEntity<RestError> handleException(PasswordPolicyViolationException e) {
+
+        String message = passwordPolicyMessages.messageFor(e.getRule());
+        return errorBuilder.build(message, RestErrorCode.USER_PASSWORD_POLICY_VIOLATION,
+                Map.of("rule", e.getRule().name()), HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * A 400, never a 401: the caller's session is valid, and clients treat a 401 as a session that has ended.
+     */
+    @ExceptionHandler(IncorrectCurrentPasswordException.class)
+    public ResponseEntity<RestError> handleException(IncorrectCurrentPasswordException e) {
+
+        String message = messageSource.getMessage(
+                "error.user.current.password.incorrect",
+                List.of().toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.USER_CURRENT_PASSWORD_INCORRECT, null,
+                HttpStatus.BAD_REQUEST);
     }
 }

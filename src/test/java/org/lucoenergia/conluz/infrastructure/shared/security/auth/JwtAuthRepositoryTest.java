@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +21,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -166,6 +170,66 @@ class JwtAuthRepositoryTest {
         Map<String, String> memberships = repository.getCommunityMemberships(token);
         Assertions.assertTrue(memberships.containsKey(community.getId().toString()));
         Assertions.assertEquals(CommunityRole.COMMUNITY_ADMIN.name(), memberships.get(community.getId().toString()));
+    }
+
+    @Test
+    void isTokenValid_acceptsAnyToken_whenThePasswordWasNeverChanged() {
+        User user = UserMother.randomUser();
+        user.setPasswordChangedAt(null);
+        mockJwtConfig();
+
+        Token token = repository.getToken(user);
+
+        Assertions.assertTrue(repository.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_acceptsATokenIssuedInTheSameSecondAsThePasswordChange() throws Exception {
+        User user = UserMother.randomUser();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+        Instant issuedAt = issuedAtOf(token);
+
+        // iat only has second precision: a change late in the same second must not reject the token
+        user.setPasswordChangedAt(issuedAt.plusMillis(999));
+        Assertions.assertTrue(repository.isTokenValid(token, user));
+
+        user.setPasswordChangedAt(issuedAt);
+        Assertions.assertTrue(repository.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_rejectsATokenIssuedInASecondBeforeThePasswordChange() throws Exception {
+        User user = UserMother.randomUser();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+        Instant issuedAt = issuedAtOf(token);
+
+        user.setPasswordChangedAt(issuedAt.plusSeconds(1));
+        Assertions.assertFalse(repository.isTokenValid(token, user));
+
+        user.setPasswordChangedAt(issuedAt.plusSeconds(1).plusMillis(500));
+        Assertions.assertFalse(repository.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_acceptsATokenIssuedAfterThePasswordChange() throws Exception {
+        User user = UserMother.randomUser();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+
+        user.setPasswordChangedAt(issuedAtOf(token).minusSeconds(5));
+
+        Assertions.assertTrue(repository.isTokenValid(token, user));
+    }
+
+    /**
+     * Reads the {@code iat} claim straight from the token's payload, independently of the code under test.
+     */
+    private static Instant issuedAtOf(Token token) throws Exception {
+        String payload = token.getToken().split("\\.")[1];
+        JsonNode claims = new ObjectMapper().readTree(Base64.getUrlDecoder().decode(payload));
+        return Instant.ofEpochSecond(claims.get("iat").asLong());
     }
 
     private void mockJwtConfig() {

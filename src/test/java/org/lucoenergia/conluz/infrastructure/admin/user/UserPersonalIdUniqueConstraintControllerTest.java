@@ -147,8 +147,8 @@ class UserPersonalIdUniqueConstraintControllerTest extends BaseControllerTest {
         communityIds.add(community.getId());
 
         String csv = "number,fullName,personalId,address,email,phoneNumber,role,password,communityId,communityRole\n"
-                + "1,Test User 1,33160001-a,1 Test St,user1@example.com,600000001,partner,password1,,\n"
-                + "2,Test User 2,33160003C,1 Test St,user2@example.com,600000002,partner,password2,,\n";
+                + "1,Test User 1,33160001-a,1 Test St,user1@example.com,600000001,partner,a secure password1!,,\n"
+                + "2,Test User 2,33160003C,1 Test St,user2@example.com,600000002,partner,a secure password2!,,\n";
 
         mockMvc.perform(multipart("/api/v1/users/import")
                         .file(new MockMultipartFile("file", "users.csv", "text/csv",

@@ -22,6 +22,8 @@ public class UserEntityMapper extends BaseMapper<UserEntity, User> {
         user.setPhoneNumber(entity.getPhoneNumber());
         user.setEnabled(entity.isEnabled());
         user.setPlatformAdmin(entity.isPlatformAdmin());
+        user.setMustChangePassword(entity.mustChangePassword());
+        user.setPasswordChangedAt(entity.getPasswordChangedAt());
 
         return user;
     }

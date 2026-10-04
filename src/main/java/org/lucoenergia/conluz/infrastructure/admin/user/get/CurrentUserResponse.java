@@ -31,7 +31,7 @@ import java.util.UUID;
  */
 @Schema(description = "The authenticated caller's own user, with what they may do.",
         requiredProperties = {"id", "personalId", "number", "fullName", "address", "email",
-                "phoneNumber", "enabled", "isPlatformAdmin", "memberships", "capabilities",
+                "phoneNumber", "enabled", "isPlatformAdmin", "mustChangePassword", "memberships", "capabilities",
                 "platformCapabilities"})
 public class CurrentUserResponse {
 
@@ -46,6 +46,9 @@ public class CurrentUserResponse {
     private final String phoneNumber;
     private final Boolean enabled;
     private final Boolean isPlatformAdmin;
+    @Schema(description = "Whether the caller's password was chosen by someone else and should be changed "
+            + "through PUT /api/v1/users/current/password. Informational: no request is refused because of it.")
+    private final Boolean mustChangePassword;
     private final Map<String, String> memberships;
 
     @Schema(description = "What the caller may do with their own user record.")
@@ -66,6 +69,7 @@ public class CurrentUserResponse {
         this.phoneNumber = user.getPhoneNumber();
         this.enabled = user.isEnabled();
         this.isPlatformAdmin = user.isPlatformAdmin();
+        this.mustChangePassword = user.mustChangePassword();
         Map<String, String> membershipMap = new HashMap<>();
         if (user.getMemberships() != null) {
             for (CommunityMembership membership : user.getMemberships()) {
@@ -112,6 +116,10 @@ public class CurrentUserResponse {
     @JsonProperty("isPlatformAdmin")
     public Boolean getIsPlatformAdmin() {
         return isPlatformAdmin;
+    }
+
+    public Boolean getMustChangePassword() {
+        return mustChangePassword;
     }
 
     public Map<String, String> getMemberships() {

@@ -21,14 +21,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -228,6 +232,123 @@ class CreateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
 
         Assertions.assertTrue(userRepository.findByPersonalId("33100009Z").isEmpty());
+    }
+
+    @Test
+    void passwordOf14CodePoints_isRefused() throws Exception {
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        createUser(authHeader, bodyWithPassword("33300001A", "a".repeat(14)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("TOO_SHORT"));
+
+        Assertions.assertTrue(userRepository.findByPersonalId("33300001A").isEmpty());
+    }
+
+    @Test
+    void passwordOf15CodePoints_isAccepted() throws Exception {
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        createUser(authHeader, bodyWithPassword("33300002B", "a".repeat(15))).andExpect(status().isOk());
+
+        loginWith("33300002B", "a".repeat(15)).andExpect(status().isOk());
+    }
+
+    @Test
+    void passwordOf64CodePointsWithSpacesAndAccents_isAccepted_andOnlyTheExactValueLogsIn() throws Exception {
+        String password = " contrase\u00F1a: el \u00F1and\u00FA corre por la pampa, sin prisa y sin pausa ";
+        Assertions.assertEquals(64, password.codePointCount(0, password.length()));
+        Assertions.assertTrue(password.getBytes(StandardCharsets.UTF_8).length <= 72);
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        createUser(authHeader, bodyWithPassword("33300003C", password)).andExpect(status().isOk());
+
+        loginWith("33300003C", password).andExpect(status().isOk());
+        loginWith("33300003C", password.trim()).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void passwordOverSeventyTwoBytes_isRefusedWithTheBytesRule_neverTruncatedNorA500() throws Exception {
+        // 37 code points, 74 bytes: within the length rule, over BCrypt's input limit
+        String password = "\u00F1".repeat(37);
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        createUser(authHeader, bodyWithPassword("33300004D", password))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("TOO_MANY_BYTES"));
+
+        Assertions.assertTrue(userRepository.findByPersonalId("33300004D").isEmpty());
+    }
+
+    @Test
+    void longLowercaseOnlyPassword_isAccepted() throws Exception {
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        createUser(authHeader, bodyWithPassword("33300005E", "correcthorsebatterystaple"))
+                .andExpect(status().isOk());
+
+        loginWith("33300005E", "correcthorsebatterystaple").andExpect(status().isOk());
+    }
+
+    @Test
+    void createdUser_isFlaggedAsHavingToChangeThePassword_andKeepsFullAccess() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsDefaultPlatformAdmin();
+        String body = objectMapper.writeValueAsString(Map.of(
+                "personalId", "33300006F",
+                "fullName", "John Doe",
+                "number", 1,
+                "email", "johndoe@email.com",
+                "password", "a secure password1!",
+                "communityId", community.getId().toString(),
+                "communityRole", "COMMUNITY_MEMBER"));
+
+        createUser(authHeader, body).andExpect(status().isOk());
+        Assertions.assertTrue(userRepository.findByPersonalId("33300006F").orElseThrow().mustChangePassword());
+
+        String userToken = "Bearer " + objectMapper.readTree(loginWith("33300006F", "a secure password1!")
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString()).get("token").asText();
+
+        // The flag is informational only: ordinary endpoints answer exactly as for any other user
+        mockMvc.perform(get(URL + "/current").header(HttpHeaders.AUTHORIZATION, userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mustChangePassword").value(true));
+        mockMvc.perform(put(URL + "/profile")
+                        .header(HttpHeaders.AUTHORIZATION, userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("email", "john.doe@email.com"))))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/communities/" + community.getId())
+                        .header(HttpHeaders.AUTHORIZATION, userToken))
+                .andExpect(status().isOk());
+    }
+
+    private ResultActions createUser(String authHeader, String body)
+            throws Exception {
+        return mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andDo(print());
+    }
+
+    private ResultActions loginWith(String personalId, String password)
+            throws Exception {
+        return mockMvc.perform(post("/api/v1/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("username", personalId, "password", password))));
+    }
+
+    private String bodyWithPassword(String personalId, String password) throws Exception {
+        return objectMapper.writeValueAsString(Map.of(
+                "personalId", personalId,
+                "fullName", "John Doe",
+                "number", 1,
+                "email", "johndoe@email.com",
+                "password", password));
     }
 
     private String bodyWithPersonalId(String personalId) throws Exception {

@@ -10,6 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -39,6 +40,8 @@ public class User implements UserDetails {
     @NotNull
     private Boolean enabled;
     private Boolean isPlatformAdmin;
+    private boolean mustChangePassword;
+    private Instant passwordChangedAt;
     private List<CommunityMembership> memberships = new ArrayList<>();
 
     public UUID getId() {
@@ -119,6 +122,34 @@ public class User implements UserDetails {
 
     public void setPlatformAdmin(Boolean isPlatformAdmin) {
         this.isPlatformAdmin = isPlatformAdmin;
+    }
+
+    /**
+     * Whether the user's current password was chosen by someone else and should be replaced by the user.
+     * It is informational only: nothing refuses a request because it is set (#330).
+     */
+    public boolean mustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public void setMustChangePassword(boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
+    }
+
+    public void requirePasswordChange() {
+        this.setMustChangePassword(true);
+    }
+
+    /**
+     * When the user last changed their own password, or {@code null} if they never did. Tokens issued before
+     * this instant are no longer accepted.
+     */
+    public Instant getPasswordChangedAt() {
+        return passwordChangedAt;
+    }
+
+    public void setPasswordChangedAt(Instant passwordChangedAt) {
+        this.passwordChangedAt = passwordChangedAt;
     }
 
     public List<CommunityMembership> getMemberships() {
