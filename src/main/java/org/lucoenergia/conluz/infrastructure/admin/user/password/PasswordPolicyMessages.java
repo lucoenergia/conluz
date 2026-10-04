@@ -19,8 +19,8 @@ public class PasswordPolicyMessages {
         this.messageSource = messageSource;
     }
 
-    public String messageFor(PasswordPolicyViolation rule) {
-        return switch (rule) {
+    public String messageFor(PasswordPolicyViolation violation) {
+        return switch (violation) {
             case TOO_SHORT -> message("error.user.password.policy.too.short", PasswordPolicy.MIN_CODE_POINTS);
             case TOO_LONG -> message("error.user.password.policy.too.long", PasswordPolicy.MAX_CODE_POINTS);
             case TOO_MANY_BYTES -> message("error.user.password.policy.too.many.bytes", PasswordPolicy.MAX_UTF8_BYTES);
