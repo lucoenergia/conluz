@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -13,9 +14,16 @@ import java.util.OptionalLong;
  * A key is blocked once it has {@code limit} failures and until its window ends. The first failure at or after
  * the end of a window starts a new one.
  * <p>
- * Keys are supplied by clients, so memory is bounded: at most {@link #MAX_ENTRIES} keys are held, the window that
+ * An attempt must reserve a slot before its password is checked, and the reservation is held until the attempt is
+ * settled: confirmed as a failure, or released. A key whose failures plus reservations reach the limit accepts no
+ * further reservation, so concurrent attempts cannot check more passwords than the limit allows, however many of
+ * them arrive before the first one fails.
+ * <p>
+ * Keys are supplied by clients, so memory is bounded: at most {@link #MAX_ENTRIES} windows are held, the window that
  * started first is evicted beyond that, and keys are cut to {@link #MAX_KEY_LENGTH} characters. Windows are kept in
- * the order they started, so the expired ones are always at the head and are purged on every write.
+ * the order they started, so the expired ones are always at the head and are purged on every write. Reservations
+ * are held only by requests being processed, so their number is bounded by the server's concurrency, and a key's
+ * entry is dropped when its last reservation is settled.
  */
 class FailedAttemptCounter {
 
@@ -30,6 +38,7 @@ class FailedAttemptCounter {
             return size() > MAX_ENTRIES;
         }
     };
+    private final Map<String, Integer> reservations = new HashMap<>();
 
     FailedAttemptCounter(int limit, Duration window) {
         this.limit = limit;
@@ -37,22 +46,38 @@ class FailedAttemptCounter {
     }
 
     /**
-     * @return the seconds, rounded up, until the key's window ends if the key is blocked; empty otherwise
+     * Reserves a slot for one attempt, unless the key's failures plus the attempts already reserved reach the limit.
+     * A successful reservation must be settled with {@link #confirmFailure} or {@link #release}.
+     *
+     * @return empty if the slot was reserved; otherwise the seconds, rounded up, to wait before retrying: until the
+     * key's window ends, or a whole window if no failure has started one yet, since the attempts in progress would
      */
-    synchronized OptionalLong retryAfterSeconds(String key, Instant now) {
-        Window current = currentWindow(cut(key), now);
-        if (current == null || current.count < limit) {
-            return OptionalLong.empty();
+    synchronized OptionalLong tryReserve(String key, Instant now) {
+        String cutKey = cut(key);
+        Window current = currentWindow(cutKey, now);
+        int failures = current == null ? 0 : current.count;
+        if (failures + reservations.getOrDefault(cutKey, 0) >= limit) {
+            Duration wait = current == null ? window : Duration.between(now, current.end);
+            return OptionalLong.of(secondsRoundedUp(wait));
         }
-        return OptionalLong.of(secondsRoundedUp(Duration.between(now, current.end)));
+        reservations.merge(cutKey, 1, Integer::sum);
+        return OptionalLong.empty();
     }
 
     /**
-     * Counts one failure for the key.
+     * Settles a reservation without counting a failure.
+     */
+    synchronized void release(String key) {
+        reservations.computeIfPresent(cut(key), (k, reserved) -> reserved > 1 ? reserved - 1 : null);
+    }
+
+    /**
+     * Settles a reservation as one failure.
      *
      * @return {@code true} if this failure made the key reach the limit
      */
-    synchronized boolean recordFailure(String key, Instant now) {
+    synchronized boolean confirmFailure(String key, Instant now) {
+        release(key);
         purgeExpired(now);
         String cutKey = cut(key);
         Window current = windows.get(cutKey);
@@ -64,12 +89,31 @@ class FailedAttemptCounter {
         return current.count == limit;
     }
 
+    /**
+     * @return the seconds, rounded up, until the key's window ends if its failures alone reach the limit; empty
+     * otherwise
+     */
+    synchronized OptionalLong retryAfterSeconds(String key, Instant now) {
+        Window current = currentWindow(cut(key), now);
+        if (current == null || current.count < limit) {
+            return OptionalLong.empty();
+        }
+        return OptionalLong.of(secondsRoundedUp(Duration.between(now, current.end)));
+    }
+
+    /**
+     * Forgets the key's failures. Reservations in progress are kept: each is settled by its own attempt.
+     */
     synchronized void reset(String key) {
         windows.remove(cut(key));
     }
 
     synchronized int size() {
         return windows.size();
+    }
+
+    synchronized int reservationCount() {
+        return reservations.size();
     }
 
     private Window currentWindow(String key, Instant now) {

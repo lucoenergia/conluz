@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.auth.*;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.LoginAttempt;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.LoginFailureReason;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -40,19 +41,20 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public Token login(Credentials credentials, String clientIp) {
-        // Before the password is checked, so a throttled attempt costs no BCrypt comparison
-        authenticationThrottleService.checkLogin(credentials.getUsername(), clientIp);
-        try {
-            authenticator.authenticate(credentials);
-        } catch (DisabledException e) {
-            authenticationThrottleService.loginFailed(credentials.getUsername(), clientIp, LoginFailureReason.DISABLED);
-            throw e;
-        } catch (BadCredentialsException e) {
-            authenticationThrottleService.loginFailed(credentials.getUsername(), clientIp,
-                    LoginFailureReason.BAD_CREDENTIALS);
-            throw e;
+        // Admitted before the password is checked, so a throttled attempt costs no BCrypt comparison, and closed
+        // whatever the outcome, so the slot it holds is always released
+        try (LoginAttempt attempt = authenticationThrottleService.startLogin(credentials.getUsername(), clientIp)) {
+            try {
+                authenticator.authenticate(credentials);
+            } catch (DisabledException e) {
+                attempt.failed(LoginFailureReason.DISABLED);
+                throw e;
+            } catch (BadCredentialsException e) {
+                attempt.failed(LoginFailureReason.BAD_CREDENTIALS);
+                throw e;
+            }
+            attempt.succeeded();
         }
-        authenticationThrottleService.loginSucceeded(credentials.getUsername());
         Optional<User> user = getUserRepository.findByPersonalId(UserPersonalId.of(credentials.getUsername()));
         if (user.isEmpty()) {
             throw new UserNotFoundException();

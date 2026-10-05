@@ -7,63 +7,36 @@ import org.lucoenergia.conluz.domain.admin.user.User;
  * <p>
  * Failed attempts are counted twice: per account and per client address. Both endpoints feed the same counters,
  * and the account is identified by its normalised personal ID in both, so failed logins and wrong current
- * passwords on the same account add up. While either counter is over its limit, every attempt is refused with
- * {@link TooManyFailedAttemptsException} before the password is checked.
+ * passwords on the same account add up. Each counter counts failures in a fixed window that starts at the first
+ * counted failure. A success resets the account counter only, never the client address counter.
  * <p>
- * Each counter counts failures in a fixed window that starts at the first counted failure. A success resets the
- * account counter only, never the client address counter.
+ * An attempt is admitted only if a slot can be reserved on both counters: while the failures plus the attempts in
+ * progress reach either limit, it is refused with {@link TooManyFailedAttemptsException} before the password is
+ * checked. Reserving the slot at admission, rather than counting only once the password has been checked, is what
+ * keeps concurrent attempts within the limits.
  * <p>
  * Every failure is logged as a single warning without the password or the full personal ID.
  */
 public interface AuthenticationThrottleService {
 
     /**
-     * Refuses a login attempt while the account or the client address is throttled. The answer is the same
-     * whether or not a user with that personal ID exists.
+     * Admits a login attempt, or refuses it while the account or the client address is throttled. The answer is the
+     * same whether or not a user with that personal ID exists.
      *
      * @param personalId the personal ID as submitted, before normalisation; may be {@code null}
      * @param clientIp   the address of the client
+     * @return the admitted attempt, to be settled with its outcome and closed
      * @throws TooManyFailedAttemptsException if the account or the client address is throttled
      */
-    void checkLogin(String personalId, String clientIp);
+    LoginAttempt startLogin(String personalId, String clientIp);
 
     /**
-     * Counts a failed login against the account and the client address, and logs it.
-     *
-     * @param personalId the personal ID as submitted, before normalisation; may be {@code null}
-     * @param clientIp   the address of the client
-     * @param reason     why the login failed; logged only
-     */
-    void loginFailed(String personalId, String clientIp, LoginFailureReason reason);
-
-    /**
-     * Resets the account counter after a successful login.
-     *
-     * @param personalId the personal ID as submitted, before normalisation
-     */
-    void loginSucceeded(String personalId);
-
-    /**
-     * Refuses a password change while the user's account or the client address is throttled.
+     * Admits a password change, or refuses it while the user's account or the client address is throttled.
      *
      * @param user     the authenticated user changing their password
      * @param clientIp the address of the client
+     * @return the admitted change, to be settled with its outcome and closed
      * @throws TooManyFailedAttemptsException if the account or the client address is throttled
      */
-    void checkPasswordChange(User user, String clientIp);
-
-    /**
-     * Counts a wrong current password against the user's account and the client address, and logs it.
-     *
-     * @param user     the authenticated user changing their password
-     * @param clientIp the address of the client
-     */
-    void passwordChangeFailed(User user, String clientIp);
-
-    /**
-     * Resets the account counter after a successful password change.
-     *
-     * @param user the user who changed their password
-     */
-    void passwordChangeSucceeded(User user);
+    PasswordChangeAttempt startPasswordChange(User user, String clientIp);
 }

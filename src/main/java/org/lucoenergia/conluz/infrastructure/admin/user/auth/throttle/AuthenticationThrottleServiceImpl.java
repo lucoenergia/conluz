@@ -2,7 +2,9 @@ package org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle;
 
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.LoginAttempt;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.LoginFailureReason;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.PasswordChangeAttempt;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.TooManyFailedAttemptsException;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.slf4j.Logger;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.OptionalLong;
 
 /**
  * Holds the failed-attempt counters in memory, which is enough for the single instance the application runs as.
@@ -35,57 +38,122 @@ public class AuthenticationThrottleServiceImpl implements AuthenticationThrottle
     }
 
     @Override
-    public void checkLogin(String personalId, String clientIp) {
-        check(accountOf(personalId), clientIp);
-    }
-
-    @Override
-    public void loginFailed(String personalId, String clientIp, LoginFailureReason reason) {
+    public LoginAttempt startLogin(String personalId, String clientIp) {
         String account = accountOf(personalId);
-        LOGGER.warn("Failed login: account={}, ip={}, reason={}", mask(account), clientIp, reason);
-        recordFailure(account, "account=" + mask(account), clientIp);
+        Slot slot = reserve(account, "account=" + mask(account), clientIp);
+        return new LoginAttempt() {
+            @Override
+            public void failed(LoginFailureReason reason) {
+                LOGGER.warn("Failed login: account={}, ip={}, reason={}", mask(account), clientIp, reason);
+                slot.failed();
+            }
+
+            @Override
+            public void succeeded() {
+                slot.succeeded();
+            }
+
+            @Override
+            public void close() {
+                slot.release();
+            }
+        };
     }
 
     @Override
-    public void loginSucceeded(String personalId) {
-        accountCounter.reset(accountOf(personalId));
+    public PasswordChangeAttempt startPasswordChange(User user, String clientIp) {
+        Slot slot = reserve(accountOf(user.getPersonalId()), "user=" + user.getId(), clientIp);
+        return new PasswordChangeAttempt() {
+            @Override
+            public void failed() {
+                LOGGER.warn("Failed password change: user={}, ip={}, reason=WRONG_CURRENT_PASSWORD", user.getId(),
+                        clientIp);
+                slot.failed();
+            }
+
+            @Override
+            public void succeeded() {
+                slot.succeeded();
+            }
+
+            @Override
+            public void close() {
+                slot.release();
+            }
+        };
     }
 
-    @Override
-    public void checkPasswordChange(User user, String clientIp) {
-        check(accountOf(user.getPersonalId()), clientIp);
-    }
-
-    @Override
-    public void passwordChangeFailed(User user, String clientIp) {
-        LOGGER.warn("Failed password change: user={}, ip={}, reason=WRONG_CURRENT_PASSWORD", user.getId(), clientIp);
-        recordFailure(accountOf(user.getPersonalId()), "user=" + user.getId(), clientIp);
-    }
-
-    @Override
-    public void passwordChangeSucceeded(User user) {
-        accountCounter.reset(accountOf(user.getPersonalId()));
-    }
-
-    private void check(String account, String clientIp) {
+    /**
+     * Reserves a slot on both counters, or none: when the client address refuses, the slot already reserved on the
+     * account is released before the attempt is refused.
+     */
+    private Slot reserve(String account, String accountLabel, String clientIp) {
         Instant now = clock.instant();
-        long retryAfterSeconds = Math.max(
-                accountCounter.retryAfterSeconds(account, now).orElse(0),
-                clientIpCounter.retryAfterSeconds(clientIp, now).orElse(0));
-        if (retryAfterSeconds > 0) {
-            throw new TooManyFailedAttemptsException(retryAfterSeconds);
+        OptionalLong accountWait = accountCounter.tryReserve(account, now);
+        if (accountWait.isPresent()) {
+            throw new TooManyFailedAttemptsException(Math.max(accountWait.getAsLong(),
+                    clientIpCounter.retryAfterSeconds(clientIp, now).orElse(0)));
         }
+        OptionalLong clientIpWait = clientIpCounter.tryReserve(clientIp, now);
+        if (clientIpWait.isPresent()) {
+            accountCounter.release(account);
+            throw new TooManyFailedAttemptsException(Math.max(clientIpWait.getAsLong(),
+                    accountCounter.retryAfterSeconds(account, now).orElse(0)));
+        }
+        return new Slot(account, accountLabel, clientIp);
     }
 
-    private void recordFailure(String account, String accountLabel, String clientIp) {
-        Instant now = clock.instant();
-        if (accountCounter.recordFailure(account, now)) {
-            LOGGER.warn("Authentication throttled: scope=account, {}, retryAfter={}s", accountLabel,
-                    accountCounter.retryAfterSeconds(account, now).orElse(0));
+    /**
+     * One attempt's reservation on both counters, settled exactly once.
+     */
+    private final class Slot {
+
+        private final String account;
+        private final String accountLabel;
+        private final String clientIp;
+        private boolean settled;
+
+        private Slot(String account, String accountLabel, String clientIp) {
+            this.account = account;
+            this.accountLabel = accountLabel;
+            this.clientIp = clientIp;
         }
-        if (clientIpCounter.recordFailure(clientIp, now)) {
-            LOGGER.warn("Authentication throttled: scope=ip, ip={}, retryAfter={}s", clientIp,
-                    clientIpCounter.retryAfterSeconds(clientIp, now).orElse(0));
+
+        void failed() {
+            if (settle()) {
+                Instant now = clock.instant();
+                if (accountCounter.confirmFailure(account, now)) {
+                    LOGGER.warn("Authentication throttled: scope=account, {}, retryAfter={}s", accountLabel,
+                            accountCounter.retryAfterSeconds(account, now).orElse(0));
+                }
+                if (clientIpCounter.confirmFailure(clientIp, now)) {
+                    LOGGER.warn("Authentication throttled: scope=ip, ip={}, retryAfter={}s", clientIp,
+                            clientIpCounter.retryAfterSeconds(clientIp, now).orElse(0));
+                }
+            }
+        }
+
+        void succeeded() {
+            if (settle()) {
+                accountCounter.reset(account);
+                accountCounter.release(account);
+                clientIpCounter.release(clientIp);
+            }
+        }
+
+        void release() {
+            if (settle()) {
+                accountCounter.release(account);
+                clientIpCounter.release(clientIp);
+            }
+        }
+
+        private boolean settle() {
+            if (settled) {
+                return false;
+            }
+            settled = true;
+            return true;
         }
     }
 
