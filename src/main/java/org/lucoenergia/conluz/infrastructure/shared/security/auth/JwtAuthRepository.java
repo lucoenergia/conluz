@@ -4,12 +4,15 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecurityException;
 import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.commons.collections4.map.HashedMap;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
+import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
+import org.lucoenergia.conluz.domain.admin.user.auth.VerifiedToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -93,22 +96,36 @@ public class JwtAuthRepository implements AuthRepository {
     }
 
     @Override
-    public UUID getUserIdFromToken(Token token) {
-        try {
-            return UUID.fromString(getClaim(token, Claims::getSubject));
-        } catch (IllegalArgumentException e) {
-            throw new InvalidTokenException(token.getToken());
+    public VerifiedToken verify(Token token) {
+        Claims claims = getAllClaims(token);
+        if (claims.getSubject() == null || claims.getId() == null || claims.getExpiration() == null) {
+            throw new InvalidTokenException(TokenRejectionReason.MISSING_CLAIMS);
         }
+        return new VerifiedToken(subjectOf(claims), claims.getId());
     }
 
     @Override
-    public boolean isTokenValid(Token token, User user) {
-        final UUID id = getUserIdFromToken(token);
-        return id.equals(user.getId())
-                && user.isEnabled()
-                && !isTokenExpired(token)
-                && !isIssuedBefore(token, user.getPasswordChangedAt())
-                && !isIssuedBefore(token, user.getDisabledAt());
+    public Optional<TokenRejectionReason> findRejectionReason(Token token, User user) {
+        Claims claims = getAllClaims(token);
+        if (claims.getSubject() == null || claims.getExpiration() == null) {
+            return Optional.of(TokenRejectionReason.MISSING_CLAIMS);
+        }
+        if (!subjectOf(claims).equals(user.getId())) {
+            return Optional.of(TokenRejectionReason.SUBJECT_MISMATCH);
+        }
+        if (!user.isEnabled()) {
+            return Optional.of(TokenRejectionReason.USER_DISABLED);
+        }
+        if (claims.getExpiration().before(new Date())) {
+            return Optional.of(TokenRejectionReason.EXPIRED);
+        }
+        if (isIssuedBefore(claims, user.getPasswordChangedAt())) {
+            return Optional.of(TokenRejectionReason.ISSUED_BEFORE_PASSWORD_CHANGE);
+        }
+        if (isIssuedBefore(claims, user.getDisabledAt())) {
+            return Optional.of(TokenRejectionReason.ISSUED_BEFORE_DISABLE);
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -120,8 +137,12 @@ public class JwtAuthRepository implements AuthRepository {
         return Duration.ofMinutes(jwtConfiguration.getExpirationTime());
     }
 
-    private boolean isTokenExpired(Token token) {
-        return getExpirationDate(token).before(new Date());
+    private static UUID subjectOf(Claims claims) {
+        try {
+            return UUID.fromString(claims.getSubject());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidTokenException(TokenRejectionReason.INVALID_CLAIMS);
+        }
     }
 
     /**
@@ -134,11 +155,11 @@ public class JwtAuthRepository implements AuthRepository {
      * earlier within that same second is accepted too. For a password change, the token used for the change
      * itself is revoked explicitly through the blacklist instead.
      */
-    private boolean isIssuedBefore(Token token, Instant cutoff) {
+    private static boolean isIssuedBefore(Claims claims, Instant cutoff) {
         if (cutoff == null) {
             return false;
         }
-        Date issuedAt = getClaim(token, Claims::getIssuedAt);
+        Date issuedAt = claims.getIssuedAt();
         if (issuedAt == null) {
             return true;
         }
@@ -160,15 +181,62 @@ public class JwtAuthRepository implements AuthRepository {
         }
     }
 
+    /**
+     * The token's claims, once its signature, format and expiry are verified. Any failure to verify or parse it is
+     * rejected as an {@link InvalidTokenException}, never with jjwt's exception, whose message may describe the token.
+     * A missing or invalid key is a configuration error, not a rejected token, so it is left to propagate.
+     */
     private Claims getAllClaims(Token token) {
+        Key key = getKey();
         try {
             return Jwts
-                    .parserBuilder().setSigningKey(getKey()).build()
+                    .parserBuilder().setSigningKey(key).build()
                     .parseClaimsJws(token.getToken()).getBody();
-        } catch (MalformedJwtException | ExpiredJwtException e) {
-            LOGGER.error(e.getMessage());
-            throw new InvalidTokenException(token.getToken(), e);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new InvalidTokenException(reasonFor(e), verifiedSubjectOf(e));
         }
+    }
+
+    /**
+     * Classifies every jjwt failure, so that a subtype not listed here still rejects the token instead of failing
+     * the request. jjwt reports a key that does not fit the token's algorithm, such as HS512 against the
+     * application's key, as a {@code KeyException}, which is unsupported. It reports an algorithm name it does not
+     * know with the same exception as a signature that does not match, so that case is an invalid signature.
+     */
+    private static TokenRejectionReason reasonFor(RuntimeException e) {
+        if (e instanceof io.jsonwebtoken.security.SignatureException) {
+            return TokenRejectionReason.INVALID_SIGNATURE;
+        }
+        if (e instanceof ExpiredJwtException expired) {
+            // jjwt also checks the expiry of an unsigned token, which would be rejected as unsupported anyway
+            return expired.getHeader() instanceof JwsHeader
+                    ? TokenRejectionReason.EXPIRED
+                    : TokenRejectionReason.UNSUPPORTED;
+        }
+        if (e instanceof UnsupportedJwtException || e instanceof SecurityException) {
+            return TokenRejectionReason.UNSUPPORTED;
+        }
+        if (e instanceof ClaimJwtException) {
+            return TokenRejectionReason.INVALID_CLAIMS;
+        }
+        return TokenRejectionReason.MALFORMED;
+    }
+
+    /**
+     * The subject of a token rejected only for its expiry. jjwt verifies the signature of a signed token before its
+     * expiry, so the subject can be trusted when the header is a {@link JwsHeader}. In every other case, the claims
+     * were never verified, and their subject is not reported.
+     */
+    private static UUID verifiedSubjectOf(RuntimeException e) {
+        if (e instanceof ExpiredJwtException expired && expired.getHeader() instanceof JwsHeader
+                && expired.getClaims() != null && expired.getClaims().getSubject() != null) {
+            try {
+                return UUID.fromString(expired.getClaims().getSubject());
+            } catch (IllegalArgumentException notAUserId) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private <T> T getClaim(Token token, Function<Claims, T> claimsResolver) {

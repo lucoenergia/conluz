@@ -7,15 +7,21 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.BlacklistedTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
+import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
+import org.lucoenergia.conluz.domain.admin.user.auth.VerifiedToken;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -56,127 +62,112 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testTokenWithInvalidFormat() {
+    void aTokenThatFailsVerification_isRejectedWithTheReasonFromTheRepository() {
+        givenAToken();
+        Mockito.when(authRepository.verify(Mockito.any(Token.class)))
+                .thenThrow(new InvalidTokenException(TokenRejectionReason.INVALID_SIGNATURE));
 
-        final String invalidToken = "invalid-token";
-        Mockito.when(jwtAccessTokenHandler.getTokenFromRequest(request))
-                .thenReturn(Optional.of("Bearer " + invalidToken));
-
-        tokenNotIncludedInBlacklist();
-
-        Mockito.when(authRepository.getUserIdFromToken(Mockito.any(Token.class)))
-                .thenThrow(InvalidTokenException.class);
-
-        Assertions.assertThrows(InvalidTokenException.class,
+        InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
                 () -> filter.doFilterInternal(request, response, filterChain));
+
+        Assertions.assertEquals(TokenRejectionReason.INVALID_SIGNATURE, exception.getReason());
+        Assertions.assertTrue(exception.getUserId().isEmpty());
+        Mockito.verifyNoInteractions(blacklistedTokenRepository, userDetailsService);
     }
 
     @Test
-    void testTokenWithValidFormatButEmptyUserId() {
-
-        final String validToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTIzNDU2N1oiLCJpYXQiOjE3MDMyODA2MTksImV4cCI6MTcwMzI4MjQxOX0.mNS-1EiY8tYDcVvrU_oR6Rlj9bpB3QNcSpqdP_7KH_o";
-        Mockito.when(jwtAccessTokenHandler.getTokenFromRequest(request))
-                .thenReturn(Optional.of("Bearer " + validToken));
-
-        tokenNotIncludedInBlacklist();
-
-        Mockito.when(authRepository.getUserIdFromToken(Mockito.any(Token.class)))
-                .thenReturn(null);
-
-        Assertions.assertThrows(InvalidTokenException.class,
-                () -> filter.doFilterInternal(request, response, filterChain));
-    }
-
-    @Test
-    void testTokenWithValidFormatButUserNotFound() {
-
-        final String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTIzNDU2N1oiLCJpYXQiOjE3MDMyODA2MTksImV4cCI6MTcwMzI4MjQxOX0.mNS-1EiY8tYDcVvrU_oR6Rlj9bpB3QNcSpqdP_7KH_o";
-        Mockito.when(jwtAccessTokenHandler.getTokenFromRequest(request))
-                .thenReturn(Optional.of("Bearer " + invalidToken));
-
-        tokenNotIncludedInBlacklist();
-
+    void aRevokedToken_isRejectedBeforeItsUserIsLoaded() {
+        givenAToken();
         UUID userId = UUID.randomUUID();
-        Mockito.when(authRepository.getUserIdFromToken(Mockito.any(Token.class)))
-                .thenReturn(userId);
+        String jti = UUID.randomUUID().toString();
+        Mockito.when(authRepository.verify(Mockito.any(Token.class))).thenReturn(new VerifiedToken(userId, jti));
+        Mockito.when(blacklistedTokenRepository.existsByJti(jti)).thenReturn(true);
 
+        InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
+                () -> filter.doFilterInternal(request, response, filterChain));
+
+        Assertions.assertEquals(TokenRejectionReason.REVOKED, exception.getReason());
+        Assertions.assertEquals(Optional.of(userId), exception.getUserId());
+        Mockito.verifyNoInteractions(userDetailsService);
+    }
+
+    @Test
+    void aTokenWhoseUserNoLongerExists_isRejectedAsUserNotFound() {
+        givenAToken();
+        UUID userId = givenAVerifiedTokenNotRevoked();
         Mockito.when(userDetailsService.loadUserByUsername(userId.toString()))
                 .thenThrow(UsernameNotFoundException.class);
 
-        Assertions.assertThrows(UsernameNotFoundException.class,
+        InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
                 () -> filter.doFilterInternal(request, response, filterChain));
+
+        Assertions.assertEquals(TokenRejectionReason.USER_NOT_FOUND, exception.getReason());
+        Assertions.assertEquals(Optional.of(userId), exception.getUserId());
     }
 
     @Test
-    void testTokenWithValidFormatButInvalidContent() {
-
-        final String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTIzNDU2N1oiLCJpYXQiOjE3MDMyODA2MTksImV4cCI6MTcwMzI4MjQxOX0.mNS-1EiY8tYDcVvrU_oR6Rlj9bpB3QNcSpqdP_7KH_o";
-        Mockito.when(jwtAccessTokenHandler.getTokenFromRequest(request))
-                .thenReturn(Optional.of("Bearer " + invalidToken));
-
-        tokenNotIncludedInBlacklist();
-
-        UUID userId = UUID.randomUUID();
-        Mockito.when(authRepository.getUserIdFromToken(Mockito.any(Token.class)))
-                .thenReturn(userId);
-
+    void aTokenRejectedForItsUser_isRejectedWithTheRuleThatRejectedIt() {
+        givenAToken();
+        UUID userId = givenAVerifiedTokenNotRevoked();
         User user = UserMother.randomUserWithId(userId);
-        Mockito.when(userDetailsService.loadUserByUsername(userId.toString()))
-                .thenReturn(user);
+        Mockito.when(userDetailsService.loadUserByUsername(userId.toString())).thenReturn(user);
+        Mockito.when(authRepository.findRejectionReason(Mockito.any(Token.class), Mockito.eq(user)))
+                .thenReturn(Optional.of(TokenRejectionReason.ISSUED_BEFORE_DISABLE));
 
-        Mockito.when(authRepository.isTokenValid(Mockito.any(Token.class), Mockito.eq(user)))
-                .thenReturn(false);
-
-        Assertions.assertThrows(InvalidTokenException.class,
+        InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
                 () -> filter.doFilterInternal(request, response, filterChain));
+
+        Assertions.assertEquals(TokenRejectionReason.ISSUED_BEFORE_DISABLE, exception.getReason());
+        Assertions.assertEquals(Optional.of(userId), exception.getUserId());
     }
 
     @Test
-    void testTokenWithValidFormatAndValidContent() throws ServletException, IOException {
-
-        final String validToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTIzNDU2N1oiLCJpYXQiOjE3MDMyODA2MTksImV4cCI6MTcwMzI4MjQxOX0.mNS-1EiY8tYDcVvrU_oR6Rlj9bpB3QNcSpqdP_7KH_o";
-        Mockito.when(jwtAccessTokenHandler.getTokenFromRequest(request))
-                .thenReturn(Optional.of("Bearer " + validToken));
-
-        tokenNotIncludedInBlacklist();
-
-        UUID userId = UUID.randomUUID();
-        Mockito.when(authRepository.getUserIdFromToken(Mockito.any(Token.class)))
-                .thenReturn(userId);
-
+    void aValidToken_authenticatesTheRequest() throws ServletException, IOException {
+        givenAToken();
+        UUID userId = givenAVerifiedTokenNotRevoked();
         User user = UserMother.randomUserWithId(userId);
-        Mockito.when(userDetailsService.loadUserByUsername(userId.toString()))
-                .thenReturn(user);
+        Mockito.when(userDetailsService.loadUserByUsername(userId.toString())).thenReturn(user);
+        Mockito.when(authRepository.findRejectionReason(Mockito.any(Token.class), Mockito.eq(user)))
+                .thenReturn(Optional.empty());
 
-        Mockito.when(authRepository.isTokenValid(Mockito.any(Token.class), Mockito.eq(user)))
-                .thenReturn(true);
+        try {
+            Assertions.assertDoesNotThrow(() -> filter.doFilterInternal(request, response, filterChain));
 
-        Assertions.assertDoesNotThrow(() -> filter.doFilterInternal(request, response, filterChain));
-
-        Mockito.verify(filterChain).doFilter(request, response);
+            Mockito.verify(filterChain).doFilter(request, response);
+            Assertions.assertSame(user, SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 
-    @Test
-    void testTokenIncludedInBlacklist() {
-        final String token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTIzNDU2N1oiLCJpYXQiOjE3MDMyODA2MTksImV4cCI6MTcwMzI4MjQxOX0.mNS-1EiY8tYDcVvrU_oR6Rlj9bpB3QNcSpqdP_7KH_o";
+    @ParameterizedTest
+    @CsvSource({
+            "POST, /api/v1/login, true",
+            "POST, /api/v1/init, true",
+            "GET, /api/v1/info, true",
+            "GET, /api-docs, true",
+            "GET, /api-docs/swagger-config, true",
+            "GET, /actuator/health, true",
+            "POST, /api/v1/logout, false",
+            "PUT, /api/v1/users/current/password, false",
+            "GET, /api/v1/users/current, false"
+    })
+    void onlyPublicEndpoints_skipTheFilter(String method, String path, boolean skipped) {
+        MockHttpServletRequest publicOrNot = new MockHttpServletRequest(method, path);
+
+        Assertions.assertEquals(skipped, filter.shouldNotFilter(publicOrNot));
+    }
+
+    private void givenAToken() {
         Mockito.when(jwtAccessTokenHandler.getTokenFromRequest(request))
-                .thenReturn(Optional.of("Bearer " + token));
-
-        String jti = UUID.randomUUID().toString();
-        Mockito.when(authRepository.getJtiFromToken(Mockito.any(Token.class)))
-                .thenReturn(Optional.of(jti));
-        Mockito.when(blacklistedTokenRepository.existsByJti(jti))
-                .thenReturn(true);
-
-        Assertions.assertThrows(InvalidTokenException.class,
-                () -> filter.doFilterInternal(request, response, filterChain));
+                .thenReturn(Optional.of("a token"));
     }
 
-    private void tokenNotIncludedInBlacklist() {
+    private UUID givenAVerifiedTokenNotRevoked() {
+        UUID userId = UUID.randomUUID();
         String jti = UUID.randomUUID().toString();
-        Mockito.when(authRepository.getJtiFromToken(Mockito.any(Token.class)))
-                .thenReturn(Optional.of(jti));
-        Mockito.when(blacklistedTokenRepository.existsByJti(jti))
-                .thenReturn(false);
+        Mockito.when(authRepository.verify(Mockito.any(Token.class))).thenReturn(new VerifiedToken(userId, jti));
+        Mockito.when(blacklistedTokenRepository.existsByJti(jti)).thenReturn(false);
+        return userId;
     }
 }

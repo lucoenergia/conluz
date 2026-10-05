@@ -41,6 +41,14 @@ public class AuthenticationExceptionHandler {
         return buildResponse(e);
     }
 
+    /**
+     * A token rejected by the authentication filter, already logged as a single warning where it is caught, so
+     * it is not logged again here.
+     */
+    public ResponseEntity<RestError> handleRejectedToken() {
+        return errorBuilder.buildWithoutLogging("error.unauthorized", List.of().toArray(), HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<RestError> handleAuthenticationException(AuthenticationException e) {
         return buildResponse(e);

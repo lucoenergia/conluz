@@ -9,9 +9,13 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.BlacklistedTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
+import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
+import org.lucoenergia.conluz.domain.admin.user.auth.VerifiedToken;
+import org.lucoenergia.conluz.infrastructure.shared.security.PublicEndpoints;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -39,12 +43,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
+    /**
+     * Endpoints that require no authentication ignore any token presented on them: it is neither validated nor
+     * rejected, and it does not authenticate the request. A stale token therefore never stands in the way of
+     * logging in again.
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return PublicEndpoints.MATCHER.matches(request);
+    }
+
+    /**
+     * Every rejection is thrown as an {@link InvalidTokenException} carrying its reason, and logged once by
+     * {@link JwtAuthenticationExceptionFilter}.
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         final Optional<String> tokenString = jwtAccessTokenHandler.getTokenFromRequest(request);
-        final UUID userId;
 
         // If no token is provided, we should continue the filter chain
         // This is especially important for not authenticated endpoints
@@ -54,35 +71,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         Token token = Token.of(tokenString.get());
 
-        // Check if token is blacklisted
-        Optional<String> jti = authRepository.getJtiFromToken(token);
-        if (jti.isPresent() && blacklistedTokenRepository.existsByJti(jti.get())) {
-            throw new InvalidTokenException("Token has been revoked");
-        }
+        final VerifiedToken verifiedToken = authRepository.verify(token);
+        final UUID userId = verifiedToken.userId();
 
-        userId = authRepository.getUserIdFromToken(token);
-
-        if (userId == null) {
-            throw new InvalidTokenException(tokenString.get());
+        if (blacklistedTokenRepository.existsByJti(verifiedToken.jti())) {
+            throw new InvalidTokenException(TokenRejectionReason.REVOKED, userId);
         }
 
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            User user = (User) userDetailsService.loadUserByUsername(userId.toString());
+            User user = loadUser(userId);
 
-            if (authRepository.isTokenValid(token, user)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        user,
-                        null,
-                        user.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            } else {
-                throw new InvalidTokenException(tokenString.get());
+            Optional<TokenRejectionReason> rejection = authRepository.findRejectionReason(token, user);
+            if (rejection.isPresent()) {
+                throw new InvalidTokenException(rejection.get(), userId);
             }
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    user,
+                    null,
+                    user.getAuthorities()
+            );
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
         }
         // If authentication is already set by a prior filter invocation, proceed without re-processing.
 
         filterChain.doFilter(request, response);
+    }
+
+    private User loadUser(UUID userId) {
+        try {
+            return (User) userDetailsService.loadUserByUsername(userId.toString());
+        } catch (UsernameNotFoundException e) {
+            throw new InvalidTokenException(TokenRejectionReason.USER_NOT_FOUND, userId);
+        }
     }
 }
