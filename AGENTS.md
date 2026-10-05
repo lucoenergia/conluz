@@ -2,41 +2,9 @@
 
 This file provides guidance to AI agents (e.g. Claude Code, opencode) when working with code in this repository.
 
-## Project Overview
+## Testing
 
-Conluz is an energy community management application built with Spring Boot 3. It manages community members, supply points, consumption data, production metrics from energy plants, and electricity prices. The application is API-driven with JWT authentication, uses PostgreSQL for relational data and InfluxDB for time-series data.
-
-## Development Commands
-
-### Build and Run
-```bash
-./gradlew build                 # Build the project
-./gradlew bootRun               # Run the application (accessible at https://localhost:8443)
-./gradlew clean build --info    # Clean build with detailed output
-```
-
-### Testing
-```bash
-./gradlew test                  # Run all tests (uses JUnit 5)
-./gradlew test --tests ClassName  # Run a specific test class
-```
-
-Tests use Testcontainers for PostgreSQL and InfluxDB integration tests.
-
-### Docker Deployment
-`deploy/` holds a **sanitized reference example** (`docker-compose.example.yml`), not the
-production deployment (see the "Deployment & infrastructure boundary" note below).
-
-```bash
-# From project root:
-docker build -t conluz:1.0 -f Dockerfile .
-cd deploy
-cp .env.example .env                                        # then edit .env with your own values
-docker compose -f docker-compose.example.yml up -d          # Start the core stack
-docker compose -f docker-compose.example.yml up -d postgres # Start only PostgreSQL
-docker compose -f docker-compose.example.yml up -d influxdb # Start only InfluxDB
-docker stop conluz                                          # Stop the app
-```
+Tests use Testcontainers (PostgreSQL and InfluxDB), so Docker must be running for `./gradlew test`.
 
 ## Deployment & infrastructure boundary
 
@@ -58,40 +26,7 @@ monitoring, reverse proxy, host configuration).
   here, treat it as **compromised**: rotate it (a human decision), do not just delete the file
   (deletion does not remove it from history).
 
-## Architecture
-
-### Package Structure
-
-The codebase follows **Hexagonal Architecture** (Ports and Adapters):
-
-- **`domain/`**: Core business logic, pure Java classes
-  - `admin/`: User, supply point, and plant management
-  - `consumption/`: Consumption data from Datadis and other sources
-  - `production/`: Production data from Huawei inverters and other sources
-  - `price/`: Electricity price data management
-  - `shared/`: Domain-level shared utilities
-
-- **`infrastructure/`**: Adapters for external systems
-  - Controllers (REST endpoints)
-  - Repositories (JPA/InfluxDB implementations)
-  - External integrations (Datadis, Huawei, Shelly)
-  - `shared/`: Infrastructure-level shared components (security, DB config, jobs, i18n, etc.)
-
-### Key Components
-
-- **Authentication**: JWT-based with HMAC-SHA256, tokens contain user ID, role, expiration
-- **Controllers**: REST endpoints in `infrastructure/*/` packages, documented with OpenAPI/Swagger
-- **Services**: Business logic in `domain/*/` packages (e.g., `*Service.java`)
-- **Repositories**: Interfaces in `domain/`, implementations in `infrastructure/`
-- **Database Migrations**: Liquibase changesets in `src/main/resources/db/liquibase/`
-- **Scheduled Jobs**: Quartz-based scheduled tasks enabled via `@EnableScheduling`
-
-### Data Storage
-
-1. **PostgreSQL**: Users, supplies, configuration (managed via Liquibase migrations)
-2. **InfluxDB**: Time-series data for consumption, production, and prices with retention policies (1 month, 1 year, forever)
-
-#### InfluxDB Schema
+## InfluxDB Schema
 
 The time-series database stores consumption, production and price data in the measurements described in
 [`docs/db/timeseries/influxdb/influxdb_schema.md`](docs/db/timeseries/influxdb/influxdb_schema.md), with
@@ -102,20 +37,13 @@ The time-series database stores consumption, production and price data in the me
 ### Required Environment Variables
 
 - `CONLUZ_JWT_SECRET_KEY`: JWT secret key (≥256 bits, HMAC-SHA compatible). Generate using `org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator`
-- `SPRING_DATASOURCE_URL`: PostgreSQL connection (default: `jdbc:postgresql://localhost:5432/conluz_db`)
 
 ### Database Setup
 
 For new installations and existing databases (PostgreSQL and InfluxDB setup scripts), see
 [`docs/db/setup.md`](docs/db/setup.md).
 
-## API Documentation
-
-With the app running:
-- OpenAPI spec: https://localhost:8443/api-docs
-- Swagger UI: https://localhost:8443/api-docs/swagger-ui/index.html
-
-### The OpenAPI snapshot
+## The OpenAPI snapshot
 
 `src/test/resources/openapi/api-docs.json` is a committed, normalised copy of the whole generated
 document, checked by `OpenApiSnapshotTest`. Its diff in a pull request **is** the API diff a
@@ -142,9 +70,7 @@ an API change would then land unreviewed.
 
 ## Code Standards
 
-- Follow SOLID and Clean Code principles
 - Code and comments must be in English
-- Code should be self-explanatory with comments when additional explanation is needed
 - **URL path parameter naming**: All REST API URL path segments that identify a resource MUST use the
   `{resourceId}` convention (e.g. `{supplyId}`, `{userId}`, `{plantId}`, `{communityId}`,
   `{sharingAgreementId}`). The bare `{id}` pattern is never used. The same name MUST be used
@@ -182,12 +108,6 @@ This policy is MANDATORY. Every REST controller endpoint MUST enforce it via a `
 
 Login and password change are throttled per account and per client address against password guessing: failed attempts are counted in memory, a slot is reserved before any password is checked, and an attempt over the limit is answered 429 with `Retry-After`. Any change to those endpoints, to how a password is verified, or to how the client address is resolved (`CONLUZ_TRUSTED_PROXIES`) must keep that behaviour. How it works, with flow diagrams: [`docs/security/authentication-throttling.md`](docs/security/authentication-throttling.md).
 
-# CLAUDE.md / AGENTS.md — GitHub CLI section
-
-Repository-agnostic. Paste as-is into any repo.
-
----
-
 ## GitHub CLI
 
 `gh` is authenticated with a **read-only** credential and is available for reading. Use it whenever
@@ -200,9 +120,10 @@ workflows; changing repository or organisation settings; and any `gh api` call w
 than GET, GraphQL mutations included. `gh auth login`, `gh auth refresh`, `gh alias set` and
 `gh extension install` are equally off limits — they are ways to change what the tool can do.
 
-Writes fail twice over: the credential has no write permission, and `permissions.deny` blocks the
-commands. Do not work around either. If a command is refused, report it; do not look for a spelling
-that gets through, and never propose changing the deny rules or the credential.
+Writes fail because the credential has no write permission. A contributor may also block the
+commands with `permissions.deny` rules in their own untracked `.claude/settings.local.json`; the
+repository commits none. Do not work around either. If a command is refused, report it; do not look
+for a spelling that gets through, and never propose changing the deny rules or the credential.
 
 When a task appears to need a write — "open an issue for this", "comment on that PR", "merge it" —
 produce the content and say exactly where it goes (repository, issue or PR number, and the label or
