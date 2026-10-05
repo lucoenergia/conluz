@@ -42,6 +42,7 @@ public class User implements UserDetails {
     private Boolean isPlatformAdmin;
     private boolean mustChangePassword;
     private Instant passwordChangedAt;
+    private Instant disabledAt;
     private List<CommunityMembership> memberships = new ArrayList<>();
 
     public UUID getId() {
@@ -150,6 +151,18 @@ public class User implements UserDetails {
 
     public void setPasswordChangedAt(Instant passwordChangedAt) {
         this.passwordChangedAt = passwordChangedAt;
+    }
+
+    /**
+     * When the user was last disabled, or {@code null} if they never were. Enabling the user again does not
+     * clear it: tokens issued before this instant are no longer accepted.
+     */
+    public Instant getDisabledAt() {
+        return disabledAt;
+    }
+
+    public void setDisabledAt(Instant disabledAt) {
+        this.disabledAt = disabledAt;
     }
 
     public List<CommunityMembership> getMemberships() {

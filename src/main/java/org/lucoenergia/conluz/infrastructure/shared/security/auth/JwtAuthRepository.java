@@ -104,7 +104,11 @@ public class JwtAuthRepository implements AuthRepository {
     @Override
     public boolean isTokenValid(Token token, User user) {
         final UUID id = getUserIdFromToken(token);
-        return id.equals(user.getId()) && !isTokenExpired(token) && !isIssuedBeforePasswordChange(token, user);
+        return id.equals(user.getId())
+                && user.isEnabled()
+                && !isTokenExpired(token)
+                && !isIssuedBefore(token, user.getPasswordChangedAt())
+                && !isIssuedBefore(token, user.getDisabledAt());
     }
 
     @Override
@@ -121,23 +125,24 @@ public class JwtAuthRepository implements AuthRepository {
     }
 
     /**
-     * A token issued before the user's last password change belongs to a session opened with the old password.
+     * Whether the token was issued before {@code cutoff}: the user's last password change, which ends every
+     * session opened with the old password, or their last disable, which ends every session opened before it even
+     * after the user is enabled again. A {@code null} cutoff places no restriction.
      * <p>
-     * {@code iat} only has second precision, so the change instant is truncated to the second before comparing:
-     * a token issued right after the change, within the same second, must be accepted. The cost is that another
-     * token issued earlier within that same second is accepted too; the token used for the change itself is
-     * revoked explicitly through the blacklist instead.
+     * {@code iat} only has second precision, so the cutoff is truncated to the second before comparing: a token
+     * issued right after it, within the same second, must be accepted. The cost is that another token issued
+     * earlier within that same second is accepted too. For a password change, the token used for the change
+     * itself is revoked explicitly through the blacklist instead.
      */
-    private boolean isIssuedBeforePasswordChange(Token token, User user) {
-        Instant passwordChangedAt = user.getPasswordChangedAt();
-        if (passwordChangedAt == null) {
+    private boolean isIssuedBefore(Token token, Instant cutoff) {
+        if (cutoff == null) {
             return false;
         }
         Date issuedAt = getClaim(token, Claims::getIssuedAt);
         if (issuedAt == null) {
             return true;
         }
-        return issuedAt.toInstant().isBefore(passwordChangedAt.truncatedTo(ChronoUnit.SECONDS));
+        return issuedAt.toInstant().isBefore(cutoff.truncatedTo(ChronoUnit.SECONDS));
     }
 
     private Key getKey() {
