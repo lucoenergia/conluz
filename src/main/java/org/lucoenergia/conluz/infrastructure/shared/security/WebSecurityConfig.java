@@ -64,13 +64,7 @@ public class WebSecurityConfig {
         http
                 .authorizeHttpRequests(authRequest ->
                         authRequest.
-                                requestMatchers(
-                                        "/api-docs/**",
-                                        "/api/v1/login",
-                                        "/api/v1/init",
-                                        "/api/v1/info",
-                                        "/actuator/**"
-                                ).permitAll()
+                                requestMatchers(PublicEndpoints.MATCHER).permitAll()
                                 .anyRequest().authenticated()
                 )
                 .cors(Customizer.withDefaults())

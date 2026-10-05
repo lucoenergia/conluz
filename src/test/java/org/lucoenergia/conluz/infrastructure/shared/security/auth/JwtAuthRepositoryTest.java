@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -14,6 +16,8 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
+import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
+import org.lucoenergia.conluz.domain.admin.user.auth.VerifiedToken;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator;
 import org.mockito.InjectMocks;
@@ -23,10 +27,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @ExtendWith(MockitoExtension.class)
 class JwtAuthRepositoryTest {
@@ -49,7 +55,7 @@ class JwtAuthRepositoryTest {
         Token token = repository.getToken(user);
         Assertions.assertNotNull(token);
 
-        Assertions.assertTrue(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
     }
 
     @Test
@@ -62,8 +68,8 @@ class JwtAuthRepositoryTest {
         Token token = repository.getToken(user);
 
         Assertions.assertNotNull(token);
-        Assertions.assertTrue(repository.isTokenValid(token, user));
-        Assertions.assertEquals(user.getId(), repository.getUserIdFromToken(token));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
+        Assertions.assertEquals(user.getId(), repository.verify(token).userId());
     }
 
     @Test
@@ -86,9 +92,10 @@ class JwtAuthRepositoryTest {
         Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(SECRET_KEY);
 
         InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
-                () -> repository.getUserIdFromToken(Token.of(invalidToken)));
+                () -> repository.verify(Token.of(invalidToken)));
 
-        Assertions.assertEquals(invalidToken, exception.getToken());
+        Assertions.assertEquals(TokenRejectionReason.MALFORMED, exception.getReason());
+        Assertions.assertTrue(exception.getUserId().isEmpty());
     }
 
     @ParameterizedTest
@@ -100,7 +107,7 @@ class JwtAuthRepositoryTest {
         Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(secretKey);
 
         Assertions.assertThrows(SecretKeyNotFoundException.class,
-                () -> repository.getUserIdFromToken(Token.of(invalidToken)));
+                () -> repository.verify(Token.of(invalidToken)));
     }
 
     @ParameterizedTest
@@ -175,7 +182,7 @@ class JwtAuthRepositoryTest {
     }
 
     @Test
-    void isTokenValid_acceptsAnyToken_whenThePasswordWasNeverChanged() {
+    void findRejectionReason_acceptsAnyToken_whenThePasswordWasNeverChanged() {
         User user = UserMother.randomUser();
         user.enable();
         user.setPasswordChangedAt(null);
@@ -183,11 +190,11 @@ class JwtAuthRepositoryTest {
 
         Token token = repository.getToken(user);
 
-        Assertions.assertTrue(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
     }
 
     @Test
-    void isTokenValid_acceptsATokenIssuedInTheSameSecondAsThePasswordChange() throws Exception {
+    void findRejectionReason_acceptsATokenIssuedInTheSameSecondAsThePasswordChange() throws Exception {
         User user = UserMother.randomUser();
         user.enable();
         mockJwtConfig();
@@ -196,14 +203,14 @@ class JwtAuthRepositoryTest {
 
         // iat only has second precision: a change late in the same second must not reject the token
         user.setPasswordChangedAt(issuedAt.plusMillis(999));
-        Assertions.assertTrue(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
 
         user.setPasswordChangedAt(issuedAt);
-        Assertions.assertTrue(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
     }
 
     @Test
-    void isTokenValid_rejectsATokenIssuedInASecondBeforeThePasswordChange() throws Exception {
+    void findRejectionReason_rejectsATokenIssuedInASecondBeforeThePasswordChange() throws Exception {
         User user = UserMother.randomUser();
         user.enable();
         mockJwtConfig();
@@ -211,14 +218,14 @@ class JwtAuthRepositoryTest {
         Instant issuedAt = issuedAtOf(token);
 
         user.setPasswordChangedAt(issuedAt.plusSeconds(1));
-        Assertions.assertFalse(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.of(TokenRejectionReason.ISSUED_BEFORE_PASSWORD_CHANGE), repository.findRejectionReason(token, user));
 
         user.setPasswordChangedAt(issuedAt.plusSeconds(1).plusMillis(500));
-        Assertions.assertFalse(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.of(TokenRejectionReason.ISSUED_BEFORE_PASSWORD_CHANGE), repository.findRejectionReason(token, user));
     }
 
     @Test
-    void isTokenValid_acceptsATokenIssuedAfterThePasswordChange() throws Exception {
+    void findRejectionReason_acceptsATokenIssuedAfterThePasswordChange() throws Exception {
         User user = UserMother.randomUser();
         user.enable();
         mockJwtConfig();
@@ -226,11 +233,11 @@ class JwtAuthRepositoryTest {
 
         user.setPasswordChangedAt(issuedAtOf(token).minusSeconds(5));
 
-        Assertions.assertTrue(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
     }
 
     @Test
-    void isTokenValid_rejectsADisabledUser() {
+    void findRejectionReason_rejectsADisabledUser() {
         User user = UserMother.randomUser();
         user.enable();
         mockJwtConfig();
@@ -238,22 +245,22 @@ class JwtAuthRepositoryTest {
 
         user.setEnabled(false);
 
-        Assertions.assertFalse(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.of(TokenRejectionReason.USER_DISABLED), repository.findRejectionReason(token, user));
     }
 
     @Test
-    void isTokenValid_acceptsAnyToken_whenTheUserWasNeverDisabled() {
+    void findRejectionReason_acceptsAnyToken_whenTheUserWasNeverDisabled() {
         User user = UserMother.randomUser();
         user.enable();
         user.setDisabledAt(null);
         mockJwtConfig();
         Token token = repository.getToken(user);
 
-        Assertions.assertTrue(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
     }
 
     @Test
-    void isTokenValid_acceptsATokenIssuedInTheSameSecondAsTheLastDisable() throws Exception {
+    void findRejectionReason_acceptsATokenIssuedInTheSameSecondAsTheLastDisable() throws Exception {
         User user = UserMother.randomUser();
         user.enable();
         mockJwtConfig();
@@ -262,14 +269,14 @@ class JwtAuthRepositoryTest {
 
         // iat only has second precision: a disable late in the same second must not reject the token
         user.setDisabledAt(issuedAt.plusMillis(999));
-        Assertions.assertTrue(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
 
         user.setDisabledAt(issuedAt);
-        Assertions.assertTrue(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
     }
 
     @Test
-    void isTokenValid_rejectsATokenIssuedInASecondBeforeTheLastDisable() throws Exception {
+    void findRejectionReason_rejectsATokenIssuedInASecondBeforeTheLastDisable() throws Exception {
         User user = UserMother.randomUser();
         user.enable();
         mockJwtConfig();
@@ -277,14 +284,14 @@ class JwtAuthRepositoryTest {
         Instant issuedAt = issuedAtOf(token);
 
         user.setDisabledAt(issuedAt.plusSeconds(1));
-        Assertions.assertFalse(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.of(TokenRejectionReason.ISSUED_BEFORE_DISABLE), repository.findRejectionReason(token, user));
 
         user.setDisabledAt(issuedAt.plusSeconds(1).plusMillis(500));
-        Assertions.assertFalse(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.of(TokenRejectionReason.ISSUED_BEFORE_DISABLE), repository.findRejectionReason(token, user));
     }
 
     @Test
-    void isTokenValid_withBothTimestamps_acceptsOnlyATokenIssuedNoEarlierThanEither() throws Exception {
+    void findRejectionReason_withBothTimestamps_acceptsOnlyATokenIssuedNoEarlierThanEither() throws Exception {
         User user = UserMother.randomUser();
         user.enable();
         mockJwtConfig();
@@ -293,19 +300,125 @@ class JwtAuthRepositoryTest {
 
         user.setPasswordChangedAt(issuedAt.minusSeconds(5));
         user.setDisabledAt(issuedAt.minusSeconds(3));
-        Assertions.assertTrue(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
 
         user.setPasswordChangedAt(issuedAt.minusSeconds(5));
         user.setDisabledAt(issuedAt.plusSeconds(1));
-        Assertions.assertFalse(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.of(TokenRejectionReason.ISSUED_BEFORE_DISABLE), repository.findRejectionReason(token, user));
 
         user.setPasswordChangedAt(issuedAt.plusSeconds(1));
         user.setDisabledAt(issuedAt.minusSeconds(3));
-        Assertions.assertFalse(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.of(TokenRejectionReason.ISSUED_BEFORE_PASSWORD_CHANGE), repository.findRejectionReason(token, user));
 
         user.setPasswordChangedAt(issuedAt.plusSeconds(2));
         user.setDisabledAt(issuedAt.plusSeconds(1));
-        Assertions.assertFalse(repository.isTokenValid(token, user));
+        Assertions.assertEquals(Optional.of(TokenRejectionReason.ISSUED_BEFORE_PASSWORD_CHANGE), repository.findRejectionReason(token, user));
+    }
+
+    // --- verify (#347) ---
+
+    private static final UUID SUBJECT = UUID.randomUUID();
+
+    static Stream<Arguments> tokensRejectedWithoutATrustedSubject() {
+        CraftedTokens tokens = new CraftedTokens(SECRET_KEY);
+        Instant now = Instant.now();
+        return Stream.of(
+                Arguments.of("tampered", tokens.tampered(SUBJECT), TokenRejectionReason.INVALID_SIGNATURE),
+                Arguments.of("other key", tokens.signedWithOtherKey(SUBJECT), TokenRejectionReason.INVALID_SIGNATURE),
+                Arguments.of("alg none", tokens.unsigned(SUBJECT), TokenRejectionReason.UNSUPPORTED),
+                Arguments.of("expired and unsigned", tokens.expiredUnsigned(SUBJECT), TokenRejectionReason.UNSUPPORTED),
+                Arguments.of("RS256", tokens.signedWithRsa(SUBJECT), TokenRejectionReason.UNSUPPORTED),
+                Arguments.of("HS512", tokens.signedWithHs512(SUBJECT), TokenRejectionReason.UNSUPPORTED),
+                // jjwt throws the same exception for an unknown algorithm name as for a signature that does not match
+                Arguments.of("unknown alg", tokens.unknownAlgorithm(SUBJECT), TokenRejectionReason.INVALID_SIGNATURE),
+                Arguments.of("header not JSON", tokens.headerNotJson(SUBJECT), TokenRejectionReason.MALFORMED),
+                Arguments.of("no dots", "not-a-jwt", TokenRejectionReason.MALFORMED),
+                Arguments.of("bad base64", "!!!.!!!.!!!", TokenRejectionReason.MALFORMED),
+                Arguments.of("empty", "", TokenRejectionReason.MALFORMED),
+                Arguments.of("no sub", tokens.signed(b -> b.setId(UUID.randomUUID().toString())
+                        .setIssuedAt(Date.from(now)).setExpiration(Date.from(now.plusSeconds(60)))),
+                        TokenRejectionReason.MISSING_CLAIMS),
+                Arguments.of("no jti", tokens.signed(b -> b.setSubject(SUBJECT.toString())
+                        .setIssuedAt(Date.from(now)).setExpiration(Date.from(now.plusSeconds(60)))),
+                        TokenRejectionReason.MISSING_CLAIMS),
+                Arguments.of("no exp", tokens.signed(b -> b.setSubject(SUBJECT.toString())
+                        .setId(UUID.randomUUID().toString()).setIssuedAt(Date.from(now))),
+                        TokenRejectionReason.MISSING_CLAIMS),
+                Arguments.of("sub not a UUID", tokens.signed(b -> b.setSubject("not-a-user-id")
+                        .setId(UUID.randomUUID().toString()).setIssuedAt(Date.from(now))
+                        .setExpiration(Date.from(now.plusSeconds(60)))),
+                        TokenRejectionReason.INVALID_CLAIMS),
+                Arguments.of("not yet valid", tokens.signed(b -> b.setSubject(SUBJECT.toString())
+                        .setId(UUID.randomUUID().toString()).setIssuedAt(Date.from(now))
+                        .setNotBefore(Date.from(now.plusSeconds(3600)))
+                        .setExpiration(Date.from(now.plusSeconds(7200)))),
+                        TokenRejectionReason.INVALID_CLAIMS)
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("tokensRejectedWithoutATrustedSubject")
+    void verify_rejectsAnUnverifiableToken_withItsReason_andNoSubject(String name, String token,
+                                                                        TokenRejectionReason reason) {
+        Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(SECRET_KEY);
+
+        InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
+                () -> repository.verify(Token.of(token)));
+
+        Assertions.assertEquals(reason, exception.getReason());
+        Assertions.assertTrue(exception.getUserId().isEmpty());
+        Assertions.assertNull(exception.getCause());
+        for (String segment : token.split("\\.", -1)) {
+            if (!segment.isEmpty()) {
+                Assertions.assertFalse(exception.getMessage().contains(segment), exception::getMessage);
+            }
+        }
+    }
+
+    @Test
+    void verify_rejectsAnExpiredToken_withItsVerifiedSubject() {
+        Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(SECRET_KEY);
+        String expired = new CraftedTokens(SECRET_KEY).expired(SUBJECT);
+
+        InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
+                () -> repository.verify(Token.of(expired)));
+
+        Assertions.assertEquals(TokenRejectionReason.EXPIRED, exception.getReason());
+        Assertions.assertEquals(Optional.of(SUBJECT), exception.getUserId());
+    }
+
+    @Test
+    void verify_returnsTheSubjectAndTheIdOfAValidToken() {
+        User user = UserMother.randomUser();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+
+        VerifiedToken verified = repository.verify(token);
+
+        Assertions.assertEquals(user.getId(), verified.userId());
+        Assertions.assertEquals(repository.getJtiFromToken(token).orElseThrow(), verified.jti());
+    }
+
+    @Test
+    void verify_leavesAMissingKey_toFailAsAConfigurationError() {
+        Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(null);
+
+        Assertions.assertThrows(SecretKeyNotFoundException.class,
+                () -> repository.verify(Token.of(new CraftedTokens(SECRET_KEY).valid(SUBJECT))));
+    }
+
+    @Test
+    void findRejectionReason_rejectsATokenCheckedAgainstAnotherUser() {
+        User user = UserMother.randomUser();
+        user.enable();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+
+        User someoneElse = UserMother.randomUser();
+        someoneElse.enable();
+
+        Assertions.assertEquals(Optional.of(TokenRejectionReason.SUBJECT_MISMATCH),
+                repository.findRejectionReason(token, someoneElse));
     }
 
     /**
