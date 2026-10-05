@@ -3,8 +3,12 @@ package org.lucoenergia.conluz.infrastructure.admin.user.auth;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.auth.*;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.LoginFailureReason;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,18 +26,33 @@ public class AuthServiceImpl implements AuthService {
     private final GetUserRepository getUserRepository;
     private final AuthRepository authRepository;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final AuthenticationThrottleService authenticationThrottleService;
 
     public AuthServiceImpl(Authenticator authenticator, GetUserRepository getUserRepository,
-                           AuthRepository authRepository, BlacklistedTokenRepository blacklistedTokenRepository) {
+                           AuthRepository authRepository, BlacklistedTokenRepository blacklistedTokenRepository,
+                           AuthenticationThrottleService authenticationThrottleService) {
         this.authenticator = authenticator;
         this.getUserRepository = getUserRepository;
         this.authRepository = authRepository;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
+        this.authenticationThrottleService = authenticationThrottleService;
     }
 
     @Override
-    public Token login(Credentials credentials) {
-        authenticator.authenticate(credentials);
+    public Token login(Credentials credentials, String clientIp) {
+        // Before the password is checked, so a throttled attempt costs no BCrypt comparison
+        authenticationThrottleService.checkLogin(credentials.getUsername(), clientIp);
+        try {
+            authenticator.authenticate(credentials);
+        } catch (DisabledException e) {
+            authenticationThrottleService.loginFailed(credentials.getUsername(), clientIp, LoginFailureReason.DISABLED);
+            throw e;
+        } catch (BadCredentialsException e) {
+            authenticationThrottleService.loginFailed(credentials.getUsername(), clientIp,
+                    LoginFailureReason.BAD_CREDENTIALS);
+            throw e;
+        }
+        authenticationThrottleService.loginSucceeded(credentials.getUsername());
         Optional<User> user = getUserRepository.findByPersonalId(UserPersonalId.of(credentials.getUsername()));
         if (user.isEmpty()) {
             throw new UserNotFoundException();

@@ -1,18 +1,21 @@
 package org.lucoenergia.conluz.infrastructure.shared;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.config.init.InitBody;
+import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.*;
@@ -31,6 +34,18 @@ public class BaseControllerTest extends BaseIntegrationTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateMembershipService createMembershipService;
+    @Autowired
+    protected MutableClock clock;
+
+    /**
+     * The failed-attempt counters of login and password change live in memory and are shared by every test that
+     * runs in the same application context. Moving the clock past their window lets every test start with no
+     * failures counted, so the failures of one test never throttle another.
+     */
+    @BeforeEach
+    void startWithNoFailedAuthenticationAttempts() {
+        clock.advance(Duration.ofMinutes(16));
+    }
 
     protected MvcResult init() throws Exception {
 

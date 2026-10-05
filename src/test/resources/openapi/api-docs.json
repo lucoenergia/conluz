@@ -1855,6 +1855,7 @@
               "USER_ALREADY_EXISTS",
               "USER_PASSWORD_POLICY_VIOLATION",
               "USER_CURRENT_PASSWORD_INCORRECT",
+              "AUTH_TOO_MANY_FAILED_ATTEMPTS",
               "MEMBERSHIP_ALREADY_EXISTS",
               "COMMUNITY_ALREADY_EXISTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
@@ -7872,7 +7873,7 @@
     },
     "/api/v1/login" : {
       "post" : {
-        "description" : "This endpoint is dedicated to user authentication, requiring clients to provide a valid username and password in the request body. Upon successful authentication, the server generates and returns an authentication token, utilizing JSON Web Tokens (JWT). This token serves as a secure means for subsequent authorized access to protected resources within the system. The server responds with an HTTP status code of 200, along with the generated token. In case of authentication failure or invalid credentials, the server issues an appropriate error status code, accompanied by a descriptive error message.",
+        "description" : "This endpoint is dedicated to user authentication, requiring clients to provide a valid username and password in the request body. Upon successful authentication, the server generates and returns an authentication token, utilizing JSON Web Tokens (JWT). This token serves as a secure means for subsequent authorized access to protected resources within the system. The server responds with an HTTP status code of 200, along with the generated token. In case of authentication failure or invalid credentials, the server issues an appropriate error status code, accompanied by a descriptive error message. After 5 failed attempts on the same account, or 20 from the same client address, within 15 minutes, further attempts are answered 429 with a Retry-After header, without checking the password, until the 15 minutes that started with the first failure have passed.",
         "operationId" : "login",
         "requestBody" : {
           "content" : {
@@ -7907,6 +7908,42 @@
               }
             },
             "description" : "The request contains invalid data."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "AUTH_TOO_MANY_FAILED_ATTEMPTS",
+                      "message" : "Too many failed attempts. Please wait before trying again.",
+                      "params" : {
+                        "retryAfterSeconds" : "843"
+                      }
+                    }
+                  ],
+                  "message" : "Too many failed attempts. Please wait before trying again.",
+                  "status" : 429,
+                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "Too many failed attempts on this account or from this client address (`AUTH_TOO_MANY_FAILED_ATTEMPTS`). The password was not checked. Retry after the number of seconds in the `Retry-After` header, also given in `params.retryAfterSeconds`.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Seconds, rounded up, until an attempt will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
           },
           "500" : {
             "content" : {
@@ -12952,7 +12989,7 @@
     },
     "/api/v1/users/current/password" : {
       "put" : {
-        "description" : "This endpoint lets the authenticated user replace their own password. It always acts on the\ncaller, so it cannot be used to change anybody else's password.\n\nThe current password must be supplied and must match. The new password must be between 15 and\n64 characters long, counting each Unicode code point as one, and no more than 72 bytes once\nUTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no\ncomposition rules, and the value is never trimmed or transformed. The new password may be equal\nto the current one.\n\nOn success the server answers 204, clears the \"must change password\" flag and ends every\nsession opened with the previous password: every token issued before the change, including the\none used for this request, is rejected with 401 from then on, and the access cookie is removed.\nThe client must log in again with the new password.\n\nA wrong current password is answered 400 with the `USER_CURRENT_PASSWORD_INCORRECT` code, never\n401, and changes nothing. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:\n`TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.\n\n**Required: any authenticated user (changes their own password).**",
+        "description" : "This endpoint lets the authenticated user replace their own password. It always acts on the\ncaller, so it cannot be used to change anybody else's password.\n\nThe current password must be supplied and must match. The new password must be between 15 and\n64 characters long, counting each Unicode code point as one, and no more than 72 bytes once\nUTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no\ncomposition rules, and the value is never trimmed or transformed. The new password may be equal\nto the current one.\n\nOn success the server answers 204, clears the \"must change password\" flag and ends every\nsession opened with the previous password: every token issued before the change, including the\none used for this request, is rejected with 401 from then on, and the access cookie is removed.\nThe client must log in again with the new password.\n\nA wrong current password is answered 400 with the `USER_CURRENT_PASSWORD_INCORRECT` code, never\n401, and changes nothing. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:\n`TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.\n\nWrong current passwords count together with failed logins on the same account. After 5 failures\non the account, or 20 from the same client address, within 15 minutes, further changes are\nanswered 429 with a Retry-After header, without checking the current password and without\naffecting the caller's token, until the 15 minutes that started with the first failure have\npassed.\n\n**Required: any authenticated user (changes their own password).**",
         "operationId" : "changePassword",
         "requestBody" : {
           "content" : {
@@ -13026,6 +13063,42 @@
               }
             },
             "description" : "You are not authorized to make this request."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "AUTH_TOO_MANY_FAILED_ATTEMPTS",
+                      "message" : "Too many failed attempts. Please wait before trying again.",
+                      "params" : {
+                        "retryAfterSeconds" : "843"
+                      }
+                    }
+                  ],
+                  "message" : "Too many failed attempts. Please wait before trying again.",
+                  "status" : 429,
+                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "Too many failed attempts on this account or from this client address (`AUTH_TOO_MANY_FAILED_ATTEMPTS`). The password was not checked. Retry after the number of seconds in the `Retry-After` header, also given in `params.retryAfterSeconds`.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Seconds, rounded up, until an attempt will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
           },
           "500" : {
             "content" : {

@@ -2,7 +2,9 @@ package org.lucoenergia.conluz.infrastructure.shared;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
+import org.lucoenergia.conluz.infrastructure.shared.time.MutableClockConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -13,6 +15,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
 @ActiveProfiles({"test"})
+@Import(MutableClockConfiguration.class)
 public abstract class BaseIntegrationTest {
 
     static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>("postgres:16")
