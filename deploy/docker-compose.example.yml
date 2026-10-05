@@ -52,6 +52,8 @@ services:
       - "8443:8443"
     environment:
       - CONLUZ_JWT_SECRET_KEY
+      # Java regex of the reverse proxies trusted for X-Forwarded-For; empty trusts none (see .env.example)
+      - CONLUZ_TRUSTED_PROXIES=${CONLUZ_TRUSTED_PROXIES:-}
       - SPRING_DATASOURCE_URL
       - SPRING_INFLUXDB_URL
       - SPRING_INFLUXDB_USERNAME

@@ -180,6 +180,8 @@ an API change would then land unreviewed.
 
 This policy is MANDATORY. Every REST controller endpoint MUST enforce it via a `@PreAuthorize` clause (delegating to the `@communityAccessGuard` bean when community/object scope is required). **All authorization lives in the controller layer** — services and repositories must contain no access-control logic. See the full policy (roles, role privileges, enforcement rules, 401/403/404 error mapping, and 409 state conflicts) in [`docs/security/authorization-policy.md`](docs/security/authorization-policy.md).
 
+Login and password change are throttled per account and per client address against password guessing: failed attempts are counted in memory, a slot is reserved before any password is checked, and an attempt over the limit is answered 429 with `Retry-After`. Any change to those endpoints, to how a password is verified, or to how the client address is resolved (`CONLUZ_TRUSTED_PROXIES`) must keep that behaviour. How it works, with flow diagrams: [`docs/security/authentication-throttling.md`](docs/security/authentication-throttling.md).
+
 # CLAUDE.md / AGENTS.md — GitHub CLI section
 
 Repository-agnostic. Paste as-is into any repo.

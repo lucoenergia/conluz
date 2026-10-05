@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.login;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
@@ -10,6 +11,7 @@ import org.lucoenergia.conluz.infrastructure.shared.security.auth.AuthResponseHa
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.TooManyRequestsErrorResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,7 +35,7 @@ public class LoginUserController {
     @PostMapping
     @Operation(
             summary = "User authentication",
-            description = "This endpoint is dedicated to user authentication, requiring clients to provide a valid username and password in the request body. Upon successful authentication, the server generates and returns an authentication token, utilizing JSON Web Tokens (JWT). This token serves as a secure means for subsequent authorized access to protected resources within the system. The server responds with an HTTP status code of 200, along with the generated token. In case of authentication failure or invalid credentials, the server issues an appropriate error status code, accompanied by a descriptive error message.",
+            description = "This endpoint is dedicated to user authentication, requiring clients to provide a valid username and password in the request body. Upon successful authentication, the server generates and returns an authentication token, utilizing JSON Web Tokens (JWT). This token serves as a secure means for subsequent authorized access to protected resources within the system. The server responds with an HTTP status code of 200, along with the generated token. In case of authentication failure or invalid credentials, the server issues an appropriate error status code, accompanied by a descriptive error message. After 5 failed attempts on the same account, or 20 from the same client address, within 15 minutes, further attempts are answered 429 with a Retry-After header, without checking the password, until the 15 minutes that started with the first failure have passed.",
             tags = ApiTag.AUTHENTICATION,
             operationId = "login"
     )
@@ -45,9 +47,11 @@ public class LoginUserController {
             )
     })
     @BadRequestErrorResponse
+    @TooManyRequestsErrorResponse
     @InternalServerErrorResponse
-    public ResponseEntity<Token> login(@RequestBody LoginRequest body, HttpServletResponse response) {
-        Token accessToken = authService.login(loginAssembler.assemble(body));
+    public ResponseEntity<Token> login(@RequestBody LoginRequest body, HttpServletRequest request,
+                                       HttpServletResponse response) {
+        Token accessToken = authService.login(loginAssembler.assemble(body), request.getRemoteAddr());
         // Add cookie to the response
         authResponseHandler.setAccessCookie(response, accessToken);
         return ResponseEntity.ok(accessToken);

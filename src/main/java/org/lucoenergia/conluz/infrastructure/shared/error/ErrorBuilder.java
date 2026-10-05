@@ -79,6 +79,35 @@ public class ErrorBuilder {
     }
 
     /**
+     * Same body as {@link #build(Throwable, String, Object[], HttpStatus)}, but nothing is logged. For failures
+     * that are already logged where they happen, in a form that suits them better than an error with a stack
+     * trace, such as a failed authentication attempt.
+     */
+    public ResponseEntity<RestError> buildWithoutLogging(String messageKey, Object[] args, HttpStatus status) {
+
+        final String message = messageSource.getMessage(
+                messageKey,
+                args,
+                LocaleContextHolder.getLocale()
+        );
+
+        return new ResponseEntity<>(new RestError(status.value(), message, UUID.randomUUID().toString()), status);
+    }
+
+    /**
+     * Same body as {@link #build(String, RestErrorCode, Map, HttpStatus)}, but nothing is logged. For failures
+     * that are already logged where they happen, such as a failed authentication attempt.
+     */
+    public ResponseEntity<RestError> buildWithoutLogging(String message, RestErrorCode code,
+                                                         Map<String, String> params, HttpStatus status) {
+
+        final RestError restError = new RestError(status.value(), message, UUID.randomUUID().toString(),
+                List.of(new RestErrorDetail(message, code, params)));
+
+        return new ResponseEntity<>(restError, status);
+    }
+
+    /**
      * Builds one {@link RestError} from a pre-built collection of {@link RestErrorDetail}, e.g. the
      * per-line errors found while validating an uploaded file. {@code message} is the short summary
      * shown in {@link RestError#getMessage()} -- never a concatenation of the individual details.

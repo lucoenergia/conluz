@@ -18,6 +18,7 @@ import org.lucoenergia.conluz.infrastructure.shared.security.auth.AuthResponseHa
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAccessTokenHandler;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.TooManyRequestsErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
@@ -75,6 +76,12 @@ public class ChangePasswordController {
                 401, and changes nothing. A new password that breaks the policy is answered 400 with the
                 `USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:
                 `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.
+
+                Wrong current passwords count together with failed logins on the same account. After 5 failures
+                on the account, or 20 from the same client address, within 15 minutes, further changes are
+                answered 429 with a Retry-After header, without checking the current password and without
+                affecting the caller's token, until the 15 minutes that started with the first failure have
+                passed.
 
                 **Required: any authenticated user (changes their own password).**""",
             tags = ApiTag.USERS,
@@ -139,6 +146,7 @@ public class ChangePasswordController {
             )
     })
     @UnauthorizedErrorResponse
+    @TooManyRequestsErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal User currentUser,
@@ -149,7 +157,7 @@ public class ChangePasswordController {
         Token usedToken = Token.of(jwtAccessTokenHandler.getTokenFromRequest(request).orElseThrow());
 
         service.changePassword(UserId.of(currentUser.getId()), body.getCurrentPassword(), body.getNewPassword(),
-                usedToken);
+                usedToken, request.getRemoteAddr());
 
         authResponseHandler.unsetAccessCookie(response);
         return ResponseEntity.noContent().build();

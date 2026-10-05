@@ -96,6 +96,7 @@ public class UserExceptionHandler {
 
     /**
      * A 400, never a 401: the caller's session is valid, and clients treat a 401 as a session that has ended.
+     * Not logged here: the throttling already logs every wrong current password as a single warning.
      */
     @ExceptionHandler(IncorrectCurrentPasswordException.class)
     public ResponseEntity<RestError> handleException(IncorrectCurrentPasswordException e) {
@@ -105,7 +106,7 @@ public class UserExceptionHandler {
                 List.of().toArray(),
                 LocaleContextHolder.getLocale()
         );
-        return errorBuilder.build(message, RestErrorCode.USER_CURRENT_PASSWORD_INCORRECT, null,
+        return errorBuilder.buildWithoutLogging(message, RestErrorCode.USER_CURRENT_PASSWORD_INCORRECT, null,
                 HttpStatus.BAD_REQUEST);
     }
 }

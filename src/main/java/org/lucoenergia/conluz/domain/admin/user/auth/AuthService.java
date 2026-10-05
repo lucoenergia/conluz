@@ -1,12 +1,20 @@
 package org.lucoenergia.conluz.domain.admin.user.auth;
 
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.TooManyFailedAttemptsException;
 
 import java.util.Optional;
 
 public interface AuthService {
 
-    Token login(Credentials credentials);
+    /**
+     * Authenticates a user and issues a token. Failed attempts are throttled per account and per client address.
+     *
+     * @param credentials the submitted personal ID and password
+     * @param clientIp    the address of the client, used for throttling and logging
+     * @throws TooManyFailedAttemptsException if the account or the client address is throttled
+     */
+    Token login(Credentials credentials, String clientIp);
 
     void logout();
 
