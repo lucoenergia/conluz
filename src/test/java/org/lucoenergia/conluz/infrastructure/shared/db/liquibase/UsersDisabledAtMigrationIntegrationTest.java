@@ -20,13 +20,12 @@ import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.Liquibas
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.rollbackToChangeSet;
 
 /**
- * The changesets that add users.must_change_password and users.password_changed_at (#330), run against a user
- * that existed before them.
+ * The changeset that adds users.disabled_at (#346), run against users that existed before it.
  */
-class UsersPasswordColumnsMigrationIntegrationTest {
+class UsersDisabledAtMigrationIntegrationTest {
 
-    /** The last changeset before the two under test. */
-    private static final String BOUNDARY_CHANGESET_ID = "add_unique_constraint_to_users_personal_id";
+    /** The last changeset before the one under test. */
+    private static final String BOUNDARY_CHANGESET_ID = "add_password_changed_at_to_users";
 
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16")
             .withUsername("luz")
@@ -38,66 +37,71 @@ class UsersPasswordColumnsMigrationIntegrationTest {
     }
 
     @Test
-    void existingUsersAreNotFlaggedAndHaveNoPasswordChangeRecorded() throws Exception {
+    void existingUsers_haveNoDisableRecorded_enabledOrNot() throws Exception {
         try (Connection connection = freshDatabase(POSTGRES, "existing_users")) {
             applyUpToChangeSet(connection, BOUNDARY_CHANGESET_ID);
-            UUID existing = insertUser(connection);
+            UUID enabled = insertUser(connection, "12345678Z", 1, true);
+            UUID disabled = insertUser(connection, "87654321X", 2, false);
 
             applyRest(connection);
 
-            try (PreparedStatement statement = connection.prepareStatement(
-                    "SELECT must_change_password, password_changed_at FROM users WHERE id = ?")) {
-                statement.setObject(1, existing);
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    assertTrue(resultSet.next());
-                    assertFalse(resultSet.getBoolean("must_change_password"));
-                    assertFalse(resultSet.wasNull());
-                    assertNull(resultSet.getObject("password_changed_at"));
-                }
-            }
-            assertEquals("NO", isNullable(connection, "must_change_password"));
-            assertEquals("YES", isNullable(connection, "password_changed_at"));
+            assertNull(disabledAtOf(connection, enabled));
+            assertNull(disabledAtOf(connection, disabled));
+            assertEquals("YES", isNullable(connection));
         }
     }
 
     @Test
-    void rollingBackBothChangesetsDropsTheColumns_andTheyCanBeAppliedAgain() throws Exception {
+    void rollingBackDropsTheColumn_andItCanBeAppliedAgain() throws Exception {
         try (Connection connection = freshDatabase(POSTGRES, "rollback")) {
             applyUpToChangeSet(connection, BOUNDARY_CHANGESET_ID);
-            insertUser(connection);
+            insertUser(connection, "12345678Z", 1, true);
             applyRest(connection);
 
             rollbackToChangeSet(connection, BOUNDARY_CHANGESET_ID);
 
-            assertFalse(columnExists(connection, "must_change_password"));
-            assertFalse(columnExists(connection, "password_changed_at"));
+            assertFalse(columnExists(connection));
 
             applyRest(connection);
 
-            assertTrue(columnExists(connection, "must_change_password"));
-            assertTrue(columnExists(connection, "password_changed_at"));
+            assertTrue(columnExists(connection));
         }
     }
 
-    private static UUID insertUser(Connection connection) throws SQLException {
+    private static UUID insertUser(Connection connection, String personalId, int number, boolean enabled)
+            throws SQLException {
         UUID id = UUID.randomUUID();
         try (PreparedStatement statement = connection.prepareStatement(
                 "INSERT INTO users (id, personal_id, number, password, full_name, email, enabled) "
-                        + "VALUES (?, '12345678Z', 1, 'hash', 'Seeded user', 'seeded@example.org', true)")) {
+                        + "VALUES (?, ?, ?, 'hash', 'Seeded user', ?, ?)")) {
             statement.setObject(1, id);
+            statement.setString(2, personalId);
+            statement.setInt(3, number);
+            statement.setString(4, "seeded" + number + "@example.org");
+            statement.setBoolean(5, enabled);
             statement.executeUpdate();
         }
         return id;
     }
 
-    private static boolean columnExists(Connection connection, String column) throws SQLException {
-        return isNullable(connection, column) != null;
+    private static Object disabledAtOf(Connection connection, UUID id) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT disabled_at FROM users WHERE id = ?")) {
+            statement.setObject(1, id);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                assertTrue(resultSet.next());
+                return resultSet.getObject("disabled_at");
+            }
+        }
     }
 
-    private static String isNullable(Connection connection, String column) throws SQLException {
+    private static boolean columnExists(Connection connection) throws SQLException {
+        return isNullable(connection) != null;
+    }
+
+    private static String isNullable(Connection connection) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT is_nullable FROM information_schema.columns WHERE table_name = 'users' AND column_name = ?")) {
-            statement.setString(1, column);
+                "SELECT is_nullable FROM information_schema.columns "
+                        + "WHERE table_name = 'users' AND column_name = 'disabled_at'")) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next() ? resultSet.getString(1) : null;
             }

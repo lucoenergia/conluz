@@ -24,6 +24,7 @@ public class UserEntityMapper extends BaseMapper<UserEntity, User> {
         user.setPlatformAdmin(entity.isPlatformAdmin());
         user.setMustChangePassword(entity.mustChangePassword());
         user.setPasswordChangedAt(entity.getPasswordChangedAt());
+        user.setDisabledAt(entity.getDisabledAt());
 
         return user;
     }

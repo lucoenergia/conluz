@@ -29,6 +29,8 @@ public class UserEntity {
     private Boolean mustChangePassword = false;
     @Column(name = "password_changed_at")
     private Instant passwordChangedAt;
+    @Column(name = "disabled_at")
+    private Instant disabledAt;
     @OneToMany(
             mappedBy = "user",
             cascade = CascadeType.ALL,
@@ -133,6 +135,14 @@ public class UserEntity {
         this.passwordChangedAt = passwordChangedAt;
     }
 
+    public Instant getDisabledAt() {
+        return disabledAt;
+    }
+
+    public void setDisabledAt(Instant disabledAt) {
+        this.disabledAt = disabledAt;
+    }
+
     public List<SupplyEntity> getSupplies() {
         return supplies;
     }
@@ -161,6 +171,7 @@ public class UserEntity {
         entity.setPlatformAdmin(user.isPlatformAdmin());
         entity.setMustChangePassword(user.mustChangePassword());
         entity.setPasswordChangedAt(user.getPasswordChangedAt());
+        entity.setDisabledAt(user.getDisabledAt());
         return entity;
     }
 
@@ -178,6 +189,7 @@ public class UserEntity {
         user.setPlatformAdmin(this.isPlatformAdmin());
         user.setMustChangePassword(this.mustChangePassword());
         user.setPasswordChangedAt(this.getPasswordChangedAt());
+        user.setDisabledAt(this.getDisabledAt());
 
         return user;
     }

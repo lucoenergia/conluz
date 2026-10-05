@@ -10,6 +10,8 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+
 @Transactional
 @Service
 public class DisableUserServiceImpl implements DisableUserService {
@@ -34,6 +36,8 @@ public class DisableUserServiceImpl implements DisableUserService {
                         throw new LastPlatformAdminException();
                     }
                 });
-        repository.disable(id);
+        // The JVM clock, not the injected Clock bean: token iat comes from the JVM clock, and the two are
+        // compared to reject every token issued before this disable.
+        repository.disable(id, Instant.now());
     }
 }

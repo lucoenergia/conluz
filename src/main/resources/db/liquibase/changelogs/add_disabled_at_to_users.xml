@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Records when a user was last disabled. Every token issued before that instant is rejected, also
+         after the user is enabled again, so a re-enabled user has to log in again.
+
+         The column is nullable and NULL for every existing row. No backfill: NULL means "the user has
+         never been disabled since this column exists", and it places no restriction on previously issued
+         tokens. A user disabled today is rejected anyway by the enabled flag; any instant written here
+         instead would be invented, and would log out every existing session. -->
+    <changeSet id="add_disabled_at_to_users" author="Víctor Cañizares">
+        <preConditions onFail="HALT">
+            <not>
+                <columnExists tableName="users" columnName="disabled_at"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="users">
+            <column name="disabled_at" type="TIMESTAMP WITH TIME ZONE"
+                    remarks="When the user was last disabled. Tokens issued before this instant are rejected, also after the user is enabled again. NULL means the user has not been disabled, and places no restriction on issued tokens.">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="users" columnName="disabled_at"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

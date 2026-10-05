@@ -19,6 +19,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
@@ -73,9 +74,25 @@ final class LiquibaseTestSupport {
                 .execute();
     }
 
+    /**
+     * Rolls back every applied changeset that comes after {@code changesetId}, however many were appended to the
+     * changelog since, leaving the database as it was right after that changeset.
+     */
+    static void rollbackToChangeSet(Connection connection, String changesetId) throws Exception {
+        rollbackCount(connection, appliedChangeSetCount(connection) - oneBasedCountUpTo(changesetId));
+    }
+
     static void seed(Connection connection, String sql) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             statement.execute(sql);
+        }
+    }
+
+    private static int appliedChangeSetCount(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM databasechangelog")) {
+            resultSet.next();
+            return resultSet.getInt(1);
         }
     }
 

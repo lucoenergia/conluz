@@ -42,6 +42,7 @@ class JwtAuthRepositoryTest {
     @Test
     void testGetAValidToken() {
         User user = UserMother.randomUser();
+        user.enable();
 
         mockJwtConfig();
 
@@ -54,6 +55,7 @@ class JwtAuthRepositoryTest {
     @Test
     void testTokenClaims() {
         User user = UserMother.randomUser();
+        user.enable();
 
         mockJwtConfig();
 
@@ -175,6 +177,7 @@ class JwtAuthRepositoryTest {
     @Test
     void isTokenValid_acceptsAnyToken_whenThePasswordWasNeverChanged() {
         User user = UserMother.randomUser();
+        user.enable();
         user.setPasswordChangedAt(null);
         mockJwtConfig();
 
@@ -186,6 +189,7 @@ class JwtAuthRepositoryTest {
     @Test
     void isTokenValid_acceptsATokenIssuedInTheSameSecondAsThePasswordChange() throws Exception {
         User user = UserMother.randomUser();
+        user.enable();
         mockJwtConfig();
         Token token = repository.getToken(user);
         Instant issuedAt = issuedAtOf(token);
@@ -201,6 +205,7 @@ class JwtAuthRepositoryTest {
     @Test
     void isTokenValid_rejectsATokenIssuedInASecondBeforeThePasswordChange() throws Exception {
         User user = UserMother.randomUser();
+        user.enable();
         mockJwtConfig();
         Token token = repository.getToken(user);
         Instant issuedAt = issuedAtOf(token);
@@ -215,12 +220,92 @@ class JwtAuthRepositoryTest {
     @Test
     void isTokenValid_acceptsATokenIssuedAfterThePasswordChange() throws Exception {
         User user = UserMother.randomUser();
+        user.enable();
         mockJwtConfig();
         Token token = repository.getToken(user);
 
         user.setPasswordChangedAt(issuedAtOf(token).minusSeconds(5));
 
         Assertions.assertTrue(repository.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_rejectsADisabledUser() {
+        User user = UserMother.randomUser();
+        user.enable();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+
+        user.setEnabled(false);
+
+        Assertions.assertFalse(repository.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_acceptsAnyToken_whenTheUserWasNeverDisabled() {
+        User user = UserMother.randomUser();
+        user.enable();
+        user.setDisabledAt(null);
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+
+        Assertions.assertTrue(repository.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_acceptsATokenIssuedInTheSameSecondAsTheLastDisable() throws Exception {
+        User user = UserMother.randomUser();
+        user.enable();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+        Instant issuedAt = issuedAtOf(token);
+
+        // iat only has second precision: a disable late in the same second must not reject the token
+        user.setDisabledAt(issuedAt.plusMillis(999));
+        Assertions.assertTrue(repository.isTokenValid(token, user));
+
+        user.setDisabledAt(issuedAt);
+        Assertions.assertTrue(repository.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_rejectsATokenIssuedInASecondBeforeTheLastDisable() throws Exception {
+        User user = UserMother.randomUser();
+        user.enable();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+        Instant issuedAt = issuedAtOf(token);
+
+        user.setDisabledAt(issuedAt.plusSeconds(1));
+        Assertions.assertFalse(repository.isTokenValid(token, user));
+
+        user.setDisabledAt(issuedAt.plusSeconds(1).plusMillis(500));
+        Assertions.assertFalse(repository.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_withBothTimestamps_acceptsOnlyATokenIssuedNoEarlierThanEither() throws Exception {
+        User user = UserMother.randomUser();
+        user.enable();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+        Instant issuedAt = issuedAtOf(token);
+
+        user.setPasswordChangedAt(issuedAt.minusSeconds(5));
+        user.setDisabledAt(issuedAt.minusSeconds(3));
+        Assertions.assertTrue(repository.isTokenValid(token, user));
+
+        user.setPasswordChangedAt(issuedAt.minusSeconds(5));
+        user.setDisabledAt(issuedAt.plusSeconds(1));
+        Assertions.assertFalse(repository.isTokenValid(token, user));
+
+        user.setPasswordChangedAt(issuedAt.plusSeconds(1));
+        user.setDisabledAt(issuedAt.minusSeconds(3));
+        Assertions.assertFalse(repository.isTokenValid(token, user));
+
+        user.setPasswordChangedAt(issuedAt.plusSeconds(2));
+        user.setDisabledAt(issuedAt.plusSeconds(1));
+        Assertions.assertFalse(repository.isTokenValid(token, user));
     }
 
     /**
