@@ -34,17 +34,27 @@ public class LogCapture implements AutoCloseable {
     }
 
     /**
+     * Every event logged, by any thread, at any level the logger configuration lets through. A copy, taken under
+     * the appender's lock, so that it can be read while other threads are still logging.
+     */
+    public List<ILoggingEvent> all() {
+        synchronized (appender) {
+            return List.copyOf(appender.list);
+        }
+    }
+
+    /**
      * Every event logged by the calling thread, at any level the logger configuration lets through.
      */
     public List<ILoggingEvent> allOfThisThread() {
         String thread = Thread.currentThread().getName();
-        return appender.list.stream()
+        return all().stream()
                 .filter(event -> event.getThreadName().equals(thread))
                 .toList();
     }
 
     public List<ILoggingEvent> warningsAndAbove() {
-        return appender.list.stream()
+        return all().stream()
                 .filter(event -> event.getLevel().isGreaterOrEqual(Level.WARN))
                 .toList();
     }
@@ -61,7 +71,9 @@ public class LogCapture implements AutoCloseable {
     }
 
     public void clear() {
-        appender.list.clear();
+        synchronized (appender) {
+            appender.list.clear();
+        }
     }
 
     @Override
