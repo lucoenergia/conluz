@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- One-time tokens (#361): secret, single-use, expiring tokens issued to a user for one purpose.
+         Only the SHA-256 hash of a token is stored, never the token itself.
+
+         A user's tokens are deleted with the user (ON DELETE CASCADE).
+
+         one_time_token_one_active_uq allows at most one token per user and purpose that is neither used
+         nor revoked. Issuing locks the user row before revoking the earlier tokens and inserting the new
+         one, so the index never fires on that path; it guards the invariant for any other writer.
+
+         one_time_token_finished_at_idx indexes the earliest of expiry, use and revocation (LEAST ignores
+         NULLs), the exact expression the cleanup deletes by. -->
+    <changeSet id="create_one_time_token_table" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot create one_time_token: the table already exists.">
+            <not>
+                <tableExists tableName="one_time_token"/>
+            </not>
+        </preConditions>
+        <createTable tableName="one_time_token"
+                     remarks="One-time tokens issued to a user for one purpose. Only the hash of each token is stored.">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="one_time_token_id_pk"/>
+            </column>
+            <column name="user_id" type="UUID" remarks="The user the token was issued to.">
+                <constraints nullable="false"
+                             foreignKeyName="one_time_token_user_id_fk"
+                             referencedTableName="users" referencedColumnNames="id"
+                             deleteCascade="true"/>
+            </column>
+            <column name="purpose" type="VARCHAR(32)" remarks="What the token was issued for.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token_hash" type="VARCHAR(64)" remarks="Lowercase hex SHA-256 hash of the token.">
+                <constraints nullable="false" unique="true" uniqueConstraintName="one_time_token_token_hash_uq"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" remarks="When the token was issued.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP WITH TIME ZONE" remarks="When the token stops being valid.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="used_at" type="TIMESTAMP WITH TIME ZONE" remarks="When the token was used. NULL if it has not been used.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="revoked_at" type="TIMESTAMP WITH TIME ZONE" remarks="When the token was revoked. NULL if it has not been revoked.">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+        <createIndex tableName="one_time_token" indexName="one_time_token_user_purpose_created_at_idx">
+            <column name="user_id"/>
+            <column name="purpose"/>
+            <column name="created_at"/>
+        </createIndex>
+        <sql>
+            CREATE UNIQUE INDEX one_time_token_one_active_uq ON one_time_token (user_id, purpose)
+            WHERE used_at IS NULL AND revoked_at IS NULL
+        </sql>
+        <sql>
+            CREATE INDEX one_time_token_finished_at_idx ON one_time_token (LEAST(expires_at, used_at, revoked_at))
+        </sql>
+        <rollback>
+            <dropTable tableName="one_time_token"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
