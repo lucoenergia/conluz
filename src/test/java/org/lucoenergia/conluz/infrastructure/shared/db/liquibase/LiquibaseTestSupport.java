@@ -59,6 +59,24 @@ final class LiquibaseTestSupport {
                 .execute();
     }
 
+    /**
+     * Like {@link #applyUpToChangeSet}, on a database where some changesets are already applied: Liquibase's
+     * update-count applies the next {@code count} changesets, not the changesets up to the {@code count}-th.
+     */
+    static void continueUpToChangeSet(Connection connection, String changesetId) throws Exception {
+        // Liquibase leaves the connection out of auto-commit, and update-count discards an open transaction: commit
+        // the rows seeded since the last command so they survive it
+        if (!connection.getAutoCommit()) {
+            connection.commit();
+        }
+        int count = oneBasedCountUpTo(changesetId) - appliedChangeSetCount(connection);
+        new CommandScope(UpdateCountCommandStep.COMMAND_NAME)
+                .addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, toLiquibaseDatabase(connection))
+                .addArgumentValue(UpdateCountCommandStep.CHANGELOG_FILE_ARG, CHANGELOG_PATH)
+                .addArgumentValue(UpdateCountCommandStep.COUNT_ARG, count)
+                .execute();
+    }
+
     static void applyRest(Connection connection) throws Exception {
         new CommandScope(UpdateCommandStep.COMMAND_NAME)
                 .addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, toLiquibaseDatabase(connection))

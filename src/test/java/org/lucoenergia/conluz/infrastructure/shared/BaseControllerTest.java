@@ -8,6 +8,8 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.config.init.InitBody;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -36,6 +38,8 @@ public class BaseControllerTest extends BaseIntegrationTest {
     private CreateMembershipService createMembershipService;
     @Autowired
     protected MutableClock clock;
+    @Autowired
+    private UserRepository userRepository;
 
     /**
      * The failed-attempt counters of login and password change live in memory and are shared by every test that
@@ -122,6 +126,42 @@ public class BaseControllerTest extends BaseIntegrationTest {
         createUserRepository.create(communityMember);
         createMembershipService.create(communityId, communityMember.getId(), CommunityRole.COMMUNITY_MEMBER);
         return loginUser(communityMember);
+    }
+
+    /**
+     * Creates an enabled {@code COMMUNITY_MEMBER} of the given community who must change their password (#342), and
+     * returns them with their raw password, ready for {@link #loginUser}. The other helpers create users who need
+     * not, so only the tests that ask for this one meet the refusal.
+     */
+    protected User createCommunityMemberWhoMustChangePassword(UUID communityId) {
+        return createUserWhoMustChangePassword(communityId, CommunityRole.COMMUNITY_MEMBER);
+    }
+
+    /**
+     * Like {@link #createCommunityMemberWhoMustChangePassword}, for a {@code COMMUNITY_ADMIN}.
+     */
+    protected User createCommunityAdminWhoMustChangePassword(UUID communityId) {
+        return createUserWhoMustChangePassword(communityId, CommunityRole.COMMUNITY_ADMIN);
+    }
+
+    /**
+     * Initialises the default platform admin, as {@link #loginAsDefaultPlatformAdmin} does, and flags them as having
+     * to change their password (#342). Log in with {@code DefaultUserAdminMother}'s credentials.
+     */
+    protected void initDefaultPlatformAdminWhoMustChangePassword() throws Exception {
+        init();
+        UserEntity admin = userRepository.findByPersonalId(PERSONAL_ID).orElseThrow();
+        admin.setMustChangePassword(true);
+        userRepository.saveAndFlush(admin);
+    }
+
+    private User createUserWhoMustChangePassword(UUID communityId, CommunityRole role) {
+        User user = UserMother.randomUser();
+        user.enable();
+        user.requirePasswordChange();
+        createUserRepository.create(user);
+        createMembershipService.create(communityId, user.getId(), role);
+        return user;
     }
 
     protected String loginUser(User user) throws Exception {

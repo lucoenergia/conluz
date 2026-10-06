@@ -126,8 +126,8 @@ public class User implements UserDetails {
     }
 
     /**
-     * Whether the user's current password was chosen by someone else and should be replaced by the user.
-     * It is informational only: nothing refuses a request because it is set (#330).
+     * Whether the user's current password was chosen by someone else and must be replaced by the user. While it is
+     * set, every request but reading the current user, changing the password and logging out is refused (#342).
      */
     public boolean mustChangePassword() {
         return mustChangePassword;

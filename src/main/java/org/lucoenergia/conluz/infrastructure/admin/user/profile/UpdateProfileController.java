@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.PasswordChangeRequiredErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -73,6 +74,7 @@ public class UpdateProfileController {
     })
     @BadRequestErrorResponse
     @UnauthorizedErrorResponse
+    @PasswordChangeRequiredErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("isAuthenticated()")
     public UserResponse updateProfile(@AuthenticationPrincipal User currentUser,

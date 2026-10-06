@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyRest;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyUpToChangeSet;
+import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.continueUpToChangeSet;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.freshDatabase;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.rollbackToChangeSet;
 
@@ -27,6 +28,8 @@ class UsersPasswordColumnsMigrationIntegrationTest {
 
     /** The last changeset before the two under test. */
     private static final String BOUNDARY_CHANGESET_ID = "add_unique_constraint_to_users_personal_id";
+    /** The last of the two under test. Later changesets flag every existing user (#342). */
+    private static final String LAST_CHANGESET_UNDER_TEST_ID = "add_password_changed_at_to_users";
 
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16")
             .withUsername("luz")
@@ -43,7 +46,7 @@ class UsersPasswordColumnsMigrationIntegrationTest {
             applyUpToChangeSet(connection, BOUNDARY_CHANGESET_ID);
             UUID existing = insertUser(connection);
 
-            applyRest(connection);
+            continueUpToChangeSet(connection, LAST_CHANGESET_UNDER_TEST_ID);
 
             try (PreparedStatement statement = connection.prepareStatement(
                     "SELECT must_change_password, password_changed_at FROM users WHERE id = ?")) {

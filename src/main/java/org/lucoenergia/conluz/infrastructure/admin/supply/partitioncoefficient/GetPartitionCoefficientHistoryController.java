@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.P
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PartitionCoefficientCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.PasswordChangeRequiredErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
@@ -73,6 +74,7 @@ public class GetPartitionCoefficientHistoryController {
     })
     @BadRequestErrorResponse
     @UnauthorizedErrorResponse
+    @PasswordChangeRequiredErrorResponse
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     // Same rule as GET /supplies/{supplyId}: a caller who cannot see the supply gets 404, never 403,

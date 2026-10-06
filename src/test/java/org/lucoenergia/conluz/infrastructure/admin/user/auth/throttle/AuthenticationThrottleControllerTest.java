@@ -199,6 +199,51 @@ class AuthenticationThrottleControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void unchangedPasswords_areNotCounted_soTheFirstWrongCurrentPasswordAfterThemIsTheFirstFailure()
+            throws Exception {
+        User user = createEnabledUser();
+        String token = token(user, OTHER_IP);
+        for (int i = 0; i < 6; i++) {
+            expectUnchanged(changePassword(token, user.getPassword(), user.getPassword(), IP));
+        }
+
+        for (int i = 0; i < 5; i++) {
+            changePassword(token, WRONG_PASSWORD, NEW_PASSWORD, IP)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors[0].code").value("USER_CURRENT_PASSWORD_INCORRECT"));
+        }
+
+        expectThrottled(changePassword(token, user.getPassword(), NEW_PASSWORD, IP), 900);
+    }
+
+    @Test
+    void anUnchangedPassword_doesNotResetTheAccountCounter() throws Exception {
+        User user = createEnabledUser();
+        String token = token(user, OTHER_IP);
+        for (int i = 0; i < 4; i++) {
+            changePassword(token, WRONG_PASSWORD, NEW_PASSWORD, IP).andExpect(status().isBadRequest());
+        }
+
+        expectUnchanged(changePassword(token, user.getPassword(), user.getPassword(), IP));
+        changePassword(token, WRONG_PASSWORD, NEW_PASSWORD, IP).andExpect(status().isBadRequest());
+
+        expectThrottled(changePassword(token, user.getPassword(), NEW_PASSWORD, IP), 900);
+    }
+
+    @Test
+    void aWrongCurrentPassword_withTheSameValueAsTheNewOne_isReportedAsWrong_andCounted() throws Exception {
+        User user = createEnabledUser();
+        String token = token(user, OTHER_IP);
+        for (int i = 0; i < 5; i++) {
+            changePassword(token, WRONG_PASSWORD, WRONG_PASSWORD, IP)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors[0].code").value("USER_CURRENT_PASSWORD_INCORRECT"));
+        }
+
+        expectThrottled(changePassword(token, user.getPassword(), NEW_PASSWORD, IP), 900);
+    }
+
+    @Test
     void aDisabledAccount_checksThePassword_andIsRejectedWithTheBadCredentialsResponse() throws Exception {
         User enabled = createEnabledUser();
         User disabled = createDisabledUser();
@@ -309,6 +354,12 @@ class AuthenticationThrottleControllerTest extends BaseControllerTest {
     /**
      * The standard error body with the dedicated code, and the wait both in the header and in the body.
      */
+    private static void expectUnchanged(ResultActions result) throws Exception {
+        result.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_UNCHANGED"));
+    }
+
     private static ResultActions expectThrottled(ResultActions result, long retryAfterSeconds) throws Exception {
         return result.andExpect(status().isTooManyRequests())
                 .andExpect(header().string(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfterSeconds)))

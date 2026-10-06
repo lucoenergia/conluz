@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.create.DefaultAdminUserAlreadyInitializedException;
 import org.lucoenergia.conluz.domain.admin.user.password.IncorrectCurrentPasswordException;
 import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyViolationException;
+import org.lucoenergia.conluz.domain.admin.user.password.PasswordUnchangedException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
 import org.lucoenergia.conluz.infrastructure.admin.user.password.PasswordPolicyMessages;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
@@ -107,6 +108,21 @@ public class UserExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.buildWithoutLogging(message, RestErrorCode.USER_CURRENT_PASSWORD_INCORRECT, null,
+                HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Not logged: the caller's current password was right, and the refusal is an ordinary input error.
+     */
+    @ExceptionHandler(PasswordUnchangedException.class)
+    public ResponseEntity<RestError> handleException(PasswordUnchangedException e) {
+
+        String message = messageSource.getMessage(
+                "error.user.password.unchanged",
+                List.of().toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.buildWithoutLogging(message, RestErrorCode.USER_PASSWORD_UNCHANGED, null,
                 HttpStatus.BAD_REQUEST);
     }
 }

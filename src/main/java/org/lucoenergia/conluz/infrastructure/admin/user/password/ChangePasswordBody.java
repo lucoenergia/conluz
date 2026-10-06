@@ -18,7 +18,8 @@ public class ChangePasswordBody {
             The new password. Between 15 and 64 characters, counting each Unicode code point as one, and \
             no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and \
             non-ASCII letters; there are no composition rules, and the value is never trimmed or \
-            transformed. It may be equal to the current password.""")
+            transformed. It must differ from the current password; the comparison is exact, so a value that \
+            differs only by case or by leading or trailing spaces is a different password.""")
     private String newPassword;
 
     public String getCurrentPassword() {
