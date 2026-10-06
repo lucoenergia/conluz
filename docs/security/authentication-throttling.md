@@ -34,7 +34,8 @@ is only ever throttled for a bounded time, and it is released on its own.
   - login rejected for bad credentials (wrong password or unknown `personalId`);
   - login of a **disabled** account (the password is still checked, see below);
   - a wrong current password on the change endpoint.
-- **What does not count:** a new password that breaks the password policy (the current one was right), an
+- **What does not count:** a new password equal to the current one (`USER_PASSWORD_UNCHANGED`) or that breaks
+  the password policy (in both cases the current one was right, so the counter is not reset either), an
   unexpected error such as the database being unavailable, and refused (429) attempts.
 - **Resets.** A successful login or password change resets that **account's** counter. Nothing resets the
   **address** counter: it only ends with its window.
@@ -60,7 +61,7 @@ flowchart TD
     L -- no --> N
     M --> N([401 or 400, unchanged bodies])
     J -- success --> O[succeeded: reset the account counter<br/>free both slots] --> P([200 / 204])
-    J -- "anything else<br/>(policy violation, unexpected error)" --> Q[close: free both slots, count nothing] --> S([Response for that error])
+    J -- "anything else<br/>(unchanged password, policy violation,<br/>unexpected error)" --> Q[close: free both slots, count nothing] --> S([Response for that error])
 ```
 
 Every admitted attempt holds its slots until it is **settled exactly once**, as `failed`, `succeeded` or

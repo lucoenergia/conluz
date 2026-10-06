@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.password.ChangePasswordRepository;
 import org.lucoenergia.conluz.domain.admin.user.password.ChangePasswordService;
 import org.lucoenergia.conluz.domain.admin.user.password.IncorrectCurrentPasswordException;
+import org.lucoenergia.conluz.domain.admin.user.password.PasswordUnchangedException;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +51,13 @@ public class ChangePasswordServiceImpl implements ChangePasswordService {
             if (!userPasswordEncoder.matches(currentPassword, user.getPassword())) {
                 attempt.failed();
                 throw new IncorrectCurrentPasswordException();
+            }
+
+            // Whoever chose the current password still knows it, so setting it again changes nothing. Compared
+            // exactly, with no trimming or normalisation. The current password was right, so the attempt neither
+            // counts as a failure nor resets the counter
+            if (currentPassword.equals(newPassword)) {
+                throw new PasswordUnchangedException();
             }
 
             // A new password that breaks the policy is refused here: the current password was right, so the

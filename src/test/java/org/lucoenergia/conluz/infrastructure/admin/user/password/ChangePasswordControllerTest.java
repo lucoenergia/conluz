@@ -2,6 +2,8 @@ package org.lucoenergia.conluz.infrastructure.admin.user.password;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
@@ -36,6 +38,7 @@ class ChangePasswordControllerTest extends BaseControllerTest {
     private static final String URL = "/api/v1/users/current/password";
     private static final String CURRENT_USER_URL = "/api/v1/users/current";
     private static final String NEW_PASSWORD = "a brand new password for this user";
+    private static final String KNOWN_PASSWORD = "Correct Horse Battery Staple";
 
     @Autowired
     private CreateUserRepository createUserRepository;
@@ -196,13 +199,43 @@ class ChangePasswordControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void newPasswordEqualToTheCurrentOne_isAccepted() throws Exception {
+    void newPasswordEqualToTheCurrentOne_isRefusedAsUnchanged_andChangesNothing() throws Exception {
         User user = createFlaggedUser();
         String token = login(user.getPersonalId(), user.getPassword());
+        String storedHash = getUserRepository.findById(UserId.of(user.getId())).orElseThrow().getPassword();
 
-        changePassword(token, user.getPassword(), user.getPassword()).andExpect(status().isNoContent());
+        changePassword(token, user.getPassword(), user.getPassword())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_UNCHANGED"))
+                .andExpect(jsonPath("$.errors[0].message").value("La nueva contraseña debe ser distinta de la actual."));
 
-        String newToken = login(user.getPersonalId(), user.getPassword());
+        User stored = getUserRepository.findById(UserId.of(user.getId())).orElseThrow();
+        Assertions.assertEquals(storedHash, stored.getPassword());
+        Assertions.assertNull(stored.getPasswordChangedAt());
+        Assertions.assertTrue(stored.mustChangePassword());
+        getCurrentUser(token)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mustChangePassword").value(true));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            " " + KNOWN_PASSWORD,
+            KNOWN_PASSWORD + " ",
+            "cORRECT hORSE bATTERY sTAPLE",
+            "correct horse battery staple"
+    })
+    void newPasswordDifferingOnlyBySpacesOrCase_isNotRefusedAsUnchanged(String newPassword) throws Exception {
+        User user = UserMother.randomUser();
+        user.setPassword(KNOWN_PASSWORD);
+        user.enable();
+        user.requirePasswordChange();
+        createUserRepository.create(user);
+        String token = login(user.getPersonalId(), KNOWN_PASSWORD);
+
+        changePassword(token, KNOWN_PASSWORD, newPassword).andExpect(status().isNoContent());
+
+        String newToken = login(user.getPersonalId(), newPassword);
         getCurrentUser(newToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mustChangePassword").value(false));

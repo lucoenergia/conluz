@@ -41,7 +41,7 @@
             "type" : "string"
           },
           "newPassword" : {
-            "description" : "The new password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. It may be equal to the current password.",
+            "description" : "The new password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. It must differ from the current password; the comparison is exact, so a value that differs only by case or by leading or trailing spaces is a different password.",
             "minLength" : 15,
             "type" : "string"
           }
@@ -1855,6 +1855,7 @@
               "USER_ALREADY_EXISTS",
               "USER_PASSWORD_POLICY_VIOLATION",
               "USER_CURRENT_PASSWORD_INCORRECT",
+              "USER_PASSWORD_UNCHANGED",
               "AUTH_TOO_MANY_FAILED_ATTEMPTS",
               "MEMBERSHIP_ALREADY_EXISTS",
               "COMMUNITY_ALREADY_EXISTS",
@@ -12989,7 +12990,7 @@
     },
     "/api/v1/users/current/password" : {
       "put" : {
-        "description" : "This endpoint lets the authenticated user replace their own password. It always acts on the\ncaller, so it cannot be used to change anybody else's password.\n\nThe current password must be supplied and must match. The new password must be between 15 and\n64 characters long, counting each Unicode code point as one, and no more than 72 bytes once\nUTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no\ncomposition rules, and the value is never trimmed or transformed. The new password may be equal\nto the current one.\n\nOn success the server answers 204, clears the \"must change password\" flag and ends every\nsession opened with the previous password: every token issued before the change, including the\none used for this request, is rejected with 401 from then on, and the access cookie is removed.\nThe client must log in again with the new password.\n\nA wrong current password is answered 400 with the `USER_CURRENT_PASSWORD_INCORRECT` code, never\n401, and changes nothing. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:\n`TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.\n\nWrong current passwords count together with failed logins on the same account. After 5 failures\non the account, or 20 from the same client address, within 15 minutes, further changes are\nanswered 429 with a Retry-After header, without checking the current password and without\naffecting the caller's token, until the 15 minutes that started with the first failure have\npassed.\n\n**Required: any authenticated user (changes their own password).**",
+        "description" : "This endpoint lets the authenticated user replace their own password. It always acts on the\ncaller, so it cannot be used to change anybody else's password.\n\nThe current password must be supplied and must match. The new password must be between 15 and\n64 characters long, counting each Unicode code point as one, and no more than 72 bytes once\nUTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no\ncomposition rules, and the value is never trimmed or transformed. The new password must differ\nfrom the current one; the comparison is exact, so a value that differs only by case or by leading\nor trailing spaces is a different password.\n\nOn success the server answers 204, clears the \"must change password\" flag and ends every\nsession opened with the previous password: every token issued before the change, including the\none used for this request, is rejected with 401 from then on, and the access cookie is removed.\nThe client must log in again with the new password.\n\nA wrong current password is answered 400 with the `USER_CURRENT_PASSWORD_INCORRECT` code, never\n401, and changes nothing. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:\n`TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`. A correct current password with a new password\nexactly equal to it is answered 400 with the `USER_PASSWORD_UNCHANGED` code: nothing is changed,\nthe caller's token stays valid and the \"must change password\" flag stays as it was. A wrong\ncurrent password is reported as such, whatever the new password.\n\nNeither an unchanged password nor a policy violation counts as a failed attempt. Wrong current\npasswords count together with failed logins on the same account. After 5 failures\non the account, or 20 from the same client address, within 15 minutes, further changes are\nanswered 429 with a Retry-After header, without checking the current password and without\naffecting the caller's token, until the 15 minutes that started with the first failure have\npassed.\n\n**Required: any authenticated user (changes their own password).**",
         "operationId" : "changePassword",
         "requestBody" : {
           "content" : {
@@ -13042,6 +13043,22 @@
                       "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
                     }
+                  },
+                  "Password unchanged" : {
+                    "description" : "Password unchanged",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_UNCHANGED",
+                          "message" : "The new password must be different from the current one.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "The new password must be different from the current one.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
                   }
                 },
                 "schema" : {
@@ -13049,7 +13066,7 @@
                 }
               }
             },
-            "description" : "The body is invalid, the current password is incorrect (`USER_CURRENT_PASSWORD_INCORRECT`), or the new password breaks the password policy (`USER_PASSWORD_POLICY_VIOLATION`, with the failed rule in `params.rule`)."
+            "description" : "The body is invalid, the current password is incorrect (`USER_CURRENT_PASSWORD_INCORRECT`), the new password is equal to the current one (`USER_PASSWORD_UNCHANGED`), or the new password breaks the password policy (`USER_PASSWORD_POLICY_VIOLATION`, with the failed rule in `params.rule`)."
           },
           "401" : {
             "content" : {

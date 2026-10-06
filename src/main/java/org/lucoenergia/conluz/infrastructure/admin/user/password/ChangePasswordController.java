@@ -64,8 +64,9 @@ public class ChangePasswordController {
                 The current password must be supplied and must match. The new password must be between 15 and
                 64 characters long, counting each Unicode code point as one, and no more than 72 bytes once
                 UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no
-                composition rules, and the value is never trimmed or transformed. The new password may be equal
-                to the current one.
+                composition rules, and the value is never trimmed or transformed. The new password must differ
+                from the current one; the comparison is exact, so a value that differs only by case or by leading
+                or trailing spaces is a different password.
 
                 On success the server answers 204, clears the "must change password" flag and ends every
                 session opened with the previous password: every token issued before the change, including the
@@ -75,9 +76,13 @@ public class ChangePasswordController {
                 A wrong current password is answered 400 with the `USER_CURRENT_PASSWORD_INCORRECT` code, never
                 401, and changes nothing. A new password that breaks the policy is answered 400 with the
                 `USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:
-                `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.
+                `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`. A correct current password with a new password
+                exactly equal to it is answered 400 with the `USER_PASSWORD_UNCHANGED` code: nothing is changed,
+                the caller's token stays valid and the "must change password" flag stays as it was. A wrong
+                current password is reported as such, whatever the new password.
 
-                Wrong current passwords count together with failed logins on the same account. After 5 failures
+                Neither an unchanged password nor a policy violation counts as a failed attempt. Wrong current
+                passwords count together with failed logins on the same account. After 5 failures
                 on the account, or 20 from the same client address, within 15 minutes, further changes are
                 answered 429 with a Retry-After header, without checking the current password and without
                 affecting the caller's token, until the 15 minutes that started with the first failure have
@@ -97,7 +102,8 @@ public class ChangePasswordController {
                     responseCode = "400",
                     description = """
                             The body is invalid, the current password is incorrect \
-                            (`USER_CURRENT_PASSWORD_INCORRECT`), or the new password breaks the password policy \
+                            (`USER_CURRENT_PASSWORD_INCORRECT`), the new password is equal to the current one \
+                            (`USER_PASSWORD_UNCHANGED`), or the new password breaks the password policy \
                             (`USER_PASSWORD_POLICY_VIOLATION`, with the failed rule in `params.rule`).""",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -115,6 +121,24 @@ public class ChangePasswordController {
                                                          {
                                                            "message": "The current password is incorrect.",
                                                            "code": "USER_CURRENT_PASSWORD_INCORRECT",
+                                                           "params": null
+                                                         }
+                                                       ]
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Password unchanged",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2026-10-04T10:10:25.534035352+02:00",
+                                                       "status": 400,
+                                                       "message": "The new password must be different from the current one.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                                       "errors": [
+                                                         {
+                                                           "message": "The new password must be different from the current one.",
+                                                           "code": "USER_PASSWORD_UNCHANGED",
                                                            "params": null
                                                          }
                                                        ]

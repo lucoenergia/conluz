@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -123,6 +124,37 @@ class ChangePasswordServiceTest {
         verifyNoInteractions(authService);
         // The current password was right: neither a failure nor a success
         verify(attempt, never()).failed();
+        verify(attempt, never()).succeeded();
+        verify(attempt).close();
+    }
+
+    @Test
+    void aNewPasswordEqualToTheCurrentOne_isRefused_changesNothing_andRevokesNothing() {
+        UserId userId = UserId.of(user.getId());
+        // An equal value, not the same instance
+        String samePassword = new String(CURRENT_PASSWORD.toCharArray());
+        clearInvocations(bcrypt);
+
+        assertThrows(PasswordUnchangedException.class,
+                () -> service.changePassword(userId, CURRENT_PASSWORD, samePassword, usedToken, CLIENT_IP));
+
+        verify(bcrypt, never()).encode(any());
+        verifyNoInteractions(changePasswordRepository, authService);
+        // The current password was right: neither a failure nor a success
+        verify(attempt, never()).failed();
+        verify(attempt, never()).succeeded();
+        verify(attempt).close();
+    }
+
+    @Test
+    void aWrongCurrentPassword_equalToTheNewOne_isReportedAsWrong_andCountedAsAFailure() {
+        UserId userId = UserId.of(user.getId());
+
+        assertThrows(IncorrectCurrentPasswordException.class, () -> service.changePassword(userId,
+                "not the current password", "not the current password", usedToken, CLIENT_IP));
+
+        verifyNoInteractions(changePasswordRepository, authService);
+        verify(attempt).failed();
         verify(attempt, never()).succeeded();
         verify(attempt).close();
     }
