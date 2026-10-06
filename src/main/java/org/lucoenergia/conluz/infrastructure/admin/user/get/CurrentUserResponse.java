@@ -46,8 +46,10 @@ public class CurrentUserResponse {
     private final String phoneNumber;
     private final Boolean enabled;
     private final Boolean isPlatformAdmin;
-    @Schema(description = "Whether the caller's password was chosen by someone else and should be changed "
-            + "through PUT /api/v1/users/current/password. Informational: no request is refused because of it.")
+    @Schema(description = "Whether the caller's password was chosen by someone else and must be changed "
+            + "through PUT /api/v1/users/current/password. While it is true, every request other than reading the "
+            + "current user (GET /api/v1/users/current), changing the password and logging out "
+            + "(POST /api/v1/logout) is refused with 403 and the `USER_PASSWORD_CHANGE_REQUIRED` code.")
     private final Boolean mustChangePassword;
     private final Map<String, String> memberships;
 

@@ -114,19 +114,24 @@ class PartitionCoefficientApiDocsTest extends BaseControllerTest {
 
     /**
      * The history is guarded by canReadSupply, which returns 200, throws 404, or -- for an anonymous
-     * caller -- yields 401. It has no reachable 403, and a documented status a caller can never
-     * receive is a false promise: a client would write dead handling for it. 404, by contrast, is
-     * reachable and was previously undocumented.
+     * caller -- yields 401. Its authorization has no reachable 403, and a documented status a caller can
+     * never receive is a false promise: a client would write dead handling for it. 404, by contrast, is
+     * reachable and was previously undocumented. The only reachable 403 is the refusal of a user who must
+     * change their password (#342), so that is the only one documented.
      */
     @Test
-    void theHistoryDocumentsNotFoundAndNoForbidden() throws Exception {
+    void theHistoryDocumentsNotFound_andOnlyThePasswordChangeRefusalAsForbidden() throws Exception {
         JsonNode responses = apiDocs().path("paths")
                 .path("/api/v1/supplies/{supplyId}/partition-coefficients")
                 .path("get").path("responses");
 
         assertTrue(responses.has("404"), "404 is reachable and must be documented: " + responses);
         assertTrue(responses.has("401"), "401 is reachable and must be documented: " + responses);
-        assertFalse(responses.has("403"), "403 is unreachable under canReadSupply: " + responses);
+        JsonNode forbiddenExamples = responses.path("403").path("content").path("application/json").path("examples");
+        assertTrue(forbiddenExamples.has("Password change required"),
+                "the password change refusal is reachable and must be documented: " + responses);
+        assertEquals(1, forbiddenExamples.size(),
+                "no other 403 is reachable under canReadSupply: " + forbiddenExamples);
     }
 
     @Test

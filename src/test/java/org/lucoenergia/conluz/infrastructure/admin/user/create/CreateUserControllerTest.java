@@ -293,7 +293,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void createdUser_isFlaggedAsHavingToChangeThePassword_andKeepsFullAccess() throws Exception {
+    void createdUser_isFlaggedAsHavingToChangeThePassword_andIsRefusedUntilTheyChangeIt() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         String authHeader = loginAsDefaultPlatformAdmin();
         String body = objectMapper.writeValueAsString(Map.of(
@@ -312,7 +312,7 @@ class CreateUserControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString()).get("token").asText();
 
-        // The flag is informational only: ordinary endpoints answer exactly as for any other user
+        // Until the password is changed, only the current user can be read (#342)
         mockMvc.perform(get(URL + "/current").header(HttpHeaders.AUTHORIZATION, userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mustChangePassword").value(true));
@@ -320,10 +320,12 @@ class CreateUserControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("email", "john.doe@email.com"))))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_CHANGE_REQUIRED"));
         mockMvc.perform(get("/api/v1/communities/" + community.getId())
                         .header(HttpHeaders.AUTHORIZATION, userToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_CHANGE_REQUIRED"));
     }
 
     private ResultActions createUser(String authHeader, String body)

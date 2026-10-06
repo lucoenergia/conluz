@@ -79,6 +79,23 @@ How this is enforced (centralized in the guard — no controller boilerplate):
 - Controllers reference the guard directly in `@PreAuthorize` (e.g. `@PreAuthorize("@communityAccessGuard.canReadSupply(#id)")`); they add **no** not-found/forbidden boilerplate. A `*NotFoundException` thrown during `@PreAuthorize` evaluation is mapped to 404 by the global `@RestControllerAdvice` handlers; a `false` result is mapped to 403 by `ConluzAccessDeniedHandler` (or 401 for anonymous callers).
 - This is why an object-scoped denial must NEVER be left to fall through to a 403 when the caller cannot see the object — the guard decides 404 vs 403. Throwing a domain `*NotFoundException` from the guard does not violate the "only `ConluzAccessDeniedHandler` references `AccessDeniedException`" rule (it is a different exception type).
 
+### Password change required (403)
+
+A user whose `mustChangePassword` flag is set (their password was chosen by someone else) is refused **every**
+authenticated request with 403 and the `USER_PASSWORD_CHANGE_REQUIRED` code, except reading the current user
+(`GET /api/v1/users/current`), changing the password (`PUT /api/v1/users/current/password`) and logging out
+(`POST /api/v1/logout`). Those three are declared once, in `PasswordChangeAllowedEndpoints`.
+
+- The refusal is not an access rule: it depends on the caller's account state, not on the resource or the action.
+  It is answered by `PasswordChangeRequiredFilter`, right after the token has authenticated the caller and before
+  any `@PreAuthorize`, so it takes precedence over a 404 or a guard's 403, and it reads the flag from the principal
+  already loaded, without a query. It is not logged.
+- Public endpoints (`PublicEndpoints`) carry no principal and are unaffected.
+- Every endpoint the filter can refuse documents the code: with `@ForbiddenErrorResponse` when its authorization can
+  also answer 403, or with `@PasswordChangeRequiredErrorResponse` alone when it cannot (an `isAuthenticated()`
+  endpoint, or a guard that answers 404 instead). The three allowed ones declare neither.
+  `ForbiddenResponseDeclarationArchTest` enforces this against `PasswordChangeAllowedEndpoints`.
+
 ## Policies and guards
 
 The rules are written once, in **pure policies** under `domain/admin/community/access/policy`, and
