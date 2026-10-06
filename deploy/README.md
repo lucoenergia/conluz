@@ -22,6 +22,8 @@ Provide these via a local `.env` (see `.env.example` for the full annotated list
 - **InfluxDB:** `INFLUXDB_ADMIN_USER`, `INFLUXDB_ADMIN_PASSWORD`, `INFLUXDB_CONLUZ_USER`,
   `INFLUXDB_CONLUZ_USER_PASSWORD`, `PATH_TO_INFLUXDB_DATA`, `SPRING_INFLUXDB_URL`,
   `SPRING_INFLUXDB_DATABASE`, `SPRING_INFLUXDB_USERNAME`, `SPRING_INFLUXDB_PASSWORD`
+- **Email (SMTP):** `CONLUZ_MAIL_ENABLED`, `CONLUZ_MAIL_HOST`, `CONLUZ_MAIL_PORT`, `CONLUZ_MAIL_USERNAME`,
+  `CONLUZ_MAIL_PASSWORD`, `CONLUZ_MAIL_FROM_ADDRESS`, `CONLUZ_MAIL_FROM_NAME`, `CONLUZ_MAIL_STARTTLS`
 
 ### `CONLUZ_TRUSTED_PROXIES`
 
@@ -36,6 +38,14 @@ address, and the per-address limit throttles all users together. Instead, put th
 Docker network whose subnet is fixed in the compose file, and match that subnet with a range regex, for
 example `172\.20\.0\.\d{1,3}` (in `.env`, wrap it in single quotes so the backslashes are kept). The
 example `.env.example` leaves the value empty.
+
+### Email sending
+
+Sending is off unless `CONLUZ_MAIL_ENABLED=true`: no SMTP connection is opened, and each email is only noted in
+the log by its kind. Switched on, the app needs at least `CONLUZ_MAIL_HOST` and `CONLUZ_MAIL_FROM_ADDRESS`;
+if one is missing it still starts, logs one warning, and every email fails. `CONLUZ_MAIL_STARTTLS` defaults to
+`true` and then refuses a server that does not offer STARTTLS. Leave `CONLUZ_MAIL_USERNAME` empty for a server
+that needs no authentication. A failed email is logged and never retried.
 
 ## Bring up one instance
 
