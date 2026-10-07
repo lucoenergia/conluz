@@ -27,9 +27,10 @@ public class OneTimeTokenCleanupTask {
     }
 
     /**
-     * Runs every hour, at half past, away from the blacklisted token cleanup on the hour.
+     * Runs once a day, at 03:30, on the half hour so it does not start together with the other nightly jobs. Once a
+     * day is enough for a retention measured in days: a finished token is at most deleted a day late.
      */
-    @Scheduled(cron = "0 30 * * * *")
+    @Scheduled(cron = "0 30 3 * * *")
     public void cleanup() {
         int deleted = repository.deleteFinishedBefore(clock.instant().minus(OneTimeTokenRetention.PERIOD));
         LOGGER.info("Deleted {} finished one-time tokens", deleted);
