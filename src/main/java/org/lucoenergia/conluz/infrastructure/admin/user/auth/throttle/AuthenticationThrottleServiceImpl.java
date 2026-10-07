@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.LoginAttempt;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.PasswordChangeAttempt;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.PasswordResetAttempt;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.TooManyFailedAttemptsException;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class AuthenticationThrottleServiceImpl implements AuthenticationThrottle
     @Override
     public LoginAttempt startLogin(String personalId, String clientIp) {
         String account = accountOf(personalId);
-        String maskedAccount = mask(account);
+        String maskedAccount = UserPersonalId.mask(account);
         return new LoginAttemptImpl(reserve(account, "account=" + maskedAccount, clientIp), maskedAccount, clientIp);
     }
 
@@ -43,6 +44,28 @@ public class AuthenticationThrottleServiceImpl implements AuthenticationThrottle
     public PasswordChangeAttempt startPasswordChange(User user, String clientIp) {
         ReservedSlot slot = reserve(accountOf(user.getPersonalId()), "user=" + user.getId(), clientIp);
         return new PasswordChangeAttemptImpl(slot, user.getId(), clientIp);
+    }
+
+    @Override
+    public void countPasswordResetRequest(String clientIp) {
+        reserveClientIp(clientIp).failed();
+    }
+
+    @Override
+    public PasswordResetAttempt startPasswordReset(String clientIp) {
+        return new PasswordResetAttemptImpl(reserveClientIp(clientIp), accountCounter, clientIp);
+    }
+
+    /**
+     * Reserves a slot on the client address counter only.
+     */
+    private ReservedSlot reserveClientIp(String clientIp) {
+        Instant now = clock.instant();
+        OptionalLong clientIpWait = clientIpCounter.tryReserve(clientIp, now);
+        if (clientIpWait.isPresent()) {
+            throw new TooManyFailedAttemptsException(clientIpWait.getAsLong());
+        }
+        return new ReservedSlot(accountCounter, clientIpCounter, clock, null, null, clientIp);
     }
 
     /**
@@ -69,20 +92,8 @@ public class AuthenticationThrottleServiceImpl implements AuthenticationThrottle
      * The same normalisation the user lookup applies, so typing variants of one personal ID are one account, and
      * an unknown personal ID is counted exactly like an existing one.
      */
-    private static String accountOf(String personalId) {
+    static String accountOf(String personalId) {
         String normalized = UserPersonalId.normalize(personalId);
         return normalized == null ? "" : normalized;
-    }
-
-    /**
-     * {@code ***} followed by the last three characters, or {@code ***} alone when there are no more than three, so
-     * that the full personal ID is never logged. Anything but an ASCII letter or digit is replaced, because the
-     * value comes from the client.
-     */
-    static String mask(String account) {
-        if (account.length() <= 3) {
-            return "***";
-        }
-        return "***" + account.substring(account.length() - 3).replaceAll("[^A-Za-z0-9]", "?");
     }
 }

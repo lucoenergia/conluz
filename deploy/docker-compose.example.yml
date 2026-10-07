@@ -63,6 +63,8 @@ services:
       - CONLUZ_MAIL_FROM_ADDRESS=${CONLUZ_MAIL_FROM_ADDRESS:-}
       - CONLUZ_MAIL_FROM_NAME=${CONLUZ_MAIL_FROM_NAME:-}
       - CONLUZ_MAIL_STARTTLS=${CONLUZ_MAIL_STARTTLS:-true}
+      # Public address of the web client, linked from password reset emails (see .env.example)
+      - CONLUZ_PUBLIC_WEB_URL=${CONLUZ_PUBLIC_WEB_URL:-}
       - SPRING_DATASOURCE_URL
       - SPRING_INFLUXDB_URL
       - SPRING_INFLUXDB_USERNAME

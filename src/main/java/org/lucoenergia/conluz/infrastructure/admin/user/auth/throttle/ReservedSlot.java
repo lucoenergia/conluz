@@ -9,7 +9,8 @@ import java.time.Instant;
 /**
  * One admitted attempt's reservation on the account and client address counters, settled exactly once: as a
  * failure, as a success, or released. Settling it again has no effect, so closing an attempt after its outcome has
- * been recorded never frees a slot that another attempt holds.
+ * been recorded never frees a slot that another attempt holds. A reservation without an account holds a slot on the
+ * client address counter only, and never touches the account counter.
  */
 final class ReservedSlot {
 
@@ -25,7 +26,9 @@ final class ReservedSlot {
     private boolean settled;
 
     /**
-     * @param accountLabel how the account is named in the log: the masked personal ID, or the user ID
+     * @param account      the account's key, or {@code null} for a reservation on the client address counter only
+     * @param accountLabel how the account is named in the log: the masked personal ID, or the user ID; unused
+     *                     without an account
      */
     ReservedSlot(FailedAttemptCounter accountCounter, FailedAttemptCounter clientIpCounter, Clock clock,
                  String account, String accountLabel, String clientIp) {
@@ -43,7 +46,7 @@ final class ReservedSlot {
     void failed() {
         if (settle()) {
             Instant now = clock.instant();
-            if (accountCounter.confirmFailure(account, now)) {
+            if (account != null && accountCounter.confirmFailure(account, now)) {
                 LOGGER.warn("Authentication throttled: scope=account, {}, retryAfter={}s", accountLabel,
                         accountCounter.retryAfterSeconds(account, now).orElse(0));
             }
@@ -59,8 +62,10 @@ final class ReservedSlot {
      */
     void succeeded() {
         if (settle()) {
-            accountCounter.reset(account);
-            accountCounter.release(account);
+            if (account != null) {
+                accountCounter.reset(account);
+                accountCounter.release(account);
+            }
             clientIpCounter.release(clientIp);
         }
     }
@@ -70,7 +75,9 @@ final class ReservedSlot {
      */
     void release() {
         if (settle()) {
-            accountCounter.release(account);
+            if (account != null) {
+                accountCounter.release(account);
+            }
             clientIpCounter.release(clientIp);
         }
     }

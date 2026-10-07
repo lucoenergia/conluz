@@ -38,6 +38,20 @@ public class UserPersonalId {
         return REMOVED_CHARACTERS.matcher(raw).replaceAll("").toUpperCase(Locale.ROOT);
     }
 
+    /**
+     * A normalised personal ID in a form fit for a log line: {@code ***} followed by the last three characters, or
+     * {@code ***} alone when there are no more than three, so that the full personal ID is never logged. Anything
+     * but an ASCII letter or digit is replaced, because the value comes from the client.
+     *
+     * @param normalized a personal ID already passed through {@link #normalize}; {@code null} is masked as empty
+     */
+    public static String mask(String normalized) {
+        if (normalized == null || normalized.length() <= 3) {
+            return "***";
+        }
+        return "***" + normalized.substring(normalized.length() - 3).replaceAll("[^A-Za-z0-9]", "?");
+    }
+
     public String getPersonalId() {
         return personalId;
     }

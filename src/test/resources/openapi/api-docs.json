@@ -1543,6 +1543,37 @@
         ],
         "type" : "object"
       },
+      "PasswordResetBody" : {
+        "properties" : {
+          "newPassword" : {
+            "description" : "The new password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. It must differ from the current password.",
+            "minLength" : 15,
+            "type" : "string"
+          },
+          "token" : {
+            "description" : "The token from the password reset link: everything after the `#` of `<web client>/reset-password#<token>`, exactly as it appears there.",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "newPassword",
+          "token"
+        ],
+        "type" : "object"
+      },
+      "PasswordResetRequestBody" : {
+        "properties" : {
+          "personalId" : {
+            "description" : "The personal ID (DNI/NIE/NIF) of the account to recover. Spaces, dots and hyphens are ignored and letters may be in either case, as when logging in.",
+            "example" : "12345678Z",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "personalId"
+        ],
+        "type" : "object"
+      },
       "PlantCapabilitiesResponse" : {
         "description" : "What the caller may do with this plant.",
         "properties" : {
@@ -1857,6 +1888,7 @@
               "USER_CURRENT_PASSWORD_INCORRECT",
               "USER_PASSWORD_UNCHANGED",
               "USER_PASSWORD_CHANGE_REQUIRED",
+              "USER_PASSWORD_RESET_TOKEN_INVALID",
               "AUTH_TOO_MANY_FAILED_ATTEMPTS",
               "MEMBERSHIP_ALREADY_EXISTS",
               "COMMUNITY_ALREADY_EXISTS",
@@ -15283,6 +15315,229 @@
         "summary" : "Creates users in bulk importing a CSV file.",
         "tags" : [
           "Users"
+        ]
+      }
+    },
+    "/api/v1/users/password/recover" : {
+      "post" : {
+        "description" : "This endpoint starts the recovery of a forgotten password. It requires no authentication, and any\ntoken presented with it is ignored.\n\nIf the personal ID belongs to an enabled user with an email address who has been sent fewer than\n3 links in the last 24 hours, a link of the form `<web client>/reset-password#<token>` is emailed\nto them. The link is valid for 1 day and works once, and it replaces any link sent before, which\nstops working.\n\nThe answer is always the same 202 with an empty body: for an unknown personal ID, a user without\nemail, a disabled user, a user over the daily limit, and when the email cannot be sent. Nothing in\nit tells whether a link was sent.\n\nEvery request counts against the client address, together with failed logins and password\nchanges: after 20 within 15 minutes, further requests are answered 429 with a Retry-After header\nuntil the 15 minutes that started with the first one have passed.",
+        "operationId" : "requestPasswordReset",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasswordResetRequestBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted. Answered the same whether or not a link was sent."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "AUTH_TOO_MANY_FAILED_ATTEMPTS",
+                      "message" : "Too many failed attempts. Please wait before trying again.",
+                      "params" : {
+                        "retryAfterSeconds" : "843"
+                      }
+                    }
+                  ],
+                  "message" : "Too many failed attempts. Please wait before trying again.",
+                  "status" : 429,
+                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "Too many failed attempts on this account or from this client address (`AUTH_TOO_MANY_FAILED_ATTEMPTS`). The password was not checked. Retry after the number of seconds in the `Retry-After` header, also given in `params.retryAfterSeconds`.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Seconds, rounded up, until an attempt will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "summary" : "Requests a password reset link by email",
+        "tags" : [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/users/password/reset" : {
+      "post" : {
+        "description" : "This endpoint completes the recovery of a forgotten password with the token from the emailed link\n`<web client>/reset-password#<token>`. It requires no authentication, and any token presented with\nit is ignored.\n\nThe new password must meet the same policy as a password change: between 15 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. It must\ndiffer from the current password.\n\nOn success the server answers 204 with no body: the token is used up, the password is replaced,\nthe \"must change password\" flag is cleared, and every session opened before is ended. The user is\nnot logged in; the client must log in with the new password. The account's failed login attempts\nare forgotten, so a user throttled for them can log in at once.\n\nA token that is unknown, malformed, expired, already used or replaced by a newer one, or whose user\nhas been disabled, is answered 400 with the `USER_PASSWORD_RESET_TOKEN_INVALID` code, the same in\nevery case. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter, and one equal to the current password\nwith the `USER_PASSWORD_UNCHANGED` code; in both cases nothing changes and the token can be used\nagain.\n\nEvery invalid token counts against the client address, together with failed logins and password\nchanges: after 20 within 15 minutes, further resets are answered 429 with a Retry-After header\nuntil the 15 minutes that started with the first failure have passed.",
+        "operationId" : "resetPassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasswordResetBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "Password reset. Every previously issued session token is now rejected."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Invalid token" : {
+                    "description" : "Invalid token",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_RESET_TOKEN_INVALID",
+                          "message" : "The password reset link is invalid or has expired. Please request a new one.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "The password reset link is invalid or has expired. Please request a new one.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password policy violation" : {
+                    "description" : "Password policy violation",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_POLICY_VIOLATION",
+                          "message" : "The password must be at least 15 characters long.",
+                          "params" : {
+                            "rule" : "TOO_SHORT"
+                          }
+                        }
+                      ],
+                      "message" : "The password must be at least 15 characters long.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password unchanged" : {
+                    "description" : "Password unchanged",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_UNCHANGED",
+                          "message" : "The new password must be different from the current one.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "The new password must be different from the current one.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The body is invalid, the token cannot be used (`USER_PASSWORD_RESET_TOKEN_INVALID`), the new password is equal to the current one (`USER_PASSWORD_UNCHANGED`), or the new password breaks the password policy (`USER_PASSWORD_POLICY_VIOLATION`, with the failed rule in `params.rule`)."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "AUTH_TOO_MANY_FAILED_ATTEMPTS",
+                      "message" : "Too many failed attempts. Please wait before trying again.",
+                      "params" : {
+                        "retryAfterSeconds" : "843"
+                      }
+                    }
+                  ],
+                  "message" : "Too many failed attempts. Please wait before trying again.",
+                  "status" : 429,
+                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "Too many failed attempts on this account or from this client address (`AUTH_TOO_MANY_FAILED_ATTEMPTS`). The password was not checked. Retry after the number of seconds in the `Retry-After` header, also given in `params.retryAfterSeconds`.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Seconds, rounded up, until an attempt will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "summary" : "Sets a new password with a password reset token",
+        "tags" : [
+          "Authentication"
         ]
       }
     },

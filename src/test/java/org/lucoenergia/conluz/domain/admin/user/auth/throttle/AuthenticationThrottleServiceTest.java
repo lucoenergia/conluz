@@ -297,6 +297,109 @@ class AuthenticationThrottleServiceTest {
         }
     }
 
+    @Test
+    void everyPasswordResetRequest_countsAgainstTheClientAddress_andTheTwentyFirstIsRefused() {
+        for (int i = 0; i < 20; i++) {
+            service.countPasswordResetRequest(IP);
+        }
+
+        assertEquals(900, retryAfter(() -> service.countPasswordResetRequest(IP)));
+        assertDoesNotThrow(() -> service.countPasswordResetRequest(OTHER_IP));
+    }
+
+    @Test
+    void passwordResetRequests_logOnlyWhenTheClientAddressReachesItsLimit() {
+        for (int i = 0; i < 20; i++) {
+            service.countPasswordResetRequest(IP);
+        }
+
+        List<ILoggingEvent> warnings = logs.warningsAndAbove();
+        assertEquals(1, warnings.size());
+        assertWarningWithoutStackTrace(warnings.get(0),
+                "Authentication throttled: scope=ip, ip=203.0.113.7, retryAfter=900s");
+    }
+
+    @Test
+    void passwordResetRequests_andInvalidResetTokens_addUpWithFailedLogins_onTheClientAddressOnly() {
+        // 18 different accounts, so no account reaches its own limit
+        for (int i = 0; i < 18; i++) {
+            failLogin("ACCOUNT" + i, IP, LoginFailureReason.BAD_CREDENTIALS);
+        }
+        service.countPasswordResetRequest(IP);
+        failPasswordReset(IP);
+
+        assertEquals(900, retryAfter(() -> service.startLogin(PERSONAL_ID, IP)));
+        assertEquals(900, retryAfter(() -> service.startPasswordReset(IP)));
+        // No account counted the recovery
+        admitLogin(PERSONAL_ID, OTHER_IP);
+    }
+
+    @Test
+    void passwordResetRequests_neverCountAgainstAnyAccount() {
+        for (int i = 0; i < 5; i++) {
+            service.countPasswordResetRequest(IP);
+        }
+
+        admitLogin(PERSONAL_ID, OTHER_IP);
+        admitLogin("", OTHER_IP);
+    }
+
+    @Test
+    void anInvalidResetToken_isLoggedOnce_withTheClientAddressOnly() {
+        failPasswordReset(IP);
+
+        List<ILoggingEvent> warnings = logs.warningsAndAbove();
+        assertEquals(1, warnings.size());
+        assertWarningWithoutStackTrace(warnings.get(0), "Failed password reset: ip=203.0.113.7, reason=INVALID_TOKEN");
+    }
+
+    @Test
+    void aResetSettledByNeither_countsNothing() {
+        for (int i = 0; i < 25; i++) {
+            service.startPasswordReset(IP).close();
+        }
+
+        assertDoesNotThrow(() -> service.startPasswordReset(IP).close());
+        assertEquals(0, logs.warningsAndAbove().size());
+    }
+
+    @Test
+    void aSuccessfulReset_resetsTheAccountOfItsUser_butNotTheClientAddress() {
+        User user = UserMother.randomUserWithPersonalId(PERSONAL_ID);
+        failLogins(PERSONAL_ID, OTHER_IP, 5);
+        for (int i = 0; i < 19; i++) {
+            failPasswordReset(IP);
+        }
+        assertEquals(900, retryAfter(() -> service.startLogin(PERSONAL_ID, OTHER_IP)));
+
+        try (PasswordResetAttempt attempt = service.startPasswordReset(IP)) {
+            attempt.succeeded(user);
+        }
+
+        admitLogin(" 12345678 a ", OTHER_IP);
+        // The client address keeps its 19 failures: one more and it is throttled
+        failPasswordReset(IP);
+        assertEquals(900, retryAfter(() -> service.startPasswordReset(IP)));
+    }
+
+    @Test
+    void concurrentResets_fromOneClientAddress_stayWithinItsLimit() {
+        List<PasswordResetAttempt> inProgress = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            inProgress.add(service.startPasswordReset(IP));
+        }
+
+        assertThrows(TooManyFailedAttemptsException.class, () -> service.startPasswordReset(IP));
+        inProgress.forEach(PasswordResetAttempt::close);
+        assertDoesNotThrow(() -> service.startPasswordReset(IP).close());
+    }
+
+    private void failPasswordReset(String clientIp) {
+        try (PasswordResetAttempt attempt = service.startPasswordReset(clientIp)) {
+            attempt.failed();
+        }
+    }
+
     private void admitLogin(String personalId, String clientIp) {
         assertDoesNotThrow(() -> service.startLogin(personalId, clientIp).close());
     }

@@ -24,6 +24,7 @@ Provide these via a local `.env` (see `.env.example` for the full annotated list
   `SPRING_INFLUXDB_DATABASE`, `SPRING_INFLUXDB_USERNAME`, `SPRING_INFLUXDB_PASSWORD`
 - **Email (SMTP):** `CONLUZ_MAIL_ENABLED`, `CONLUZ_MAIL_HOST`, `CONLUZ_MAIL_PORT`, `CONLUZ_MAIL_USERNAME`,
   `CONLUZ_MAIL_PASSWORD`, `CONLUZ_MAIL_FROM_ADDRESS`, `CONLUZ_MAIL_FROM_NAME`, `CONLUZ_MAIL_STARTTLS`
+- **Public web client:** `CONLUZ_PUBLIC_WEB_URL`
 
 ### `CONLUZ_TRUSTED_PROXIES`
 
@@ -46,6 +47,14 @@ the log by its kind. Switched on, the app needs at least `CONLUZ_MAIL_HOST` and 
 if one is missing it still starts, logs one warning, and every email fails. `CONLUZ_MAIL_STARTTLS` defaults to
 `true` and then refuses a server that does not offer STARTTLS. Leave `CONLUZ_MAIL_USERNAME` empty for a server
 that needs no authentication. A failed email is logged and never retried.
+
+### `CONLUZ_PUBLIC_WEB_URL`
+
+The address members open the web client at, such as `https://app.example.org`, as an absolute `http`/`https` URL.
+A trailing slash is ignored. Password reset emails link to `<CONLUZ_PUBLIC_WEB_URL>/reset-password#<token>`, so the
+web client must serve that route. Unset or invalid, no password reset email is sent: requests are still answered
+as usual, each one for a member who would get a link logs a warning, and if email sending is enabled the app also
+logs one warning at startup.
 
 ## Bring up one instance
 
