@@ -35,6 +35,14 @@ Closes #000
 
 -
 
+## Spec changes
+
+<!-- Rules in docs/specs/ added, changed or removed by this PR, and the tests that cover each
+     added or changed rule. Write "None" and why if no behaviour changed. -->
+
+| Rule | Change | Statement | Tests |
+| --- | --- | --- | --- |
+
 ## Authorization
 
 <!-- Authorization: mandatory. Delete no row — write "none" and why, if that is the answer.

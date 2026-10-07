@@ -50,3 +50,14 @@ is a decision, and it needs a reason that survives reading.
 
 - <!-- Observable, and checkable by someone who did not write the code. Include the denials:
        which personas get 401, 403 and 404. -->
+
+## Spec impact
+
+<!-- Rules in docs/specs/ that this issue adds, changes or removes. Cite existing rules by ID.
+     New rules use placeholders (NEW-1, NEW-2…); the ID is assigned when the spec is updated.
+     If the capability has no spec yet, write "Spec created by this issue" and list only the
+     rules this issue touches. If no behaviour changes, write "None" and why. -->
+
+| Rule | Change | Statement | Rationale |
+| --- | --- | --- | --- |
+| <!-- SUP-001 / NEW-1 --> | <!-- Added / Changed / Removed --> | <!-- MUST / MUST NOT / MAY … --> | <!-- why --> |
