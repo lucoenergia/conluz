@@ -13,9 +13,9 @@ import java.time.Instant;
 @Repository
 public class BlacklistedTokenRepositoryImpl implements BlacklistedTokenRepository {
 
-    private final JpaBlacklistedTokenRepository jpaRepository;
+    private final BlacklistedTokenJpaRepository jpaRepository;
 
-    public BlacklistedTokenRepositoryImpl(JpaBlacklistedTokenRepository jpaRepository) {
+    public BlacklistedTokenRepositoryImpl(BlacklistedTokenJpaRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 

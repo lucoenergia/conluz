@@ -10,7 +10,7 @@ import java.time.Instant;
 /**
  * JPA repository for blacklisted tokens.
  */
-public interface JpaBlacklistedTokenRepository extends JpaRepository<BlacklistedTokenEntity, String> {
+public interface BlacklistedTokenJpaRepository extends JpaRepository<BlacklistedTokenEntity, String> {
 
     /**
      * Checks if a token with the given JWT ID exists in the blacklist.
