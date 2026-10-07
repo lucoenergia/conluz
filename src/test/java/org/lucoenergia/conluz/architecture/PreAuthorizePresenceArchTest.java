@@ -28,8 +28,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
  * endpoint that has none. A new handler added without an authorization clause would otherwise be
  * reachable by any authenticated caller, silently, with nothing failing.</p>
  *
- * <p>The only exceptions are the four endpoints the security filter chain declares
- * {@code permitAll()}, listed here by class and method so adding a fifth is a deliberate act.</p>
+ * <p>The only exceptions are the endpoints the security filter chain declares {@code permitAll()},
+ * listed here by class and method so adding another is a deliberate act.</p>
  */
 public class PreAuthorizePresenceArchTest extends BaseArchTest {
 
@@ -39,13 +39,15 @@ public class PreAuthorizePresenceArchTest extends BaseArchTest {
 
     /**
      * The {@code permitAll()} endpoints in {@code WebSecurityConfig}: logging in and out, the
-     * first-run initialisation, and the unauthenticated build-info endpoint.
+     * first-run initialisation, the unauthenticated build-info endpoint, and password recovery (#362).
      */
     private static final Set<String> PERMIT_ALL = Set.of(
             "LoginUserController#login",
             "LogoutUserController#logout",
             "InitController#init",
-            "GetInfoController#getInfo");
+            "GetInfoController#getInfo",
+            "RequestPasswordResetController#requestPasswordReset",
+            "ResetPasswordController#resetPassword");
 
     @Test
     void everyHandlerMethodIsAuthorized() {

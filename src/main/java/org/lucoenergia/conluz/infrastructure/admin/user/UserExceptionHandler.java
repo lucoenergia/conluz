@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.user.create.DefaultAdminUserAlreadyIn
 import org.lucoenergia.conluz.domain.admin.user.password.IncorrectCurrentPasswordException;
 import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyViolationException;
 import org.lucoenergia.conluz.domain.admin.user.password.PasswordUnchangedException;
+import org.lucoenergia.conluz.domain.admin.user.password.reset.PasswordResetTokenInvalidException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
 import org.lucoenergia.conluz.infrastructure.admin.user.password.PasswordPolicyMessages;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
@@ -123,6 +124,22 @@ public class UserExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.buildWithoutLogging(message, RestErrorCode.USER_PASSWORD_UNCHANGED, null,
+                HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * The same answer whatever made the token unusable. Not logged here: the throttling logs each invalid token
+     * once, with the client address.
+     */
+    @ExceptionHandler(PasswordResetTokenInvalidException.class)
+    public ResponseEntity<RestError> handleException(PasswordResetTokenInvalidException e) {
+
+        String message = messageSource.getMessage(
+                "error.user.password.reset.token.invalid",
+                List.of().toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.buildWithoutLogging(message, RestErrorCode.USER_PASSWORD_RESET_TOKEN_INVALID, null,
                 HttpStatus.BAD_REQUEST);
     }
 }

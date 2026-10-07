@@ -148,6 +148,13 @@ class JwtAuthenticationFilterTest {
             "GET, /api-docs, true",
             "GET, /api-docs/swagger-config, true",
             "GET, /actuator/health, true",
+            "POST, /api/v1/users/password/recover, true",
+            "POST, /api/v1/users/password/reset, true",
+            "GET, /api/v1/users/password/recover, false",
+            "PUT, /api/v1/users/password/reset, false",
+            "POST, /api/v1/users/password, false",
+            "POST, /api/v1/users/password/other, false",
+            "POST, /api/v1/users/password/reset/extra, false",
             "POST, /api/v1/logout, false",
             "PUT, /api/v1/users/current/password, false",
             "GET, /api/v1/users/current, false"

@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.shared;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,5 +58,20 @@ class UserPersonalIdTest {
     @Test
     void ofKeepsTheValueAsGiven() {
         assertEquals(" 12345678-a ", UserPersonalId.of(" 12345678-a ").getPersonalId());
+    }
+
+    @ParameterizedTest
+    @CsvSource(nullValues = "NULL", value = {
+            "12345678A, ***78A",
+            "X1234567L, ***67L",
+            "ABCD, ***BCD",
+            "ABC, ***",
+            "'', ***",
+            "NULL, ***",
+            "1234567<>, ***7??"
+    })
+    void masksAllButTheLastThreeCharacters_andReplacesAnythingButLettersAndDigits(String normalized,
+                                                                                String expected) {
+        assertEquals(expected, UserPersonalId.mask(normalized));
     }
 }

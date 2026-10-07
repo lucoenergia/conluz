@@ -11,6 +11,13 @@ Failed attempts are counted per **account** and per **client address**. Once eit
 both endpoints answer **429** with a `Retry-After` header, **without checking the password**, until the counting
 window ends. The mechanism was introduced by #332.
 
+Password recovery (#362) feeds the **client address** counter only, see [Password recovery](#password-recovery):
+
+| Endpoint | Counted against the client address |
+|---|---|
+| `POST /api/v1/users/password/recover` | every request, whatever its outcome |
+| `POST /api/v1/users/password/reset` | every reset token that cannot be used |
+
 The username is the member's NIF, which is semi-public, so there is deliberately **no hard lockout**: an account
 is only ever throttled for a bounded time, and it is released on its own.
 
@@ -40,6 +47,9 @@ is only ever throttled for a bounded time, and it is released on its own.
 - **Resets.** A successful login or password change resets that **account's** counter. Nothing resets the
   **address** counter: it only ends with its window.
 - **While either counter is over its limit** both endpoints refuse. When both are, the longer wait is given.
+- **Password recovery shares the address counter.** Recovery requests and invalid reset tokens add up with failed
+  logins and wrong current passwords from the same address, and an address over its limit is refused on all four
+  endpoints.
 
 ## How an attempt flows
 
@@ -107,6 +117,27 @@ sequenceDiagram
 The password change follows the same shape inside `ChangePasswordServiceImpl#changePassword`: the user is loaded,
 `startPasswordChange` admits or refuses the change, and only then is the current password compared. A 429 is
 raised before anything is written or revoked, so the caller's token stays valid.
+
+## Password recovery
+
+The two recovery endpoints are public, and the account is either unknown to the caller or must not be revealed, so
+they count against the **client address only**, never against an account:
+
+- **Requesting a link** (`AuthenticationThrottleService#countPasswordResetRequest`) reserves a slot on the address
+  and counts it at once, whatever happens next: an unknown `personalId`, a user without email, a disabled user,
+  the daily limit or a link sent. The answer must not depend on the `personalId`, and a request costs a lookup and
+  possibly a token write. Over the limit the request is answered 429 before the user is even looked up.
+- **Resetting** (`AuthenticationThrottleService#startPasswordReset`) reserves a slot on the address before the token
+  is looked up, and the attempt is settled like the others:
+  - an unusable token (unknown, malformed, expired, used, revoked, or its user disabled) → `failed()`: one failure
+    on the address and one WARN line;
+  - a new password that breaks the policy or equals the current one → `close()`: nothing counted, as for a password
+    change;
+  - a successful reset → `succeeded(user)`: the slot is freed and the **account counter of the token's user** is
+    reset, so a member throttled for failed logins can log in with the new password at once.
+
+`startLogin` and `startPasswordChange` are unchanged: an address-only reservation is a `ReservedSlot` without an
+account, which never touches the account counter.
 
 ## The counting window
 
@@ -235,11 +266,14 @@ A password, a token or a full `personalId` is never logged.
 |---|---|
 | Failed login | `Failed login: account=***78A, ip=203.0.113.7, reason=BAD_CREDENTIALS` (or `DISABLED`) |
 | Wrong current password | `Failed password change: user=<uuid>, ip=203.0.113.7, reason=WRONG_CURRENT_PASSWORD` |
+| Unusable password reset token | `Failed password reset: ip=203.0.113.7, reason=INVALID_TOKEN` |
 | A counter reaches its limit | `Authentication throttled: scope=account, account=***78A, retryAfter=900s` (`user=<uuid>` when reached through a password change) |
 | | `Authentication throttled: scope=ip, ip=203.0.113.7, retryAfter=900s` |
 
 - The account is masked as `***` followed by its last three characters (only `***` when it has three or fewer);
   characters other than ASCII letters and digits are replaced, since the value comes from the client.
+- A recovery request writes no line here: it is logged once at INFO by `RequestPasswordResetServiceImpl`, with the
+  masked account, the address and the outcome.
 - Exactly one "Failed …" line is written per failed attempt; the attempt that reaches a limit also writes one
   activation line per counter it trips. Refused (429) attempts are not logged one by one.
 - These failures are no longer logged again as ERROR by `ErrorBuilder` (`buildWithoutLogging`), so their
@@ -259,15 +293,17 @@ The state is kept in memory, which suits the single instance Conluz runs as; it 
 
 | Class | Package | Role |
 |---|---|---|
-| `AuthenticationThrottleService` | `domain/admin/user/auth/throttle` | Port: `startLogin`, `startPasswordChange` |
-| `LoginAttempt`, `PasswordChangeAttempt` | `domain/admin/user/auth/throttle` | Handles of an admitted attempt: `failed`, `succeeded`, `close` |
+| `AuthenticationThrottleService` | `domain/admin/user/auth/throttle` | Port: `startLogin`, `startPasswordChange`, `countPasswordResetRequest`, `startPasswordReset` |
+| `LoginAttempt`, `PasswordChangeAttempt`, `PasswordResetAttempt` | `domain/admin/user/auth/throttle` | Handles of an admitted attempt: `failed`, `succeeded`, `close` |
 | `LoginFailureReason`, `TooManyFailedAttemptsException` | `domain/admin/user/auth/throttle` | Failure reason (logged only); the refusal carrying `retryAfterSeconds` |
-| `AuthenticationThrottleServiceImpl` | `infrastructure/admin/user/auth/throttle` | Limits, account normalisation and masking, admission on both counters |
+| `AuthenticationThrottleServiceImpl` | `infrastructure/admin/user/auth/throttle` | Limits, account normalisation, admission on both counters or on the address alone |
+| `UserPersonalId#mask` | `domain/shared` | The masking of a `personalId` in log lines |
 | `ReservedSlot` | `infrastructure/admin/user/auth/throttle` | One attempt's reservation, settled exactly once; activation log lines |
-| `LoginAttemptImpl`, `PasswordChangeAttemptImpl` | `infrastructure/admin/user/auth/throttle` | The handles; failure log lines |
+| `LoginAttemptImpl`, `PasswordChangeAttemptImpl`, `PasswordResetAttemptImpl` | `infrastructure/admin/user/auth/throttle` | The handles; failure log lines |
 | `FailedAttemptCounter` | `infrastructure/admin/user/auth/throttle` | Windows, reservations, bounds; one instance per scope |
 | `AuthenticationThrottleConfig` | `infrastructure/admin/user/auth/throttle` | The `Clock` the windows are measured with |
-| `AuthServiceImpl#login`, `ChangePasswordServiceImpl#changePassword` | `infrastructure/admin/user/...` | Open the attempt and settle it with the outcome |
+| `AuthServiceImpl#login`, `ChangePasswordServiceImpl#changePassword`, `ResetPasswordServiceImpl#reset` | `infrastructure/admin/user/...` | Open the attempt and settle it with the outcome |
+| `RequestPasswordResetServiceImpl#request` | `infrastructure/admin/user/password/reset` | Counts the recovery request against the address |
 | `AuthenticationExceptionHandler` | `infrastructure/shared/security/auth` | 429 response; failed-login 401 without ERROR logging |
 | `TooManyRequestsErrorResponse` | `infrastructure/shared/web/apidocs/response` | The 429 in the OpenAPI document |
 
@@ -287,6 +323,8 @@ The state is kept in memory, which suits the single instance Conluz runs as; it 
 - Anyone who knows a member's NIF can keep that account throttled by sending 5 failures every 15 minutes. It
   blocks login and password change but exposes no data, and it is visible in the logs.
 - Members behind one NAT share the per-address limit.
+- Recovery requests use up the same per-address budget as failed logins: 20 recovery requests from one address
+  block logins from it until the window ends.
 - Attempts in progress count against the limit, so a member's own login can be refused while an attacker's
   concurrent attempts hold the remaining slots.
 - An attacker controlling more than about 500 addresses could fill the 10,000-window bound and evict counters
