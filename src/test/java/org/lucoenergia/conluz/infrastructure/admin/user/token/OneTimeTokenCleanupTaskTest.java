@@ -5,7 +5,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
-import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.RawOneTimeToken;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
@@ -34,7 +35,9 @@ class OneTimeTokenCleanupTaskTest extends BaseIntegrationTest {
     @Autowired
     private OneTimeTokenCleanupTask task;
     @Autowired
-    private OneTimeTokenService service;
+    private CreateOneTimeTokenService createService;
+    @Autowired
+    private ConsumeOneTimeTokenService consumeService;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -73,7 +76,7 @@ class OneTimeTokenCleanupTaskTest extends BaseIntegrationTest {
         // T0+2d: used, and revoked, an hour before the cutoff, both expiring after it
         clock.advance(Duration.ofHours(23));
         RawOneTimeToken used = issue(usedUser, secrets);
-        assertTrue(service.consume(used.value(), PURPOSE).isPresent());
+        assertTrue(consumeService.consume(used.value(), PURPOSE).isPresent());
         RawOneTimeToken revoked = issue(revokedUser, secrets);
         RawOneTimeToken replacement = issue(revokedUser, secrets);
         // T0+9d+1h
@@ -107,14 +110,14 @@ class OneTimeTokenCleanupTaskTest extends BaseIntegrationTest {
     }
 
     private RawOneTimeToken issue(UserId user, List<String> secrets) {
-        RawOneTimeToken token = service.issue(user, PURPOSE);
+        RawOneTimeToken token = createService.issue(user, PURPOSE);
         secrets.add(token.value());
-        secrets.add(OneTimeTokenServiceImpl.hash(token.value()));
+        secrets.add(OneTimeTokenHash.of(token.value()));
         return token;
     }
 
     private boolean stored(RawOneTimeToken token) {
         return jdbcTemplate.queryForObject("SELECT count(*) FROM one_time_token WHERE token_hash = ?", Integer.class,
-                OneTimeTokenServiceImpl.hash(token.value())) == 1;
+                OneTimeTokenHash.of(token.value())) == 1;
     }
 }
