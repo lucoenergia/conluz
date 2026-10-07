@@ -78,6 +78,8 @@ All commits must follow this format:
 - Use **Squash and Merge** as the merge strategy.
 - Ensure your PR references the related issue (e.g., "Closes #123").
 - Provide a clear description of the changes made.
+- A PR that changes behaviour updates the affected spec in `docs/specs/`, following
+  `docs/specs/README.md`.
 - Ensure all CI checks pass and the code is properly tested.
 
 ---
