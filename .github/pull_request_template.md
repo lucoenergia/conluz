@@ -5,6 +5,11 @@
      repository. Use the same line as the PR title, so the squash commit on main carries the code
      too. -->
 
+<!-- Labels: give the PR exactly one type label (`enhancement`, `bug`, `refactor`, `tech-debt`,
+     `testing` or `documentation`), add `security` for security fixes, and add `breaking` when
+     upgrading to this version needs manual action or a coordinated change in the other
+     repository. Labels decide where the PR appears in the release notes. -->
+
 Closes #000
 
 <!-- Closes: the issue(s) this PR resolves, one GitHub closing keyword per line, so merging closes

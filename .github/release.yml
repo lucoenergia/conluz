@@ -1,0 +1,14 @@
+changelog:
+  categories:
+    - title: ⚠️ Breaking / manual action on upgrade
+      labels: [breaking]
+    - title: Security
+      labels: [security]
+    - title: Features
+      labels: [enhancement]
+    - title: Fixes
+      labels: [bug]
+    - title: Maintenance
+      labels: [refactor, tech-debt, testing, documentation]
+    - title: Other
+      labels: ["*"]
