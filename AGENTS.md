@@ -60,6 +60,20 @@ cp build/openapi/api-docs.actual.json src/test/resources/openapi/api-docs.json
 There is deliberately **no** flag or task that rewrites the snapshot in place: CI could run it, and
 an API change would then land unreviewed.
 
+## Specs
+
+`docs/specs/` holds the living specification of the domain: one document per capability, written as
+normative rules with stable IDs (`SUP-001`). Conventions and workflow: `docs/specs/README.md`.
+In this repository, **spec** always means one of these documents; test files are called tests.
+
+- Before changing behaviour, read the spec of the affected capability.
+- Update it in the same PR, in a separate commit: add, change or tombstone rules, each with
+  Rationale and Source.
+- If the spec and the code disagree, stop and report. Never fix either side silently.
+- Tests covering a rule start their name or display name with the rule ID.
+- Never reuse or renumber an ID.
+- Specs are created lazily, covering only the rules the task touches. No backfill.
+
 ## Git Workflow
 
 - Main branch: `main`
