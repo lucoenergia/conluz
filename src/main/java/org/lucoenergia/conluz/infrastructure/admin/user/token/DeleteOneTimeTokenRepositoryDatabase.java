@@ -10,9 +10,9 @@ import java.time.Instant;
 @Repository
 public class DeleteOneTimeTokenRepositoryDatabase implements DeleteOneTimeTokenRepository {
 
-    private final JpaOneTimeTokenRepository jpaRepository;
+    private final OneTimeTokenJpaRepository jpaRepository;
 
-    public DeleteOneTimeTokenRepositoryDatabase(JpaOneTimeTokenRepository jpaRepository) {
+    public DeleteOneTimeTokenRepositoryDatabase(OneTimeTokenJpaRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 

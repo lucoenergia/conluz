@@ -14,9 +14,9 @@ import java.util.UUID;
 @Repository
 public class CreateOneTimeTokenRepositoryDatabase implements CreateOneTimeTokenRepository {
 
-    private final JpaOneTimeTokenRepository jpaRepository;
+    private final OneTimeTokenJpaRepository jpaRepository;
 
-    public CreateOneTimeTokenRepositoryDatabase(JpaOneTimeTokenRepository jpaRepository) {
+    public CreateOneTimeTokenRepositoryDatabase(OneTimeTokenJpaRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 

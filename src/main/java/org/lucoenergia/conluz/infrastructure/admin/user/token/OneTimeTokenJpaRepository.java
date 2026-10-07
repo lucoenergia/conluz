@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface JpaOneTimeTokenRepository extends JpaRepository<OneTimeTokenEntity, UUID> {
+public interface OneTimeTokenJpaRepository extends JpaRepository<OneTimeTokenEntity, UUID> {
 
     /**
      * Locks the user row until the end of the transaction. {@code NO KEY UPDATE} conflicts with itself, so

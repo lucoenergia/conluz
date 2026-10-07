@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 
 class BlacklistedTokenRepositoryTest {
 
-    private final JpaBlacklistedTokenRepository jpaRepository = Mockito.mock(JpaBlacklistedTokenRepository.class);
+    private final BlacklistedTokenJpaRepository jpaRepository = Mockito.mock(BlacklistedTokenJpaRepository.class);
 
     private final BlacklistedTokenRepositoryImpl repository = new BlacklistedTokenRepositoryImpl(jpaRepository);
 

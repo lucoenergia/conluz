@@ -13,9 +13,9 @@ import java.util.Optional;
 @Repository
 public class GetOneTimeTokenRepositoryDatabase implements GetOneTimeTokenRepository {
 
-    private final JpaOneTimeTokenRepository jpaRepository;
+    private final OneTimeTokenJpaRepository jpaRepository;
 
-    public GetOneTimeTokenRepositoryDatabase(JpaOneTimeTokenRepository jpaRepository) {
+    public GetOneTimeTokenRepositoryDatabase(OneTimeTokenJpaRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 
