@@ -59,6 +59,11 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:influxdb'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
+    // Embedded SMTP server for the email sending tests. Its Jakarta Mail and Angus versions are the ones
+    // Spring Boot manages. JUnit 4 is only needed for its JUnit 4 rule, which is not used.
+    testImplementation('com.icegreen:greenmail:2.1.14') {
+        exclude group: 'junit', module: 'junit'
+    }
 }
 
 tasks.named('test') {

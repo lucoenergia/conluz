@@ -54,6 +54,15 @@ services:
       - CONLUZ_JWT_SECRET_KEY
       # Java regex of the reverse proxies trusted for X-Forwarded-For; empty trusts none (see .env.example)
       - CONLUZ_TRUSTED_PROXIES=${CONLUZ_TRUSTED_PROXIES:-}
+      # Email sending; off unless CONLUZ_MAIL_ENABLED is true (see .env.example)
+      - CONLUZ_MAIL_ENABLED=${CONLUZ_MAIL_ENABLED:-false}
+      - CONLUZ_MAIL_HOST=${CONLUZ_MAIL_HOST:-}
+      - CONLUZ_MAIL_PORT=${CONLUZ_MAIL_PORT:-587}
+      - CONLUZ_MAIL_USERNAME=${CONLUZ_MAIL_USERNAME:-}
+      - CONLUZ_MAIL_PASSWORD=${CONLUZ_MAIL_PASSWORD:-}
+      - CONLUZ_MAIL_FROM_ADDRESS=${CONLUZ_MAIL_FROM_ADDRESS:-}
+      - CONLUZ_MAIL_FROM_NAME=${CONLUZ_MAIL_FROM_NAME:-}
+      - CONLUZ_MAIL_STARTTLS=${CONLUZ_MAIL_STARTTLS:-true}
       - SPRING_DATASOURCE_URL
       - SPRING_INFLUXDB_URL
       - SPRING_INFLUXDB_USERNAME
