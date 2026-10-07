@@ -273,7 +273,9 @@ class OneTimeTokenServiceTest extends BaseIntegrationTest {
                         jdbcTemplate.queryForObject("SELECT id FROM users WHERE id = ? FOR NO KEY UPDATE",
                                 UUID.class, owner.get().getId());
                         Optional<UserId> consumed = service.consume(token.value(), PURPOSE);
-                        if (consumed.isPresent() && consumed.get().getId().equals(owner.get().getId())) {
+                        if (consumed.isPresent()) {
+                            // The issue may have revoked the token first; when it did not, the users must match
+                            assertTrue(consumed.equals(owner), "consume returned another user than findOwner");
                             jdbcTemplate.update("UPDATE users SET password = password WHERE id = ?",
                                     owner.get().getId());
                         }
@@ -283,6 +285,30 @@ class OneTimeTokenServiceTest extends BaseIntegrationTest {
             assertEquals(2, outcomes.size(), "round " + round);
             assertEquals(1, activeTokenCount(user), "round " + round);
         }
+    }
+
+    /**
+     * The documented flow compares the user from {@link OneTimeTokenService#findOwner} with the one from
+     * {@link OneTimeTokenService#consume}, which are distinct instances: they must be equal by value.
+     */
+    @Test
+    void findOwnerThenLockUserThenConsume_returnsAnEqualUser() {
+        UserId user = newUser();
+        RawOneTimeToken token = issue(user);
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+
+        transaction.executeWithoutResult(status -> {
+            Optional<UserId> owner = service.findOwner(token.value(), PURPOSE);
+            assertTrue(owner.isPresent());
+            jdbcTemplate.queryForObject("SELECT id FROM users WHERE id = ? FOR NO KEY UPDATE", UUID.class,
+                    owner.get().getId());
+            Optional<UserId> consumed = service.consume(token.value(), PURPOSE);
+
+            assertTrue(consumed.isPresent());
+            assertTrue(consumed.get().equals(owner.get()), "consume returned another user than findOwner");
+            assertTrue(consumed.get().equals(user), "consume returned another user than the token's");
+            assertEquals(owner.get().hashCode(), consumed.get().hashCode());
+        });
     }
 
     @Test
