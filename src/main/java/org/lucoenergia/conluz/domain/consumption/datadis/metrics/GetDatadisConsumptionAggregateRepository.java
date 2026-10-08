@@ -44,6 +44,25 @@ public interface GetDatadisConsumptionAggregateRepository {
     Optional<RecordedConsumptionPeriod> findRecordedPeriod(Supply supply);
 
     /**
+     * The first and the last of the supply's hourly records in the half-open interval
+     * {@code [from, toExclusive)} whose assigned production has been published, or empty when none
+     * has.
+     *
+     * <p>A record is published when it carries {@code self_consumption_energy_kwh}, zero included.
+     * Datadis publishes a month's self-consumption only some days after the month ends; until then
+     * the month's records carry consumption and the surplus the meter measured, but no
+     * self-consumption at all. Surplus alone is therefore not publication.
+     */
+    Optional<RecordedConsumptionPeriod> findPublishedPeriod(Supply supply, Instant from, Instant toExclusive);
+
+    /**
+     * The number of the supply's hourly records in the half-open interval
+     * {@code [from, toExclusive)} whose assigned production has been published, in the sense of
+     * {@link #findPublishedPeriod}. Zero when there is none.
+     */
+    long countPublishedHours(Supply supply, Instant from, Instant toExclusive);
+
+    /**
      * The timestamp of the supply's latest hourly record in the half-open interval
      * {@code [from, toExclusive)} that carries assigned production: a {@code self_consumption_energy_kwh} or a {@code surplus_energy_kwh}
      * greater than zero. Either field is enough, so a record whose assigned production was fed back

@@ -41,6 +41,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
     private static final String COLUMN_SELF_CONSUMPTION_ENERGY_KWH = "self_consumption_energy_kwh";
     private static final String COLUMN_SURPLUS_ENERGY_KWH = "surplus_energy_kwh";
     private static final String COLUMN_HOURS_WITH_DATA = "hours_with_data";
+    private static final String COLUMN_PUBLISHED_HOURS = "published_hours";
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
     private final DateConverter dateConverter;
@@ -157,6 +158,72 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
 
             return Optional.ofNullable(recordTime(connection, query));
         }
+    }
+
+    @Override
+    public Optional<RecordedConsumptionPeriod> findPublishedPeriod(Supply supply, Instant from,
+                                                                   Instant toExclusive) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // As in findRecordedPeriod, FIRST and LAST are queried separately so each reports the
+            // timestamp of its own record.
+            Instant firstRecord = publishedSelectorTime(connection, "FIRST", supply, from, toExclusive);
+            Instant lastRecord = publishedSelectorTime(connection, "LAST", supply, from, toExclusive);
+
+            if (firstRecord == null || lastRecord == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new RecordedConsumptionPeriod(firstRecord, lastRecord));
+        }
+    }
+
+    @Override
+    public long countPublishedHours(Supply supply, Instant from, Instant toExclusive) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // COUNT over the field itself counts the records carrying it, zeros included, and
+            // skips those where it is absent.
+            Query query = new Query(String.format(
+                    """
+                            SELECT COUNT("self_consumption_energy_kwh") AS "published_hours"
+                            FROM "%s"
+                            WHERE cups = '%s'
+                                AND time >= '%s'
+                                AND time < '%s'
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    supply.getCode(),
+                    dateConverter.convertToString(from),
+                    dateConverter.convertToString(toExclusive)));
+
+            QueryResult.Series series = firstSeries(connection.query(query));
+            if (series == null) {
+                return 0L;
+            }
+            return (long) readDouble(series, series.getValues().get(0), COLUMN_PUBLISHED_HOURS);
+        }
+    }
+
+    /**
+     * The timestamp of the record a selector over {@code self_consumption_energy_kwh} picks in the
+     * half-open interval, or null when no record there carries the field.
+     */
+    private Instant publishedSelectorTime(InfluxDB connection, String selector, Supply supply, Instant from,
+                                          Instant toExclusive) {
+        Query query = new Query(String.format(
+                """
+                        SELECT %s("self_consumption_energy_kwh")
+                        FROM "%s"
+                        WHERE cups = '%s'
+                            AND time >= '%s'
+                            AND time < '%s'
+                        """,
+                selector,
+                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                supply.getCode(),
+                dateConverter.convertToString(from),
+                dateConverter.convertToString(toExclusive)));
+        return recordTime(connection, query);
     }
 
     private Instant selectorTime(InfluxDB connection, String selector, Supply supply) {
