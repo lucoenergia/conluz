@@ -1,7 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.energymetrics.hourlyprofile;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -129,6 +131,27 @@ class GetMembershipHourlyProfileControllerApiDocsTest extends BaseControllerTest
                 "which is never the same as `0`",
                 "The counts are sample counts, not day counts",
                 "Platform admins are not granted access")) {
+            assertTrue(description.contains(statement), () -> "does not state \"" + statement + "\": " + description);
+        }
+    }
+
+    /**
+     * #382: the rule by which a month counts as published, with the threshold the resolver applies,
+     * and what happens when no month qualifies.
+     */
+    @Test
+    @DisplayName("ENM-001 AC7 describes when a month counts as published and what happens when none does")
+    void describesWhenAMonthCountsAsPublishedAndWhatHappensWhenNoneDoes() throws Exception {
+        String description = operation().path("description").asText()
+                .replace("**", "")
+                .replaceAll("\\s+", " ");
+
+        for (String statement : List.of(
+                "published when it carries self-consumed energy, zero included",
+                "surplus alone does not count",
+                "at least " + ReferenceMonthResolver.PUBLISHED_HOURS_MIN_PERCENT + "% of the hours it could have published",
+                "the supply's first published record",
+                "no published month in the search window")) {
             assertTrue(description.contains(statement), () -> "does not state \"" + statement + "\": " + description);
         }
     }

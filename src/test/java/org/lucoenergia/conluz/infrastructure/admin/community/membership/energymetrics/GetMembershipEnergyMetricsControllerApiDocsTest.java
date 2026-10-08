@@ -1,7 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.energymetrics;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -149,6 +151,28 @@ class GetMembershipEnergyMetricsControllerApiDocsTest extends BaseControllerTest
                 () -> "does not state the savings rule: " + description);
         assertTrue(description.contains("Platform admins are not granted access"),
                 () -> "does not state the authorization rule: " + description);
+    }
+
+    /**
+     * #382: the rule by which a month counts as published, with the threshold the resolver applies,
+     * and what happens when no month qualifies.
+     */
+    @Test
+    @DisplayName("ENM-001 AC7 describes when a month counts as published and what happens when none does")
+    void describesWhenAMonthCountsAsPublishedAndWhatHappensWhenNoneDoes() throws Exception {
+        String description = operation().path("description").asText()
+                .replace("**", "")
+                .replaceAll("\\s+", " ");
+
+        for (String statement : List.of(
+                "published when it carries self-consumed energy, zero included",
+                "surplus alone does not count",
+                "at least " + ReferenceMonthResolver.PUBLISHED_HOURS_MIN_PERCENT + "% of the hours it could have published",
+                "the supply's first published record",
+                "even if another of the member's supplies is still unpublished",
+                "When no month in the search window is published, no period is resolved")) {
+            assertTrue(description.contains(statement), () -> "does not state \"" + statement + "\": " + description);
+        }
     }
 
     private void assertNullableWithBaseType(String schemaName, String field, String baseType) throws Exception {

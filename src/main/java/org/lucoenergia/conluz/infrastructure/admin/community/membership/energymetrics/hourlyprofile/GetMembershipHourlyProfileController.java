@@ -49,12 +49,17 @@ public class GetMembershipHourlyProfileController {
                     **Period:**
                     Always the latest published month, resolved exactly as the aggregated energy
                     metrics resolve `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar
-                    month, in the community's time zone, in which any of the member's supplies has
-                    stored assigned production. It **cannot be chosen**: only inside a published month
-                    is a stored zero a measured zero rather than a value not published yet. The
-                    resolved bounds are reported in `period`. When no month can be resolved -- no
-                    assigned production in the search window, or no supplies to search -- the response
-                    is still successful, with null period bounds and 24 buckets without any sample.
+                    month, in the community's time zone, that the distributor has published for any
+                    of the member's supplies. An hourly record is published when it carries
+                    self-consumed energy, zero included; surplus alone does not count, since the
+                    distributor sends the measured surplus before it publishes the month. A month is
+                    published for a supply when at least 90% of the hours it could have published
+                    carry it, counted from the later of the month's first hour and the supply's first
+                    published record. It **cannot be chosen**: only inside a published month is a
+                    stored zero a measured zero rather than a value not published yet. The resolved
+                    bounds are reported in `period`. When no month can be resolved -- no published
+                    month in the search window, or no supplies to search -- the response is still
+                    successful, with null period bounds and 24 buckets without any sample.
 
                     **Buckets:**
                     Always 24, ordered from hour 0 to hour 23. The hour is **local to the community**,
