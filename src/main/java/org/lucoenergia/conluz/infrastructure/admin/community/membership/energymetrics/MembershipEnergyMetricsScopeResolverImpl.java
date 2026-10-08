@@ -32,8 +32,10 @@ import java.util.UUID;
  *
  * <h2>Query cost</h2>
  *
- * <p>Two relational queries (membership, supplies). Resolving the period adds one query per supply
- * for the reference month, or two per supply for the recorded range; an explicit period adds none.
+ * <p>Two relational queries (membership, supplies). Resolving the period adds, for the reference
+ * month, what {@link org.lucoenergia.conluz.infrastructure.consumption.ReferenceMonthResolverImpl}
+ * costs -- two queries per supply and usually a single count -- or two per supply for the recorded
+ * range; an explicit period adds none.
  */
 @Component
 public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnergyMetricsScopeResolver {

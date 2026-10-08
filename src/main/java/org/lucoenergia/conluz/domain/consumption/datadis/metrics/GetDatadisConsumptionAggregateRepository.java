@@ -61,16 +61,4 @@ public interface GetDatadisConsumptionAggregateRepository {
      * {@link #findPublishedPeriod}. Zero when there is none.
      */
     long countPublishedHours(Supply supply, Instant from, Instant toExclusive);
-
-    /**
-     * The timestamp of the supply's latest hourly record in the half-open interval
-     * {@code [from, toExclusive)} that carries assigned production: a {@code self_consumption_energy_kwh} or a {@code surplus_energy_kwh}
-     * greater than zero. Either field is enough, so a record whose assigned production was fed back
-     * to the grid in full still counts. Empty when no such record exists.
-     *
-     * <p>Datadis publishes both fields for a month only some days after it ends. Until then the
-     * month's records carry consumption alone, with those fields absent or zero, so this is the
-     * latest instant whose assigned production has been published.
-     */
-    Optional<Instant> findLatestAssignedProductionRecord(Supply supply, Instant from, Instant toExclusive);
 }

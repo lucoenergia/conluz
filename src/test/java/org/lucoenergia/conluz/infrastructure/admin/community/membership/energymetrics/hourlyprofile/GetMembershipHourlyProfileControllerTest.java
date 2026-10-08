@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.energym
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -27,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -62,6 +65,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
     private static final String AGGREGATED_PATH =
             "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics";
     private static final double TOLERANCE = 1e-9;
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
     /** 2026-09-29T12:00 in Madrid. */
     private static final Instant NOW = Instant.parse("2026-09-29T10:00:00Z");
@@ -101,6 +105,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
+        writePublishedZeros(supply, YearMonth.of(2026, 8));
         write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
         write(supply, "2026/08/11", "13:00", 1f, 2f, 1f);
 
@@ -117,15 +122,16 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
     // --- AC2: the same month as the aggregated energy metrics ---
 
     /**
-     * August carries consumption only -- assigned production zero or not written -- so it is not
-     * published; July is. Both endpoints resolve July, and August's large records never reach the
-     * profile.
+     * August holds a single record carrying self-consumption, so it is not published; July is. Both
+     * endpoints resolve July, and August's large records never reach the profile. July's published
+     * hours leave local 12:00 to the one record the test reads there.
      */
     @Test
     void ac2_resolvesTheSameMonthAsTheAggregatedEnergyMetricsAndExcludesRecordsOutsideIt() throws Exception {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
+        writePublishedZeros(supply, YearMonth.of(2026, 7), 12);
         write(supply, "2026/07/15", "12:00", 3f, 4f, 1f);
         write(supply, "2026/08/10", "12:00", 90f, 0f, 0f);
         write(supply, "2026/08/11", "12:00", 90f, null, null);
@@ -139,6 +145,37 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         JsonNode noon = profile.path("buckets").path(12);
         assertEquals(7d, noon.path("averageConsumptionKWh").asDouble(), TOLERANCE);
         assertEquals(1L, noon.path("consumptionSampleCount").asLong());
+    }
+
+    /**
+     * The shape of #382 on 8 October 2026, with a second supply. The first supply has August
+     * published and September holding consumption and measured surplus but no self-consumption; the
+     * second has July published and August holding consumption alone. Both endpoints resolve
+     * August, the latest month published for any supply, for the same membership at the same
+     * instant.
+     */
+    @Test
+    @DisplayName("ENM-004 AC4 the hourly profile resolves the same month as the energy metrics")
+    void theHourlyProfileResolvesTheSameMonthAsTheEnergyMetrics() throws Exception {
+        when(clockProvider.now()).thenReturn(Instant.parse("2026-10-08T10:00:00Z"));
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        SupplyEntity first = persistSupply(member, community);
+        SupplyEntity second = persistSupply(member, community);
+        writePublishedZeros(first, YearMonth.of(2026, 8));
+        writeAt(first, hourly(Instant.parse("2026-08-31T22:00:00Z"), Instant.parse("2026-09-12T20:00:00Z")),
+                0.588f, null, 0.0022f);
+        writePublishedZeros(second, YearMonth.of(2026, 7));
+        writeAt(second, hourly(Instant.parse("2026-07-31T22:00:00Z"), Instant.parse("2026-08-31T21:00:00Z")),
+                1f, null, null);
+        String token = loginUser(member);
+
+        JsonNode profile = json(request(community, member, token).andExpect(status().isOk()));
+        JsonNode aggregated = json(requestAggregatedLatest(community, member, token).andExpect(status().isOk()));
+
+        assertEquals(aggregated.path("period"), profile.path("period"));
+        assertEquals("2026-08-01T00:00:00+02:00", profile.path("period").path("startDate").asText());
+        assertEquals("2026-08-31T23:00:00+02:00", profile.path("period").path("endDate").asText());
     }
 
     // --- AC3: averaged over every record, not over per-supply averages ---
@@ -155,6 +192,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity large = persistSupply(member, community);
         SupplyEntity small = persistSupply(member, community);
+        writePublishedZeros(large, YearMonth.of(2026, 8), 10);
         write(large, "2026/08/03", "10:00", 6f, 4f, 2f);
         write(large, "2026/08/04", "10:00", 6f, 4f, 2f);
         write(large, "2026/08/05", "10:00", 6f, 4f, 2f);
@@ -180,6 +218,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
+        writePublishedZeros(supply, YearMonth.of(2026, 8), 3);
         write(supply, "2026/08/10", "02:00", 0.3f, 0f, 0f);
         write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
 
@@ -201,6 +240,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
+        writePublishedZeros(supply, YearMonth.of(2026, 8), 2, 3);
         write(supply, "2026/08/10", "02:00", 0.3f, 0f, 0f);
         write(supply, "2026/08/11", "02:00", 0.5f, 0f, 0f);
         write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
@@ -221,6 +261,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
+        writePublishedZeros(supply, YearMonth.of(2026, 8), 20);
         write(supply, "2026/08/10", "20:00", 2f, null, null);
         write(supply, "2026/08/11", "20:00", 4f, null, null);
         write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
@@ -244,6 +285,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
+        writePublishedZeros(supply, YearMonth.of(2026, 8), 10, 12);
         writeAt(supply, List.of(Instant.parse("2026-08-15T10:00:00Z")), 5f, 1f, 1f);
 
         request(community, member, loginUser(member))
@@ -355,8 +397,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
     // --- AC10: coverage consistent with the aggregated energy metrics ---
 
     /**
-     * Two supplies, one silent: 2 supplies, 1 with data, and August's 744 hours expected for each.
-     * The coverage object is identical to the one the aggregated endpoint reports.
+     * Two supplies, one silent: 2 supplies, 1 with data in every hour of August, and August's 744
+     * hours expected for each. The coverage object is identical to the one the aggregated endpoint
+     * reports.
      */
     @Test
     void ac10_reportsTheSameCoverageAsTheAggregatedEnergyMetrics() throws Exception {
@@ -364,6 +407,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity active = persistSupply(member, community);
         persistSupply(member, community);
+        writePublishedZeros(active, YearMonth.of(2026, 8));
         write(active, "2026/08/10", "12:00", 1f, 2f, 1f);
         write(active, "2026/08/11", "12:00", 1f, 2f, 1f);
         write(active, "2026/08/11", "13:00", 1f, null, null);
@@ -376,7 +420,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         JsonNode coverage = profile.path("coverage");
         assertEquals(2, coverage.path("supplyCount").asInt());
         assertEquals(1, coverage.path("suppliesWithData").asInt());
-        assertEquals(3L, coverage.path("hoursWithData").asLong());
+        assertEquals(744L, coverage.path("hoursWithData").asLong());
         assertEquals(2 * 744L, coverage.path("expectedHours").asLong());
     }
 
@@ -527,6 +571,15 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
                        Float selfConsumptionKWh, Float surplusKWh) {
         influxFixture.write(List.of(hourlyRecord(supply.getCode(), date, time, gridImportKWh,
                 selfConsumptionKWh, surplusKWh)));
+        track(supply);
+    }
+
+    /**
+     * Writes a published month of zeros for the supply, leaving the given local hours without any
+     * record; see {@link DatadisConsumptionInfluxFixture#writePublishedZeros}.
+     */
+    private void writePublishedZeros(SupplyEntity supply, YearMonth month, Integer... skippedLocalHours) {
+        influxFixture.writePublishedZeros(supply.getCode(), month, ZONE, skippedLocalHours);
         track(supply);
     }
 
