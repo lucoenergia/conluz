@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.consumption.datadis.aggregate;
+package org.lucoenergia.conluz.infrastructure.production.datadis.aggregate;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -6,9 +6,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
-import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
 import org.mockito.Mockito;
 
 import java.time.Clock;
@@ -30,13 +30,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-class DatadisYearlyAggregationJobTest {
+class DatadisProductionYearlyAggregationJobTest {
 
     private static final UUID COMMUNITY_A = UUID.randomUUID();
     private static final UUID COMMUNITY_B = UUID.randomUUID();
     private static final UUID DISABLED_COMMUNITY = UUID.randomUUID();
 
-    private final DatadisYearlyAggregationService service = Mockito.mock(DatadisYearlyAggregationService.class);
+    private final DatadisProductionYearlyAggregationService service = Mockito.mock(DatadisProductionYearlyAggregationService.class);
     private final GetDatadisConfigurationService configService = Mockito.mock(GetDatadisConfigurationService.class);
 
     private TimeZone originalDefaultZone;
@@ -60,10 +60,10 @@ class DatadisYearlyAggregationJobTest {
         job(clockAt("2026-10-09T04:00:00Z"), DatadisSyncWindow.DEFAULT).run();
 
         for (UUID community : List.of(COMMUNITY_A, COMMUNITY_B)) {
-            verify(service).aggregateYearlyConsumptions(community, 2025);
-            verify(service).aggregateYearlyConsumptions(community, 2026);
+            verify(service).aggregateYearlyProductions(community, 2025);
+            verify(service).aggregateYearlyProductions(community, 2026);
         }
-        verify(service, never()).aggregateYearlyConsumptions(eq(DISABLED_COMMUNITY), anyInt());
+        verify(service, never()).aggregateYearlyProductions(eq(DISABLED_COMMUNITY), anyInt());
         // In particular, 2024, before the window, is never rewritten.
         verifyNoMoreInteractions(service);
     }
@@ -78,9 +78,9 @@ class DatadisYearlyAggregationJobTest {
         // 2026-01 to 2027-01.
         job(clockAt("2026-12-31T23:30:00Z"), DatadisSyncWindow.DEFAULT).run();
 
-        verify(service).aggregateYearlyConsumptions(COMMUNITY_A, 2026);
-        verify(service).aggregateYearlyConsumptions(COMMUNITY_A, 2027);
-        verify(service, never()).aggregateYearlyConsumptions(COMMUNITY_A, 2025);
+        verify(service).aggregateYearlyProductions(COMMUNITY_A, 2026);
+        verify(service).aggregateYearlyProductions(COMMUNITY_A, 2027);
+        verify(service, never()).aggregateYearlyProductions(COMMUNITY_A, 2025);
     }
 
     @Test
@@ -88,18 +88,18 @@ class DatadisYearlyAggregationJobTest {
     void theYearsFollowTheSyncWindow() {
         job(clockAt("2026-10-09T04:00:00Z"), new DatadisSyncWindow(Period.ofMonths(3))).run();
 
-        verify(service).aggregateYearlyConsumptions(COMMUNITY_A, 2026);
-        verify(service).aggregateYearlyConsumptions(COMMUNITY_B, 2026);
+        verify(service).aggregateYearlyProductions(COMMUNITY_A, 2026);
+        verify(service).aggregateYearlyProductions(COMMUNITY_B, 2026);
         verifyNoMoreInteractions(service);
     }
 
     @Test
     void aFailingCommunityDoesNotStopTheOthers() {
-        doThrow(new RuntimeException("boom")).when(service).aggregateYearlyConsumptions(eq(COMMUNITY_A), anyInt());
+        doThrow(new RuntimeException("boom")).when(service).aggregateYearlyProductions(eq(COMMUNITY_A), anyInt());
 
         job(clockAt("2026-10-09T04:00:00Z"), DatadisSyncWindow.DEFAULT).run();
 
-        verify(service).aggregateYearlyConsumptions(COMMUNITY_B, 2026);
+        verify(service).aggregateYearlyProductions(COMMUNITY_B, 2026);
     }
 
     @Test
@@ -111,7 +111,7 @@ class DatadisYearlyAggregationJobTest {
         verifyNoMoreInteractions(service);
     }
 
-    private DatadisYearlyAggregationJob job(Clock clock, DatadisSyncWindow window) {
-        return new DatadisYearlyAggregationJob(service, clock, configService, window, zoneResolver(MADRID));
+    private DatadisProductionYearlyAggregationJob job(Clock clock, DatadisSyncWindow window) {
+        return new DatadisProductionYearlyAggregationJob(service, clock, configService, window, zoneResolver(MADRID));
     }
 }
