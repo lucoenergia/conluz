@@ -8,6 +8,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationRepository;
@@ -138,6 +139,7 @@ class HuaweiProductionYearlyAggregationRepositoryInfluxTest extends BaseIntegrat
     }
 
     @Test
+    @DisplayName("HPA-002 the yearly Huawei production point sums the monthly points of the local year")
     void testAggregateYearlyProductionSumsTheMonthlyPointsOfTheLocalYear() {
         // Monthly points stamped at local midnight of the 1st (Europe/Madrid), as the monthly
         // aggregation stamps them: January 2026 sits at 2025-12-31T23:00Z.

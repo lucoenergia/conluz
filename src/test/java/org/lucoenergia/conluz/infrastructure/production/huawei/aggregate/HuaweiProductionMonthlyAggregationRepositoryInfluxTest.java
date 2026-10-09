@@ -8,6 +8,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationRepository;
@@ -143,6 +144,7 @@ class HuaweiProductionMonthlyAggregationRepositoryInfluxTest extends BaseIntegra
     // -----------------------------------------------------------------------
 
     @Test
+    @DisplayName("HPA-001 the monthly Huawei production point sums the hourly records of the local month, in winter and summer time")
     void testAggregateMonthlyProductionSumsTheHourlyRecordsOfTheLocalMonth() {
         // Europe/Madrid. January 2026 (CET, UTC+1) is [2025-12-31T23:00Z, 2026-01-31T23:00Z);
         // July 2026 (CEST, UTC+2) is [2026-06-30T22:00Z, 2026-07-31T22:00Z).
