@@ -68,3 +68,4 @@ are always called **tests**, never specs.
 | --- | --- | --- |
 | `ENM` | Membership energy metrics | [`membership-energy-metrics.md`](membership-energy-metrics.md) |
 | `DCA` | Datadis consumption pre-aggregation | [`datadis-consumption-pre-aggregation.md`](datadis-consumption-pre-aggregation.md) |
+| `HPA` | Huawei production pre-aggregation | [`huawei-production-pre-aggregation.md`](huawei-production-pre-aggregation.md) |
