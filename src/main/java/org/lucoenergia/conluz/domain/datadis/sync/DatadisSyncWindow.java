@@ -51,4 +51,15 @@ public record DatadisSyncWindow(Period lookback) {
         }
         return months;
     }
+
+    /**
+     * Every year {@link #months(LocalDate)} overlaps when the sync runs on {@code today}, oldest
+     * first.
+     */
+    public List<Integer> years(LocalDate today) {
+        return months(today).stream()
+                .map(YearMonth::getYear)
+                .distinct()
+                .toList();
+    }
 }
