@@ -99,4 +99,5 @@ Then it is October 2026, and the window is October 2025 to October 2026
 
 | Exception | Reason | Expires when | Source |
 | --- | --- | --- | --- |
-| A total can lag its records by one day when the 04:00 sync runs past 05:00, or the 05:00 monthly runs past 06:00: the later job then reads partly rewritten inputs. | The jobs are scheduled by time, not chained; the next daily run reads complete inputs and corrects the total. | The aggregation jobs are triggered by the completion of the job before them. | #380 |
+| A monthly total can lag its hourly records by one day when the 04:00 sync runs past 05:00: the monthly jobs then read partly re-synced records. | The jobs are scheduled by time, not chained; the next daily run reads complete records and corrects the total. | The monthly re-aggregation is triggered by completion of the sync, or a sync run is observed to exceed the gap between schedules. | #380 |
+| A yearly total can lag the monthly totals by one day when the 05:00 monthly jobs run past 06:00: the yearly jobs then read partly rewritten monthly points. | The jobs are scheduled by time, not chained; the next daily run reads complete monthly points and corrects the total. | The yearly re-aggregation is triggered by completion of the monthly run, or a monthly run is observed to exceed the gap between schedules. | #380 |
