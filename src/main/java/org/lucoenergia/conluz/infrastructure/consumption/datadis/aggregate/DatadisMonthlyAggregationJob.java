@@ -7,8 +7,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneId;
 
 @Component
 public class DatadisMonthlyAggregationJob implements Job {
@@ -16,9 +18,12 @@ public class DatadisMonthlyAggregationJob implements Job {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatadisMonthlyAggregationJob.class);
 
     private final DatadisMonthlyAggregationService aggregationService;
+    private final Clock clock;
 
-    public DatadisMonthlyAggregationJob(DatadisMonthlyAggregationService aggregationService) {
+    public DatadisMonthlyAggregationJob(DatadisMonthlyAggregationService aggregationService,
+                                        Clock clock) {
         this.aggregationService = aggregationService;
+        this.clock = clock;
     }
 
     /**
@@ -43,7 +48,7 @@ public class DatadisMonthlyAggregationJob implements Job {
     public void run() {
         LOGGER.info("Datadis monthly aggregation started...");
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock.withZone(ZoneId.systemDefault()));
         Month month = today.getMonth();
         int year = today.getYear();
 

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
 import org.mockito.Mockito;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Month;
 
@@ -16,7 +17,7 @@ class DatadisMonthlyAggregationJobTest {
     void testRun_ShouldCallServiceWithCurrentMonthAndYear() {
         DatadisMonthlyAggregationService mockService = Mockito.mock(DatadisMonthlyAggregationService.class);
 
-        DatadisMonthlyAggregationJob job = new DatadisMonthlyAggregationJob(mockService);
+        DatadisMonthlyAggregationJob job = new DatadisMonthlyAggregationJob(mockService, Clock.systemUTC());
 
         LocalDate today = LocalDate.now();
         Month month = today.getMonth();
