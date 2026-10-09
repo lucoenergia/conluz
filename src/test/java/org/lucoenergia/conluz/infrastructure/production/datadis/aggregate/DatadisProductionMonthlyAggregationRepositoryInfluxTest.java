@@ -8,6 +8,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -21,6 +22,7 @@ import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnecti
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.Instant;
 import java.time.Month;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -148,6 +150,38 @@ class DatadisProductionMonthlyAggregationRepositoryInfluxTest extends BaseIntegr
                 "No monthly data should be written when there is no hourly source data");
     }
 
+    @Test
+    @DisplayName("DCA-002 the monthly production point sums the hourly records of the local month, in winter and summer time")
+    void testAggregateMonthlyProductionSumsTheHourlyRecordsOfTheLocalMonth() {
+        // Europe/Madrid. January 2026 (CET, UTC+1) is [2025-12-31T23:00Z, 2026-01-31T23:00Z);
+        // April 2026 (CEST, UTC+2) is [2026-03-31T22:00Z, 2026-04-30T22:00Z).
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
+            loadHourlyPoint(batchPoints, CUPS_A, "2025-12-31T22:00:00Z", 1000.0); // Dec 31 23:00 local
+            loadHourlyPoint(batchPoints, CUPS_A, "2025-12-31T23:00:00Z", 1.0);    // Jan 1 00:00 local
+            loadHourlyPoint(batchPoints, CUPS_A, "2026-01-15T12:00:00Z", 10.0);
+            loadHourlyPoint(batchPoints, CUPS_A, "2026-01-31T22:00:00Z", 100.0);  // Jan 31 23:00 local
+            loadHourlyPoint(batchPoints, CUPS_A, "2026-01-31T23:00:00Z", 2000.0); // Feb 1 00:00 local
+            loadHourlyPoint(batchPoints, CUPS_A, "2026-03-31T21:00:00Z", 3000.0); // Mar 31 23:00 local
+            loadHourlyPoint(batchPoints, CUPS_A, "2026-03-31T22:00:00Z", 2.0);    // Apr 1 00:00 local
+            loadHourlyPoint(batchPoints, CUPS_A, "2026-04-30T21:00:00Z", 20.0);   // Apr 30 23:00 local
+            loadHourlyPoint(batchPoints, CUPS_A, "2026-04-30T22:00:00Z", 4000.0); // May 1 00:00 local
+            connection.write(batchPoints);
+        }
+
+        repository.aggregateMonthlyProduction(supplyA, Month.JANUARY, 2026);
+        repository.aggregateMonthlyProduction(supplyA, Month.APRIL, 2026);
+
+        DatadisProductionMonthlyPoint january = singleMonthlyPoint(CUPS_A,
+                "2025-12-31T23:00:00Z", "2025-12-31T23:00:00Z");
+        assertEquals(111.0, january.getProductionKWh(), 0.001,
+                "January must sum exactly the hours of the local month");
+        DatadisProductionMonthlyPoint april = singleMonthlyPoint(CUPS_A,
+                "2026-03-31T22:00:00Z", "2026-03-31T22:00:00Z");
+        assertEquals(22.0, april.getProductionKWh(), 0.001,
+                "April must sum exactly the hours of the local month");
+    }
+
     // -----------------------------------------------------------------------
     // Data setup helpers
     // -----------------------------------------------------------------------
@@ -170,6 +204,10 @@ class DatadisProductionMonthlyAggregationRepositoryInfluxTest extends BaseIntegr
 
             connection.write(batchPoints);
         }
+    }
+
+    private void loadHourlyPoint(BatchPoints batchPoints, String cups, String instant, double production) {
+        loadHourlyPoint(batchPoints, cups, Instant.parse(instant).toEpochMilli() * 1_000_000L, production);
     }
 
     private void loadHourlyPoint(BatchPoints batchPoints, String cups, long timestampNanos, double production) {
