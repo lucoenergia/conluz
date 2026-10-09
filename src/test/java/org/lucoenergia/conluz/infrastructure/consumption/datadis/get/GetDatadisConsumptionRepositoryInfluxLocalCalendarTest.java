@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.time.Instant;
+import java.time.Month;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -217,6 +218,32 @@ class GetDatadisConsumptionRepositoryInfluxLocalCalendarTest extends BaseIntegra
     // -----------------------------------------------------------------------
 
     private final List<Point> pending = new ArrayList<>();
+
+    /**
+     * The hourly records of a month are the ones of the local month, in winter and in summer time:
+     * January 2026 (UTC+1) is [2025-12-31T23:00Z, 2026-01-31T23:00Z) and July 2026 (UTC+2) is
+     * [2026-06-30T22:00Z, 2026-07-31T22:00Z).
+     */
+    @Test
+    void hourlyRecordsByMonthAreTheRecordsOfTheLocalMonth() {
+        write(CUPS_A, "2025-12-31T22:00:00Z", 1000.0); // local 2025-12-31 23:00
+        write(CUPS_A, "2025-12-31T23:00:00Z", 0.25);   // local 2026-01-01 00:00
+        write(CUPS_A, "2026-01-31T22:00:00Z", 0.5);    // local 2026-01-31 23:00
+        write(CUPS_A, "2026-01-31T23:00:00Z", 2000.0); // local 2026-02-01 00:00
+        write(CUPS_A, "2026-06-30T21:00:00Z", 3000.0); // local 2026-06-30 23:00
+        write(CUPS_A, "2026-06-30T22:00:00Z", 1.0);    // local 2026-07-01 00:00
+        write(CUPS_A, "2026-07-31T21:00:00Z", 2.0);    // local 2026-07-31 23:00
+        write(CUPS_A, "2026-07-31T22:00:00Z", 4000.0); // local 2026-08-01 00:00
+        write(CUPS_B, "2026-01-15T12:00:00Z", 8.0);    // another supply, must not leak into CUPS_A
+        flush();
+
+        assertEquals(List.of(0.25f, 0.5f), consumptionOf(repository.getHourlyConsumptionsByMonth(supplyA, Month.JANUARY, 2026)));
+        assertEquals(List.of(1.0f, 2.0f), consumptionOf(repository.getHourlyConsumptionsByMonth(supplyA, Month.JULY, 2026)));
+    }
+
+    private static List<Float> consumptionOf(List<DatadisConsumption> consumptions) {
+        return consumptions.stream().map(DatadisConsumption::getConsumptionKWh).toList();
+    }
 
     private void write(String cups, String utcInstant, double consumptionKWh) {
         pending.add(Point.measurement(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT)

@@ -18,8 +18,10 @@ import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.Month;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Repository
@@ -38,16 +40,25 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
         this.zoneResolver = zoneResolver;
     }
 
+    /**
+     * The supply's hourly records of the month as its calendar sees it:
+     * {@code [local midnight of the 1st, local midnight of the 1st of the next month)}. Literal UTC
+     * bounds used to drop the month's first local hour or two and return the first local hour or two
+     * of the next month instead.
+     */
     @Override
     public List<DatadisConsumption> getHourlyConsumptionsByMonth(Supply supply, Month month, int year) {
 
-        String startDate = dateConverter.convertToFirstDayOfTheMonthAsString(month, year);
-        String endDate = dateConverter.convertToLastDayOfTheMonthAsString(month, year);
+        final ZoneId zoneId = zoneResolver.resolveZoneIdForSupply(supply.getId());
+        final LocalDate firstDayOfMonth = LocalDate.of(year, month, 1);
+        final String startDate = dateConverter.convertToString(firstDayOfMonth.atStartOfDay(zoneId).toInstant());
+        final String endDate = dateConverter.convertToString(
+                firstDayOfMonth.plusMonths(1).atStartOfDay(zoneId).toInstant());
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             Query query = new Query(String.format(
-                    "SELECT * FROM \"%s\" WHERE cups = '%s' AND time >= '%s' AND time <= '%s'",
+                    "SELECT * FROM \"%s\" WHERE cups = '%s' AND time >= '%s' AND time < '%s'",
                     DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                     supply.getCode(),
                     startDate,
