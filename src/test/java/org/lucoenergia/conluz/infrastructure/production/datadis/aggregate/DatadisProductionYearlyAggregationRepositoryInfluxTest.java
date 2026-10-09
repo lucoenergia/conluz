@@ -8,6 +8,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -20,6 +21,7 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -29,10 +31,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration test for {@link DatadisProductionYearlyAggregationRepositoryInflux}.
  * <p>
  * Yearly aggregation reads the {@code datadis_production_kwh_month} measurement, so the test seeds
- * monthly points (at the 1st of each month at 00:00:00 UTC, matching how the monthly aggregation's
- * year window {@code >= yyyy-01-01T00:00:00Z} includes January) for two supplies (CUPS), runs the
- * yearly aggregation, and asserts the correct per-cups yearly sums, the deterministic January 1st
- * timestamp, and idempotent re-run.
+ * monthly points (at the 1st of each month at 00:00:00 UTC, which falls inside the local year as
+ * well) for two supplies (CUPS), runs the yearly aggregation, and asserts the correct per-cups yearly
+ * sums, the deterministic January 1st timestamp, and idempotent re-run. Monthly points stamped at
+ * local midnight, as the monthly aggregation stamps them, are covered by the DCA-003 test.
  * <p>
  * The aggregated record timestamp is January 1st at midnight local time (Europe/Madrid, UTC+1),
  * which is 2022-12-31T23:00:00Z in UTC.
@@ -137,6 +139,29 @@ class DatadisProductionYearlyAggregationRepositoryInfluxTest extends BaseIntegra
                 "No yearly data should be written when there is no monthly source data");
     }
 
+    @Test
+    @DisplayName("DCA-003 the yearly production point sums the monthly points of the local year")
+    void testAggregateYearlyProductionSumsTheMonthlyPointsOfTheLocalYear() {
+        // Monthly points stamped at local midnight of the 1st (Europe/Madrid), as the monthly
+        // aggregation stamps them: January 2026 sits at 2025-12-31T23:00Z.
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
+            loadMonthlyPoint(batchPoints, CUPS_A, "2025-11-30T23:00:00Z", 1000.0); // December 2025
+            loadMonthlyPoint(batchPoints, CUPS_A, "2025-12-31T23:00:00Z", 1.0);    // January 2026
+            loadMonthlyPoint(batchPoints, CUPS_A, "2026-06-30T22:00:00Z", 10.0);   // July 2026
+            loadMonthlyPoint(batchPoints, CUPS_A, "2026-11-30T23:00:00Z", 100.0);  // December 2026
+            loadMonthlyPoint(batchPoints, CUPS_A, "2026-12-31T23:00:00Z", 2000.0); // January 2027
+            connection.write(batchPoints);
+        }
+
+        repository.aggregateYearlyProduction(supplyA, 2026);
+
+        DatadisProductionYearlyPoint point = singleYearlyPoint(CUPS_A,
+                "2025-12-31T23:00:00Z", "2025-12-31T23:00:00Z");
+        assertEquals(111.0, point.getProductionKWh(), 0.001,
+                "2026 must sum exactly the monthly points of the local year, January included");
+    }
+
     // -----------------------------------------------------------------------
     // Data setup helpers
     // -----------------------------------------------------------------------
@@ -170,6 +195,10 @@ class DatadisProductionYearlyAggregationRepositoryInfluxTest extends BaseIntegra
 
             connection.write(batchPoints);
         }
+    }
+
+    private void loadMonthlyPoint(BatchPoints batchPoints, String cups, String instant, double production) {
+        loadMonthlyPoint(batchPoints, cups, Instant.parse(instant).toEpochMilli() * 1_000_000L, production);
     }
 
     private void loadMonthlyPoint(BatchPoints batchPoints, String cups, long timestampNanos, double production) {
