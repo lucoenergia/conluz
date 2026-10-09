@@ -19,6 +19,7 @@ import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnecti
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -136,6 +137,28 @@ class HuaweiProductionYearlyAggregationRepositoryInfluxTest extends BaseIntegrat
                 "No yearly data should be written when there is no monthly source data");
     }
 
+    @Test
+    void testAggregateYearlyProductionSumsTheMonthlyPointsOfTheLocalYear() {
+        // Monthly points stamped at local midnight of the 1st (Europe/Madrid), as the monthly
+        // aggregation stamps them: January 2026 sits at 2025-12-31T23:00Z.
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
+            loadMonthlyPoint(batchPoints, "2025-11-30T23:00:00Z", 1000.0); // December 2025
+            loadMonthlyPoint(batchPoints, "2025-12-31T23:00:00Z", 1.0);    // January 2026
+            loadMonthlyPoint(batchPoints, "2026-06-30T22:00:00Z", 10.0);   // July 2026
+            loadMonthlyPoint(batchPoints, "2026-11-30T23:00:00Z", 100.0);  // December 2026
+            loadMonthlyPoint(batchPoints, "2026-12-31T23:00:00Z", 2000.0); // January 2027
+            connection.write(batchPoints);
+        }
+
+        repository.aggregateYearlyProduction(plant, 2026);
+
+        List<HuaweiHourlyProductionYearlyPoint> result = queryYearlyData("2025-12-31T23:00:00Z", "2025-12-31T23:00:00Z");
+        assertEquals(1, result.size(), "2026 is stamped at local midnight of January 1st");
+        assertEquals(111.0, result.get(0).getInverterPower(), 0.001,
+                "2026 must sum exactly the monthly points of the local year, January included");
+    }
+
     // -----------------------------------------------------------------------
     // Data setup helpers
     // -----------------------------------------------------------------------
@@ -175,6 +198,18 @@ class HuaweiProductionYearlyAggregationRepositoryInfluxTest extends BaseIntegrat
 
             connection.write(batchPoints);
         }
+    }
+
+    private void loadMonthlyPoint(BatchPoints batchPoints, String instant, double inverterPower) {
+        batchPoints.point(Point.measurement(HuaweiConfig.HUAWEI_MONTHLY_PRODUCTION_MEASUREMENT)
+                .time(Instant.parse(instant).toEpochMilli(), TimeUnit.MILLISECONDS)
+                .tag("station_code", STATION_CODE)
+                .addField("inverter_power", inverterPower)
+                .addField("ongrid_power", 0.0)
+                .addField("power_profit", 0.0)
+                .addField("theory_power", 0.0)
+                .addField("radiation_intensity", 0.0)
+                .build());
     }
 
     private void loadMonthlyPoint(BatchPoints batchPoints, long timestampNanos) {
