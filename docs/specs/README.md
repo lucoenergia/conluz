@@ -67,3 +67,4 @@ are always called **tests**, never specs.
 | Prefix | Capability | File |
 | --- | --- | --- |
 | `ENM` | Membership energy metrics | [`membership-energy-metrics.md`](membership-energy-metrics.md) |
+| `DCA` | Datadis consumption pre-aggregation | [`datadis-consumption-pre-aggregation.md`](datadis-consumption-pre-aggregation.md) |
