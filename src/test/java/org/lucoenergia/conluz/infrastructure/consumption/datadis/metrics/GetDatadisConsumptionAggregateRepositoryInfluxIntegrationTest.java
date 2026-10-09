@@ -46,6 +46,9 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     @Autowired
     private DatadisConsumptionInfluxFixture fixture;
 
+    private static final Instant WIDE_FROM = Instant.parse("2023-01-01T00:00:00Z");
+    private static final Instant WIDE_TO = Instant.parse("2025-01-01T00:00:00Z");
+
     private final List<String> createdCupsCodes = new ArrayList<>();
 
     @AfterEach
@@ -414,109 +417,107 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
         assertEquals(0d, sum);
     }
 
+    // --- findPublishedPeriod and countPublishedHours: records carrying self-consumption ---
+
+    /**
+     * A night hour of a published month carries a self-consumption of zero: it is published all
+     * the same, and so is the period it bounds.
+     */
     @Test
-    void findsTheLatestRecordCarryingAssignedProduction() {
+    void aRecordCarryingAZeroSelfConsumptionIsPublished() {
         Supply supply = supply();
         write(
+                hourlyRecord(supply.getCode(), "2024/02/10", "02:00", 1.0f, 0.0f, 0.0f),
                 hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 2.0f, 1.0f),
-                hourlyRecord(supply.getCode(), "2024/02/20", "13:00", 1.0f, 3.0f, 0.0f),
-                // Published consumption without assigned production yet: not a candidate.
-                hourlyRecord(supply.getCode(), "2024/03/05", "10:00", 1.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/03/06", "10:00", 1.0f, null, null));
+                hourlyRecord(supply.getCode(), "2024/02/10", "23:00", 1.0f, 0.0f, null));
 
-        Optional<Instant> latest = repository.findLatestAssignedProductionRecord(supply,
-                Instant.parse("2023-01-01T00:00:00Z"), Instant.parse("2025-01-01T00:00:00Z"));
+        Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO);
 
-        // 2024-02-20 13:00 in Europe/Madrid is +01:00.
-        assertEquals(Optional.of(Instant.parse("2024-02-20T12:00:00Z")), latest);
+        assertTrue(period.isPresent());
+        // 2024-02-10 in Europe/Madrid is +01:00.
+        assertEquals(Instant.parse("2024-02-10T01:00:00Z"), period.get().getFirstRecord());
+        assertEquals(Instant.parse("2024-02-10T22:00:00Z"), period.get().getLastRecord());
+        assertEquals(3L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));
     }
 
     /**
-     * Surplus alone qualifies a record: its assigned production was all fed back to the grid, and
-     * self-consumption may be zero or not even written.
+     * Before a month is published Datadis already sends the surplus the meter measured, but no
+     * self-consumption: a record carrying surplus alone, however large, is not published.
      */
     @Test
-    void aRecordCarryingOnlySurplusCountsAsAssignedProduction() {
+    void aRecordCarryingOnlySurplusIsNotPublished() {
         Supply supply = supply();
         write(
                 hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 2.0f, 1.0f),
-                hourlyRecord(supply.getCode(), "2024/03/10", "12:00", 1.0f, 0.0f, 4.0f),
-                hourlyRecord(supply.getCode(), "2024/04/10", "12:00", 1.0f, null, 5.0f));
+                hourlyRecord(supply.getCode(), "2024/03/10", "12:00", 1.0f, null, 0.002f),
+                hourlyRecord(supply.getCode(), "2024/03/11", "12:00", 1.0f, null, 40.0f),
+                hourlyRecord(supply.getCode(), "2024/03/12", "12:00", 1.0f, null, null));
 
-        Optional<Instant> latest = repository.findLatestAssignedProductionRecord(supply,
-                Instant.parse("2023-01-01T00:00:00Z"), Instant.parse("2025-01-01T00:00:00Z"));
+        Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO);
 
-        // 2024-04-10 12:00 in Europe/Madrid is +02:00.
-        assertEquals(Optional.of(Instant.parse("2024-04-10T10:00:00Z")), latest);
-    }
-
-    @Test
-    void aRecordCarryingOnlySelfConsumptionCountsAsAssignedProduction() {
-        Supply supply = supply();
-        write(
-                hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 2.0f, 1.0f),
-                hourlyRecord(supply.getCode(), "2024/03/10", "12:00", 1.0f, 4.0f, null));
-
-        Optional<Instant> latest = repository.findLatestAssignedProductionRecord(supply,
-                Instant.parse("2023-01-01T00:00:00Z"), Instant.parse("2025-01-01T00:00:00Z"));
-
-        // 2024-03-10 12:00 in Europe/Madrid is +01:00.
-        assertEquals(Optional.of(Instant.parse("2024-03-10T11:00:00Z")), latest);
-    }
-
-    @Test
-    void recordsBeforeTheLowerBoundAreNotCandidates() {
-        Supply supply = supply();
-        write(hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 2.0f, 1.0f));
-
-        Optional<Instant> latest = repository.findLatestAssignedProductionRecord(supply,
-                Instant.parse("2024-02-10T11:00:01Z"), Instant.parse("2025-01-01T00:00:00Z"));
-
-        assertTrue(latest.isEmpty());
+        assertTrue(period.isPresent());
+        assertEquals(Instant.parse("2024-02-10T11:00:00Z"), period.get().getLastRecord());
+        assertEquals(1L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));
     }
 
     /**
-     * The upper bound is exclusive: a record sitting exactly on it is left out, and the latest
-     * record before it is reported instead.
+     * The record on {@code from} is in and the record on {@code toExclusive} is out, so the months
+     * of a window can be counted one by one without the boundary hour landing in two of them.
      */
     @Test
-    void recordsOnOrAfterTheUpperBoundAreNotCandidates() {
+    void thePublishedRecordsAreReadOverAHalfOpenInterval() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 2.0f, 1.0f),
-                hourlyRecord(supply.getCode(), "2024/03/01", "00:00", 1.0f, 2.0f, 1.0f),
-                hourlyRecord(supply.getCode(), "2024/03/02", "00:00", 1.0f, 2.0f, 1.0f));
+                hourlyRecord(supply.getCode(), "2024/01/31", "23:00", 1.0f, 1.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/29", "23:00", 1.0f, 1.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/03/01", "00:00", 1.0f, 1.0f, 0.0f));
+        // February 2024 in Europe/Madrid.
+        Instant from = Instant.parse("2024-01-31T23:00:00Z");
+        Instant toExclusive = Instant.parse("2024-02-29T23:00:00Z");
 
-        Optional<Instant> latest = repository.findLatestAssignedProductionRecord(supply,
-                Instant.parse("2023-01-01T00:00:00Z"),
-                // 2024-03-01 00:00 in Europe/Madrid.
-                Instant.parse("2024-02-29T23:00:00Z"));
+        Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, from, toExclusive);
 
-        assertEquals(Optional.of(Instant.parse("2024-02-10T11:00:00Z")), latest);
+        assertTrue(period.isPresent());
+        assertEquals(from, period.get().getFirstRecord());
+        assertEquals(Instant.parse("2024-02-29T22:00:00Z"), period.get().getLastRecord());
+        assertEquals(2L, repository.countPublishedHours(supply, from, toExclusive));
     }
 
     @Test
-    void recordsWithoutAnyAssignedProductionYieldNoRecord() {
-        Supply supply = supply();
-        write(
-                hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, null, null));
-
-        assertTrue(repository.findLatestAssignedProductionRecord(supply,
-                Instant.parse("2023-01-01T00:00:00Z"), Instant.parse("2025-01-01T00:00:00Z")).isEmpty());
-    }
-
-    @Test
-    void anotherSupplysAssignedProductionIsNeverReported() {
+    void anotherSupplysPublishedRecordsAreNeverReported() {
         Supply supply = supply();
         Supply neighbour = supply();
         write(hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 2.0f, 1.0f));
-        write(hourlyRecord(neighbour.getCode(), "2024/05/10", "12:00", 1.0f, 2.0f, 1.0f));
+        write(
+                hourlyRecord(neighbour.getCode(), "2023/05/10", "12:00", 1.0f, 2.0f, 1.0f),
+                hourlyRecord(neighbour.getCode(), "2024/05/10", "12:00", 1.0f, 2.0f, 1.0f));
 
-        Optional<Instant> latest = repository.findLatestAssignedProductionRecord(supply,
-                Instant.parse("2023-01-01T00:00:00Z"), Instant.parse("2025-01-01T00:00:00Z"));
+        Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO);
 
-        assertEquals(Optional.of(Instant.parse("2024-02-10T11:00:00Z")), latest);
+        assertTrue(period.isPresent());
+        assertEquals(Instant.parse("2024-02-10T11:00:00Z"), period.get().getFirstRecord());
+        assertEquals(Instant.parse("2024-02-10T11:00:00Z"), period.get().getLastRecord());
+        assertEquals(1L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));
+    }
+
+    @Test
+    void aSupplyWithoutAnyPublishedRecordHasNoPublishedPeriodAndNoPublishedHours() {
+        Supply supply = supply();
+        write(
+                hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, null, 3.0f),
+                hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, null, null));
+
+        assertTrue(repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO).isEmpty());
+        assertEquals(0L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));
+    }
+
+    @Test
+    void aSupplyThatHasNeverStoredARecordHasNoPublishedPeriodAndNoPublishedHours() {
+        Supply supply = supply();
+
+        assertTrue(repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO).isEmpty());
+        assertEquals(0L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));
     }
 
     private Supply supply() {

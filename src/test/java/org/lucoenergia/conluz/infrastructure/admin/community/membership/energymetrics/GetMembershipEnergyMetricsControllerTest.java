@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.energym
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -25,10 +26,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsString;
@@ -55,6 +60,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     private static final String PATH = "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics";
     private static final String LATEST = "LATEST_PUBLISHED_MONTH";
     private static final double TOLERANCE = 1e-9;
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
     /** 2026-09-29T12:00 in Madrid. */
     private static final Instant NOW = Instant.parse("2026-09-29T10:00:00Z");
@@ -203,17 +209,18 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     // --- Reference period ---
 
     /**
-     * August carries consumption only -- self-consumption and surplus zero or not written -- so it
-     * has not been published yet. The reference month is July, the latest month in which any
-     * supply has assigned production, not an empty August. Only the first supply has records in
-     * July, and the second supply's July hours still count against coverage.
+     * August holds a single record carrying self-consumption, so it has not been published yet. The
+     * reference month is July, published in full for the first supply, not an almost empty August.
+     * Only the first supply has records in July, and the second supply's July hours still count
+     * against coverage.
      */
     @Test
-    void anUnpublishedPreviousMonthResolvesToTheLatestMonthWithAssignedProduction() throws Exception {
+    void anUnpublishedPreviousMonthResolvesToTheLatestPublishedMonth() throws Exception {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity first = persistSupply(member, community);
         SupplyEntity second = persistSupply(member, community);
+        writePublishedZeros(first, YearMonth.of(2026, 7));
         write(first, "2026/07/15", "12:00", 3f, 4f, 1f);
         write(first, "2026/08/10", "12:00", 9f, 0f, 0f);
         write(first, "2026/08/11", "12:00", 9f, null, null);
@@ -224,25 +231,104 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.period.startDate").value("2026-07-01T00:00:00+02:00"))
                 .andExpect(jsonPath("$.period.endDate").value("2026-07-31T23:00:00+02:00"))
                 .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))
-                .andExpect(jsonPath("$.coverage.hoursWithData").value(1))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(744))
                 // 31 days * 24 hours * 2 supplies.
                 .andExpect(jsonPath("$.coverage.expectedHours").value(1488))
                 .andExpect(jsonPath("$.coverage.suppliesWithData").value(1));
     }
 
+    /**
+     * The shape that caused #382, with the figures observed for a real supply on 8 October 2026.
+     * August is published: every hour carries consumption, self-consumption and surplus, except the
+     * last one, which carries no self-consumption. September holds 287 hours of consumption,
+     * 168.8 kWh, and the surplus the meter measured on 90 of them, 0.198 kWh in all, but no
+     * self-consumption: Datadis has not published it. Resolving September would report 0.198 kWh
+     * of assigned production against 168.8 kWh consumed; August is resolved instead.
+     */
     @Test
-    void aMonthCarryingOnlySurplusIsAPublishedMonth() throws Exception {
+    @DisplayName("ENM-001 AC8 a complete month followed by one holding only unpublished surplus resolves the complete month")
+    void aCompleteMonthFollowedByOneHoldingOnlyUnpublishedSurplusResolvesTheCompleteMonth() throws Exception {
+        when(clockProvider.now()).thenReturn(Instant.parse("2026-10-08T10:00:00Z"));
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
-        write(supply, "2026/07/15", "12:00", 3f, 4f, 1f);
-        write(supply, "2026/08/15", "12:00", 3f, null, 6f);
+        // August 2026 in Madrid: 744 hours, the last one at 21:00Z on the 31st.
+        writeAt(supply, hourly(Instant.parse("2026-07-31T22:00:00Z"), Instant.parse("2026-08-31T20:00:00Z")),
+                0.2f, 0.3f, 0.5f);
+        writeAt(supply, List.of(Instant.parse("2026-08-31T21:00:00Z")), 0.2f, null, 0.5f);
+        // September 2026: its first 287 hours, 287 * 0.588 = 168.756 kWh consumed.
+        writeAt(supply, hourly(Instant.parse("2026-08-31T22:00:00Z"), Instant.parse("2026-09-12T20:00:00Z")),
+                0.588f, null, null);
+        // 90 hours of measured surplus, 09:00 to 17:00 in Madrid on its first ten days: 90 * 0.0022.
+        for (int day = 1; day <= 10; day++) {
+            Instant nine = Instant.parse(String.format("2026-09-%02dT07:00:00Z", day));
+            writeAt(supply, hourly(nine, nine.plus(Duration.ofHours(8))), 0.588f, null, 0.0022f);
+        }
 
         requestLatest(community, member, loginUser(member))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
                 .andExpect(jsonPath("$.period.endDate").value("2026-08-31T23:00:00+02:00"))
-                .andExpect(jsonPath("$.energy.surplusKWh").value(closeTo(6.0, TOLERANCE)));
+                // 743 * 0.3 self-consumed, 744 * 0.5 surplus.
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(222.9, 1e-3)))
+                .andExpect(jsonPath("$.energy.surplusKWh").value(closeTo(372.0, 1e-3)))
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(closeTo(222.9 / 594.9, 1e-4)))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(744))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(744));
+    }
+
+    /**
+     * August is published for both supplies but 62 of its hours -- local 22:00 and 23:00 of every
+     * day -- have no record at all: 682 / 744 = 92 %, above the threshold. August is resolved, and
+     * coverage still reports the missing hours.
+     */
+    @Test
+    @DisplayName("ENM-005 AC6 coverage is reported for the resolved month and still reports its gaps")
+    void coverageIsReportedForTheResolvedMonthAndStillReportsItsGaps() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        SupplyEntity supply = persistSupply(member, community);
+        writePublishedZeros(supply, YearMonth.of(2026, 8), 22, 23);
+        write(supply, "2026/08/10", "12:00", 3f, 4f, 1f);
+
+        requestLatest(community, member, loginUser(member))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(682))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(744))
+                .andExpect(jsonPath("$.coverage.supplyCount").value(1))
+                .andExpect(jsonPath("$.coverage.suppliesWithData").value(1));
+    }
+
+    /**
+     * The watched assumption behind resolving a month published for any supply. August is published
+     * for one supply; the other holds consumption for every hour of it but no self-consumption yet.
+     * August is resolved with the published supply's assigned production alone, and coverage, which
+     * counts consumption records, reports the month complete: the missing publication shows nowhere
+     * in the response. This is the cost the rule accepts because Datadis publishes a distributor's
+     * month in one batch.
+     */
+    @Test
+    @DisplayName("ENM-002 a month published for only one of the member's supplies is resolved")
+    void aMonthPublishedForOnlyOneOfTheMembersSuppliesIsResolved() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        SupplyEntity published = persistSupply(member, community);
+        SupplyEntity lagging = persistSupply(member, community);
+        writePublishedZeros(published, YearMonth.of(2026, 8));
+        write(published, "2026/08/10", "12:00", 3f, 4f, 1f);
+        writeAt(lagging, hourly(Instant.parse("2026-07-31T22:00:00Z"), Instant.parse("2026-08-31T21:00:00Z")),
+                1f, null, null);
+
+        requestLatest(community, member, loginUser(member))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(747.0, TOLERANCE)))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(2 * 744))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(2 * 744))
+                .andExpect(jsonPath("$.coverage.suppliesWithData").value(2));
     }
 
     @Test
@@ -250,8 +336,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
-        write(supply, "2026/08/15", "12:00", 3f, 4f, 1f);
-        write(supply, "2026/09/15", "12:00", 3f, 4f, 1f);
+        writePublishedZeros(supply, YearMonth.of(2026, 8));
+        writePublishedZeros(supply, YearMonth.of(2026, 9));
 
         requestLatest(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -495,6 +581,32 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     }
 
     /**
+     * Writes a published month of zeros for the supply, leaving the given local hours without any
+     * record; see {@link DatadisConsumptionInfluxFixture#writePublishedZeros}.
+     */
+    private void writePublishedZeros(SupplyEntity supply, YearMonth month, Integer... skippedLocalHours) {
+        influxFixture.writePublishedZeros(supply.getCode(), month, ZONE, skippedLocalHours);
+        track(supply);
+    }
+
+    /**
+     * Writes one hourly record at each instant, all with the same values. A null energy value is
+     * stored as an absent field.
+     */
+    private void writeAt(SupplyEntity supply, List<Instant> times, Float gridImportKWh, Float selfConsumptionKWh,
+                         Float surplusKWh) {
+        influxFixture.writeAt(supply.getCode(), times, gridImportKWh, selfConsumptionKWh, surplusKWh);
+        track(supply);
+    }
+
+    /**
+     * Every hour from {@code first} to {@code last}, both inclusive.
+     */
+    private static List<Instant> hourly(Instant first, Instant last) {
+        return Stream.iterate(first, time -> !time.isAfter(last), time -> time.plus(Duration.ofHours(1))).toList();
+    }
+
+    /**
      * Writes one hourly record for the supply. A null energy value is stored as an absent field.
      */
     private void write(SupplyEntity supply, String date, String time, Float gridImportKWh,
@@ -502,6 +614,10 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         DatadisConsumption record = hourlyRecord(supply.getCode(), date, time, gridImportKWh,
                 selfConsumptionKWh, surplusKWh);
         influxFixture.write(List.of(record));
+        track(supply);
+    }
+
+    private void track(SupplyEntity supply) {
         if (!writtenCups.contains(supply.getCode())) {
             writtenCups.add(supply.getCode());
         }

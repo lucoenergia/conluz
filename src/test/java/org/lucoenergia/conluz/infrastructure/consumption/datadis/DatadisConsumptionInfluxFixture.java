@@ -11,9 +11,14 @@ import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnecti
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 /**
  * Writes and removes hourly consumption records for an arbitrary CUPS, for tests that need their
@@ -91,6 +96,25 @@ public class DatadisConsumptionInfluxFixture {
             }
             connection.write(batchPoints);
         }
+    }
+
+    /**
+     * Writes a published month that adds nothing to any sum: a record at every hour of the month in
+     * the zone carrying zero consumption, self-consumption and surplus, except at the given local
+     * hours of the day, which are left without any record.
+     *
+     * <p>A month counts as published only once most of its hours carry self-consumption. A test whose
+     * own records are sparse writes this first and its own records afterwards: a record written later
+     * at the same instant replaces the fields it carries.</p>
+     */
+    public void writePublishedZeros(String cups, YearMonth month, ZoneId zone, Integer... skippedLocalHours) {
+        Set<Integer> skipped = Set.of(skippedLocalHours);
+        Instant end = month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant();
+        List<Instant> times = Stream.iterate(month.atDay(1).atStartOfDay(zone).toInstant(),
+                        time -> time.isBefore(end), time -> time.plus(Duration.ofHours(1)))
+                .filter(time -> !skipped.contains(time.atZone(zone).getHour()))
+                .toList();
+        writeAt(cups, times, 0f, 0f, 0f);
     }
 
     /**
