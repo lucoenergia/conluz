@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
 import org.mockito.Mockito;
 
 import java.time.LocalDate;
@@ -25,7 +26,7 @@ class DatadisSyncDailyJobTest {
                 .setUsername("u").setPassword("p").build();
         when(mockConfigService.findAllEnabled()).thenReturn(List.of(enabledConfig));
 
-        DatadisSyncDailyJob job = new DatadisSyncDailyJob(mockSyncService, mockConfigService);
+        DatadisSyncDailyJob job = new DatadisSyncDailyJob(mockSyncService, mockConfigService, DatadisSyncWindow.DEFAULT);
 
         LocalDate today = LocalDate.now();
         LocalDate oneYearAgo = today.minusYears(1).withDayOfMonth(1);
@@ -41,7 +42,7 @@ class DatadisSyncDailyJobTest {
         GetDatadisConfigurationService mockConfigService = Mockito.mock(GetDatadisConfigurationService.class);
         when(mockConfigService.findAllEnabled()).thenReturn(Collections.emptyList());
 
-        DatadisSyncDailyJob job = new DatadisSyncDailyJob(mockSyncService, mockConfigService);
+        DatadisSyncDailyJob job = new DatadisSyncDailyJob(mockSyncService, mockConfigService, DatadisSyncWindow.DEFAULT);
 
         job.run();
 

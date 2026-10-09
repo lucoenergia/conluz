@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.datadis.sync;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,11 +20,14 @@ public class DatadisSyncDailyJob implements Job {
 
     private final DatadisSyncService datadisSyncService;
     private final GetDatadisConfigurationService getDatadisConfigurationService;
+    private final DatadisSyncWindow syncWindow;
 
     public DatadisSyncDailyJob(DatadisSyncService datadisSyncService,
-                               GetDatadisConfigurationService getDatadisConfigurationService) {
+                               GetDatadisConfigurationService getDatadisConfigurationService,
+                               DatadisSyncWindow syncWindow) {
         this.datadisSyncService = datadisSyncService;
         this.getDatadisConfigurationService = getDatadisConfigurationService;
+        this.syncWindow = syncWindow;
     }
 
     @Override
@@ -38,12 +42,12 @@ public class DatadisSyncDailyJob implements Job {
         LOGGER.info("Datadis daily sync started for {} communities...", enabledConfigs.size());
 
         LocalDate today = LocalDate.now();
-        LocalDate oneYearAgo = today.minusYears(1).withDayOfMonth(1);
+        LocalDate firstDay = syncWindow.firstDay(today);
 
         for (DatadisConfig config : enabledConfigs) {
             LOGGER.info("Syncing community {}", config.getCommunityId());
             try {
-                datadisSyncService.synchronize(config.getCommunityId(), oneYearAgo, today);
+                datadisSyncService.synchronize(config.getCommunityId(), firstDay, today);
             } catch (Exception e) {
                 LOGGER.error("Failed to sync community {}", config.getCommunityId(), e);
             }
