@@ -105,16 +105,6 @@ public class DateConverter {
         return instant.atZone(ZoneOffset.UTC).format(formatter);
     }
 
-    public String convertToLastDayOfTheMonthAsString(Month month, int year) {
-        LocalDate localDate = LocalDate.of(year, month, 1);
-
-        return String.format("%s-%02d-%sT23:59:00.000000000Z", year, month.getValue(), localDate.lengthOfMonth());
-    }
-
-    public String convertToFirstDayOfTheMonthAsString(Month month, int year) {
-        return String.format("%s-%02d-01T00:00:00.000000000Z", year, month.getValue());
-    }
-
     /**
      * Returns <strong>the very same instant</strong> the argument already denotes. Re-expressing an
      * {@link OffsetDateTime} in another zone with {@code atZoneSameInstant} changes only the offset
