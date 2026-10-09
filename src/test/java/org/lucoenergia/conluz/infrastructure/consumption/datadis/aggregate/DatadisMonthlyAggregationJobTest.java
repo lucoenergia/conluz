@@ -5,11 +5,13 @@ import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthl
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.mockito.Mockito;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.Month;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 class DatadisMonthlyAggregationJobTest {
 
-    // Midday, so the date is the same in any JVM default zone this test may run under.
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-09T12:00:00Z"), ZoneOffset.UTC);
 
     @Test
@@ -35,7 +36,7 @@ class DatadisMonthlyAggregationJobTest {
         when(mockConfigService.findAllEnabled()).thenReturn(List.of(enabledConfig(communityId)));
 
         DatadisMonthlyAggregationJob job = new DatadisMonthlyAggregationJob(mockService, CLOCK,
-                mockConfigService, DatadisSyncWindow.DEFAULT);
+                mockConfigService, DatadisSyncWindow.DEFAULT, zoneResolver(ZoneId.of("Europe/Madrid")));
 
         job.run();
 
@@ -57,7 +58,7 @@ class DatadisMonthlyAggregationJobTest {
         when(mockConfigService.findAllEnabled()).thenReturn(Collections.emptyList());
 
         DatadisMonthlyAggregationJob job = new DatadisMonthlyAggregationJob(mockService, CLOCK,
-                mockConfigService, DatadisSyncWindow.DEFAULT);
+                mockConfigService, DatadisSyncWindow.DEFAULT, zoneResolver(ZoneId.of("Europe/Madrid")));
 
         job.run();
 
@@ -68,5 +69,11 @@ class DatadisMonthlyAggregationJobTest {
         return new DatadisConfig.Builder()
                 .setCommunityId(communityId).setEnabled(Boolean.TRUE)
                 .setUsername("u").setPassword("p").build();
+    }
+
+    private static ZoneResolver zoneResolver(ZoneId zone) {
+        ZoneResolver zoneResolver = Mockito.mock(ZoneResolver.class);
+        when(zoneResolver.resolveZoneIdForCommunity(any(UUID.class))).thenReturn(zone);
+        return zoneResolver;
     }
 }

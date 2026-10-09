@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthl
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneId;
 import java.util.List;
 
 @Component
@@ -25,15 +25,18 @@ public class DatadisMonthlyAggregationJob implements Job {
     private final Clock clock;
     private final GetDatadisConfigurationService getDatadisConfigurationService;
     private final DatadisSyncWindow syncWindow;
+    private final ZoneResolver zoneResolver;
 
     public DatadisMonthlyAggregationJob(DatadisMonthlyAggregationService aggregationService,
                                         Clock clock,
                                         GetDatadisConfigurationService getDatadisConfigurationService,
-                                        DatadisSyncWindow syncWindow) {
+                                        DatadisSyncWindow syncWindow,
+                                        ZoneResolver zoneResolver) {
         this.aggregationService = aggregationService;
         this.clock = clock;
         this.getDatadisConfigurationService = getDatadisConfigurationService;
         this.syncWindow = syncWindow;
+        this.zoneResolver = zoneResolver;
     }
 
     /**
@@ -43,6 +46,9 @@ public class DatadisMonthlyAggregationJob implements Job {
      * Datadis publishes and revises hourly records after a month has closed, and the sync writes
      * those revisions to the hourly series, so a closed month's total would otherwise stay frozen at
      * whatever was aggregated on its last day.
+     *
+     * The current date is resolved in the community's zone, so the window follows the community's
+     * calendar rather than the JVM default zone.
      *
      * Cron expression breakdown:
      * 0 seconds (at the start of the minute)
@@ -68,17 +74,17 @@ public class DatadisMonthlyAggregationJob implements Job {
 
         LOGGER.info("Datadis monthly aggregation started for {} communities...", enabledConfigs.size());
 
-        LocalDate today = LocalDate.now(clock.withZone(ZoneId.systemDefault()));
-
         for (DatadisConfig config : enabledConfigs) {
-            aggregateCommunity(config, today);
+            aggregateCommunity(config);
         }
 
         LOGGER.info("...finished Datadis monthly aggregation.");
     }
 
-    private void aggregateCommunity(DatadisConfig config, LocalDate today) {
+    private void aggregateCommunity(DatadisConfig config) {
         try {
+            LocalDate today = LocalDate.now(clock.withZone(
+                    zoneResolver.resolveZoneIdForCommunity(config.getCommunityId())));
             for (YearMonth month : syncWindow.months(today)) {
                 LOGGER.info("Aggregating data for community: {}, month: {}", config.getCommunityId(), month);
                 aggregationService.aggregateMonthlyConsumptions(config.getCommunityId(), month.getMonth(),
