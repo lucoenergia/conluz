@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Month;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -56,20 +55,6 @@ public class DatadisMonthlyAggregationServiceImpl implements DatadisMonthlyAggre
             } else {
                 aggregateMonthlyConsumptions(communityId, year);
             }
-        }
-    }
-
-    @Override
-    public void aggregateMonthlyConsumptions(Month month, int year) {
-        List<Supply> allSupplies = getSupplyRepository.findAll();
-
-        for (Supply supply : allSupplies) {
-            if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isBlank()) {
-                LOGGER.warn("Skipping supply with ID: {} because it does not have distributor code", supply.getId());
-                continue;
-            }
-
-            aggregateForSupplyMonthYear(supply, month, year);
         }
     }
 

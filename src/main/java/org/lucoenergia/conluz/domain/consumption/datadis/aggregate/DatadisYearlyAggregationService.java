@@ -10,16 +10,6 @@ import java.util.UUID;
  */
 public interface DatadisYearlyAggregationService {
 
-    /**
-     * Aggregates monthly consumption data into yearly totals for all supplies
-     * for a specific year.
-     *
-     * @param year the year to aggregate
-     */
-    void aggregateYearlyConsumptions(int year);
-
-    // --- Community-scoped variants: only the given community's supplies are aggregated ---
-
     void aggregateYearlyConsumptions(UUID communityId, int year);
 
     /**

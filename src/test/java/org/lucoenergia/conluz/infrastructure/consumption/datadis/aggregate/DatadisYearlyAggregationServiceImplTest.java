@@ -51,82 +51,6 @@ class DatadisYearlyAggregationServiceImplTest {
     }
 
     @Test
-    void testAggregateYearlyForAllSupplies() {
-
-        // Given
-        Supply supply1 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
-        Supply supply2 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supply1, supply2));
-
-        // When
-        service.aggregateYearlyConsumptions(2024);
-
-        // Then - one call per supply
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply1), eq(2024));
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply2), eq(2024));
-    }
-
-    @Test
-    void testAggregateYearlySkipsSuppliesWithoutDistributorCode() {
-
-        // Given
-        Supply supplyWithCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
-        Supply supplyWithoutCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode(null).build()).build();
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
-
-        // When
-        service.aggregateYearlyConsumptions(2024);
-
-        // Then - only supply with distributor code is processed
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supplyWithCode), eq(2024));
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(eq(supplyWithoutCode), anyInt());
-    }
-
-    @Test
-    void testAggregateYearlySkipsSuppliesWithBlankDistributorCode() {
-
-        // Given
-        Supply supplyWithBlankCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("   ").build()).build();
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithBlankCode));
-
-        // When
-        service.aggregateYearlyConsumptions(2024);
-
-        // Then
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
-    }
-
-    @Test
-    void testAggregateYearlyHandlesRepositoryException() {
-
-        // Given
-        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build()).build();
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supply));
-        doThrow(new RuntimeException("InfluxDB connection error"))
-                .when(aggregationRepository)
-                .aggregateYearlyConsumption(any(Supply.class), anyInt());
-
-        // When - should not throw, just log error
-        service.aggregateYearlyConsumptions(2024);
-
-        // Then - attempted the call
-        verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supply), eq(2024));
-    }
-
-    @Test
-    void testAggregateYearlyWithEmptySupplyList() {
-
-        // Given
-        when(getSupplyRepository.findAll()).thenReturn(Collections.emptyList());
-
-        // When
-        service.aggregateYearlyConsumptions(2024);
-
-        // Then
-        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
-    }
-
-    @Test
     void testAggregateYearlyForCommunityProcessesItsSupplies() {
 
         // Given
@@ -186,6 +110,21 @@ class DatadisYearlyAggregationServiceImplTest {
         // Then - only the supply with a distributor code is processed
         verify(aggregationRepository, times(1)).aggregateYearlyConsumption(eq(supplyWithCode), eq(2024));
         verify(aggregationRepository, never()).aggregateYearlyConsumption(eq(supplyWithoutCode), anyInt());
+    }
+
+    @Test
+    void testAggregateYearlyForCommunitySkipsSuppliesWithBlankDistributorCode() {
+
+        // Given
+        UUID communityId = UUID.randomUUID();
+        Supply supplyWithBlankCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("   ").build()).build();
+        when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supplyWithBlankCode));
+
+        // When
+        service.aggregateYearlyConsumptions(communityId, 2024);
+
+        // Then
+        verify(aggregationRepository, never()).aggregateYearlyConsumption(any(Supply.class), anyInt());
     }
 
     @Test

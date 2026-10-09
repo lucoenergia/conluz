@@ -51,73 +51,6 @@ class DatadisProductionMonthlyAggregationServiceTest {
     }
 
     @Test
-    void testAggregateMonthlyForAllSuppliesSpecificMonth() {
-
-        // Given
-        Supply supply1 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
-        Supply supply2 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supply1, supply2));
-
-        // When
-        service.aggregateMonthlyProductions(Month.DECEMBER, 2024);
-
-        // Then - 2 supplies × 1 month = 2 calls
-        verify(aggregationRepository, times(2))
-                .aggregateMonthlyProduction(any(Supply.class), eq(Month.DECEMBER), eq(2024));
-    }
-
-    @Test
-    void testAggregateMonthlySkipsSuppliesWithoutDistributorCode() {
-
-        // Given
-        Supply supplyWithCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
-        Supply supplyWithoutCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode(null).build()).build();
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
-
-        // When
-        service.aggregateMonthlyProductions(Month.JANUARY, 2024);
-
-        // Then - only the supply with a distributor code is processed
-        verify(aggregationRepository, times(1))
-                .aggregateMonthlyProduction(eq(supplyWithCode), eq(Month.JANUARY), eq(2024));
-        verify(aggregationRepository, never())
-                .aggregateMonthlyProduction(eq(supplyWithoutCode), any(Month.class), anyInt());
-    }
-
-    @Test
-    void testAggregateMonthlySkipsSuppliesWithBlankDistributorCode() {
-
-        // Given
-        Supply supplyWithBlankCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("   ").build()).build();
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supplyWithBlankCode));
-
-        // When
-        service.aggregateMonthlyProductions(Month.MARCH, 2024);
-
-        // Then
-        verify(aggregationRepository, never())
-                .aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
-    }
-
-    @Test
-    void testAggregateMonthlyHandlesRepositoryException() {
-
-        // Given
-        Supply supply = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST123").build()).build();
-        when(getSupplyRepository.findAll()).thenReturn(List.of(supply));
-        doThrow(new RuntimeException("InfluxDB connection error"))
-                .when(aggregationRepository)
-                .aggregateMonthlyProduction(any(Supply.class), any(Month.class), anyInt());
-
-        // When - should not throw, just log error
-        service.aggregateMonthlyProductions(Month.JUNE, 2024);
-
-        // Then - attempted the call
-        verify(aggregationRepository, times(1))
-                .aggregateMonthlyProduction(eq(supply), eq(Month.JUNE), eq(2024));
-    }
-
-    @Test
     void testAggregateMonthlyForCommunityWholeYearProcessesEveryMonth() {
 
         // Given
@@ -195,6 +128,26 @@ class DatadisProductionMonthlyAggregationServiceTest {
                 .aggregateMonthlyProduction(eq(supplyWithCode), eq(Month.JANUARY), eq(2024));
         verify(aggregationRepository, never())
                 .aggregateMonthlyProduction(eq(supplyWithoutCode), any(Month.class), anyInt());
+    }
+
+    @Test
+    void testAggregateMonthlyForCommunityContinuesAfterARepositoryException() {
+
+        // Given
+        UUID communityId = UUID.randomUUID();
+        Supply failing = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build()).build();
+        Supply next = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
+        when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(failing, next));
+        doThrow(new RuntimeException("InfluxDB connection error"))
+                .when(aggregationRepository)
+                .aggregateMonthlyProduction(eq(failing), any(Month.class), anyInt());
+
+        // When - should not throw, just log the error
+        service.aggregateMonthlyProductions(communityId, Month.JUNE, 2024);
+
+        // Then - the failure is contained to its supply
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(failing), eq(Month.JUNE), eq(2024));
+        verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(next), eq(Month.JUNE), eq(2024));
     }
 
     @Test

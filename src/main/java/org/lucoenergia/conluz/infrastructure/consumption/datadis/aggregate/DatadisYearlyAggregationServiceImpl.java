@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,20 +44,6 @@ public class DatadisYearlyAggregationServiceImpl implements DatadisYearlyAggrega
             aggregateYearlyConsumptions(communityId, SupplyCode.of(supplyCode), year);
         } else {
             aggregateYearlyConsumptions(communityId, year);
-        }
-    }
-
-    @Override
-    public void aggregateYearlyConsumptions(int year) {
-        List<Supply> allSupplies = getSupplyRepository.findAll();
-
-        for (Supply supply : allSupplies) {
-            if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isBlank()) {
-                LOGGER.warn("Skipping supply with ID: {} because it does not have distributor code", supply.getId());
-                continue;
-            }
-
-            aggregateForSupplyYear(supply, year);
         }
     }
 

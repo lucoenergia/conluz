@@ -10,17 +10,6 @@ import java.util.UUID;
  */
 public interface DatadisProductionMonthlyAggregationService {
 
-    /**
-     * Aggregates hourly production data into monthly totals for all supplies
-     * for a specific month and year.
-     *
-     * @param month the month to aggregate
-     * @param year the year to aggregate
-     */
-    void aggregateMonthlyProductions(Month month, int year);
-
-    // --- Community-scoped variants: only the given community's supplies are aggregated ---
-
     void aggregateMonthlyProductions(UUID communityId, int year);
 
     void aggregateMonthlyProductions(UUID communityId, Month month, int year);
