@@ -1,0 +1,166 @@
+package org.lucoenergia.conluz.infrastructure.datadis.get;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.constraints.NotNull;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.apache.commons.lang3.NotImplementedException;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.datadis.MeasurementType;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDateTimeConverter;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisParams;
+import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Repository;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.time.Month;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+
+@Repository
+@Qualifier("getDatadisConsumptionRepositoryRest")
+public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptionRepository {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GetDatadisConsumptionRepositoryRest.class);
+
+    private static final String API_PATH = "/api-private/api";
+    private static final String GET_CONSUMPTION_DATA_PATH = "/get-consumption-data";
+
+    private final ObjectMapper objectMapper;
+    private final DatadisAuthorizer datadisAuthorizer;
+    private final ConluzRestClientBuilder conluzRestClientBuilder;
+    private final DatadisDateTimeConverter datadisDateTimeConverter;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
+
+    public GetDatadisConsumptionRepositoryRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
+                                               ConluzRestClientBuilder conluzRestClientBuilder,
+                                               DatadisDateTimeConverter datadisDateTimeConverter,
+                                               GetDatadisConfigRepository getDatadisConfigRepository) {
+        this.objectMapper = objectMapper;
+        this.datadisAuthorizer = datadisAuthorizer;
+        this.conluzRestClientBuilder = conluzRestClientBuilder;
+        this.datadisDateTimeConverter = datadisDateTimeConverter;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
+    }
+
+    @Override
+    public List<DatadisConsumption> getHourlyConsumptionsByMonth(@NotNull Supply supply, @NotNull Month month, @NotNull int year) {
+
+        final List<DatadisConsumption> result = new ArrayList<>();
+
+        final String monthDate = datadisDateTimeConverter.convertFromMonthAndYear(month, year);
+
+        LOGGER.info("Processing supply {} to get consumptions.", supply.getId());
+
+        validateSupply(supply);
+
+        final UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
+        final Optional<DatadisConfig> configOpt = communityId != null
+                ? getDatadisConfigRepository.findByCommunityId(communityId)
+                : getDatadisConfigRepository.getDatadisConfig();
+
+        if (configOpt.isEmpty()) {
+            LOGGER.warn("No Datadis config found for supply {} (community {}), skipping.", supply.getId(), communityId);
+            return result;
+        }
+        final DatadisConfig config = configOpt.get();
+
+        final String authToken = "Bearer " + datadisAuthorizer.getAuthToken(config);
+
+        final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(60));
+
+        final String baseUrl = config.getBaseUrl();
+
+        // Create the complete URL with the query parameter
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(baseUrl + API_PATH + GET_CONSUMPTION_DATA_PATH)
+                .queryParam(DatadisParams.CUPS, supply.getCode())
+                .queryParam(DatadisParams.DISTRIBUTOR_CODE, supply.getDistributor().getCode())
+                .queryParam(DatadisParams.START_DATE, monthDate)
+                .queryParam(DatadisParams.END_DATE, monthDate)
+                .queryParam(DatadisParams.MEASUREMENT_TYPE, MeasurementType.PER_HOUR)
+                .queryParam(DatadisParams.POINT_TYPE, supply.getDistributor().getPointType());
+        if (datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of(supply.getUser().getPersonalId()))) {
+            urlBuilder = urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId());
+        }
+        final String url = urlBuilder.build().toUriString();
+
+        final Request request = new Request.Builder()
+                .url(url)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, authToken)
+                .header(HttpHeaders.ACCEPT_ENCODING, "identity")
+                .header(HttpHeaders.ACCEPT, "*/*")
+                .get()
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+
+                String jsonData = response.body() != null ? response.body().string() : "";
+
+                List<DatadisConsumption> consumptions = objectMapper.readValue(jsonData, new TypeReference<>() {});
+
+                result.addAll(consumptions);
+            } else {
+                LOGGER.error("Unable to get consumptions for supply with ID {} for month {} and year {}. Code {}, message: {}",
+                        supply.getId(), month, year, response.code(), response.body() != null ? response.body().string() : response.message());
+            }
+        } catch (IOException e) {
+            LOGGER.error("Unable to get consumptions from datadis", e);
+        }
+
+        LOGGER.info("Supply processed.");
+        LOGGER.debug("Results. {}", result);
+
+        return result;
+    }
+
+    @Override
+    public List<DatadisConsumption> getDailyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
+        throw new NotImplementedException("Not yet implemented.");
+    }
+
+    @Override
+    public List<DatadisConsumption> getHourlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
+        throw new NotImplementedException("Not yet implemented.");
+    }
+
+    @Override
+    public List<DatadisConsumption> getMonthlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
+        throw new NotImplementedException("Not yet implemented.");
+    }
+
+    @Override
+    public List<DatadisConsumption> getYearlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
+        throw new NotImplementedException("Not yet implemented.");
+    }
+
+    private void validateSupply(Supply supply) {
+        if (supply.getDistributor() == null || supply.getDistributor().getCode() == null || supply.getDistributor().getCode().isEmpty()) {
+            throw new DatadisSupplyConfigurationException("Distributor code is mandatory to get monthly consumption.");
+        }
+        if (supply.getDistributor() == null || supply.getDistributor().getPointType() == null) {
+            throw new DatadisSupplyConfigurationException("Point type is mandatory to get monthly consumption.");
+        }
+    }
+}
