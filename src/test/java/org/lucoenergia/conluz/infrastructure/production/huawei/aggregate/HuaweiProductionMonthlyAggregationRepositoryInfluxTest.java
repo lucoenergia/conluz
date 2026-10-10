@@ -8,6 +8,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationRepository;
@@ -19,6 +20,7 @@ import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnecti
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.Instant;
 import java.time.Month;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -141,6 +143,37 @@ class HuaweiProductionMonthlyAggregationRepositoryInfluxTest extends BaseIntegra
     // Data setup helpers
     // -----------------------------------------------------------------------
 
+    @Test
+    @DisplayName("HPA-001 the monthly Huawei production point sums the hourly records of the local month, in winter and summer time")
+    void testAggregateMonthlyProductionSumsTheHourlyRecordsOfTheLocalMonth() {
+        // Europe/Madrid. January 2026 (CET, UTC+1) is [2025-12-31T23:00Z, 2026-01-31T23:00Z);
+        // July 2026 (CEST, UTC+2) is [2026-06-30T22:00Z, 2026-07-31T22:00Z).
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
+            loadHourlyPoint(batchPoints, "2025-12-31T22:00:00Z", 1000.0); // Dec 31 23:00 local
+            loadHourlyPoint(batchPoints, "2025-12-31T23:00:00Z", 1.0);    // Jan 1 00:00 local
+            loadHourlyPoint(batchPoints, "2026-01-31T22:00:00Z", 10.0);   // Jan 31 23:00 local
+            loadHourlyPoint(batchPoints, "2026-01-31T23:00:00Z", 2000.0); // Feb 1 00:00 local
+            loadHourlyPoint(batchPoints, "2026-06-30T21:00:00Z", 3000.0); // Jun 30 23:00 local
+            loadHourlyPoint(batchPoints, "2026-06-30T22:00:00Z", 2.0);    // Jul 1 00:00 local
+            loadHourlyPoint(batchPoints, "2026-07-31T21:00:00Z", 20.0);   // Jul 31 23:00 local
+            loadHourlyPoint(batchPoints, "2026-07-31T22:00:00Z", 4000.0); // Aug 1 00:00 local
+            connection.write(batchPoints);
+        }
+
+        repository.aggregateMonthlyProduction(plant, Month.JANUARY, 2026);
+        repository.aggregateMonthlyProduction(plant, Month.JULY, 2026);
+
+        List<HuaweiHourlyProductionMonthlyPoint> january = queryMonthlyData("2025-12-31T23:00:00Z", "2025-12-31T23:00:00Z");
+        assertEquals(1, january.size(), "January is stamped at local midnight of the 1st");
+        assertEquals(11.0, january.get(0).getInverterPower(), 0.001,
+                "January must sum exactly the hours of the local month");
+        List<HuaweiHourlyProductionMonthlyPoint> july = queryMonthlyData("2026-06-30T22:00:00Z", "2026-06-30T22:00:00Z");
+        assertEquals(1, july.size(), "July is stamped at local midnight of the 1st");
+        assertEquals(22.0, july.get(0).getInverterPower(), 0.001,
+                "July must sum exactly the hours of the local month");
+    }
+
     /**
      * Loads 6 hourly records across two days in April 2023.
      * Each record has inverter_power=1.0, ongrid_power=0.8, theory_power=1.2.
@@ -162,6 +195,18 @@ class HuaweiProductionMonthlyAggregationRepositoryInfluxTest extends BaseIntegra
 
             connection.write(batchPoints);
         }
+    }
+
+    private void loadHourlyPoint(BatchPoints batchPoints, String instant, double inverterPower) {
+        batchPoints.point(Point.measurement(HuaweiConfig.HUAWEI_HOURLY_PRODUCTION_MEASUREMENT)
+                .time(Instant.parse(instant).toEpochMilli(), TimeUnit.MILLISECONDS)
+                .tag("station_code", STATION_CODE)
+                .addField("inverter_power", inverterPower)
+                .addField("ongrid_power", 0.0)
+                .addField("power_profit", 0.0)
+                .addField("theory_power", 0.0)
+                .addField("radiation_intensity", 0.0)
+                .build());
     }
 
     private void loadHourlyPoint(BatchPoints batchPoints, long timestampNanos) {

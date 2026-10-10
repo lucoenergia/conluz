@@ -11,17 +11,6 @@ import java.util.UUID;
  */
 public interface DatadisMonthlyAggregationService {
 
-    /**
-     * Aggregates hourly consumption data into monthly totals for all supplies
-     * for a specific month and year.
-     *
-     * @param month the month to aggregate
-     * @param year the year to aggregate
-     */
-    void aggregateMonthlyConsumptions(Month month, int year);
-
-    // --- Community-scoped variants: only the given community's supplies are aggregated ---
-
     void aggregateMonthlyConsumptions(UUID communityId, int year);
 
     void aggregateMonthlyConsumptions(UUID communityId, Month month, int year);
