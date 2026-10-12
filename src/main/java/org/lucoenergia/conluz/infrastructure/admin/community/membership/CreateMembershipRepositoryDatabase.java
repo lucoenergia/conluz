@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.util.UUID;
 
 @Transactional
@@ -27,15 +28,18 @@ public class CreateMembershipRepositoryDatabase implements CreateMembershipRepos
     private final UserRepository userRepository;
     private final CommunityJpaRepository communityJpaRepository;
     private final CommunityEntityMapper communityEntityMapper;
+    private final Clock clock;
 
     public CreateMembershipRepositoryDatabase(CommunityMembershipJpaRepository membershipJpaRepository,
                                               UserRepository userRepository,
                                               CommunityJpaRepository communityJpaRepository,
-                                              CommunityEntityMapper communityEntityMapper) {
+                                              CommunityEntityMapper communityEntityMapper,
+                                              Clock clock) {
         this.membershipJpaRepository = membershipJpaRepository;
         this.userRepository = userRepository;
         this.communityJpaRepository = communityJpaRepository;
         this.communityEntityMapper = communityEntityMapper;
+        this.clock = clock;
     }
 
     @Override
@@ -55,12 +59,20 @@ public class CreateMembershipRepositoryDatabase implements CreateMembershipRepos
             throw new MembershipAlreadyExistsException(communityId, userId);
         }
 
+        // The member record starts as a copy of the user's data, and the membership is accepted on
+        // creation: every path that reaches this creates an active membership.
         CommunityMembershipEntity entity = new CommunityMembershipEntity.Builder()
                 .withId(UUID.randomUUID())
                 .withUser(userEntity)
                 .withCommunity(communityEntity)
                 .withRole(role)
                 .withEnabled(true)
+                .withFullName(userEntity.getFullName())
+                .withMemberNumber(userEntity.getNumber())
+                .withContactEmail(emailOrNull(userEntity.getEmail()))
+                .withAddress(userEntity.getAddress())
+                .withPhoneNumber(userEntity.getPhoneNumber())
+                .withAcceptedAt(clock.instant())
                 .build();
 
         CommunityMembershipEntity saved = membershipJpaRepository.save(entity);
@@ -71,6 +83,22 @@ public class CreateMembershipRepositoryDatabase implements CreateMembershipRepos
                 .withCommunity(communityEntityMapper.map(communityEntity))
                 .withRole(saved.getRole())
                 .withEnabled(saved.isEnabled())
+                .withFullName(saved.getFullName())
+                .withMemberNumber(saved.getMemberNumber())
+                .withContactEmail(saved.getContactEmail())
+                .withAddress(saved.getAddress())
+                .withPhoneNumber(saved.getPhoneNumber())
+                .withAcceptedAt(saved.getAcceptedAt())
+                .withInvitedBy(saved.getInvitedBy())
+                .withInvitedAt(saved.getInvitedAt())
                 .build();
+    }
+
+    /**
+     * users.email is NOT NULL, so a user without an email holds an empty string; a member record
+     * says "no contact email" with null.
+     */
+    private static String emailOrNull(String email) {
+        return email == null || email.isBlank() ? null : email;
     }
 }

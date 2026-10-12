@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Fills the member record of every existing membership from its user, and marks every existing
+         membership accepted (#388, ADR-0003 §1 and §2). Behaviour is unchanged: each membership holds
+         the data its user held at migration time, and every membership that granted access before
+         still counts as accepted.
+
+         - full_name, member_number, address and phone_number are copied as they are.
+         - contact_email is copied from users.email, except that an empty or blank value becomes NULL:
+           users.email is NOT NULL, so "no email" was stored as the empty string, and NULL is how a
+           member record says it. Blank means only space, tab, line feed, carriage return, form feed and
+           vertical tab, spelled out instead of \s or [[:space:]] because their meaning depends on the
+           database locale.
+         - accepted_at is the migration instant: now() is the start of this changeset's transaction, so
+           every row gets the same value.
+         - invited_by and invited_at stay NULL: no existing membership was created by an invitation.
+
+         The precondition refuses to run over rows that already hold a member record or an acceptance,
+         so a value written by the application is never overwritten.
+
+         The rollback clears the copied values and accepted_at on every row, which is the state the
+         columns had before this changeset. -->
+    <changeSet id="backfill_member_record_for_community_memberships" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot backfill the member records of community_memberships: the columns are missing, or some rows already have a full_name or an accepted_at. Nothing was changed. List them with: SELECT id, user_id, community_id, full_name, accepted_at FROM community_memberships WHERE full_name IS NOT NULL OR accepted_at IS NOT NULL;">
+            <columnExists tableName="community_memberships" columnName="full_name"/>
+            <columnExists tableName="community_memberships" columnName="accepted_at"/>
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM community_memberships WHERE full_name IS NOT NULL OR accepted_at IS NOT NULL
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE community_memberships m
+            SET full_name     = u.full_name,
+                member_number = u.number,
+                contact_email = CASE
+                                    WHEN regexp_replace(u.email, '[ \t\n\r\f\v]', '', 'g') = '' THEN NULL
+                                    ELSE u.email
+                                END,
+                address       = u.address,
+                phone_number  = u.phone_number,
+                accepted_at   = now()
+            FROM users u
+            WHERE u.id = m.user_id
+        </sql>
+        <rollback>
+            <sql>
+                UPDATE community_memberships
+                SET full_name     = NULL,
+                    member_number = NULL,
+                    contact_email = NULL,
+                    address       = NULL,
+                    phone_number  = NULL,
+                    accepted_at   = NULL
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
