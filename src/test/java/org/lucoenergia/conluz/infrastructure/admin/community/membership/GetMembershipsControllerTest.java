@@ -5,21 +5,14 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -32,13 +25,9 @@ class GetMembershipsControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
+    private CreateMembershipRepository createMembershipRepository;
+    @Autowired
     private CreateUserRepository createUserRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private CommunityJpaRepository communityJpaRepository;
-    @Autowired
-    private CommunityMembershipJpaRepository communityMembershipJpaRepository;
 
     @Test
     void testGetMembershipsReturnsEnrichedResponse() throws Exception {
@@ -100,18 +89,6 @@ class GetMembershipsControllerTest extends BaseControllerTest {
     }
 
     private void createMembership(User user, Community community, CommunityRole role) {
-        UserEntity userEntity = userRepository.findByPersonalId(user.getPersonalId())
-                .orElseThrow(() -> new IllegalStateException("User not found: " + user.getPersonalId()));
-        CommunityEntity communityEntity = communityJpaRepository.findById(community.getId())
-                .orElseThrow(() -> new IllegalStateException("Community not found: " + community.getId()));
-
-        CommunityMembershipEntity membership = new CommunityMembershipEntity.Builder()
-                .withId(UUID.randomUUID())
-                .withUser(userEntity)
-                .withCommunity(communityEntity)
-                .withRole(role)
-                .withEnabled(true)
-                .build();
-        communityMembershipJpaRepository.save(membership);
+        createMembershipRepository.create(community.getId(), user.getId(), role);
     }
 }
