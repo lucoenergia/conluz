@@ -63,9 +63,10 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 - **Status:** Active
 - **Rule:** Creating a user (`createUser`), importing users (`createUsersWithFile`) and creating the default admin
   (`init`) MUST check the password of every account they create against the password policy, MUST refuse to create
-  an account without a password, and MUST then store nothing.
-- **Rationale:** These paths have always required a password, and keep requiring it. Passwordless accounts are
-  created only by member registration (ACC-006), which takes no password at all.
+  an account without a password or without a number, and MUST then store nothing.
+- **Rationale:** These paths have always required a password and a number, and keep requiring them now that the
+  database accepts accounts without either. Passwordless accounts without a number are created only by member
+  registration (ACC-006), which takes no password at all.
 - **Source:** #389, #392, ADR-0003 §7
 
 ### ACC-005 — Password reset refuses a passwordless account
