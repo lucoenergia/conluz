@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- "No email" is NULL (#389, ADR-0003 §8). While users.email was NOT NULL, an account without an email
+         address held the empty string (for example, a member imported without one). This changeset turns
+         every empty or blank email into NULL. Blank means only space, tab, line feed, carriage return, form
+         feed and vertical tab, spelled out instead of \s or [[:space:]] because their meaning depends on the
+         database locale; EmailAddresses#blankToNull removes the same set.
+
+         Runs after make_users_email_nullable: the precondition HALTs if the column is still NOT NULL. -->
+    <changeSet id="normalize_users_blank_email_to_null" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot turn blank users.email values into NULL: the column is missing or still NOT NULL. Nothing was changed. Check it with: SELECT is_nullable FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'email'; and apply make_users_email_nullable first.">
+            <sqlCheck expectedResult="1">
+                SELECT count(*)
+                FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'email' AND is_nullable = 'YES'
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            UPDATE users
+            SET email = NULL
+            WHERE regexp_replace(email, '[ \t\n\r\f\v]', '', 'g') = ''
+        </sql>
+        <!-- Not restorable exactly: which rows held the empty string and which held a blank value (such as
+             ' \t ') is not kept anywhere. Rolling back only removes this changeset from the changelog; the
+             rollback of make_users_email_nullable then turns every NULL email, these included, into the
+             empty string. -->
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>
