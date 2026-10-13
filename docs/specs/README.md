@@ -73,3 +73,4 @@ are always called **tests**, never specs.
 | `DCF` | Datadis configuration | [`datadis-configuration.md`](datadis-configuration.md) |
 | `MEM` | Memberships | [`memberships.md`](memberships.md) |
 | `ACC` | Accounts | [`accounts.md`](accounts.md) |
+| `OTT` | One-time tokens | [`one-time-tokens.md`](one-time-tokens.md) |
