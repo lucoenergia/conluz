@@ -70,5 +70,6 @@ are always called **tests**, never specs.
 | `DCA` | Datadis consumption pre-aggregation | [`datadis-consumption-pre-aggregation.md`](datadis-consumption-pre-aggregation.md) |
 | `HPA` | Huawei production pre-aggregation | [`huawei-production-pre-aggregation.md`](huawei-production-pre-aggregation.md) |
 | `HCF` | Huawei configuration | [`huawei-configuration.md`](huawei-configuration.md) |
+| `DCF` | Datadis configuration | [`datadis-configuration.md`](datadis-configuration.md) |
 | `MEM` | Memberships | [`memberships.md`](memberships.md) |
 | `ACC` | Accounts | [`accounts.md`](accounts.md) |
