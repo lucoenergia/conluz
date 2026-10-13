@@ -324,7 +324,6 @@
         "required" : [
           "baseUrl",
           "enabled",
-          "password",
           "username"
         ],
         "type" : "object"
@@ -1920,6 +1919,7 @@
               "DISTRIBUTOR_FILE_LINE_MALFORMED",
               "SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID",
               "PLANT_MISSING_REGULATORY_CODE",
+              "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION"
             ],

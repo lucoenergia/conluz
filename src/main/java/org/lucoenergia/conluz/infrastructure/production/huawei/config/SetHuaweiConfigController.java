@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -85,8 +86,9 @@ public class SetHuaweiConfigController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
-    public SetHuaweiConfigResponse configureHuawei(@PathVariable UUID plantId, @RequestBody ConfigureHuaweiBody body) {
-        HuaweiConfig config = service.setHuaweiConfiguration(plantId, body.toHuaweiConfig());
+    public SetHuaweiConfigResponse configureHuawei(@PathVariable UUID plantId,
+                                                   @Valid @RequestBody ConfigureHuaweiBody body) {
+        HuaweiConfig config = service.setHuaweiConfiguration(plantId, body.toCommand());
         return SetHuaweiConfigResponse.of(config);
     }
 }
