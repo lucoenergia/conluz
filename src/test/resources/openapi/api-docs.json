@@ -1339,6 +1339,15 @@
       },
       "MembershipResponse" : {
         "properties" : {
+          "acceptedAt" : {
+            "description" : "When the membership was accepted. Null while it is pending: a pending membership grants no access until it is accepted. Independent of enabled.",
+            "example" : "2026-01-01T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "capabilities" : {
             "$ref" : "#/components/schemas/MembershipCapabilitiesResponse",
             "description" : "What the caller may do with this membership."
@@ -1371,6 +1380,7 @@
           }
         },
         "required" : [
+          "acceptedAt",
           "capabilities",
           "communityId",
           "enabled",
