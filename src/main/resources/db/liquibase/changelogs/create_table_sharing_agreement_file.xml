@@ -7,8 +7,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
     <!-- The distributor file is evidence for a sharing_agreement; the coefficients in
          supply_partition_coefficient are the source of truth. An agreement may have zero files
-         (phase 2d's synthetic migration agreement has none) or several over time: the latest one
-         wins, but older ones are kept rather than overwritten. -->
+          or several over time: the latest one wins, but older ones are kept rather than overwritten. -->
     <changeSet id="create_table_sharing_agreement_file" author="Víctor Cañizares">
         <createTable tableName="sharing_agreement_file" remarks="Evidence file(s) uploaded for a sharing_agreement. Zero files is a valid state; when more than one exists, the most recently uploaded is authoritative.">
             <column name="id" type="UUID">

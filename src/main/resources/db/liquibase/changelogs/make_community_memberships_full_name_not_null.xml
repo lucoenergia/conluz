@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Every member record has a full name (#388, ADR-0003 §1). Runs after
+         backfill_member_record_for_community_memberships, which fills it on every existing row from
+         users.full_name (itself NOT NULL).
+
+         A row without a full name at this point is one the backfill did not reach, so the
+         precondition HALTs instead of inventing a name. -->
+    <changeSet id="make_community_memberships_full_name_not_null" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot make community_memberships.full_name NOT NULL: some memberships have no full name. Nothing was changed. List them with: SELECT id, user_id, community_id FROM community_memberships WHERE full_name IS NULL; then fill their full name from their user and run the migration again.">
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM community_memberships WHERE full_name IS NULL
+            </sqlCheck>
+        </preConditions>
+        <addNotNullConstraint tableName="community_memberships"
+                              columnName="full_name"
+                              columnDataType="VARCHAR(250)"/>
+        <rollback>
+            <dropNotNullConstraint tableName="community_memberships"
+                                   columnName="full_name"
+                                   columnDataType="VARCHAR(250)"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

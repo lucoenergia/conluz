@@ -82,6 +82,14 @@ public class GetMembershipsRepositoryDatabase implements GetMembershipsRepositor
                 .withRole(entity.getRole())
                 .withEnabled(entity.isEnabled())
                 .withInvestmentEur(entity.getInvestmentEur())
+                .withFullName(entity.getFullName())
+                .withMemberNumber(entity.getMemberNumber())
+                .withContactEmail(entity.getContactEmail())
+                .withAddress(entity.getAddress())
+                .withPhoneNumber(entity.getPhoneNumber())
+                .withAcceptedAt(entity.getAcceptedAt())
+                .withInvitedBy(entity.getInvitedBy())
+                .withInvitedAt(entity.getInvitedAt())
                 .build();
     }
 }
