@@ -1,15 +1,29 @@
 package org.lucoenergia.conluz.infrastructure.datadis.config;
 
+import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -21,10 +35,19 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
 
     private static final String URL_TEMPLATE = "/api/v1/communities/%s/config/datadis";
 
+    private static final String STORED_PASSWORD = "storedPassword";
+    private static final String OTHER_BASE_URL = "https://datadis.example.com";
+
     @Autowired
     private DatadisConfigRepository repository;
     @Autowired
     private SetDatadisConfigurationRepository setDatadisConfigurationRepository;
+    @Autowired
+    private GetDatadisConfigRepository getDatadisConfigRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private EntityManager entityManager;
 
     @Test
     void testOverrideConfigureDatadis() throws Exception {
@@ -74,6 +97,207 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("DCF-001 omitting the password updates the other fields and keeps the stored password")
+    void omittedPasswordKeepsStoredOne() throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD);
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "baseUrl": "%s", "enabled": false}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.passwordSet").value(true));
+
+        DatadisConfig stored = stored(community.getId()).orElseThrow();
+        assertThat(stored.getPassword()).isEqualTo(STORED_PASSWORD);
+        assertThat(stored.getUsername()).isEqualTo("newUser");
+        assertThat(stored.getBaseUrl()).isEqualTo(OTHER_BASE_URL);
+        assertThat(stored.getEnabled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("DCF-001 omitting the password on one community leaves another community's configuration untouched")
+    void omittedPasswordDoesNotTouchOtherCommunity() throws Exception {
+        Community community = createCommunity();
+        Community other = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD);
+        seedConfig(other.getId(), "otherPassword");
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "baseUrl": "%s", "enabled": false}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk());
+
+        assertSeedConfigUnchanged(other.getId(), "otherPassword");
+    }
+
+    @Test
+    @DisplayName("a non-empty password replaces the stored one")
+    void newPasswordReplacesStoredOne() throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD);
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": false}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk());
+
+        assertThat(stored(community.getId()).orElseThrow().getPassword()).isEqualTo("newPassword");
+    }
+
+    @Test
+    @DisplayName("DCF-002 omitting the password on a community without configuration is rejected and stores nothing")
+    void omittedPasswordWithoutConfigIsRejected() throws Exception {
+        Community community = createCommunity();
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "baseUrl": "%s", "enabled": true}
+                """.formatted(DatadisConfig.DEFAULT_BASE_URL))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.DATADIS_CONFIG_PASSWORD_REQUIRED.name()));
+
+        assertThat(stored(community.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("DCF-002 omitting the password when the stored password is null is rejected and changes nothing")
+    void omittedPasswordWithStoredNullPasswordIsRejected() throws Exception {
+        assertOmittedPasswordIsRejectedOver(null);
+    }
+
+    @Test
+    @DisplayName("DCF-002 omitting the password when the stored password is empty is rejected and changes nothing")
+    void omittedPasswordWithStoredEmptyPasswordIsRejected() throws Exception {
+        assertOmittedPasswordIsRejectedOver("");
+    }
+
+    @Test
+    @DisplayName("DCF-003 an explicit null password is rejected on a community with a configuration")
+    void nullPasswordWithConfigIsRejected() throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD);
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": null, "baseUrl": "%s", "enabled": false}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value(nullValue()))
+                .andExpect(jsonPath("$.message").value(containsString("password")));
+
+        assertSeedConfigUnchanged(community.getId(), STORED_PASSWORD);
+    }
+
+    @Test
+    @DisplayName("DCF-003 an explicit null password is rejected on a community without configuration")
+    void nullPasswordWithoutConfigIsRejected() throws Exception {
+        Community community = createCommunity();
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": null, "baseUrl": "%s", "enabled": true}
+                """.formatted(DatadisConfig.DEFAULT_BASE_URL))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value(nullValue()));
+
+        assertThat(stored(community.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("an empty password is rejected on a community with a configuration")
+    void emptyPasswordWithConfigIsRejected() throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD);
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": "", "baseUrl": "%s", "enabled": false}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("password")));
+
+        assertSeedConfigUnchanged(community.getId(), STORED_PASSWORD);
+    }
+
+    @Test
+    @DisplayName("an empty password is rejected on a community without configuration")
+    void emptyPasswordWithoutConfigIsRejected() throws Exception {
+        Community community = createCommunity();
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": "", "baseUrl": "%s", "enabled": true}
+                """.formatted(DatadisConfig.DEFAULT_BASE_URL))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("password")));
+
+        assertThat(stored(community.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a blank username is rejected and stores nothing")
+    void blankUsernameIsRejected() throws Exception {
+        assertInvalidBodyStoresNothing("""
+                {"username": " ", "password": "newPassword", "baseUrl": "%s", "enabled": true}
+                """.formatted(DatadisConfig.DEFAULT_BASE_URL), "username");
+    }
+
+    @Test
+    @DisplayName("a missing username is rejected and stores nothing")
+    void missingUsernameIsRejected() throws Exception {
+        assertInvalidBodyStoresNothing("""
+                {"password": "newPassword", "baseUrl": "%s", "enabled": true}
+                """.formatted(DatadisConfig.DEFAULT_BASE_URL), "username");
+    }
+
+    @Test
+    @DisplayName("a blank base URL is rejected and stores nothing")
+    void blankBaseUrlIsRejected() throws Exception {
+        assertInvalidBodyStoresNothing("""
+                {"username": "newUser", "password": "newPassword", "baseUrl": "", "enabled": true}
+                """, "baseUrl");
+    }
+
+    @Test
+    @DisplayName("a malformed base URL is rejected and stores nothing")
+    void malformedBaseUrlIsRejected() throws Exception {
+        assertInvalidBodyStoresNothing("""
+                {"username": "newUser", "password": "newPassword", "baseUrl": "not a url", "enabled": true}
+                """, "baseUrl");
+    }
+
+    @Test
+    @DisplayName("a missing enabled flag is rejected and stores nothing")
+    void missingEnabledIsRejected() throws Exception {
+        assertInvalidBodyStoresNothing("""
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(DatadisConfig.DEFAULT_BASE_URL), "enabled");
+    }
+
+    @Test
+    @DisplayName("a member who is not a community admin is forbidden and changes nothing")
+    void memberWithoutAdminRoleIsForbidden() throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD);
+        String authHeader = loginAsCommunityMember(community.getId());
+
+        putConfigAs(authHeader, community.getId(), validBody())
+                .andExpect(status().isForbidden());
+
+        assertSeedConfigUnchanged(community.getId(), STORED_PASSWORD);
+    }
+
+    @Test
+    @DisplayName("a caller who is not a member of the community gets not-found and changes nothing")
+    void nonMemberGetsNotFound() throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD);
+        String authHeader = loginAsPartner();
+
+        putConfigAs(authHeader, community.getId(), validBody())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+
+        assertSeedConfigUnchanged(community.getId(), STORED_PASSWORD);
+    }
+
+    @Test
     void testWithoutBody() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -114,5 +338,78 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+    }
+
+    private void assertOmittedPasswordIsRejectedOver(String storedPassword) throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), storedPassword);
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "baseUrl": "%s", "enabled": false}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.DATADIS_CONFIG_PASSWORD_REQUIRED.name()));
+
+        assertSeedConfigUnchanged(community.getId(), storedPassword);
+    }
+
+    private void assertInvalidBodyStoresNothing(String body, String field) throws Exception {
+        Community community = createCommunity();
+
+        putConfig(community.getId(), body)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString(field)));
+
+        assertThat(stored(community.getId())).isEmpty();
+    }
+
+    private Community createCommunity() {
+        return createCommunityRepository.create(CommunityMother.random().build());
+    }
+
+    private void seedConfig(UUID communityId, String password) {
+        setDatadisConfigurationRepository.setDatadisConfiguration(communityId, new DatadisConfig.Builder()
+                .setUsername("seedUser")
+                .setPassword(password)
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .setEnabled(Boolean.TRUE)
+                .build());
+    }
+
+    private static String validBody() {
+        return """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": false}
+                """.formatted(OTHER_BASE_URL);
+    }
+
+    private ResultActions putConfig(UUID communityId, String body) throws Exception {
+        return putConfigAs(loginAsCommunityAdmin(communityId), communityId, body);
+    }
+
+    private ResultActions putConfigAs(String authHeader, UUID communityId, String body) throws Exception {
+        return mockMvc.perform(
+                        put(String.format(URL_TEMPLATE, communityId))
+                                .header(HttpHeaders.AUTHORIZATION, authHeader)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                .andDo(print());
+    }
+
+    /**
+     * Reads the row back from the database rather than from the persistence context, so an assertion sees
+     * what the request wrote, not what a managed entity holds in memory.
+     */
+    private Optional<DatadisConfig> stored(UUID communityId) {
+        entityManager.flush();
+        entityManager.clear();
+        return getDatadisConfigRepository.findByCommunityId(communityId);
+    }
+
+    private void assertSeedConfigUnchanged(UUID communityId, String storedPassword) {
+        DatadisConfig stored = stored(communityId).orElseThrow();
+        assertThat(stored.getPassword()).isEqualTo(storedPassword);
+        assertThat(stored.getUsername()).isEqualTo("seedUser");
+        assertThat(stored.getBaseUrl()).isEqualTo(DatadisConfig.DEFAULT_BASE_URL);
+        assertThat(stored.getEnabled()).isTrue();
     }
 }

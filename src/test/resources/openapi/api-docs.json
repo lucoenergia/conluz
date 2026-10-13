@@ -298,7 +298,6 @@
         "required" : [
           "baseUrl",
           "enabled",
-          "password",
           "username"
         ],
         "type" : "object"
@@ -1924,7 +1923,8 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
-              "SUPPLY_CUPS_COLLISION"
+              "SUPPLY_CUPS_COLLISION",
+              "DATADIS_CONFIG_PASSWORD_REQUIRED"
             ],
             "type" : [
               "string",
@@ -3890,7 +3890,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint allows to configure the app to connect with datadis for a specific community.\n\nThis configuration is a mandatory step to be able to retrieve consumption data from datadis.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: Community Admin**\n\nUpon successful request, the server responds with an HTTP status code of 200, along with details\nabout the configuration already set.\n\nIn cases where the creation process encounters errors, the server responds with an appropriate error\nstatus code, accompanied by a descriptive error message to guide clients in addressing and resolving\nthe issue.\n",
+        "description" : "This endpoint creates or replaces the configuration a community uses to connect with the\nDatadis API.\n\nThe request body contains:\n- **username** (required, string): Datadis user.\n- **password** (optional, string): Datadis password. The password is write-only: it is\n  never returned, only whether one is set (`passwordSet`).\n  - Absent: the stored password is kept and the other fields are updated. If the\n    community has no configuration, or its stored password is empty, the request is\n    rejected with `400` and error code `DATADIS_CONFIG_PASSWORD_REQUIRED`.\n  - A non-empty string: replaces the stored password.\n  - `null`: rejected with `400`. The stored password cannot be cleared.\n  - An empty string: rejected with `400`.\n- **baseUrl** (required, string): Base URL of the Datadis API (for example\n  `https://datadis.es`).\n- **enabled** (required, boolean): Master switch for the community's Datadis integration.\n  When `false`, the scheduled Datadis sync and aggregation jobs skip the community, and the\n  operations that sync or aggregate its Datadis data respond with `409 Conflict`.\n\nThis configuration is a mandatory step to be able to retrieve consumption data from datadis.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200, along with details\nabout the configuration now stored.\n\nA rejected request stores nothing and leaves any existing configuration unchanged. The server\nresponds with `400` when the body is invalid (a missing required field, a `null` or empty\npassword, a blank username, a blank or malformed base URL) or when the password is absent and\nthere is no stored password to keep.\n",
         "operationId" : "configureDatadis",
         "parameters" : [
           {
