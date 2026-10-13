@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- A community has at most one Datadis configuration (#414), but that was only kept by the
+         code: the configuration write reuses the community's existing row instead of inserting a
+         second one. The constraint makes it a property of the schema, so a write that targets a
+         community's configuration by community_id (such as the one that toggles enabled) can never
+         reach more than one row. community_id is already NOT NULL. -->
+    <changeSet id="add_unique_constraint_to_datadis_config_community_id" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add datadis_config_community_id_uq: it already exists, or several datadis_config rows share a community_id. List them with: SELECT community_id, count(*) FROM datadis_config GROUP BY community_id HAVING count(*) > 1">
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM pg_constraint WHERE conname = 'datadis_config_community_id_uq'
+            </sqlCheck>
+            <sqlCheck expectedResult="0">
+                SELECT count(*)
+                FROM (SELECT community_id FROM datadis_config
+                      GROUP BY community_id HAVING count(*) > 1) AS duplicates
+            </sqlCheck>
+        </preConditions>
+        <addUniqueConstraint tableName="datadis_config"
+                             columnNames="community_id"
+                             constraintName="datadis_config_community_id_uq"/>
+        <rollback>
+            <dropUniqueConstraint tableName="datadis_config" constraintName="datadis_config_community_id_uq"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

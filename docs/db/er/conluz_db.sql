@@ -668,6 +668,14 @@ ALTER TABLE ONLY public.databasechangeloglock
 
 
 --
+-- Name: datadis_config datadis_config_community_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.datadis_config
+    ADD CONSTRAINT datadis_config_community_id_uq UNIQUE (community_id);
+
+
+--
 -- Name: datadis_config datadis_config_id_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -681,6 +689,14 @@ ALTER TABLE ONLY public.datadis_config
 
 ALTER TABLE ONLY public.huawei_config
     ADD CONSTRAINT huawei_config_id_pk PRIMARY KEY (id);
+
+
+--
+-- Name: huawei_config huawei_config_plant_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.huawei_config
+    ADD CONSTRAINT huawei_config_plant_id_uq UNIQUE (plant_id);
 
 
 --
