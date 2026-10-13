@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.token;
 
 import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenRepository;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenMembership;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Repository;
@@ -27,5 +28,15 @@ public class ConsumeOneTimeTokenRepositoryDatabase implements ConsumeOneTimeToke
             return Optional.empty();
         }
         return jpaRepository.findUserIdByTokenHash(tokenHash).map(UserId::of);
+    }
+
+    @Override
+    public Optional<OneTimeTokenMembership> consumeForMembership(String tokenHash, OneTimeTokenPurpose purpose,
+                                                                 Instant now) {
+        // The same single conditional update as consume, restricted to tokens issued for a membership
+        if (jpaRepository.markUsedOfMembership(tokenHash, purpose, now) != 1) {
+            return Optional.empty();
+        }
+        return jpaRepository.findMembershipByTokenHash(tokenHash).map(OneTimeTokenMembershipView::toDomain);
     }
 }

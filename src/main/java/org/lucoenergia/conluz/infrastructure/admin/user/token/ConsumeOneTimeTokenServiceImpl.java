@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.token;
 
 import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenMembership;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
@@ -24,9 +25,19 @@ public class ConsumeOneTimeTokenServiceImpl implements ConsumeOneTimeTokenServic
 
     @Override
     public Optional<UserId> consume(String rawToken, OneTimeTokenPurpose purpose) {
+        purpose.requireBoundOnlyToUser();
         if (rawToken == null || rawToken.isBlank()) {
             return Optional.empty();
         }
         return repository.consume(OneTimeTokenHash.of(rawToken), purpose, clock.instant());
+    }
+
+    @Override
+    public Optional<OneTimeTokenMembership> consumeForMembership(String rawToken, OneTimeTokenPurpose purpose) {
+        purpose.requireBoundToMembership();
+        if (rawToken == null || rawToken.isBlank()) {
+            return Optional.empty();
+        }
+        return repository.consumeForMembership(OneTimeTokenHash.of(rawToken), purpose, clock.instant());
     }
 }
