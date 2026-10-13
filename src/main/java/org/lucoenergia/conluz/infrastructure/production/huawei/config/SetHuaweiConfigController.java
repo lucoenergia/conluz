@@ -97,7 +97,7 @@ public class SetHuaweiConfigController {
     @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
     public SetHuaweiConfigResponse configureHuawei(@PathVariable UUID plantId,
                                                    @Valid @RequestBody ConfigureHuaweiBody body) {
-        HuaweiConfig config = service.setHuaweiConfiguration(plantId, body.toCommand());
+        HuaweiConfig config = service.setHuaweiConfiguration(plantId, body.mapToSetHuaweiConfiguration());
         return SetHuaweiConfigResponse.of(config);
     }
 }

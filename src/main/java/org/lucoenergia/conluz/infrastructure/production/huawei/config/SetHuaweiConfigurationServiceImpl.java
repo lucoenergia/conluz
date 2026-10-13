@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.production.huawei.config;
 import org.apache.commons.lang3.StringUtils;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.config.HuaweiConfigPasswordRequiredException;
-import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationCommand;
+import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfiguration;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
@@ -30,13 +30,13 @@ public class SetHuaweiConfigurationServiceImpl implements SetHuaweiConfiguration
      * this write replaces.
      */
     @Override
-    public HuaweiConfig setHuaweiConfiguration(UUID plantId, SetHuaweiConfigurationCommand command) {
-        String password = command.password().orElseGet(() -> storedPassword(plantId));
+    public HuaweiConfig setHuaweiConfiguration(UUID plantId, SetHuaweiConfiguration configuration) {
+        String password = configuration.getPassword().orElseGet(() -> storedPassword(plantId));
         HuaweiConfig config = new HuaweiConfig.Builder()
-                .setUsername(command.username())
+                .setUsername(configuration.getUsername())
                 .setPassword(password)
-                .setBaseUrl(command.baseUrl())
-                .setEnabled(command.enabled())
+                .setBaseUrl(configuration.getBaseUrl())
+                .setEnabled(configuration.getEnabled())
                 .build();
         return setHuaweiConfigurationRepository.setHuaweiConfiguration(plantId, config);
     }

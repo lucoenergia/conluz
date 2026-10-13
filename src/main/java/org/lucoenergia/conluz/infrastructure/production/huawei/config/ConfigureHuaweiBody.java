@@ -7,9 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.URL;
-import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationCommand;
-
-import java.util.Optional;
+import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfiguration;
 
 @Schema(requiredProperties = {
         "username", "baseUrl", "enabled"
@@ -79,7 +77,14 @@ public class ConfigureHuaweiBody {
         this.enabled = enabled;
     }
 
-    public SetHuaweiConfigurationCommand toCommand() {
-        return new SetHuaweiConfigurationCommand(username, Optional.ofNullable(password), baseUrl, enabled);
+    public SetHuaweiConfiguration mapToSetHuaweiConfiguration() {
+        SetHuaweiConfiguration.Builder builder = new SetHuaweiConfiguration.Builder()
+                .withUsername(username)
+                .withBaseUrl(baseUrl)
+                .withEnabled(enabled);
+        if (password != null) {
+            builder.withPassword(password);
+        }
+        return builder.build();
     }
 }

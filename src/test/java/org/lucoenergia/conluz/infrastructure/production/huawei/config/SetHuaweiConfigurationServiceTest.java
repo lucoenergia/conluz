@@ -8,7 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.config.HuaweiConfigPasswordRequiredException;
-import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationCommand;
+import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfiguration;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
@@ -50,7 +50,7 @@ class SetHuaweiConfigurationServiceTest {
     void keepsStoredPassword() {
         when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID)).thenReturn(Optional.of(storedConfig("stored")));
 
-        service.setHuaweiConfiguration(PLANT_ID, command(Optional.empty()));
+        service.setHuaweiConfiguration(PLANT_ID, configuration());
 
         HuaweiConfig written = written();
         assertThat(written.getPassword()).isEqualTo("stored");
@@ -62,7 +62,7 @@ class SetHuaweiConfigurationServiceTest {
     @Test
     @DisplayName("a supplied password is written as given")
     void writesSuppliedPassword() {
-        service.setHuaweiConfiguration(PLANT_ID, command(Optional.of("newPassword")));
+        service.setHuaweiConfiguration(PLANT_ID, configuration("newPassword"));
 
         assertThat(written().getPassword()).isEqualTo("newPassword");
     }
@@ -72,7 +72,7 @@ class SetHuaweiConfigurationServiceTest {
     void rejectsMissingPasswordWithoutConfig() {
         when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.setHuaweiConfiguration(PLANT_ID, command(Optional.empty())))
+        assertThatThrownBy(() -> service.setHuaweiConfiguration(PLANT_ID, configuration()))
                 .isInstanceOf(HuaweiConfigPasswordRequiredException.class);
         verify(setHuaweiConfigurationRepository, never()).setHuaweiConfiguration(any(), any());
     }
@@ -84,13 +84,24 @@ class SetHuaweiConfigurationServiceTest {
         when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID))
                 .thenReturn(Optional.of(storedConfig(storedPassword)));
 
-        assertThatThrownBy(() -> service.setHuaweiConfiguration(PLANT_ID, command(Optional.empty())))
+        assertThatThrownBy(() -> service.setHuaweiConfiguration(PLANT_ID, configuration()))
                 .isInstanceOf(HuaweiConfigPasswordRequiredException.class);
         verify(setHuaweiConfigurationRepository, never()).setHuaweiConfiguration(any(), any());
     }
 
-    private static SetHuaweiConfigurationCommand command(Optional<String> password) {
-        return new SetHuaweiConfigurationCommand("newUser", password, BASE_URL, Boolean.FALSE);
+    private static SetHuaweiConfiguration configuration() {
+        return builder().build();
+    }
+
+    private static SetHuaweiConfiguration configuration(String password) {
+        return builder().withPassword(password).build();
+    }
+
+    private static SetHuaweiConfiguration.Builder builder() {
+        return new SetHuaweiConfiguration.Builder()
+                .withUsername("newUser")
+                .withBaseUrl(BASE_URL)
+                .withEnabled(Boolean.FALSE);
     }
 
     private static HuaweiConfig storedConfig(String password) {
