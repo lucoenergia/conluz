@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Invitation tokens are bound to a membership (#391, ADR-0003 §4). With tokens scoped to the user
+         only, inviting the same person to a second community would revoke the first invitation's link,
+         and both invitations would share one resend budget.
+
+         membership_id NULL means the token is bound only to its user, as every PASSWORD_RESET token is.
+         Every existing row keeps NULL: all of them are PASSWORD_RESET tokens, so there is no backfill.
+
+         Deleting a membership deletes its tokens (ON DELETE CASCADE): a token issued for a membership
+         that no longer exists must not stay usable.
+
+         one_time_token_membership_created_at_idx serves counting the tokens issued for a membership
+         since an instant. bind_one_time_token_active_index_to_membership then splits the active-token
+         invariant between user-bound and membership-bound tokens. -->
+    <changeSet id="add_membership_id_to_one_time_token" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add membership_id to one_time_token: the table does not exist, or the column already exists.">
+            <tableExists tableName="one_time_token"/>
+            <not>
+                <columnExists tableName="one_time_token" columnName="membership_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="one_time_token">
+            <column name="membership_id" type="UUID"
+                    remarks="The membership the token was issued for. NULL means the token is bound only to its user.">
+                <constraints nullable="true"
+                             foreignKeyName="one_time_token_membership_id_fk"
+                             referencedTableName="community_memberships" referencedColumnNames="id"
+                             deleteCascade="true"/>
+            </column>
+        </addColumn>
+        <createIndex tableName="one_time_token" indexName="one_time_token_membership_created_at_idx">
+            <column name="membership_id"/>
+            <column name="created_at"/>
+        </createIndex>
+        <rollback>
+            <dropIndex tableName="one_time_token" indexName="one_time_token_membership_created_at_idx"/>
+            <dropColumn tableName="one_time_token" columnName="membership_id"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
