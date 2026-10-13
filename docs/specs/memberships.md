@@ -107,14 +107,16 @@ lazily, as issues touch it.
 - **Status:** Active
 - **Rule:** Only an active community admin of the community MAY register a member in it; a platform admin MUST NOT,
   unless they are one. Member registration MUST create a membership with the role `COMMUNITY_MEMBER`, enabled,
-  pending, with the registering community admin as its inviter. Its member record MUST be the values entered,
-  untrimmed, with an empty or blank optional value recorded as none. If the person already has a membership in
-  the community, pending, active or disabled, registration MUST answer 409 `MEMBERSHIP_ALREADY_EXISTS` and change
-  nothing.
+  pending, with the registering community admin as its inviter. A personal ID that is empty once normalised (made
+  only of whitespace, dots and hyphens) MUST be refused with 400 before any account is looked up or written. Its
+  member record MUST be the values entered, untrimmed, with an empty or blank optional value recorded as none. If
+  the person already has a membership in the community, pending, active or disabled, registration MUST answer 409
+  `MEMBERSHIP_ALREADY_EXISTS` and change nothing.
 - **Rationale:** The community enters its own record of the member (ADR-0003 §1), and the person accepts before
   the membership grants access (ADR-0003 §2, MEM-004). A platform admin administers the platform, not the personal
   data of a community's members. A 409 for someone already in the community reveals nothing the community admin
-  cannot see in the roster (ADR-0003 §3).
+  cannot see in the roster (ADR-0003 §3). An existing account is found silently, so every registration of a
+  personal ID that normalises to nothing would land on one shared account with an empty personal ID.
 - **Source:** #392, ADR-0003 §1, §2 and §3
 
 ### MEM-008 — Member registration never reveals whether the person had an account
