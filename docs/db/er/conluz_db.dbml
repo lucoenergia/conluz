@@ -1,68 +1,75 @@
-// Use DBML to define your database structure
-// Docs: https://dbml.dbdiagram.io/docs
 
-Table "databasechangelog" {
-  "id" varchar(255) [not null]
-  "author" varchar(255) [not null]
-  "filename" varchar(255) [not null]
-  "dateexecuted" timestamp [not null]
-  "orderexecuted" int4 [not null]
-  "exectype" varchar(10) [not null]
-  "md5sum" varchar(35)
-  "description" varchar(255)
-  "comments" varchar(255)
-  "tag" varchar(255)
-  "liquibase" varchar(20)
-  "contexts" varchar(255)
-  "labels" varchar(255)
-  "deployment_id" varchar(10)
+Table "blacklisted_token" {
+  "jti" "character varying(64)" [pk, not null]
+  "expiration" timestamp [not null]
+  "revoked_at" timestamp [not null]
 }
 
-Table "databasechangeloglock" {
-  "id" int4 [pk, not null]
-  "locked" bool [not null]
-  "lockgranted" timestamp
-  "lockedby" varchar(255)
+Table "communities" {
+  "id" uuid [pk, not null]
+  "name" text [not null]
+  "code" text [unique, not null]
+  "legal_id" text [unique]
+  "address" text
+  "enabled" boolean [not null, default: true]
+}
+
+Table "community_memberships" {
+  "id" uuid [pk, not null]
+  "user_id" uuid [not null]
+  "community_id" uuid [not null]
+  "role" text [not null]
+  "enabled" boolean [not null, default: true]
+  "investment_eur" numeric(12,2) [note: '''The member\'s initial contribution to the community, in euros. Only the current value is stored, never a history of changes. NULL means no investment has been recorded for this membership, which is not the same as an investment of zero.''']
+  "full_name" "character varying(250)" [not null, note: '''The member\'s full name, as the community recorded it.''']
+  "member_number" integer [note: '''The member\'s number in the community. NULL means the community has not recorded one.''']
+  "contact_email" "character varying(250)" [note: 'The email the community recorded to contact the member. NULL means the community has not recorded one.']
+  "address" "character varying(250)" [note: '''The member\'s address, as the community recorded it. NULL means the community has not recorded one.''']
+  "phone_number" "character varying(250)" [note: '''The member\'s phone number, as the community recorded it. NULL means the community has not recorded one.''']
+  "accepted_at" timestamp [note: 'When the membership was accepted. NULL means the membership is pending: it has not been accepted.']
+  "invited_by" uuid [note: 'The user who invited this membership. NULL means no inviting user is recorded: the membership was not created by an invitation, or the inviting user has been deleted.']
+  "invited_at" timestamp [note: 'When the membership was invited. NULL means it was not created by an invitation.']
+
+  Indexes {
+    (user_id, community_id) [unique, name: "community_memberships_user_community_uq"]
+  }
 }
 
 Table "config" {
   "id" uuid [pk, not null]
-  "default_admin_user_initialized" bool [not null, default: false]
+  "default_admin_user_initialized" boolean [not null, default: false]
 }
 
-Table "users" {
-  "id" uuid [pk, not null]
-  "personal_id" varchar(250) [unique, not null]
-  "number" int4 [not null]
-  "password" varchar(250) [not null]
-  "full_name" varchar(250) [not null]
-  "address" varchar(250)
-  "phone_number" varchar(250)
-  "email" varchar(250) [not null]
-  "enabled" bool [not null]
-  "is_platform_admin" bool [not null, default: false]
-  "must_change_password" bool [not null, default: false, note: '''Whether the user\'s current password was chosen by someone else and should be changed by the user. Cleared when the user changes their password.''']
-  "password_changed_at" timestamptz [note: 'When the user last changed their own password. Tokens issued before this instant are rejected. NULL means the password has never been changed, and places no restriction on issued tokens.']
-  "disabled_at" timestamptz [note: 'When the user was last disabled. Tokens issued before this instant are rejected, also after the user is enabled again. NULL means the user has not been disabled, and places no restriction on issued tokens.']
+Table "databasechangelog" {
+  "id" "character varying(255)" [not null]
+  "author" "character varying(255)" [not null]
+  "filename" "character varying(255)" [not null]
+  "dateexecuted" timestamp [not null]
+  "orderexecuted" integer [not null]
+  "exectype" "character varying(10)" [not null]
+  "md5sum" "character varying(35)"
+  "description" "character varying(255)"
+  "comments" "character varying(255)"
+  "tag" "character varying(255)"
+  "liquibase" "character varying(20)"
+  "contexts" "character varying(255)"
+  "labels" "character varying(255)"
+  "deployment_id" "character varying(10)"
 }
 
-Table "supplies" {
-  "id" uuid [pk, not null]
-  "code" varchar(250) [not null]
-  "user_id" uuid
-  "name" varchar(250)
-  "address" varchar(250) [not null]
-  "enabled" bool [not null]
-  "address_ref" varchar(250)
-  "community_id" uuid [not null]
+Table "databasechangeloglock" {
+  "id" integer [pk, not null]
+  "locked" boolean [not null]
+  "lockgranted" timestamp
+  "lockedby" "character varying(255)"
 }
 
 Table "datadis_config" {
   "id" uuid [pk, not null]
   "username" text
   "password" text
-  "base_url" text [not null, default: 'http://localhost:5555']
-  "enabled" bool [not null, default: false]
+  "base_url" text [not null, default: `'http://localhost:5555'::text`]
+  "enabled" boolean [not null, default: false]
   "community_id" uuid [not null]
 }
 
@@ -70,9 +77,27 @@ Table "huawei_config" {
   "id" uuid [pk, not null]
   "username" text
   "password" text
-  "base_url" text [not null, default: 'http://localhost:8000/thirdData']
-  "enabled" bool [not null, default: false]
+  "base_url" text [not null, default: `'http://localhost:8000/thirdData'::text`]
+  "enabled" boolean [not null, default: false]
   "plant_id" uuid
+}
+
+Table "one_time_token" {
+  "id" uuid [pk, not null]
+  "user_id" uuid [not null, note: 'The user the token was issued to.']
+  "purpose" "character varying(32)" [not null, note: 'What the token was issued for.']
+  "token_hash" "character varying(64)" [unique, not null, note: 'Lowercase hex SHA-256 hash of the token.']
+  "created_at" timestamp [not null, note: 'When the token was issued.']
+  "expires_at" timestamp [not null, note: 'When the token stops being valid.']
+  "used_at" timestamp [note: 'When the token was used. NULL if it has not been used.']
+  "revoked_at" timestamp [note: 'When the token was revoked. NULL if it has not been revoked.']
+
+  Indexes {
+    `LEAST(expires_at,used_at,revoked_at)` [type: btree, name: "one_time_token_finished_at_idx"]
+    (user_id, purpose) [type: btree, unique, name: "one_time_token_one_active_uq"]
+    (user_id, purpose, created_at) [type: btree, name: "one_time_token_user_purpose_created_at_idx"]
+  }
+  Note: 'One-time tokens issued to a user for one purpose. Only the hash of each token is stored.'
 }
 
 Table "plants" {
@@ -82,87 +107,10 @@ Table "plants" {
   "address" text [not null]
   "description" text
   "inverter_provider" text [not null]
-  "total_power" float8 [not null]
+  "total_power" doubleprecision [not null]
   "connection_date" date
   "supply_id" uuid [not null]
   "regulatory_code" text [unique, note: '''The identifier assigned by the regulator. In Spain this is the CAU (Codigo de Autoconsumo). It is not the provider\'s station code (provider_code) and not a CUPS.''']
-}
-
-Table "blacklisted_token" {
-  "jti" varchar(64) [pk, not null]
-  "expiration" timestamp [not null]
-  "revoked_at" timestamp [not null]
-}
-
-Table "shelly_config" {
-  "id" uuid [pk, not null, default: `gen_random_uuid()`]
-  "enabled" bool [not null, default: false]
-  "community_id" uuid [not null]
-}
-
-Table "supply_partition_coefficient" {
-  "id" uuid [pk, not null]
-  "supply_id" uuid [not null]
-  "coefficient" numeric(18,6) [not null]
-  "valid_from" timestamptz [note: 'Persisted as an instant, resolved from the administrator-authored LocalDate using the application-level conluz.time.zone.id at the moment of activation (see ZoneResolver). A persisted instant does not migrate: when the zone moves to community level, the backfill must seed every existing community with the application-level value in force at that moment, or older coefficients will keep the old instant while newer ones use the new one and the timeline becomes internally inconsistent by one hour, silently.']
-  "valid_to" timestamptz
-  "created_at" timestamptz [not null, default: `now()`]
-  "plant_id" uuid [not null, note: 'The plant this coefficient participates in. Nullable here, made NOT NULL by make_supply_partition_coefficient_plant_and_sharing_agreement_not_null.xml once backfilled.']
-  "sharing_agreement_id" uuid [not null, note: 'The agreement that authored this coefficient. Nullable here for the same reason as plant_id.']
-
-  Indexes {
-    (supply_id, valid_from) [type: btree, name: "idx_supply_partition_coefficient_supply_id_valid_from"]
-    (plant_id, supply_id, `tstzrange(valid_from, valid_to, '[)')`) [type: gist, name: "no_overlapping_coefficients", note: 'Backs the exclusion constraint EXCLUDE USING gist (plant_id WITH =, supply_id WITH =, tstzrange(valid_from, valid_to, \'[)\') WITH &&) WHERE (valid_from IS NOT NULL) DEFERRABLE INITIALLY DEFERRED.']
-  }
-}
-
-Table "supplies_shelly" {
-  "supply_id" uuid [pk, not null]
-  "mac_address" varchar(250)
-  "id" varchar(250)
-  "mqtt_prefix" varchar(250)
-}
-
-Table "supplies_distributor" {
-  "supply_id" uuid [pk, not null]
-  "name" varchar(250)
-  "code" varchar(250)
-  "point_type" int4
-}
-
-Table "supplies_contract" {
-  "supply_id" uuid [pk, not null]
-  "valid_date_from" date
-}
-
-Table "communities" {
-  "id" uuid [pk, not null]
-  "name" text [not null]
-  "code" text [unique, not null]
-  "legal_id" text [unique]
-  "address" text
-  "enabled" bool [not null, default: true]
-}
-
-Table "community_memberships" {
-  "id" uuid [pk, not null]
-  "user_id" uuid [not null]
-  "community_id" uuid [not null]
-  "role" text [not null]
-  "enabled" bool [not null, default: true]
-  "investment_eur" numeric(12,2) [note: '''The member\'s initial contribution to the community, in euros. Only the current value is stored, never a history of changes. NULL means no investment has been recorded for this membership, which is not the same as an investment of zero.''']
-  "full_name" varchar(250) [not null, note: '''The member\'s full name, as the community recorded it.''']
-  "member_number" int4 [note: '''The member\'s number in the community. NULL means the community has not recorded one.''']
-  "contact_email" varchar(250) [note: 'The email the community recorded to contact the member. NULL means the community has not recorded one.']
-  "address" varchar(250) [note: '''The member\'s address, as the community recorded it. NULL means the community has not recorded one.''']
-  "phone_number" varchar(250) [note: '''The member\'s phone number, as the community recorded it. NULL means the community has not recorded one.''']
-  "accepted_at" timestamptz [note: 'When the membership was accepted. NULL means the membership is pending: it has not been accepted.']
-  "invited_by" uuid [note: 'The user who invited this membership. NULL means no inviting user is recorded: the membership was not created by an invitation, or the inviting user has been deleted.']
-  "invited_at" timestamptz [note: 'When the membership was invited. NULL means it was not created by an invitation.']
-
-  Indexes {
-    (user_id, community_id) [type: btree, unique, name: "community_memberships_user_community_uq"]
-  }
 }
 
 Table "sharing_agreement" {
@@ -170,12 +118,16 @@ Table "sharing_agreement" {
   "plant_id" uuid [not null, note: 'The plant this agreement distributes production from.']
   "name" text [not null, note: 'Human-readable label for the agreement.']
   "notes" text [note: 'Free-text notes about the agreement. Optional.']
-  "status" text [not null, check: `status = ANY (ARRAY['DRAFT'::text, 'PUBLISHED'::text, 'SUPERSEDED'::text])`, note: 'DRAFT, PUBLISHED or SUPERSEDED. TEXT + CHECK rather than a native PostgreSQL ENUM: a native enum cannot have a value removed, and extending it (ALTER TYPE ... ADD VALUE) has historically been restricted inside transactions -- a poor fit for Liquibase and for a value set that will change. TEXT + CHECK is trivially alterable and reads identically.']
+  "status" text [not null, note: 'DRAFT, PUBLISHED or SUPERSEDED. TEXT + CHECK rather than a native PostgreSQL ENUM: a native enum cannot have a value removed, and extending it (ALTER TYPE ... ADD VALUE) has historically been restricted inside transactions -- a poor fit for Liquibase and for a value set that will change. TEXT + CHECK is trivially alterable and reads identically.']
   "installed_power_kw" numeric [note: '''A deliberate snapshot of the plant\'s installed power at authoring time, not a join to plants.total_power: the plant\'s installed power today is not the power the agreement was authored against.''']
-  "created_at" timestamptz [not null]
+  "created_at" timestamp [not null]
   "created_by" uuid [note: '''NULL means the agreement was created by the system (a migration), not by a person -- there is no honest user id to record. Phase 2d creates exactly one such synthetic agreement to carry coefficients that predate this model. Do not backfill this with a synthetic \'system\' user row: it could not authenticate, it would appear in member listings, and someone would eventually delete it.''']
-  "updated_at" timestamptz [note: 'When the agreement was last edited. NULL means it has never been edited since creation.']
+  "updated_at" timestamp [note: 'When the agreement was last edited. NULL means it has never been edited since creation.']
   "updated_by" uuid [note: 'The user who last edited the agreement. NULL means it has never been edited since creation.']
+
+  Checks {
+    `(status = ANY (ARRAY['DRAFT'::text, 'PUBLISHED'::text, 'SUPERSEDED'::text]))` [name: 'sharing_agreement_status_check']
+  }
   Note: 'An authoring event over the coefficient timeline in supply_partition_coefficient: it groups the coefficients that were set together, against a given plant, and keeps the evidence they were derived from.'
 }
 
@@ -185,27 +137,76 @@ Table "sharing_agreement_file" {
   "filename" text [not null, note: 'Original filename as uploaded.']
   "content" bytea [not null, note: 'The raw file bytes. Stored verbatim; this phase does not parse the distributor file.']
   "content_hash" text [not null, note: 'Hash of content, to detect re-uploads of the same file.']
-  "uploaded_at" timestamptz [not null]
+  "uploaded_at" timestamp [not null]
   "uploaded_by" uuid [not null, note: 'The user who uploaded this file. Unlike sharing_agreement.created_by, this is never NULL: every file was uploaded by a real person, even when the owning agreement was created by the system.']
   Note: 'Evidence file(s) uploaded for a sharing_agreement. Zero files is a valid state; when more than one exists, the most recently uploaded is authoritative.'
 }
 
-Table "one_time_token" {
+Table "shelly_config" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "enabled" boolean [not null, default: false]
+  "community_id" uuid [not null]
+}
+
+Table "supplies" {
   "id" uuid [pk, not null]
-  "user_id" uuid [not null, note: 'The user the token was issued to.']
-  "purpose" varchar(32) [not null, note: 'What the token was issued for.']
-  "token_hash" varchar(64) [unique, not null, note: 'Lowercase hex SHA-256 hash of the token.']
-  "created_at" timestamptz [not null, note: 'When the token was issued.']
-  "expires_at" timestamptz [not null, note: 'When the token stops being valid.']
-  "used_at" timestamptz [note: 'When the token was used. NULL if it has not been used.']
-  "revoked_at" timestamptz [note: 'When the token was revoked. NULL if it has not been revoked.']
+  "code" "character varying(250)" [not null]
+  "user_id" uuid
+  "name" "character varying(250)"
+  "address" "character varying(250)" [not null]
+  "enabled" boolean [not null]
+  "address_ref" "character varying(250)"
+  "community_id" uuid [not null]
+}
+
+Table "supplies_contract" {
+  "supply_id" uuid [pk, not null]
+  "valid_date_from" date
+}
+
+Table "supplies_distributor" {
+  "supply_id" uuid [pk, not null]
+  "name" "character varying(250)"
+  "code" "character varying(250)"
+  "point_type" integer
+}
+
+Table "supplies_shelly" {
+  "supply_id" uuid [pk, not null]
+  "mac_address" "character varying(250)"
+  "id" "character varying(250)"
+  "mqtt_prefix" "character varying(250)"
+}
+
+Table "supply_partition_coefficient" {
+  "id" uuid [pk, not null]
+  "supply_id" uuid [not null]
+  "coefficient" numeric(18,6) [not null]
+  "valid_from" timestamp [note: 'Persisted as an instant, resolved from the administrator-authored LocalDate using                      the application-level conluz.time.zone.id at the moment of activation (see                      ZoneResolver). A persisted instant does not migrate: when the zone moves to                      community level, the backfill must seed every existing community with the                      application-level value in force at that moment, or older coefficients will keep                      the old instant while newer ones use the new one and the timeline becomes                      internally inconsistent by one hour, silently.']
+  "valid_to" timestamp
+  "created_at" timestamp [not null, default: `now()`]
+  "plant_id" uuid [not null, note: 'The plant this coefficient participates in. Nullable here, made NOT NULL by make_supply_partition_coefficient_plant_and_sharing_agreement_not_null.xml once backfilled.']
+  "sharing_agreement_id" uuid [not null, note: 'The agreement that authored this coefficient. Nullable here for the same reason as plant_id.']
 
   Indexes {
-    (user_id, purpose) [type: btree, unique, name: "one_time_token_one_active_uq", note: 'Partial: WHERE used_at IS NULL AND revoked_at IS NULL.']
-    (user_id, purpose, created_at) [type: btree, name: "one_time_token_user_purpose_created_at_idx"]
-    `LEAST(expires_at, used_at, revoked_at)` [type: btree, name: "one_time_token_finished_at_idx"]
+    (supply_id, valid_from) [type: btree, name: "idx_supply_partition_coefficient_supply_id_valid_from"]
   }
-  Note: 'One-time tokens issued to a user for one purpose. Only the hash of each token is stored.'
+}
+
+Table "users" {
+  "id" uuid [pk, not null]
+  "personal_id" "character varying(250)" [unique, not null]
+  "number" integer [not null]
+  "password" "character varying(250)" [not null]
+  "full_name" "character varying(250)" [not null]
+  "address" "character varying(250)"
+  "phone_number" "character varying(250)"
+  "email" "character varying(250)" [not null]
+  "enabled" boolean [not null]
+  "is_platform_admin" boolean [not null, default: false]
+  "must_change_password" boolean [not null, default: false, note: '''Whether the user\'s current password was chosen by someone else and should be changed by the user. Cleared when the user changes their password.''']
+  "password_changed_at" timestamp [note: 'When the user last changed their own password. Tokens issued before this instant are rejected. NULL means the password has never been changed, and places no restriction on issued tokens.']
+  "disabled_at" timestamp [note: 'When the user was last disabled. Tokens issued before this instant are rejected, also after the user is enabled again. NULL means the user has not been disabled, and places no restriction on issued tokens.']
 }
 
 Ref "community_memberships_community_id_fk":"communities"."id" <? "community_memberships"."community_id"
@@ -224,25 +225,25 @@ Ref "plants_supply_id_fk":"supplies"."id" <? "plants"."supply_id"
 
 Ref "sharing_agreement_created_by_fk":"users"."id" ?<? "sharing_agreement"."created_by" [delete: set null]
 
-Ref "sharing_agreement_plant_id_fk":"plants"."id" <? "sharing_agreement"."plant_id"
-
-Ref "sharing_agreement_updated_by_fk":"users"."id" ?<? "sharing_agreement"."updated_by" [delete: set null]
-
 Ref "sharing_agreement_file_sharing_agreement_id_fk":"sharing_agreement"."id" <? "sharing_agreement_file"."sharing_agreement_id" [delete: cascade]
 
 Ref "sharing_agreement_file_uploaded_by_fk":"users"."id" <? "sharing_agreement_file"."uploaded_by"
 
+Ref "sharing_agreement_plant_id_fk":"plants"."id" <? "sharing_agreement"."plant_id"
+
+Ref "sharing_agreement_updated_by_fk":"users"."id" ?<? "sharing_agreement"."updated_by" [delete: set null]
+
 Ref "shelly_config_community_id_fk":"communities"."id" <? "shelly_config"."community_id"
 
 Ref "supplies_community_id_fk":"communities"."id" <? "supplies"."community_id"
-
-Ref "supplies_user_id_fk":"users"."id" ?<? "supplies"."user_id"
 
 Ref "supplies_contract_supply_id_fk":"supplies"."id" <? "supplies_contract"."supply_id" [delete: cascade]
 
 Ref "supplies_distributor_supply_id_fk":"supplies"."id" <? "supplies_distributor"."supply_id" [delete: cascade]
 
 Ref "supplies_shelly_supply_id_fk":"supplies"."id" <? "supplies_shelly"."supply_id" [delete: cascade]
+
+Ref "supplies_user_id_fk":"users"."id" ?<? "supplies"."user_id"
 
 Ref "supply_partition_coefficient_plant_id_fk":"plants"."id" <? "supply_partition_coefficient"."plant_id"
 

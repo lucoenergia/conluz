@@ -2,13 +2,15 @@
 -- PostgreSQL database dump
 --
 
+\restrict vgTiQudK2UumbgYPtF8oIvEYhwoj8EyvaWRhgUUoD5Q67Ap6wmLyYdOlmZp5ZIe
 
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg13+1)
--- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg13+1)
+-- Dumped by pg_dump version 18.6 (Ubuntu 18.6-1.pgdg26.04+2)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -40,9 +42,9 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.blacklisted_token (
-    jti character varying(64) NOT NULL,
-    expiration timestamp without time zone NOT NULL,
-    revoked_at timestamp without time zone NOT NULL
+                                          jti character varying(64) NOT NULL,
+                                          expiration timestamp without time zone NOT NULL,
+                                          revoked_at timestamp without time zone NOT NULL
 );
 
 
@@ -51,12 +53,12 @@ CREATE TABLE public.blacklisted_token (
 --
 
 CREATE TABLE public.communities (
-    id uuid NOT NULL,
-    name text NOT NULL,
-    code text NOT NULL,
-    legal_id text,
-    address text,
-    enabled boolean DEFAULT true NOT NULL
+                                    id uuid NOT NULL,
+                                    name text NOT NULL,
+                                    code text NOT NULL,
+                                    legal_id text,
+                                    address text,
+                                    enabled boolean DEFAULT true NOT NULL
 );
 
 
@@ -65,20 +67,20 @@ CREATE TABLE public.communities (
 --
 
 CREATE TABLE public.community_memberships (
-    id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    community_id uuid NOT NULL,
-    role text NOT NULL,
-    enabled boolean DEFAULT true NOT NULL,
-    investment_eur numeric(12,2),
-    full_name character varying(250) NOT NULL,
-    member_number integer,
-    contact_email character varying(250),
-    address character varying(250),
-    phone_number character varying(250),
-    accepted_at timestamp with time zone,
-    invited_by uuid,
-    invited_at timestamp with time zone
+                                              id uuid NOT NULL,
+                                              user_id uuid NOT NULL,
+                                              community_id uuid NOT NULL,
+                                              role text NOT NULL,
+                                              enabled boolean DEFAULT true NOT NULL,
+                                              investment_eur numeric(12,2),
+                                              full_name character varying(250) NOT NULL,
+                                              member_number integer,
+                                              contact_email character varying(250),
+                                              address character varying(250),
+                                              phone_number character varying(250),
+                                              accepted_at timestamp with time zone,
+                                              invited_by uuid,
+                                              invited_at timestamp with time zone
 );
 
 
@@ -150,8 +152,8 @@ COMMENT ON COLUMN public.community_memberships.invited_at IS 'When the membershi
 --
 
 CREATE TABLE public.config (
-    id uuid NOT NULL,
-    default_admin_user_initialized boolean DEFAULT false NOT NULL
+                               id uuid NOT NULL,
+                               default_admin_user_initialized boolean DEFAULT false NOT NULL
 );
 
 
@@ -160,20 +162,20 @@ CREATE TABLE public.config (
 --
 
 CREATE TABLE public.databasechangelog (
-    id character varying(255) NOT NULL,
-    author character varying(255) NOT NULL,
-    filename character varying(255) NOT NULL,
-    dateexecuted timestamp without time zone NOT NULL,
-    orderexecuted integer NOT NULL,
-    exectype character varying(10) NOT NULL,
-    md5sum character varying(35),
-    description character varying(255),
-    comments character varying(255),
-    tag character varying(255),
-    liquibase character varying(20),
-    contexts character varying(255),
-    labels character varying(255),
-    deployment_id character varying(10)
+                                          id character varying(255) NOT NULL,
+                                          author character varying(255) NOT NULL,
+                                          filename character varying(255) NOT NULL,
+                                          dateexecuted timestamp without time zone NOT NULL,
+                                          orderexecuted integer NOT NULL,
+                                          exectype character varying(10) NOT NULL,
+                                          md5sum character varying(35),
+                                          description character varying(255),
+                                          comments character varying(255),
+                                          tag character varying(255),
+                                          liquibase character varying(20),
+                                          contexts character varying(255),
+                                          labels character varying(255),
+                                          deployment_id character varying(10)
 );
 
 
@@ -182,10 +184,10 @@ CREATE TABLE public.databasechangelog (
 --
 
 CREATE TABLE public.databasechangeloglock (
-    id integer NOT NULL,
-    locked boolean NOT NULL,
-    lockgranted timestamp without time zone,
-    lockedby character varying(255)
+                                              id integer NOT NULL,
+                                              locked boolean NOT NULL,
+                                              lockgranted timestamp without time zone,
+                                              lockedby character varying(255)
 );
 
 
@@ -194,12 +196,12 @@ CREATE TABLE public.databasechangeloglock (
 --
 
 CREATE TABLE public.datadis_config (
-    id uuid NOT NULL,
-    username text,
-    password text,
-    base_url text DEFAULT 'http://localhost:5555'::text NOT NULL,
-    enabled boolean DEFAULT false NOT NULL,
-    community_id uuid NOT NULL
+                                       id uuid NOT NULL,
+                                       username text,
+                                       password text,
+                                       base_url text DEFAULT 'http://localhost:5555'::text NOT NULL,
+                                       enabled boolean DEFAULT false NOT NULL,
+                                       community_id uuid NOT NULL
 );
 
 
@@ -208,12 +210,12 @@ CREATE TABLE public.datadis_config (
 --
 
 CREATE TABLE public.huawei_config (
-    id uuid NOT NULL,
-    username text,
-    password text,
-    base_url text DEFAULT 'http://localhost:8000/thirdData'::text NOT NULL,
-    enabled boolean DEFAULT false NOT NULL,
-    plant_id uuid
+                                      id uuid NOT NULL,
+                                      username text,
+                                      password text,
+                                      base_url text DEFAULT 'http://localhost:8000/thirdData'::text NOT NULL,
+                                      enabled boolean DEFAULT false NOT NULL,
+                                      plant_id uuid
 );
 
 
@@ -222,14 +224,14 @@ CREATE TABLE public.huawei_config (
 --
 
 CREATE TABLE public.one_time_token (
-    id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    purpose character varying(32) NOT NULL,
-    token_hash character varying(64) NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    expires_at timestamp with time zone NOT NULL,
-    used_at timestamp with time zone,
-    revoked_at timestamp with time zone
+                                       id uuid NOT NULL,
+                                       user_id uuid NOT NULL,
+                                       purpose character varying(32) NOT NULL,
+                                       token_hash character varying(64) NOT NULL,
+                                       created_at timestamp with time zone NOT NULL,
+                                       expires_at timestamp with time zone NOT NULL,
+                                       used_at timestamp with time zone,
+                                       revoked_at timestamp with time zone
 );
 
 
@@ -294,16 +296,16 @@ COMMENT ON COLUMN public.one_time_token.revoked_at IS 'When the token was revoke
 --
 
 CREATE TABLE public.plants (
-    id uuid NOT NULL,
-    name text NOT NULL,
-    provider_code text NOT NULL,
-    address text NOT NULL,
-    description text,
-    inverter_provider text NOT NULL,
-    total_power double precision NOT NULL,
-    connection_date date,
-    supply_id uuid NOT NULL,
-    regulatory_code text
+                               id uuid NOT NULL,
+                               name text NOT NULL,
+                               provider_code text NOT NULL,
+                               address text NOT NULL,
+                               description text,
+                               inverter_provider text NOT NULL,
+                               total_power double precision NOT NULL,
+                               connection_date date,
+                               supply_id uuid NOT NULL,
+                               regulatory_code text
 );
 
 
@@ -319,17 +321,17 @@ COMMENT ON COLUMN public.plants.regulatory_code IS 'The identifier assigned by t
 --
 
 CREATE TABLE public.sharing_agreement (
-    id uuid NOT NULL,
-    plant_id uuid NOT NULL,
-    name text NOT NULL,
-    notes text,
-    status text NOT NULL,
-    installed_power_kw numeric,
-    created_at timestamp with time zone NOT NULL,
-    created_by uuid,
-    updated_at timestamp with time zone,
-    updated_by uuid,
-    CONSTRAINT sharing_agreement_status_check CHECK ((status = ANY (ARRAY['DRAFT'::text, 'PUBLISHED'::text, 'SUPERSEDED'::text])))
+                                          id uuid NOT NULL,
+                                          plant_id uuid NOT NULL,
+                                          name text NOT NULL,
+                                          notes text,
+                                          status text NOT NULL,
+                                          installed_power_kw numeric,
+                                          created_at timestamp with time zone NOT NULL,
+                                          created_by uuid,
+                                          updated_at timestamp with time zone,
+                                          updated_by uuid,
+                                          CONSTRAINT sharing_agreement_status_check CHECK ((status = ANY (ARRAY['DRAFT'::text, 'PUBLISHED'::text, 'SUPERSEDED'::text])))
 );
 
 
@@ -401,13 +403,13 @@ COMMENT ON COLUMN public.sharing_agreement.updated_by IS 'The user who last edit
 --
 
 CREATE TABLE public.sharing_agreement_file (
-    id uuid NOT NULL,
-    sharing_agreement_id uuid NOT NULL,
-    filename text NOT NULL,
-    content bytea NOT NULL,
-    content_hash text NOT NULL,
-    uploaded_at timestamp with time zone NOT NULL,
-    uploaded_by uuid NOT NULL
+                                               id uuid NOT NULL,
+                                               sharing_agreement_id uuid NOT NULL,
+                                               filename text NOT NULL,
+                                               content bytea NOT NULL,
+                                               content_hash text NOT NULL,
+                                               uploaded_at timestamp with time zone NOT NULL,
+                                               uploaded_by uuid NOT NULL
 );
 
 
@@ -458,9 +460,9 @@ COMMENT ON COLUMN public.sharing_agreement_file.uploaded_by IS 'The user who upl
 --
 
 CREATE TABLE public.shelly_config (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    enabled boolean DEFAULT false NOT NULL,
-    community_id uuid NOT NULL
+                                      id uuid DEFAULT gen_random_uuid() NOT NULL,
+                                      enabled boolean DEFAULT false NOT NULL,
+                                      community_id uuid NOT NULL
 );
 
 
@@ -469,14 +471,14 @@ CREATE TABLE public.shelly_config (
 --
 
 CREATE TABLE public.supplies (
-    id uuid NOT NULL,
-    code character varying(250) NOT NULL,
-    user_id uuid,
-    name character varying(250),
-    address character varying(250) NOT NULL,
-    enabled boolean NOT NULL,
-    address_ref character varying(250),
-    community_id uuid NOT NULL
+                                 id uuid NOT NULL,
+                                 code character varying(250) NOT NULL,
+                                 user_id uuid,
+                                 name character varying(250),
+                                 address character varying(250) NOT NULL,
+                                 enabled boolean NOT NULL,
+                                 address_ref character varying(250),
+                                 community_id uuid NOT NULL
 );
 
 
@@ -485,8 +487,8 @@ CREATE TABLE public.supplies (
 --
 
 CREATE TABLE public.supplies_contract (
-    supply_id uuid NOT NULL,
-    valid_date_from date
+                                          supply_id uuid NOT NULL,
+                                          valid_date_from date
 );
 
 
@@ -495,10 +497,10 @@ CREATE TABLE public.supplies_contract (
 --
 
 CREATE TABLE public.supplies_distributor (
-    supply_id uuid NOT NULL,
-    name character varying(250),
-    code character varying(250),
-    point_type integer
+                                             supply_id uuid NOT NULL,
+                                             name character varying(250),
+                                             code character varying(250),
+                                             point_type integer
 );
 
 
@@ -507,10 +509,10 @@ CREATE TABLE public.supplies_distributor (
 --
 
 CREATE TABLE public.supplies_shelly (
-    supply_id uuid NOT NULL,
-    mac_address character varying(250),
-    id character varying(250),
-    mqtt_prefix character varying(250)
+                                        supply_id uuid NOT NULL,
+                                        mac_address character varying(250),
+                                        id character varying(250),
+                                        mqtt_prefix character varying(250)
 );
 
 
@@ -519,14 +521,14 @@ CREATE TABLE public.supplies_shelly (
 --
 
 CREATE TABLE public.supply_partition_coefficient (
-    id uuid NOT NULL,
-    supply_id uuid NOT NULL,
-    coefficient numeric(18,6) NOT NULL,
-    valid_from timestamp with time zone,
-    valid_to timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    plant_id uuid NOT NULL,
-    sharing_agreement_id uuid NOT NULL
+                                                     id uuid NOT NULL,
+                                                     supply_id uuid NOT NULL,
+                                                     coefficient numeric(18,6) NOT NULL,
+                                                     valid_from timestamp with time zone,
+                                                     valid_to timestamp with time zone,
+                                                     created_at timestamp with time zone DEFAULT now() NOT NULL,
+                                                     plant_id uuid NOT NULL,
+                                                     sharing_agreement_id uuid NOT NULL
 );
 
 
@@ -556,19 +558,19 @@ COMMENT ON COLUMN public.supply_partition_coefficient.sharing_agreement_id IS 'T
 --
 
 CREATE TABLE public.users (
-    id uuid NOT NULL,
-    personal_id character varying(250) NOT NULL,
-    number integer NOT NULL,
-    password character varying(250) NOT NULL,
-    full_name character varying(250) NOT NULL,
-    address character varying(250),
-    phone_number character varying(250),
-    email character varying(250) NOT NULL,
-    enabled boolean NOT NULL,
-    is_platform_admin boolean DEFAULT false NOT NULL,
-    must_change_password boolean DEFAULT false NOT NULL,
-    password_changed_at timestamp with time zone,
-    disabled_at timestamp with time zone
+                              id uuid NOT NULL,
+                              personal_id character varying(250) NOT NULL,
+                              number integer NOT NULL,
+                              password character varying(250) NOT NULL,
+                              full_name character varying(250) NOT NULL,
+                              address character varying(250),
+                              phone_number character varying(250),
+                              email character varying(250) NOT NULL,
+                              enabled boolean NOT NULL,
+                              is_platform_admin boolean DEFAULT false NOT NULL,
+                              must_change_password boolean DEFAULT false NOT NULL,
+                              password_changed_at timestamp with time zone,
+                              disabled_at timestamp with time zone
 );
 
 
@@ -993,4 +995,5 @@ ALTER TABLE ONLY public.supply_partition_coefficient
 -- PostgreSQL database dump complete
 --
 
+\unrestrict vgTiQudK2UumbgYPtF8oIvEYhwoj8EyvaWRhgUUoD5Q67Ap6wmLyYdOlmZp5ZIe
 
