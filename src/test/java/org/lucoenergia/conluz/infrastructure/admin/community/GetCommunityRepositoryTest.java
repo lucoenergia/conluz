@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -43,6 +44,9 @@ class GetCommunityRepositoryTest extends BaseIntegrationTest {
 
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+
+    @Autowired
+    private CommunityMembershipJpaRepository communityMembershipJpaRepository;
 
     @Test
     void testFindByIdReturnsEmptyWhenNotFound() {
@@ -139,6 +143,42 @@ class GetCommunityRepositoryTest extends BaseIntegrationTest {
         assertEquals(2, names.size());
         assertTrue(names.contains("Alice Admin"));
         assertTrue(names.contains("Bob Admin"));
+    }
+
+    @Test
+    @DisplayName("MEM-006 the member count leaves out pending and disabled memberships")
+    void countMembersByCommunityIdsCountsOnlyActiveMemberships() {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User active = createUser("Active");
+        User pending = createUser("Pending");
+        User disabled = createUser("Disabled");
+        createMembership(active, community, CommunityRole.COMMUNITY_MEMBER);
+        createMembership(pending, community, CommunityRole.COMMUNITY_MEMBER);
+        createMembership(disabled, community, CommunityRole.COMMUNITY_MEMBER);
+        MembershipStateTestSupport.markPending(communityMembershipJpaRepository, pending.getId(), community.getId());
+        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, disabled.getId(), community.getId());
+
+        Map<UUID, Integer> counts = getCommunityRepository.countMembersByCommunityIds(Set.of(community.getId()));
+
+        assertEquals(1, counts.get(community.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-006 the admin names leave out pending and disabled admin memberships")
+    void findAdminNamesByCommunityIdsNamesOnlyActiveAdmins() {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User active = createUser("Active Admin");
+        User pending = createUser("Pending Admin");
+        User disabled = createUser("Disabled Admin");
+        createMembership(active, community, CommunityRole.COMMUNITY_ADMIN);
+        createMembership(pending, community, CommunityRole.COMMUNITY_ADMIN);
+        createMembership(disabled, community, CommunityRole.COMMUNITY_ADMIN);
+        MembershipStateTestSupport.markPending(communityMembershipJpaRepository, pending.getId(), community.getId());
+        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, disabled.getId(), community.getId());
+
+        Map<UUID, List<String>> adminNames = getCommunityRepository.findAdminNamesByCommunityIds(Set.of(community.getId()));
+
+        assertEquals(List.of("Active Admin"), adminNames.get(community.getId()));
     }
 
     private User createUser(String fullName) {
