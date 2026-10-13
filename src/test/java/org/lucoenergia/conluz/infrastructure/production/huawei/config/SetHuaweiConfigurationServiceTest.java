@@ -1,0 +1,111 @@
+package org.lucoenergia.conluz.infrastructure.production.huawei.config;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.domain.production.huawei.config.HuaweiConfigPasswordRequiredException;
+import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationCommand;
+import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationRepository;
+import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationService;
+import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class SetHuaweiConfigurationServiceTest {
+
+    private static final UUID PLANT_ID = UUID.randomUUID();
+    private static final String BASE_URL = "https://fusionsolar.example.com/thirdData";
+
+    @Mock
+    private GetHuaweiConfigRepository getHuaweiConfigRepository;
+    @Mock
+    private SetHuaweiConfigurationRepository setHuaweiConfigurationRepository;
+
+    private SetHuaweiConfigurationService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new SetHuaweiConfigurationServiceImpl(getHuaweiConfigRepository, setHuaweiConfigurationRepository);
+    }
+
+    @Test
+    @DisplayName("HCF-001 without a password the stored non-empty password is written back with the other fields")
+    void keepsStoredPassword() {
+        when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID)).thenReturn(Optional.of(storedConfig("stored")));
+
+        service.setHuaweiConfiguration(PLANT_ID, command(Optional.empty()));
+
+        HuaweiConfig written = written();
+        assertThat(written.getPassword()).isEqualTo("stored");
+        assertThat(written.getUsername()).isEqualTo("newUser");
+        assertThat(written.getBaseUrl()).isEqualTo(BASE_URL);
+        assertThat(written.getEnabled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("a supplied password is written as given")
+    void writesSuppliedPassword() {
+        service.setHuaweiConfiguration(PLANT_ID, command(Optional.of("newPassword")));
+
+        assertThat(written().getPassword()).isEqualTo("newPassword");
+    }
+
+    @Test
+    @DisplayName("HCF-002 without a password and without a configuration nothing is written")
+    void rejectsMissingPasswordWithoutConfig() {
+        when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.setHuaweiConfiguration(PLANT_ID, command(Optional.empty())))
+                .isInstanceOf(HuaweiConfigPasswordRequiredException.class);
+        verify(setHuaweiConfigurationRepository, never()).setHuaweiConfiguration(any(), any());
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @DisplayName("HCF-002 without a password and with a stored null or empty password nothing is written")
+    void rejectsMissingPasswordOverStoredBlankPassword(String storedPassword) {
+        when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID))
+                .thenReturn(Optional.of(storedConfig(storedPassword)));
+
+        assertThatThrownBy(() -> service.setHuaweiConfiguration(PLANT_ID, command(Optional.empty())))
+                .isInstanceOf(HuaweiConfigPasswordRequiredException.class);
+        verify(setHuaweiConfigurationRepository, never()).setHuaweiConfiguration(any(), any());
+    }
+
+    private static SetHuaweiConfigurationCommand command(Optional<String> password) {
+        return new SetHuaweiConfigurationCommand("newUser", password, BASE_URL, Boolean.FALSE);
+    }
+
+    private static HuaweiConfig storedConfig(String password) {
+        return new HuaweiConfig.Builder()
+                .setUsername("storedUser")
+                .setPassword(password)
+                .setBaseUrl(HuaweiConfig.DEFAULT_BASE_URL)
+                .setEnabled(Boolean.TRUE)
+                .setPlantId(PLANT_ID)
+                .build();
+    }
+
+    private HuaweiConfig written() {
+        ArgumentCaptor<HuaweiConfig> captor = ArgumentCaptor.forClass(HuaweiConfig.class);
+        verify(setHuaweiConfigurationRepository).setHuaweiConfiguration(eq(PLANT_ID), captor.capture());
+        return captor.getValue();
+    }
+}
