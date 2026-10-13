@@ -1,25 +1,42 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.config;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.URL;
-import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfiguration;
 
 @Schema(requiredProperties = {
-        "username", "password", "baseUrl", "enabled"
+        "username", "baseUrl", "enabled"
 })
 public class ConfigureHuaweiBody {
 
     @NotBlank
     private String username;
-    @NotBlank
+    /**
+     * Optional (#399): absent keeps the stored password. An explicit {@code null} fails deserialisation, so
+     * a {@code null} here always means the field was absent. {@code @Length} rather than {@code @Size},
+     * which would also publish an unbounded {@code maxLength}.
+     */
+    @Schema(minLength = 1)
+    @Length(min = 1)
+    @JsonSetter(nulls = Nulls.FAIL)
     private String password;
     @NotBlank
     @URL
     private String baseUrl;
     @NotNull
     private Boolean enabled;
+
+    /**
+     * Jackson binds through this constructor and the setters, so an absent property is never set and keeps
+     * its {@code null}, while an explicit {@code null} reaches {@link JsonSetter#nulls()}.
+     */
+    public ConfigureHuaweiBody() {
+    }
 
     public ConfigureHuaweiBody(String username, String password, String baseUrl, Boolean enabled) {
         this.username = username;
@@ -60,12 +77,14 @@ public class ConfigureHuaweiBody {
         this.enabled = enabled;
     }
 
-    public HuaweiConfig toHuaweiConfig() {
-        return new HuaweiConfig.Builder()
-                .setUsername(username)
-                .setPassword(password)
-                .setBaseUrl(baseUrl)
-                .setEnabled(enabled)
-                .build();
+    public SetHuaweiConfiguration mapToSetHuaweiConfiguration() {
+        SetHuaweiConfiguration.Builder builder = new SetHuaweiConfiguration.Builder()
+                .withUsername(username)
+                .withBaseUrl(baseUrl)
+                .withEnabled(enabled);
+        if (password != null) {
+            builder.withPassword(password);
+        }
+        return builder.build();
     }
 }

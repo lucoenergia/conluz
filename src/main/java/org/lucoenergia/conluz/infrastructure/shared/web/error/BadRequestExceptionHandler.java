@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.shared.web.error;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.InvalidNullException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import jakarta.validation.ConstraintViolationException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
@@ -160,6 +161,12 @@ public class BadRequestExceptionHandler {
             message = messageSource.getMessage(
                     "error.unrecognized.property",
                     List.of(unrecognizedPropertyException.getPropertyName()).toArray(),
+                    LocaleContextHolder.getLocale()
+            );
+        } else if (e.getCause() instanceof InvalidNullException invalidNullException) {
+            message = messageSource.getMessage(
+                    "error.property.null",
+                    List.of(invalidNullException.getPropertyName().getSimpleName()).toArray(),
                     LocaleContextHolder.getLocale()
             );
         } else if (e.getCause() instanceof InvalidFormatException invalidValueException) {

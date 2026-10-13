@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -40,32 +41,41 @@ public class SetHuaweiConfigController {
     @Operation(
             summary = "Sets up the configuration to be able to connect with Huawei.",
             description = """
-                    This endpoint allows to configure the app to connect with a Huawei FusionSolar
-                    Northbound API endpoint.
+                    This endpoint creates or replaces the configuration a plant uses to connect with a
+                    Huawei FusionSolar Northbound API endpoint.
 
-                    The request body must contain:
+                    The request body contains:
                     - **username** (required, string): API user.
-                    - **password** (required, string): API password / system code.
+                    - **password** (optional, string): API password / system code. The password is
+                      write-only: it is never returned, only whether one is set (`passwordSet`).
+                      - Absent: the stored password is kept and the other fields are updated. If the
+                        plant has no configuration, or its stored password is empty, the request is
+                        rejected with `400` and error code `HUAWEI_CONFIG_PASSWORD_REQUIRED`.
+                      - A non-empty string: replaces the stored password.
+                      - `null`: rejected with `400`. The stored password cannot be cleared.
+                      - An empty string: rejected with `400`.
                     - **baseUrl** (required, string): Base URL of the Huawei FusionSolar API
                       (for example `https://localhost:8000/thirdData`). Mock services
                       that emulate the SmartPVMS V6 Northbound Interface can be targeted by
                       providing their base URL here.
                     - **enabled** (required, boolean): Master switch for every Huawei-related
-                      service. When `false`, scheduled syncs and aggregation jobs are skipped and
-                      the manual sync endpoints respond with `409 Conflict`. Set this to `false`
-                      for energy communities that use a different inverter vendor (e.g. Greenheiss).
+                      service of the plant. When `false`, scheduled syncs and aggregation jobs are
+                      skipped and the manual sync endpoints respond with `409 Conflict`. Set this to
+                      `false` for plants that use a different inverter vendor (e.g. Greenheiss).
 
-                    This configuration is a mandatory step to be able to retrieve production data
-                    from the Huawei API.
+                    This configuration is a mandatory step to be able to retrieve the plant's production
+                    data from the Huawei API.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required: Community Admin**
+                    **Required: the caller can manage the plant** (the plant's `canManage` capability).
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with details
-                    about the configuration already set.
+                    about the configuration now stored.
 
-                    In cases where the creation process encounters errors, the server responds with an appropriate error
-                    status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.
+                    A rejected request stores nothing and leaves any existing configuration unchanged. The server
+                    responds with `400` when the body is invalid (a missing required field, a `null` or empty
+                    password, a blank username, a malformed base URL) or when the password is absent and there
+                    is no stored password to keep.
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "configureHuawei",
@@ -85,8 +95,9 @@ public class SetHuaweiConfigController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
-    public SetHuaweiConfigResponse configureHuawei(@PathVariable UUID plantId, @RequestBody ConfigureHuaweiBody body) {
-        HuaweiConfig config = service.setHuaweiConfiguration(plantId, body.toHuaweiConfig());
+    public SetHuaweiConfigResponse configureHuawei(@PathVariable UUID plantId,
+                                                   @Valid @RequestBody ConfigureHuaweiBody body) {
+        HuaweiConfig config = service.setHuaweiConfiguration(plantId, body.mapToSetHuaweiConfiguration());
         return SetHuaweiConfigResponse.of(config);
     }
 }
