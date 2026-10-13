@@ -23,14 +23,14 @@ public class PlantAccessPolicy {
     }
 
     /**
-     * Reading a plant is open to any enabled member of its community, whatever their role.
+     * Reading a plant is open to any active member of its community, whatever their role.
      */
     public AccessDecision canRead(User caller, Plant plant) {
         return isVisible(caller, plant) ? AccessDecision.ALLOWED : AccessDecision.NOT_VISIBLE;
     }
 
     /**
-     * Managing a plant belongs to the enabled community admins of its community. A plain member can
+     * Managing a plant belongs to the active community admins of its community. A plain member can
      * see the plant, so they are forbidden rather than not-found.
      */
     public AccessDecision canManage(User caller, Plant plant) {
@@ -60,7 +60,7 @@ public class PlantAccessPolicy {
      * Whether the caller may create plants in a community at all, asked without a supply in hand —
      * the community-admin half of {@link #canCreate}, which is the only half that does not depend
      * on which supply is named. Equivalent to {@code canCreate} over any supply of the community:
-     * an enabled community admin passes both of its gates, and nobody else passes the second.
+     * an active community admin passes both of its gates, and nobody else passes the second.
      *
      * <p>No guard method needs this, because no endpoint creates a plant without naming a supply.
      * It exists so a community can report the capability, and it lives here rather than in the
@@ -76,7 +76,7 @@ public class PlantAccessPolicy {
     }
 
     /**
-     * Listing the plants of a community is open to any enabled member. A platform admin who is not a
+     * Listing the plants of a community is open to any active member. A platform admin who is not a
      * member can see the community, so they are forbidden rather than not-found — unlike a single
      * plant, where the same caller gets not-found.
      */
@@ -101,7 +101,7 @@ public class PlantAccessPolicy {
 
     /**
      * The single spelling of "can this caller see this plant at all": it exists, and they hold an
-     * enabled membership in its community.
+     * active membership in its community.
      */
     public boolean isVisible(User caller, Plant plant) {
         return plant != null && CallerMemberships.hasMembershipInCommunity(caller, communityOf(plant));

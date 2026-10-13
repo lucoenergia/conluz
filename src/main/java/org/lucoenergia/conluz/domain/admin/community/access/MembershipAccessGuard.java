@@ -32,7 +32,7 @@ public interface MembershipAccessGuard {
     /**
      * Whether the current user may read the private figures of this membership -- its payback
      * progress and the energy metrics of its supplies: either they are {@code userId} themselves
-     * and hold an enabled membership in {@code communityId}, or they are an enabled
+     * and hold an active membership in {@code communityId}, or they are an active
      * {@code COMMUNITY_ADMIN} of it.
      *
      * <p>Deliberately not expressed through {@code canReadCommunity}, which grants every platform

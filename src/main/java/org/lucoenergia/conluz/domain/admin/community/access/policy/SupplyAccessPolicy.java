@@ -17,7 +17,7 @@ import java.util.UUID;
 public class SupplyAccessPolicy {
 
     /**
-     * Reading a supply is open to its owner and to the enabled community admins of its community —
+     * Reading a supply is open to its owner and to the active community admins of its community —
      * the same access editing requires, so a caller who may not read it is never told it exists.
      */
     public AccessDecision canRead(User caller, Supply supply) {

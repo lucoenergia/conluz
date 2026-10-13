@@ -13,7 +13,7 @@ public interface CommunityAccessGuard extends
     boolean canReadCommunity(UUID communityId);
 
     /**
-     * Whether the current user is an enabled member of the community. Stricter than
+     * Whether the current user is an active member of the community. Stricter than
      * {@link #canReadCommunity(UUID)}: a platform admin who is not a member is <em>not</em> granted
      * access. Maps denials by visibility:
      * <ul>
@@ -22,7 +22,7 @@ public interface CommunityAccessGuard extends
      *         (→ 404), so its existence is not leaked,</li>
      *     <li>can see the community but is not a member (e.g. a non-member platform admin) →
      *         {@code false} (→ 403),</li>
-     *     <li>enabled member → {@code true} (→ 200).</li>
+     *     <li>active member → {@code true} (→ 200).</li>
      * </ul>
      * Used for communal data (e.g. Datadis production) that only members of the community may read.
      */

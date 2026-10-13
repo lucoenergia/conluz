@@ -12,7 +12,7 @@ public class CommunityAccessPolicy {
 
     /**
      * Reading a community is open to anyone who can see it — every platform admin, and every
-     * enabled member.
+     * active member.
      */
     public AccessDecision canRead(User caller, UUID communityId) {
         if (!CallerMemberships.canSeeCommunity(caller, communityId)) {
@@ -36,7 +36,7 @@ public class CommunityAccessPolicy {
     }
 
     /**
-     * Managing a community belongs to its enabled community admins. A platform admin who is not one
+     * Managing a community belongs to its active community admins. A platform admin who is not one
      * can see the community, so they are forbidden rather than not-found.
      */
     public AccessDecision canManage(User caller, UUID communityId) {

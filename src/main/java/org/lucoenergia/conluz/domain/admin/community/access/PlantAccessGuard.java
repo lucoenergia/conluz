@@ -8,7 +8,7 @@ public interface PlantAccessGuard {
 
     /**
      * Whether the current user may read the given plant. Allowed for any
-     * enabled member (regardless of role) of the plant's community.
+     * active member (regardless of role) of the plant's community.
      */
     boolean canReadPlant(UUID plantId);
 

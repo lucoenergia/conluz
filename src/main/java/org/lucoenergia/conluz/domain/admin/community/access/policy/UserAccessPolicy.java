@@ -70,7 +70,7 @@ public class UserAccessPolicy {
     }
 
     /**
-     * Listing the supplies of a user: the user themselves, or an enabled community admin of one of
+     * Listing the supplies of a user: the user themselves, or an active community admin of one of
      * their communities.
      *
      * <p>Deliberately <strong>not</strong> {@link #canRead}, which lets every platform admin through.
@@ -96,7 +96,7 @@ public class UserAccessPolicy {
     }
 
     /**
-     * Creating a user in a community: any platform admin, or an enabled community admin of that
+     * Creating a user in a community: any platform admin, or an active community admin of that
      * community. The platform-admin branch runs before the community is even considered, so it does
      * not matter whether one was named.
      */
