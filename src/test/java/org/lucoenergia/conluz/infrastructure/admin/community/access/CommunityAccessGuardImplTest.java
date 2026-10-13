@@ -7,6 +7,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -348,10 +349,10 @@ class CommunityAccessGuardImplTest {
         Community adminCommunity = CommunityMother.random().build();
         Community memberCommunity = CommunityMother.random().build();
         User user = UserMother.randomUser();
-        CommunityMembership adminMembership = new CommunityMembership.Builder()
+        CommunityMembership adminMembership = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID()).withUser(user).withCommunity(adminCommunity)
                 .withRole(CommunityRole.COMMUNITY_ADMIN).withEnabled(true).build();
-        CommunityMembership memberMembership = new CommunityMembership.Builder()
+        CommunityMembership memberMembership = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID()).withUser(user).withCommunity(memberCommunity)
                 .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(true).build();
         user.setMemberships(List.of(adminMembership, memberMembership));
@@ -418,7 +419,7 @@ class CommunityAccessGuardImplTest {
 
     private User userWithMembership(Community community, CommunityRole communityRole, boolean enabled) {
         User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
+        CommunityMembership membership = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withCommunity(community)

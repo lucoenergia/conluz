@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.access.capability;
 
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -68,7 +69,7 @@ final class CapabilityFixtures {
     }
 
     static CommunityMembership membershipOf(User user, Community community, CommunityRole role, boolean enabled) {
-        return new CommunityMembership.Builder()
+        return CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withCommunity(community)

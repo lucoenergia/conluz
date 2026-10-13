@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
-import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 
@@ -124,7 +123,7 @@ public class UserAccessPolicy {
         if (CallerMemberships.isPlatformAdmin(caller)) {
             return AccessDecision.ALLOWED;
         }
-        return CallerMemberships.hasAnyEnabledCommunityAdminRole(caller)
+        return CallerMemberships.hasAnyActiveCommunityAdminRole(caller)
                 ? AccessDecision.ALLOWED
                 : AccessDecision.FORBIDDEN;
     }
@@ -146,7 +145,7 @@ public class UserAccessPolicy {
     /**
      * {@link #canSee} in set form: which users the caller may see, expressed so a listing can apply it
      * in a single query instead of evaluating each row. A platform admin sees everyone; anyone else
-     * sees themselves and the users with an enabled membership in a community they administer — never
+     * sees themselves and the users with an active membership in a community they administer — never
      * more than they could read one by one. The same scope bounds which of a visible user's
      * memberships a response may carry: those in the caller's administered communities, as
      * {@code GET /communities/{communityId}/memberships} would show them, and all of the caller's own.
@@ -160,12 +159,8 @@ public class UserAccessPolicy {
     }
 
     private boolean administersACommunityOf(User caller, Supplier<List<CommunityMembership>> targetMemberships) {
-        Set<UUID> targetCommunityIds = CallerMemberships.enabledCommunityIds(targetMemberships.get());
+        Set<UUID> targetCommunityIds = CallerMemberships.activeCommunityIds(targetMemberships.get());
         if (targetCommunityIds.isEmpty()) return false;
-        if (caller.getMemberships() == null) return false;
-        return caller.getMemberships().stream()
-                .anyMatch(m -> targetCommunityIds.contains(m.getCommunity().getId())
-                        && m.getRole() == CommunityRole.COMMUNITY_ADMIN
-                        && Boolean.TRUE.equals(m.isEnabled()));
+        return CallerMemberships.adminCommunityIds(caller).stream().anyMatch(targetCommunityIds::contains);
     }
 }

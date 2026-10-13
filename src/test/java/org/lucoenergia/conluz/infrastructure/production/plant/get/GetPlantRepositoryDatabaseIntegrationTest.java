@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PlantCapabilitiesAssembler;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 
 @Transactional
 class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
@@ -322,7 +323,7 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
      */
     private User communityAdminOf(Community community) {
         User caller = UserMother.randomUser();
-        caller.setMemberships(List.of(new CommunityMembership.Builder()
+        caller.setMemberships(List.of(CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(caller)
                 .withCommunity(community)

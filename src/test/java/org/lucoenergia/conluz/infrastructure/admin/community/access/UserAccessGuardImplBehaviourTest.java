@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -136,7 +137,7 @@ class UserAccessGuardImplBehaviourTest {
                 .thenReturn(List.of(membershipDomainInCommunity(sharedCommunityId, CommunityRole.COMMUNITY_MEMBER, true)));
 
         User caller = UserMother.randomUser();
-        caller.setMemberships(List.of(new CommunityMembership.Builder()
+        caller.setMemberships(List.of(CommunityMembershipMother.active()
                 .withId(UUID.randomUUID()).withUser(caller)
                 .withCommunity(CommunityMother.random().withId(sharedCommunityId).build())
                 .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(true).build()));
@@ -195,7 +196,7 @@ class UserAccessGuardImplBehaviourTest {
         // the target's communities -- so a plain member editing their own record gets a 403.
         UUID ownCommunityId = UUID.randomUUID();
         User caller = UserMother.randomUser();
-        caller.setMemberships(List.of(new CommunityMembership.Builder()
+        caller.setMemberships(List.of(CommunityMembershipMother.active()
                 .withId(UUID.randomUUID()).withUser(caller)
                 .withCommunity(CommunityMother.random().withId(ownCommunityId).build())
                 .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(true).build()));
@@ -352,7 +353,7 @@ class UserAccessGuardImplBehaviourTest {
 
     private User userWithMembership(Community community, CommunityRole communityRole, boolean enabled) {
         User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
+        CommunityMembership membership = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withCommunity(community)
@@ -365,7 +366,7 @@ class UserAccessGuardImplBehaviourTest {
 
     private User callerAdminOf(UUID communityId, boolean enabled) {
         User caller = UserMother.randomUser();
-        caller.setMemberships(List.of(new CommunityMembership.Builder()
+        caller.setMemberships(List.of(CommunityMembershipMother.active()
                 .withId(UUID.randomUUID()).withUser(caller)
                 .withCommunity(CommunityMother.random().withId(communityId).build())
                 .withRole(CommunityRole.COMMUNITY_ADMIN).withEnabled(enabled).build()));
@@ -374,7 +375,7 @@ class UserAccessGuardImplBehaviourTest {
 
     private CommunityMembership membershipDomainInCommunity(UUID communityId, CommunityRole role, boolean enabled) {
         Community community = CommunityMother.random().withId(communityId).build();
-        return new CommunityMembership.Builder()
+        return CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withCommunity(community)
                 .withRole(role)

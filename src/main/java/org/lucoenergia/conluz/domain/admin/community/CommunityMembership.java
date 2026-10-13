@@ -116,6 +116,18 @@ public class CommunityMembership {
         return acceptedAt;
     }
 
+    /**
+     * Whether the membership is active: accepted and enabled. Pending and disabled are independent
+     * states, and a membership in either of them is not active (ADR-0003 §2).
+     *
+     * <p>This is the single definition of "active". Code that needs it calls this method instead
+     * of reading {@link #getAcceptedAt()} or {@link #isEnabled()}; queries that filter on it in the
+     * database use {@code ActiveMembershipJpql}, which spells the same condition.</p>
+     */
+    public boolean isActive() {
+        return acceptedAt != null && Boolean.TRUE.equals(enabled);
+    }
+
     public UUID getInvitedBy() {
         return invitedBy;
     }

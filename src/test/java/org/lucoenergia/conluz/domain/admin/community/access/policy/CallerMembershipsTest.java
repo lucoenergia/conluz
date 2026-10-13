@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -51,6 +52,14 @@ class CallerMembershipsTest {
     }
 
     @Test
+    @DisplayName("MEM-004 hasCommunityAdminRoleIn is false for a pending admin membership")
+    void hasCommunityAdminRoleIn_returnsFalse_whenMembershipIsPending() {
+        Community community = PolicyFixtures.community();
+        assertFalse(CallerMemberships.hasCommunityAdminRoleIn(
+                PolicyFixtures.pendingAdminOf(community), community.getId()));
+    }
+
+    @Test
     void hasCommunityAdminRoleIn_returnsFalse_whenUserAdministersAnotherCommunity() {
         assertFalse(CallerMemberships.hasCommunityAdminRoleIn(
                 PolicyFixtures.adminOf(PolicyFixtures.community()), UUID.randomUUID()));
@@ -82,6 +91,14 @@ class CallerMembershipsTest {
                 PolicyFixtures.disabledMemberOf(community), community.getId()));
     }
 
+    @Test
+    @DisplayName("MEM-004 hasMembershipInCommunity is false for a pending membership")
+    void hasMembershipInCommunity_returnsFalse_whenMembershipIsPending() {
+        Community community = PolicyFixtures.community();
+        assertFalse(CallerMemberships.hasMembershipInCommunity(
+                PolicyFixtures.pendingMemberOf(community), community.getId()));
+    }
+
     // --- canSeeCommunity ---
 
     @Test
@@ -109,6 +126,13 @@ class CallerMembershipsTest {
     void canSeeCommunity_returnsFalse_whenMembershipIsDisabled() {
         Community community = PolicyFixtures.community();
         assertFalse(CallerMemberships.canSeeCommunity(PolicyFixtures.disabledAdminOf(community), community.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-004 canSeeCommunity is false for a pending membership")
+    void canSeeCommunity_returnsFalse_whenMembershipIsPending() {
+        Community community = PolicyFixtures.community();
+        assertFalse(CallerMemberships.canSeeCommunity(PolicyFixtures.pendingAdminOf(community), community.getId()));
     }
 
     @Test
@@ -161,47 +185,54 @@ class CallerMembershipsTest {
         assertTrue(CallerMemberships.isPlatformAdmin(PolicyFixtures.platformAdmin()));
     }
 
-    // --- hasAnyEnabledCommunityAdminRole ---
+    // --- hasAnyActiveCommunityAdminRole ---
 
     @Test
-    void hasAnyEnabledCommunityAdminRole_returnsFalse_whenUserIsNull() {
-        assertFalse(CallerMemberships.hasAnyEnabledCommunityAdminRole(null));
+    void hasAnyActiveCommunityAdminRole_returnsFalse_whenUserIsNull() {
+        assertFalse(CallerMemberships.hasAnyActiveCommunityAdminRole(null));
     }
 
     @Test
-    void hasAnyEnabledCommunityAdminRole_returnsFalse_whenMembershipsIsNull() {
+    void hasAnyActiveCommunityAdminRole_returnsFalse_whenMembershipsIsNull() {
         User user = UserMother.randomUser();
         user.setMemberships(null);
-        assertFalse(CallerMemberships.hasAnyEnabledCommunityAdminRole(user));
+        assertFalse(CallerMemberships.hasAnyActiveCommunityAdminRole(user));
     }
 
     @Test
-    void hasAnyEnabledCommunityAdminRole_returnsTrue_whenAnyEnabledAdminMembershipExists() {
-        assertTrue(CallerMemberships.hasAnyEnabledCommunityAdminRole(
+    void hasAnyActiveCommunityAdminRole_returnsTrue_whenAnyEnabledAdminMembershipExists() {
+        assertTrue(CallerMemberships.hasAnyActiveCommunityAdminRole(
                 PolicyFixtures.adminOf(PolicyFixtures.community())));
     }
 
     @Test
-    void hasAnyEnabledCommunityAdminRole_returnsFalse_whenOnlyMemberMembershipsExist() {
-        assertFalse(CallerMemberships.hasAnyEnabledCommunityAdminRole(
+    void hasAnyActiveCommunityAdminRole_returnsFalse_whenOnlyMemberMembershipsExist() {
+        assertFalse(CallerMemberships.hasAnyActiveCommunityAdminRole(
                 PolicyFixtures.memberOf(PolicyFixtures.community())));
     }
 
     @Test
-    void hasAnyEnabledCommunityAdminRole_returnsFalse_whenAdminMembershipIsDisabled() {
-        assertFalse(CallerMemberships.hasAnyEnabledCommunityAdminRole(
+    void hasAnyActiveCommunityAdminRole_returnsFalse_whenAdminMembershipIsDisabled() {
+        assertFalse(CallerMemberships.hasAnyActiveCommunityAdminRole(
                 PolicyFixtures.disabledAdminOf(PolicyFixtures.community())));
     }
 
     @Test
-    void hasAnyEnabledCommunityAdminRole_returnsTrue_whenTheAdminMembershipCommunityHasNoId() {
+    @DisplayName("MEM-004 hasAnyActiveCommunityAdminRole is false for a pending admin membership")
+    void hasAnyActiveCommunityAdminRole_returnsFalse_whenAdminMembershipIsPending() {
+        assertFalse(CallerMemberships.hasAnyActiveCommunityAdminRole(
+                PolicyFixtures.pendingAdminOf(PolicyFixtures.community())));
+    }
+
+    @Test
+    void hasAnyActiveCommunityAdminRole_returnsTrue_whenTheAdminMembershipCommunityHasNoId() {
         // Holding the role is the question here, so a community without an id still counts --
         // unlike adminCommunityIds, which has nothing to put in the set.
         User user = UserMother.randomUser();
         PolicyFixtures.withMembership(user, CommunityMother.random().withId(null).build(),
                 CommunityRole.COMMUNITY_ADMIN, true);
 
-        assertTrue(CallerMemberships.hasAnyEnabledCommunityAdminRole(user));
+        assertTrue(CallerMemberships.hasAnyActiveCommunityAdminRole(user));
         assertEquals(Set.of(), CallerMemberships.adminCommunityIds(user));
     }
 
@@ -243,22 +274,29 @@ class CallerMembershipsTest {
                 PolicyFixtures.disabledAdminOf(PolicyFixtures.community())));
     }
 
-    // --- enabledMembershipCommunityIds ---
+    @Test
+    @DisplayName("MEM-004 adminCommunityIds excludes pending admin memberships")
+    void adminCommunityIds_excludesPendingAdminMemberships() {
+        assertEquals(Set.of(), CallerMemberships.adminCommunityIds(
+                PolicyFixtures.pendingAdminOf(PolicyFixtures.community())));
+    }
+
+    // --- activeMembershipCommunityIds ---
 
     @Test
-    void enabledMembershipCommunityIds_returnsEmpty_whenUserIsNull() {
-        assertEquals(Set.of(), CallerMemberships.enabledMembershipCommunityIds(null));
+    void activeMembershipCommunityIds_returnsEmpty_whenUserIsNull() {
+        assertEquals(Set.of(), CallerMemberships.activeMembershipCommunityIds(null));
     }
 
     @Test
-    void enabledMembershipCommunityIds_returnsEmpty_whenMembershipsIsNull() {
+    void activeMembershipCommunityIds_returnsEmpty_whenMembershipsIsNull() {
         User user = UserMother.randomUser();
         user.setMemberships(null);
-        assertEquals(Set.of(), CallerMemberships.enabledMembershipCommunityIds(user));
+        assertEquals(Set.of(), CallerMemberships.activeMembershipCommunityIds(user));
     }
 
     @Test
-    void enabledMembershipCommunityIds_returnsEveryEnabledCommunityWhateverTheRole() {
+    void activeMembershipCommunityIds_returnsEveryEnabledCommunityWhateverTheRole() {
         Community administered = PolicyFixtures.community();
         Community joined = PolicyFixtures.community();
         User user = UserMother.randomUser();
@@ -267,35 +305,53 @@ class CallerMembershipsTest {
                 PolicyFixtures.membershipIn(joined, CommunityRole.COMMUNITY_MEMBER, true)));
 
         assertEquals(Set.of(administered.getId(), joined.getId()),
-                CallerMemberships.enabledMembershipCommunityIds(user));
+                CallerMemberships.activeMembershipCommunityIds(user));
     }
 
     @Test
-    void enabledMembershipCommunityIds_excludesDisabledMemberships() {
-        assertEquals(Set.of(), CallerMemberships.enabledMembershipCommunityIds(
+    void activeMembershipCommunityIds_excludesDisabledMemberships() {
+        assertEquals(Set.of(), CallerMemberships.activeMembershipCommunityIds(
                 PolicyFixtures.disabledMemberOf(PolicyFixtures.community())));
     }
 
-    // --- enabledCommunityIds ---
+    @Test
+    @DisplayName("MEM-004 activeMembershipCommunityIds excludes pending memberships")
+    void activeMembershipCommunityIds_excludesPendingMemberships() {
+        assertEquals(Set.of(), CallerMemberships.activeMembershipCommunityIds(
+                PolicyFixtures.pendingMemberOf(PolicyFixtures.community())));
+    }
+
+    // --- activeCommunityIds ---
 
     @Test
-    void enabledCommunityIds_returnsEmpty_whenTheListIsNull() {
-        assertEquals(Set.of(), CallerMemberships.enabledCommunityIds(null));
+    void activeCommunityIds_returnsEmpty_whenTheListIsNull() {
+        assertEquals(Set.of(), CallerMemberships.activeCommunityIds(null));
     }
 
     @Test
-    void enabledCommunityIds_skipsMembershipsWithoutACommunity() {
-        assertEquals(Set.of(), CallerMemberships.enabledCommunityIds(
+    void activeCommunityIds_skipsMembershipsWithoutACommunity() {
+        assertEquals(Set.of(), CallerMemberships.activeCommunityIds(
                 List.of(PolicyFixtures.membershipIn(null, CommunityRole.COMMUNITY_MEMBER, true))));
     }
 
     @Test
-    void enabledCommunityIds_keepsOnlyEnabledOnes() {
+    void activeCommunityIds_keepsOnlyEnabledOnes() {
         Community enabled = PolicyFixtures.community();
         Community disabled = PolicyFixtures.community();
 
-        assertEquals(Set.of(enabled.getId()), CallerMemberships.enabledCommunityIds(List.of(
+        assertEquals(Set.of(enabled.getId()), CallerMemberships.activeCommunityIds(List.of(
                 PolicyFixtures.membershipIn(enabled, CommunityRole.COMMUNITY_MEMBER, true),
                 PolicyFixtures.membershipIn(disabled, CommunityRole.COMMUNITY_ADMIN, false))));
+    }
+
+    @Test
+    @DisplayName("MEM-004 activeCommunityIds excludes pending memberships")
+    void activeCommunityIds_excludesPendingOnes() {
+        Community active = PolicyFixtures.community();
+        Community pending = PolicyFixtures.community();
+
+        assertEquals(Set.of(active.getId()), CallerMemberships.activeCommunityIds(List.of(
+                PolicyFixtures.membershipIn(active, CommunityRole.COMMUNITY_MEMBER, true),
+                PolicyFixtures.pending(PolicyFixtures.membershipIn(pending, CommunityRole.COMMUNITY_MEMBER, true)))));
     }
 }

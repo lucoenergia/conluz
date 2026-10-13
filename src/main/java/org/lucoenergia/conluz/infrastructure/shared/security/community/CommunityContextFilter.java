@@ -71,10 +71,10 @@ public class CommunityContextFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Check membership
+            // Check membership: only an active one counts, so a pending or disabled membership is
+            // refused exactly like no membership at all
             boolean isMember = user.getMemberships() != null && user.getMemberships().stream()
-                    .anyMatch(m -> communityId.equals(m.getCommunity().getId())
-                            && Boolean.TRUE.equals(m.isEnabled()));
+                    .anyMatch(m -> communityId.equals(m.getCommunity().getId()) && m.isActive());
 
             if (!isMember) {
                 writeForbiddenResponse(response);
@@ -86,7 +86,7 @@ public class CommunityContextFilter extends OncePerRequestFilter {
             // No header — auto-detect from memberships
             if (user.getMemberships() != null) {
                 List<CommunityMembership> activeMemberships = user.getMemberships().stream()
-                        .filter(m -> Boolean.TRUE.equals(m.isEnabled()))
+                        .filter(CommunityMembership::isActive)
                         .toList();
 
                 if (activeMemberships.size() == 1) {

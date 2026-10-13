@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.admin.supply;
 
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -119,7 +120,7 @@ class CreateSupplyServiceTest {
     }
 
     private static CommunityMembership membership(User user, boolean enabled) {
-        return new CommunityMembership.Builder()
+        return CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withRole(CommunityRole.COMMUNITY_MEMBER)

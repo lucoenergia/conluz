@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -8,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.domain.shared.pagination.Direction;
@@ -16,6 +18,7 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
@@ -42,6 +45,8 @@ class GetUserRepositoryImplTest extends BaseIntegrationTest {
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CommunityMembershipJpaRepository communityMembershipJpaRepository;
+    @Autowired
+    private CreateUserRepository createUserRepository;
 
 
     @Test
@@ -120,6 +125,27 @@ class GetUserRepositoryImplTest extends BaseIntegrationTest {
         // Then: each user once, the caller (in no community) sorted among the others, not appended
         Assertions.assertEquals(List.of(inA.getId(), self.getId(), inB.getId(), inAAndC.getId()), ids(result));
         Assertions.assertEquals(4, result.getTotalElements());
+    }
+
+    @Test
+    @DisplayName("MEM-004 findAllVisible leaves out the users whose membership in the given communities is pending")
+    void findAllVisibleLeavesOutPendingMembers() {
+        // Given
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User self = createUserRepository.create(UserMother.randomUser());
+        User active = createUserRepository.create(UserMother.randomUser());
+        User pending = createUserRepository.create(UserMother.randomUser());
+        createMembershipRepository.create(community.getId(), active.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), pending.getId(), CommunityRole.COMMUNITY_MEMBER);
+        MembershipStateTestSupport.markPending(communityMembershipJpaRepository, pending.getId(), community.getId());
+
+        // When
+        PagedResult<User> result = getUserRepository.findAllVisible(byNumber(0, 10), self.getId(),
+                Set.of(community.getId()));
+
+        // Then
+        Assertions.assertEquals(Set.of(self.getId(), active.getId()), Set.copyOf(ids(result)));
+        Assertions.assertEquals(2, result.getTotalElements());
     }
 
     @Test

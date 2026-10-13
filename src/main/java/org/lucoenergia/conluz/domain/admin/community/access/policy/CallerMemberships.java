@@ -12,8 +12,9 @@ import java.util.stream.Collectors;
 
 /**
  * The caller's membership facts, spelled exactly once. Every access policy reads the caller's
- * standing through this class, so "enabled community admin of X" has a single definition rather
- * than one per guard.
+ * standing through this class, so "active community admin of X" has a single definition rather
+ * than one per guard. Only an {@linkplain CommunityMembership#isActive() active} membership counts:
+ * a pending or disabled one grants nothing (ADR-0003 §2).
  *
  * <p>Pure: it derives everything from the {@link User} handed to it and never loads anything.</p>
  */
@@ -31,19 +32,19 @@ public final class CallerMemberships {
         return user.getMemberships().stream()
                 .anyMatch(m -> communityId.equals(m.getCommunity().getId())
                         && m.getRole() == CommunityRole.COMMUNITY_ADMIN
-                        && Boolean.TRUE.equals(m.isEnabled()));
+                        && m.isActive());
     }
 
     public static boolean hasMembershipInCommunity(User user, UUID communityId) {
         if (communityId == null || user.getMemberships() == null) return false;
         return user.getMemberships().stream()
                 .anyMatch(m -> communityId.equals(m.getCommunity().getId())
-                        && Boolean.TRUE.equals(m.isEnabled()));
+                        && m.isActive());
     }
 
     /**
      * Whether the user is able to <em>see</em> the community exists (platform admins see every
-     * community; otherwise the user must hold an enabled membership in it). Used to decide between
+     * community; otherwise the user must hold an active membership in it). Used to decide between
      * a 404 (cannot see the community) and a 403 (can see it but lacks the required permission).
      */
     public static boolean canSeeCommunity(User user, UUID communityId) {
@@ -66,11 +67,10 @@ public final class CallerMemberships {
      * membership whose community carries no id still counts, where {@link #adminCommunityIds(User)}
      * has to drop it for want of something to put in the set.
      */
-    public static boolean hasAnyEnabledCommunityAdminRole(User user) {
+    public static boolean hasAnyActiveCommunityAdminRole(User user) {
         if (user == null || user.getMemberships() == null) return false;
         return user.getMemberships().stream()
-                .anyMatch(m ->
-                        m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()));
+                .anyMatch(m -> m.getRole() == CommunityRole.COMMUNITY_ADMIN && m.isActive());
     }
 
     public static Set<UUID> adminCommunityIds(User user) {
@@ -81,30 +81,30 @@ public final class CallerMemberships {
             return Set.of();
         }
         return user.getMemberships().stream()
-                .filter(m -> m.getRole() == CommunityRole.COMMUNITY_ADMIN && Boolean.TRUE.equals(m.isEnabled()))
+                .filter(m -> m.getRole() == CommunityRole.COMMUNITY_ADMIN && m.isActive())
                 .map(m -> m.getCommunity().getId())
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }
 
-    public static Set<UUID> enabledMembershipCommunityIds(User user) {
+    public static Set<UUID> activeMembershipCommunityIds(User user) {
         if (user == null || user.getMemberships() == null) {
             return Set.of();
         }
-        return enabledCommunityIds(user.getMemberships());
+        return activeCommunityIds(user.getMemberships());
     }
 
     /**
-     * The communities of an arbitrary membership list that actually count — enabled, and attached to
+     * The communities of an arbitrary membership list that actually count — active, and attached to
      * a community with an id. Used for the <em>target</em> of a decision (e.g. the user being read),
      * whose memberships the caller does not carry.
      */
-    public static Set<UUID> enabledCommunityIds(List<CommunityMembership> memberships) {
+    public static Set<UUID> activeCommunityIds(List<CommunityMembership> memberships) {
         if (memberships == null) {
             return Set.of();
         }
         return memberships.stream()
-                .filter(m -> Boolean.TRUE.equals(m.isEnabled()))
+                .filter(CommunityMembership::isActive)
                 .map(m -> m.getCommunity() != null ? m.getCommunity().getId() : null)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());

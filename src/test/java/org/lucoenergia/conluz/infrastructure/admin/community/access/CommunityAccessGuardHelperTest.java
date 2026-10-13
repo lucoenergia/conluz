@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
@@ -85,7 +86,7 @@ class CommunityAccessGuardHelperTest {
     void visibleCommunityIds_returnsEnabledCommunityIds() {
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
+        CommunityMembership membership = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
                 .withRole(CommunityRole.COMMUNITY_MEMBER).withEnabled(true).build();
         user.setMemberships(List.of(membership));
@@ -98,7 +99,7 @@ class CommunityAccessGuardHelperTest {
     void visibleCommunityIds_excludesDisabledMemberships() {
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
+        CommunityMembership membership = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
                 .withRole(CommunityRole.COMMUNITY_ADMIN).withEnabled(false).build();
         user.setMemberships(List.of(membership));

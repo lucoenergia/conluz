@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -27,7 +28,7 @@ class UserResponseTest {
         User user = UserMother.randomUser();
         user.setPlatformAdmin(true);
 
-        CommunityMembership membership1 = new CommunityMembership.Builder()
+        CommunityMembership membership1 = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withCommunity(community1)
@@ -35,7 +36,7 @@ class UserResponseTest {
                 .withEnabled(true)
                 .build();
 
-        CommunityMembership membership2 = new CommunityMembership.Builder()
+        CommunityMembership membership2 = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withCommunity(community2)
@@ -93,7 +94,7 @@ class UserResponseTest {
     private static User userIn(Community... communities) {
         User user = UserMother.randomUser();
         user.setMemberships(java.util.Arrays.stream(communities)
-                .map(community -> new CommunityMembership.Builder()
+                .map(community -> CommunityMembershipMother.active()
                         .withId(UUID.randomUUID())
                         .withUser(user)
                         .withCommunity(community)

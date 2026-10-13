@@ -43,6 +43,6 @@ class CommunityAccessGuardHelper {
         if (CallerMemberships.isPlatformAdmin(user)) {
             return getCommunityRepository.findAllIds();
         }
-        return CallerMemberships.enabledMembershipCommunityIds(user);
+        return CallerMemberships.activeMembershipCommunityIds(user);
     }
 }

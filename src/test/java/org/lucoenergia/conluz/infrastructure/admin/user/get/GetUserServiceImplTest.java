@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.get;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
@@ -207,7 +208,7 @@ class GetUserServiceImplTest {
 
     private CommunityMembership randomMembership(User user) {
         Community community = CommunityMother.random().build();
-        return new CommunityMembership.Builder()
+        return CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withCommunity(community)

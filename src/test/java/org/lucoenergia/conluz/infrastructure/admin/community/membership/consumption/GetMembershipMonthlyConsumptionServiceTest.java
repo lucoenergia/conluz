@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.consump
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
@@ -228,7 +229,7 @@ class GetMembershipMonthlyConsumptionServiceTest {
     }
 
     private void givenMembership() {
-        CommunityMembership membership = new CommunityMembership.Builder()
+        CommunityMembership membership = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(UserMother.randomUser())
                 .withCommunity(CommunityMother.random().build())

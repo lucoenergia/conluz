@@ -32,6 +32,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
@@ -147,6 +148,9 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         callers.put("owner of the supply", owner);
         callers.put("member of B", memberOf(communityB, CommunityRole.COMMUNITY_MEMBER));
         callers.put("disabled member of A", disabledMemberOf(communityA));
+        callers.put("pending admin of A", pendingMemberOf(communityA, CommunityRole.COMMUNITY_ADMIN));
+        callers.put("disabled admin of A", disabledAdminOf(communityA));
+        callers.put("pending member of A", pendingMemberOf(communityA, CommunityRole.COMMUNITY_MEMBER));
     }
 
     @Test
@@ -443,6 +447,18 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
                 .findByUserIdAndCommunityId(user.getId(), community.getId()).orElseThrow();
         membership.setEnabled(false);
         membershipJpaRepository.save(membership);
+        return user;
+    }
+
+    private User pendingMemberOf(Community community, CommunityRole role) {
+        User user = memberOf(community, role);
+        MembershipStateTestSupport.markPending(membershipJpaRepository, user.getId(), community.getId());
+        return user;
+    }
+
+    private User disabledAdminOf(Community community) {
+        User user = memberOf(community, CommunityRole.COMMUNITY_ADMIN);
+        MembershipStateTestSupport.markDisabled(membershipJpaRepository, user.getId(), community.getId());
         return user;
     }
 
