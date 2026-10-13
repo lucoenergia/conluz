@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -520,6 +522,30 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-004 a row without a password is refused by the password policy, while the other rows are created")
+    void rowWithoutAPassword_isRefusedByThePasswordPolicy_whileTheOtherRowsAreCreated() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        String csvContent = HEADER
+                + rowWithPassword(1, "337000001A", "")
+                + rowWithPassword(2, "337000002B", "a".repeat(15));
+
+        mockMvc.perform(multipart(URL)
+                        .file(csv(csvContent))
+                        .param("communityId", community.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", containsInAnyOrder("337000002B")))
+                .andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0].personalId").value("337000001A"))
+                .andExpect(jsonPath("$.errors[0].errorMessage").value(passwordTooShortMessage()));
+
+        assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of("337000001A")).isEmpty());
+    }
+
+    @Test
     void importedUsers_areFlaggedAsHavingToChangeThePassword() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         String authHeader = loginAsDefaultPlatformAdmin();
@@ -534,6 +560,34 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
 
         User imported = getUserRepository.findByPersonalId(UserPersonalId.of("335000003C")).orElseThrow();
         assertTrue(imported.mustChangePassword());
+    }
+
+    @Test
+    @DisplayName("ACC-003 a row with an empty or blank email creates a user with no email")
+    void rowsWithAnEmptyOrBlankEmail_createUsersWithNoEmail() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        String csvContent = HEADER
+                + rowWithEmail(1, "336000001A", "")
+                + rowWithEmail(2, "336000002B", "\" \t \"");
+
+        mockMvc.perform(multipart(URL)
+                        .file(csv(csvContent))
+                        .param("communityId", community.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", containsInAnyOrder("336000001A", "336000002B")))
+                .andExpect(jsonPath("$.errors").isEmpty());
+
+        assertNull(getUserRepository.findByPersonalId(UserPersonalId.of("336000001A")).orElseThrow().getEmail());
+        assertNull(getUserRepository.findByPersonalId(UserPersonalId.of("336000002B")).orElseThrow().getEmail());
+    }
+
+    private static String rowWithEmail(int number, String personalId, String email) {
+        return number + ",Test User " + number + "," + personalId + ",1 Test St," + email + ","
+                + "60000000" + number + ",partner,a secure password" + number + "!,,\n";
     }
 
     private static String rowWithPassword(int number, String personalId, String password) {

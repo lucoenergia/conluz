@@ -13,6 +13,11 @@ public enum PasswordResetRequestOutcome {
      */
     NO_EMAIL,
     /**
+     * The user has no password. Their first password is set only by accepting an invitation, never by recovery
+     * (ADR-0003 §7).
+     */
+    NO_PASSWORD,
+    /**
      * No user has that personal ID.
      */
     UNKNOWN,

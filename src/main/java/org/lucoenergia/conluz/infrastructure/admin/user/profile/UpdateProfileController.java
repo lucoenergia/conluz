@@ -50,15 +50,16 @@ public class UpdateProfileController {
     @Operation(
             summary = "Updates the contact details of the current user",
             description = """
-                This endpoint lets the authenticated user change how the community reaches them: email
-                (required), postal address and phone number. It always acts on the caller — there is no
+                This endpoint lets the authenticated user change how the community reaches them: email,
+                postal address and phone number. It always acts on the caller — there is no
                 user identifier to supply — so it cannot be used to edit anybody else.
                 
                 Name, DNI and member number are not editable here: they identify the member to the
                 community and to the distributor, so changing them is an administrative operation
                 performed through `PUT /api/v1/users/{userId}`.
                 
-                Omitting `address` or `phoneNumber` clears the stored value; `email` is mandatory.
+                Omitting `email`, `address` or `phoneNumber` clears the stored value. An empty or blank
+                `email` also clears it; any other value must be a valid email address.
                 
                 **Required: any authenticated user (edits their own contact details).**""",
             tags = ApiTag.USERS,

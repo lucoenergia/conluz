@@ -71,4 +71,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/add_member_record_and_invitation_to_community_memberships.xml" relativeToChangelogFile="true" />
     <include file="changelogs/backfill_member_record_for_community_memberships.xml" relativeToChangelogFile="true" />
     <include file="changelogs/make_community_memberships_full_name_not_null.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/make_users_email_nullable.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/normalize_users_blank_email_to_null.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/make_users_password_nullable.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

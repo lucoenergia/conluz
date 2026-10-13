@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.shared.security;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.UserDetailsServiceFromDatabase;
+import org.lucoenergia.conluz.infrastructure.admin.user.password.UserPasswordEncoder;
+import org.lucoenergia.conluz.infrastructure.shared.security.auth.PasswordlessAccountAuthenticationProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -36,10 +38,9 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(userDetailsService());
-        authenticationProvider.setPasswordEncoder(passwordEncoder());
+    public AuthenticationProvider authenticationProvider(UserPasswordEncoder userPasswordEncoder) {
+        DaoAuthenticationProvider authenticationProvider = new PasswordlessAccountAuthenticationProvider(
+                userDetailsService(), passwordEncoder(), userPasswordEncoder);
         // Check the password even when the account is disabled, so that a disabled account takes as long to
         // reject as a wrong password and its state cannot be told from the response time. This is the current
         // default; it is set explicitly so that a change of default cannot reopen the difference unnoticed.

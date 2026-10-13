@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.shared.email.EmailAddresses;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserPersonalIdUniqueConstraint;
@@ -37,6 +38,7 @@ public class CreateUserRepositoryImpl implements CreateUserRepository {
         String encodedPassword = passwordEncoder.encode(user.getPassword());
         UserEntity entity = UserEntity.createNewUser(user, encodedPassword);
         entity.setPersonalId(personalId);
+        entity.setEmail(EmailAddresses.blankToNull(user.getEmail()));
 
         try {
             // Flushed here so a concurrent duplicate that passed the check above is rejected by the

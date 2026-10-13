@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.random;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -49,6 +51,24 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.mustChangePassword").value(false))
                 .andExpect(jsonPath("$.memberships").isEmpty())
                 .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("ACC-003 a user without email reads their email as null")
+    void aUserWithoutEmail_readsTheirEmailAsNull() throws Exception {
+        User user = UserMother.randomUser();
+        user.enable();
+        user.setEmail(null);
+        createUserRepository.create(user);
+        String authHeader = loginUser(user);
+
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.personalId").value(user.getPersonalId()))
+                .andExpect(jsonPath("$.email").hasJsonPath())
+                .andExpect(jsonPath("$.email").value(nullValue()));
     }
 
     @Test

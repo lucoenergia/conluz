@@ -38,7 +38,7 @@ is only ever throttled for a bounded time, and it is released on its own.
 - **Unknown accounts are counted like existing ones.** A `personalId` that matches no user has its own counter,
   which behaves exactly the same way, so neither a 401 nor a 429 reveals whether an account exists.
 - **What counts as a failure:**
-  - login rejected for bad credentials (wrong password or unknown `personalId`);
+  - login rejected for bad credentials (wrong password, unknown `personalId`, or an account without a password);
   - login of a **disabled** account (the password is still checked, see below);
   - a wrong current password on the change endpoint.
 - **What does not count:** a new password equal to the current one (`USER_PASSWORD_UNCHANGED`) or that breaks
@@ -63,7 +63,7 @@ flowchart TD
     E --> F{"Address: failures + attempts in progress < 20?"}
     F -- no --> G[Release the account slot] --> R
     F -- yes --> H[Reserve a slot on the address]
-    H --> I[["Check the password with BCrypt<br/>(also for disabled accounts)"]]
+    H --> I[["Check the password with BCrypt<br/>(also for disabled accounts,<br/>and against a dummy hash for an account without a password)"]]
     I --> J{Outcome}
     J -- "bad credentials, disabled,<br/>wrong current password" --> K[failed: count a failure on both counters<br/>log one WARN line]
     K --> L{Did a counter just reach its limit?}
@@ -118,14 +118,22 @@ The password change follows the same shape inside `ChangePasswordServiceImpl#cha
 `startPasswordChange` admits or refuses the change, and only then is the current password compared. A 429 is
 raised before anything is written or revoked, so the caller's token stays valid.
 
+### Accounts without a password
+
+An account registered by a community but never accepted has no password (#389, ADR-0003 §7). Its login is
+refused exactly like a wrong password: `PasswordlessAccountAuthenticationProvider` compares the submitted password
+with a BCrypt hash of a random secret, computed once at startup, so the attempt costs one BCrypt comparison, never
+succeeds, throws the same `BadCredentialsException`, and counts as `BAD_CREDENTIALS`. Without it, BCrypt would
+return at once on the missing hash and log `Empty encoded password`, telling such an account apart from any other.
+
 ## Password recovery
 
 The two recovery endpoints are public, and the account is either unknown to the caller or must not be revealed, so
 they count against the **client address only**, never against an account:
 
 - **Requesting a link** (`AuthenticationThrottleService#countPasswordResetRequest`) reserves a slot on the address
-  and counts it at once, whatever happens next: an unknown `personalId`, a user without email, a disabled user,
-  the daily limit or a link sent. The answer must not depend on the `personalId`, and a request costs a lookup and
+  and counts it at once, whatever happens next: an unknown `personalId`, a disabled user, a user without a
+  password, a user without email, the daily limit or a link sent. The answer must not depend on the `personalId`, and a request costs a lookup and
   possibly a token write. Over the limit the request is answered 429 before the user is even looked up.
 - **Resetting** (`AuthenticationThrottleService#startPasswordReset`) reserves a slot on the address before the token
   is looked up, and the attempt is settled like the others:
@@ -304,6 +312,7 @@ The state is kept in memory, which suits the single instance Conluz runs as; it 
 | `AuthenticationThrottleConfig` | `infrastructure/admin/user/auth/throttle` | The `Clock` the windows are measured with |
 | `AuthServiceImpl#login`, `ChangePasswordServiceImpl#changePassword`, `ResetPasswordServiceImpl#reset` | `infrastructure/admin/user/...` | Open the attempt and settle it with the outcome |
 | `RequestPasswordResetServiceImpl#request` | `infrastructure/admin/user/password/reset` | Counts the recovery request against the address |
+| `PasswordlessAccountAuthenticationProvider` | `infrastructure/shared/security/auth` | Refuses an account without a password after one BCrypt comparison against a dummy hash |
 | `AuthenticationExceptionHandler` | `infrastructure/shared/security/auth` | 429 response; failed-login 401 without ERROR logging |
 | `TooManyRequestsErrorResponse` | `infrastructure/shared/web/apidocs/response` | The 429 in the OpenAPI document |
 

@@ -21,6 +21,7 @@ public class UserResponse {
     private final String fullName;
     @Schema(types = {"string", "null"})
     private final String address;
+    @Schema(types = {"string", "null"})
     private final String email;
     @Schema(types = {"string", "null"})
     private final String phoneNumber;

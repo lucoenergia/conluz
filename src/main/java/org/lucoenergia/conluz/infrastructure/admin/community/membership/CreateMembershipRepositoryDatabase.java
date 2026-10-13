@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsExce
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.email.EmailAddresses;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
@@ -69,7 +70,7 @@ public class CreateMembershipRepositoryDatabase implements CreateMembershipRepos
                 .withEnabled(true)
                 .withFullName(userEntity.getFullName())
                 .withMemberNumber(userEntity.getNumber())
-                .withContactEmail(emailOrNull(userEntity.getEmail()))
+                .withContactEmail(EmailAddresses.blankToNull(userEntity.getEmail()))
                 .withAddress(userEntity.getAddress())
                 .withPhoneNumber(userEntity.getPhoneNumber())
                 .withAcceptedAt(clock.instant())
@@ -92,13 +93,5 @@ public class CreateMembershipRepositoryDatabase implements CreateMembershipRepos
                 .withInvitedBy(saved.getInvitedBy())
                 .withInvitedAt(saved.getInvitedAt())
                 .build();
-    }
-
-    /**
-     * users.email is NOT NULL, so a user without an email holds an empty string; a member record
-     * says "no contact email" with null.
-     */
-    private static String emailOrNull(String email) {
-        return email == null || email.isBlank() ? null : email;
     }
 }

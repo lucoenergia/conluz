@@ -45,9 +45,9 @@ the capability is specified lazily, as issues touch it.
   email as its contact email. An empty or blank email MUST be recorded as no contact email.
 - **Rationale:** Until the flows of #329 let a community enter its own record, the only data a
   community has about a member is the user's, so the record starts as a copy of it and behaviour is
-  unchanged (ADR-0003 §1). A user with no email holds an empty string; "no contact email" is the
-  member record's own way of saying the same thing (ADR-0003 §8).
-- **Source:** #388, ADR-0003 §1 and §8
+  unchanged (ADR-0003 §1). A user with no email holds NULL (ACC-003), and so does a member record
+  with no contact email (ADR-0003 §8).
+- **Source:** #388, #389, ADR-0003 §1 and §8
 
 ### MEM-003 — Deleting the inviter keeps the membership
 

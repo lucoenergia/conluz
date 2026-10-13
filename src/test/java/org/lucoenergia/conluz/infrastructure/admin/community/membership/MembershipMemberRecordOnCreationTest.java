@@ -128,8 +128,8 @@ class MembershipMemberRecordOnCreationTest extends BaseControllerTest {
     }
 
     /**
-     * Asserts that the membership's record equals its user's data (an empty or blank email recorded as
-     * no contact email), that it was accepted at {@code acceptedAt}, and that no invitation is recorded.
+     * Asserts that the membership's record equals its user's data (no email, or an empty or blank one, recorded
+     * as no contact email), that it was accepted at {@code acceptedAt}, and that no invitation is recorded.
      */
     private Map<String, Object> assertMemberRecordCopiedAndAccepted(UUID userId, UUID communityId, Instant acceptedAt) {
         membershipJpaRepository.flush();
@@ -140,7 +140,7 @@ class MembershipMemberRecordOnCreationTest extends BaseControllerTest {
         assertEquals(user.get("full_name"), membership.get("full_name"));
         assertEquals(user.get("number"), membership.get("member_number"));
         String email = (String) user.get("email");
-        assertEquals(email.isBlank() ? null : email, membership.get("contact_email"));
+        assertEquals(email == null || email.isBlank() ? null : email, membership.get("contact_email"));
         assertEquals(user.get("address"), membership.get("address"));
         assertEquals(user.get("phone_number"), membership.get("phone_number"));
         assertEquals(acceptedAt, ((Timestamp) membership.get("accepted_at")).toInstant());

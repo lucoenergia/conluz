@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- An account's email is optional (#389, ADR-0003 §8). Until now users.email was NOT NULL, so "no
+         email" was stored as the empty string. From this changeset on, NULL means the account has no email
+         address; normalize_users_blank_email_to_null turns the existing empty and blank values into NULL.
+
+         The rollback turns every NULL email back into the empty string, the old way of saying "no email",
+         before restoring NOT NULL. That includes NULLs written by the application after this changeset. -->
+    <changeSet id="make_users_email_nullable" author="Víctor Cañizares">
+        <preConditions onFail="HALT">
+            <columnExists tableName="users" columnName="email"/>
+        </preConditions>
+        <dropNotNullConstraint tableName="users"
+                               columnName="email"
+                               columnDataType="VARCHAR(250)"/>
+        <rollback>
+            <sql>
+                UPDATE users SET email = '' WHERE email IS NULL
+            </sql>
+            <addNotNullConstraint tableName="users"
+                                  columnName="email"
+                                  columnDataType="VARCHAR(250)"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

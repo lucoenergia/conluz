@@ -670,7 +670,10 @@
             "description" : "What the caller may do with their own user record."
           },
           "email" : {
-            "type" : "string"
+            "type" : [
+              "string",
+              "null"
+            ]
           },
           "enabled" : {
             "type" : "boolean"
@@ -2985,16 +2988,12 @@
             "type" : "string"
           },
           "email" : {
-            "minLength" : 1,
             "type" : "string"
           },
           "phoneNumber" : {
             "type" : "string"
           }
         },
-        "required" : [
-          "email"
-        ],
         "type" : "object"
       },
       "UpdateSharingAgreementBody" : {
@@ -3168,7 +3167,10 @@
             "description" : "What the caller may do with this user."
           },
           "email" : {
-            "type" : "string"
+            "type" : [
+              "string",
+              "null"
+            ]
           },
           "enabled" : {
             "type" : "boolean"
@@ -15543,7 +15545,7 @@
     },
     "/api/v1/users/profile" : {
       "put" : {
-        "description" : "This endpoint lets the authenticated user change how the community reaches them: email\n(required), postal address and phone number. It always acts on the caller — there is no\nuser identifier to supply — so it cannot be used to edit anybody else.\n\nName, DNI and member number are not editable here: they identify the member to the\ncommunity and to the distributor, so changing them is an administrative operation\nperformed through `PUT /api/v1/users/{userId}`.\n\nOmitting `address` or `phoneNumber` clears the stored value; `email` is mandatory.\n\n**Required: any authenticated user (edits their own contact details).**",
+        "description" : "This endpoint lets the authenticated user change how the community reaches them: email,\npostal address and phone number. It always acts on the caller — there is no\nuser identifier to supply — so it cannot be used to edit anybody else.\n\nName, DNI and member number are not editable here: they identify the member to the\ncommunity and to the distributor, so changing them is an administrative operation\nperformed through `PUT /api/v1/users/{userId}`.\n\nOmitting `email`, `address` or `phoneNumber` clears the stored value. An empty or blank\n`email` also clears it; any other value must be a valid email address.\n\n**Required: any authenticated user (edits their own contact details).**",
         "operationId" : "updateProfile",
         "requestBody" : {
           "content" : {

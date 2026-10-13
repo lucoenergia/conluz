@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.config;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -60,6 +61,17 @@ class InitControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.errors[0].params.rule").value("TOO_SHORT"));
 
         Assertions.assertFalse(getUserRepository.existsByPersonalId(UserPersonalId.of("33600001A")));
+    }
+
+    @Test
+    @DisplayName("ACC-004 a default admin without a password is refused, and nothing is stored")
+    void aDefaultAdminWithoutAPassword_isRefused_andNothingIsStored() throws Exception {
+        allowInitialisationAgain();
+
+        postInit(objectMapper.writeValueAsString(bodyWith("33600009J", null)))
+                .andExpect(status().isBadRequest());
+
+        Assertions.assertFalse(getUserRepository.existsByPersonalId(UserPersonalId.of("33600009J")));
     }
 
     @Test
