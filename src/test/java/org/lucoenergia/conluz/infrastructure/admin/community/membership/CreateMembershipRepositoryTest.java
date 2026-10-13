@@ -7,7 +7,9 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -29,6 +31,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Transactional
 class CreateMembershipRepositoryTest extends BaseIntegrationTest {
@@ -120,6 +124,53 @@ class CreateMembershipRepositoryTest extends BaseIntegrationTest {
         assertEquals(invitedAt, ((Timestamp) row.get("invited_at")).toInstant());
         assertEquals(member.getId(), row.get("user_id"));
         assertNotNull(row.get("accepted_at"));
+    }
+
+    @Test
+    @DisplayName("MEM-007 a pending membership holds the record as given, the inviter, and no acceptance or invitation")
+    void createPending_holdsTheGivenRecord_andIsPending() {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User member = createUser("account@example.org");
+        User inviter = createUser("inviter@example.org");
+        MemberRecord record = new MemberRecord("Lucía Pérez", 7, "contact@example.org", "Calle Mayor 1",
+                "600000000");
+
+        CommunityMembership created = createMembershipRepository.createPending(community.getId(),
+                UserId.of(member.getId()), record, UserId.of(inviter.getId()));
+
+        Map<String, Object> row = row(created);
+        assertEquals(member.getId(), row.get("user_id"));
+        assertEquals("COMMUNITY_MEMBER", row.get("role"));
+        assertEquals(true, row.get("enabled"));
+        assertEquals("Lucía Pérez", row.get("full_name"));
+        assertEquals(7, row.get("member_number"));
+        assertEquals("contact@example.org", row.get("contact_email"));
+        assertEquals("Calle Mayor 1", row.get("address"));
+        assertEquals("600000000", row.get("phone_number"));
+        assertNull(row.get("accepted_at"));
+        assertEquals(inviter.getId(), row.get("invited_by"));
+        assertNull(row.get("invited_at"));
+
+        assertTrue(created.isPending());
+        assertEquals(record.fullName(), created.getFullName());
+        assertEquals(record.contactEmail(), created.getContactEmail());
+        assertEquals(inviter.getId(), created.getInvitedBy());
+    }
+
+    @Test
+    @DisplayName("MEM-007 a pending membership is refused when the user already has a membership in the community")
+    void createPending_isRefused_whenTheUserAlreadyHasAMembershipThere() {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User member = createUser("account@example.org");
+        User inviter = createUser("inviter@example.org");
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        MemberRecord record = new MemberRecord("Lucía Pérez", null, null, null, null);
+
+        assertThrows(MembershipAlreadyExistsException.class, () -> createMembershipRepository.createPending(
+                community.getId(), UserId.of(member.getId()), record, UserId.of(inviter.getId())));
+
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM community_memberships WHERE user_id = ?",
+                Integer.class, member.getId()));
     }
 
     private User createUser(String email) {

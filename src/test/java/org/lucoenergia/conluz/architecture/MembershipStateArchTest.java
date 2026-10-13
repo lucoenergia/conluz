@@ -13,6 +13,8 @@ import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembership
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.CreateMembershipRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.GetMembershipsRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.MembershipResponse;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.UpdateMembershipInvitationRepositoryDatabase;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.MemberResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.UpdateMembershipRoleRepositoryDatabase;
 import org.springframework.data.jpa.repository.Query;
 
@@ -33,8 +35,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
  * access (ADR-0003 §2). {@link CommunityMembership#isActive()} is the one definition. Code that
  * tested {@code enabled} or the acceptance by hand would drift from it, and could let a pending or
  * disabled membership grant access. So only the classes that carry or expose the two fields may read
- * them: the membership itself, its entity, the mappers between the two, and the roster response that
- * shows both states.</p>
+ * them: the membership itself, its entity, the mappers between the two, and the responses that show
+ * both states.</p>
  *
  * <p>Queries cannot call {@code isActive()}, so they use {@link ActiveMembershipJpql#ACTIVE_MEMBERSHIP},
  * its JPQL spelling. A query over memberships that mentions either field must contain it.</p>
@@ -44,7 +46,7 @@ public class MembershipStateArchTest extends BaseArchTest {
     private static final Pattern MEMBERSHIP_STATE = Pattern.compile("\\benabled\\b|acceptedAt|accepted_at");
 
     @Test
-    @DisplayName("MEM-004 only the membership, its entity, its mappers and the roster response read its state")
+    @DisplayName("MEM-004 only the membership, its entity, its mappers and the responses that show it read its state")
     void onlyTheMembershipAndItsMappersReadItsState() {
         noClasses()
                 .that().doNotBelongToAnyOf(
@@ -53,7 +55,9 @@ public class MembershipStateArchTest extends BaseArchTest {
                         GetMembershipsRepositoryDatabase.class,
                         CreateMembershipRepositoryDatabase.class,
                         UpdateMembershipRoleRepositoryDatabase.class,
-                        MembershipResponse.class)
+                        UpdateMembershipInvitationRepositoryDatabase.class,
+                        MembershipResponse.class,
+                        MemberResponse.class)
                 .should().callMethodWhere(
                         target(owner(assignableTo(CommunityMembership.class)
                                 .or(assignableTo(CommunityMembershipEntity.class))))

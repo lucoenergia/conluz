@@ -102,6 +102,7 @@ with no guard".
 | `canDisable` | `canDisableCommunity` |
 | `canManage` | `canManageCommunity` |
 | `canManageMemberships` | `canManageMemberships` |
+| `canRegisterMembers` | `canRegisterMembers` |
 | `canManageMembershipInvestment` | `canManageMembershipInvestment` |
 | `canListPlants` | `canListPlants` |
 | `canCreatePlants` | *(no guard — see below)* |

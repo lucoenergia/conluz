@@ -24,6 +24,7 @@ class CommunityCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanRead());
         assertTrue(capabilities.isCanManage());
         assertTrue(capabilities.isCanManageMemberships());
+        assertTrue(capabilities.isCanRegisterMembers());
         assertTrue(capabilities.isCanManageMembershipInvestment());
         assertTrue(capabilities.isCanListPlants());
         assertTrue(capabilities.isCanCreatePlants());
@@ -61,6 +62,7 @@ class CommunityCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanReadProduction());
         assertFalse(capabilities.isCanManage());
         assertFalse(capabilities.isCanManageMemberships());
+        assertFalse(capabilities.isCanRegisterMembers());
         assertFalse(capabilities.isCanManageMembershipInvestment());
         assertFalse(capabilities.isCanCreatePlants());
         assertFalse(capabilities.isCanCreateUsers());
@@ -103,6 +105,18 @@ class CommunityCapabilitiesAssemblerTest {
                 .isCanManageMembershipInvestment());
     }
 
+    /**
+     * Registering a member enters personal data that only the community's own administration holds, so
+     * administering the platform does not confer it.
+     */
+    @Test
+    void aNonMemberPlatformAdminMayNotRegisterMembers() {
+        Community community = CapabilityFixtures.community();
+
+        assertFalse(assembler.assemble(CapabilityFixtures.platformAdmin(), community.getId())
+                .isCanRegisterMembers());
+    }
+
     @Test
     void aStrangerMayDoNothing() {
         CommunityCapabilitiesResponse capabilities =
@@ -114,6 +128,7 @@ class CommunityCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanDisable());
         assertFalse(capabilities.isCanManage());
         assertFalse(capabilities.isCanManageMemberships());
+        assertFalse(capabilities.isCanRegisterMembers());
         assertFalse(capabilities.isCanManageMembershipInvestment());
         assertFalse(capabilities.isCanListPlants());
         assertFalse(capabilities.isCanCreatePlants());

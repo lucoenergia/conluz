@@ -75,6 +75,7 @@ final class CapabilityInventory {
                 capability(COMMUNITY, "canManageMemberships"),
                 capability(MEMBERSHIP, "canUpdateRole"),
                 capability(MEMBERSHIP, "canDelete"));
+        report("canRegisterMembers", capability(COMMUNITY, "canRegisterMembers"));
         report("canManageMembershipInvestment",
                 capability(COMMUNITY, "canManageMembershipInvestment"),
                 capability(MEMBERSHIP, "canManageInvestment"));
