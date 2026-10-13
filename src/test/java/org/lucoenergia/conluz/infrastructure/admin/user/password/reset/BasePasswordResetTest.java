@@ -16,6 +16,8 @@ import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.admin.user.token.RawOneTimeToken;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.email.EmailSender;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,6 +92,8 @@ public abstract class BasePasswordResetTest extends BaseControllerTest {
     protected CreateOneTimeTokenService createOneTimeTokenService;
     @Autowired
     protected JdbcTemplate jdbcTemplate;
+    @Autowired
+    private UserRepository userRepository;
 
     private final List<UUID> users = new CopyOnWriteArrayList<>();
     private final List<String> secrets = new CopyOnWriteArrayList<>();
@@ -143,6 +147,22 @@ public abstract class BasePasswordResetTest extends BaseControllerTest {
             remember(user.getEmail());
         }
         return user;
+    }
+
+    /**
+     * An enabled user without a password, with an email address unless the customisation removes it.
+     */
+    protected User newPasswordlessUser(Consumer<User> customisation) {
+        User user = UserMother.randomUser();
+        user.enable();
+        customisation.accept(user);
+        // No domain repository can create an account without a password (#389)
+        UserEntity entity = userRepository.save(UserEntity.createNewUser(user, null));
+        users.add(entity.getId());
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            remember(user.getEmail());
+        }
+        return entity.getUser();
     }
 
     protected ResultActions requestRecovery(String personalId) throws Exception {

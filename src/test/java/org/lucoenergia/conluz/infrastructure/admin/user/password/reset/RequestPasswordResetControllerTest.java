@@ -5,6 +5,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -96,6 +97,48 @@ class RequestPasswordResetControllerTest extends BasePasswordResetTest {
         assertSameResponse(eligibleResult, blankEmail);
         verify(emailSender, never()).send(any());
         assertThat(GREEN_MAIL.getReceivedMessages()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("ACC-002 a passwordless account is answered exactly like an eligible and an unknown user")
+    void aPasswordlessAccountWithAnEmail_isAnsweredLikeAnyOtherRequest_andIsSentNothing() throws Exception {
+        User eligible = newUser();
+        User passwordless = newPasswordlessUser(user -> {
+        });
+
+        MvcResult eligibleResult = requestRecovery(eligible.getPersonalId()).andReturn();
+        awaitEmails(1);
+        MvcResult unknownResult = requestRecovery("UNKNOWNID9").andReturn();
+        clearSpy();
+        logs.clear();
+
+        MvcResult result = requestRecovery(passwordless.getPersonalId()).andReturn();
+
+        assertSameResponse(eligibleResult, result);
+        assertSameResponse(unknownResult, result);
+        assertThat(tokenCount(passwordless)).isZero();
+        verify(emailSender, never()).send(any());
+        expectOneRequestLogged("NO_PASSWORD", null);
+        assertThat(GREEN_MAIL.getReceivedMessages()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("ACC-002 a passwordless account is refused after the disabled check and before the email check")
+    void aPasswordlessAccount_isReportedAfterDisabled_andBeforeNoEmail() throws Exception {
+        User disabledWithoutPassword = newPasswordlessUser(user -> user.setEnabled(false));
+        User withoutPasswordNorEmail = newPasswordlessUser(user -> user.setEmail(null));
+
+        logs.clear();
+        requestRecovery(disabledWithoutPassword.getPersonalId()).andExpect(status().isAccepted());
+        expectOneRequestLogged("DISABLED", null);
+
+        logs.clear();
+        requestRecovery(withoutPasswordNorEmail.getPersonalId()).andExpect(status().isAccepted());
+        expectOneRequestLogged("NO_PASSWORD", null);
+
+        assertThat(tokenCount(disabledWithoutPassword)).isZero();
+        assertThat(tokenCount(withoutPasswordNorEmail)).isZero();
+        verify(emailSender, never()).send(any());
     }
 
     @Test

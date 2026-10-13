@@ -76,6 +76,9 @@ public class RequestPasswordResetServiceImpl implements RequestPasswordResetServ
         if (!user.isEnabled()) {
             return PasswordResetRequestOutcome.DISABLED;
         }
+        if (user.getPassword() == null) {
+            return PasswordResetRequestOutcome.NO_PASSWORD;
+        }
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             return PasswordResetRequestOutcome.NO_EMAIL;
         }
