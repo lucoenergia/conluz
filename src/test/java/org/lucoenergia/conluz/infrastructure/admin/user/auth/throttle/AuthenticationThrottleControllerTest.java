@@ -6,10 +6,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -26,6 +29,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -53,6 +59,8 @@ class AuthenticationThrottleControllerTest extends BaseControllerTest {
 
     @Autowired
     private CreateUserRepository createUserRepository;
+    @Autowired
+    private UserRepository userRepository;
     @MockitoSpyBean
     private PasswordEncoder passwordEncoder;
 
@@ -295,6 +303,71 @@ class AuthenticationThrottleControllerTest extends BaseControllerTest {
                 + "reason=WRONG_CURRENT_PASSWORD", user.getPersonalId(), WRONG_PASSWORD);
     }
 
+    @Test
+    @DisplayName("ACC-001 a passwordless account is rejected with the bad credentials response")
+    void aPasswordlessAccount_isRejectedWithTheBadCredentialsResponse() throws Exception {
+        User enabled = createEnabledUser();
+        UserEntity passwordless = createPasswordlessUser();
+
+        MvcResult wrongPassword = login(enabled.getPersonalId(), WRONG_PASSWORD, IP)
+                .andExpect(status().isUnauthorized()).andReturn();
+        MvcResult noPassword = login(passwordless.getPersonalId(), WRONG_PASSWORD, OTHER_IP)
+                .andExpect(status().isUnauthorized()).andReturn();
+
+        Assertions.assertEquals(comparableBody(wrongPassword), comparableBody(noPassword));
+    }
+
+    @Test
+    @DisplayName("ACC-001 a passwordless account costs one BCrypt comparison against a real hash")
+    void aPasswordlessAccount_runsOneBCryptComparison_againstARealHash() throws Exception {
+        UserEntity passwordless = createPasswordlessUser();
+
+        clearInvocations(passwordEncoder);
+        login(passwordless.getPersonalId(), WRONG_PASSWORD, IP).andExpect(status().isUnauthorized());
+
+        verify(passwordEncoder, times(1)).matches(any(), any());
+        verify(passwordEncoder, times(1)).matches(eq(WRONG_PASSWORD),
+                argThat((String hash) -> hash != null && hash.matches("\\$2[aby]?\\$\\d\\d\\$[./A-Za-z0-9]{53}")));
+        verify(passwordEncoder, never()).matches(any(), isNull());
+    }
+
+    @Test
+    @DisplayName("ACC-001 a passwordless account logs only the bad credentials warning")
+    void aPasswordlessAccount_logsOnlyTheBadCredentialsWarning() throws Exception {
+        UserEntity passwordless = createPasswordlessUser("99887766D");
+
+        logs.clear();
+        login(passwordless.getPersonalId(), WRONG_PASSWORD, IP).andExpect(status().isUnauthorized());
+
+        assertSingleWarning("Failed login: account=***66D, ip=203.0.113.7, reason=BAD_CREDENTIALS",
+                passwordless.getPersonalId(), WRONG_PASSWORD);
+        for (ILoggingEvent event : logs.all()) {
+            Assertions.assertFalse(event.getFormattedMessage().contains("Empty encoded password"),
+                    event::getFormattedMessage);
+            Assertions.assertFalse(event.getFormattedMessage().contains("does not look like BCrypt"),
+                    event::getFormattedMessage);
+        }
+    }
+
+    @Test
+    @DisplayName("ACC-001 failed logins of a passwordless account throttle it like any other")
+    void fiveFailedLogins_ofAPasswordlessAccount_throttleIt() throws Exception {
+        UserEntity passwordless = createPasswordlessUser();
+        for (int i = 0; i < 5; i++) {
+            login(passwordless.getPersonalId(), WRONG_PASSWORD, IP).andExpect(status().isUnauthorized());
+        }
+
+        expectThrottled(login(passwordless.getPersonalId(), WRONG_PASSWORD, IP), 900);
+    }
+
+    @Test
+    @DisplayName("ACC-001 no password logs in to a passwordless account, not even Spring's unknown-user one")
+    void aPasswordlessAccount_isNotOpenedBySpringsUnknownUserPassword() throws Exception {
+        UserEntity passwordless = createPasswordlessUser();
+
+        login(passwordless.getPersonalId(), "userNotFoundPassword", IP).andExpect(status().isUnauthorized());
+    }
+
     private User createEnabledUser() {
         return createEnabledUser(UserMother.randomPersonalId());
     }
@@ -304,6 +377,18 @@ class AuthenticationThrottleControllerTest extends BaseControllerTest {
         user.enable();
         createUserRepository.create(user);
         return user;
+    }
+
+    private UserEntity createPasswordlessUser() {
+        return createPasswordlessUser(UserMother.randomPersonalId());
+    }
+
+    private UserEntity createPasswordlessUser(String personalId) {
+        // No domain repository can create an account without a password (#389)
+        UserEntity user = UserMother.randomUserEntityWithPersonalId(personalId);
+        user.setPassword(null);
+        user.setEnabled(true);
+        return userRepository.save(user);
     }
 
     private User createDisabledUser() {
