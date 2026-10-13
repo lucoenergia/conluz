@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- An account registered by a community admin has no number of its own (#392, ADR-0003 §1): the member
+         number belongs to the member record of each membership. NULL in users.number means the account has no
+         global number. No existing row changes: every existing account keeps its number.
+
+         The rollback restores NOT NULL only if every account has a number. A number cannot be invented, so
+         otherwise it HALTs, listing the ids of those accounts, and nothing is rolled back. -->
+    <changeSet id="make_users_number_nullable" author="Víctor Cañizares">
+        <preConditions onFail="HALT">
+            <columnExists tableName="users" columnName="number"/>
+        </preConditions>
+        <dropNotNullConstraint tableName="users"
+                               columnName="number"
+                               columnDataType="INTEGER"/>
+        <rollback>
+            <sql splitStatements="false">
+                DO $$
+                DECLARE
+                    numberless TEXT;
+                BEGIN
+                    SELECT string_agg(id::TEXT, ', ' ORDER BY id) INTO numberless FROM users WHERE number IS NULL;
+                    IF numberless IS NOT NULL THEN
+                        RAISE EXCEPTION 'Cannot make users.number NOT NULL again: some accounts have no number (ids: %). Nothing was rolled back. List them with: SELECT id FROM users WHERE number IS NULL; then give them a number or delete them, and roll back again.', numberless;
+                    END IF;
+                END
+                $$
+            </sql>
+            <addNotNullConstraint tableName="users"
+                                  columnName="number"
+                                  columnDataType="INTEGER"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

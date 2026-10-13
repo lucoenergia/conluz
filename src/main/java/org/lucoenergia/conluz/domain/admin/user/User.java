@@ -29,8 +29,11 @@ public class User implements UserDetails {
      * The BCrypt hash of the password, or {@code null} if the account has none.
      */
     private String password;
+    /**
+     * The account's own number, or {@code null} if it has none: an account registered by a community admin
+     * has none, because the member number belongs to the member record.
+     */
     @Min(value = 0)
-    @NotNull
     private Integer number;
     @NotBlank
     private String fullName;

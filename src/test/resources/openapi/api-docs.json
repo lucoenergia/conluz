@@ -698,7 +698,10 @@
           },
           "number" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [
+              "integer",
+              "null"
+            ]
           },
           "personalId" : {
             "type" : "string"
@@ -3203,7 +3206,10 @@
           },
           "number" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [
+              "integer",
+              "null"
+            ]
           },
           "personalId" : {
             "type" : "string"
