@@ -37,19 +37,37 @@ public class SetDatadisConfigController {
     @Operation(
             summary = "Sets up the Datadis configuration for the specified community.",
             description = """
-                    This endpoint allows to configure the app to connect with datadis for a specific community.
+                    This endpoint creates or replaces the configuration a community uses to connect with the
+                    Datadis API.
+
+                    The request body contains:
+                    - **username** (required, string): Datadis user.
+                    - **password** (optional, string): Datadis password. The password is write-only: it is
+                      never returned, only whether one is set (`passwordSet`).
+                      - Absent: the stored password is kept and the other fields are updated. If the
+                        community has no configuration, or its stored password is empty, the request is
+                        rejected with `400` and error code `DATADIS_CONFIG_PASSWORD_REQUIRED`.
+                      - A non-empty string: replaces the stored password.
+                      - `null`: rejected with `400`. The stored password cannot be cleared.
+                      - An empty string: rejected with `400`.
+                    - **baseUrl** (required, string): Base URL of the Datadis API (for example
+                      `https://datadis.es`).
+                    - **enabled** (required, boolean): Master switch for the community's Datadis integration.
+                      When `false`, the scheduled Datadis sync and aggregation jobs skip the community, and the
+                      operations that sync or aggregate its Datadis data respond with `409 Conflict`.
 
                     This configuration is a mandatory step to be able to retrieve consumption data from datadis.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required: Community Admin**
+                    **Required: the caller can manage the community** (the community's `canManage` capability).
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with details
-                    about the configuration already set.
+                    about the configuration now stored.
 
-                    In cases where the creation process encounters errors, the server responds with an appropriate error
-                    status code, accompanied by a descriptive error message to guide clients in addressing and resolving
-                    the issue.
+                    A rejected request stores nothing and leaves any existing configuration unchanged. The server
+                    responds with `400` when the body is invalid (a missing required field, a `null` or empty
+                    password, a blank username, a blank or malformed base URL) or when the password is absent and
+                    there is no stored password to keep.
                     """,
             tags = ApiTag.CONSUMPTION,
             operationId = "configureDatadis",
