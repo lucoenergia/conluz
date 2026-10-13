@@ -40,16 +40,16 @@ public class GetHuaweiConfigController {
     @Operation(
             summary = "Returns the current Huawei configuration for a plant.",
             description = """
-                    This endpoint returns the Huawei FusionSolar API configuration for a specific plant.
+                    This endpoint returns the Huawei FusionSolar API configuration of a plant.
 
                     The password is never returned in the response. Instead, a boolean field
                     `passwordSet` indicates whether a password has been configured.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required: Community Admin**
+                    **Required: the caller can manage the plant** (the plant's `canManage` capability).
 
                     Upon successful request, the server responds with an HTTP status code of 200, along with
-                    the current configuration. If no configuration has been set yet, a 404 is returned.
+                    the plant's current configuration. If the plant has no configuration yet, a 404 is returned.
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "getHuaweiConfig",
