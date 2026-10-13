@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.profile.ContactDetails;
 import org.lucoenergia.conluz.domain.admin.user.profile.UpdateProfileRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.email.EmailAddresses;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
@@ -31,7 +32,7 @@ public class UpdateProfileRepositoryDatabase implements UpdateProfileRepository 
         // Exactly three columns. personalId, fullName, number, password, enabled, isPlatformAdmin
         // and the memberships are not reachable from this path, by construction rather than by
         // remembering not to set them.
-        currentUser.setEmail(contactDetails.getEmail());
+        currentUser.setEmail(EmailAddresses.blankToNull(contactDetails.getEmail()));
         currentUser.setAddress(contactDetails.getAddress());
         currentUser.setPhoneNumber(contactDetails.getPhoneNumber());
 

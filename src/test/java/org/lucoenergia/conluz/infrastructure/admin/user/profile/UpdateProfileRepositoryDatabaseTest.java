@@ -1,6 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.profile;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
@@ -137,6 +141,20 @@ class UpdateProfileRepositoryDatabaseTest extends BaseIntegrationTest {
         assertNull(stored.getAddress());
         assertNull(stored.getPhoneNumber());
         assertEquals("nuevo@email.com", stored.getEmail());
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", " ", " \t\n\r\f\u000B "})
+    @DisplayName("ACC-003 a missing, empty or blank email is stored as NULL")
+    void aMissingEmptyOrBlankEmail_isStoredAsNull(String email) {
+        UserEntity seeded = seedUserWithDistinctValuesEverywhere();
+
+        User returned = repository.updateContactDetails(UserId.of(seeded.getId()),
+                new ContactDetails(email, "Calle Nueva 1", null));
+
+        assertNull(reload(seeded.getId()).getEmail());
+        assertNull(returned.getEmail());
     }
 
     @Test

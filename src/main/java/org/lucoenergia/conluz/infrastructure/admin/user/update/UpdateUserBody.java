@@ -24,9 +24,8 @@ public class UpdateUserBody {
     private String fullName;
     private String address;
     /**
-     * Mandatory, like it is on creation and on the self-service profile edit. {@code users.email} is
-     * NOT NULL, and this endpoint overwrites the stored value with whatever the body carries, so
-     * omitting it used to answer 200 while describing an update the database refused.
+     * Mandatory, like it is on creation. {@code users.email} accepts NULL since #389, but this endpoint keeps
+     * its rules until it is retired (#329): only the self-service profile edit may clear an email.
      */
     @NotBlank
     @Email

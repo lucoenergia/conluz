@@ -25,7 +25,9 @@ public class User implements UserDetails {
     private UUID id;
     @NotBlank
     private String personalId;
-    @NotBlank
+    /**
+     * The BCrypt hash of the password, or {@code null} if the account has none.
+     */
     private String password;
     @Min(value = 0)
     @NotNull
@@ -33,8 +35,10 @@ public class User implements UserDetails {
     @NotBlank
     private String fullName;
     private String address;
+    /**
+     * The email address, or {@code null} if the account has none.
+     */
     @Email
-    @NotBlank
     private String email;
     private String phoneNumber;
     @NotNull

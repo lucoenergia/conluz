@@ -71,7 +71,7 @@ class RequestPasswordResetControllerTest extends BasePasswordResetTest {
     void anUnknownPersonalId_aUserWithoutEmail_andADisabledUser_areAnsweredExactlyLikeAnEligibleUser()
             throws Exception {
         User eligible = newUser();
-        // The column is not nullable: a member imported without an email address has an empty one
+        // Both stored as no email
         User withoutEmail = newUser(user -> user.setEmail(""));
         User withBlankEmail = newUser(user -> user.setEmail(" "));
         User disabled = newUser(user -> user.setEnabled(false));

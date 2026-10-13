@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.profile;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -15,7 +18,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -127,22 +132,36 @@ class UpdateProfileControllerTest extends BaseControllerTest {
         assertEquals(null, stored.getPhoneNumber());
     }
 
-    @Test
-    void emailIsMandatory() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"address\": \"Calle Nueva 1\"}",
+            "{\"email\": null, \"address\": \"Calle Nueva 1\"}",
+            "{\"email\": \"\", \"address\": \"Calle Nueva 1\"}",
+            "{\"email\": \"  \", \"address\": \"Calle Nueva 1\"}",
+            "{\"email\": \" \\t\\n\\r\\f\\u000B \", \"address\": \"Calle Nueva 1\"}"
+    })
+    @DisplayName("ACC-003 a missing, empty or blank email is stored as no email")
+    void aMissingEmptyOrBlankEmail_isStoredAsNoEmail(String content) throws Exception {
         User member = enabledMemberOfDefaultCommunity();
         String authHeader = loginUser(member);
 
         mockMvc.perform(put(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"address": "Calle Nueva 1"}"""))
+                        .content(content))
                 .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").hasJsonPath())
+                .andExpect(jsonPath("$.email").value(nullValue()))
+                .andExpect(jsonPath("$.address").value("Calle Nueva 1"));
+
+        User stored = reload(member);
+        assertNull(stored.getEmail());
+        assertEquals("Calle Nueva 1", stored.getAddress());
     }
 
     @Test
+    @DisplayName("ACC-003 an email that is not blank must be a valid email address")
     void aMalformedEmailIsRejected() throws Exception {
         User member = enabledMemberOfDefaultCommunity();
         String authHeader = loginUser(member);
