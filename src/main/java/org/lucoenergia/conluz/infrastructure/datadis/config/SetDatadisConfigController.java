@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -68,8 +69,9 @@ public class SetDatadisConfigController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
-    public SetDatadisConfigResponse configureDatadis(@PathVariable UUID communityId, @RequestBody ConfigureDatadisBody body) {
-        DatadisConfig config = service.setDatadisConfiguration(communityId, body.toDatadisConfig());
+    public SetDatadisConfigResponse configureDatadis(@PathVariable UUID communityId,
+                                                     @Valid @RequestBody ConfigureDatadisBody body) {
+        DatadisConfig config = service.setDatadisConfiguration(communityId, body.mapToSetDatadisConfiguration());
         return SetDatadisConfigResponse.of(config);
     }
 }

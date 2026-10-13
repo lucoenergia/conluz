@@ -298,7 +298,6 @@
         "required" : [
           "baseUrl",
           "enabled",
-          "password",
           "username"
         ],
         "type" : "object"
@@ -1924,7 +1923,8 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
-              "SUPPLY_CUPS_COLLISION"
+              "SUPPLY_CUPS_COLLISION",
+              "DATADIS_CONFIG_PASSWORD_REQUIRED"
             ],
             "type" : [
               "string",
