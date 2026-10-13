@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.password.reset;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.AuthenticationThrottleServiceImpl;
@@ -103,6 +104,24 @@ class ResetPasswordControllerTest extends BasePasswordResetTest {
         String expiring = issueDirectly(newUser());
         clock.advance(PURPOSE.lifetime());
         assertThat(expectInvalidToken("expired", expiring)).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("ACC-005 a passwordless account presenting a valid reset token is answered like an invalid token, "
+            + "and keeps no password")
+    void aPasswordlessAccountWithAValidToken_isAnsweredLikeAnInvalidToken_andKeepsNoPassword() throws Exception {
+        ObjectNode expected = expectInvalidToken("unknown", unknownToken());
+        User passwordless = newPasswordlessUser(user -> {
+        });
+        String token = issueDirectly(passwordless);
+
+        assertThat(expectInvalidToken("passwordless", token)).isEqualTo(expected);
+
+        assertThat(userRow(passwordless).get("password")).isNull();
+        assertThat(userRow(passwordless).get("password_changed_at")).isNull();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM one_time_token WHERE user_id = ? "
+                + "AND used_at IS NULL AND revoked_at IS NULL", Integer.class, passwordless.getId())).isEqualTo(1);
+        verify(consumeOneTimeTokenService, never()).consume(any(), any());
     }
 
     private ObjectNode expectInvalidToken(String name, String token) throws Exception {
