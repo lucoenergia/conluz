@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.consumption.shelly.config.SetShellyConfigurationService;
 import org.lucoenergia.conluz.domain.consumption.shelly.config.ShellyConfig;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -76,7 +77,8 @@ public class SetShellyConfigController {
     @BadRequestErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
-    public SetShellyConfigResponse configureShelly(@PathVariable UUID communityId, @RequestBody ConfigureShellyBody body) {
+    public SetShellyConfigResponse configureShelly(@PathVariable UUID communityId,
+                                                   @Valid @RequestBody ConfigureShellyBody body) {
         ShellyConfig config = service.setShellyConfiguration(communityId, body.toShellyConfig());
         return SetShellyConfigResponse.of(config);
     }
