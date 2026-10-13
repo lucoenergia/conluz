@@ -6,12 +6,14 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.infrastructure.shared.personalid.NotEmptyOnceNormalised;
 
 @Schema(requiredProperties = {"personalId", "fullName"})
 public class RegisterMemberBody {
 
-    @Schema(description = "The member's DNI/NIE/NIF. It is normalised before it is stored or compared: whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so 12.345.678-a and 12345678A are the same person.")
+    @Schema(description = "The member's DNI/NIE/NIF. It is normalised before it is stored or compared: whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so 12.345.678-a and 12345678A are the same person. A value made only of those removed characters is refused.")
     @NotBlank
+    @NotEmptyOnceNormalised
     private String personalId;
 
     @Schema(description = "The member's full name, as this community records it.")

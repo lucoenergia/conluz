@@ -504,6 +504,34 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         verify(emailSender, never()).send(any());
     }
 
+    @Test
+    @DisplayName("MEM-007 a personal ID made only of characters normalisation removes is refused, and nothing is "
+            + "created")
+    void aPersonalIdThatNormalisesToNothing_isABadRequest_andCreatesNothing() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        int membershipsBefore = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM community_memberships WHERE community_id = ?", Integer.class, community.getId());
+
+        for (String personalId : List.of("..-", " . ")) {
+            Map<String, Object> body = newRecord();
+            body.put("personalId", personalId);
+
+            register(bearer, community.getId(), body)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.status").value(400));
+        }
+
+        assertThat(accountCount("")).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM community_memberships WHERE community_id = ?",
+                Integer.class, community.getId())).isEqualTo(membershipsBefore);
+        assertThat(tokenCount("")).isZero();
+        verify(emailSender, never()).send(any());
+        // Refused before any lookup: the only lookups are those authenticating the admin
+        verify(getUserRepository, never()).findByPersonalId(argThat((UserPersonalId id) ->
+                id != null && UserPersonalId.normalize(id.getPersonalId()).isEmpty()));
+    }
+
     // --- AC8: the response ---
 
     @Test
