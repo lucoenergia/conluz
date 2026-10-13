@@ -62,5 +62,6 @@ the capability is specified lazily, as issues touch it.
 
 - A membership without a full name — prevented by the NOT NULL constraint on
   `community_memberships.full_name`.
-- A membership whose inviter does not exist — prevented by the foreign key
-  `community_memberships_invited_by_fk` (`ON DELETE SET NULL`, MEM-003).
+- A membership whose `invited_by` refers to a user that no longer exists (a dangling reference)
+  prevented by the foreign key `community_memberships_invited_by_fk`, 
+  which sets `invited_by` to NULL when that user is deleted (MEM-003).
