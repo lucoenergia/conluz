@@ -4,15 +4,15 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init` |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #389 |
+| **Last reviewed against code** | #392 |
 
 ## Purpose
 
 An account is a person's identity and credentials: the personal ID they log in with, their password and their
-email address. This spec covers accounts without a password or without an email, and how the existing paths treat
-them; the rest of the capability is specified lazily, as issues touch it.
+email address. This spec covers accounts without a password or without an email, how they are created, and how the
+existing paths treat them; the rest of the capability is specified lazily, as issues touch it.
 
 ## Glossary
 
@@ -21,7 +21,8 @@ them; the rest of the capability is specified lazily, as issues touch it.
 | Passwordless account | An account with no password: registered by a community and never accepted (ADR-0003 §7). |
 | No email | An account without an email address, recorded as NULL. |
 | Blank | Made only of space, tab, line feed, carriage return, form feed and vertical tab. |
-| Existing creation path | Creating a user (`createUser`), importing users (`createUsersWithFile`) and creating the default admin (`init`). |
+| Existing creation path | Creating a user (`createUser`), importing users (`createUsersWithFile`) and creating the default admin (`init`). Each of them takes a password. |
+| Member registration | A community admin registering a member by personal ID and member record (`registerMember`), which finds the account with that personal ID or creates one (ADR-0003 §3). |
 
 ## Rules
 
@@ -57,14 +58,40 @@ them; the rest of the capability is specified lazily, as issues touch it.
   checking two.
 - **Source:** #389, ADR-0003 §8
 
-### ACC-004 — Every account created through an existing creation path has a password
+### ACC-004 — Every account created through a creation path that takes a password has one
 
 - **Status:** Active
-- **Rule:** An existing creation path MUST refuse to create an account without a password, through the password
-  policy, and MUST store nothing.
-- **Rationale:** Passwordless accounts are created only by registration through an invitation; the existing paths
-  keep requiring the password they always did.
-- **Source:** #389, ADR-0003 §7
+- **Rule:** Creating a user (`createUser`), importing users (`createUsersWithFile`) and creating the default admin
+  (`init`) MUST check the password of every account they create against the password policy, MUST refuse to create
+  an account without a password, and MUST then store nothing.
+- **Rationale:** These paths have always required a password, and keep requiring it. Passwordless accounts are
+  created only by member registration (ACC-006), which takes no password at all.
+- **Source:** #389, #392, ADR-0003 §7
+
+### ACC-005 — Password reset refuses a passwordless account
+
+- **Status:** Active
+- **Rule:** A password reset (`resetPassword`) presenting a valid `PASSWORD_RESET` token of a passwordless account
+  MUST be answered exactly like an unusable token (`USER_PASSWORD_RESET_TOKEN_INVALID`), and logged like one, before
+  the new password is checked against the policy. It MUST NOT set a password or use up the token.
+- **Rationale:** A passwordless account gets its first password only by accepting an invitation. ACC-002 already
+  issues no token to one; the reset checks again on its own, so that no token that reaches such an account can
+  become a second way to set the first password.
+- **Source:** #392, #389, ADR-0003 §7
+
+### ACC-006 — Member registration creates accounts without a password, and never writes an existing one
+
+- **Status:** Active
+- **Rule:** When no account has the personal ID entered, member registration MUST create one without a password,
+  without a number, without having to change its password, with the member record's full name as its name and
+  the record's contact email as its email (no email when the record has none). When an account has that personal
+  ID, with or without a password, member registration MUST NOT write it. Member registration MUST be the only
+  path that creates an account without a password.
+- **Rationale:** The person sets their first password by accepting the invitation (ADR-0003 §6, §7). The member
+  number belongs to each community's member record, not to the account (ADR-0003 §1). Changing an existing
+  account would let one community overwrite another's view of the person, and would reveal that the account
+  existed.
+- **Source:** #392, ADR-0003 §1, §3 and §7
 
 ## Impossible states
 

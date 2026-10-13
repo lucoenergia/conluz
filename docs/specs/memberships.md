@@ -4,16 +4,17 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `createUser`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `createUser`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #390 |
+| **Last reviewed against code** | #392 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
-when. This spec covers how the existing creation paths fill the record and that state, and which
-memberships grant access; the rest of the capability is specified lazily, as issues touch it.
+when. This spec covers how the existing creation paths and member registration fill the record and that state, how
+a registered member is invited, and which memberships grant access; the rest of the capability is specified
+lazily, as issues touch it.
 
 ## Glossary
 
@@ -25,6 +26,8 @@ memberships grant access; the rest of the capability is specified lazily, as iss
 | Active membership | A membership that is both accepted and enabled (ADR-0003 §2). |
 | Inviter | The user recorded as having invited a membership. |
 | Existing creation path | Adding a user to a community (`createMembership`), creating a user in a community (`createUser` with a community) and importing users into a community (`createUsersWithFile`). |
+| Member registration | A community admin registering a member by personal ID and member record (`registerMember`). It is not an existing creation path. |
+| Contact email | The email address in a member record. Distinct from the account's email. |
 
 ## Rules
 
@@ -98,6 +101,48 @@ memberships grant access; the rest of the capability is specified lazily, as iss
 - **Rationale:** These values describe who takes part in the community and where the caller has
   access. A pending or disabled membership does neither (MEM-004).
 - **Source:** #390, ADR-0003 §2
+
+### MEM-007 — Member registration creates a pending membership holding the record as entered
+
+- **Status:** Active
+- **Rule:** Only an active community admin of the community MAY register a member in it; a platform admin MUST NOT,
+  unless they are one. Member registration MUST create a membership with the role `COMMUNITY_MEMBER`, enabled,
+  pending, with the registering community admin as its inviter. Its member record MUST be the values entered,
+  untrimmed, with an empty or blank optional value recorded as none. If the person already has a membership in
+  the community, pending, active or disabled, registration MUST answer 409 `MEMBERSHIP_ALREADY_EXISTS` and change
+  nothing.
+- **Rationale:** The community enters its own record of the member (ADR-0003 §1), and the person accepts before
+  the membership grants access (ADR-0003 §2, MEM-004). A platform admin administers the platform, not the personal
+  data of a community's members. A 409 for someone already in the community reveals nothing the community admin
+  cannot see in the roster (ADR-0003 §3).
+- **Source:** #392, ADR-0003 §1, §2 and §3
+
+### MEM-008 — Member registration never reveals whether the person had an account
+
+- **Status:** Active
+- **Rule:** The response to member registration MUST be the same whether or not an account with the personal ID
+  existed, and MUST carry only the membership, its state, its capabilities, the member record and the personal ID
+  as entered, normalised: never a field of the account. Two concurrent registrations of the same new personal ID
+  MUST both succeed, with one account. Registration MUST log one line with the masked personal ID, the community
+  and whether an invitation was sent, and nothing that tells whether the account existed or any email address.
+- **Rationale:** Registering an existing personal ID finds its account silently (ADR-0003 §3); a different answer,
+  account data or a distinct log line would tell a community admin that the person is registered elsewhere. A
+  concurrent registration that lost the race to create the account must not answer differently either.
+- **Source:** #392, ADR-0003 §1 and §3
+
+### MEM-009 — The initial invitation goes to the member record's contact email
+
+- **Status:** Active
+- **Rule:** When the member record of a registered member has a contact email and the public web URL is
+  configured, registration MUST issue an `INVITATION` token for the membership, record the invitation instant and,
+  once the registration commits, email the contact email, never the account's email, a link
+  `<public web URL>/accept-invitation#<token>` with the token only in the fragment. Without a contact email it MUST
+  issue no token and send nothing. Without a public web URL it MUST still create the membership, issue no token,
+  leave the invitation instant empty, and log one warning naming only the email category.
+- **Rationale:** The contact email is the community's own way to reach the member (ADR-0003 §1, §8); the account's
+  email may have been entered by another community. The fragment keeps the token out of every access log
+  (ADR-0002). An invitation that cannot be linked is not recorded as sent.
+- **Source:** #392, ADR-0003 §5, §6 and §8, ADR-0002
 
 ## Impossible states
 
