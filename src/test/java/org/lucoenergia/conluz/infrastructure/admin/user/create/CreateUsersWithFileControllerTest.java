@@ -522,6 +522,30 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-004 a row without a password is refused by the password policy, while the other rows are created")
+    void rowWithoutAPassword_isRefusedByThePasswordPolicy_whileTheOtherRowsAreCreated() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        String csvContent = HEADER
+                + rowWithPassword(1, "337000001A", "")
+                + rowWithPassword(2, "337000002B", "a".repeat(15));
+
+        mockMvc.perform(multipart(URL)
+                        .file(csv(csvContent))
+                        .param("communityId", community.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", containsInAnyOrder("337000002B")))
+                .andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0].personalId").value("337000001A"))
+                .andExpect(jsonPath("$.errors[0].errorMessage").value(passwordTooShortMessage()));
+
+        assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of("337000001A")).isEmpty());
+    }
+
+    @Test
     void importedUsers_areFlaggedAsHavingToChangeThePassword() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         String authHeader = loginAsDefaultPlatformAdmin();

@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -244,6 +245,21 @@ class CreateUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.errors[0].params.rule").value("TOO_SHORT"));
 
         Assertions.assertTrue(userRepository.findByPersonalId("33300001A").isEmpty());
+    }
+
+    @Test
+    @DisplayName("ACC-004 a user without a password is refused, and nothing is stored")
+    void aUserWithoutAPassword_isRefused_andNothingIsStored() throws Exception {
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        createUser(authHeader, objectMapper.writeValueAsString(Map.of(
+                "personalId", "33300009J",
+                "fullName", "John Doe",
+                "number", 1,
+                "email", "johndoe@email.com")))
+                .andExpect(status().isBadRequest());
+
+        Assertions.assertTrue(userRepository.findByPersonalId("33300009J").isEmpty());
     }
 
     @Test
