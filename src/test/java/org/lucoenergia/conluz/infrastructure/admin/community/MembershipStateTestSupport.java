@@ -4,7 +4,7 @@ import java.util.UUID;
 
 /**
  * Turns a membership created through the membership repository or service into a pending or a
- * disabled one. No repository does either yet (#5 creates pending memberships, #8 disables them), so
+ * disabled one. No repository does either yet (#392 creates pending memberships, #395 disables them), so
  * the state is set on the loaded entity, and every other column keeps the value production gave it.
  */
 public final class MembershipStateTestSupport {

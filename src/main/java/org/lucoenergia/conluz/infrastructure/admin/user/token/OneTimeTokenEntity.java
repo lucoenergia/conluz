@@ -40,6 +40,11 @@ public class OneTimeTokenEntity {
     private Instant revokedAt;
 
     /**
+     * The membership the token was issued for, or null when the token is bound only to its user.
+     */
+    private UUID membershipId;
+
+    /**
      * Default constructor required by JPA.
      */
     protected OneTimeTokenEntity() {
@@ -55,12 +60,22 @@ public class OneTimeTokenEntity {
         this.expiresAt = expiresAt;
     }
 
+    public OneTimeTokenEntity(UUID id, UUID userId, UUID membershipId, OneTimeTokenPurpose purpose, String tokenHash,
+                              Instant createdAt, Instant expiresAt) {
+        this(id, userId, purpose, tokenHash, createdAt, expiresAt);
+        this.membershipId = membershipId;
+    }
+
     public UUID getId() {
         return id;
     }
 
     public UUID getUserId() {
         return userId;
+    }
+
+    public UUID getMembershipId() {
+        return membershipId;
     }
 
     public OneTimeTokenPurpose getPurpose() {

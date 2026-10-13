@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyRest;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyUpToChangeSet;
+import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.continueUpToChangeSet;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.freshDatabase;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.rollbackToChangeSet;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.seed;
@@ -29,6 +30,8 @@ class OneTimeTokenTableMigrationIntegrationTest {
 
     /** The last changeset before the one under test. */
     private static final String BOUNDARY_CHANGESET_ID = "backfill_must_change_password_for_existing_users";
+    /** The changeset under test. */
+    private static final String CHANGESET_ID = "create_one_time_token_table";
 
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16")
             .withUsername("luz")
@@ -43,7 +46,8 @@ class OneTimeTokenTableMigrationIntegrationTest {
     void createsTheTable_withItsConstraintsAndIndexes() throws Exception {
         try (Connection connection = freshDatabase(POSTGRES, "created")) {
             applyUpToChangeSet(connection, BOUNDARY_CHANGESET_ID);
-            applyRest(connection);
+            // Only the changeset under test: later changesets (#391) add columns and indexes to the table
+            continueUpToChangeSet(connection, CHANGESET_ID);
 
             assertEquals(Set.of("id", "user_id", "purpose", "token_hash", "created_at", "expires_at", "used_at",
                     "revoked_at"), columns(connection));

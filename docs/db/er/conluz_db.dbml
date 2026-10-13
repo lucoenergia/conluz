@@ -91,10 +91,13 @@ Table "one_time_token" {
   "expires_at" timestamp [not null, note: 'When the token stops being valid.']
   "used_at" timestamp [note: 'When the token was used. NULL if it has not been used.']
   "revoked_at" timestamp [note: 'When the token was revoked. NULL if it has not been revoked.']
+  "membership_id" uuid [note: 'The membership the token was issued for. NULL means the token is bound only to its user.']
 
   Indexes {
     `LEAST(expires_at,used_at,revoked_at)` [type: btree, name: "one_time_token_finished_at_idx"]
-    (user_id, purpose) [type: btree, unique, name: "one_time_token_one_active_uq"]
+    (membership_id, created_at) [type: btree, name: "one_time_token_membership_created_at_idx"]
+    membership_id [type: btree, unique, name: "one_time_token_membership_one_active_uq", note: 'WHERE membership_id IS NOT NULL AND used_at IS NULL AND revoked_at IS NULL']
+    (user_id, purpose) [type: btree, unique, name: "one_time_token_one_active_uq", note: 'WHERE membership_id IS NULL AND used_at IS NULL AND revoked_at IS NULL']
     (user_id, purpose, created_at) [type: btree, name: "one_time_token_user_purpose_created_at_idx"]
   }
   Note: 'One-time tokens issued to a user for one purpose. Only the hash of each token is stored.'
@@ -218,6 +221,8 @@ Ref "community_memberships_user_id_fk":"users"."id" <? "community_memberships"."
 Ref "datadis_config_community_id_fk":"communities"."id" <? "datadis_config"."community_id"
 
 Ref "huawei_config_plant_id_fk":"plants"."id" ?<? "huawei_config"."plant_id"
+
+Ref "one_time_token_membership_id_fk":"community_memberships"."id" ?<? "one_time_token"."membership_id" [delete: cascade]
 
 Ref "one_time_token_user_id_fk":"users"."id" <? "one_time_token"."user_id" [delete: cascade]
 

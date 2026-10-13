@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- One active token per user and purpose for tokens without a membership, and one active token per
+         membership for tokens with one (#391, ADR-0003 §4).
+
+         one_time_token_one_active_uq keeps its name and its invariant for tokens bound only to their user
+         (PASSWORD_RESET), and no longer covers tokens bound to a membership: a person invited to two
+         communities holds two active invitation tokens. one_time_token_membership_one_active_uq allows at
+         most one active token per membership, whatever its purpose. Both are replaced in this one
+         changeset, so no transaction ever sees the table without an active-token index.
+
+         The rollback deletes every token with a membership before it restores the original index: that
+         index is unique on (user_id, purpose) for every active token, and would reject two active
+         invitation tokens of the same person. Those tokens are all invitation tokens, and can be issued
+         again by resending the invitation. Tokens without a membership are kept. -->
+    <changeSet id="bind_one_time_token_active_index_to_membership" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot bind the active-token index of one_time_token to memberships: membership_id is missing, one_time_token_one_active_uq is missing or is not the original index, or one_time_token_membership_one_active_uq already exists. Inspect with: SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'one_time_token';">
+            <columnExists tableName="one_time_token" columnName="membership_id"/>
+            <sqlCheck expectedResult="1">
+                SELECT count(*) FROM pg_indexes
+                WHERE tablename = 'one_time_token' AND indexname = 'one_time_token_one_active_uq'
+                AND indexdef LIKE '%(user_id, purpose) WHERE ((used_at IS NULL) AND (revoked_at IS NULL))'
+            </sqlCheck>
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM pg_indexes
+                WHERE tablename = 'one_time_token' AND indexname = 'one_time_token_membership_one_active_uq'
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            DROP INDEX one_time_token_one_active_uq
+        </sql>
+        <sql>
+            CREATE UNIQUE INDEX one_time_token_one_active_uq ON one_time_token (user_id, purpose)
+            WHERE membership_id IS NULL AND used_at IS NULL AND revoked_at IS NULL
+        </sql>
+        <sql>
+            CREATE UNIQUE INDEX one_time_token_membership_one_active_uq ON one_time_token (membership_id)
+            WHERE membership_id IS NOT NULL AND used_at IS NULL AND revoked_at IS NULL
+        </sql>
+        <rollback>
+            <sql>
+                DELETE FROM one_time_token WHERE membership_id IS NOT NULL
+            </sql>
+            <sql>
+                DROP INDEX one_time_token_one_active_uq
+            </sql>
+            <sql>
+                CREATE UNIQUE INDEX one_time_token_one_active_uq ON one_time_token (user_id, purpose)
+                WHERE used_at IS NULL AND revoked_at IS NULL
+            </sql>
+            <sql>
+                DROP INDEX one_time_token_membership_one_active_uq
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

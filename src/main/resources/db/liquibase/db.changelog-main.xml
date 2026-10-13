@@ -74,4 +74,6 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/make_users_email_nullable.xml" relativeToChangelogFile="true" />
     <include file="changelogs/normalize_users_blank_email_to_null.xml" relativeToChangelogFile="true" />
     <include file="changelogs/make_users_password_nullable.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_membership_id_to_one_time_token.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/bind_one_time_token_active_index_to_membership.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

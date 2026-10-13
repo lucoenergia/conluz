@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.token;
 
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenMembership;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenRetention;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 @Transactional(readOnly = true)
 @Service
@@ -26,6 +28,7 @@ public class GetOneTimeTokenServiceImpl implements GetOneTimeTokenService {
 
     @Override
     public Optional<UserId> findOwner(String rawToken, OneTimeTokenPurpose purpose) {
+        purpose.requireBoundOnlyToUser();
         if (rawToken == null || rawToken.isBlank()) {
             return Optional.empty();
         }
@@ -34,10 +37,32 @@ public class GetOneTimeTokenServiceImpl implements GetOneTimeTokenService {
 
     @Override
     public long countIssuedSince(UserId userId, OneTimeTokenPurpose purpose, Instant since) {
+        purpose.requireBoundOnlyToUser();
+        requireWithinRetention(since);
+        return repository.countCreatedSince(userId, purpose, since);
+    }
+
+    @Override
+    public Optional<OneTimeTokenMembership> findMembership(String rawToken, OneTimeTokenPurpose purpose) {
+        purpose.requireBoundToMembership();
+        if (rawToken == null || rawToken.isBlank()) {
+            return Optional.empty();
+        }
+        return repository.findValidMembership(OneTimeTokenHash.of(rawToken), purpose, clock.instant());
+    }
+
+    @Override
+    public long countIssuedForMembershipSince(UserId userId, UUID communityId, OneTimeTokenPurpose purpose,
+                                              Instant since) {
+        purpose.requireBoundToMembership();
+        requireWithinRetention(since);
+        return repository.countCreatedForMembershipSince(userId, communityId, purpose, since);
+    }
+
+    private void requireWithinRetention(Instant since) {
         if (since.isBefore(clock.instant().minus(OneTimeTokenRetention.PERIOD))) {
             throw new IllegalArgumentException("Tokens are only counted within the retention period of "
                     + OneTimeTokenRetention.PERIOD);
         }
-        return repository.countCreatedSince(userId, purpose, since);
     }
 }

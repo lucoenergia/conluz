@@ -231,7 +231,8 @@ CREATE TABLE public.one_time_token (
                                        created_at timestamp with time zone NOT NULL,
                                        expires_at timestamp with time zone NOT NULL,
                                        used_at timestamp with time zone,
-                                       revoked_at timestamp with time zone
+                                       revoked_at timestamp with time zone,
+                                       membership_id uuid
 );
 
 
@@ -289,6 +290,13 @@ COMMENT ON COLUMN public.one_time_token.used_at IS 'When the token was used. NUL
 --
 
 COMMENT ON COLUMN public.one_time_token.revoked_at IS 'When the token was revoked. NULL if it has not been revoked.';
+
+
+--
+-- Name: COLUMN one_time_token.membership_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.one_time_token.membership_id IS 'The membership the token was issued for. NULL means the token is bound only to its user.';
 
 
 --
@@ -810,10 +818,24 @@ CREATE INDEX one_time_token_finished_at_idx ON public.one_time_token USING btree
 
 
 --
+-- Name: one_time_token_membership_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX one_time_token_membership_created_at_idx ON public.one_time_token USING btree (membership_id, created_at);
+
+
+--
+-- Name: one_time_token_membership_one_active_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX one_time_token_membership_one_active_uq ON public.one_time_token USING btree (membership_id) WHERE ((membership_id IS NOT NULL) AND (used_at IS NULL) AND (revoked_at IS NULL));
+
+
+--
 -- Name: one_time_token_one_active_uq; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX one_time_token_one_active_uq ON public.one_time_token USING btree (user_id, purpose) WHERE ((used_at IS NULL) AND (revoked_at IS NULL));
+CREATE UNIQUE INDEX one_time_token_one_active_uq ON public.one_time_token USING btree (user_id, purpose) WHERE ((membership_id IS NULL) AND (used_at IS NULL) AND (revoked_at IS NULL));
 
 
 --
@@ -861,6 +883,14 @@ ALTER TABLE ONLY public.datadis_config
 
 ALTER TABLE ONLY public.huawei_config
     ADD CONSTRAINT huawei_config_plant_id_fk FOREIGN KEY (plant_id) REFERENCES public.plants(id);
+
+
+--
+-- Name: one_time_token one_time_token_membership_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.one_time_token
+    ADD CONSTRAINT one_time_token_membership_id_fk FOREIGN KEY (membership_id) REFERENCES public.community_memberships(id) ON DELETE CASCADE;
 
 
 --
