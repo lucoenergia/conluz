@@ -173,7 +173,7 @@ admin rule — but it is computed, not assumed, and its cost is pinned like any 
 `/production/{plantId}/sharing-agreements/{sharingAgreementId}`, a route guarded client-side on the
 plant's `canListSharingAgreements`, not on this capability's guard. The link is safe to show only
 while **`canReadSharingAgreement` ⇒ `canListSharingAgreements`**. That holds today because both
-reduce to "enabled community admin of the plant's community", and
+reduce to "active community admin of the plant's community", and
 `CapabilityGuardEquivalenceTest.readingACoefficientsSharingAgreementImpliesListingThePlantsAgreements`
 asserts it over the caller matrix. Whoever splits those rules must keep the implication, or have the
 web gate the link on both capabilities.
@@ -203,7 +203,7 @@ through by the guard never widens what comes back.
 `GET /users` follows the same split. `platform.canListUsers` predicts whether it is **allowed**; what
 it is **scoped to** is `UserAccessPolicy.visibleUsers`, the set form of the rule
 `GET /users/{userId}` applies one user at a time. A platform admin receives every user; anyone else
-receives themselves and the users with an enabled membership in a community they **administer** —
+receives themselves and the users with an active membership in a community they **administer** —
 not those of a community they merely belong to. So an admin of A who is a plain member of B gets A's
 users and none of B's, and every user the listing omits is one `GET /users/{userId}` would answer 404
 on for them (#336).

@@ -11,7 +11,7 @@ import java.util.UUID;
 public class MembershipAccessPolicy {
 
     /**
-     * Administering the roster of a community: its enabled community admins, plus any platform
+     * Administering the roster of a community: its active community admins, plus any platform
      * admin. A member can see the community, so they are forbidden rather than not-found.
      */
     public AccessDecision canManageMemberships(User caller, UUID communityId) {
@@ -47,10 +47,10 @@ public class MembershipAccessPolicy {
 
     /**
      * Reading the private data of a membership (its payback progress and its energy metrics): either the caller is {@code userId} themselves
-     * <em>and</em> holds an enabled membership in the community, or they are one of its enabled
+     * <em>and</em> holds an active membership in the community, or they are one of its active
      * community admins.
      *
-     * <p>The self branch requires an enabled membership, not merely being the named user: a disabled
+     * <p>The self branch requires an active membership, not merely being the named user: a pending or disabled
      * membership already makes its community invisible to its holder everywhere else, and a
      * membership's private figures must not be the one place where it does not. As with
      * {@link #canManageInvestment}, there is no forbidden-by-role outcome — and no platform-admin

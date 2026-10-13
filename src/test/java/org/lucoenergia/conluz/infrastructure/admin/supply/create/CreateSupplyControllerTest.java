@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -22,6 +23,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -454,6 +456,29 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.user.id").value(owner.getId().toString()));
 
         Supply stored = getSupplyRepository.findByCode(SupplyCode.of("ES0033333333333333KK0K")).orElseThrow();
+        Assertions.assertEquals(owner.getId(), stored.getUser().getId());
+    }
+
+    @Test
+    @DisplayName("MEM-004 a supply can be created for a member whose membership is still pending")
+    void testCreateSupplyForAMemberWhoseMembershipIsPendingCreatesIt() throws Exception {
+
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        User owner = UserMother.randomUser();
+        createUserRepository.create(owner);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        MembershipStateTestSupport.markPending(communityMembershipJpaRepository, owner.getId(), DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(supplyBody(DEFAULT_COMMUNITY_ID, "ES0033333333333333PP0P", owner.getPersonalId())))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.id").value(owner.getId().toString()));
+
+        Supply stored = getSupplyRepository.findByCode(SupplyCode.of("ES0033333333333333PP0P")).orElseThrow();
         Assertions.assertEquals(owner.getId(), stored.getUser().getId());
     }
 

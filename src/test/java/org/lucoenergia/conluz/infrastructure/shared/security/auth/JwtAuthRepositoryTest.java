@@ -12,6 +12,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -164,7 +165,7 @@ class JwtAuthRepositoryTest {
     void getCommunityMemberships_returnsMembershipMapFromToken() {
         Community community = CommunityMother.random().build();
         User user = UserMother.randomUser();
-        CommunityMembership membership = new CommunityMembership.Builder()
+        CommunityMembership membership = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withCommunity(community)

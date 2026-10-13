@@ -42,7 +42,7 @@ The goal is that the platform admin never sees members' personal data, and that 
 
 - **New membership columns:** `accepted_at` (NULL = pending), `invited_by` and `invited_at`. There is **no invitation table.**
 - **Pending and disabled are independent.** "Active" means accepted **and** enabled. Only active memberships grant access.
-- **One predicate decides "active"** (in `CallerMemberships`), and every re-spelling listed in the Context is replaced by it.
+- **One predicate decides "active":** `CommunityMembership.isActive()`. The access rules in `CallerMemberships`, together with every re-spelling listed in the Context, use it.
 - **Counts and names filter on it:** `memberCount`, `adminNames` and the current user's memberships count only active memberships.
 - **The community admin sees pending members** in their roster, with the state visible.
 - **A pending member can own supplies** (#341: any membership counts), so a community can operate a member who has not accepted yet, or never will.

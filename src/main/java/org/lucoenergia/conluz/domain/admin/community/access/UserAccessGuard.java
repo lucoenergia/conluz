@@ -32,7 +32,7 @@ public interface UserAccessGuard {
 
     /**
      * Whether the current user may list the supplies of the given user: the user themselves, or an
-     * enabled community admin of one of their communities.
+     * active community admin of one of their communities.
      *
      * <p>Deliberately stricter than {@link #canReadUser(UUID)}, which lets every platform admin
      * through. A platform admin who administers none of the user's communities cannot read those

@@ -76,6 +76,10 @@ public class CurrentUserResponse {
         Map<String, String> membershipMap = new HashMap<>();
         if (user.getMemberships() != null) {
             for (CommunityMembership membership : user.getMemberships()) {
+                // Only an active membership counts; a pending or disabled one grants nothing yet
+                if (!membership.isActive()) {
+                    continue;
+                }
                 membershipMap.put(membership.getCommunity().getId().toString(), membership.getRole().name());
             }
         }

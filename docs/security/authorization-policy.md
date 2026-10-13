@@ -4,8 +4,16 @@ This policy is MANDATORY. Every REST controller endpoint MUST enforce it via a `
 
 ## Roles
 - **Platform admin** — `User.isPlatformAdmin() == true` → authority `ROLE_PLATFORM_ADMIN`.
-- **Community admin** — enabled membership with `CommunityRole.COMMUNITY_ADMIN`.
-- **Member / regular user** — enabled membership without admin role.
+- **Community admin** — active membership with `CommunityRole.COMMUNITY_ADMIN`.
+- **Member / regular user** — active membership without admin role.
+
+A membership is **active** when it is accepted and enabled (ADR-0003 §2). A pending membership (not
+yet accepted) and a disabled one grant nothing: their holder is answered exactly like someone with no
+membership in that community, including for the `X-Community-Id` header. The two states are
+independent, and the roster (`GET /api/v1/communities/{communityId}/memberships`) shows both. Whether
+a membership is active is decided only by `CommunityMembership.isActive()`, and in queries by
+`ActiveMembershipJpql.ACTIVE_MEMBERSHIP`; `MembershipStateArchTest` enforces it. Owning a supply is
+not access: any membership counts for it, pending or disabled included (#341).
 
 ## Role privileges
 
@@ -108,7 +116,7 @@ applied by **guard adapters** under `infrastructure/admin/community/access`.
 - A guard adapter resolves the caller and loads the target, calls the policy, and translates:
   `NOT_VISIBLE` → throw the aggregate's `*NotFoundException` (→ 404), `FORBIDDEN` → `false` (→ 403),
   `ALLOWED` → `true`. An absent caller is `false` before any policy runs (→ 401).
-- `CallerMemberships` is the single spelling of the caller's standing — "enabled community admin of
+- `CallerMemberships` is the single spelling of the caller's standing — "active community admin of
   X", "can see community X", "is this user". Add membership questions there, not in a guard.
 - The second evaluator is real, not hypothetical: every resource response carries a `capabilities`
   object assembled from these policies over already-loaded entities. Each guard is mapped to the

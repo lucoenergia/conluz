@@ -24,7 +24,7 @@ public interface GetUserRepository {
     PagedResult<User> findAll(PagedRequest pagedRequest);
 
     /**
-     * The user {@code selfId} (when not {@code null}) plus every user with an enabled membership in
+     * The user {@code selfId} (when not {@code null}) plus every user with an active membership in
      * any of {@code communityIds}, paginated, in one query. An empty set yields at most that user.
      */
     PagedResult<User> findAllVisible(PagedRequest pagedRequest, UUID selfId, Set<UUID> communityIds);

@@ -10,6 +10,8 @@ import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +36,8 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateMembershipService createMembershipService;
+    @Autowired
+    private CommunityMembershipJpaRepository communityMembershipJpaRepository;
 
     @Test
     void testGetCurrentUserSuccess() throws Exception {
@@ -91,6 +95,31 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.isPlatformAdmin").value(false))
                 .andExpect(jsonPath("$.memberships").isNotEmpty())
                 .andExpect(jsonPath("$.memberships.['" + community.getId().toString() + "']").value(CommunityRole.COMMUNITY_ADMIN.name()));
+    }
+
+    @Test
+    @DisplayName("MEM-006 the current user's memberships list only the active ones")
+    void theCurrentUsersMembershipsLeaveOutPendingAndDisabledOnes() throws Exception {
+        Community active = createCommunityRepository.create(random().build());
+        Community pending = createCommunityRepository.create(random().build());
+        Community disabled = createCommunityRepository.create(random().build());
+        User user = UserMother.randomUser();
+        user.enable();
+        createUserRepository.create(user);
+        createMembershipService.create(active.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipService.create(pending.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipService.create(disabled.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        MembershipStateTestSupport.markPending(communityMembershipJpaRepository, user.getId(), pending.getId());
+        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, user.getId(), disabled.getId());
+
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(user)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberships.length()").value(1))
+                .andExpect(jsonPath("$.memberships.['" + active.getId() + "']").value(CommunityRole.COMMUNITY_MEMBER.name()))
+                .andExpect(jsonPath("$.memberships.['" + pending.getId() + "']").doesNotExist())
+                .andExpect(jsonPath("$.memberships.['" + disabled.getId() + "']").doesNotExist());
     }
 
     @Test

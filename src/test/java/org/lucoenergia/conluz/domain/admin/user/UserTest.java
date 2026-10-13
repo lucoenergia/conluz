@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.admin.user;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.springframework.security.core.GrantedAuthority;
@@ -122,7 +123,7 @@ class UserTest {
 
     private CommunityMembership membershipWith(User user, CommunityRole communityRole, boolean enabled) {
         Community community = CommunityMother.random().build();
-        return new CommunityMembership.Builder()
+        return CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withCommunity(community)

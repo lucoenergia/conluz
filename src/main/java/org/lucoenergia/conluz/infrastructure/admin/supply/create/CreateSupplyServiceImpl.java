@@ -39,8 +39,8 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
         }
         // The owner must belong to the supply's community (#341). A user who does not is reported
         // exactly like an unknown personalId, so the answer does not reveal that the personalId is
-        // registered in another community. Any membership counts, enabled or not: disabling a
-        // membership governs platform access, not who may own a supply.
+        // registered in another community. Any membership counts, accepted or not, enabled or not:
+        // a membership's state governs platform access, not who may own a supply.
         if (getMembershipsRepository.findByUserIdAndCommunityId(user.get().getId(), communityId).isEmpty()) {
             throw new UserNotFoundException(id);
         }

@@ -484,6 +484,7 @@ class UserAccessPolicyTest {
                     PolicyFixtures.membershipIn(b, CommunityRole.COMMUNITY_MEMBER, true)));
             users.put("in no community", PolicyFixtures.stranger());
             users.put("disabled in A", PolicyFixtures.disabledMemberOf(a));
+            users.put("pending in A", PolicyFixtures.pendingMemberOf(a));
 
             callers.put("platform admin", PolicyFixtures.platformAdmin());
             callers.put("platform admin, member of A", PolicyFixtures.platformAdminMemberOf(a));
@@ -496,6 +497,7 @@ class UserAccessPolicyTest {
                     PolicyFixtures.membershipIn(b, CommunityRole.COMMUNITY_MEMBER, true)));
             callers.put("plain member of A", PolicyFixtures.memberOf(a));
             callers.put("disabled admin of A", PolicyFixtures.disabledAdminOf(a));
+            callers.put("pending admin of A", PolicyFixtures.pendingAdminOf(a));
             callers.put("the user in A and B", users.get("in A and B"));
             callers.put("stranger", PolicyFixtures.stranger());
         }

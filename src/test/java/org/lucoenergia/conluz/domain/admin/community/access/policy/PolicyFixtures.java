@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -48,6 +49,32 @@ final class PolicyFixtures {
         return withMembership(UserMother.randomUser(), community, CommunityRole.COMMUNITY_MEMBER, false);
     }
 
+    static User pendingAdminOf(Community community) {
+        return pending(adminOf(community));
+    }
+
+    static User pendingMemberOf(Community community) {
+        return pending(memberOf(community));
+    }
+
+    /**
+     * The same user with every membership turned pending: not accepted yet, and still enabled.
+     */
+    static User pending(User user) {
+        user.setMemberships(user.getMemberships().stream().map(PolicyFixtures::pending).toList());
+        return user;
+    }
+
+    static CommunityMembership pending(CommunityMembership membership) {
+        return new CommunityMembership.Builder()
+                .withId(membership.getId())
+                .withUser(membership.getUser())
+                .withCommunity(membership.getCommunity())
+                .withRole(membership.getRole())
+                .withEnabled(membership.isEnabled())
+                .build();
+    }
+
     static User platformAdminMemberOf(Community community) {
         User user = withMembership(UserMother.randomUser(), community, CommunityRole.COMMUNITY_MEMBER, true);
         user.setPlatformAdmin(true);
@@ -55,7 +82,7 @@ final class PolicyFixtures {
     }
 
     static User withMembership(User user, Community community, CommunityRole role, boolean enabled) {
-        user.setMemberships(List.of(new CommunityMembership.Builder()
+        user.setMemberships(List.of(CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(user)
                 .withCommunity(community)
@@ -66,7 +93,7 @@ final class PolicyFixtures {
     }
 
     static CommunityMembership membershipIn(Community community, CommunityRole role, boolean enabled) {
-        return new CommunityMembership.Builder()
+        return CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withCommunity(community)
                 .withRole(role)

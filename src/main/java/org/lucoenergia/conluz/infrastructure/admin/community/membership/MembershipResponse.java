@@ -7,9 +7,10 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.M
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 
+import java.time.Instant;
 import java.util.UUID;
 
-@Schema(requiredProperties = {"id", "user", "communityId", "role", "enabled", "capabilities"})
+@Schema(requiredProperties = {"id", "user", "communityId", "role", "enabled", "acceptedAt", "capabilities"})
 public class MembershipResponse {
 
     private final UUID id;
@@ -18,6 +19,10 @@ public class MembershipResponse {
     private final UUID communityId;
     private final CommunityRole role;
     private final Boolean enabled;
+    @Schema(description = "When the membership was accepted. Null while it is pending: a pending membership "
+            + "grants no access until it is accepted. Independent of enabled.",
+            example = "2026-01-01T00:00:00Z", types = {"string", "null"})
+    private final Instant acceptedAt;
 
     @Schema(description = "What the caller may do with this membership.")
     private final MembershipCapabilitiesResponse capabilities;
@@ -31,6 +36,7 @@ public class MembershipResponse {
         this.communityId = membership.getCommunity().getId();
         this.role = membership.getRole();
         this.enabled = membership.isEnabled();
+        this.acceptedAt = membership.getAcceptedAt();
         this.capabilities = capabilities;
     }
 
@@ -52,6 +58,10 @@ public class MembershipResponse {
 
     public Boolean getEnabled() {
         return enabled;
+    }
+
+    public Instant getAcceptedAt() {
+        return acceptedAt;
     }
 
     public MembershipCapabilitiesResponse getCapabilities() {

@@ -30,7 +30,7 @@ public class SharingAgreementAccessPolicy {
     }
 
     /**
-     * Patching, deleting or publishing an agreement: the enabled community admins of the plant's
+     * Patching, deleting or publishing an agreement: the active community admins of the plant's
      * community. An agreement that does not exist, or that belongs to a different plant, is
      * not-visible — a caller must not learn it exists elsewhere.
      *

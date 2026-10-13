@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.shared.security.community;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -14,6 +15,8 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -36,6 +39,8 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CommunityMembershipJpaRepository communityMembershipJpaRepository;
 
     private Community communityA;
     private Community communityB;
@@ -110,6 +115,36 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("MEM-004 X-Community-Id for a pending membership is refused, as for a non-member")
+    void pendingMemberWithTheirCommunityHeaderGetsForbidden() throws Exception {
+        MembershipStateTestSupport.markPending(communityMembershipJpaRepository, memberA.getId(), communityA.getId());
+        String tokenA = loginUser(memberA);
+
+        mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
+                        .header("Authorization", tokenA)
+                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Access denied: user is not a member of the requested community"));
+    }
+
+    @Test
+    @DisplayName("MEM-004 X-Community-Id for a disabled membership is refused, as for a non-member")
+    void disabledMemberWithTheirCommunityHeaderGetsForbidden() throws Exception {
+        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, memberA.getId(), communityA.getId());
+        String tokenA = loginUser(memberA);
+
+        mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
+                        .header("Authorization", tokenA)
+                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Access denied: user is not a member of the requested community"));
     }
 
     @Test

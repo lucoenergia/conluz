@@ -1,8 +1,10 @@
 package org.lucoenergia.conluz.domain.admin.user.get;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -88,6 +90,19 @@ class UserScopeTest {
     @Test
     void includes_rejectsADisabledMembershipInScope() {
         assertFalse(scope.includes(userWith(membership(inScope, false))));
+    }
+
+    @Test
+    @DisplayName("MEM-004 a pending membership in scope does not bring its user into the scope")
+    void includes_rejectsAPendingMembershipInScope() {
+        CommunityMembership pending = new CommunityMembership.Builder()
+                .withId(UUID.randomUUID())
+                .withCommunity(inScope)
+                .withRole(CommunityRole.COMMUNITY_MEMBER)
+                .withEnabled(true)
+                .build();
+
+        assertFalse(scope.includes(userWith(pending)));
     }
 
     @Test
@@ -211,7 +226,7 @@ class UserScopeTest {
     }
 
     private static CommunityMembership membership(Community community, boolean enabled) {
-        return new CommunityMembership.Builder()
+        return CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withCommunity(community)
                 .withRole(CommunityRole.COMMUNITY_MEMBER)
@@ -220,7 +235,7 @@ class UserScopeTest {
     }
 
     private static CommunityMembership membershipWithoutCommunity() {
-        return new CommunityMembership.Builder()
+        return CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withRole(CommunityRole.COMMUNITY_MEMBER)
                 .withEnabled(true)

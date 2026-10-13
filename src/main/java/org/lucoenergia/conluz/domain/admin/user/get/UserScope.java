@@ -10,7 +10,7 @@ import java.util.UUID;
 
 /**
  * Which users a caller may see, and which of their memberships: either everything, or the caller
- * themselves plus the users with an enabled membership in a given set of communities. It carries no
+ * themselves plus the users with an active membership in a given set of communities. It carries no
  * rule of its own — the access policy decides the scope, and the query and the response only apply it.
  */
 public final class UserScope {
@@ -32,7 +32,7 @@ public final class UserScope {
     /**
      * @param selfId       the caller, always in scope with every one of their memberships; {@code null}
      *                     when there is no caller
-     * @param communityIds the communities whose enabled members, and whose memberships, are in scope
+     * @param communityIds the communities whose active members, and whose memberships, are in scope
      */
     public static UserScope visibleTo(UUID selfId, Set<UUID> communityIds) {
         return new UserScope(selfId, Set.copyOf(Objects.requireNonNull(communityIds)));
@@ -59,14 +59,15 @@ public final class UserScope {
     }
 
     /**
-     * Whether the scope admits this user, judged on their enabled memberships.
+     * Whether the scope admits this user, judged on their {@linkplain CommunityMembership#isActive() active}
+     * memberships.
      */
     public boolean includes(User user) {
         if (isUnrestricted() || isSelf(user)) {
             return true;
         }
         return user.getMemberships() != null && user.getMemberships().stream()
-                .anyMatch(m -> Boolean.TRUE.equals(m.isEnabled()) && inScopeCommunity(m));
+                .anyMatch(m -> m.isActive() && inScopeCommunity(m));
     }
 
     /**

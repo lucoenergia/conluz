@@ -46,10 +46,20 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
      */
     boolean existsByUserIdAndCommunityId(UUID userId, UUID communityId);
 
-    @Query("SELECT m.community.id, COUNT(m) FROM community_memberships m WHERE m.community.id IN :ids GROUP BY m.community.id")
+    /**
+     * The number of active members of each given community; a pending or disabled membership is not
+     * counted.
+     */
+    @Query("SELECT m.community.id, COUNT(m) FROM community_memberships m WHERE m.community.id IN :ids AND "
+            + ActiveMembershipJpql.ACTIVE_MEMBERSHIP + " GROUP BY m.community.id")
     List<Object[]> countMembersByCommunityIds(@Param("ids") Set<UUID> ids);
 
-    @Query("SELECT m.community.id, u.fullName FROM community_memberships m JOIN m.user u WHERE m.community.id IN :ids AND m.role = 'COMMUNITY_ADMIN'")
+    /**
+     * The names of the active admins of each given community; a pending or disabled admin membership
+     * is not named.
+     */
+    @Query("SELECT m.community.id, u.fullName FROM community_memberships m JOIN m.user u WHERE m.community.id IN :ids "
+            + "AND m.role = 'COMMUNITY_ADMIN' AND " + ActiveMembershipJpql.ACTIVE_MEMBERSHIP)
     List<Object[]> findAdminNamesByCommunityIds(@Param("ids") Set<UUID> ids);
 
     /**

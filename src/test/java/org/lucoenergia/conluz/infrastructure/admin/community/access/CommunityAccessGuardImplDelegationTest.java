@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -235,7 +236,7 @@ class CommunityAccessGuardImplDelegationTest {
 
     private User userWithMembership(Community community, CommunityRole role) {
         User user = UserMother.randomUser();
-        user.setMemberships(List.of(new CommunityMembership.Builder()
+        user.setMemberships(List.of(CommunityMembershipMother.active()
                 .withId(UUID.randomUUID()).withUser(user).withCommunity(community)
                 .withRole(role).withEnabled(true).build()));
         return user;

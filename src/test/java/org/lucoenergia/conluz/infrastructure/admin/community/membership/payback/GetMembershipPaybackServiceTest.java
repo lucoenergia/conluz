@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.payback
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
@@ -425,7 +426,7 @@ class GetMembershipPaybackServiceTest {
     }
 
     private void givenMembership(BigDecimal investmentEur) {
-        CommunityMembership membership = new CommunityMembership.Builder()
+        CommunityMembership membership = CommunityMembershipMother.active()
                 .withId(UUID.randomUUID())
                 .withUser(UserMother.randomUser())
                 .withCommunity(CommunityMother.random().build())
