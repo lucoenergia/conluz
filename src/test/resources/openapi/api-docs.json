@@ -1936,7 +1936,9 @@
               "SUPPLY_CUPS_COLLISION",
               "DATADIS_CONFIG_PASSWORD_REQUIRED",
               "HUAWEI_CONFIG_NOT_FOUND",
-              "HUAWEI_CONFIG_INCOMPLETE"
+              "HUAWEI_CONFIG_INCOMPLETE",
+              "DATADIS_CONFIG_NOT_FOUND",
+              "DATADIS_CONFIG_INCOMPLETE"
             ],
             "type" : [
               "string",
@@ -4026,6 +4028,161 @@
           }
         ],
         "summary" : "Sets up the Datadis configuration for the specified community.",
+        "tags" : [
+          "Consumption"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/config/datadis/enabled" : {
+      "put" : {
+        "description" : "This endpoint switches the community's Datadis configuration on or off, changing nothing else:\nthe stored username, password and base URL are never read from the request nor rewritten.\n\nThe request body contains:\n- **enabled** (required, boolean): `true` to enable the configuration, `false` to disable it.\n\nDisabling never requires complete data: it succeeds whatever the stored configuration holds,\nwhich is how a configuration with missing credentials is switched off.\n\nEnabling requires the stored configuration to be complete: a non-blank username, a base URL the\nconfiguration write would accept, and a non-empty password. Otherwise the request is rejected\nwith `409` and error code `DATADIS_CONFIG_INCOMPLETE`, and nothing changes. Its\n`params.missingFields` lists the missing fields, comma-separated, in the order `username`,\n`baseUrl`, `password` (for example `\"baseUrl,password\"`). Complete them with the configuration\nwrite first.\n\nSetting the value the configuration already has succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 204 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`DATADIS_CONFIG_NOT_FOUND` when the community has no Datadis configuration (none is created),\nand with `400` when the body is invalid (`enabled` missing or `null`, or an unknown property).\n",
+        "operationId" : "setDatadisConfigEnabled",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetConfigEnabledBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "The Datadis configuration is now enabled or disabled, as requested."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "DATADIS_CONFIG_INCOMPLETE",
+                      "message" : "The Datadis configuration cannot be enabled because it is incomplete. Missing fields: baseUrl, password.",
+                      "params" : {
+                        "missingFields" : "baseUrl,password"
+                      }
+                    }
+                  ],
+                  "message" : "The Datadis configuration cannot be enabled because it is incomplete. Missing fields: baseUrl, password.",
+                  "status" : 409,
+                  "timestamp" : "2026-10-14T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The configuration cannot be enabled because its stored data is incomplete."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Enables or disables a community's Datadis configuration.",
         "tags" : [
           "Consumption"
         ]
