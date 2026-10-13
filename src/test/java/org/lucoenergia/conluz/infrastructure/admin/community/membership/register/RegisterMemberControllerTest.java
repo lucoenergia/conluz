@@ -406,6 +406,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
     // --- AC6: who may register ---
 
     @Test
+    @DisplayName("MEM-007 a platform admin who is not a community admin here is forbidden")
     void aPlatformAdmin_isForbidden() throws Exception {
         Community community = newCommunity();
         Map<String, Object> body = newRecord();
@@ -416,6 +417,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
     }
 
     @Test
+    @DisplayName("MEM-007 a plain member of the community is forbidden")
     void aMemberOfTheCommunity_isForbidden() throws Exception {
         Community community = newCommunity();
         Map<String, Object> body = newRecord();
@@ -426,6 +428,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
     }
 
     @Test
+    @DisplayName("MEM-007 a pending community admin is answered as a non-member")
     void aPendingAdmin_isAnsweredAsANonMember() throws Exception {
         Community community = newCommunity();
         Map<String, Object> body = newRecord();
@@ -436,6 +439,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
     }
 
     @Test
+    @DisplayName("MEM-007 a disabled community admin is answered as a non-member")
     void aDisabledAdmin_isAnsweredAsANonMember() throws Exception {
         Community community = newCommunity();
         Map<String, Object> body = newRecord();
@@ -446,6 +450,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
     }
 
     @Test
+    @DisplayName("MEM-007 an active admin of another community is answered as a non-member")
     void anAdminOfAnotherCommunity_isAnsweredAsANonMember() throws Exception {
         Community community = newCommunity();
         Map<String, Object> body = newRecord();
