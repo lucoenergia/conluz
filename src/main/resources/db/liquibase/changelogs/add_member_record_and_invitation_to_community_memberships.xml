@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Member records and invitation state on memberships (#388, ADR-0003 §1 and §2).
+
+         A membership now carries the community's own record of the member: full name, member number,
+         contact email, address and phone. These are the data that community entered about the person,
+         which can differ from what another community entered about the same person.
+
+         A membership also records whether it has been accepted, who invited it and when:
+         - accepted_at NULL means the membership is pending: it has not been accepted yet.
+         - invited_by NULL means no inviting user is recorded: the membership was not created by an
+           invitation, or the user who sent it has since been deleted (ON DELETE SET NULL, so deleting
+           a user never deletes the memberships they invited).
+         - invited_at NULL means the membership was not created by an invitation.
+         - member_number, contact_email, address and phone_number NULL mean the community has not
+           recorded that value.
+
+         Every column is added nullable here so the existing rows can be filled first:
+         backfill_member_record_for_community_memberships copies each member record from its user and
+         marks the existing memberships accepted, and make_community_memberships_full_name_not_null then
+         requires the full name.
+
+         VARCHAR(250) and INTEGER match the users columns the values are copied from. -->
+    <changeSet id="add_member_record_and_invitation_to_community_memberships" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add the member record and invitation columns to community_memberships: full_name or accepted_at already exists.">
+            <not>
+                <columnExists tableName="community_memberships" columnName="full_name"/>
+            </not>
+            <not>
+                <columnExists tableName="community_memberships" columnName="accepted_at"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="community_memberships">
+            <column name="full_name" type="VARCHAR(250)"
+                    remarks="The member's full name, as the community recorded it.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="member_number" type="INTEGER"
+                    remarks="The member's number in the community. NULL means the community has not recorded one.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="contact_email" type="VARCHAR(250)"
+                    remarks="The email the community recorded to contact the member. NULL means the community has not recorded one.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="address" type="VARCHAR(250)"
+                    remarks="The member's address, as the community recorded it. NULL means the community has not recorded one.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="phone_number" type="VARCHAR(250)"
+                    remarks="The member's phone number, as the community recorded it. NULL means the community has not recorded one.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="accepted_at" type="TIMESTAMP WITH TIME ZONE"
+                    remarks="When the membership was accepted. NULL means the membership is pending: it has not been accepted.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="invited_by" type="UUID"
+                    remarks="The user who invited this membership. NULL means no inviting user is recorded: the membership was not created by an invitation, or the inviting user has been deleted.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="invited_at" type="TIMESTAMP WITH TIME ZONE"
+                    remarks="When the membership was invited. NULL means it was not created by an invitation.">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="community_memberships"
+                                 baseColumnNames="invited_by"
+                                 constraintName="community_memberships_invited_by_fk"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="community_memberships"
+                                      constraintName="community_memberships_invited_by_fk"/>
+            <dropColumn tableName="community_memberships">
+                <column name="full_name"/>
+                <column name="member_number"/>
+                <column name="contact_email"/>
+                <column name="address"/>
+                <column name="phone_number"/>
+                <column name="accepted_at"/>
+                <column name="invited_by"/>
+                <column name="invited_at"/>
+            </dropColumn>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

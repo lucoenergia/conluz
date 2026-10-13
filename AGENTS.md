@@ -6,6 +6,16 @@ This file provides guidance to AI agents (e.g. Claude Code, opencode) when worki
 
 Tests use Testcontainers (PostgreSQL and InfluxDB), so Docker must be running for `./gradlew test`.
 
+### Persisting test data
+
+Integration and controller tests create the data they need the way production creates it: through the domain repositories (for example `CreateUserRepository`, `CreateMembershipRepository`, `CreateSupplyRepository`) or the services that use them, never by saving JPA entities directly.
+
+- **Why:** repositories apply rules that a raw entity skips (normalisation, defaults, derived fields, audit columns). A test that saves an entity directly can pass against data production would never produce, and breaks every time the schema gains a required column.
+- **When no repository method fits:** build the entity in the test, set every field the schema requires, and add a one-line comment saying why no repository method was used. Do not add a production repository method only to serve a test.
+- **Migration tests are the exception.** Tests built on `LiquibaseTestSupport` seed raw rows on purpose, because they test the schema at a point where the application code does not apply.
+- **Unit tests** do not persist anything: they mock the domain ports.
+- **Existing tests:** this rule applies to new tests, and to any existing test you have to change anyway. Do not rewrite untouched tests only to follow it.
+
 ## Deployment & infrastructure boundary
 
 This repository is **public and world-readable**. Environment-specific values — real
@@ -31,6 +41,10 @@ monitoring, reverse proxy, host configuration).
 The time-series database stores consumption, production and price data in the measurements described in
 [`docs/db/timeseries/influxdb/influxdb_schema.md`](docs/db/timeseries/influxdb/influxdb_schema.md), with
 `docs/db/timeseries/influxdb/influxdb_schema.txt` holding the complete schema with sample data.
+
+## Database migrations
+
+Before writing or changing a Liquibase changeset, read `docs/db/migrations/liquibase-conventions.md`.
 
 ## Configuration
 

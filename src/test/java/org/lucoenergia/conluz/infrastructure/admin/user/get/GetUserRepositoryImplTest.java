@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -13,7 +14,6 @@ import org.lucoenergia.conluz.domain.shared.pagination.Direction;
 import org.lucoenergia.conluz.domain.shared.pagination.Order;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
@@ -39,7 +39,7 @@ class GetUserRepositoryImplTest extends BaseIntegrationTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CommunityJpaRepository communityJpaRepository;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CommunityMembershipJpaRepository communityMembershipJpaRepository;
 
@@ -171,13 +171,14 @@ class GetUserRepositoryImplTest extends BaseIntegrationTest {
     }
 
     private void persistMembership(UserEntity user, Community community, boolean enabled) {
-        communityMembershipJpaRepository.save(new CommunityMembershipEntity.Builder()
-                .withId(UUID.randomUUID())
-                .withUser(user)
-                .withCommunity(communityJpaRepository.findById(community.getId()).orElseThrow())
-                .withRole(CommunityRole.COMMUNITY_MEMBER)
-                .withEnabled(enabled)
-                .build());
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        if (!enabled) {
+            // No repository disables a membership yet, so the state is set on the entity directly
+            CommunityMembershipEntity membership = communityMembershipJpaRepository
+                    .findByUserIdAndCommunityId(user.getId(), community.getId()).orElseThrow();
+            membership.setEnabled(false);
+            communityMembershipJpaRepository.save(membership);
+        }
     }
 
     private static PagedRequest byNumber(int page, int size) {

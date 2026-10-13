@@ -60,6 +60,14 @@ public class UpdateMembershipRoleRepositoryDatabase implements UpdateMembershipR
                 .withRole(saved.getRole())
                 .withEnabled(saved.isEnabled())
                 .withInvestmentEur(saved.getInvestmentEur())
+                .withFullName(saved.getFullName())
+                .withMemberNumber(saved.getMemberNumber())
+                .withContactEmail(saved.getContactEmail())
+                .withAddress(saved.getAddress())
+                .withPhoneNumber(saved.getPhoneNumber())
+                .withAcceptedAt(saved.getAcceptedAt())
+                .withInvitedBy(saved.getInvitedBy())
+                .withInvitedAt(saved.getInvitedAt())
                 .build();
     }
 }
