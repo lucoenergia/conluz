@@ -4,14 +4,17 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityAlreadyExistsExcep
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyInvitedException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationResendLimitException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipNotInvitedException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -156,5 +159,48 @@ public class CommunityExceptionHandler {
         );
         return errorBuilder.buildWithoutLogging(message, RestErrorCode.MEMBERSHIP_INVITATION_UNAVAILABLE, Map.of(),
                 HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    /**
+     * A 409: the membership has never been invited, so there is nothing to resend. Its first invitation is sent with
+     * {@code sendInvitation}.
+     */
+    @ExceptionHandler(MembershipNotInvitedException.class)
+    public ResponseEntity<RestError> handleException(MembershipNotInvitedException e) {
+        String userId = e.getUserId() != null ? e.getUserId().toString() : "";
+        String communityId = e.getCommunityId() != null ? e.getCommunityId().toString() : "";
+
+        String message = messageSource.getMessage(
+                "error.membership.not.invited",
+                List.of(userId, communityId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_NOT_INVITED,
+                Map.of("userId", userId, "communityId", communityId), HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 429: the invitation has been sent as many times as allowed in the last 24 hours. The wait is in the
+     * {@code Retry-After} header, as for throttled authentication (#332), and in the error's parameters. Not logged
+     * here: the service has already logged the refusal.
+     */
+    @ExceptionHandler(MembershipInvitationResendLimitException.class)
+    public ResponseEntity<RestError> handleException(MembershipInvitationResendLimitException e) {
+        String userId = e.getUserId() != null ? e.getUserId().toString() : "";
+        String communityId = e.getCommunityId() != null ? e.getCommunityId().toString() : "";
+        String retryAfterSeconds = String.valueOf(e.getRetryAfterSeconds());
+
+        String message = messageSource.getMessage(
+                "error.membership.invitation.resend.limit",
+                List.of(userId, communityId, retryAfterSeconds).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        ResponseEntity<RestError> response = errorBuilder.buildWithoutLogging(message,
+                RestErrorCode.MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED,
+                Map.of("userId", userId, "communityId", communityId, "retryAfterSeconds", retryAfterSeconds),
+                HttpStatus.TOO_MANY_REQUESTS);
+        return ResponseEntity.status(response.getStatusCode())
+                .header(HttpHeaders.RETRY_AFTER, retryAfterSeconds)
+                .body(response.getBody());
     }
 }

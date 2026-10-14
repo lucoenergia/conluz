@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitat
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
-import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseRegisterMemberTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -17,13 +16,18 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class SendInvitationWithEmailDisabledControllerTest extends BaseRegisterMemberTest {
+class SendInvitationWithEmailDisabledControllerTest extends BaseInvitationUnavailableTest {
 
     @DynamicPropertySource
     static void emailSendingDisabled(DynamicPropertyRegistry registry) {
         // The public web URL is configured, so the refusal is down to the sending switch alone
         registry.add("conluz.web.public-url", () -> PUBLIC_WEB_URL);
         registry.add("conluz.mail.enabled", () -> "false");
+    }
+
+    @Override
+    protected String expectedWarning() {
+        return "Email INVITATION not sent: sending is disabled";
     }
 
     @Test
