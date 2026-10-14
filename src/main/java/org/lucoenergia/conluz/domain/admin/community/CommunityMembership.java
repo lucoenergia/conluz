@@ -136,6 +136,17 @@ public class CommunityMembership {
         return acceptedAt == null;
     }
 
+    /**
+     * Whether the membership is awaiting acceptance: pending and enabled, so the community still wants the member to
+     * accept it. A disabled membership grants nothing even once accepted.
+     *
+     * <p>This is the single definition of "awaiting acceptance". Queries that filter on it in the database use
+     * {@code ActiveMembershipJpql.AWAITING_ACCEPTANCE}, which spells the same condition.</p>
+     */
+    public boolean isAwaitingAcceptance() {
+        return acceptedAt == null && Boolean.TRUE.equals(enabled);
+    }
+
     public UUID getInvitedBy() {
         return invitedBy;
     }
