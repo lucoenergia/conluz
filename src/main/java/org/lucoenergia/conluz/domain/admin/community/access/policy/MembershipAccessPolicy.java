@@ -27,6 +27,29 @@ public class MembershipAccessPolicy {
     }
 
     /**
+     * Registering a member in a community: only its active community admins. There is no platform-admin
+     * bypass: registering creates a membership, and possibly an account, from personal data that only the
+     * community's own administration enters (ADR-0003 §3). A member can see the community, so they are
+     * forbidden rather than not-found.
+     */
+    public AccessDecision canRegisterMembers(User caller, UUID communityId) {
+        if (!CallerMemberships.canSeeCommunity(caller, communityId)) {
+            return AccessDecision.NOT_VISIBLE;
+        }
+        return CallerMemberships.hasCommunityAdminRoleIn(caller, communityId)
+                ? AccessDecision.ALLOWED
+                : AccessDecision.FORBIDDEN;
+    }
+
+    /**
+     * Inviting a registered member to accept their membership: the same people who may register members, for the
+     * same reason. The invitation goes to the contact email the community entered in its own member record.
+     */
+    public AccessDecision canInviteMembers(User caller, UUID communityId) {
+        return canRegisterMembers(caller, communityId);
+    }
+
+    /**
      * Setting or clearing the investment recorded on a membership. Stricter than
      * {@link #canManageMemberships}: an investment is the member's own money, and administering the
      * platform is not the same as administering this community's finances, so there is no

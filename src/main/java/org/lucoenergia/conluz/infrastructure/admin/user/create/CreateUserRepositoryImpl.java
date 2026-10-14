@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.create;
 
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
+import org.lucoenergia.conluz.domain.admin.user.UserNumberRequiredException;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.domain.shared.email.EmailAddresses;
@@ -31,6 +32,11 @@ public class CreateUserRepositoryImpl implements CreateUserRepository {
 
     @Override
     public User create(User user) {
+        // users.number accepts NULL only for the accounts member registration creates (#392); every account created
+        // here keeps requiring one, as the NOT NULL constraint required before
+        if (user.getNumber() == null) {
+            throw new UserNumberRequiredException();
+        }
         String personalId = UserPersonalId.normalize(user.getPersonalId());
         if (repository.existsByPersonalId(personalId)) {
             throw new UserAlreadyExistsException();

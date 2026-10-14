@@ -47,7 +47,8 @@ class MembershipCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].capabilities.canUpdateRole").value(true))
                 .andExpect(jsonPath("$[0].capabilities.canDelete").value(true))
                 .andExpect(jsonPath("$[0].capabilities.canManageInvestment").value(true))
-                .andExpect(jsonPath("$[0].capabilities.canReadPayback").value(true));
+                .andExpect(jsonPath("$[0].capabilities.canReadPayback").value(true))
+                .andExpect(jsonPath("$[0].capabilities.canInvite").value(true));
     }
 
     /**
@@ -67,7 +68,8 @@ class MembershipCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].capabilities.canUpdateRole").value(true))
                 .andExpect(jsonPath("$[0].capabilities.canDelete").value(true))
                 .andExpect(jsonPath("$[0].capabilities.canManageInvestment").value(false))
-                .andExpect(jsonPath("$[0].capabilities.canReadPayback").value(false));
+                .andExpect(jsonPath("$[0].capabilities.canReadPayback").value(false))
+                .andExpect(jsonPath("$[0].capabilities.canInvite").value(false));
     }
 
     /**

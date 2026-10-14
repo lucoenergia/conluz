@@ -68,6 +68,11 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
                 throw invalid(attempt);
             }
             User user = found.get();
+            // A passwordless account gets its first password only by accepting an invitation (ADR-0003 §7), so its
+            // token is refused like any other unusable one, before the new password is even looked at
+            if (user.getPassword() == null) {
+                throw invalid(attempt);
+            }
 
             // Neither refusal consumes the token, so the user can try again with the same link
             PasswordPolicy.check(newPassword);

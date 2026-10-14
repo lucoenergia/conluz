@@ -35,6 +35,7 @@ public class MembershipCapabilitiesAssembler {
                 .withCanDelete(canManageMemberships)
                 .withCanManageInvestment(policies.membership().canManageInvestment(caller, communityId).isAllowed())
                 .withCanReadPayback(policies.membership().canReadMembershipPrivateData(caller, communityId, userId).isAllowed())
+                .withCanInvite(policies.membership().canInviteMembers(caller, communityId).isAllowed())
                 .build();
     }
 }

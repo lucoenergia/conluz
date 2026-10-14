@@ -173,6 +173,10 @@
             "description" : "Whether the caller may read this community's communal production data. Membership, not administration: a platform admin who is not a member may not.",
             "type" : "boolean"
           },
+          "canRegisterMembers" : {
+            "description" : "Whether the caller may register a member in this community (POST /api/v1/communities/{communityId}/members). Only an active community admin of it: there is no platform-admin bypass.",
+            "type" : "boolean"
+          },
           "canUpdate" : {
             "description" : "Whether the caller may update this community (PUT /api/v1/communities/{communityId}). A platform-wide decision: being a community admin does not confer it.",
             "type" : "boolean"
@@ -190,6 +194,7 @@
           "canManageMemberships",
           "canRead",
           "canReadProduction",
+          "canRegisterMembers",
           "canUpdate"
         ],
         "type" : "object"
@@ -698,7 +703,10 @@
           },
           "number" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [
+              "integer",
+              "null"
+            ]
           },
           "personalId" : {
             "type" : "string"
@@ -914,11 +922,119 @@
         },
         "type" : "object"
       },
+      "MemberResponse" : {
+        "description" : "A member of a community: the membership, its state and the community's own member record.",
+        "properties" : {
+          "acceptedAt" : {
+            "description" : "When the membership was accepted. Null while it is pending: a pending membership grants no access until it is accepted. Independent of enabled.",
+            "example" : "2026-01-01T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "address" : {
+            "description" : "The member's address, as this community records it. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "capabilities" : {
+            "$ref" : "#/components/schemas/MembershipCapabilitiesResponse",
+            "description" : "What the caller may do with this membership."
+          },
+          "community" : {
+            "$ref" : "#/components/schemas/CommunityReferenceResponse",
+            "description" : "The community the membership belongs to."
+          },
+          "contactEmail" : {
+            "description" : "The email address this community contacts the member at. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "fullName" : {
+            "description" : "The member's full name, as this community records it.",
+            "type" : "string"
+          },
+          "id" : {
+            "description" : "The membership's id.",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "invitedAt" : {
+            "description" : "When the member was last sent an invitation. Null if none has been sent.",
+            "example" : "2026-01-01T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "memberNumber" : {
+            "description" : "The member's number in this community. Null if the community records none.",
+            "format" : "int32",
+            "type" : [
+              "integer",
+              "null"
+            ]
+          },
+          "personalId" : {
+            "description" : "The member's DNI/NIE/NIF, normalised: the one the community registered them with.",
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "description" : "The member's phone number, as this community records it. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "role" : {
+            "enum" : [
+              "COMMUNITY_MEMBER",
+              "COMMUNITY_ADMIN"
+            ],
+            "type" : "string"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/UserReferenceResponse",
+            "description" : "The member's account, by id only: the {userId} the membership's endpoints take. Nothing else of the account is carried."
+          }
+        },
+        "required" : [
+          "acceptedAt",
+          "address",
+          "capabilities",
+          "community",
+          "contactEmail",
+          "enabled",
+          "fullName",
+          "id",
+          "invitedAt",
+          "memberNumber",
+          "personalId",
+          "phoneNumber",
+          "role",
+          "user"
+        ],
+        "type" : "object"
+      },
       "MembershipCapabilitiesResponse" : {
         "description" : "What the caller may do with this membership.",
         "properties" : {
           "canDelete" : {
             "description" : "Whether the caller may remove this membership from the community.",
+            "type" : "boolean"
+          },
+          "canInvite" : {
+            "description" : "Whether the caller may invite this member to accept the membership. Whether an invitation can be sent right now depends on the membership's state and contact email.",
             "type" : "boolean"
           },
           "canManageInvestment" : {
@@ -936,6 +1052,7 @@
         },
         "required" : [
           "canDelete",
+          "canInvite",
           "canManageInvestment",
           "canReadPayback",
           "canUpdateRole"
@@ -1781,6 +1898,55 @@
         },
         "type" : "object"
       },
+      "RegisterMemberBody" : {
+        "properties" : {
+          "address" : {
+            "description" : "The member's address, as this community records it. An empty or blank value is recorded as none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "contactEmail" : {
+            "description" : "The email address this community contacts the member at. If given, the member is emailed an invitation to accept the membership. Omit it, or send null or an empty string, if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "fullName" : {
+            "description" : "The member's full name, as this community records it.",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "memberNumber" : {
+            "description" : "The member's number in this community. Omit it, or send null, if the community does not record one.",
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : [
+              "integer",
+              "null"
+            ]
+          },
+          "personalId" : {
+            "description" : "The member's DNI/NIE/NIF. It is normalised before it is stored or compared: whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so 12.345.678-a and 12345678A are the same person. A value made only of those removed characters is refused.",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "description" : "The member's phone number, as this community records it. An empty or blank value is recorded as none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "fullName",
+          "personalId"
+        ],
+        "type" : "object"
+      },
       "ReopenCoefficientsBody" : {
         "properties" : {
           "coefficientIds" : {
@@ -1902,6 +2068,9 @@
               "USER_PASSWORD_RESET_TOKEN_INVALID",
               "AUTH_TOO_MANY_FAILED_ATTEMPTS",
               "MEMBERSHIP_ALREADY_EXISTS",
+              "MEMBERSHIP_ALREADY_INVITED",
+              "MEMBERSHIP_WITHOUT_CONTACT_EMAIL",
+              "MEMBERSHIP_INVITATION_UNAVAILABLE",
               "COMMUNITY_ALREADY_EXISTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
               "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
@@ -3164,6 +3333,20 @@
         ],
         "type" : "object"
       },
+      "UserReferenceResponse" : {
+        "properties" : {
+          "id" : {
+            "description" : "Internal unique identifier of the user",
+            "example" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1",
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "id"
+        ],
+        "type" : "object"
+      },
       "UserResponse" : {
         "properties" : {
           "address" : {
@@ -3203,7 +3386,10 @@
           },
           "number" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [
+              "integer",
+              "null"
+            ]
           },
           "personalId" : {
             "type" : "string"
@@ -5326,6 +5512,169 @@
         ]
       }
     },
+    "/api/v1/communities/{communityId}/memberships/register" : {
+      "post" : {
+        "description" : "Registers a person as a member of the community with their DNI/NIE/NIF and the community's own member record. The membership is created pending, with the role COMMUNITY_MEMBER: it grants no access until the member accepts it. Only an active community admin of the community may register members; a platform admin may not.\n\nNothing is sent to the member: registering only records them. Invite them with `sendInvitation` once the community is ready for them to join; until then `invitedAt` stays null.\n\nThe response is the same whether or not the person already had an account, and carries nothing from it. Registering someone who already has a membership in this community, in any state, responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code.\n",
+        "operationId" : "registerMember",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterMemberBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberResponse"
+                }
+              }
+            },
+            "description" : "Member registered successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_ALREADY_EXISTS",
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is already a member of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b'.",
+                      "params" : {
+                        "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
+                        "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                      }
+                    }
+                  ],
+                  "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is already a member of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b'.",
+                  "status" : 409,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The person already has a membership in this community."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Registers a member in a community.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
     "/api/v1/communities/{communityId}/memberships/{userId}" : {
       "delete" : {
         "description" : "Deletes the membership of the specified user in the community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.",
@@ -6323,6 +6672,191 @@
           }
         ],
         "summary" : "Records a membership's initial investment.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/{userId}/invite" : {
+      "post" : {
+        "description" : "Emails the member an invitation to accept their pending membership, at the contact email of the community's member record, never the account's email. The link is valid for 7 days. Only an active community admin of the community may invite; a platform admin may not.\n\nThis is the first invitation only. A membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: `invitedAt` stays null and the same request can be repeated once sending works.\n",
+        "operationId" : "sendInvitation",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberResponse"
+                }
+              }
+            },
+            "description" : "Invitation sent"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_ALREADY_INVITED",
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has already been invited to the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b'.",
+                      "params" : {
+                        "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
+                        "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                      }
+                    }
+                  ],
+                  "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has already been invited to the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b'.",
+                  "status" : 409,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The membership has already been invited, or has been accepted."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_INVITATION_UNAVAILABLE",
+                      "message" : "Invitations cannot be sent right now. Nobody has been invited; try again once email sending is available.",
+                      "params" : { }
+                    }
+                  ],
+                  "message" : "Invitations cannot be sent right now. Nobody has been invited; try again once email sending is available.",
+                  "status" : 503,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The server cannot send invitations right now. Nothing was recorded."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Invites a registered member to accept their membership.",
         "tags" : [
           "Memberships"
         ]

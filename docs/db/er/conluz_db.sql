@@ -568,7 +568,7 @@ COMMENT ON COLUMN public.supply_partition_coefficient.sharing_agreement_id IS 'T
 CREATE TABLE public.users (
                               id uuid NOT NULL,
                               personal_id character varying(250) NOT NULL,
-                              number integer NOT NULL,
+                              number integer,
                               password character varying(250),
                               full_name character varying(250) NOT NULL,
                               address character varying(250),

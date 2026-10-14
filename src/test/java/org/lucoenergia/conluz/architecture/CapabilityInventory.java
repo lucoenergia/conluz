@@ -75,10 +75,12 @@ final class CapabilityInventory {
                 capability(COMMUNITY, "canManageMemberships"),
                 capability(MEMBERSHIP, "canUpdateRole"),
                 capability(MEMBERSHIP, "canDelete"));
+        report("canRegisterMembers", capability(COMMUNITY, "canRegisterMembers"));
         report("canManageMembershipInvestment",
                 capability(COMMUNITY, "canManageMembershipInvestment"),
                 capability(MEMBERSHIP, "canManageInvestment"));
         report("canReadMembershipPrivateData", capability(MEMBERSHIP, "canReadPayback"));
+        report("canInviteMembers", capability(MEMBERSHIP, "canInvite"));
 
         // --- supply ---
         // Also the plant's canReadSupply: PlantResponse.supply is a reference carrying no owner, so
