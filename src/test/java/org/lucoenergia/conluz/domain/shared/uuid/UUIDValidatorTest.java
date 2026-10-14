@@ -1,10 +1,9 @@
-package org.lucoenergia.conluz.infrastructure.shared.format;
+package org.lucoenergia.conluz.domain.shared.uuid;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.lucoenergia.conluz.infrastructure.shared.uuid.UUIDValidator;
 
 class UUIDValidatorTest {
 

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.production.InverterProvider;
-import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
+import org.lucoenergia.conluz.domain.shared.uuid.ValidUUID;
 
 import java.time.LocalDate;
 import java.util.Objects;
