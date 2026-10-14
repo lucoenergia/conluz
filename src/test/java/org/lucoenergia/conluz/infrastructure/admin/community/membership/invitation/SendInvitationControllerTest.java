@@ -8,9 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseRegisterMemberTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseSendingMemberTest;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -31,16 +29,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class SendInvitationControllerTest extends BaseRegisterMemberTest {
+class SendInvitationControllerTest extends BaseSendingMemberTest {
 
     private static final Pattern LINK = Pattern.compile(
             Pattern.quote(PUBLIC_WEB_URL + "/accept-invitation#") + "([A-Za-z0-9_-]+)");
-
-    @DynamicPropertySource
-    static void publicWebUrl(DynamicPropertyRegistry registry) {
-        // Configured with a trailing slash, which the link must not repeat
-        registry.add("conluz.web.public-url", () -> PUBLIC_WEB_URL + "/");
-    }
 
     // --- Sending ---
 

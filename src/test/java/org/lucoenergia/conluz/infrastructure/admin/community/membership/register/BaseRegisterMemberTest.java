@@ -55,7 +55,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * concurrent registrations must see each other's rows. Every community and user a test creates or registers is
  * deleted afterwards. Every test also checks that no log line contains a token, its hash or an email address.</p>
  *
- * <p>The subclasses differ in the public web URL they configure and in the endpoint they exercise.</p>
+ * <p>The subclasses differ in the public web URL and the email sending switch they configure, which is why neither is
+ * set here, and in the endpoint they exercise.</p>
  */
 public abstract class BaseRegisterMemberTest extends BaseControllerTest {
 
@@ -95,7 +96,6 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
 
     @DynamicPropertySource
     static void mailProperties(DynamicPropertyRegistry registry) {
-        registry.add("conluz.mail.enabled", () -> "true");
         registry.add("conluz.mail.host", () -> "127.0.0.1");
         registry.add("conluz.mail.port", () -> String.valueOf(GREEN_MAIL.getSmtp().getPort()));
         registry.add("conluz.mail.from-address", () -> "no-reply@conluz.test");

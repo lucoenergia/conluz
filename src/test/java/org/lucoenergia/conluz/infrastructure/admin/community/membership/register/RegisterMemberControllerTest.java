@@ -16,8 +16,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -44,18 +42,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class RegisterMemberControllerTest extends BaseRegisterMemberTest {
+/**
+ * The server can send invitations, so that nothing being sent is down to registration alone.
+ */
+class RegisterMemberControllerTest extends BaseSendingMemberTest {
 
     @Autowired
     private UserDetailsService userDetailsService;
     @Autowired
     private CommunityAccessGuard communityAccessGuard;
-
-    @DynamicPropertySource
-    static void publicWebUrl(DynamicPropertyRegistry registry) {
-        // Configured, so that nothing being sent is down to registration and not to a missing URL
-        registry.add("conluz.web.public-url", () -> PUBLIC_WEB_URL + "/");
-    }
 
     // --- AC1: a new DNI ---
 

@@ -22,12 +22,14 @@ class SendInvitationWithoutPublicUrlControllerTest extends BaseRegisterMemberTes
     @DynamicPropertySource
     static void noPublicWebUrl(DynamicPropertyRegistry registry) {
         registry.add("conluz.web.public-url", () -> "");
+        // Sending is enabled, so the refusal is down to the missing URL alone
+        registry.add("conluz.mail.enabled", () -> "true");
     }
 
     @Test
-    @DisplayName("MEM-009 without a public web URL nothing is issued or sent, the invitation instant stays empty, "
-            + "and one warning names only the email category")
-    void withoutAPublicUrl_nothingIsSent() throws Exception {
+    @DisplayName("MEM-009 without a public web URL the invitation is refused with 503, nothing is issued or sent, "
+            + "the invitation instant stays empty, and one warning names only the email category")
+    void withoutAPublicUrl_isRefused() throws Exception {
         Community community = newCommunity();
         String bearer = loginAsAdminOf(community);
         Map<String, Object> body = newRecord();
@@ -35,11 +37,10 @@ class SendInvitationWithoutPublicUrlControllerTest extends BaseRegisterMemberTes
         UUID userId = registered(bearer, community.getId(), body);
         logs.clear();
 
-        invite(bearer, community.getId(), userId)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.contactEmail").value(body.get("contactEmail")))
-                .andExpect(jsonPath("$.acceptedAt").isEmpty())
-                .andExpect(jsonPath("$.invitedAt").isEmpty());
+        String response = invite(bearer, community.getId(), userId)
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_UNAVAILABLE"))
+                .andReturn().getResponse().getContentAsString();
 
         assertThat(membershipRow(personalId, community.getId()).get("invited_at")).isNull();
         assertThat(tokenCount(personalId)).isZero();
@@ -48,5 +49,6 @@ class SendInvitationWithoutPublicUrlControllerTest extends BaseRegisterMemberTes
                 .singleElement()
                 .satisfies(event -> assertThat(event.getFormattedMessage())
                         .isEqualTo("Email INVITATION not sent: the public web URL is not configured"));
+        assertNoSecretIn(response);
     }
 }

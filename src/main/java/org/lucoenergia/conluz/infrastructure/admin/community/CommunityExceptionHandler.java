@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityAlreadyExistsExcep
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyInvitedException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
@@ -139,5 +140,21 @@ public class CommunityExceptionHandler {
         );
         return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_WITHOUT_CONTACT_EMAIL,
                 Map.of("userId", userId, "communityId", communityId), HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * A 503: the request is valid, but the server cannot send the invitation right now. Nothing was issued, so the
+     * same request succeeds once it can. Not logged here: the service has already logged why, naming only the email
+     * category.
+     */
+    @ExceptionHandler(MembershipInvitationUnavailableException.class)
+    public ResponseEntity<RestError> handleException(MembershipInvitationUnavailableException e) {
+        String message = messageSource.getMessage(
+                "error.membership.invitation.unavailable",
+                null,
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.buildWithoutLogging(message, RestErrorCode.MEMBERSHIP_INVITATION_UNAVAILABLE, Map.of(),
+                HttpStatus.SERVICE_UNAVAILABLE);
     }
 }

@@ -2070,6 +2070,7 @@
               "MEMBERSHIP_ALREADY_EXISTS",
               "MEMBERSHIP_ALREADY_INVITED",
               "MEMBERSHIP_WITHOUT_CONTACT_EMAIL",
+              "MEMBERSHIP_INVITATION_UNAVAILABLE",
               "COMMUNITY_ALREADY_EXISTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
               "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
@@ -6678,7 +6679,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/invite" : {
       "post" : {
-        "description" : "Emails the member an invitation to accept their pending membership, at the contact email of the community's member record, never the account's email. The link is valid for 7 days. Only an active community admin of the community may invite; a platform admin may not.\n\nThis is the first invitation only. A membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server has no public web URL configured, nothing is sent and `invitedAt` stays null.\n",
+        "description" : "Emails the member an invitation to accept their pending membership, at the contact email of the community's member record, never the account's email. The link is valid for 7 days. Only an active community admin of the community may invite; a platform admin may not.\n\nThis is the first invitation only. A membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: `invitedAt` stays null and the same request can be repeated once sending works.\n",
         "operationId" : "sendInvitation",
         "parameters" : [
           {
@@ -6825,6 +6826,29 @@
               }
             },
             "description" : "There was a problem processing your request."
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_INVITATION_UNAVAILABLE",
+                      "message" : "Invitations cannot be sent right now. Nobody has been invited; try again once email sending is available.",
+                      "params" : { }
+                    }
+                  ],
+                  "message" : "Invitations cannot be sent right now. Nobody has been invited; try again once email sending is available.",
+                  "status" : 503,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The server cannot send invitations right now. Nothing was recorded."
           }
         },
         "security" : [

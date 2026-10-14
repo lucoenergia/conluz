@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyInvitedException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
@@ -19,6 +20,7 @@ import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.email.EmailSender;
+import org.lucoenergia.conluz.infrastructure.shared.email.EmailProperties;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.MessageSource;
@@ -53,10 +55,36 @@ class SendInvitationServiceTest {
     private EmailSender emailSender;
 
     private SendInvitationService service() {
+        return service("https://web.test", true);
+    }
+
+    private SendInvitationService service(String publicUrl, boolean emailEnabled) {
         return new SendInvitationServiceImpl(lockUserRepository, lockMembershipRepository, getMembershipsRepository,
                 createOneTimeTokenService, updateMembershipInvitationRepository, emailSender,
-                new InvitationEmailFactory(mock(MessageSource.class)), InvitationLink.of("https://web.test"),
+                new InvitationEmailFactory(mock(MessageSource.class)), InvitationLink.of(publicUrl),
+                new EmailProperties(emailEnabled, "smtp.test", "587", null, null, "no-reply@conluz.test", null,
+                        true),
                 Clock.systemUTC());
+    }
+
+    @Test
+    @DisplayName("MEM-009 without a public web URL the invitation is refused before anything is locked or issued")
+    void withoutAPublicUrl_isRefusedBeforeAnything() {
+        assertThrows(MembershipInvitationUnavailableException.class,
+                () -> service("", true).send(COMMUNITY_ID, UserId.of(USER_ID)));
+
+        verifyNoInteractions(lockUserRepository, lockMembershipRepository, getMembershipsRepository);
+        nothingIsIssuedOrSent();
+    }
+
+    @Test
+    @DisplayName("MEM-009 with email sending disabled the invitation is refused before anything is locked or issued")
+    void withEmailSendingDisabled_isRefusedBeforeAnything() {
+        assertThrows(MembershipInvitationUnavailableException.class,
+                () -> service("https://web.test", false).send(COMMUNITY_ID, UserId.of(USER_ID)));
+
+        verifyNoInteractions(lockUserRepository, lockMembershipRepository, getMembershipsRepository);
+        nothingIsIssuedOrSent();
     }
 
     @Test
