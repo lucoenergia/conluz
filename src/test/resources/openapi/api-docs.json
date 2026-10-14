@@ -868,6 +868,32 @@
         ],
         "type" : "object"
       },
+      "GetHuaweiConfigResponse" : {
+        "properties" : {
+          "baseUrl" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "passwordSet" : {
+            "type" : "boolean"
+          },
+          "username" : {
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "baseUrl",
+          "enabled",
+          "passwordSet",
+          "username"
+        ],
+        "type" : "object"
+      },
       "GetInfoResponse" : {
         "properties" : {
           "version" : {
@@ -10456,7 +10482,11 @@
         "responses" : {
           "200" : {
             "content" : {
-              "application/json" : { }
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GetHuaweiConfigResponse"
+                }
+              }
             },
             "description" : "Current Huawei configuration returned successfully."
           },

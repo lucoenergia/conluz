@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.config;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -59,9 +58,7 @@ public class GetHuaweiConfigController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Current Huawei configuration returned successfully.",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
-                    )
+                    useReturnTypeSchema = true
             )
     })
     @ForbiddenErrorResponse
