@@ -55,10 +55,11 @@ public class SendInvitationController {
                     the community's member record, never the account's email. The link is valid for 7 days. Only \
                     an active community admin of the community may invite; a platform admin may not.
 
-                    This is the first invitation only. A membership that has already been invited responds 409 \
-                    with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the \
-                    `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 \
-                    with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.
+                    This sends the first invitation only; every later send goes through `resendInvitation`. A \
+                    membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` \
+                    code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a \
+                    member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` \
+                    code.
 
                     If the server cannot send emails right now (no public web URL configured, or email sending \
                     disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything \

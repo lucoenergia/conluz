@@ -32,7 +32,7 @@ public class CommunityCapabilitiesResponse {
     @Schema(description = "Whether the caller may administer this community's roster: creating, deleting and re-roling its memberships.")
     private final boolean canManageMemberships;
 
-    @Schema(description = "Whether the caller may register a member in this community (POST /api/v1/communities/{communityId}/members). Only an active community admin of it: there is no platform-admin bypass.")
+    @Schema(description = "Whether the caller may register a member in this community (POST /api/v1/communities/{communityId}/memberships/register). Only an active community admin of it: there is no platform-admin bypass.")
     private final boolean canRegisterMembers;
 
     @Schema(description = "Whether the caller may send the first invitation to this community's members in bulk (POST /api/v1/communities/{communityId}/memberships/invite). Only an active community admin of it: there is no platform-admin bypass. Whether any member is due one depends on the members' state.")
