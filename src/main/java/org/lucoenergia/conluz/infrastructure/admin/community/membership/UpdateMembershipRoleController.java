@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
 import org.lucoenergia.conluz.domain.admin.community.membership.UpdateMembershipRoleService;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -72,8 +73,9 @@ public class UpdateMembershipRoleController {
                                                    @PathVariable("communityId") UUID communityId,
                                                     @PathVariable("userId") UUID userId,
                                                     @Valid @RequestBody UpdateMembershipRoleBody body) {
-        CommunityMembership membership = service.updateRole(communityId, userId, body.getRole());
-        return new MembershipResponse(membership, membership.getUser() == null ? null
+        MembershipWithInvitation updated = service.updateRole(communityId, userId, body.getRole());
+        CommunityMembership membership = updated.membership();
+        return new MembershipResponse(membership, updated.invitationExpiresAt(), membership.getUser() == null ? null
                 : userCapabilitiesAssembler.assembleFetchingMemberships(currentUser, membership.getUser()),
                 capabilitiesAssembler.assemble(currentUser, membership));
     }

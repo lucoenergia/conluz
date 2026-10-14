@@ -7,11 +7,13 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavail
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.SendInvitationService;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.UpdateMembershipInvitationRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.lock.LockMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.admin.user.token.RawOneTimeToken;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -35,6 +37,7 @@ public class SendInvitationServiceImpl implements SendInvitationService {
     private final LockMembershipRepository lockMembershipRepository;
     private final GetMembershipsRepository getMembershipsRepository;
     private final CreateOneTimeTokenService createOneTimeTokenService;
+    private final GetOneTimeTokenService getOneTimeTokenService;
     private final UpdateMembershipInvitationRepository updateMembershipInvitationRepository;
     private final EmailSender emailSender;
     private final InvitationEmailFactory emailFactory;
@@ -46,6 +49,7 @@ public class SendInvitationServiceImpl implements SendInvitationService {
                                      LockMembershipRepository lockMembershipRepository,
                                      GetMembershipsRepository getMembershipsRepository,
                                      CreateOneTimeTokenService createOneTimeTokenService,
+                                     GetOneTimeTokenService getOneTimeTokenService,
                                      UpdateMembershipInvitationRepository updateMembershipInvitationRepository,
                                      EmailSender emailSender,
                                      InvitationEmailFactory emailFactory,
@@ -56,6 +60,7 @@ public class SendInvitationServiceImpl implements SendInvitationService {
         this.lockMembershipRepository = lockMembershipRepository;
         this.getMembershipsRepository = getMembershipsRepository;
         this.createOneTimeTokenService = createOneTimeTokenService;
+        this.getOneTimeTokenService = getOneTimeTokenService;
         this.updateMembershipInvitationRepository = updateMembershipInvitationRepository;
         this.emailSender = emailSender;
         this.emailFactory = emailFactory;
@@ -65,7 +70,7 @@ public class SendInvitationServiceImpl implements SendInvitationService {
     }
 
     @Override
-    public CommunityMembership send(UUID communityId, UserId userId) {
+    public MembershipWithInvitation send(UUID communityId, UserId userId) {
         // Refused before anything is locked or issued: an invitation recorded but never sent would leave the
         // membership "already invited" with nothing in the member's inbox
         if (!link.isConfigured()) {
@@ -104,6 +109,7 @@ public class SendInvitationServiceImpl implements SendInvitationService {
                 link.forToken(token).orElseThrow()));
 
         LOGGER.info("Member invited: userId={}, communityId={}", userId.getId(), communityId);
-        return invited;
+        return new MembershipWithInvitation(invited, getOneTimeTokenService
+                .findValidExpiryForMembership(userId, communityId, OneTimeTokenPurpose.INVITATION).orElse(null));
     }
 }

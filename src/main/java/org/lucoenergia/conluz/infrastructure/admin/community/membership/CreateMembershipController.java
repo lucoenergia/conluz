@@ -111,7 +111,8 @@ public class CreateMembershipController {
                                                @PathVariable("communityId") UUID communityId,
                                                 @Valid @RequestBody CreateMembershipBody body) {
         CommunityMembership membership = service.create(communityId, body.getUserId(), body.getRole());
-        return new MembershipResponse(membership, membership.getUser() == null ? null
+        // Created accepted (MEM-001), with no invitation token: there is no link to expire
+        return new MembershipResponse(membership, null, membership.getUser() == null ? null
                 : userCapabilitiesAssembler.assembleFetchingMemberships(currentUser, membership.getUser()),
                 capabilitiesAssembler.assemble(currentUser, membership));
     }

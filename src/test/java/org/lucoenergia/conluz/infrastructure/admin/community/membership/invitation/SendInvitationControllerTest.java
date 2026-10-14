@@ -118,7 +118,7 @@ class SendInvitationControllerTest extends BaseSendingMemberTest {
         JsonNode json = objectMapper.readTree(response);
         assertThat(fieldNames(json)).isEqualTo(new TreeSet<>(Set.of("id", "user", "community", "role", "personalId",
                 "fullName", "memberNumber", "contactEmail", "address", "phoneNumber", "acceptedAt", "enabled",
-                "invitedAt", "capabilities")));
+                "invitedAt", "invitationExpiresAt", "capabilities")));
         assertThat(fieldNames(json.get("user"))).isEqualTo(new TreeSet<>(Set.of("id")));
         assertThat(json.get("capabilities").get("canInvite").asBoolean()).isTrue();
         tokenFrom(bodyOf(awaitEmails(1)[0]));

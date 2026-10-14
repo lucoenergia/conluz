@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.SendInvitationService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -136,8 +137,9 @@ public class SendInvitationController {
     public MemberResponse sendInvitation(@AuthenticationPrincipal User currentUser,
                                          @PathVariable("communityId") UUID communityId,
                                          @PathVariable("userId") UUID userId) {
-        CommunityMembership membership = service.send(communityId, UserId.of(userId));
-        return new MemberResponse(membership.getUser().getPersonalId(), membership,
+        MembershipWithInvitation invited = service.send(communityId, UserId.of(userId));
+        CommunityMembership membership = invited.membership();
+        return new MemberResponse(membership.getUser().getPersonalId(), membership, invited.invitationExpiresAt(),
                 capabilitiesAssembler.assemble(currentUser, membership));
     }
 }

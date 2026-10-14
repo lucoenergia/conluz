@@ -968,6 +968,15 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "invitationExpiresAt" : {
+            "description" : "When the membership's invitation link expires. Null when it has no link that can still be used: none was sent, it was revoked or used, or it has expired.",
+            "example" : "2026-01-08T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "invitedAt" : {
             "description" : "When the member was last sent an invitation. Null if none has been sent.",
             "example" : "2026-01-01T00:00:00Z",
@@ -1017,6 +1026,7 @@
           "enabled",
           "fullName",
           "id",
+          "invitationExpiresAt",
           "invitedAt",
           "memberNumber",
           "personalId",
@@ -1478,6 +1488,15 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "invitationExpiresAt" : {
+            "description" : "When the membership's invitation link expires. Null when it has no link that can still be used: none was sent, it was revoked or used, or it has expired.",
+            "example" : "2026-01-08T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "role" : {
             "enum" : [
               "COMMUNITY_MEMBER",
@@ -1500,6 +1519,7 @@
           "communityId",
           "enabled",
           "id",
+          "invitationExpiresAt",
           "role",
           "user"
         ],

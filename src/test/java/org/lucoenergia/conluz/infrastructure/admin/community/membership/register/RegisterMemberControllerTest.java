@@ -503,7 +503,7 @@ class RegisterMemberControllerTest extends BaseSendingMemberTest {
         JsonNode json = json(response);
         assertThat(fieldNames(json)).isEqualTo(new TreeSet<>(Set.of("id", "user", "community", "role", "personalId",
                 "fullName", "memberNumber", "contactEmail", "address", "phoneNumber", "acceptedAt", "enabled",
-                "invitedAt", "capabilities")));
+                "invitedAt", "invitationExpiresAt", "capabilities")));
         assertThat(fieldNames(json.get("user"))).isEqualTo(new TreeSet<>(Set.of("id")));
         assertThat(json.get("user").get("id").asText())
                 .isEqualTo(accountRow(json.get("personalId").asText()).get("id").toString());
