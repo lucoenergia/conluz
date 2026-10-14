@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- A plant has at most one Huawei configuration (#414), but that was only kept by the code:
+         the configuration write reuses the plant's existing row instead of inserting a second one.
+         The constraint makes it a property of the schema, so a write that targets a plant's
+         configuration by plant_id (such as the one that toggles enabled) can never reach more than
+         one row. plant_id stays nullable: NULL still means the row is not bound to any plant, and
+         several such rows do not conflict. -->
+    <changeSet id="add_unique_constraint_to_huawei_config_plant_id" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add huawei_config_plant_id_uq: it already exists, or several huawei_config rows share a plant_id. List them with: SELECT plant_id, count(*) FROM huawei_config WHERE plant_id IS NOT NULL GROUP BY plant_id HAVING count(*) > 1">
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM pg_constraint WHERE conname = 'huawei_config_plant_id_uq'
+            </sqlCheck>
+            <sqlCheck expectedResult="0">
+                SELECT count(*)
+                FROM (SELECT plant_id FROM huawei_config
+                      WHERE plant_id IS NOT NULL
+                      GROUP BY plant_id HAVING count(*) > 1) AS duplicates
+            </sqlCheck>
+        </preConditions>
+        <addUniqueConstraint tableName="huawei_config"
+                             columnNames="plant_id"
+                             constraintName="huawei_config_plant_id_uq"/>
+        <rollback>
+            <dropUniqueConstraint tableName="huawei_config" constraintName="huawei_config_plant_id_uq"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

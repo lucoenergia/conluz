@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.shelly.SupplyShelly;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
+import org.lucoenergia.conluz.domain.shared.uuid.ValidUUID;
 
 import java.util.Objects;
 import java.util.UUID;

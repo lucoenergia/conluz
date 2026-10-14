@@ -39,6 +39,11 @@ public class SetHuaweiConfigurationRepositoryDatabase implements SetHuaweiConfig
         return toDomain(newConfig);
     }
 
+    @Override
+    public boolean setEnabled(UUID plantId, boolean enabled) {
+        return huaweiConfigRepository.updateEnabledByPlantId(plantId, enabled) > 0;
+    }
+
     private void applyConfig(HuaweiConfigEntity entity, HuaweiConfig config) {
         entity.setUsername(config.getUsername());
         entity.setPassword(config.getPassword());

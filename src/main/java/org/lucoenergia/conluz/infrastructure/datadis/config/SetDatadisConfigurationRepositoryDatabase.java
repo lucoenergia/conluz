@@ -36,6 +36,11 @@ public class SetDatadisConfigurationRepositoryDatabase implements SetDatadisConf
         return persist(entity, config, communityId);
     }
 
+    @Override
+    public boolean setEnabled(UUID communityId, boolean enabled) {
+        return datadisConfigRepository.updateEnabledByCommunityId(communityId, enabled) > 0;
+    }
+
     private DatadisConfig persist(DatadisConfigEntity entity, DatadisConfig config, UUID communityId) {
         entity.setUsername(config.getUsername());
         entity.setPassword(config.getPassword());

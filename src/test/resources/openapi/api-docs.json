@@ -2103,7 +2103,11 @@
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
-              "DATADIS_CONFIG_PASSWORD_REQUIRED"
+              "DATADIS_CONFIG_PASSWORD_REQUIRED",
+              "HUAWEI_CONFIG_NOT_FOUND",
+              "HUAWEI_CONFIG_INCOMPLETE",
+              "DATADIS_CONFIG_NOT_FOUND",
+              "DATADIS_CONFIG_INCOMPLETE"
             ],
             "type" : [
               "string",
@@ -4086,7 +4090,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint creates or replaces the configuration a community uses to connect with the\nDatadis API.\n\nThe request body contains:\n- **username** (required, string): Datadis user.\n- **password** (optional, string): Datadis password. The password is write-only: it is\n  never returned, only whether one is set (`passwordSet`).\n  - Absent: the stored password is kept and the other fields are updated. If the\n    community has no configuration, or its stored password is empty, the request is\n    rejected with `400` and error code `DATADIS_CONFIG_PASSWORD_REQUIRED`.\n  - A non-empty string: replaces the stored password.\n  - `null`: rejected with `400`. The stored password cannot be cleared.\n  - An empty string: rejected with `400`.\n- **baseUrl** (required, string): Base URL of the Datadis API (for example\n  `https://datadis.es`).\n- **enabled** (required, boolean): Master switch for the community's Datadis integration.\n  When `false`, the scheduled Datadis sync and aggregation jobs skip the community, and the\n  operations that sync or aggregate its Datadis data respond with `409 Conflict`.\n\nThis configuration is a mandatory step to be able to retrieve consumption data from datadis.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200, along with details\nabout the configuration now stored.\n\nA rejected request stores nothing and leaves any existing configuration unchanged. The server\nresponds with `400` when the body is invalid (a missing required field, a `null` or empty\npassword, a blank username, a blank or malformed base URL) or when the password is absent and\nthere is no stored password to keep.\n",
+        "description" : "This endpoint creates or replaces the configuration a community uses to connect with the\nDatadis API.\n\nThe request body contains:\n- **username** (required, string): Datadis user.\n- **password** (optional, string): Datadis password. The password is write-only: it is\n  never returned, only whether one is set (`passwordSet`).\n  - Absent: the stored password is kept and the other fields are updated. If the\n    community has no configuration, or its stored password is empty, the request is\n    rejected with `400` and error code `DATADIS_CONFIG_PASSWORD_REQUIRED`.\n  - A non-empty string: replaces the stored password.\n  - `null`: rejected with `400`. The stored password cannot be cleared.\n  - An empty string: rejected with `400`.\n- **baseUrl** (required, string): Base URL of the Datadis API (for example\n  `https://datadis.es`).\n- **enabled** (required, boolean): Master switch for the community's Datadis integration.\n  When `false`, the scheduled Datadis sync and aggregation jobs skip the community, and the\n  operations that sync or aggregate its Datadis data respond with `409 Conflict`.\n\nTo only switch the configuration on or off, use `POST .../config/datadis/enable` and\n`POST .../config/datadis/disable`: they change nothing else and take no request body.\n\nThis configuration is a mandatory step to be able to retrieve consumption data from datadis.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200, along with details\nabout the configuration now stored.\n\nA rejected request stores nothing and leaves any existing configuration unchanged. The server\nresponds with `400` when the body is invalid (a missing required field, a `null` or empty\npassword, a blank username, a blank or malformed base URL) or when the password is absent and\nthere is no stored password to keep.\n",
         "operationId" : "configureDatadis",
         "parameters" : [
           {
@@ -4199,6 +4203,271 @@
           }
         ],
         "summary" : "Sets up the Datadis configuration for the specified community.",
+        "tags" : [
+          "Consumption"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/config/datadis/disable" : {
+      "post" : {
+        "description" : "This endpoint disables the community's Datadis configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nDisabling never requires complete data: it succeeds whatever the stored configuration holds,\nwhich is how a configuration with missing credentials is switched off.\n\nDisabling a configuration that is already disabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`DATADIS_CONFIG_NOT_FOUND` when the community has no Datadis configuration (none is created), and with\n`400` when the community id is not a valid UUID.\n",
+        "operationId" : "disableDatadisConfig",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "The Datadis configuration is now disabled."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Disables a community's Datadis configuration.",
+        "tags" : [
+          "Consumption"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/config/datadis/enable" : {
+      "post" : {
+        "description" : "This endpoint enables the community's Datadis configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nEnabling requires the stored configuration to be complete: a non-blank username, a base URL the\nconfiguration write would accept, and a non-empty password. Otherwise the request is rejected\nwith `409` and error code `DATADIS_CONFIG_INCOMPLETE`, and nothing changes. Its\n`params.missingFields` lists the missing fields, comma-separated, in the order `username`,\n`baseUrl`, `password` (for example `\"baseUrl,password\"`). Complete them with the configuration\nwrite first. Disabling, through its own endpoint, never requires complete data.\n\nEnabling a configuration that is already enabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`DATADIS_CONFIG_NOT_FOUND` when the community has no Datadis configuration (none is created), and with\n`400` when the community id is not a valid UUID.\n",
+        "operationId" : "enableDatadisConfig",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "The Datadis configuration is now enabled."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "DATADIS_CONFIG_INCOMPLETE",
+                      "message" : "The Datadis configuration cannot be enabled because it is incomplete. Missing fields: baseUrl, password.",
+                      "params" : {
+                        "missingFields" : "baseUrl,password"
+                      }
+                    }
+                  ],
+                  "message" : "The Datadis configuration cannot be enabled because it is incomplete. Missing fields: baseUrl, password.",
+                  "status" : 409,
+                  "timestamp" : "2026-10-14T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The configuration cannot be enabled because its stored data is incomplete."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Enables a community's Datadis configuration.",
         "tags" : [
           "Consumption"
         ]
@@ -10279,7 +10548,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint creates or replaces the configuration a plant uses to connect with a\nHuawei FusionSolar Northbound API endpoint.\n\nThe request body contains:\n- **username** (required, string): API user.\n- **password** (optional, string): API password / system code. The password is\n  write-only: it is never returned, only whether one is set (`passwordSet`).\n  - Absent: the stored password is kept and the other fields are updated. If the\n    plant has no configuration, or its stored password is empty, the request is\n    rejected with `400` and error code `HUAWEI_CONFIG_PASSWORD_REQUIRED`.\n  - A non-empty string: replaces the stored password.\n  - `null`: rejected with `400`. The stored password cannot be cleared.\n  - An empty string: rejected with `400`.\n- **baseUrl** (required, string): Base URL of the Huawei FusionSolar API\n  (for example `https://localhost:8000/thirdData`). Mock services\n  that emulate the SmartPVMS V6 Northbound Interface can be targeted by\n  providing their base URL here.\n- **enabled** (required, boolean): Master switch for every Huawei-related\n  service of the plant. When `false`, scheduled syncs and aggregation jobs are\n  skipped and the manual sync endpoints respond with `409 Conflict`. Set this to\n  `false` for plants that use a different inverter vendor (e.g. Greenheiss).\n\nThis configuration is a mandatory step to be able to retrieve the plant's production\ndata from the Huawei API.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the plant** (the plant's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200, along with details\nabout the configuration now stored.\n\nA rejected request stores nothing and leaves any existing configuration unchanged. The server\nresponds with `400` when the body is invalid (a missing required field, a `null` or empty\npassword, a blank username, a malformed base URL) or when the password is absent and there\nis no stored password to keep.\n",
+        "description" : "This endpoint creates or replaces the configuration a plant uses to connect with a\nHuawei FusionSolar Northbound API endpoint.\n\nThe request body contains:\n- **username** (required, string): API user.\n- **password** (optional, string): API password / system code. The password is\n  write-only: it is never returned, only whether one is set (`passwordSet`).\n  - Absent: the stored password is kept and the other fields are updated. If the\n    plant has no configuration, or its stored password is empty, the request is\n    rejected with `400` and error code `HUAWEI_CONFIG_PASSWORD_REQUIRED`.\n  - A non-empty string: replaces the stored password.\n  - `null`: rejected with `400`. The stored password cannot be cleared.\n  - An empty string: rejected with `400`.\n- **baseUrl** (required, string): Base URL of the Huawei FusionSolar API\n  (for example `https://localhost:8000/thirdData`). Mock services\n  that emulate the SmartPVMS V6 Northbound Interface can be targeted by\n  providing their base URL here.\n- **enabled** (required, boolean): Master switch for every Huawei-related\n  service of the plant. When `false`, scheduled syncs and aggregation jobs are\n  skipped and the manual sync endpoints respond with `409 Conflict`. Set this to\n  `false` for plants that use a different inverter vendor (e.g. Greenheiss).\n\nTo only switch the configuration on or off, use `POST .../config/enable` and\n`POST .../config/disable`: they change nothing else and take no request body.\n\nThis configuration is a mandatory step to be able to retrieve the plant's production\ndata from the Huawei API.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the plant** (the plant's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200, along with details\nabout the configuration now stored.\n\nA rejected request stores nothing and leaves any existing configuration unchanged. The server\nresponds with `400` when the body is invalid (a missing required field, a `null` or empty\npassword, a blank username, a malformed base URL) or when the password is absent and there\nis no stored password to keep.\n",
         "operationId" : "configureHuawei",
         "parameters" : [
           {
@@ -10392,6 +10661,271 @@
           }
         ],
         "summary" : "Sets up the configuration to be able to connect with Huawei.",
+        "tags" : [
+          "Production"
+        ]
+      }
+    },
+    "/api/v1/plants/{plantId}/production/huawei/config/disable" : {
+      "post" : {
+        "description" : "This endpoint disables the plant's Huawei configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nDisabling never requires complete data: it succeeds whatever the stored configuration holds,\nwhich is how a configuration with missing credentials is switched off.\n\nDisabling a configuration that is already disabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the plant** (the plant's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`HUAWEI_CONFIG_NOT_FOUND` when the plant has no Huawei configuration (none is created), and with\n`400` when the plant id is not a valid UUID.\n",
+        "operationId" : "disableHuaweiConfig",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "The Huawei configuration is now disabled."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Disables a plant's Huawei configuration.",
+        "tags" : [
+          "Production"
+        ]
+      }
+    },
+    "/api/v1/plants/{plantId}/production/huawei/config/enable" : {
+      "post" : {
+        "description" : "This endpoint enables the plant's Huawei configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nEnabling requires the stored configuration to be complete: a non-blank username, a base URL the\nconfiguration write would accept, and a non-empty password. Otherwise the request is rejected\nwith `409` and error code `HUAWEI_CONFIG_INCOMPLETE`, and nothing changes. Its\n`params.missingFields` lists the missing fields, comma-separated, in the order `username`,\n`baseUrl`, `password` (for example `\"baseUrl,password\"`). Complete them with the configuration\nwrite first. Disabling, through its own endpoint, never requires complete data.\n\nEnabling a configuration that is already enabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the plant** (the plant's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`HUAWEI_CONFIG_NOT_FOUND` when the plant has no Huawei configuration (none is created), and with\n`400` when the plant id is not a valid UUID.\n",
+        "operationId" : "enableHuaweiConfig",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "The Huawei configuration is now enabled."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "HUAWEI_CONFIG_INCOMPLETE",
+                      "message" : "The Huawei configuration cannot be enabled because it is incomplete. Missing fields: baseUrl, password.",
+                      "params" : {
+                        "missingFields" : "baseUrl,password"
+                      }
+                    }
+                  ],
+                  "message" : "The Huawei configuration cannot be enabled because it is incomplete. Missing fields: baseUrl, password.",
+                  "status" : 409,
+                  "timestamp" : "2026-10-14T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The configuration cannot be enabled because its stored data is incomplete."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Enables a plant's Huawei configuration.",
         "tags" : [
           "Production"
         ]

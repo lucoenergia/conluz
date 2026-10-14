@@ -16,6 +16,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -139,6 +140,23 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
                         .content(objectMapper.writeValueAsString(body)))
                 .andDo(print())
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void testWithDatadisDisabledMessageNamesTheEnableAction() throws Exception {
+
+        doThrow(new DatadisDisabledException())
+                .when(datadisSyncService)
+                .synchronize(any(UUID.class), any(LocalDate.class), any(LocalDate.class), nullable(String.class));
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SyncDatadisConsumptionsBody(2024))))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(
+                        containsString("POST /api/v1/communities/{communityId}/config/datadis/enable")));
     }
 
     @Test

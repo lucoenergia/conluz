@@ -70,7 +70,7 @@ Table "datadis_config" {
   "password" text
   "base_url" text [not null, default: `'http://localhost:5555'::text`]
   "enabled" boolean [not null, default: false]
-  "community_id" uuid [not null]
+  "community_id" uuid [unique, not null]
 }
 
 Table "huawei_config" {
@@ -79,7 +79,7 @@ Table "huawei_config" {
   "password" text
   "base_url" text [not null, default: `'http://localhost:8000/thirdData'::text`]
   "enabled" boolean [not null, default: false]
-  "plant_id" uuid
+  "plant_id" uuid [unique]
 }
 
 Table "one_time_token" {

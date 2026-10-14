@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.domain.admin.community;
 
 import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.infrastructure.shared.uuid.ValidUUID;
+import org.lucoenergia.conluz.domain.shared.uuid.ValidUUID;
 
 import java.math.BigDecimal;
 import java.time.Instant;

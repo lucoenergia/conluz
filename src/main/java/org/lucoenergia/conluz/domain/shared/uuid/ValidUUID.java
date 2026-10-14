@@ -1,4 +1,4 @@
-package org.lucoenergia.conluz.infrastructure.shared.uuid;
+package org.lucoenergia.conluz.domain.shared.uuid;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
