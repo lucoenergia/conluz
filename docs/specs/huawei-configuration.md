@@ -4,7 +4,7 @@
 | --- | --- |
 | **Prefix** | `HCF` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Production`; operations `getHuaweiConfig`, `configureHuawei`, `setHuaweiConfigEnabled` |
+| **Contract** | OpenAPI snapshot → tag `Production`; operations `getHuaweiConfig`, `configureHuawei`, `enableHuaweiConfig`, `disableHuaweiConfig` |
 | **Related ADRs** | — |
 | **Last reviewed against code** | #414 |
 
@@ -85,7 +85,7 @@ are not specified yet.
 
 - A configuration written from #399 on with no password — prevented by HCF-002 and by the contract
   rejecting an empty password. The configuration write therefore adds no validation of "enabled
-  without a password"; enabling through the `enabled` sub-resource is checked by HCF-005.
+  without a password"; enabling through `enableHuaweiConfig` is checked by HCF-005.
 - Two configurations for one plant — prevented by the `huawei_config_plant_id_uq` unique constraint
   (#414).
 

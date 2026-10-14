@@ -4,7 +4,7 @@
 | --- | --- |
 | **Prefix** | `DCF` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Consumption`; operations `getDatadisConfig`, `configureDatadis`, `setDatadisConfigEnabled` |
+| **Contract** | OpenAPI snapshot → tag `Consumption`; operations `getDatadisConfig`, `configureDatadis`, `enableDatadisConfig`, `disableDatadisConfig` |
 | **Related ADRs** | — |
 | **Last reviewed against code** | #414 |
 
@@ -87,7 +87,7 @@ are not specified yet.
 
 - A configuration written from #404 on with no password — prevented by DCF-002 and by the contract
   rejecting an empty password. The configuration write therefore adds no validation of "enabled
-  without a password"; enabling through the `enabled` sub-resource is checked by DCF-005.
+  without a password"; enabling through `enableDatadisConfig` is checked by DCF-005.
 - Two configurations for one community — prevented by the `datadis_config_community_id_uq` unique
   constraint (#414).
 
