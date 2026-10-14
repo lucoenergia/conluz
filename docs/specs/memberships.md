@@ -147,14 +147,16 @@ lazily, as issues touch it.
   `<public web URL>/accept-invitation#<token>` with the token only in the fragment. It MUST refuse, issuing and
   sending nothing: an accepted membership with 409 `MEMBERSHIP_ALREADY_EXISTS`; a membership already invited with
   409 `MEMBERSHIP_ALREADY_INVITED`; a member record without a contact email with 400
-  `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`. Without a public web URL it MUST issue no token, leave the invitation instant
-  empty, and log one warning naming only the email category. It MUST log one line with the user and the community,
-  and no email address.
+  `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`. When the server cannot send it, because the public web URL is not configured
+  or email sending is disabled, it MUST refuse with 503 `MEMBERSHIP_INVITATION_UNAVAILABLE` before locking or
+  issuing anything, leave the invitation instant empty, and log one warning naming only the email category. It
+  MUST log one line with the user and the community, and no email address.
 - **Rationale:** The contact email is the community's own way to reach the member (ADR-0003 §1, §8); the account's
   email may have been entered by another community. The fragment keeps the token out of every access log
   (ADR-0002). An accepted member is already a member, so there is nothing to invite them to. Sending again is a
-  resend, limited per membership and day (ADR-0003 §5), which #393 adds. An invitation that cannot be linked is
-  not recorded as sent.
+  resend, limited per membership and day (ADR-0003 §5), which #393 adds. Inviting exists only to send the email:
+  an invitation recorded but never sent would tell the community admin the member was invited, and leave the
+  membership "already invited" with nothing in the member's inbox until a resend exists.
 - **Source:** #392, ADR-0003 §1, §5, §6 and §8, ADR-0002
 
 ## Impossible states
