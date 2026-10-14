@@ -58,7 +58,7 @@ class DisableDatadisConfigControllerTest extends BaseControllerTest {
         UUID communityId = createCommunity();
         seed(communityId, USERNAME, BASE_URL, PASSWORD, true);
 
-        disable(communityId).andExpect(status().isNoContent()).andExpect(content().string(""));
+        disable(communityId).andExpect(status().isOk()).andExpect(content().string(""));
 
         assertStored(communityId, USERNAME, BASE_URL, PASSWORD, false);
     }
@@ -79,7 +79,7 @@ class DisableDatadisConfigControllerTest extends BaseControllerTest {
         UUID communityId = createCommunity();
         seed(communityId, username, baseUrl, password, true);
 
-        disable(communityId).andExpect(status().isNoContent());
+        disable(communityId).andExpect(status().isOk());
 
         assertStored(communityId, username, baseUrl, password, false);
     }
@@ -137,7 +137,7 @@ class DisableDatadisConfigControllerTest extends BaseControllerTest {
         UUID communityId = createCommunity();
         seed(communityId, USERNAME, BASE_URL, PASSWORD, false);
 
-        disable(communityId).andExpect(status().isNoContent());
+        disable(communityId).andExpect(status().isOk());
 
         assertStored(communityId, USERNAME, BASE_URL, PASSWORD, false);
     }
@@ -150,7 +150,7 @@ class DisableDatadisConfigControllerTest extends BaseControllerTest {
         seed(communityId, USERNAME, BASE_URL, PASSWORD, true);
         seed(otherCommunityId, "otherUser", BASE_URL, "otherPassword", true);
 
-        disable(communityId).andExpect(status().isNoContent());
+        disable(communityId).andExpect(status().isOk());
 
         assertStored(communityId, USERNAME, BASE_URL, PASSWORD, false);
         assertStored(otherCommunityId, "otherUser", BASE_URL, "otherPassword", true);

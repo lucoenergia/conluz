@@ -12,7 +12,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,7 +48,7 @@ public class DisableHuaweiConfigController {
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
                     **Required: the caller can manage the plant** (the plant's `canManage` capability).
 
-                    Upon successful request, the server responds with an HTTP status code of 204 and no body.
+                    Upon successful request, the server responds with an HTTP status code of 200 and no body.
 
                     A rejected request changes nothing. The server responds with `404` and error code
                     `HUAWEI_CONFIG_NOT_FOUND` when the plant has no Huawei configuration (none is created), and with
@@ -61,7 +60,7 @@ public class DisableHuaweiConfigController {
     )
     @ApiResponses(value = {
             @ApiResponse(
-                    responseCode = "204",
+                    responseCode = "200",
                     description = "The Huawei configuration is now disabled."
             )
     })
@@ -71,8 +70,7 @@ public class DisableHuaweiConfigController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManagePlant(#plantId)")
-    public ResponseEntity<Void> disableHuaweiConfig(@PathVariable UUID plantId) {
+    public void disableHuaweiConfig(@PathVariable UUID plantId) {
         service.disable(plantId);
-        return ResponseEntity.noContent().build();
     }
 }

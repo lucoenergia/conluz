@@ -71,7 +71,7 @@ class DisableHuaweiConfigControllerTest extends BaseControllerTest {
         UUID plantId = createPlant();
         seed(plantId, USERNAME, BASE_URL, PASSWORD, true);
 
-        disable(plantId).andExpect(status().isNoContent()).andExpect(content().string(""));
+        disable(plantId).andExpect(status().isOk()).andExpect(content().string(""));
 
         assertStored(plantId, USERNAME, BASE_URL, PASSWORD, false);
     }
@@ -92,7 +92,7 @@ class DisableHuaweiConfigControllerTest extends BaseControllerTest {
         UUID plantId = createPlant();
         seed(plantId, username, baseUrl, password, true);
 
-        disable(plantId).andExpect(status().isNoContent());
+        disable(plantId).andExpect(status().isOk());
 
         assertStored(plantId, username, baseUrl, password, false);
     }
@@ -149,7 +149,7 @@ class DisableHuaweiConfigControllerTest extends BaseControllerTest {
         UUID plantId = createPlant();
         seed(plantId, USERNAME, BASE_URL, PASSWORD, false);
 
-        disable(plantId).andExpect(status().isNoContent());
+        disable(plantId).andExpect(status().isOk());
 
         assertStored(plantId, USERNAME, BASE_URL, PASSWORD, false);
     }
@@ -162,7 +162,7 @@ class DisableHuaweiConfigControllerTest extends BaseControllerTest {
         seed(plantId, USERNAME, BASE_URL, PASSWORD, true);
         seed(otherPlantId, "otherUser", BASE_URL, "otherPassword", true);
 
-        disable(plantId).andExpect(status().isNoContent());
+        disable(plantId).andExpect(status().isOk());
 
         assertStored(plantId, USERNAME, BASE_URL, PASSWORD, false);
         assertStored(otherPlantId, "otherUser", BASE_URL, "otherPassword", true);

@@ -16,7 +16,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoun
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,7 +56,7 @@ public class EnableDatadisConfigController {
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
                     **Required: the caller can manage the community** (the community's `canManage` capability).
 
-                    Upon successful request, the server responds with an HTTP status code of 204 and no body.
+                    Upon successful request, the server responds with an HTTP status code of 200 and no body.
 
                     A rejected request changes nothing. The server responds with `404` and error code
                     `DATADIS_CONFIG_NOT_FOUND` when the community has no Datadis configuration (none is created), and with
@@ -69,7 +68,7 @@ public class EnableDatadisConfigController {
     )
     @ApiResponses(value = {
             @ApiResponse(
-                    responseCode = "204",
+                    responseCode = "200",
                     description = "The Datadis configuration is now enabled."
             ),
             @ApiResponse(
@@ -106,8 +105,7 @@ public class EnableDatadisConfigController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
-    public ResponseEntity<Void> enableDatadisConfig(@PathVariable UUID communityId) {
+    public void enableDatadisConfig(@PathVariable UUID communityId) {
         service.enable(communityId);
-        return ResponseEntity.noContent().build();
     }
 }

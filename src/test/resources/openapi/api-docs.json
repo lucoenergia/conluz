@@ -4024,7 +4024,7 @@
     },
     "/api/v1/communities/{communityId}/config/datadis/disable" : {
       "post" : {
-        "description" : "This endpoint disables the community's Datadis configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nDisabling never requires complete data: it succeeds whatever the stored configuration holds,\nwhich is how a configuration with missing credentials is switched off.\n\nDisabling a configuration that is already disabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 204 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`DATADIS_CONFIG_NOT_FOUND` when the community has no Datadis configuration (none is created), and with\n`400` when the community id is not a valid UUID.\n",
+        "description" : "This endpoint disables the community's Datadis configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nDisabling never requires complete data: it succeeds whatever the stored configuration holds,\nwhich is how a configuration with missing credentials is switched off.\n\nDisabling a configuration that is already disabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`DATADIS_CONFIG_NOT_FOUND` when the community has no Datadis configuration (none is created), and with\n`400` when the community id is not a valid UUID.\n",
         "operationId" : "disableDatadisConfig",
         "parameters" : [
           {
@@ -4038,7 +4038,7 @@
           }
         ],
         "responses" : {
-          "204" : {
+          "200" : {
             "description" : "The Datadis configuration is now disabled."
           },
           "400" : {
@@ -4144,7 +4144,7 @@
     },
     "/api/v1/communities/{communityId}/config/datadis/enable" : {
       "post" : {
-        "description" : "This endpoint enables the community's Datadis configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nEnabling requires the stored configuration to be complete: a non-blank username, a base URL the\nconfiguration write would accept, and a non-empty password. Otherwise the request is rejected\nwith `409` and error code `DATADIS_CONFIG_INCOMPLETE`, and nothing changes. Its\n`params.missingFields` lists the missing fields, comma-separated, in the order `username`,\n`baseUrl`, `password` (for example `\"baseUrl,password\"`). Complete them with the configuration\nwrite first. Disabling, through its own endpoint, never requires complete data.\n\nEnabling a configuration that is already enabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 204 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`DATADIS_CONFIG_NOT_FOUND` when the community has no Datadis configuration (none is created), and with\n`400` when the community id is not a valid UUID.\n",
+        "description" : "This endpoint enables the community's Datadis configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nEnabling requires the stored configuration to be complete: a non-blank username, a base URL the\nconfiguration write would accept, and a non-empty password. Otherwise the request is rejected\nwith `409` and error code `DATADIS_CONFIG_INCOMPLETE`, and nothing changes. Its\n`params.missingFields` lists the missing fields, comma-separated, in the order `username`,\n`baseUrl`, `password` (for example `\"baseUrl,password\"`). Complete them with the configuration\nwrite first. Disabling, through its own endpoint, never requires complete data.\n\nEnabling a configuration that is already enabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the community** (the community's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`DATADIS_CONFIG_NOT_FOUND` when the community has no Datadis configuration (none is created), and with\n`400` when the community id is not a valid UUID.\n",
         "operationId" : "enableDatadisConfig",
         "parameters" : [
           {
@@ -4158,7 +4158,7 @@
           }
         ],
         "responses" : {
-          "204" : {
+          "200" : {
             "description" : "The Datadis configuration is now enabled."
           },
           "400" : {
@@ -10134,7 +10134,7 @@
     },
     "/api/v1/plants/{plantId}/production/huawei/config/disable" : {
       "post" : {
-        "description" : "This endpoint disables the plant's Huawei configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nDisabling never requires complete data: it succeeds whatever the stored configuration holds,\nwhich is how a configuration with missing credentials is switched off.\n\nDisabling a configuration that is already disabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the plant** (the plant's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 204 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`HUAWEI_CONFIG_NOT_FOUND` when the plant has no Huawei configuration (none is created), and with\n`400` when the plant id is not a valid UUID.\n",
+        "description" : "This endpoint disables the plant's Huawei configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nDisabling never requires complete data: it succeeds whatever the stored configuration holds,\nwhich is how a configuration with missing credentials is switched off.\n\nDisabling a configuration that is already disabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the plant** (the plant's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`HUAWEI_CONFIG_NOT_FOUND` when the plant has no Huawei configuration (none is created), and with\n`400` when the plant id is not a valid UUID.\n",
         "operationId" : "disableHuaweiConfig",
         "parameters" : [
           {
@@ -10148,7 +10148,7 @@
           }
         ],
         "responses" : {
-          "204" : {
+          "200" : {
             "description" : "The Huawei configuration is now disabled."
           },
           "400" : {
@@ -10254,7 +10254,7 @@
     },
     "/api/v1/plants/{plantId}/production/huawei/config/enable" : {
       "post" : {
-        "description" : "This endpoint enables the plant's Huawei configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nEnabling requires the stored configuration to be complete: a non-blank username, a base URL the\nconfiguration write would accept, and a non-empty password. Otherwise the request is rejected\nwith `409` and error code `HUAWEI_CONFIG_INCOMPLETE`, and nothing changes. Its\n`params.missingFields` lists the missing fields, comma-separated, in the order `username`,\n`baseUrl`, `password` (for example `\"baseUrl,password\"`). Complete them with the configuration\nwrite first. Disabling, through its own endpoint, never requires complete data.\n\nEnabling a configuration that is already enabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the plant** (the plant's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 204 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`HUAWEI_CONFIG_NOT_FOUND` when the plant has no Huawei configuration (none is created), and with\n`400` when the plant id is not a valid UUID.\n",
+        "description" : "This endpoint enables the plant's Huawei configuration, changing nothing else: the stored\nusername, password and base URL are not rewritten. The request has no body.\n\nEnabling requires the stored configuration to be complete: a non-blank username, a base URL the\nconfiguration write would accept, and a non-empty password. Otherwise the request is rejected\nwith `409` and error code `HUAWEI_CONFIG_INCOMPLETE`, and nothing changes. Its\n`params.missingFields` lists the missing fields, comma-separated, in the order `username`,\n`baseUrl`, `password` (for example `\"baseUrl,password\"`). Complete them with the configuration\nwrite first. Disabling, through its own endpoint, never requires complete data.\n\nEnabling a configuration that is already enabled succeeds.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: the caller can manage the plant** (the plant's `canManage` capability).\n\nUpon successful request, the server responds with an HTTP status code of 200 and no body.\n\nA rejected request changes nothing. The server responds with `404` and error code\n`HUAWEI_CONFIG_NOT_FOUND` when the plant has no Huawei configuration (none is created), and with\n`400` when the plant id is not a valid UUID.\n",
         "operationId" : "enableHuaweiConfig",
         "parameters" : [
           {
@@ -10268,7 +10268,7 @@
           }
         ],
         "responses" : {
-          "204" : {
+          "200" : {
             "description" : "The Huawei configuration is now enabled."
           },
           "400" : {
