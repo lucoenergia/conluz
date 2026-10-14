@@ -103,6 +103,7 @@ with no guard".
 | `canManage` | `canManageCommunity` |
 | `canManageMemberships` | `canManageMemberships` |
 | `canRegisterMembers` | `canRegisterMembers` |
+| `canInviteMembers` | `canInviteMembers` (bulk send of first invitations) |
 | `canManageMembershipInvestment` | `canManageMembershipInvestment` |
 | `canListPlants` | `canListPlants` |
 | `canCreatePlants` | *(no guard — see below)* |
@@ -231,7 +232,7 @@ is the caller — nobody may act on themselves that way, admins included.
 | `canDelete` | `canManageMemberships(communityId)` |
 | `canManageInvestment` | `canManageMembershipInvestment(communityId)` |
 | `canReadPayback` | `canReadMembershipPayback(communityId, userId)` |
-| `canInvite` | `canInviteMembers(communityId)` |
+| `canInvite` | `canInviteMembers(communityId)` (invite, resend and revoke the invitation) |
 
 A platform admin may administer a roster without being able to touch its members' money: the
 investment and payback rules have no platform-admin branch, and `canManageMemberships` does.

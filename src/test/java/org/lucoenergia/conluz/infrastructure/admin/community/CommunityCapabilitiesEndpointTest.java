@@ -46,6 +46,7 @@ class CommunityCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
                 .andExpect(jsonPath("$.capabilities.canManage").value(true))
                 .andExpect(jsonPath("$.capabilities.canManageMemberships").value(true))
+                .andExpect(jsonPath("$.capabilities.canInviteMembers").value(true))
                 .andExpect(jsonPath("$.capabilities.canCreatePlants").value(true))
                 // Updating a community is platform-wide, and this caller only administers it.
                 .andExpect(jsonPath("$.capabilities.canUpdate").value(false));
@@ -64,6 +65,7 @@ class CommunityCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canReadProduction").value(true))
                 .andExpect(jsonPath("$.capabilities.canManage").value(false))
                 .andExpect(jsonPath("$.capabilities.canManageMemberships").value(false))
+                .andExpect(jsonPath("$.capabilities.canInviteMembers").value(false))
                 .andExpect(jsonPath("$.capabilities.canCreatePlants").value(false));
     }
 

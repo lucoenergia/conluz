@@ -103,6 +103,31 @@ abstract class BaseInvitationUnavailableTest extends BaseRegisterMemberTest {
         verify(emailSender, never()).send(any());
     }
 
+    @Test
+    @DisplayName("MEM-012 a bulk send is refused with 503 before anyone is selected, nothing is issued or sent, and "
+            + "one warning names only the email category")
+    void aBulkSend_isRefused() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        Map<String, Object> body = newRecord();
+        registered(bearer, community.getId(), body);
+        String personalId = (String) body.get("personalId");
+        logs.clear();
+
+        String response = mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/invite",
+                        community.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_UNAVAILABLE"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(tokenCount(personalId)).isZero();
+        assertThat(membershipRow(personalId, community.getId()).get("invited_at")).isNull();
+        verify(emailSender, never()).send(any());
+        assertTheOneWarning();
+        assertNoSecretIn(response);
+    }
+
     protected void assertTheOneWarning() {
         assertThat(logs.warningsAndAboveOfThisThread())
                 .singleElement()

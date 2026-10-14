@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -100,13 +101,22 @@ public class InvitationSending {
      * @throws MembershipNotFoundException if the user has no membership in the community
      */
     public CommunityMembership lockAndRead(UUID communityId, UserId userId) {
+        return lockAndFind(communityId, userId)
+                .orElseThrow(() -> new MembershipNotFoundException(communityId, userId.getId()));
+    }
+
+    /**
+     * As {@link #lockAndRead}, for a caller to whom a membership that no longer exists is not an error: an exception
+     * thrown through this bean would mark the caller's transaction for rollback.
+     *
+     * @return the membership, or empty if the user has no membership in the community
+     */
+    public Optional<CommunityMembership> lockAndFind(UUID communityId, UserId userId) {
         // Lock order: user row, then membership row, then token rows
         if (!lockUserRepository.lock(userId) || !lockMembershipRepository.lock(userId, communityId)) {
-            throw new MembershipNotFoundException(communityId, userId.getId());
+            return Optional.empty();
         }
-        return getMembershipsRepository
-                .findByUserIdAndCommunityId(userId.getId(), communityId)
-                .orElseThrow(() -> new MembershipNotFoundException(communityId, userId.getId()));
+        return getMembershipsRepository.findByUserIdAndCommunityId(userId.getId(), communityId);
     }
 
     /**

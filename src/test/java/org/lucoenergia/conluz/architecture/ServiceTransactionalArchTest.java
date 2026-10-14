@@ -5,6 +5,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.membership.invitation.BulkSendInvitationService;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
@@ -81,6 +82,9 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
         addException(EstimatedSupplyTariffResolver.class.getSimpleName());
         // Holds its counters in memory and never touches the database
         addException(AuthenticationThrottleService.class.getSimpleName());
+        // Invites each membership in a transaction of its own (FirstInvitationStep), so that the locks are held for
+        // one membership at a time and each email is handed over as soon as its invitation commits
+        addException(BulkSendInvitationService.class.getSimpleName());
         // Add more exceptions as needed
     }
 

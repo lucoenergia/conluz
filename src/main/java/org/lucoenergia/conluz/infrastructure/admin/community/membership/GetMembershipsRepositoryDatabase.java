@@ -4,11 +4,13 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntityMapper;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,6 +74,19 @@ public class GetMembershipsRepositoryDatabase implements GetMembershipsRepositor
         return membershipJpaRepository.findByUserIdAndCommunityId(userId, communityId)
                 .map(entity -> toDomain(entity,
                         entity.getCommunity() != null ? communityEntityMapper.map(entity.getCommunity()) : null));
+    }
+
+    @Override
+    public List<UserId> findFirstInvitationCandidates(UUID communityId, int limit) {
+        return membershipJpaRepository.findFirstInvitationCandidateUserIds(communityId, PageRequest.of(0, limit))
+                .stream()
+                .map(UserId::of)
+                .toList();
+    }
+
+    @Override
+    public long countFirstInvitationCandidates(UUID communityId) {
+        return membershipJpaRepository.countFirstInvitationCandidates(communityId);
     }
 
     private CommunityMembership toDomain(CommunityMembershipEntity entity, Community community) {

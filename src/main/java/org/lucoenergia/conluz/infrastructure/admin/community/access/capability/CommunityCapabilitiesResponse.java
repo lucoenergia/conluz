@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * the agreement's {@code status} that says the action would be rejected right now. Clients read
  * both.</p>
  */
-@Schema(description = "What the caller may do with this community.", requiredProperties = {"canRead", "canUpdate", "canEnable", "canDisable", "canManage", "canManageMemberships", "canRegisterMembers", "canManageMembershipInvestment", "canListPlants", "canCreatePlants", "canCreateUsers", "canReadProduction", "canListSupplies"})
+@Schema(description = "What the caller may do with this community.", requiredProperties = {"canRead", "canUpdate", "canEnable", "canDisable", "canManage", "canManageMemberships", "canRegisterMembers", "canInviteMembers", "canManageMembershipInvestment", "canListPlants", "canCreatePlants", "canCreateUsers", "canReadProduction", "canListSupplies"})
 public class CommunityCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may read this community (GET /api/v1/communities/{communityId}).")
@@ -34,6 +34,9 @@ public class CommunityCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may register a member in this community (POST /api/v1/communities/{communityId}/members). Only an active community admin of it: there is no platform-admin bypass.")
     private final boolean canRegisterMembers;
+
+    @Schema(description = "Whether the caller may send the first invitation to this community's members in bulk (POST /api/v1/communities/{communityId}/memberships/invite). Only an active community admin of it: there is no platform-admin bypass. Whether any member is due one depends on the members' state.")
+    private final boolean canInviteMembers;
 
     @Schema(description = "Whether the caller may set or clear the investment recorded on this community's memberships. Stricter than canManageMemberships: an investment is the member's own money, so there is no platform-admin bypass.")
     private final boolean canManageMembershipInvestment;
@@ -61,6 +64,7 @@ public class CommunityCapabilitiesResponse {
         this.canManage = builder.canManage;
         this.canManageMemberships = builder.canManageMemberships;
         this.canRegisterMembers = builder.canRegisterMembers;
+        this.canInviteMembers = builder.canInviteMembers;
         this.canManageMembershipInvestment = builder.canManageMembershipInvestment;
         this.canListPlants = builder.canListPlants;
         this.canCreatePlants = builder.canCreatePlants;
@@ -95,6 +99,10 @@ public class CommunityCapabilitiesResponse {
 
     public boolean isCanRegisterMembers() {
         return canRegisterMembers;
+    }
+
+    public boolean isCanInviteMembers() {
+        return canInviteMembers;
     }
 
     public boolean isCanManageMembershipInvestment() {
@@ -138,6 +146,7 @@ public class CommunityCapabilitiesResponse {
         private boolean canManage;
         private boolean canManageMemberships;
         private boolean canRegisterMembers;
+        private boolean canInviteMembers;
         private boolean canManageMembershipInvestment;
         private boolean canListPlants;
         private boolean canCreatePlants;
@@ -177,6 +186,11 @@ public class CommunityCapabilitiesResponse {
 
         public Builder withCanRegisterMembers(boolean canRegisterMembers) {
             this.canRegisterMembers = canRegisterMembers;
+            return this;
+        }
+
+        public Builder withCanInviteMembers(boolean canInviteMembers) {
+            this.canInviteMembers = canInviteMembers;
             return this;
         }
 
