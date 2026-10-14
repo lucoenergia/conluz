@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -36,6 +35,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -43,9 +43,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
-class SetHuaweiConfigEnabledControllerTest extends BaseControllerTest {
+class EnableHuaweiConfigControllerTest extends BaseControllerTest {
 
-    private static final String URL_TEMPLATE = "/api/v1/plants/%s/production/huawei/config/enabled";
+    private static final String URL_TEMPLATE = "/api/v1/plants/%s/production/huawei/config/enable";
     private static final String CONFIG_URL_TEMPLATE = "/api/v1/plants/%s/production/huawei/config";
 
     private static final String USERNAME = "seedUser";
@@ -66,23 +66,12 @@ class SetHuaweiConfigEnabledControllerTest extends BaseControllerTest {
     private EntityManager entityManager;
 
     @Test
-    @DisplayName("HCF-004 AC1 disabling a complete enabled configuration changes only enabled")
-    void disablingCompleteConfigurationChangesOnlyEnabled() throws Exception {
-        UUID plantId = createPlant();
-        seed(plantId, USERNAME, BASE_URL, PASSWORD, true);
-
-        setEnabled(plantId, false).andExpect(status().isNoContent()).andExpect(content().string(""));
-
-        assertStored(plantId, USERNAME, BASE_URL, PASSWORD, false);
-    }
-
-    @Test
     @DisplayName("HCF-005 AC2 enabling a complete disabled configuration changes only enabled")
     void enablingCompleteConfigurationChangesOnlyEnabled() throws Exception {
         UUID plantId = createPlant();
         seed(plantId, USERNAME, BASE_URL, PASSWORD, false);
 
-        setEnabled(plantId, true).andExpect(status().isNoContent()).andExpect(content().string(""));
+        enable(plantId).andExpect(status().isNoContent()).andExpect(content().string(""));
 
         assertStored(plantId, USERNAME, BASE_URL, PASSWORD, true);
     }
@@ -108,7 +97,7 @@ class SetHuaweiConfigEnabledControllerTest extends BaseControllerTest {
         UUID plantId = createPlant();
         seed(plantId, username, baseUrl, password, false);
 
-        setEnabled(plantId, true)
+        enable(plantId)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()))
                 .andExpect(jsonPath("$.errors.length()").value(1))
@@ -118,113 +107,50 @@ class SetHuaweiConfigEnabledControllerTest extends BaseControllerTest {
         assertStored(plantId, username, baseUrl, password, false);
     }
 
-    static Stream<Arguments> incompleteEnabledConfigurations() {
-        return Stream.of(
-                Arguments.of(USERNAME, BASE_URL, null),
-                Arguments.of(USERNAME, BASE_URL, ""),
-                Arguments.of(" ", BASE_URL, PASSWORD),
-                Arguments.of(USERNAME, " ", PASSWORD)
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("incompleteEnabledConfigurations")
-    @DisplayName("HCF-004 AC4 disabling an incomplete enabled configuration succeeds and changes only enabled")
-    void disablingIncompleteConfigurationSucceeds(String username, String baseUrl, String password) throws Exception {
-        UUID plantId = createPlant();
-        seed(plantId, username, baseUrl, password, true);
-
-        setEnabled(plantId, false).andExpect(status().isNoContent());
-
-        assertStored(plantId, username, baseUrl, password, false);
-    }
-
-    @Test
-    @DisplayName("HCF-004 AC5 disabling a plant without a configuration is not found and creates none")
-    void disablingWithoutConfigurationIsNotFound() throws Exception {
-        assertNotFoundAndNothingCreated(false);
-    }
-
     @Test
     @DisplayName("HCF-005 AC5 enabling a plant without a configuration is not found and creates none")
     void enablingWithoutConfigurationIsNotFound() throws Exception {
-        assertNotFoundAndNothingCreated(true);
+        UUID plantId = createPlant();
+
+        enable(plantId)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
+                .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.HUAWEI_CONFIG_NOT_FOUND.name()));
+
+        assertThat(stored(plantId)).isEmpty();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {
-            "{}",
-            "{\"enabled\": null}",
-            "{\"enabled\": false, \"password\": \"x\"}",
-            "{\"enabled\": \"maybe\"}"
-    })
-    @DisplayName("AC6 an invalid body is rejected and changes nothing")
-    void invalidBodyIsRejected(String body) throws Exception {
-        UUID plantId = createPlant();
-        seed(plantId, USERNAME, BASE_URL, PASSWORD, true);
-
-        perform(put(String.format(URL_TEMPLATE, plantId))
-                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+    @Test
+    @DisplayName("AC6 a plant id that is not a UUID is rejected")
+    void malformedPlantIdIsRejected() throws Exception {
+        perform(post(String.format(URL_TEMPLATE, "not-a-uuid"))
+                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
-
-        assertStored(plantId, USERNAME, BASE_URL, PASSWORD, true);
     }
 
     @Test
-    @DisplayName("AC6 a request without a body is rejected")
-    void missingBodyIsRejected() throws Exception {
-        UUID plantId = createPlant();
-        seed(plantId, USERNAME, BASE_URL, PASSWORD, true);
-
-        perform(put(String.format(URL_TEMPLATE, plantId))
-                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-
-        assertStored(plantId, USERNAME, BASE_URL, PASSWORD, true);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
     @DisplayName("AC7 without a token the request is unauthorized, like the configuration write, and changes nothing")
-    void withoutTokenIsUnauthorized(boolean enabled) throws Exception {
-        assertSameStatusAsConfigurationWrite(null, enabled, HttpStatus.UNAUTHORIZED);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("AC7 a caller who is not a member of the plant's community gets not-found, like the configuration write, and changes nothing")
-    void nonMemberGetsNotFound(boolean enabled) throws Exception {
-        assertSameStatusAsConfigurationWrite(loginAsPartner(), enabled, HttpStatus.NOT_FOUND);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("AC7 a member who is not a community admin is forbidden, like the configuration write, and changes nothing")
-    void memberWithoutAdminRoleIsForbidden(boolean enabled) throws Exception {
-        assertSameStatusAsConfigurationWrite(loginAsCommunityMember(DEFAULT_COMMUNITY_ID), enabled,
-                HttpStatus.FORBIDDEN);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("AC7 a platform admin who is not a member gets not-found, like the configuration write, and changes nothing")
-    void platformAdminWithoutMembershipGetsNotFound(boolean enabled) throws Exception {
-        assertSameStatusAsConfigurationWrite(loginAsDefaultPlatformAdmin(), enabled, HttpStatus.NOT_FOUND);
+    void withoutTokenIsUnauthorized() throws Exception {
+        assertSameStatusAsConfigurationWrite(null, HttpStatus.UNAUTHORIZED);
     }
 
     @Test
-    @DisplayName("HCF-004 disabling an already disabled configuration succeeds")
-    void disablingDisabledConfigurationSucceeds() throws Exception {
-        UUID plantId = createPlant();
-        seed(plantId, USERNAME, BASE_URL, PASSWORD, false);
+    @DisplayName("AC7 a caller who is not a member of the plant's community gets not-found, like the configuration write, and changes nothing")
+    void nonMemberGetsNotFound() throws Exception {
+        assertSameStatusAsConfigurationWrite(loginAsPartner(), HttpStatus.NOT_FOUND);
+    }
 
-        setEnabled(plantId, false).andExpect(status().isNoContent());
+    @Test
+    @DisplayName("AC7 a member who is not a community admin is forbidden, like the configuration write, and changes nothing")
+    void memberWithoutAdminRoleIsForbidden() throws Exception {
+        assertSameStatusAsConfigurationWrite(loginAsCommunityMember(DEFAULT_COMMUNITY_ID), HttpStatus.FORBIDDEN);
+    }
 
-        assertStored(plantId, USERNAME, BASE_URL, PASSWORD, false);
+    @Test
+    @DisplayName("AC7 a platform admin who is not a member gets not-found, like the configuration write, and changes nothing")
+    void platformAdminWithoutMembershipGetsNotFound() throws Exception {
+        assertSameStatusAsConfigurationWrite(loginAsDefaultPlatformAdmin(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -233,24 +159,23 @@ class SetHuaweiConfigEnabledControllerTest extends BaseControllerTest {
         UUID plantId = createPlant();
         seed(plantId, USERNAME, BASE_URL, PASSWORD, true);
 
-        setEnabled(plantId, true).andExpect(status().isNoContent());
+        enable(plantId).andExpect(status().isNoContent());
 
         assertStored(plantId, USERNAME, BASE_URL, PASSWORD, true);
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("HCF-004 HCF-005 setting one plant's configuration leaves another plant's untouched")
-    void otherPlantIsUntouched(boolean enabled) throws Exception {
+    @Test
+    @DisplayName("HCF-005 enabling one plant's configuration leaves another plant's untouched")
+    void otherPlantIsUntouched() throws Exception {
         UUID plantId = createPlant();
         UUID otherPlantId = createPlant();
-        seed(plantId, USERNAME, BASE_URL, PASSWORD, !enabled);
-        seed(otherPlantId, "otherUser", BASE_URL, "otherPassword", !enabled);
+        seed(plantId, USERNAME, BASE_URL, PASSWORD, false);
+        seed(otherPlantId, "otherUser", BASE_URL, "otherPassword", false);
 
-        setEnabled(plantId, enabled).andExpect(status().isNoContent());
+        enable(plantId).andExpect(status().isNoContent());
 
-        assertStored(plantId, USERNAME, BASE_URL, PASSWORD, enabled);
-        assertStored(otherPlantId, "otherUser", BASE_URL, "otherPassword", !enabled);
+        assertStored(plantId, USERNAME, BASE_URL, PASSWORD, true);
+        assertStored(otherPlantId, "otherUser", BASE_URL, "otherPassword", false);
     }
 
     @ParameterizedTest
@@ -263,7 +188,7 @@ class SetHuaweiConfigEnabledControllerTest extends BaseControllerTest {
         UUID plantId = createPlant();
         seed(plantId, USERNAME, baseUrl, PASSWORD, false);
 
-        setEnabled(plantId, true)
+        enable(plantId)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.HUAWEI_CONFIG_INCOMPLETE.name()))
                 .andExpect(jsonPath("$.errors[0].params.missingFields").value("baseUrl"));
@@ -280,47 +205,33 @@ class SetHuaweiConfigEnabledControllerTest extends BaseControllerTest {
         UUID plantId = createPlant();
         seed(plantId, USERNAME, baseUrl, PASSWORD, false);
 
-        setEnabled(plantId, true).andExpect(status().isNoContent());
+        enable(plantId).andExpect(status().isNoContent());
         assertStored(plantId, USERNAME, baseUrl, PASSWORD, true);
-    }
-
-    private void assertNotFoundAndNothingCreated(boolean enabled) throws Exception {
-        UUID plantId = createPlant();
-
-        setEnabled(plantId, enabled)
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
-                .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.HUAWEI_CONFIG_NOT_FOUND.name()));
-
-        assertThat(stored(plantId)).isEmpty();
     }
 
     /**
      * The configuration write runs first and is rejected, so the two answers are compared over the same,
      * unchanged configuration.
      */
-    private void assertSameStatusAsConfigurationWrite(String authHeader, boolean enabled, HttpStatus expected)
-            throws Exception {
+    private void assertSameStatusAsConfigurationWrite(String authHeader, HttpStatus expected) throws Exception {
         UUID plantId = createPlant();
-        seed(plantId, USERNAME, BASE_URL, PASSWORD, !enabled);
+        seed(plantId, USERNAME, BASE_URL, PASSWORD, false);
 
         MockHttpServletRequestBuilder configurationWrite = put(String.format(CONFIG_URL_TEMPLATE, plantId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": %s}
-                        """.formatted(BASE_URL, enabled));
-        MockHttpServletRequestBuilder enabledWrite = put(String.format(URL_TEMPLATE, plantId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"enabled\": " + enabled + "}");
+                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": true}
+                        """.formatted(BASE_URL));
+        MockHttpServletRequestBuilder enableRequest = post(String.format(URL_TEMPLATE, plantId));
         if (authHeader != null) {
             configurationWrite.header(HttpHeaders.AUTHORIZATION, authHeader);
-            enabledWrite.header(HttpHeaders.AUTHORIZATION, authHeader);
+            enableRequest.header(HttpHeaders.AUTHORIZATION, authHeader);
         }
 
         perform(configurationWrite).andExpect(status().is(expected.value()));
-        perform(enabledWrite).andExpect(status().is(expected.value()));
+        perform(enableRequest).andExpect(status().is(expected.value()));
 
-        assertStored(plantId, USERNAME, BASE_URL, PASSWORD, !enabled);
+        assertStored(plantId, USERNAME, BASE_URL, PASSWORD, false);
     }
 
     private UUID createPlant() {
@@ -343,11 +254,9 @@ class SetHuaweiConfigEnabledControllerTest extends BaseControllerTest {
                 .build());
     }
 
-    private ResultActions setEnabled(UUID plantId, boolean enabled) throws Exception {
-        return perform(put(String.format(URL_TEMPLATE, plantId))
-                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"enabled\": " + enabled + "}"));
+    private ResultActions enable(UUID plantId) throws Exception {
+        return perform(post(String.format(URL_TEMPLATE, plantId))
+                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID)));
     }
 
     private ResultActions putConfig(UUID plantId, String baseUrl) throws Exception {

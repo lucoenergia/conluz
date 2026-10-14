@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
@@ -27,6 +26,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -34,9 +34,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
-class SetDatadisConfigEnabledControllerTest extends BaseControllerTest {
+class EnableDatadisConfigControllerTest extends BaseControllerTest {
 
-    private static final String URL_TEMPLATE = "/api/v1/communities/%s/config/datadis/enabled";
+    private static final String URL_TEMPLATE = "/api/v1/communities/%s/config/datadis/enable";
     private static final String CONFIG_URL_TEMPLATE = "/api/v1/communities/%s/config/datadis";
 
     private static final String USERNAME = "seedUser";
@@ -53,23 +53,12 @@ class SetDatadisConfigEnabledControllerTest extends BaseControllerTest {
     private EntityManager entityManager;
 
     @Test
-    @DisplayName("DCF-004 AC1 disabling a complete enabled configuration changes only enabled")
-    void disablingCompleteConfigurationChangesOnlyEnabled() throws Exception {
-        UUID communityId = createCommunity();
-        seed(communityId, USERNAME, BASE_URL, PASSWORD, true);
-
-        setEnabled(communityId, false).andExpect(status().isNoContent()).andExpect(content().string(""));
-
-        assertStored(communityId, USERNAME, BASE_URL, PASSWORD, false);
-    }
-
-    @Test
     @DisplayName("DCF-005 AC2 enabling a complete disabled configuration changes only enabled")
     void enablingCompleteConfigurationChangesOnlyEnabled() throws Exception {
         UUID communityId = createCommunity();
         seed(communityId, USERNAME, BASE_URL, PASSWORD, false);
 
-        setEnabled(communityId, true).andExpect(status().isNoContent()).andExpect(content().string(""));
+        enable(communityId).andExpect(status().isNoContent()).andExpect(content().string(""));
 
         assertStored(communityId, USERNAME, BASE_URL, PASSWORD, true);
     }
@@ -95,7 +84,7 @@ class SetDatadisConfigEnabledControllerTest extends BaseControllerTest {
         UUID communityId = createCommunity();
         seed(communityId, username, baseUrl, password, false);
 
-        setEnabled(communityId, true)
+        enable(communityId)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()))
                 .andExpect(jsonPath("$.errors.length()").value(1))
@@ -105,114 +94,51 @@ class SetDatadisConfigEnabledControllerTest extends BaseControllerTest {
         assertStored(communityId, username, baseUrl, password, false);
     }
 
-    static Stream<Arguments> incompleteEnabledConfigurations() {
-        return Stream.of(
-                Arguments.of(USERNAME, BASE_URL, null),
-                Arguments.of(USERNAME, BASE_URL, ""),
-                Arguments.of(" ", BASE_URL, PASSWORD),
-                Arguments.of(USERNAME, " ", PASSWORD)
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("incompleteEnabledConfigurations")
-    @DisplayName("DCF-004 AC4 disabling an incomplete enabled configuration succeeds and changes only enabled")
-    void disablingIncompleteConfigurationSucceeds(String username, String baseUrl, String password) throws Exception {
-        UUID communityId = createCommunity();
-        seed(communityId, username, baseUrl, password, true);
-
-        setEnabled(communityId, false).andExpect(status().isNoContent());
-
-        assertStored(communityId, username, baseUrl, password, false);
-    }
-
-    @Test
-    @DisplayName("DCF-004 AC5 disabling a community without a configuration is not found and creates none")
-    void disablingWithoutConfigurationIsNotFound() throws Exception {
-        assertNotFoundAndNothingCreated(false);
-    }
-
     @Test
     @DisplayName("DCF-005 AC5 enabling a community without a configuration is not found and creates none")
     void enablingWithoutConfigurationIsNotFound() throws Exception {
-        assertNotFoundAndNothingCreated(true);
+        UUID communityId = createCommunity();
+
+        enable(communityId)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
+                .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.DATADIS_CONFIG_NOT_FOUND.name()));
+
+        assertThat(stored(communityId)).isEmpty();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {
-            "{}",
-            "{\"enabled\": null}",
-            "{\"enabled\": false, \"password\": \"x\"}",
-            "{\"enabled\": \"maybe\"}"
-    })
-    @DisplayName("AC6 an invalid body is rejected and changes nothing")
-    void invalidBodyIsRejected(String body) throws Exception {
-        UUID communityId = createCommunity();
-        seed(communityId, USERNAME, BASE_URL, PASSWORD, true);
-
-        perform(put(String.format(URL_TEMPLATE, communityId))
-                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(communityId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+    @Test
+    @DisplayName("AC6 a community id that is not a UUID is rejected")
+    void malformedCommunityIdIsRejected() throws Exception {
+        perform(post(String.format(URL_TEMPLATE, "not-a-uuid"))
+                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(createCommunity())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
-
-        assertStored(communityId, USERNAME, BASE_URL, PASSWORD, true);
     }
 
     @Test
-    @DisplayName("AC6 a request without a body is rejected")
-    void missingBodyIsRejected() throws Exception {
-        UUID communityId = createCommunity();
-        seed(communityId, USERNAME, BASE_URL, PASSWORD, true);
-
-        perform(put(String.format(URL_TEMPLATE, communityId))
-                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(communityId))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-
-        assertStored(communityId, USERNAME, BASE_URL, PASSWORD, true);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
     @DisplayName("AC7 without a token the request is unauthorized, like the configuration write, and changes nothing")
-    void withoutTokenIsUnauthorized(boolean enabled) throws Exception {
-        assertSameStatusAsConfigurationWrite(createCommunity(), null, enabled, HttpStatus.UNAUTHORIZED);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("AC7 a caller who is not a member of the community gets not-found, like the configuration write, and changes nothing")
-    void nonMemberGetsNotFound(boolean enabled) throws Exception {
-        assertSameStatusAsConfigurationWrite(createCommunity(), loginAsPartner(), enabled, HttpStatus.NOT_FOUND);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("AC7 a member who is not a community admin is forbidden, like the configuration write, and changes nothing")
-    void memberWithoutAdminRoleIsForbidden(boolean enabled) throws Exception {
-        UUID communityId = createCommunity();
-        assertSameStatusAsConfigurationWrite(communityId, loginAsCommunityMember(communityId), enabled, HttpStatus.FORBIDDEN);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("AC7 a platform admin who is not a member is forbidden, like the configuration write, and changes nothing")
-    void platformAdminWithoutMembershipIsForbidden(boolean enabled) throws Exception {
-        assertSameStatusAsConfigurationWrite(createCommunity(), loginAsDefaultPlatformAdmin(), enabled,
-                HttpStatus.FORBIDDEN);
+    void withoutTokenIsUnauthorized() throws Exception {
+        assertSameStatusAsConfigurationWrite(createCommunity(), null, HttpStatus.UNAUTHORIZED);
     }
 
     @Test
-    @DisplayName("DCF-004 disabling an already disabled configuration succeeds")
-    void disablingDisabledConfigurationSucceeds() throws Exception {
+    @DisplayName("AC7 a caller who is not a member of the community gets not-found, like the configuration write, and changes nothing")
+    void nonMemberGetsNotFound() throws Exception {
+        assertSameStatusAsConfigurationWrite(createCommunity(), loginAsPartner(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("AC7 a member who is not a community admin is forbidden, like the configuration write, and changes nothing")
+    void memberWithoutAdminRoleIsForbidden() throws Exception {
         UUID communityId = createCommunity();
-        seed(communityId, USERNAME, BASE_URL, PASSWORD, false);
+        assertSameStatusAsConfigurationWrite(communityId, loginAsCommunityMember(communityId), HttpStatus.FORBIDDEN);
+    }
 
-        setEnabled(communityId, false).andExpect(status().isNoContent());
-
-        assertStored(communityId, USERNAME, BASE_URL, PASSWORD, false);
+    @Test
+    @DisplayName("AC7 a platform admin who is not a member is forbidden, like the configuration write, and changes nothing")
+    void platformAdminWithoutMembershipIsForbidden() throws Exception {
+        assertSameStatusAsConfigurationWrite(createCommunity(), loginAsDefaultPlatformAdmin(), HttpStatus.FORBIDDEN);
     }
 
     @Test
@@ -221,24 +147,23 @@ class SetDatadisConfigEnabledControllerTest extends BaseControllerTest {
         UUID communityId = createCommunity();
         seed(communityId, USERNAME, BASE_URL, PASSWORD, true);
 
-        setEnabled(communityId, true).andExpect(status().isNoContent());
+        enable(communityId).andExpect(status().isNoContent());
 
         assertStored(communityId, USERNAME, BASE_URL, PASSWORD, true);
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("DCF-004 DCF-005 setting one community's configuration leaves another community's untouched")
-    void otherCommunityIsUntouched(boolean enabled) throws Exception {
+    @Test
+    @DisplayName("DCF-005 enabling one community's configuration leaves another community's untouched")
+    void otherCommunityIsUntouched() throws Exception {
         UUID communityId = createCommunity();
         UUID otherCommunityId = createCommunity();
-        seed(communityId, USERNAME, BASE_URL, PASSWORD, !enabled);
-        seed(otherCommunityId, "otherUser", BASE_URL, "otherPassword", !enabled);
+        seed(communityId, USERNAME, BASE_URL, PASSWORD, false);
+        seed(otherCommunityId, "otherUser", BASE_URL, "otherPassword", false);
 
-        setEnabled(communityId, enabled).andExpect(status().isNoContent());
+        enable(communityId).andExpect(status().isNoContent());
 
-        assertStored(communityId, USERNAME, BASE_URL, PASSWORD, enabled);
-        assertStored(otherCommunityId, "otherUser", BASE_URL, "otherPassword", !enabled);
+        assertStored(communityId, USERNAME, BASE_URL, PASSWORD, true);
+        assertStored(otherCommunityId, "otherUser", BASE_URL, "otherPassword", false);
     }
 
     @ParameterizedTest
@@ -251,7 +176,7 @@ class SetDatadisConfigEnabledControllerTest extends BaseControllerTest {
         UUID communityId = createCommunity();
         seed(communityId, USERNAME, baseUrl, PASSWORD, false);
 
-        setEnabled(communityId, true)
+        enable(communityId)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.DATADIS_CONFIG_INCOMPLETE.name()))
                 .andExpect(jsonPath("$.errors[0].params.missingFields").value("baseUrl"));
@@ -268,46 +193,33 @@ class SetDatadisConfigEnabledControllerTest extends BaseControllerTest {
         UUID communityId = createCommunity();
         seed(communityId, USERNAME, baseUrl, PASSWORD, false);
 
-        setEnabled(communityId, true).andExpect(status().isNoContent());
+        enable(communityId).andExpect(status().isNoContent());
         assertStored(communityId, USERNAME, baseUrl, PASSWORD, true);
-    }
-
-    private void assertNotFoundAndNothingCreated(boolean enabled) throws Exception {
-        UUID communityId = createCommunity();
-
-        setEnabled(communityId, enabled)
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
-                .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.DATADIS_CONFIG_NOT_FOUND.name()));
-
-        assertThat(stored(communityId)).isEmpty();
     }
 
     /**
      * The configuration write runs first and is rejected, so the two answers are compared over the same,
      * unchanged configuration.
      */
-    private void assertSameStatusAsConfigurationWrite(UUID communityId, String authHeader, boolean enabled,
-                                                      HttpStatus expected) throws Exception {
-        seed(communityId, USERNAME, BASE_URL, PASSWORD, !enabled);
+    private void assertSameStatusAsConfigurationWrite(UUID communityId, String authHeader, HttpStatus expected)
+            throws Exception {
+        seed(communityId, USERNAME, BASE_URL, PASSWORD, false);
 
         MockHttpServletRequestBuilder configurationWrite = put(String.format(CONFIG_URL_TEMPLATE, communityId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": %s}
-                        """.formatted(BASE_URL, enabled));
-        MockHttpServletRequestBuilder enabledWrite = put(String.format(URL_TEMPLATE, communityId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"enabled\": " + enabled + "}");
+                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": true}
+                        """.formatted(BASE_URL));
+        MockHttpServletRequestBuilder enableRequest = post(String.format(URL_TEMPLATE, communityId));
         if (authHeader != null) {
             configurationWrite.header(HttpHeaders.AUTHORIZATION, authHeader);
-            enabledWrite.header(HttpHeaders.AUTHORIZATION, authHeader);
+            enableRequest.header(HttpHeaders.AUTHORIZATION, authHeader);
         }
 
         perform(configurationWrite).andExpect(status().is(expected.value()));
-        perform(enabledWrite).andExpect(status().is(expected.value()));
+        perform(enableRequest).andExpect(status().is(expected.value()));
 
-        assertStored(communityId, USERNAME, BASE_URL, PASSWORD, !enabled);
+        assertStored(communityId, USERNAME, BASE_URL, PASSWORD, false);
     }
 
     private UUID createCommunity() {
@@ -327,11 +239,9 @@ class SetDatadisConfigEnabledControllerTest extends BaseControllerTest {
                 .build());
     }
 
-    private ResultActions setEnabled(UUID communityId, boolean enabled) throws Exception {
-        return perform(put(String.format(URL_TEMPLATE, communityId))
-                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(communityId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"enabled\": " + enabled + "}"));
+    private ResultActions enable(UUID communityId) throws Exception {
+        return perform(post(String.format(URL_TEMPLATE, communityId))
+                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(communityId)));
     }
 
     private ResultActions putConfig(UUID communityId, String baseUrl) throws Exception {

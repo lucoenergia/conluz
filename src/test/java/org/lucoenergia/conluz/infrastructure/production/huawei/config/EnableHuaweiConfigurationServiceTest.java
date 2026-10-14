@@ -9,9 +9,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
+import org.lucoenergia.conluz.domain.production.huawei.config.EnableHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.config.HuaweiConfigIncompleteException;
 import org.lucoenergia.conluz.domain.production.huawei.config.HuaweiConfigNotFoundException;
-import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationEnabledService;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.mockito.Mock;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SetHuaweiConfigurationEnabledServiceTest {
+class EnableHuaweiConfigurationServiceTest {
 
     private static final UUID PLANT_ID = UUID.randomUUID();
     private static final String BASE_URL = "https://fusionsolar.example.com/thirdData";
@@ -39,34 +39,13 @@ class SetHuaweiConfigurationEnabledServiceTest {
     @Mock
     private SetHuaweiConfigurationRepository setHuaweiConfigurationRepository;
 
-    private SetHuaweiConfigurationEnabledService service;
+    private EnableHuaweiConfigurationService service;
 
     @BeforeEach
     void setUp() {
-        service = new SetHuaweiConfigurationEnabledServiceImpl(getHuaweiConfigRepository,
+        service = new EnableHuaweiConfigurationServiceImpl(getHuaweiConfigRepository,
                 setHuaweiConfigurationRepository,
                 new HuaweiBaseUrlValidityImpl(Validation.buildDefaultValidatorFactory().getValidator()));
-    }
-
-    @Test
-    @DisplayName("HCF-004 disabling writes only enabled, without reading the stored configuration")
-    void disablingWritesOnlyEnabled() {
-        when(setHuaweiConfigurationRepository.setEnabled(PLANT_ID, false)).thenReturn(true);
-
-        service.setEnabled(PLANT_ID, false);
-
-        verify(setHuaweiConfigurationRepository).setEnabled(PLANT_ID, false);
-        verifyNoMoreInteractions(setHuaweiConfigurationRepository);
-        verifyNoInteractions(getHuaweiConfigRepository);
-    }
-
-    @Test
-    @DisplayName("HCF-004 disabling a plant without a configuration is not found")
-    void disablingWithoutConfigurationIsNotFound() {
-        when(setHuaweiConfigurationRepository.setEnabled(PLANT_ID, false)).thenReturn(false);
-
-        assertThatThrownBy(() -> service.setEnabled(PLANT_ID, false))
-                .isInstanceOf(HuaweiConfigNotFoundException.class);
     }
 
     @Test
@@ -76,7 +55,7 @@ class SetHuaweiConfigurationEnabledServiceTest {
                 .thenReturn(Optional.of(stored("user", BASE_URL, "secret")));
         when(setHuaweiConfigurationRepository.setEnabled(PLANT_ID, true)).thenReturn(true);
 
-        service.setEnabled(PLANT_ID, true);
+        service.enable(PLANT_ID);
 
         verify(setHuaweiConfigurationRepository).setEnabled(PLANT_ID, true);
         verifyNoMoreInteractions(setHuaweiConfigurationRepository);
@@ -87,7 +66,7 @@ class SetHuaweiConfigurationEnabledServiceTest {
     void enablingWithoutConfigurationIsNotFound() {
         when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.setEnabled(PLANT_ID, true))
+        assertThatThrownBy(() -> service.enable(PLANT_ID))
                 .isInstanceOf(HuaweiConfigNotFoundException.class);
 
         verifyNoInteractions(setHuaweiConfigurationRepository);
@@ -103,7 +82,7 @@ class SetHuaweiConfigurationEnabledServiceTest {
                 all || missing.equals("baseUrl") ? "not-a-url" : BASE_URL,
                 all || missing.equals("password") ? "" : "secret")));
 
-        assertThatThrownBy(() -> service.setEnabled(PLANT_ID, true))
+        assertThatThrownBy(() -> service.enable(PLANT_ID))
                 .isInstanceOfSatisfying(HuaweiConfigIncompleteException.class, e -> assertThat(e.getMissingFields())
                         .containsExactlyElementsOf(all
                                 ? List.of("username", "baseUrl", "password")
@@ -119,7 +98,7 @@ class SetHuaweiConfigurationEnabledServiceTest {
         when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID))
                 .thenReturn(Optional.of(stored("user", baseUrl, "secret")));
 
-        assertThatThrownBy(() -> service.setEnabled(PLANT_ID, true))
+        assertThatThrownBy(() -> service.enable(PLANT_ID))
                 .isInstanceOfSatisfying(HuaweiConfigIncompleteException.class,
                         e -> assertThat(e.getMissingFields()).containsExactly("baseUrl"));
     }
@@ -132,7 +111,7 @@ class SetHuaweiConfigurationEnabledServiceTest {
                 .thenReturn(Optional.of(stored("user", baseUrl, "secret")));
         when(setHuaweiConfigurationRepository.setEnabled(PLANT_ID, true)).thenReturn(true);
 
-        service.setEnabled(PLANT_ID, true);
+        service.enable(PLANT_ID);
 
         verify(setHuaweiConfigurationRepository).setEnabled(PLANT_ID, true);
     }

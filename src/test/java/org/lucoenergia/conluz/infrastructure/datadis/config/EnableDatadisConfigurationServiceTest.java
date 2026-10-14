@@ -9,9 +9,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.EnableDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfigIncompleteException;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfigNotFoundException;
-import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationEnabledService;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.mockito.Mock;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SetDatadisConfigurationEnabledServiceTest {
+class EnableDatadisConfigurationServiceTest {
 
     private static final UUID COMMUNITY_ID = UUID.randomUUID();
     private static final String BASE_URL = "https://datadis.example.com";
@@ -39,34 +39,13 @@ class SetDatadisConfigurationEnabledServiceTest {
     @Mock
     private SetDatadisConfigurationRepository setDatadisConfigurationRepository;
 
-    private SetDatadisConfigurationEnabledService service;
+    private EnableDatadisConfigurationService service;
 
     @BeforeEach
     void setUp() {
-        service = new SetDatadisConfigurationEnabledServiceImpl(getDatadisConfigRepository,
+        service = new EnableDatadisConfigurationServiceImpl(getDatadisConfigRepository,
                 setDatadisConfigurationRepository,
                 new DatadisBaseUrlValidityImpl(Validation.buildDefaultValidatorFactory().getValidator()));
-    }
-
-    @Test
-    @DisplayName("DCF-004 disabling writes only enabled, without reading the stored configuration")
-    void disablingWritesOnlyEnabled() {
-        when(setDatadisConfigurationRepository.setEnabled(COMMUNITY_ID, false)).thenReturn(true);
-
-        service.setEnabled(COMMUNITY_ID, false);
-
-        verify(setDatadisConfigurationRepository).setEnabled(COMMUNITY_ID, false);
-        verifyNoMoreInteractions(setDatadisConfigurationRepository);
-        verifyNoInteractions(getDatadisConfigRepository);
-    }
-
-    @Test
-    @DisplayName("DCF-004 disabling a community without a configuration is not found")
-    void disablingWithoutConfigurationIsNotFound() {
-        when(setDatadisConfigurationRepository.setEnabled(COMMUNITY_ID, false)).thenReturn(false);
-
-        assertThatThrownBy(() -> service.setEnabled(COMMUNITY_ID, false))
-                .isInstanceOf(DatadisConfigNotFoundException.class);
     }
 
     @Test
@@ -76,7 +55,7 @@ class SetDatadisConfigurationEnabledServiceTest {
                 .thenReturn(Optional.of(stored("user", BASE_URL, "secret")));
         when(setDatadisConfigurationRepository.setEnabled(COMMUNITY_ID, true)).thenReturn(true);
 
-        service.setEnabled(COMMUNITY_ID, true);
+        service.enable(COMMUNITY_ID);
 
         verify(setDatadisConfigurationRepository).setEnabled(COMMUNITY_ID, true);
         verifyNoMoreInteractions(setDatadisConfigurationRepository);
@@ -87,7 +66,7 @@ class SetDatadisConfigurationEnabledServiceTest {
     void enablingWithoutConfigurationIsNotFound() {
         when(getDatadisConfigRepository.findByCommunityId(COMMUNITY_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.setEnabled(COMMUNITY_ID, true))
+        assertThatThrownBy(() -> service.enable(COMMUNITY_ID))
                 .isInstanceOf(DatadisConfigNotFoundException.class);
 
         verifyNoInteractions(setDatadisConfigurationRepository);
@@ -103,7 +82,7 @@ class SetDatadisConfigurationEnabledServiceTest {
                 all || missing.equals("baseUrl") ? "not-a-url" : BASE_URL,
                 all || missing.equals("password") ? "" : "secret")));
 
-        assertThatThrownBy(() -> service.setEnabled(COMMUNITY_ID, true))
+        assertThatThrownBy(() -> service.enable(COMMUNITY_ID))
                 .isInstanceOfSatisfying(DatadisConfigIncompleteException.class, e -> assertThat(e.getMissingFields())
                         .containsExactlyElementsOf(all
                                 ? List.of("username", "baseUrl", "password")
@@ -119,7 +98,7 @@ class SetDatadisConfigurationEnabledServiceTest {
         when(getDatadisConfigRepository.findByCommunityId(COMMUNITY_ID))
                 .thenReturn(Optional.of(stored("user", baseUrl, "secret")));
 
-        assertThatThrownBy(() -> service.setEnabled(COMMUNITY_ID, true))
+        assertThatThrownBy(() -> service.enable(COMMUNITY_ID))
                 .isInstanceOfSatisfying(DatadisConfigIncompleteException.class,
                         e -> assertThat(e.getMissingFields()).containsExactly("baseUrl"));
     }
@@ -132,7 +111,7 @@ class SetDatadisConfigurationEnabledServiceTest {
                 .thenReturn(Optional.of(stored("user", baseUrl, "secret")));
         when(setDatadisConfigurationRepository.setEnabled(COMMUNITY_ID, true)).thenReturn(true);
 
-        service.setEnabled(COMMUNITY_ID, true);
+        service.enable(COMMUNITY_ID);
 
         verify(setDatadisConfigurationRepository).setEnabled(COMMUNITY_ID, true);
     }
