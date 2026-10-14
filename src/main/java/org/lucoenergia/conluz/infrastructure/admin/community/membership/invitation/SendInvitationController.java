@@ -46,7 +46,7 @@ public class SendInvitationController {
         this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
-    @PostMapping("/{userId}/invitation")
+    @PostMapping("/{userId}/invite")
     @Operation(
             summary = "Invites a registered member to accept their membership.",
             description = """

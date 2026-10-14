@@ -268,7 +268,7 @@ class SendInvitationControllerTest extends BaseRegisterMemberTest {
         Map<String, Object> body = newRecord();
         UUID userId = registered(loginAsAdminOf(community), community.getId(), body);
 
-        mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/{userId}/invitation",
+        mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/{userId}/invite",
                         community.getId(), userId))
                 .andExpect(status().isUnauthorized());
 

@@ -228,7 +228,7 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     // --- Inviting ---
 
     protected ResultActions invite(String bearer, UUID communityId, UUID userId) throws Exception {
-        return mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/{userId}/invitation",
+        return mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/{userId}/invite",
                 communityId, userId)
                 .header(HttpHeaders.AUTHORIZATION, bearer));
     }
