@@ -165,6 +165,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canManage", capabilities.isCanManage(), () -> guard.canManageCommunity(id));
             assertSame("canManageMemberships", capabilities.isCanManageMemberships(),
                     () -> guard.canManageMemberships(id));
+            assertSame("canRegisterMembers", capabilities.isCanRegisterMembers(),
+                    () -> guard.canRegisterMembers(id));
             assertSame("canManageMembershipInvestment", capabilities.isCanManageMembershipInvestment(),
                     () -> guard.canManageMembershipInvestment(id));
             assertSame("canListPlants", capabilities.isCanListPlants(), () -> guard.canListPlants(id));
@@ -324,6 +326,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
                     () -> guard.canManageMembershipInvestment(communityId));
             assertSame("canReadPayback", capabilities.isCanReadPayback(),
                     () -> guard.canReadMembershipPrivateData(communityId, userId));
+            assertSame("canInvite", capabilities.isCanInvite(),
+                    () -> guard.canInviteMembers(communityId));
         });
     }
 

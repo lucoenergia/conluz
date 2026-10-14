@@ -199,7 +199,7 @@ Table "supply_partition_coefficient" {
 Table "users" {
   "id" uuid [pk, not null]
   "personal_id" "character varying(250)" [unique, not null]
-  "number" integer [not null]
+  "number" integer
   "password" "character varying(250)"
   "full_name" "character varying(250)" [not null]
   "address" "character varying(250)"

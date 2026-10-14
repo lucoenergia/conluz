@@ -34,6 +34,7 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanDelete());
         assertTrue(capabilities.isCanManageInvestment());
         assertTrue(capabilities.isCanReadPayback());
+        assertTrue(capabilities.isCanInvite());
     }
 
     /**
@@ -53,6 +54,7 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanUpdateRole());
         assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanManageInvestment());
+        assertFalse(capabilities.isCanInvite());
     }
 
     @Test
@@ -82,6 +84,7 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanDelete());
         assertFalse(capabilities.isCanManageInvestment());
         assertFalse(capabilities.isCanReadPayback());
+        assertFalse(capabilities.isCanInvite());
     }
 
     @Test

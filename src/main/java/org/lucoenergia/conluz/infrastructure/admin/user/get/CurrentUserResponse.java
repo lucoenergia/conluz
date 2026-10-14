@@ -37,6 +37,7 @@ public class CurrentUserResponse {
 
     private final UUID id;
     private final String personalId;
+    @Schema(types = {"integer", "null"})
     private final Integer number;
     private final String fullName;
     @Schema(types = {"string", "null"})

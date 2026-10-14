@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.email.EmailAddresses;
@@ -76,8 +77,42 @@ public class CreateMembershipRepositoryDatabase implements CreateMembershipRepos
                 .withAcceptedAt(clock.instant())
                 .build();
 
-        CommunityMembershipEntity saved = membershipJpaRepository.save(entity);
+        return toMembership(membershipJpaRepository.save(entity), userEntity, communityEntity);
+    }
 
+    @Override
+    public CommunityMembership createPending(UUID communityId, UserId userId, MemberRecord record,
+                                             UserId invitedBy) {
+        CommunityEntity communityEntity = communityJpaRepository.findById(communityId)
+                .orElseThrow(() -> new CommunityNotFoundException(communityId));
+        UserEntity userEntity = userRepository.findById(userId.getId())
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (membershipJpaRepository.existsByUserIdAndCommunityId(userId.getId(), communityId)) {
+            throw new MembershipAlreadyExistsException(communityId, userId.getId());
+        }
+
+        // Pending until the member accepts the invitation; the record is the community's own, not a copy of
+        // the account's data.
+        CommunityMembershipEntity entity = new CommunityMembershipEntity.Builder()
+                .withId(UUID.randomUUID())
+                .withUser(userEntity)
+                .withCommunity(communityEntity)
+                .withRole(CommunityRole.COMMUNITY_MEMBER)
+                .withEnabled(true)
+                .withFullName(record.fullName())
+                .withMemberNumber(record.memberNumber())
+                .withContactEmail(record.contactEmail())
+                .withAddress(record.address())
+                .withPhoneNumber(record.phoneNumber())
+                .withInvitedBy(invitedBy.getId())
+                .build();
+
+        return toMembership(membershipJpaRepository.saveAndFlush(entity), userEntity, communityEntity);
+    }
+
+    private CommunityMembership toMembership(CommunityMembershipEntity saved, UserEntity userEntity,
+                                             CommunityEntity communityEntity) {
         return new CommunityMembership.Builder()
                 .withId(saved.getId())
                 .withUser(userEntity.getUser())

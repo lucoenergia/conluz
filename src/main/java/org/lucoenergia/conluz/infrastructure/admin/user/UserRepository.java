@@ -27,6 +27,22 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     @Query(value = "SELECT id FROM users WHERE id = :userId FOR NO KEY UPDATE", nativeQuery = true)
     Optional<UUID> lockById(@Param("userId") UUID userId);
 
+    /**
+     * Inserts an account without a password, without a number and without having to change its password,
+     * unless the personal id is already taken. When a concurrent transaction is inserting the same personal id,
+     * waits for it: if it commits, nothing is inserted.
+     *
+     * @return the id of the inserted account, or empty if the personal id was already taken
+     */
+    @Query(value = "INSERT INTO users (id, personal_id, number, password, full_name, address, phone_number, email, "
+            + "enabled, is_platform_admin, must_change_password) "
+            + "VALUES (:id, :personalId, NULL, NULL, :fullName, NULL, NULL, CAST(:email AS VARCHAR), true, false, false) "
+            + "ON CONFLICT ON CONSTRAINT users_personal_id_uq DO NOTHING RETURNING id", nativeQuery = true)
+    Optional<UUID> insertWithoutPasswordUnlessPersonalIdExists(@Param("id") UUID id,
+                                                               @Param("personalId") String personalId,
+                                                               @Param("fullName") String fullName,
+                                                               @Param("email") String email);
+
     Optional<UserEntity> findFirstByNumber(int number);
 
     boolean existsByPersonalId(String personalId);

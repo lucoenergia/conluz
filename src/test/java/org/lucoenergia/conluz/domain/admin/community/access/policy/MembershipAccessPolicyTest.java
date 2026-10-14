@@ -61,7 +61,93 @@ class MembershipAccessPolicyTest {
                 policy.canManageMemberships(PolicyFixtures.adminOf(PolicyFixtures.community()), null));
     }
 
-    // --- canManageInvestment ---
+    // --- canRegisterMembers ---
+    // Only an active community admin of the community: no platform-admin bypass.
+
+    @Test
+    void canRegisterMembers_allows_anActiveCommunityAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.ALLOWED,
+                policy.canRegisterMembers(PolicyFixtures.adminOf(community), community.getId()));
+    }
+
+    @Test
+    void canRegisterMembers_forbids_aPlatformAdminWhoIsNotACommunityAdminThere() {
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canRegisterMembers(PolicyFixtures.platformAdmin(), UUID.randomUUID()));
+    }
+
+    @Test
+    void canRegisterMembers_forbids_aPlatformAdminWhoIsAPlainMemberThere() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canRegisterMembers(PolicyFixtures.platformAdminMemberOf(community), community.getId()));
+    }
+
+    @Test
+    void canRegisterMembers_forbids_aPlainMember() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canRegisterMembers(PolicyFixtures.memberOf(community), community.getId()));
+    }
+
+    @Test
+    void canRegisterMembers_isNotVisible_forAPendingAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canRegisterMembers(PolicyFixtures.pendingAdminOf(community), community.getId()));
+    }
+
+    @Test
+    void canRegisterMembers_isNotVisible_forADisabledAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canRegisterMembers(PolicyFixtures.disabledAdminOf(community), community.getId()));
+    }
+
+    @Test
+    void canRegisterMembers_isNotVisible_forAnAdminOfAnotherCommunity() {
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canRegisterMembers(PolicyFixtures.adminOf(PolicyFixtures.community()), UUID.randomUUID()));
+    }
+
+    // --- canInviteMembers ---
+    // The same callers as canRegisterMembers.
+
+    @Test
+    void canInviteMembers_allows_anActiveCommunityAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.ALLOWED,
+                policy.canInviteMembers(PolicyFixtures.adminOf(community), community.getId()));
+    }
+
+    @Test
+    void canInviteMembers_forbids_aPlatformAdminWhoIsNotACommunityAdminThere() {
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canInviteMembers(PolicyFixtures.platformAdmin(), UUID.randomUUID()));
+    }
+
+    @Test
+    void canInviteMembers_forbids_aPlainMember() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canInviteMembers(PolicyFixtures.memberOf(community), community.getId()));
+    }
+
+    @Test
+    void canInviteMembers_isNotVisible_forAPendingAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canInviteMembers(PolicyFixtures.pendingAdminOf(community), community.getId()));
+    }
+
+    @Test
+    void canInviteMembers_isNotVisible_forAnAdminOfAnotherCommunity() {
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canInviteMembers(PolicyFixtures.adminOf(PolicyFixtures.community()), UUID.randomUUID()));
+    }
+
+        // --- canManageInvestment ---
     // No platform-admin bypass, and no forbidden-by-role outcome: a caller who is not an enabled
     // community admin here is told the community is not there.
 

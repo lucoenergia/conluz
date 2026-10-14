@@ -9,6 +9,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.UserNumberRequiredException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyViolation;
 import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyViolationException;
@@ -51,6 +52,17 @@ public class CreateUserRepositoryImplTest extends BaseIntegrationTest {
                 () -> repository.create(user));
 
         Assertions.assertEquals(PasswordPolicyViolation.TOO_SHORT, refusal.getRule());
+        Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).isEmpty());
+    }
+
+    @Test
+    @DisplayName("ACC-004 a user without a number is refused, and nothing is stored")
+    void aUserWithoutANumber_isRefused_andNothingIsStored() {
+        User user = UserMother.randomUser();
+        user.setNumber(null);
+
+        Assertions.assertThrows(UserNumberRequiredException.class, () -> repository.create(user));
+
         Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).isEmpty());
     }
 

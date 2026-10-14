@@ -128,6 +128,14 @@ public class CommunityMembership {
         return acceptedAt != null && Boolean.TRUE.equals(enabled);
     }
 
+    /**
+     * Whether the membership is pending: it has not been accepted. Independent of whether it is enabled
+     * (ADR-0003 §2).
+     */
+    public boolean isPending() {
+        return acceptedAt == null;
+    }
+
     public UUID getInvitedBy() {
         return invitedBy;
     }
