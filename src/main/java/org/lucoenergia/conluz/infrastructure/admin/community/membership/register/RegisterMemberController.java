@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.register.Registe
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -33,7 +34,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(
-        value = "/api/v1/communities/{communityId}/members",
+        value = "/api/v1/communities/{communityId}/memberships/register",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
 )
@@ -57,9 +58,9 @@ public class RegisterMemberController {
                     grants no access until the member accepts it. Only an active community admin of the \
                     community may register members; a platform admin may not.
 
-                    If the member record has a contact email, the member is emailed an invitation to accept the \
-                    membership. The link is valid for 7 days. No invitation is sent when there is no contact \
-                    email, or when the server has no public web URL configured; `invitedAt` then stays null.
+                    Nothing is sent to the member: registering only records them. Invite them with \
+                    `sendInvitation` once the community is ready for them to join; until then `invitedAt` stays \
+                    null.
 
                     The response is the same whether or not the person already had an account, and carries \
                     nothing from it. Registering someone who already has a membership in this community, in any \
@@ -115,6 +116,7 @@ public class RegisterMemberController {
                                          @Valid @RequestBody RegisterMemberBody body) {
         RegisteredMember member = service.register(communityId, UserId.of(currentUser.getId()),
                 body.toPersonalId(), body.toMemberRecord());
-        return new MemberResponse(member, capabilitiesAssembler.assemble(currentUser, member.membership()));
+        return new MemberResponse(member.personalId(), member.membership(),
+                capabilitiesAssembler.assemble(currentUser, member.membership()));
     }
 }

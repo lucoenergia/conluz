@@ -3,7 +3,9 @@ package org.lucoenergia.conluz.infrastructure.admin.community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyInvitedException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
@@ -102,5 +104,40 @@ public class CommunityExceptionHandler {
         );
         return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_ALREADY_EXISTS,
                 Map.of("userId", userId, "communityId", communityId), HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 409: the membership has already been sent its invitation, and sending another one is a resend (#393).
+     */
+    @ExceptionHandler(MembershipAlreadyInvitedException.class)
+    public ResponseEntity<RestError> handleException(MembershipAlreadyInvitedException e) {
+        String userId = e.getUserId() != null ? e.getUserId().toString() : "";
+        String communityId = e.getCommunityId() != null ? e.getCommunityId().toString() : "";
+
+        String message = messageSource.getMessage(
+                "error.membership.already.invited",
+                List.of(userId, communityId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_ALREADY_INVITED,
+                Map.of("userId", userId, "communityId", communityId), HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 400: the member record has no contact email to send the invitation to. Adding one to the record is what
+     * the caller has to change.
+     */
+    @ExceptionHandler(MembershipWithoutContactEmailException.class)
+    public ResponseEntity<RestError> handleException(MembershipWithoutContactEmailException e) {
+        String userId = e.getUserId() != null ? e.getUserId().toString() : "";
+        String communityId = e.getCommunityId() != null ? e.getCommunityId().toString() : "";
+
+        String message = messageSource.getMessage(
+                "error.membership.without.contact.email",
+                List.of(userId, communityId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_WITHOUT_CONTACT_EMAIL,
+                Map.of("userId", userId, "communityId", communityId), HttpStatus.BAD_REQUEST);
     }
 }

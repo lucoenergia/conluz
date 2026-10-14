@@ -12,9 +12,9 @@ import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembership
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.CreateMembershipRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.GetMembershipsRepositoryDatabase;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.MembershipResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.UpdateMembershipInvitationRepositoryDatabase;
-import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.MemberResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.UpdateMembershipRoleRepositoryDatabase;
 import org.springframework.data.jpa.repository.Query;
 

@@ -5,7 +5,6 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
-import org.lucoenergia.conluz.domain.admin.community.membership.invitation.SendInvitationService;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisterMemberService;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisteredMember;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -19,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -33,20 +31,17 @@ public class RegisterMemberServiceImpl implements RegisterMemberService {
     private final CreatePasswordlessUserRepository createPasswordlessUserRepository;
     private final LockUserRepository lockUserRepository;
     private final CreateMembershipRepository createMembershipRepository;
-    private final SendInvitationService sendInvitationService;
 
     public RegisterMemberServiceImpl(GetCommunityRepository getCommunityRepository,
                                      GetUserRepository getUserRepository,
                                      CreatePasswordlessUserRepository createPasswordlessUserRepository,
                                      LockUserRepository lockUserRepository,
-                                     CreateMembershipRepository createMembershipRepository,
-                                     SendInvitationService sendInvitationService) {
+                                     CreateMembershipRepository createMembershipRepository) {
         this.getCommunityRepository = getCommunityRepository;
         this.getUserRepository = getUserRepository;
         this.createPasswordlessUserRepository = createPasswordlessUserRepository;
         this.lockUserRepository = lockUserRepository;
         this.createMembershipRepository = createMembershipRepository;
-        this.sendInvitationService = sendInvitationService;
     }
 
     @Override
@@ -71,13 +66,9 @@ public class RegisterMemberServiceImpl implements RegisterMemberService {
         CommunityMembership membership = createMembershipRepository.createPending(communityId, userId, record,
                 registeredBy);
 
-        Optional<CommunityMembership> invited = record.hasContactEmail()
-                ? sendInvitationService.send(membership)
-                : Optional.empty();
+        LOGGER.info("Member registered: personalId={}, communityId={}", UserPersonalId.mask(normalized),
+                communityId);
 
-        LOGGER.info("Member registered: personalId={}, communityId={}, invitationSent={}",
-                UserPersonalId.mask(normalized), communityId, invited.isPresent());
-
-        return new RegisteredMember(normalized, invited.orElse(membership));
+        return new RegisteredMember(normalized, membership);
     }
 }

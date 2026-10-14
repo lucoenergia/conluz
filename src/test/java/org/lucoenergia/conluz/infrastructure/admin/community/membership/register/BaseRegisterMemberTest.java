@@ -46,17 +46,18 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.clearInvocations;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Registering a member against the real database and an embedded SMTP server (#392).
+ * Registering and inviting a member against the real database and an embedded SMTP server (#392).
  *
  * <p>Nothing runs in a test transaction: emails are handed over only once the request's transaction commits, and
  * concurrent registrations must see each other's rows. Every community and user a test creates or registers is
  * deleted afterwards. Every test also checks that no log line contains a token, its hash or an email address.</p>
  *
- * <p>The subclasses differ only in the public web URL they configure.</p>
+ * <p>The subclasses differ in the public web URL they configure and in the endpoint they exercise.</p>
  */
-abstract class BaseRegisterMemberTest extends BaseControllerTest {
+public abstract class BaseRegisterMemberTest extends BaseControllerTest {
 
     protected static final String PUBLIC_WEB_URL = "https://web.test";
     protected static final long DELIVERY_MILLIS = 10_000;
@@ -208,10 +209,28 @@ abstract class BaseRegisterMemberTest extends BaseControllerTest {
         if (body.get("personalId") instanceof String personalId) {
             personalIds.add(UserPersonalId.normalize(personalId));
         }
-        return mockMvc.perform(post("/api/v1/communities/{communityId}/members", communityId)
+        return mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/register", communityId)
                 .header(HttpHeaders.AUTHORIZATION, bearer)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(body)));
+    }
+
+    /**
+     * Registers a member with {@code body} and returns their user id.
+     */
+    protected UUID registered(String bearer, UUID communityId, Map<String, Object> body) throws Exception {
+        String response = register(bearer, communityId, body)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return UUID.fromString(objectMapper.readTree(response).get("user").get("id").asText());
+    }
+
+    // --- Inviting ---
+
+    protected ResultActions invite(String bearer, UUID communityId, UUID userId) throws Exception {
+        return mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/{userId}/invitation",
+                communityId, userId)
+                .header(HttpHeaders.AUTHORIZATION, bearer));
     }
 
     // --- Rows ---

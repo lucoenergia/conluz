@@ -1,8 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.register;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -21,7 +19,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -35,8 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,9 +46,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class RegisterMemberControllerTest extends BaseRegisterMemberTest {
 
-    private static final Pattern LINK = Pattern.compile(
-            Pattern.quote(PUBLIC_WEB_URL + "/accept-invitation#") + "([A-Za-z0-9_-]+)");
-
     @Autowired
     private UserDetailsService userDetailsService;
     @Autowired
@@ -61,7 +53,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
 
     @DynamicPropertySource
     static void publicWebUrl(DynamicPropertyRegistry registry) {
-        // Configured with a trailing slash, which the link must not repeat
+        // Configured, so that nothing being sent is down to registration and not to a missing URL
         registry.add("conluz.web.public-url", () -> PUBLIC_WEB_URL + "/");
     }
 
@@ -88,7 +80,6 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         assertThat(account.get("full_name")).isEqualTo(body.get("fullName"));
         assertThat(account.get("is_platform_admin")).isEqualTo(false);
         assertThat(account.get("enabled")).isEqualTo(true);
-        awaitEmails(1);
     }
 
     @Test
@@ -111,20 +102,19 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
                 .andExpect(jsonPath("$.phoneNumber").value(body.get("phoneNumber")))
                 .andExpect(jsonPath("$.acceptedAt").isEmpty())
                 .andExpect(jsonPath("$.enabled").value(true))
-                .andExpect(jsonPath("$.invitedAt").value(clock.instant().toString()));
+                .andExpect(jsonPath("$.invitedAt").isEmpty());
 
         Map<String, Object> membership = membershipRow(personalId, community.getId());
         assertThat(membership.get("role")).isEqualTo("COMMUNITY_MEMBER");
         assertThat(membership.get("accepted_at")).isNull();
         assertThat(membership.get("enabled")).isEqualTo(true);
         assertThat(membership.get("invited_by")).isEqualTo(admin.getId());
-        assertThat(((Timestamp) membership.get("invited_at")).toInstant()).isEqualTo(clock.instant());
+        assertThat(membership.get("invited_at")).isNull();
         assertThat(membership.get("full_name")).isEqualTo(body.get("fullName"));
         assertThat(membership.get("member_number")).isEqualTo(body.get("memberNumber"));
         assertThat(membership.get("contact_email")).isEqualTo(body.get("contactEmail"));
         assertThat(membership.get("address")).isEqualTo(body.get("address"));
         assertThat(membership.get("phone_number")).isEqualTo(body.get("phoneNumber"));
-        awaitEmails(1);
     }
 
     @Test
@@ -156,39 +146,21 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
     }
 
     @Test
-    @DisplayName("MEM-009 a new DNI with a contact email is sent one invitation there, with the token only in the "
-            + "fragment of the link")
-    void aNewDniWithAContactEmail_isSentOneInvitation() throws Exception {
+    @DisplayName("MEM-007 registration issues no token and sends nothing, even when the record has a contact email")
+    void registration_sendsNothing() throws Exception {
         Community community = newCommunity();
         Map<String, Object> body = newRecord();
         String personalId = (String) body.get("personalId");
 
         String response = register(loginAsAdminOf(community), community.getId(), body)
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contactEmail").value(body.get("contactEmail")))
+                .andExpect(jsonPath("$.invitedAt").isEmpty())
                 .andReturn().getResponse().getContentAsString();
 
-        MimeMessage email = awaitEmails(1)[0];
-        assertThat(email.getAllRecipients()).containsExactly(new InternetAddress((String) body.get("contactEmail")));
-        assertThat(email.getSubject()).isEqualTo("Te han invitado a " + community.getName() + " en Conluz");
-        String text = bodyOf(email);
-        assertThat(text).contains(community.getName());
-        assertThat(text).contains("El enlace es válido durante 7 días");
-        String token = tokenFrom(text);
-        // The token appears once, after the '#': never in the path or a query
-        assertThat(text.indexOf(token)).isEqualTo(text.indexOf(PUBLIC_WEB_URL + "/accept-invitation#")
-                + (PUBLIC_WEB_URL + "/accept-invitation#").length());
-        assertThat(text.indexOf(token)).isEqualTo(text.lastIndexOf(token));
-        assertThat(text).doesNotContain("?");
-
-        List<Map<String, Object>> tokens = tokenRows(personalId);
-        assertThat(tokens).hasSize(1);
-        assertThat(tokens.get(0).get("purpose")).isEqualTo("INVITATION");
-        assertThat(tokens.get(0).get("token_hash")).isEqualTo(sha256(token));
-        assertThat(tokens.get(0).get("membership_id"))
-                .isEqualTo(membershipRow(personalId, community.getId()).get("id"));
-        assertThat(((Timestamp) tokens.get(0).get("expires_at")).toInstant())
-                .isEqualTo(clock.instant().plus(java.time.Duration.ofDays(7)));
-        // AC7: the response carries neither the token nor its hash
+        assertThat(tokenCount(personalId)).isZero();
+        assertThat(membershipRow(personalId, community.getId()).get("invited_at")).isNull();
+        verify(emailSender, never()).send(any());
         assertNoSecretIn(response.replace((String) body.get("contactEmail"), ""));
     }
 
@@ -215,13 +187,16 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         String forExisting = register(bearer, community.getId(), existingBody)
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 
-        // Apart from the ids and what was typed differently, the two responses are the same bytes
+        // Apart from the ids, which are random either way, and what was typed differently, the two responses are
+        // the same bytes
         String comparableNew = forNew
                 .replace(json(forNew).get("id").asText(), "<id>")
+                .replace(json(forNew).get("user").get("id").asText(), "<userId>")
                 .replace((String) newBody.get("personalId"), "<personalId>")
                 .replace((String) newBody.get("contactEmail"), "<contactEmail>");
         String comparableExisting = forExisting
                 .replace(json(forExisting).get("id").asText(), "<id>")
+                .replace(json(forExisting).get("user").get("id").asText(), "<userId>")
                 .replace(existing.getPersonalId(), "<personalId>")
                 .replace((String) existingBody.get("contactEmail"), "<contactEmail>");
         assertThat(comparableExisting).isEqualTo(comparableNew);
@@ -237,15 +212,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         assertThat(accountRow(existing.getPersonalId())).isEqualTo(accountBefore);
         assertThat(accountCount(existing.getPersonalId())).isEqualTo(1);
 
-        // The invitation goes to the contact email entered, never to the account's email
-        MimeMessage[] emails = awaitEmails(2);
-        List<String> recipients = new ArrayList<>();
-        for (MimeMessage email : emails) {
-            recipients.add(((InternetAddress) email.getAllRecipients()[0]).getAddress());
-        }
-        assertThat(recipients).containsExactlyInAnyOrder((String) newBody.get("contactEmail"),
-                (String) existingBody.get("contactEmail"));
-        assertThat(recipients).doesNotContain(existing.getEmail());
+        verify(emailSender, never()).send(any());
     }
 
     @Test
@@ -285,7 +252,6 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         assertThat(bothLookedUp.getCount()).isZero();
         assertThat(accountCount(personalId)).isEqualTo(1);
         assertThat(membershipCount(personalId)).isEqualTo(2);
-        awaitEmails(2);
     }
 
     // --- AC3: a DNI already in this community ---
@@ -298,7 +264,6 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         Map<String, Object> body = newRecord();
         String personalId = (String) body.get("personalId");
         register(bearer, community.getId(), body).andExpect(status().isOk());
-        awaitEmails(1);
         Map<String, Object> accountBefore = accountRow(personalId);
         Map<String, Object> membershipBefore = membershipRow(personalId, community.getId());
         org.mockito.Mockito.clearInvocations(emailSender);
@@ -313,7 +278,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         assertThat(accountRow(personalId)).isEqualTo(accountBefore);
         assertThat(membershipRow(personalId, community.getId())).isEqualTo(membershipBefore);
         assertThat(membershipCount(personalId)).isEqualTo(1);
-        assertThat(tokenCount(personalId)).isEqualTo(1);
+        assertThat(tokenCount(personalId)).isZero();
         verify(emailSender, never()).send(any());
         assertNoSecretIn(response);
     }
@@ -343,8 +308,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
     // --- AC4: no contact email ---
 
     @Test
-    @DisplayName("MEM-009 without a contact email no token is issued, no email is sent and the invitation instant "
-            + "stays empty")
+    @DisplayName("MEM-007 without a contact email the record and the account have no email, and nothing is sent")
     void withoutAContactEmail_nothingIsSent() throws Exception {
         Community community = newCommunity();
         Map<String, Object> body = newRecord();
@@ -362,8 +326,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         verify(emailSender, never()).send(any());
         assertThat(logs.allOfThisThread()).anySatisfy(event ->
                 assertThat(event.getFormattedMessage()).isEqualTo("Member registered: personalId="
-                        + UserPersonalId.mask(personalId) + ", communityId=" + community.getId()
-                        + ", invitationSent=false"));
+                        + UserPersonalId.mask(personalId) + ", communityId=" + community.getId()));
     }
 
     // --- AC5: a pending member ---
@@ -376,7 +339,6 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         Map<String, Object> body = newRecord();
         String personalId = (String) body.get("personalId");
         register(bearer, community.getId(), body).andExpect(status().isOk());
-        awaitEmails(1);
 
         User registered = (User) userDetailsService.loadUserByUsername(personalId);
         SecurityContextHolder.getContext().setAuthentication(
@@ -465,7 +427,7 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
         Community community = newCommunity();
         Map<String, Object> body = newRecord();
 
-        mockMvc.perform(post("/api/v1/communities/{communityId}/members", community.getId())
+        mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/register", community.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isUnauthorized());
@@ -544,20 +506,22 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
                 .andReturn().getResponse().getContentAsString();
 
         JsonNode json = json(response);
-        assertThat(fieldNames(json)).isEqualTo(new TreeSet<>(Set.of("id", "community", "role", "personalId",
+        assertThat(fieldNames(json)).isEqualTo(new TreeSet<>(Set.of("id", "user", "community", "role", "personalId",
                 "fullName", "memberNumber", "contactEmail", "address", "phoneNumber", "acceptedAt", "enabled",
                 "invitedAt", "capabilities")));
+        assertThat(fieldNames(json.get("user"))).isEqualTo(new TreeSet<>(Set.of("id")));
+        assertThat(json.get("user").get("id").asText())
+                .isEqualTo(accountRow(json.get("personalId").asText()).get("id").toString());
         assertThat(fieldNames(json.get("community"))).isEqualTo(new TreeSet<>(Set.of("id", "name")));
         assertThat(fieldNames(json.get("capabilities"))).isEqualTo(new TreeSet<>(Set.of("canUpdateRole", "canDelete",
-                "canManageInvestment", "canReadPayback")));
-        awaitEmails(1);
+                "canManageInvestment", "canReadPayback", "canInvite")));
     }
 
     // --- Logging ---
 
     @Test
-    @DisplayName("MEM-008 one line is logged per registration, with the masked DNI and whether an invitation was "
-            + "sent, and nothing about the account")
+    @DisplayName("MEM-008 one line is logged per registration, with the masked DNI and the community, and nothing "
+            + "about the account")
     void oneLineIsLogged_withTheMaskedDni() throws Exception {
         Community community = newCommunity();
         User existing = newUser();
@@ -573,23 +537,13 @@ class RegisterMemberControllerTest extends BaseRegisterMemberTest {
                 .satisfies(event -> {
                     assertThat(event.getLevel().toString()).isEqualTo("INFO");
                     assertThat(event.getFormattedMessage()).isEqualTo("Member registered: personalId="
-                            + UserPersonalId.mask(existing.getPersonalId()) + ", communityId=" + community.getId()
-                            + ", invitationSent=true");
+                            + UserPersonalId.mask(existing.getPersonalId()) + ", communityId=" + community.getId());
                 });
         assertThat(logs.allOfThisThread()).noneSatisfy(event ->
                 assertThat(event.getFormattedMessage()).contains(existing.getPersonalId()));
-        awaitEmails(1);
     }
 
     // --- Helpers ---
-
-    private String tokenFrom(String text) {
-        Matcher matcher = LINK.matcher(text);
-        assertThat(matcher.find()).as("the email contains an invitation link").isTrue();
-        String token = matcher.group(1);
-        remember(token);
-        return token;
-    }
 
     private JsonNode json(String content) throws Exception {
         return objectMapper.readTree(content);

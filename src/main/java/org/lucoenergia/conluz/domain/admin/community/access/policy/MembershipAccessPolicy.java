@@ -42,6 +42,14 @@ public class MembershipAccessPolicy {
     }
 
     /**
+     * Inviting a registered member to accept their membership: the same people who may register members, for the
+     * same reason. The invitation goes to the contact email the community entered in its own member record.
+     */
+    public AccessDecision canInviteMembers(User caller, UUID communityId) {
+        return canRegisterMembers(caller, communityId);
+    }
+
+    /**
      * Setting or clearing the investment recorded on a membership. Stricter than
      * {@link #canManageMemberships}: an investment is the member's own money, and administering the
      * platform is not the same as administering this community's finances, so there is no

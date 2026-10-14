@@ -231,6 +231,7 @@ is the caller — nobody may act on themselves that way, admins included.
 | `canDelete` | `canManageMemberships(communityId)` |
 | `canManageInvestment` | `canManageMembershipInvestment(communityId)` |
 | `canReadPayback` | `canReadMembershipPayback(communityId, userId)` |
+| `canInvite` | `canInviteMembers(communityId)` |
 
 A platform admin may administer a roster without being able to touch its members' money: the
 investment and payback rules have no platform-admin branch, and `canManageMemberships` does.

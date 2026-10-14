@@ -2,11 +2,14 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitat
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyInvitedException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.SendInvitationService;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.UpdateMembershipInvitationRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.lock.LockMembershipRepository;
+import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.admin.user.token.RawOneTimeToken;
@@ -18,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,6 +29,7 @@ public class SendInvitationServiceImpl implements SendInvitationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SendInvitationServiceImpl.class);
 
+    private final LockUserRepository lockUserRepository;
     private final LockMembershipRepository lockMembershipRepository;
     private final GetMembershipsRepository getMembershipsRepository;
     private final CreateOneTimeTokenService createOneTimeTokenService;
@@ -36,7 +39,8 @@ public class SendInvitationServiceImpl implements SendInvitationService {
     private final InvitationLink link;
     private final Clock clock;
 
-    public SendInvitationServiceImpl(LockMembershipRepository lockMembershipRepository,
+    public SendInvitationServiceImpl(LockUserRepository lockUserRepository,
+                                     LockMembershipRepository lockMembershipRepository,
                                      GetMembershipsRepository getMembershipsRepository,
                                      CreateOneTimeTokenService createOneTimeTokenService,
                                      UpdateMembershipInvitationRepository updateMembershipInvitationRepository,
@@ -44,6 +48,7 @@ public class SendInvitationServiceImpl implements SendInvitationService {
                                      InvitationEmailFactory emailFactory,
                                      InvitationLink link,
                                      Clock clock) {
+        this.lockUserRepository = lockUserRepository;
         this.lockMembershipRepository = lockMembershipRepository;
         this.getMembershipsRepository = getMembershipsRepository;
         this.createOneTimeTokenService = createOneTimeTokenService;
@@ -55,23 +60,28 @@ public class SendInvitationServiceImpl implements SendInvitationService {
     }
 
     @Override
-    public Optional<CommunityMembership> send(CommunityMembership membership) {
+    public CommunityMembership send(UUID communityId, UserId userId) {
+        // Lock order: user row, then membership row, then token rows
+        if (!lockUserRepository.lock(userId) || !lockMembershipRepository.lock(userId, communityId)) {
+            throw new MembershipNotFoundException(communityId, userId.getId());
+        }
+        // Read under the lock, so two invitations of the same membership run one after the other
+        CommunityMembership membership = getMembershipsRepository
+                .findByUserIdAndCommunityId(userId.getId(), communityId)
+                .orElseThrow(() -> new MembershipNotFoundException(communityId, userId.getId()));
+        if (!membership.isPending()) {
+            throw new MembershipAlreadyExistsException(communityId, userId.getId());
+        }
+        if (membership.getInvitedAt() != null) {
+            throw new MembershipAlreadyInvitedException(communityId, userId.getId());
+        }
+        if (membership.getContactEmail() == null) {
+            throw new MembershipWithoutContactEmailException(communityId, userId.getId());
+        }
         if (!link.isConfigured()) {
             // No token is issued and the invitation instant stays empty: nothing was sent
             LOGGER.warn("Email {} not sent: the public web URL is not configured", InvitationEmailFactory.CATEGORY);
-            return Optional.empty();
-        }
-        UserId userId = UserId.of(membership.getUser().getId());
-        UUID communityId = membership.getCommunity().getId();
-
-        if (!lockMembershipRepository.lock(userId, communityId)) {
-            throw new MembershipNotFoundException(communityId, userId.getId());
-        }
-        // Read again under the lock: the state the caller holds may be stale
-        CommunityMembership locked = getMembershipsRepository.findByUserIdAndCommunityId(userId.getId(), communityId)
-                .orElseThrow(() -> new MembershipNotFoundException(communityId, userId.getId()));
-        if (!locked.isPending()) {
-            throw new MembershipAlreadyExistsException(communityId, userId.getId());
+            return membership;
         }
 
         RawOneTimeToken token = createOneTimeTokenService.issueForMembership(userId, communityId,
@@ -82,6 +92,8 @@ public class SendInvitationServiceImpl implements SendInvitationService {
         // account's email
         emailSender.send(emailFactory.build(invited.getContactEmail(), invited.getCommunity().getName(),
                 link.forToken(token).orElseThrow()));
-        return Optional.of(invited);
+
+        LOGGER.info("Member invited: userId={}, communityId={}", userId.getId(), communityId);
+        return invited;
     }
 }

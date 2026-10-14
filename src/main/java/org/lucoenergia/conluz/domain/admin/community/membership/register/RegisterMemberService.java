@@ -8,8 +8,8 @@ import java.util.UUID;
 
 /**
  * Registers a member in a community on behalf of one of its admins (ADR-0003 §3): finds the account with the
- * personal id, or creates one without a password, and creates a pending membership with the member record. If the
- * record has a contact email, the member is sent an invitation.
+ * personal id, or creates one without a password, and creates a pending membership with the member record. Nothing
+ * is sent: the member is invited by a separate action, once the community is ready for them to join.
  *
  * <p>The outcome is the same whether or not the account existed, and nothing about the account is written, returned
  * or logged.</p>

@@ -1,12 +1,14 @@
-package org.lucoenergia.conluz.infrastructure.admin.community.membership.register;
+package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseRegisterMemberTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,10 +17,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Registering a member when the public web URL is not configured: there is nothing to link an invitation to.
- */
-class RegisterMemberWithoutPublicUrlControllerTest extends BaseRegisterMemberTest {
+class SendInvitationWithoutPublicUrlControllerTest extends BaseRegisterMemberTest {
 
     @DynamicPropertySource
     static void noPublicWebUrl(DynamicPropertyRegistry registry) {
@@ -26,16 +25,17 @@ class RegisterMemberWithoutPublicUrlControllerTest extends BaseRegisterMemberTes
     }
 
     @Test
-    @DisplayName("MEM-009 without a public web URL the membership is created, nothing is issued or sent, and one "
-            + "warning names only the email category")
-    void withoutAPublicUrl_theMembershipIsCreated_andNothingIsSent() throws Exception {
+    @DisplayName("MEM-009 without a public web URL nothing is issued or sent, the invitation instant stays empty, "
+            + "and one warning names only the email category")
+    void withoutAPublicUrl_nothingIsSent() throws Exception {
         Community community = newCommunity();
         String bearer = loginAsAdminOf(community);
         Map<String, Object> body = newRecord();
         String personalId = (String) body.get("personalId");
+        UUID userId = registered(bearer, community.getId(), body);
         logs.clear();
 
-        register(bearer, community.getId(), body)
+        invite(bearer, community.getId(), userId)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.contactEmail").value(body.get("contactEmail")))
                 .andExpect(jsonPath("$.acceptedAt").isEmpty())
