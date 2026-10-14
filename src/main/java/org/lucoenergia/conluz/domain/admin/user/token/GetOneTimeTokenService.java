@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.admin.user.token;
 import org.lucoenergia.conluz.domain.shared.UserId;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -50,4 +51,34 @@ public interface GetOneTimeTokenService {
      *                                  if the purpose is bound only to a user
      */
     long countIssuedForMembershipSince(UserId userId, UUID communityId, OneTimeTokenPurpose purpose, Instant since);
+
+    /**
+     * Finds when the oldest token of the purpose issued for the user's membership in the community at or after
+     * {@code since} was issued, whatever its state now: the tokens {@link #countIssuedForMembershipSince} counts.
+     *
+     * @return the oldest such token's creation instant, empty if there is none or the user has no membership in
+     * the community
+     * @throws IllegalArgumentException if {@code since} is further back than {@link OneTimeTokenRetention#PERIOD},
+     *                                  where tokens may already have been deleted, or if the purpose is bound only to
+     *                                  a user
+     */
+    Optional<Instant> findEarliestIssuedForMembershipSince(UserId userId, UUID communityId,
+                                                           OneTimeTokenPurpose purpose, Instant since);
+
+    /**
+     * Finds when the valid token of the purpose of the user's membership in the community expires.
+     *
+     * @return the expiry, empty if the membership has no valid token of the purpose (none issued, or used, revoked
+     * or expired) or the user has no membership in the community
+     * @throws IllegalArgumentException if the purpose is bound only to a user
+     */
+    Optional<Instant> findValidExpiryForMembership(UserId userId, UUID communityId, OneTimeTokenPurpose purpose);
+
+    /**
+     * Finds, in one query, when the valid token of the purpose of each membership of the community expires.
+     *
+     * @return the expiries by membership id; a membership without a valid token of the purpose is absent
+     * @throws IllegalArgumentException if the purpose is bound only to a user
+     */
+    Map<UUID, Instant> findValidExpiriesInCommunity(UUID communityId, OneTimeTokenPurpose purpose);
 }
