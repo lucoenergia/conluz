@@ -18,10 +18,16 @@ import org.testcontainers.utility.DockerImageName;
 @Import(MutableClockConfiguration.class)
 public abstract class BaseIntegrationTest {
 
+    /**
+     * Shared by every Spring test context in the run, each with its own connection pool; see
+     * {@code application-test.properties} for how its connection limit is sized. The command keeps the image's
+     * default {@code fsync=off}, which setting a command would otherwise drop.
+     */
     static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>("postgres:16")
             .withDatabaseName("test_db")
             .withUsername("luz")
-            .withPassword("blank");
+            .withPassword("blank")
+            .withCommand("postgres", "-c", "fsync=off", "-c", "max_connections=250");
 
     static final InfluxDBContainer<?> INFLUX_DB_CONTAINER = new InfluxDBContainer<>(
             DockerImageName.parse("influxdb:1.8")

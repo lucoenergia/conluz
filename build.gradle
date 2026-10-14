@@ -68,6 +68,9 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Every cached Spring test context stays in memory for the whole run; Gradle's default of 512m runs out
+    // a couple of contexts past today's count (see application-test.properties).
+    maxHeapSize = '1g'
 }
 
 jar {
