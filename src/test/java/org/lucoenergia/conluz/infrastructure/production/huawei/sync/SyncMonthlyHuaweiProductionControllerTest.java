@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -85,6 +86,23 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()));
+    }
+
+    @Test
+    void testWhenHuaweiDisabled_thenMessageNamesTheEnableAction() throws Exception {
+
+        doThrow(new HuaweiDisabledException())
+                .when(aggregationService)
+                .syncMonthlyProductions(any(), any(), any(), anyInt());
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SyncMonthlyHuaweiProductionBody(2024))))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(
+                        containsString("POST /api/v1/plants/{plantId}/production/huawei/config/enable")));
     }
 
     @Test

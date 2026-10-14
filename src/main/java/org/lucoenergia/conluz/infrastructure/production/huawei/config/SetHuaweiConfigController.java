@@ -63,6 +63,9 @@ public class SetHuaweiConfigController {
                       skipped and the manual sync endpoints respond with `409 Conflict`. Set this to
                       `false` for plants that use a different inverter vendor (e.g. Greenheiss).
 
+                    To only switch the configuration on or off, use `POST .../config/enable` and
+                    `POST .../config/disable`: they change nothing else and take no request body.
+
                     This configuration is a mandatory step to be able to retrieve the plant's production
                     data from the Huawei API.
 

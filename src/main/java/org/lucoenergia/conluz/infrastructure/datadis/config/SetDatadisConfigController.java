@@ -56,6 +56,9 @@ public class SetDatadisConfigController {
                       When `false`, the scheduled Datadis sync and aggregation jobs skip the community, and the
                       operations that sync or aggregate its Datadis data respond with `409 Conflict`.
 
+                    To only switch the configuration on or off, use `POST .../config/datadis/enable` and
+                    `POST .../config/datadis/disable`: they change nothing else and take no request body.
+
                     This configuration is a mandatory step to be able to retrieve consumption data from datadis.
 
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
