@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `createUser`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `updateMembershipRole`, `createUser`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #392 |
+| **Last reviewed against code** | #393 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how the existing creation paths and member registration fill the record and that state, how
-a registered member is invited, and which memberships grant access; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, and which memberships grant access; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -28,6 +28,8 @@ lazily, as issues touch it.
 | Existing creation path | Adding a user to a community (`createMembership`), creating a user in a community (`createUser` with a community) and importing users into a community (`createUsersWithFile`). |
 | Member registration | A community admin registering a member by personal ID and member record (`registerMember`). It is not an existing creation path. |
 | Contact email | The email address in a member record. Distinct from the account's email. |
+| Awaiting acceptance | A membership that is pending and enabled: one a community still wants the member to accept. |
+| Invitation link | The `INVITATION` token sent to a member, and the link that carries it. Its expiry is that of the membership's valid `INVITATION` token (OTT-002). |
 
 ## Rules
 
@@ -154,10 +156,79 @@ lazily, as issues touch it.
 - **Rationale:** The contact email is the community's own way to reach the member (ADR-0003 §1, §8); the account's
   email may have been entered by another community. The fragment keeps the token out of every access log
   (ADR-0002). An accepted member is already a member, so there is nothing to invite them to. Sending again is a
-  resend, limited per membership and day (ADR-0003 §5), which #393 adds. Inviting exists only to send the email:
-  an invitation recorded but never sent would tell the community admin the member was invited, and leave the
-  membership "already invited" with nothing in the member's inbox until a resend exists.
+  resend, limited per membership and day (ADR-0003 §5, MEM-010). Inviting exists only to send the email: an
+  invitation recorded but never sent would tell the community admin the member was invited, and leave the
+  membership "already invited" with nothing in the member's inbox.
 - **Source:** #392, ADR-0003 §1, §5, §6 and §8, ADR-0002
+
+### MEM-010 — Resending an invitation sends a new link, at most 4 sends per membership in 24 hours
+
+- **Status:** Active
+- **Rule:** The callers allowed by MEM-009 MAY resend the invitation of a membership that has already been
+  invited, whether its link is valid, expired or revoked. Resending MUST issue a new `INVITATION` token, which
+  revokes the previous one, record the resend's instant as the invitation instant and, once the request commits,
+  email the member record's current contact email the same text and link as MEM-009. It MUST refuse, issuing and
+  sending nothing: an accepted membership with 409 `MEMBERSHIP_ALREADY_EXISTS`; a membership never invited with
+  409 `MEMBERSHIP_NOT_INVITED`; a member record without a contact email with 400
+  `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`; and a membership with 4 or more `INVITATION` tokens issued in the last 24
+  hours, whatever their state, with 429 `MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED` and a `Retry-After` header,
+  also in the error's `retryAfterSeconds` parameter, of the whole seconds until the oldest of them is more than 24
+  hours old. The count MUST be taken under the membership's lock. When the server cannot send, it MUST refuse
+  exactly as MEM-009 does, before locking or issuing anything. It MUST log one line with the user, the community
+  and the outcome, and no email address.
+- **Rationale:** A link expires after 7 days (OTT-002) and an email can be lost after commit, so a member must be
+  reachable again. ADR-0003 §5 allows one send plus 3 resends per membership and day, counted from the token store
+  so the limit needs no column of its own (OTT-006); counting under the lock keeps two concurrent resends from
+  both passing at the limit. A 429 with `Retry-After` is how the API already answers a limit (#332). A send stops
+  counting only once it is more than 24 hours old, so a wait of a whole number of seconds is followed by one more.
+  The current contact email is used because correcting a wrong address is a reason to resend. A membership never
+  invited is invited with `sendInvitation`, which records the first send.
+- **Source:** #393, ADR-0003 §5
+
+### MEM-011 — Revoking an invitation withdraws its link and keeps the membership
+
+- **Status:** Active
+- **Rule:** The callers allowed by MEM-009 MAY revoke the invitation of a pending membership. Revoking MUST revoke
+  the membership's active `INVITATION` token (OTT-007), and MUST leave the membership pending, with its invitation
+  instant as it was. With no active token, it MUST change nothing. In both cases it MUST answer the member. It MUST
+  refuse an accepted membership with 409 `MEMBERSHIP_ALREADY_EXISTS`. It MUST NOT depend on whether the server can
+  send. It MUST log one line with the user, the community and whether a token was revoked.
+- **Rationale:** A link sent to a wrong address must be withdrawn without losing the member record; removing the
+  membership is a separate action (ADR-0003 §5). The invitation instant records the last send, which revoking does
+  not undo, so the membership can be resent (MEM-010) and counts toward its limit. Withdrawing a link sends
+  nothing, so it must work when sending does not.
+- **Source:** #393, ADR-0003 §5
+
+### MEM-012 — Bulk sending invites up to 50 members awaiting acceptance and never invited
+
+- **Status:** Active
+- **Rule:** The callers allowed by MEM-009 MAY send the first invitation to the memberships of a community that are
+  awaiting acceptance, have a contact email and have never been invited, in one request. A request MUST invite at
+  most 50 of them, chosen and locked in ascending user id, and MUST re-check each one under its lock, skipping it
+  if it is no longer eligible, so that no membership is invited twice. Each one invited MUST be invited as MEM-009
+  specifies, in a transaction of its own. Every other membership, including a disabled one, MUST be skipped, not
+  refused. The request MUST answer how many it sent and how many eligible memberships remain. When the server
+  cannot send, it MUST refuse exactly as MEM-009 does, before selecting or issuing anything. It MUST log one line
+  with the community and the counts. Whether a membership is awaiting acceptance MUST be decided only by
+  `CommunityMembership.isAwaitingAcceptance()`, and in queries by `ActiveMembershipJpql.AWAITING_ACCEPTANCE`.
+- **Rationale:** Members registered without an invitation, such as an import, are invited by an explicit action
+  bounded at 50 per request, so it cannot overflow the email queue (ADR-0003 §5). A disabled membership grants
+  nothing even once accepted (MEM-004), so inviting it in bulk would ask the member to accept something
+  useless. One transaction per membership holds one lock pair at a time, starts each email once it is committed,
+  and keeps the invitations already made when a later one fails; the next request continues where it stopped. A
+  single order of locks keeps two concurrent requests from deadlocking. One spelling of "awaiting acceptance", as
+  for "active" (MEM-004), keeps the code and the queries in step.
+- **Source:** #393, ADR-0003 §5
+
+### MEM-013 — A member shows when its invitation link expires
+
+- **Status:** Active
+- **Rule:** Every response that shows a membership MUST show when its invitation link expires: the expiry of its
+  valid `INVITATION` token, or null when it has none, including after a revoke and once it has expired. The roster
+  MUST read the expiries of all its memberships in one query.
+- **Rationale:** A community admin decides from it whether a resend is needed. One query keeps the roster's cost
+  independent of its size.
+- **Source:** #393
 
 ## Impossible states
 
