@@ -1,8 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.MembershipNotPendingException;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.SendInvitationService;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.UpdateMembershipInvitationRepository;
@@ -71,7 +71,7 @@ public class SendInvitationServiceImpl implements SendInvitationService {
         CommunityMembership locked = getMembershipsRepository.findByUserIdAndCommunityId(userId.getId(), communityId)
                 .orElseThrow(() -> new MembershipNotFoundException(communityId, userId.getId()));
         if (!locked.isPending()) {
-            throw new MembershipNotPendingException(communityId, userId.getId());
+            throw new MembershipAlreadyExistsException(communityId, userId.getId());
         }
 
         RawOneTimeToken token = createOneTimeTokenService.issueForMembership(userId, communityId,

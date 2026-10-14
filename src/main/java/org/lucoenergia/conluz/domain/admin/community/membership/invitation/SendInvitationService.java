@@ -18,8 +18,8 @@ public interface SendInvitationService {
      * @param membership a membership whose member record has a contact email
      * @return the membership with its invitation instant, or empty if the public web URL is not configured, in
      *         which case nothing is issued or recorded
-     * @throws org.lucoenergia.conluz.domain.admin.community.MembershipNotPendingException if the membership has
-     *         been accepted
+     * @throws org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException if the membership has
+     *         been accepted: the person is already a member, so there is nothing to invite them to
      */
     Optional<CommunityMembership> send(CommunityMembership membership);
 }
