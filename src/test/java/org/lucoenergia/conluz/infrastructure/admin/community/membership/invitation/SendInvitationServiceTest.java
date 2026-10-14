@@ -62,12 +62,13 @@ class SendInvitationServiceTest {
     }
 
     private SendInvitationService service(String publicUrl, boolean emailEnabled) {
-        return new SendInvitationServiceImpl(lockUserRepository, lockMembershipRepository, getMembershipsRepository,
-                createOneTimeTokenService, getOneTimeTokenService, updateMembershipInvitationRepository, emailSender,
+        return new SendInvitationServiceImpl(new InvitationSending(lockUserRepository, lockMembershipRepository,
+                getMembershipsRepository, createOneTimeTokenService, getOneTimeTokenService,
+                updateMembershipInvitationRepository, emailSender,
                 new InvitationEmailFactory(mock(MessageSource.class)), InvitationLink.of(publicUrl),
                 new EmailProperties(emailEnabled, "smtp.test", "587", null, null, "no-reply@conluz.test", null,
                         true),
-                Clock.systemUTC());
+                Clock.systemUTC()));
     }
 
     @Test
