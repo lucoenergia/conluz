@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.membership;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.shared.UserId;
 
 import java.util.Collection;
 import java.util.List;
@@ -29,4 +30,18 @@ public interface GetMembershipsRepository {
      * @return a map from user ID to the user's memberships
      */
     Map<UUID, List<CommunityMembership>> findByUserIds(Collection<UUID> userIds);
+
+    /**
+     * The users whose memberships of the community are eligible for a first invitation: awaiting acceptance, with a
+     * contact email, and never invited. In ascending user id, the order their rows are locked in.
+     *
+     * @param limit the most to return
+     */
+    List<UserId> findFirstInvitationCandidates(UUID communityId, int limit);
+
+    /**
+     * Counts the memberships of the community eligible for a first invitation, as
+     * {@link #findFirstInvitationCandidates} selects them.
+     */
+    long countFirstInvitationCandidates(UUID communityId);
 }

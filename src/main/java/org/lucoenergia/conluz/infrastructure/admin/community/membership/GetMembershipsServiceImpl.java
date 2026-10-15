@@ -5,10 +5,15 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsService;
+import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
+import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -17,18 +22,27 @@ public class GetMembershipsServiceImpl implements GetMembershipsService {
 
     private final GetMembershipsRepository getMembershipsRepository;
     private final GetCommunityRepository getCommunityRepository;
+    private final GetOneTimeTokenService getOneTimeTokenService;
 
     public GetMembershipsServiceImpl(GetMembershipsRepository getMembershipsRepository,
-                                     GetCommunityRepository getCommunityRepository) {
+                                     GetCommunityRepository getCommunityRepository,
+                                     GetOneTimeTokenService getOneTimeTokenService) {
         this.getMembershipsRepository = getMembershipsRepository;
         this.getCommunityRepository = getCommunityRepository;
+        this.getOneTimeTokenService = getOneTimeTokenService;
     }
 
     @Override
-    public List<CommunityMembership> findByCommunityId(UUID communityId) {
+    public List<MembershipWithInvitation> findByCommunityId(UUID communityId) {
         getCommunityRepository.findById(communityId)
                 .orElseThrow(() -> new CommunityNotFoundException(communityId));
 
-        return getMembershipsRepository.findByCommunityId(communityId);
+        List<CommunityMembership> memberships = getMembershipsRepository.findByCommunityId(communityId);
+        Map<UUID, Instant> invitationExpiries = getOneTimeTokenService.findValidExpiriesInCommunity(communityId,
+                OneTimeTokenPurpose.INVITATION);
+        return memberships.stream()
+                .map(membership -> new MembershipWithInvitation(membership,
+                        invitationExpiries.get(membership.getId())))
+                .toList();
     }
 }

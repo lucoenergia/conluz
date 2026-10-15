@@ -116,7 +116,8 @@ public class RegisterMemberController {
                                          @Valid @RequestBody RegisterMemberBody body) {
         RegisteredMember member = service.register(communityId, UserId.of(currentUser.getId()),
                 body.toPersonalId(), body.toMemberRecord());
-        return new MemberResponse(member.personalId(), member.membership(),
+        // Registration issues no invitation token: there is no link to expire
+        return new MemberResponse(member.personalId(), member.membership(), null,
                 capabilitiesAssembler.assemble(currentUser, member.membership()));
     }
 }

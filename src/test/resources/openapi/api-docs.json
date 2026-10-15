@@ -145,6 +145,10 @@
             "description" : "Whether the caller may enable this community (POST /api/v1/communities/{communityId}/enable). A platform-wide decision.",
             "type" : "boolean"
           },
+          "canInviteMembers" : {
+            "description" : "Whether the caller may send the first invitation to this community's members in bulk (POST /api/v1/communities/{communityId}/memberships/invite). Only an active community admin of it: there is no platform-admin bypass. Whether any member is due one depends on the members' state.",
+            "type" : "boolean"
+          },
           "canListPlants" : {
             "description" : "Whether the caller may list this community's plants (GET /api/v1/communities/{communityId}/plants).",
             "type" : "boolean"
@@ -174,7 +178,7 @@
             "type" : "boolean"
           },
           "canRegisterMembers" : {
-            "description" : "Whether the caller may register a member in this community (POST /api/v1/communities/{communityId}/members). Only an active community admin of it: there is no platform-admin bypass.",
+            "description" : "Whether the caller may register a member in this community (POST /api/v1/communities/{communityId}/memberships/register). Only an active community admin of it: there is no platform-admin bypass.",
             "type" : "boolean"
           },
           "canUpdate" : {
@@ -187,6 +191,7 @@
           "canCreateUsers",
           "canDisable",
           "canEnable",
+          "canInviteMembers",
           "canListPlants",
           "canListSupplies",
           "canManage",
@@ -994,6 +999,15 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "invitationExpiresAt" : {
+            "description" : "When the membership's invitation link expires. Null when it has no link that can still be used: none was sent, it was revoked or used, or it has expired.",
+            "example" : "2026-01-08T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "invitedAt" : {
             "description" : "When the member was last sent an invitation. Null if none has been sent.",
             "example" : "2026-01-01T00:00:00Z",
@@ -1043,6 +1057,7 @@
           "enabled",
           "fullName",
           "id",
+          "invitationExpiresAt",
           "invitedAt",
           "memberNumber",
           "personalId",
@@ -1060,7 +1075,7 @@
             "type" : "boolean"
           },
           "canInvite" : {
-            "description" : "Whether the caller may invite this member to accept the membership. Whether an invitation can be sent right now depends on the membership's state and contact email.",
+            "description" : "Whether the caller may invite this member to accept the membership, and resend or revoke its invitation. Whether one can be sent right now depends on the membership's state, its contact email and how many invitations it has been sent in the last 24 hours.",
             "type" : "boolean"
           },
           "canManageInvestment" : {
@@ -1504,6 +1519,15 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "invitationExpiresAt" : {
+            "description" : "When the membership's invitation link expires. Null when it has no link that can still be used: none was sent, it was revoked or used, or it has expired.",
+            "example" : "2026-01-08T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "role" : {
             "enum" : [
               "COMMUNITY_MEMBER",
@@ -1526,6 +1550,7 @@
           "communityId",
           "enabled",
           "id",
+          "invitationExpiresAt",
           "role",
           "user"
         ],
@@ -2097,6 +2122,8 @@
               "MEMBERSHIP_ALREADY_INVITED",
               "MEMBERSHIP_WITHOUT_CONTACT_EMAIL",
               "MEMBERSHIP_INVITATION_UNAVAILABLE",
+              "MEMBERSHIP_NOT_INVITED",
+              "MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED",
               "COMMUNITY_ALREADY_EXISTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
               "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
@@ -2157,6 +2184,28 @@
         },
         "required" : [
           "message"
+        ],
+        "type" : "object"
+      },
+      "SendInvitationsResponse" : {
+        "description" : "The outcome of sending first invitations in bulk.",
+        "properties" : {
+          "remaining" : {
+            "description" : "How many members of the community are still awaiting their first invitation: pending, enabled, with a contact email and never invited. Call again while it is above zero.",
+            "example" : 70,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sent" : {
+            "description" : "How many members were sent their first invitation by this request.",
+            "example" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [
+          "remaining",
+          "sent"
         ],
         "type" : "object"
       },
@@ -5807,6 +5856,156 @@
         ]
       }
     },
+    "/api/v1/communities/{communityId}/memberships/invite" : {
+      "post" : {
+        "description" : "Invites, as `sendInvitation` does, the members of the community who are pending, enabled, have a contact email and have never been invited, up to 50 per request, in ascending user id. Every other member is skipped, not refused: an accepted or disabled membership, one without a contact email, and one already invited, including by a concurrent request. Each member is invited on their own, so a failure keeps the invitations already sent. Call again while `remaining` is above zero. Only an active community admin of the community may send; a platform admin may not.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anyone is invited.\n",
+        "operationId" : "sendInvitations",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SendInvitationsResponse"
+                }
+              }
+            },
+            "description" : "Invitations sent, if any were due"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_INVITATION_UNAVAILABLE",
+                      "message" : "Invitations cannot be sent right now. Nobody has been invited; try again once email sending is available.",
+                      "params" : { }
+                    }
+                  ],
+                  "message" : "Invitations cannot be sent right now. Nobody has been invited; try again once email sending is available.",
+                  "status" : 503,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The server cannot send invitations right now. Nothing was recorded."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Sends the first invitation to members registered without one, up to 50 per request.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
     "/api/v1/communities/{communityId}/memberships/register" : {
       "post" : {
         "description" : "Registers a person as a member of the community with their DNI/NIE/NIF and the community's own member record. The membership is created pending, with the role COMMUNITY_MEMBER: it grants no access until the member accepts it. Only an active community admin of the community may register members; a platform admin may not.\n\nNothing is sent to the member: registering only records them. Invite them with `sendInvitation` once the community is ready for them to join; until then `invitedAt` stays null.\n\nThe response is the same whether or not the person already had an account, and carries nothing from it. Registering someone who already has a membership in this community, in any state, responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code.\n",
@@ -6972,9 +7171,394 @@
         ]
       }
     },
+    "/api/v1/communities/{communityId}/memberships/{userId}/invitation/resend" : {
+      "post" : {
+        "description" : "Emails the member a new invitation link, at the contact email the community's member record has now, and stops the previous link from working, whether it was still valid, had expired or had been revoked. The new link is valid for 7 days, and `invitedAt` becomes the resend's instant. Only an active community admin of the community may resend; a platform admin may not.\n\nA membership is sent at most 4 invitations in any 24 hours, the first included. Over that, it responds 429 with the `MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED` code and the number of seconds until a resend is accepted again in the `Retry-After` header and in `params.retryAfterSeconds`.\n\nA membership never invited responds 409 with the `MEMBERSHIP_NOT_INVITED` code (send its first invitation instead), one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: the previous link and `invitedAt` stay as they were.\n",
+        "operationId" : "resendInvitation",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberResponse"
+                }
+              }
+            },
+            "description" : "Invitation sent again"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_NOT_INVITED",
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has not been invited to the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b' yet. Send the first invitation instead.",
+                      "params" : {
+                        "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
+                        "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                      }
+                    }
+                  ],
+                  "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has not been invited to the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b' yet. Send the first invitation instead.",
+                  "status" : 409,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The membership has never been invited, or has been accepted."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED",
+                      "message" : "The invitation of user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' to the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b' has been sent as many times as allowed in the last 24 hours. Try again in 75601 seconds.",
+                      "params" : {
+                        "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
+                        "retryAfterSeconds" : "75601",
+                        "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                      }
+                    }
+                  ],
+                  "message" : "The invitation of user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' to the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b' has been sent as many times as allowed in the last 24 hours. Try again in 75601 seconds.",
+                  "status" : 429,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The membership has been sent 4 invitations in the last 24 hours (`MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED`). Nothing was recorded. Retry after the number of seconds in the `Retry-After` header, also given in `params.retryAfterSeconds`.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Whole seconds until a resend will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_INVITATION_UNAVAILABLE",
+                      "message" : "Invitations cannot be sent right now. Nobody has been invited; try again once email sending is available.",
+                      "params" : { }
+                    }
+                  ],
+                  "message" : "Invitations cannot be sent right now. Nobody has been invited; try again once email sending is available.",
+                  "status" : 503,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The server cannot send invitations right now. Nothing was recorded."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Sends a member's invitation again, with a new link.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/{userId}/invitation/revoke" : {
+      "post" : {
+        "description" : "Stops the member's invitation link from working, for example when it was sent to a wrong address. The membership stays pending and keeps its `invitedAt`, and its invitation can be resent. A membership without a link that can still be used is answered the same. Only an active community admin of the community may revoke; a platform admin may not.\n\nA membership that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code. Revoking sends nothing, so it works whether or not the server can send emails.\n",
+        "operationId" : "revokeInvitation",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberResponse"
+                }
+              }
+            },
+            "description" : "Invitation link withdrawn, or there was none"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_ALREADY_EXISTS",
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is already a member of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b'.",
+                      "params" : {
+                        "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
+                        "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                      }
+                    }
+                  ],
+                  "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is already a member of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b'.",
+                  "status" : 409,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The membership has been accepted."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Withdraws a member's invitation link.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
     "/api/v1/communities/{communityId}/memberships/{userId}/invite" : {
       "post" : {
-        "description" : "Emails the member an invitation to accept their pending membership, at the contact email of the community's member record, never the account's email. The link is valid for 7 days. Only an active community admin of the community may invite; a platform admin may not.\n\nThis is the first invitation only. A membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: `invitedAt` stays null and the same request can be repeated once sending works.\n",
+        "description" : "Emails the member an invitation to accept their pending membership, at the contact email of the community's member record, never the account's email. The link is valid for 7 days. Only an active community admin of the community may invite; a platform admin may not.\n\nThis sends the first invitation only; every later send goes through `resendInvitation`. A membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: `invitedAt` stays null and the same request can be repeated once sending works.\n",
         "operationId" : "sendInvitation",
         "parameters" : [
           {

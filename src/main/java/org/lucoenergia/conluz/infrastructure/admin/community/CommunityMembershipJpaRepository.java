@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -104,4 +105,17 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
             "LEFT JOIN FETCH m.community LEFT JOIN FETCH m.user " +
             "WHERE m.user.id IN :userIds")
     List<CommunityMembershipEntity> findByUserIdInWithCommunityAndUser(@Param("userIds") Collection<UUID> userIds);
+
+    /**
+     * The users of the community's memberships eligible for a first invitation (MEM-012), in ascending user id.
+     */
+    @Query("SELECT m.user.id FROM community_memberships m WHERE m.community.id = :communityId "
+            + "AND m.contactEmail IS NOT NULL AND m.invitedAt IS NULL AND "
+            + ActiveMembershipJpql.AWAITING_ACCEPTANCE + " ORDER BY m.user.id")
+    List<UUID> findFirstInvitationCandidateUserIds(@Param("communityId") UUID communityId, Pageable pageable);
+
+    @Query("SELECT COUNT(m) FROM community_memberships m WHERE m.community.id = :communityId "
+            + "AND m.contactEmail IS NOT NULL AND m.invitedAt IS NULL AND "
+            + ActiveMembershipJpql.AWAITING_ACCEPTANCE)
+    long countFirstInvitationCandidates(@Param("communityId") UUID communityId);
 }

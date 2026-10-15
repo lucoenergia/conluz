@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -57,6 +58,27 @@ public class GetOneTimeTokenServiceImpl implements GetOneTimeTokenService {
         purpose.requireBoundToMembership();
         requireWithinRetention(since);
         return repository.countCreatedForMembershipSince(userId, communityId, purpose, since);
+    }
+
+    @Override
+    public Optional<Instant> findEarliestIssuedForMembershipSince(UserId userId, UUID communityId,
+                                                                  OneTimeTokenPurpose purpose, Instant since) {
+        purpose.requireBoundToMembership();
+        requireWithinRetention(since);
+        return repository.findEarliestCreatedForMembershipSince(userId, communityId, purpose, since);
+    }
+
+    @Override
+    public Optional<Instant> findValidExpiryForMembership(UserId userId, UUID communityId,
+                                                          OneTimeTokenPurpose purpose) {
+        purpose.requireBoundToMembership();
+        return repository.findValidExpiryOfMembership(userId, communityId, purpose, clock.instant());
+    }
+
+    @Override
+    public Map<UUID, Instant> findValidExpiriesInCommunity(UUID communityId, OneTimeTokenPurpose purpose) {
+        purpose.requireBoundToMembership();
+        return repository.findValidExpiriesInCommunity(communityId, purpose, clock.instant());
     }
 
     private void requireWithinRetention(Instant since) {

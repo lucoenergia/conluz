@@ -4,7 +4,7 @@ import java.util.UUID;
 
 /**
  * The pending membership has already been sent its invitation. Sending it again is a resend, which is limited per
- * membership and day (ADR-0003 §5) and is not this operation (#393).
+ * membership and day (ADR-0003 §5) and is a separate operation ({@code ResendInvitationService}).
  */
 public class MembershipAlreadyInvitedException extends RuntimeException {
 

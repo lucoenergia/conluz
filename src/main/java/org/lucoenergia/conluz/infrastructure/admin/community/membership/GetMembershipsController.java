@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsService;
+import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -71,17 +72,18 @@ public class GetMembershipsController {
     @PreAuthorize("@communityAccessGuard.canManageMemberships(#communityId)")
     public List<MembershipResponse> getMemberships(@AuthenticationPrincipal User currentUser,
                                                    @PathVariable("communityId") UUID communityId) {
-        List<CommunityMembership> memberships = service.findByCommunityId(communityId);
+        List<MembershipWithInvitation> memberships = service.findByCommunityId(communityId);
         // One query for every member on this roster. The users join-fetched with the memberships
         // carry no memberships of their own, and the rules about them need those.
         Map<UUID, UserCapabilitiesResponse> userCapabilities =
                 userCapabilitiesAssembler.assembleAllFetchingMemberships(currentUser,
-                        memberships.stream().map(CommunityMembership::getUser).filter(Objects::nonNull).toList());
+                        memberships.stream().map(member -> member.membership().getUser())
+                                .filter(Objects::nonNull).toList());
 
         return memberships.stream()
-                .map(membership -> new MembershipResponse(membership,
-                        userCapabilitiesOf(membership, userCapabilities),
-                        capabilitiesAssembler.assemble(currentUser, membership)))
+                .map(member -> new MembershipResponse(member.membership(), member.invitationExpiresAt(),
+                        userCapabilitiesOf(member.membership(), userCapabilities),
+                        capabilitiesAssembler.assemble(currentUser, member.membership())))
                 .toList();
     }
 

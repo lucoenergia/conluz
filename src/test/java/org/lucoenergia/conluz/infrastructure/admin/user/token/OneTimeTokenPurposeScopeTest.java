@@ -68,6 +68,9 @@ class OneTimeTokenPurposeScopeTest {
                 Arguments.of("findMembership", purpose),
                 Arguments.of("findMembership of a blank token", purpose),
                 Arguments.of("countIssuedForMembershipSince", purpose),
+                Arguments.of("findEarliestIssuedForMembershipSince", purpose),
+                Arguments.of("findValidExpiryForMembership", purpose),
+                Arguments.of("findValidExpiriesInCommunity", purpose),
                 Arguments.of("consumeForMembership", purpose),
                 Arguments.of("consumeForMembership a blank token", purpose),
                 Arguments.of("revokeForMembership", purpose)));
@@ -98,6 +101,10 @@ class OneTimeTokenPurposeScopeTest {
             case "findMembership of a blank token" -> () -> get.findMembership("", purpose);
             case "countIssuedForMembershipSince" ->
                     () -> get.countIssuedForMembershipSince(USER, COMMUNITY, purpose, clock.instant());
+            case "findEarliestIssuedForMembershipSince" ->
+                    () -> get.findEarliestIssuedForMembershipSince(USER, COMMUNITY, purpose, clock.instant());
+            case "findValidExpiryForMembership" -> () -> get.findValidExpiryForMembership(USER, COMMUNITY, purpose);
+            case "findValidExpiriesInCommunity" -> () -> get.findValidExpiriesInCommunity(COMMUNITY, purpose);
             case "consumeForMembership" -> () -> consume.consumeForMembership(RAW_TOKEN, purpose);
             case "consumeForMembership a blank token" -> () -> consume.consumeForMembership(null, purpose);
             case "revokeForMembership" -> () -> revoke.revokeForMembership(USER, COMMUNITY, purpose);

@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 @Schema(description = "A member of a community: the membership, its state and the community's own member record.",
         requiredProperties = {"id", "user", "community", "role", "personalId", "fullName", "memberNumber", "contactEmail",
-                "address", "phoneNumber", "acceptedAt", "enabled", "invitedAt", "capabilities"})
+                "address", "phoneNumber", "acceptedAt", "enabled", "invitedAt", "invitationExpiresAt", "capabilities"})
 public class MemberResponse {
 
     @Schema(description = "The membership's id.")
@@ -65,13 +65,19 @@ public class MemberResponse {
             example = "2026-01-01T00:00:00Z", types = {"string", "null"})
     private final Instant invitedAt;
 
+    @Schema(description = "When the membership's invitation link expires. Null when it has no link that can still "
+            + "be used: none was sent, it was revoked or used, or it has expired.",
+            example = "2026-01-08T00:00:00Z", types = {"string", "null"})
+    private final Instant invitationExpiresAt;
+
     @Schema(description = "What the caller may do with this membership.")
     private final MembershipCapabilitiesResponse capabilities;
 
     /**
-     * @param personalId the personal ID the community knows the member by, normalised
+     * @param personalId          the personal ID the community knows the member by, normalised
+     * @param invitationExpiresAt when the membership's invitation link expires, null when it has none
      */
-    public MemberResponse(String personalId, CommunityMembership membership,
+    public MemberResponse(String personalId, CommunityMembership membership, Instant invitationExpiresAt,
                           MembershipCapabilitiesResponse capabilities) {
         this.id = membership.getId();
         this.user = new UserReferenceResponse(membership.getUser().getId());
@@ -87,6 +93,7 @@ public class MemberResponse {
         this.acceptedAt = membership.getAcceptedAt();
         this.enabled = membership.isEnabled();
         this.invitedAt = membership.getInvitedAt();
+        this.invitationExpiresAt = invitationExpiresAt;
         this.capabilities = capabilities;
     }
 
@@ -140,6 +147,10 @@ public class MemberResponse {
 
     public Instant getInvitedAt() {
         return invitedAt;
+    }
+
+    public Instant getInvitationExpiresAt() {
+        return invitationExpiresAt;
     }
 
     public MembershipCapabilitiesResponse getCapabilities() {

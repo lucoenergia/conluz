@@ -48,6 +48,15 @@ class CommunityMembershipTest {
         assertTrue(pendingButEnabled.getAcceptedAt() == null);
     }
 
+    @Test
+    @DisplayName("MEM-012 only a pending, enabled membership is awaiting acceptance")
+    void isAwaitingAcceptance_onlyWhenPendingAndEnabled() {
+        assertTrue(membership(null, true).isAwaitingAcceptance());
+        assertFalse(membership(null, false).isAwaitingAcceptance());
+        assertFalse(membership(ACCEPTED_AT, true).isAwaitingAcceptance());
+        assertFalse(membership(ACCEPTED_AT, false).isAwaitingAcceptance());
+    }
+
     private static CommunityMembership membership(Instant acceptedAt, boolean enabled) {
         return new CommunityMembership.Builder()
                 .withRole(CommunityRole.COMMUNITY_MEMBER)

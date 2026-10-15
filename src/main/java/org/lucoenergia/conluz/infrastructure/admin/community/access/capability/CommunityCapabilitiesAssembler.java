@@ -37,6 +37,7 @@ public class CommunityCapabilitiesAssembler {
                 .withCanManage(policies.community().canManage(caller, communityId).isAllowed())
                 .withCanManageMemberships(policies.membership().canManageMemberships(caller, communityId).isAllowed())
                 .withCanRegisterMembers(policies.membership().canRegisterMembers(caller, communityId).isAllowed())
+                .withCanInviteMembers(policies.membership().canInviteMembers(caller, communityId).isAllowed())
                 .withCanManageMembershipInvestment(
                         policies.membership().canManageInvestment(caller, communityId).isAllowed())
                 .withCanListPlants(policies.plant().canList(caller, communityId).isAllowed())

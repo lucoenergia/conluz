@@ -8,8 +8,10 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Transactional(readOnly = true)
 @Repository
@@ -41,5 +43,27 @@ public class GetOneTimeTokenRepositoryDatabase implements GetOneTimeTokenReposit
     public long countCreatedForMembershipSince(UserId userId, UUID communityId, OneTimeTokenPurpose purpose,
                                                Instant since) {
         return jpaRepository.countCreatedForMembershipSince(userId.getId(), communityId, purpose, since);
+    }
+
+    @Override
+    public Optional<Instant> findEarliestCreatedForMembershipSince(UserId userId, UUID communityId,
+                                                                   OneTimeTokenPurpose purpose, Instant since) {
+        return Optional.ofNullable(jpaRepository.findEarliestCreatedForMembershipSince(userId.getId(), communityId,
+                purpose, since));
+    }
+
+    @Override
+    public Optional<Instant> findValidExpiryOfMembership(UserId userId, UUID communityId,
+                                                         OneTimeTokenPurpose purpose, Instant now) {
+        return jpaRepository.findValidExpiryOfMembership(userId.getId(), communityId, purpose, now);
+    }
+
+    @Override
+    public Map<UUID, Instant> findValidExpiriesInCommunity(UUID communityId, OneTimeTokenPurpose purpose,
+                                                           Instant now) {
+        // At most one valid token per membership: one_time_token_membership_one_active_uq allows one active token
+        return jpaRepository.findValidExpiriesInCommunity(communityId, purpose, now).stream()
+                .collect(Collectors.toMap(OneTimeTokenExpiryView::getMembershipId,
+                        OneTimeTokenExpiryView::getExpiresAt));
     }
 }

@@ -26,7 +26,7 @@ public class MembershipCapabilitiesResponse {
     @Schema(description = "Whether the caller may read this membership's payback progress. Either an admin of the community, or the member themselves.")
     private final boolean canReadPayback;
 
-    @Schema(description = "Whether the caller may invite this member to accept the membership. Whether an invitation can be sent right now depends on the membership's state and contact email.")
+    @Schema(description = "Whether the caller may invite this member to accept the membership, and resend or revoke its invitation. Whether one can be sent right now depends on the membership's state, its contact email and how many invitations it has been sent in the last 24 hours.")
     private final boolean canInvite;
 
     private MembershipCapabilitiesResponse(Builder builder) {

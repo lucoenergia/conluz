@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `OTT` |
 | **Status** | Active |
-| **Contract** | None: the token store has no operation of its own. Password recovery (`requestPasswordReset`, `resetPassword`) uses it. |
+| **Contract** | None: the token store has no operation of its own. Password recovery (`requestPasswordReset`, `resetPassword`) and membership invitations (`sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, and the invitation expiry on membership responses) use it. |
 | **Related ADRs** | ADR-0002 (`docs/architecture/adr/0002-recover-passwords-with-single-use-hashed-tokens-emailed-after-commit.md`), ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #391 |
+| **Last reviewed against code** | #393 |
 
 ## Purpose
 
@@ -23,7 +23,7 @@ issues touch it.
 | Active token | A token that is neither used nor revoked. It may have expired. |
 | Valid token | An active token whose expiry is after the current instant. |
 | User-scoped operation | Issuing, finding the owner of, consuming or counting a token by user. |
-| Membership-scoped operation | Issuing, finding the membership of, consuming, counting or revoking a token by membership. |
+| Membership-scoped operation | Issuing, finding the membership of, consuming, counting, finding the earliest issued, finding the valid expiry of, or revoking a token by membership. |
 
 ## Rules
 
@@ -104,6 +104,28 @@ issues touch it.
   the same empty result.
 - **Rationale:** A token is single-use, and the answer must not reveal why a token was refused.
 - **Source:** #391, ADR-0002 §2
+
+### OTT-009 — The earliest token issued for a membership since an instant, within the retention
+
+- **Status:** Active
+- **Rule:** Finding the earliest token issued for a membership since an instant MUST return the creation instant of
+  the oldest token of that membership and purpose created at or after it, whatever its state, or nothing when there
+  is none. It MUST consider the same tokens as the count (OTT-006), and MUST refuse a window that looks back further
+  than the retention.
+- **Rationale:** A refused resend tells the caller when the oldest counted send leaves the window (MEM-010). It
+  must be computed over the same tokens the limit counted, and an older window would miss deleted ones.
+- **Source:** #393, ADR-0003 §5
+
+### OTT-010 — The expiry of a membership's valid token, for one membership or a whole community
+
+- **Status:** Active
+- **Rule:** Finding the expiry of a membership's token of a purpose MUST return the expiry of its valid token, or
+  nothing when it has none: a used, revoked or expired token has no expiry to show. Finding them for every
+  membership of a community MUST return, in one query, the expiry of each membership of that community that has a
+  valid token of the purpose, and no membership of another community.
+- **Rationale:** Membership responses show when the invitation link expires (MEM-013); a roster reads all of them
+  at once, so its cost does not grow with the number of members.
+- **Source:** #393
 
 ## Impossible states
 

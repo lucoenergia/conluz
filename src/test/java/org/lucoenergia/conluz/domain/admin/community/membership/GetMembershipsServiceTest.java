@@ -7,11 +7,15 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.GetMembershipsServiceImpl;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,24 +29,31 @@ class GetMembershipsServiceTest {
     private GetMembershipsRepository getMembershipsRepository;
     @Mock
     private GetCommunityRepository getCommunityRepository;
+    @Mock
+    private GetOneTimeTokenService getOneTimeTokenService;
 
     private GetMembershipsService service() {
-        return new GetMembershipsServiceImpl(getMembershipsRepository, getCommunityRepository);
+        return new GetMembershipsServiceImpl(getMembershipsRepository, getCommunityRepository, getOneTimeTokenService);
     }
 
     @Test
     void findByCommunityId_validatesCommunityExistsAndDelegatesToRepository() {
         Community community = CommunityMother.random().build();
-        CommunityMembership membership = mock(CommunityMembership.class);
-        List<CommunityMembership> expected = List.of(membership);
+        CommunityMembership invited = new CommunityMembership.Builder().withId(UUID.randomUUID()).build();
+        CommunityMembership notInvited = new CommunityMembership.Builder().withId(UUID.randomUUID()).build();
+        Instant expiry = Instant.parse("2026-01-08T00:00:00Z");
 
         when(getCommunityRepository.findById(community.getId())).thenReturn(Optional.of(community));
-        when(getMembershipsRepository.findByCommunityId(community.getId())).thenReturn(expected);
+        when(getMembershipsRepository.findByCommunityId(community.getId())).thenReturn(List.of(invited, notInvited));
+        when(getOneTimeTokenService.findValidExpiriesInCommunity(community.getId(), OneTimeTokenPurpose.INVITATION))
+                .thenReturn(Map.of(invited.getId(), expiry));
 
-        List<CommunityMembership> result = service().findByCommunityId(community.getId());
+        List<MembershipWithInvitation> result = service().findByCommunityId(community.getId());
 
-        assertEquals(expected, result);
+        assertEquals(List.of(new MembershipWithInvitation(invited, expiry),
+                new MembershipWithInvitation(notInvited, null)), result);
         verify(getMembershipsRepository).findByCommunityId(community.getId());
+        verify(getOneTimeTokenService).findValidExpiriesInCommunity(community.getId(), OneTimeTokenPurpose.INVITATION);
     }
 
     @Test
@@ -52,6 +63,6 @@ class GetMembershipsServiceTest {
 
         assertThrows(CommunityNotFoundException.class, () -> service().findByCommunityId(communityId));
 
-        verifyNoInteractions(getMembershipsRepository);
+        verifyNoInteractions(getMembershipsRepository, getOneTimeTokenService);
     }
 }

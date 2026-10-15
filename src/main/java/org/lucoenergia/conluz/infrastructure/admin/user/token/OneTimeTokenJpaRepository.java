@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -101,6 +102,30 @@ public interface OneTimeTokenJpaRepository extends JpaRepository<OneTimeTokenEnt
     long countCreatedForMembershipSince(@Param("userId") UUID userId, @Param("communityId") UUID communityId,
                                         @Param("purpose") OneTimeTokenPurpose purpose,
                                         @Param("since") Instant since);
+
+    @Query("SELECT MIN(t.createdAt) FROM one_time_token t JOIN community_memberships m ON m.id = t.membershipId "
+            + "WHERE m.user.id = :userId AND m.community.id = :communityId AND t.purpose = :purpose "
+            + "AND t.createdAt >= :since")
+    Instant findEarliestCreatedForMembershipSince(@Param("userId") UUID userId,
+                                                  @Param("communityId") UUID communityId,
+                                                  @Param("purpose") OneTimeTokenPurpose purpose,
+                                                  @Param("since") Instant since);
+
+    @Query("SELECT t.expiresAt FROM one_time_token t JOIN community_memberships m ON m.id = t.membershipId "
+            + "WHERE m.user.id = :userId AND m.community.id = :communityId AND t.purpose = :purpose "
+            + "AND t.usedAt IS NULL AND t.revokedAt IS NULL AND t.expiresAt > :now")
+    Optional<Instant> findValidExpiryOfMembership(@Param("userId") UUID userId,
+                                                  @Param("communityId") UUID communityId,
+                                                  @Param("purpose") OneTimeTokenPurpose purpose,
+                                                  @Param("now") Instant now);
+
+    @Query("SELECT t.membershipId AS membershipId, t.expiresAt AS expiresAt "
+            + "FROM one_time_token t JOIN community_memberships m ON m.id = t.membershipId "
+            + "WHERE m.community.id = :communityId AND t.purpose = :purpose "
+            + "AND t.usedAt IS NULL AND t.revokedAt IS NULL AND t.expiresAt > :now")
+    List<OneTimeTokenExpiryView> findValidExpiriesInCommunity(@Param("communityId") UUID communityId,
+                                                              @Param("purpose") OneTimeTokenPurpose purpose,
+                                                              @Param("now") Instant now);
 
     /**
      * The expression matches one_time_token_finished_at_idx. LEAST ignores NULLs, so a token qualifies as soon as

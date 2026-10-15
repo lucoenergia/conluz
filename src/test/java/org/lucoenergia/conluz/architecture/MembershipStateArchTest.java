@@ -39,7 +39,9 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
  * both states.</p>
  *
  * <p>Queries cannot call {@code isActive()}, so they use {@link ActiveMembershipJpql#ACTIVE_MEMBERSHIP},
- * its JPQL spelling. A query over memberships that mentions either field must contain it.</p>
+ * its JPQL spelling. Bulk invitation selects the memberships awaiting acceptance instead, defined once by
+ * {@link CommunityMembership#isAwaitingAcceptance()} and spelled {@link ActiveMembershipJpql#AWAITING_ACCEPTANCE}
+ * (MEM-012). A query over memberships that mentions either field must contain one of the two spellings.</p>
  */
 public class MembershipStateArchTest extends BaseArchTest {
 
@@ -69,13 +71,13 @@ public class MembershipStateArchTest extends BaseArchTest {
     }
 
     @Test
-    @DisplayName("MEM-004 every query that filters memberships on their state uses the active-membership condition")
-    void queriesFilterMembershipsOnTheActiveCondition() {
+    @DisplayName("MEM-004 MEM-012 every query that filters memberships on their state uses a canonical condition")
+    void queriesFilterMembershipsOnACanonicalCondition() {
         methods()
                 .that().areAnnotatedWith(Query.class)
-                .should(filterMembershipStateOnlyThroughTheActiveCondition())
-                .because("a query that tests enabled or the acceptance of a membership must test both, "
-                        + "exactly as CommunityMembership.isActive() does")
+                .should(filterMembershipStateOnlyThroughACanonicalCondition())
+                .because("a query that tests enabled or the acceptance of a membership must test both, exactly as "
+                        + "CommunityMembership.isActive() or CommunityMembership.isAwaitingAcceptance() does")
                 .check(IMPORTED_CLASSES);
     }
 
@@ -90,16 +92,20 @@ public class MembershipStateArchTest extends BaseArchTest {
                 .check(IMPORTED_CLASSES);
     }
 
-    private static ArchCondition<JavaMethod> filterMembershipStateOnlyThroughTheActiveCondition() {
-        return new ArchCondition<>("filter membership state only through ActiveMembershipJpql.ACTIVE_MEMBERSHIP") {
+    private static ArchCondition<JavaMethod> filterMembershipStateOnlyThroughACanonicalCondition() {
+        return new ArchCondition<>("filter membership state only through ActiveMembershipJpql.ACTIVE_MEMBERSHIP or "
+                + "ActiveMembershipJpql.AWAITING_ACCEPTANCE") {
             @Override
             public void check(JavaMethod method, ConditionEvents events) {
                 String query = method.getAnnotationOfType(Query.class).value();
                 boolean filtersMembershipState = query.contains("community_memberships")
                         && MEMBERSHIP_STATE.matcher(query).find();
-                if (filtersMembershipState && !query.contains(ActiveMembershipJpql.ACTIVE_MEMBERSHIP)) {
+                boolean usesACanonicalCondition = query.contains(ActiveMembershipJpql.ACTIVE_MEMBERSHIP)
+                        || query.contains(ActiveMembershipJpql.AWAITING_ACCEPTANCE);
+                if (filtersMembershipState && !usesACanonicalCondition) {
                     events.add(SimpleConditionEvent.violated(method, String.format(
-                            "%s filters memberships on their state without ActiveMembershipJpql.ACTIVE_MEMBERSHIP: %s",
+                            "%s filters memberships on their state without ActiveMembershipJpql.ACTIVE_MEMBERSHIP or "
+                                    + "ActiveMembershipJpql.AWAITING_ACCEPTANCE: %s",
                             method.getFullName(), query)));
                 }
             }

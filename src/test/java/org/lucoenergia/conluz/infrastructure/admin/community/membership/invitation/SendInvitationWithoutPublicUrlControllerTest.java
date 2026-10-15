@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitat
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
-import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseRegisterMemberTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -17,13 +16,18 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class SendInvitationWithoutPublicUrlControllerTest extends BaseRegisterMemberTest {
+class SendInvitationWithoutPublicUrlControllerTest extends BaseInvitationUnavailableTest {
 
     @DynamicPropertySource
     static void noPublicWebUrl(DynamicPropertyRegistry registry) {
         registry.add("conluz.web.public-url", () -> "");
         // Sending is enabled, so the refusal is down to the missing URL alone
         registry.add("conluz.mail.enabled", () -> "true");
+    }
+
+    @Override
+    protected String expectedWarning() {
+        return "Email INVITATION not sent: the public web URL is not configured";
     }
 
     @Test

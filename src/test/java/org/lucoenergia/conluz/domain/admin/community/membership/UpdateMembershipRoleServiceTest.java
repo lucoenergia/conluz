@@ -8,10 +8,14 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.UpdateMembershipRoleServiceImpl;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,9 +29,12 @@ class UpdateMembershipRoleServiceTest {
     private UpdateMembershipRoleRepository updateMembershipRoleRepository;
     @Mock
     private GetCommunityRepository getCommunityRepository;
+    @Mock
+    private GetOneTimeTokenService getOneTimeTokenService;
 
     private UpdateMembershipRoleService service() {
-        return new UpdateMembershipRoleServiceImpl(updateMembershipRoleRepository, getCommunityRepository);
+        return new UpdateMembershipRoleServiceImpl(updateMembershipRoleRepository, getCommunityRepository,
+                getOneTimeTokenService);
     }
 
     @Test
@@ -40,9 +47,15 @@ class UpdateMembershipRoleServiceTest {
         when(updateMembershipRoleRepository.updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN))
                 .thenReturn(expected);
 
-        CommunityMembership result = service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN);
+        Instant expiry = Instant.parse("2026-01-08T00:00:00Z");
+        when(getOneTimeTokenService.findValidExpiryForMembership(UserId.of(userId), community.getId(),
+                OneTimeTokenPurpose.INVITATION)).thenReturn(Optional.of(expiry));
 
-        assertSame(expected, result);
+        MembershipWithInvitation result = service().updateRole(community.getId(), userId,
+                CommunityRole.COMMUNITY_ADMIN);
+
+        assertSame(expected, result.membership());
+        assertEquals(expiry, result.invitationExpiresAt());
         verify(updateMembershipRoleRepository).updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN);
     }
 
@@ -54,6 +67,6 @@ class UpdateMembershipRoleServiceTest {
         assertThrows(CommunityNotFoundException.class,
                 () -> service().updateRole(communityId, UUID.randomUUID(), CommunityRole.COMMUNITY_ADMIN));
 
-        verifyNoInteractions(updateMembershipRoleRepository);
+        verifyNoInteractions(updateMembershipRoleRepository, getOneTimeTokenService);
     }
 }

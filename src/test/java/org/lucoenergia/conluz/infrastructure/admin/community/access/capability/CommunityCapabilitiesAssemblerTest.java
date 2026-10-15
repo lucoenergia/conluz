@@ -25,6 +25,7 @@ class CommunityCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanManage());
         assertTrue(capabilities.isCanManageMemberships());
         assertTrue(capabilities.isCanRegisterMembers());
+        assertTrue(capabilities.isCanInviteMembers());
         assertTrue(capabilities.isCanManageMembershipInvestment());
         assertTrue(capabilities.isCanListPlants());
         assertTrue(capabilities.isCanCreatePlants());
@@ -63,6 +64,7 @@ class CommunityCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanManage());
         assertFalse(capabilities.isCanManageMemberships());
         assertFalse(capabilities.isCanRegisterMembers());
+        assertFalse(capabilities.isCanInviteMembers());
         assertFalse(capabilities.isCanManageMembershipInvestment());
         assertFalse(capabilities.isCanCreatePlants());
         assertFalse(capabilities.isCanCreateUsers());
@@ -117,6 +119,17 @@ class CommunityCapabilitiesAssemblerTest {
                 .isCanRegisterMembers());
     }
 
+    /**
+     * Sending invitations in bulk is for the community's own admins, like registering the members it invites.
+     */
+    @Test
+    void aNonMemberPlatformAdminMayNotInviteMembers() {
+        Community community = CapabilityFixtures.community();
+
+        assertFalse(assembler.assemble(CapabilityFixtures.platformAdmin(), community.getId())
+                .isCanInviteMembers());
+    }
+
     @Test
     void aStrangerMayDoNothing() {
         CommunityCapabilitiesResponse capabilities =
@@ -129,6 +142,7 @@ class CommunityCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanManage());
         assertFalse(capabilities.isCanManageMemberships());
         assertFalse(capabilities.isCanRegisterMembers());
+        assertFalse(capabilities.isCanInviteMembers());
         assertFalse(capabilities.isCanManageMembershipInvestment());
         assertFalse(capabilities.isCanListPlants());
         assertFalse(capabilities.isCanCreatePlants());

@@ -18,6 +18,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.lock.LockMembers
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.email.EmailSender;
 import org.lucoenergia.conluz.infrastructure.shared.email.EmailProperties;
@@ -50,6 +51,8 @@ class SendInvitationServiceTest {
     @Mock
     private CreateOneTimeTokenService createOneTimeTokenService;
     @Mock
+    private GetOneTimeTokenService getOneTimeTokenService;
+    @Mock
     private UpdateMembershipInvitationRepository updateMembershipInvitationRepository;
     @Mock
     private EmailSender emailSender;
@@ -59,12 +62,13 @@ class SendInvitationServiceTest {
     }
 
     private SendInvitationService service(String publicUrl, boolean emailEnabled) {
-        return new SendInvitationServiceImpl(lockUserRepository, lockMembershipRepository, getMembershipsRepository,
-                createOneTimeTokenService, updateMembershipInvitationRepository, emailSender,
+        return new SendInvitationServiceImpl(new InvitationSending(lockUserRepository, lockMembershipRepository,
+                getMembershipsRepository, createOneTimeTokenService, getOneTimeTokenService,
+                updateMembershipInvitationRepository, emailSender,
                 new InvitationEmailFactory(mock(MessageSource.class)), InvitationLink.of(publicUrl),
                 new EmailProperties(emailEnabled, "smtp.test", "587", null, null, "no-reply@conluz.test", null,
                         true),
-                Clock.systemUTC());
+                Clock.systemUTC()));
     }
 
     @Test
@@ -155,6 +159,7 @@ class SendInvitationServiceTest {
     }
 
     private void nothingIsIssuedOrSent() {
-        verifyNoInteractions(createOneTimeTokenService, updateMembershipInvitationRepository, emailSender);
+        verifyNoInteractions(createOneTimeTokenService, getOneTimeTokenService, updateMembershipInvitationRepository,
+                emailSender);
     }
 }

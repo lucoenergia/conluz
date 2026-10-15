@@ -5,7 +5,11 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.UpdateMembershipRoleRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
 import org.lucoenergia.conluz.domain.admin.community.membership.UpdateMembershipRoleService;
+import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,18 +21,24 @@ public class UpdateMembershipRoleServiceImpl implements UpdateMembershipRoleServ
 
     private final UpdateMembershipRoleRepository updateMembershipRoleRepository;
     private final GetCommunityRepository getCommunityRepository;
+    private final GetOneTimeTokenService getOneTimeTokenService;
 
     public UpdateMembershipRoleServiceImpl(UpdateMembershipRoleRepository updateMembershipRoleRepository,
-                                           GetCommunityRepository getCommunityRepository) {
+                                           GetCommunityRepository getCommunityRepository,
+                                           GetOneTimeTokenService getOneTimeTokenService) {
         this.updateMembershipRoleRepository = updateMembershipRoleRepository;
         this.getCommunityRepository = getCommunityRepository;
+        this.getOneTimeTokenService = getOneTimeTokenService;
     }
 
     @Override
-    public CommunityMembership updateRole(UUID communityId, UUID userId, CommunityRole role) {
+    public MembershipWithInvitation updateRole(UUID communityId, UUID userId, CommunityRole role) {
         getCommunityRepository.findById(communityId)
                 .orElseThrow(() -> new CommunityNotFoundException(communityId));
 
-        return updateMembershipRoleRepository.updateRole(communityId, userId, role);
+        CommunityMembership membership = updateMembershipRoleRepository.updateRole(communityId, userId, role);
+        return new MembershipWithInvitation(membership, getOneTimeTokenService
+                .findValidExpiryForMembership(UserId.of(userId), communityId, OneTimeTokenPurpose.INVITATION)
+                .orElse(null));
     }
 }
