@@ -57,9 +57,9 @@ public class SendInvitationController {
 
                     This sends the first invitation only; every later send goes through `resendInvitation`. A \
                     membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` \
-                    code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a \
-                    member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` \
-                    code.
+                    code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, a \
+                    disabled one responds 409 with the `MEMBERSHIP_DISABLED` code, and a member record without a \
+                    contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.
 
                     If the server cannot send emails right now (no public web URL configured, or email sending \
                     disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything \
@@ -77,7 +77,7 @@ public class SendInvitationController {
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "The membership has already been invited, or has been accepted.",
+                    description = "The membership has already been invited, has been accepted, or is disabled.",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class),

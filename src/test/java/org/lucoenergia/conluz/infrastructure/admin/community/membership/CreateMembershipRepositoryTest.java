@@ -136,7 +136,7 @@ class CreateMembershipRepositoryTest extends BaseIntegrationTest {
                 "600000000");
 
         CommunityMembership created = createMembershipRepository.createPending(community.getId(),
-                UserId.of(member.getId()), record, UserId.of(inviter.getId()));
+                UserId.of(member.getId()), record, CommunityRole.COMMUNITY_MEMBER, UserId.of(inviter.getId()));
 
         Map<String, Object> row = row(created);
         assertEquals(member.getId(), row.get("user_id"));
@@ -158,6 +158,22 @@ class CreateMembershipRepositoryTest extends BaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("MEM-020 a pending membership holds the role it is created with")
+    void createPending_holdsTheGivenRole() {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User admin = createUser("account@example.org");
+        User inviter = createUser("inviter@example.org");
+        MemberRecord record = new MemberRecord("Lucía Pérez", null, "contact@example.org", null, null);
+
+        CommunityMembership created = createMembershipRepository.createPending(community.getId(),
+                UserId.of(admin.getId()), record, CommunityRole.COMMUNITY_ADMIN, UserId.of(inviter.getId()));
+
+        assertEquals("COMMUNITY_ADMIN", row(created).get("role"));
+        assertEquals(CommunityRole.COMMUNITY_ADMIN, created.getRole());
+        assertTrue(created.isPending());
+    }
+
+    @Test
     @DisplayName("MEM-007 a pending membership is refused when the user already has a membership in the community")
     void createPending_isRefused_whenTheUserAlreadyHasAMembershipThere() {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
@@ -167,7 +183,8 @@ class CreateMembershipRepositoryTest extends BaseIntegrationTest {
         MemberRecord record = new MemberRecord("Lucía Pérez", null, null, null, null);
 
         assertThrows(MembershipAlreadyExistsException.class, () -> createMembershipRepository.createPending(
-                community.getId(), UserId.of(member.getId()), record, UserId.of(inviter.getId())));
+                community.getId(), UserId.of(member.getId()), record, CommunityRole.COMMUNITY_MEMBER,
+                UserId.of(inviter.getId())));
 
         assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM community_memberships WHERE user_id = ?",
                 Integer.class, member.getId()));

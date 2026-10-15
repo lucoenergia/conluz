@@ -3,7 +3,9 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitat
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.UpdateMembershipInvitationRepository;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
@@ -126,6 +128,52 @@ abstract class BaseInvitationUnavailableTest extends BaseRegisterMemberTest {
         verify(emailSender, never()).send(any());
         assertTheOneWarning();
         assertNoSecretIn(response);
+    }
+
+    @Test
+    @DisplayName("MEM-020 inviting a community admin is refused with 503 before anything is created, and one warning "
+            + "names only the email category")
+    void aCommunityAdminInvitation_isRefusedBeforeAnythingIsCreated() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsPlatformAdmin();
+        Map<String, Object> body = newAdminRecord();
+        String personalId = (String) body.get("personalId");
+        logs.clear();
+
+        String response = inviteAdmin(bearer, community.getId(), body)
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_UNAVAILABLE"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(accountCount(personalId)).isZero();
+        assertThat(membershipCount(personalId)).isZero();
+        assertThat(tokenCount(personalId)).isZero();
+        verify(emailSender, never()).send(any());
+        assertTheOneWarning();
+        assertNoSecretIn(response);
+    }
+
+    @Test
+    @DisplayName("MEM-020 inviting a community admin whose account exists is refused with 503 the same way, and "
+            + "nothing is created")
+    void aCommunityAdminInvitationOfAnExistingAccount_isRefusedTheSameWay() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsPlatformAdmin();
+        User existing = memberOf(newCommunity(), CommunityRole.COMMUNITY_MEMBER);
+        Map<String, Object> body = newAdminRecord();
+        body.put("personalId", existing.getPersonalId());
+        Map<String, Object> accountBefore = accountRow(existing.getPersonalId());
+        logs.clear();
+
+        inviteAdmin(bearer, community.getId(), body)
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_UNAVAILABLE"));
+
+        assertThat(accountRow(existing.getPersonalId())).isEqualTo(accountBefore);
+        assertThat(membershipCount(existing.getPersonalId())).isEqualTo(1);
+        assertThat(tokenCount(existing.getPersonalId())).isZero();
+        verify(emailSender, never()).send(any());
+        assertTheOneWarning();
     }
 
     protected void assertTheOneWarning() {

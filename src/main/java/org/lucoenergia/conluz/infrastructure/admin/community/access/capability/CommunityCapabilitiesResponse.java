@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * the agreement's {@code status} that says the action would be rejected right now. Clients read
  * both.</p>
  */
-@Schema(description = "What the caller may do with this community.", requiredProperties = {"canRead", "canUpdate", "canEnable", "canDisable", "canManage", "canManageMemberships", "canRegisterMembers", "canInviteMembers", "canManageMembershipInvestment", "canListPlants", "canCreatePlants", "canCreateUsers", "canReadProduction", "canListSupplies"})
+@Schema(description = "What the caller may do with this community.", requiredProperties = {"canRead", "canUpdate", "canEnable", "canDisable", "canManageAdmins", "canManage", "canManageMemberships", "canRegisterMembers", "canInviteMembers", "canManageMembershipInvestment", "canListPlants", "canCreatePlants", "canCreateUsers", "canReadProduction", "canListSupplies"})
 public class CommunityCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may read this community (GET /api/v1/communities/{communityId}).")
@@ -25,6 +25,9 @@ public class CommunityCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may disable this community (POST /api/v1/communities/{communityId}/disable). A platform-wide decision.")
     private final boolean canDisable;
+
+    @Schema(description = "Whether the caller may invite, list, re-invite, enable and disable this community's admins (/api/v1/communities/{communityId}/admins). A platform-wide decision: being a community admin does not confer it.")
+    private final boolean canManageAdmins;
 
     @Schema(description = "Whether the caller administers this community: creating and importing its supplies, reading and writing its Datadis and Shelly configuration, and triggering its synchronisation endpoints.")
     private final boolean canManage;
@@ -61,6 +64,7 @@ public class CommunityCapabilitiesResponse {
         this.canUpdate = builder.canUpdate;
         this.canEnable = builder.canEnable;
         this.canDisable = builder.canDisable;
+        this.canManageAdmins = builder.canManageAdmins;
         this.canManage = builder.canManage;
         this.canManageMemberships = builder.canManageMemberships;
         this.canRegisterMembers = builder.canRegisterMembers;
@@ -87,6 +91,10 @@ public class CommunityCapabilitiesResponse {
 
     public boolean isCanDisable() {
         return canDisable;
+    }
+
+    public boolean isCanManageAdmins() {
+        return canManageAdmins;
     }
 
     public boolean isCanManage() {
@@ -143,6 +151,7 @@ public class CommunityCapabilitiesResponse {
         private boolean canUpdate;
         private boolean canEnable;
         private boolean canDisable;
+        private boolean canManageAdmins;
         private boolean canManage;
         private boolean canManageMemberships;
         private boolean canRegisterMembers;
@@ -171,6 +180,11 @@ public class CommunityCapabilitiesResponse {
 
         public Builder withCanDisable(boolean canDisable) {
             this.canDisable = canDisable;
+            return this;
+        }
+
+        public Builder withCanManageAdmins(boolean canManageAdmins) {
+            this.canManageAdmins = canManageAdmins;
             return this;
         }
 

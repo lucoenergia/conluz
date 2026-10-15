@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipDisabledException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationResendLimitException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotInvitedException;
@@ -71,13 +72,15 @@ class ResendInvitationServiceTest {
 
     private ResendInvitationService service(String publicUrl, boolean emailEnabled) {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        return new ResendInvitationServiceImpl(new InvitationSending(lockUserRepository, lockMembershipRepository,
+        InvitationSending sending = new InvitationSending(lockUserRepository, lockMembershipRepository,
                 getMembershipsRepository, createOneTimeTokenService, getOneTimeTokenService,
                 updateMembershipInvitationRepository, emailSender,
                 new InvitationEmailFactory(mock(MessageSource.class)), InvitationLink.of(publicUrl),
                 new EmailProperties(emailEnabled, "smtp.test", "587", null, null, "no-reply@conluz.test", null,
                         true),
-                clock), getOneTimeTokenService, clock);
+                clock);
+        return new ResendInvitationServiceImpl(new InvitationResending(sending, getOneTimeTokenService, clock),
+                sending);
     }
 
     @Test
@@ -108,6 +111,17 @@ class ResendInvitationServiceTest {
 
         assertThrows(MembershipAlreadyExistsException.class,
                 () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID)));
+
+        nothingIsCountedIssuedOrSent();
+    }
+
+    @Test
+    @DisplayName("MEM-025 a disabled pending membership is refused under the lock, and nothing is issued or sent")
+    void aDisabledMembership_isRefused() {
+        storedUnderTheLock(new CommunityMembership.Builder().withEnabled(false).withContactEmail("member@example.org")
+                .withInvitedAt(Instant.parse("2026-01-01T00:00:00Z")));
+
+        assertThrows(MembershipDisabledException.class, () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID)));
 
         nothingIsCountedIssuedOrSent();
     }

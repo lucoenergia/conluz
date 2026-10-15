@@ -50,6 +50,21 @@ class CommunityCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanDisable());
     }
 
+    /**
+     * A community's admins are appointed and suspended by the platform admin, never by a community admin, its own
+     * included.
+     */
+    @Test
+    void onlyThePlatformAdminMayManageTheCommunityAdmins() {
+        Community community = CapabilityFixtures.community();
+
+        assertTrue(assembler.assemble(CapabilityFixtures.platformAdmin(), community.getId()).isCanManageAdmins());
+        assertFalse(assembler.assemble(CapabilityFixtures.adminOf(community), community.getId())
+                .isCanManageAdmins());
+        assertFalse(assembler.assemble(CapabilityFixtures.memberOf(community), community.getId())
+                .isCanManageAdmins());
+    }
+
     @Test
     void aPlainMemberMayOnlyReadListAndSeeProduction() {
         Community community = CapabilityFixtures.community();

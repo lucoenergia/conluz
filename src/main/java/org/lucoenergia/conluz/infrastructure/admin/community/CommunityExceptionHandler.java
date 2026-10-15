@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyInvitedExc
 import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationResendLimitException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipDisabledException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotInvitedException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationLoginRequiredException;
@@ -178,6 +179,23 @@ public class CommunityExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_NOT_INVITED,
+                Map.of("userId", userId, "communityId", communityId), HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 409: the membership is disabled, so it is not sent an invitation. Revoking its invitation still works.
+     */
+    @ExceptionHandler(MembershipDisabledException.class)
+    public ResponseEntity<RestError> handleException(MembershipDisabledException e) {
+        String userId = e.getUserId() != null ? e.getUserId().toString() : "";
+        String communityId = e.getCommunityId() != null ? e.getCommunityId().toString() : "";
+
+        String message = messageSource.getMessage(
+                "error.membership.disabled",
+                List.of(userId, communityId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_DISABLED,
                 Map.of("userId", userId, "communityId", communityId), HttpStatus.CONFLICT);
     }
 

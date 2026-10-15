@@ -22,6 +22,12 @@ public interface PlatformAccessGuard {
 
     boolean canDisableCommunity(UUID communityId);
 
+    /**
+     * Inviting, listing, re-inviting, enabling and disabling a community's admins. A community admin, of this
+     * community or any other, is not allowed: only the platform admin appoints and suspends them.
+     */
+    boolean canManageCommunityAdmins(UUID communityId);
+
     boolean canGrantPlatformAdmin(UUID userId);
 
     /**

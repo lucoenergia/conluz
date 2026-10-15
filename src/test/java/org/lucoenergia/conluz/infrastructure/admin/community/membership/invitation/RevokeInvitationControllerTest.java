@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -52,6 +53,20 @@ class RevokeInvitationControllerTest extends BaseInvitationTest {
 
         resend(member).andExpect(status().isOk());
         assertThat(linkWorks(tokenFrom(awaitNextEmails(1)[0]))).isTrue();
+    }
+
+    @Test
+    @DisplayName("MEM-025 the invitation of a disabled membership can still be revoked")
+    void aDisabledMembership_canStillBeRevoked() throws Exception {
+        InvitedMember member = invitedMember();
+        MembershipStateTestSupport.markDisabled(membershipJpaRepository, member.userId(), member.community().getId());
+
+        revoke(member)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false))
+                .andExpect(jsonPath("$.invitationExpiresAt").isEmpty());
+
+        assertThat(linkWorks(member.token())).isFalse();
     }
 
     @Test

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.infrastructure.admin.community.ActiveMembershipJpql;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
+import org.lucoenergia.conluz.infrastructure.admin.community.admins.CommunityAdminResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.CreateMembershipRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.GetMembershipsRepositoryDatabase;
@@ -59,7 +60,8 @@ public class MembershipStateArchTest extends BaseArchTest {
                         UpdateMembershipRoleRepositoryDatabase.class,
                         UpdateMembershipInvitationRepositoryDatabase.class,
                         MembershipResponse.class,
-                        MemberResponse.class)
+                        MemberResponse.class,
+                        CommunityAdminResponse.class)
                 .should().callMethodWhere(
                         target(owner(assignableTo(CommunityMembership.class)
                                 .or(assignableTo(CommunityMembershipEntity.class))))

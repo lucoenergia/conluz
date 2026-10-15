@@ -144,6 +144,80 @@
         ],
         "type" : "object"
       },
+      "CommunityAdminResponse" : {
+        "description" : "A community's admin: this community's member record, the personal id, and the state of the membership and its invitation.",
+        "properties" : {
+          "acceptedAt" : {
+            "description" : "When the membership was accepted. Null while it is pending: a pending membership grants no access until it is accepted. Independent of enabled.",
+            "example" : "2026-01-01T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "contactEmail" : {
+            "description" : "The email address this community contacts the admin at. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "enabled" : {
+            "description" : "Whether the membership is enabled. A disabled one grants no access to this community, whatever its other state.",
+            "type" : "boolean"
+          },
+          "fullName" : {
+            "description" : "The admin's full name, as this community records it.",
+            "type" : "string"
+          },
+          "invitationExpiresAt" : {
+            "description" : "When the membership's invitation link expires. Null when it has no link that can still be used: none was sent, it was revoked or used, or it has expired.",
+            "example" : "2026-01-08T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "invitedAt" : {
+            "description" : "When the admin was last sent an invitation. Null if none has been sent.",
+            "example" : "2026-01-01T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "personalId" : {
+            "description" : "The admin's DNI/NIE/NIF, normalised.",
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "description" : "The admin's phone number, as this community records it. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/UserReferenceResponse",
+            "description" : "The admin's account, by id only: the {userId} the admin endpoints take."
+          }
+        },
+        "required" : [
+          "acceptedAt",
+          "contactEmail",
+          "enabled",
+          "fullName",
+          "invitationExpiresAt",
+          "invitedAt",
+          "personalId",
+          "phoneNumber",
+          "user"
+        ],
+        "type" : "object"
+      },
       "CommunityCapabilitiesResponse" : {
         "description" : "What the caller may do with this community.",
         "properties" : {
@@ -177,6 +251,10 @@
           },
           "canManage" : {
             "description" : "Whether the caller administers this community: creating and importing its supplies, reading and writing its Datadis and Shelly configuration, and triggering its synchronisation endpoints.",
+            "type" : "boolean"
+          },
+          "canManageAdmins" : {
+            "description" : "Whether the caller may invite, list, re-invite, enable and disable this community's admins (/api/v1/communities/{communityId}/admins). A platform-wide decision: being a community admin does not confer it.",
             "type" : "boolean"
           },
           "canManageMembershipInvestment" : {
@@ -213,6 +291,7 @@
           "canListPlants",
           "canListSupplies",
           "canManage",
+          "canManageAdmins",
           "canManageMembershipInvestment",
           "canManageMemberships",
           "canRead",
@@ -985,6 +1064,38 @@
         },
         "required" : [
           "token"
+        ],
+        "type" : "object"
+      },
+      "InviteCommunityAdminBody" : {
+        "properties" : {
+          "contactEmail" : {
+            "description" : "The email address this community contacts the admin at. The invitation is sent to it.",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "fullName" : {
+            "description" : "The admin's full name, as this community records it.",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "personalId" : {
+            "description" : "The admin's DNI/NIE/NIF. It is normalised before it is stored or compared: whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so 12.345.678-a and 12345678A are the same person. A value made only of those removed characters is refused.",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "description" : "The admin's phone number, as this community records it. An empty or blank value is recorded as none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "contactEmail",
+          "fullName",
+          "personalId"
         ],
         "type" : "object"
       },
@@ -2170,6 +2281,7 @@
               "MEMBERSHIP_WITHOUT_CONTACT_EMAIL",
               "MEMBERSHIP_INVITATION_UNAVAILABLE",
               "MEMBERSHIP_NOT_INVITED",
+              "MEMBERSHIP_DISABLED",
               "MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED",
               "MEMBERSHIP_INVITATION_TOKEN_INVALID",
               "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
@@ -4097,6 +4209,877 @@
         "summary" : "Updates an existing community.",
         "tags" : [
           "Communities"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/admins" : {
+      "get" : {
+        "description" : "Every membership of the community with the COMMUNITY_ADMIN role, in any state, by full name: the name, contact email and phone from this community's member record, the DNI/NIE/NIF, and the state of the membership and of its invitation. Nothing about the community's members, and nothing from any other membership of the same people. Only a platform admin may list them.\n",
+        "operationId" : "getCommunityAdmins",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CommunityAdminResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "The community's admins"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Lists a community's admins.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/admins/invite" : {
+      "post" : {
+        "description" : "Registers a person as an admin of the community with their DNI/NIE/NIF, full name, contact email and optional phone, and emails them an invitation to accept it at that contact email, in one operation. The membership is created pending, with the role COMMUNITY_ADMIN: it grants no access until it is accepted. The link is valid for 7 days. Only a platform admin may invite a community admin; a community admin may not.\n\nThe response is the same whether or not the person already had an account, and carries nothing from it. Inviting someone who already has a membership in this community, in any role or state, responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and nothing is created or sent.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is created.\n",
+        "operationId" : "inviteCommunityAdmin",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InviteCommunityAdminBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommunityAdminResponse"
+                }
+              }
+            },
+            "description" : "Community admin registered and invited"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_ALREADY_EXISTS",
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is already a member of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b'.",
+                      "params" : {
+                        "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
+                        "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                      }
+                    }
+                  ],
+                  "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is already a member of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b'.",
+                  "status" : 409,
+                  "timestamp" : "2026-09-16T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The person already has a membership in this community (`MEMBERSHIP_ALREADY_EXISTS`)."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The server cannot send invitations right now (`MEMBERSHIP_INVITATION_UNAVAILABLE`). Nothing was created."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Invites a community admin.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/admins/{userId}/disable" : {
+      "post" : {
+        "description" : "Disables a community admin's membership of this community: from the admin's next request it grants no access to this community, while their other communities are unaffected. Only the membership is written, never the account. Disabling a disabled membership changes nothing. Only memberships with the COMMUNITY_ADMIN role: any other is answered 404. Only a platform admin may disable them.\n",
+        "operationId" : "disableCommunityAdmin",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "Community admin membership disabled"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Disables a community admin's membership.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/admins/{userId}/enable" : {
+      "post" : {
+        "description" : "Enables a community admin's membership of this community, so that it grants admin access again once it is accepted. Only the membership is written, never the account. Enabling an enabled membership changes nothing. Only memberships with the COMMUNITY_ADMIN role: any other is answered 404. Only a platform admin may enable them.\n",
+        "operationId" : "enableCommunityAdmin",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "Community admin membership enabled"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Enables a community admin's membership.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/admins/{userId}/invitation/resend" : {
+      "post" : {
+        "description" : "Emails the admin a new invitation link, at the contact email of this community's member record, and stops the previous link from working. The rules are those of `resendInvitation`: at most 4 sends in any 24 hours (429 with the `MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED` code and a `Retry-After` header), and 409 with the `MEMBERSHIP_NOT_INVITED`, `MEMBERSHIP_ALREADY_EXISTS` or `MEMBERSHIP_DISABLED` code, 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded.\n\nOnly memberships with the COMMUNITY_ADMIN role: any other is answered 404. Only a platform admin may resend them.\n",
+        "operationId" : "resendCommunityAdminInvitation",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommunityAdminResponse"
+                }
+              }
+            },
+            "description" : "Invitation sent again"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The membership has never been invited, has been accepted, or is disabled."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The membership has been sent 4 invitations in the last 24 hours (`MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED`). Nothing was recorded.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Whole seconds until a resend will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The server cannot send invitations right now (`MEMBERSHIP_INVITATION_UNAVAILABLE`). Nothing was recorded."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Sends a community admin's invitation again, with a new link.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/admins/{userId}/invitation/revoke" : {
+      "post" : {
+        "description" : "Stops the admin's invitation link from working. The membership stays pending with its invitation instant, and can be sent a new link with `resendCommunityAdminInvitation`. The rules are those of `revokeInvitation`: it works whether or not the membership is enabled and whether or not emails can be sent, and an accepted membership responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code.\n\nOnly memberships with the COMMUNITY_ADMIN role: any other is answered 404. Only a platform admin may revoke them.\n",
+        "operationId" : "revokeCommunityAdminInvitation",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommunityAdminResponse"
+                }
+              }
+            },
+            "description" : "Invitation revoked, or there was no link to revoke"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The membership has been accepted (`MEMBERSHIP_ALREADY_EXISTS`)."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Revokes a community admin's invitation.",
+        "tags" : [
+          "Memberships"
         ]
       }
     },
@@ -6347,7 +7330,7 @@
         ]
       },
       "patch" : {
-        "description" : "Changes the role of a user within a community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.",
+        "description" : "Changes the role of a user within a community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.\n\nGiving a membership the `COMMUNITY_ADMIN` role requires a contact email on its member record: without one it responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and the role is left as it was.\n",
         "operationId" : "updateMembershipRole",
         "parameters" : [
           {
@@ -7222,7 +8205,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/invitation/resend" : {
       "post" : {
-        "description" : "Emails the member a new invitation link, at the contact email the community's member record has now, and stops the previous link from working, whether it was still valid, had expired or had been revoked. The new link is valid for 7 days, and `invitedAt` becomes the resend's instant. Only an active community admin of the community may resend; a platform admin may not.\n\nA membership is sent at most 4 invitations in any 24 hours, the first included. Over that, it responds 429 with the `MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED` code and the number of seconds until a resend is accepted again in the `Retry-After` header and in `params.retryAfterSeconds`.\n\nA membership never invited responds 409 with the `MEMBERSHIP_NOT_INVITED` code (send its first invitation instead), one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: the previous link and `invitedAt` stay as they were.\n",
+        "description" : "Emails the member a new invitation link, at the contact email the community's member record has now, and stops the previous link from working, whether it was still valid, had expired or had been revoked. The new link is valid for 7 days, and `invitedAt` becomes the resend's instant. Only an active community admin of the community may resend; a platform admin may not.\n\nA membership is sent at most 4 invitations in any 24 hours, the first included. Over that, it responds 429 with the `MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED` code and the number of seconds until a resend is accepted again in the `Retry-After` header and in `params.retryAfterSeconds`.\n\nA membership never invited responds 409 with the `MEMBERSHIP_NOT_INVITED` code (send its first invitation instead), one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, a disabled one responds 409 with the `MEMBERSHIP_DISABLED` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: the previous link and `invitedAt` stay as they were.\n",
         "operationId" : "resendInvitation",
         "parameters" : [
           {
@@ -7355,7 +8338,7 @@
                 }
               }
             },
-            "description" : "The membership has never been invited, or has been accepted."
+            "description" : "The membership has never been invited, has been accepted, or is disabled."
           },
           "429" : {
             "content" : {
@@ -7607,7 +8590,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/invite" : {
       "post" : {
-        "description" : "Emails the member an invitation to accept their pending membership, at the contact email of the community's member record, never the account's email. The link is valid for 7 days. Only an active community admin of the community may invite; a platform admin may not.\n\nThis sends the first invitation only; every later send goes through `resendInvitation`. A membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: `invitedAt` stays null and the same request can be repeated once sending works.\n",
+        "description" : "Emails the member an invitation to accept their pending membership, at the contact email of the community's member record, never the account's email. The link is valid for 7 days. Only an active community admin of the community may invite; a platform admin may not.\n\nThis sends the first invitation only; every later send goes through `resendInvitation`. A membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, a disabled one responds 409 with the `MEMBERSHIP_DISABLED` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: `invitedAt` stays null and the same request can be repeated once sending works.\n",
         "operationId" : "sendInvitation",
         "parameters" : [
           {
@@ -7740,7 +8723,7 @@
                 }
               }
             },
-            "description" : "The membership has already been invited, or has been accepted."
+            "description" : "The membership has already been invited, has been accepted, or is disabled."
           },
           "500" : {
             "content" : {

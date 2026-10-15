@@ -1,11 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation;
 
-import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
-import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.RevokeInvitationService;
-import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
-import org.lucoenergia.conluz.domain.admin.user.token.RevokeOneTimeTokenService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,27 +16,21 @@ public class RevokeInvitationServiceImpl implements RevokeInvitationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RevokeInvitationServiceImpl.class);
 
+    private final InvitationRevoking revoking;
     private final InvitationSending sending;
-    private final RevokeOneTimeTokenService revokeOneTimeTokenService;
 
-    public RevokeInvitationServiceImpl(InvitationSending sending,
-                                       RevokeOneTimeTokenService revokeOneTimeTokenService) {
+    public RevokeInvitationServiceImpl(InvitationRevoking revoking, InvitationSending sending) {
+        this.revoking = revoking;
         this.sending = sending;
-        this.revokeOneTimeTokenService = revokeOneTimeTokenService;
     }
 
     @Override
     public MembershipWithInvitation revoke(UUID communityId, UserId userId) {
-        CommunityMembership membership = sending.lockAndRead(communityId, userId);
-        if (!membership.isPending()) {
-            throw new MembershipAlreadyExistsException(communityId, userId.getId());
-        }
-        // The invitation instant is kept: it records the last send, which counts toward the resend limit
-        boolean revoked = revokeOneTimeTokenService.revokeForMembership(userId, communityId,
-                OneTimeTokenPurpose.INVITATION);
+        // Every membership of the community, whatever its role
+        InvitationRevoking.RevokedInvitation revoked = revoking.revoke(communityId, userId, membership -> true);
 
         LOGGER.info("Member invitation revoked: userId={}, communityId={}, revoked={}", userId.getId(), communityId,
-                revoked);
-        return sending.withInvitation(membership);
+                revoked.revoked());
+        return sending.withInvitation(revoked.membership());
     }
 }

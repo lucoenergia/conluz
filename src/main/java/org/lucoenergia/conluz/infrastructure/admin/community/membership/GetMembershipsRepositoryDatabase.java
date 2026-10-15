@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
@@ -44,6 +45,17 @@ public class GetMembershipsRepositoryDatabase implements GetMembershipsRepositor
         Community community = communityEntityMapper.map(communityEntity);
 
         return membershipJpaRepository.findByCommunityIdWithUser(communityId).stream()
+                .map(e -> toDomain(e, community))
+                .toList();
+    }
+
+    @Override
+    public List<CommunityMembership> findByCommunityIdAndRole(UUID communityId, CommunityRole role) {
+        CommunityEntity communityEntity = communityJpaRepository.findById(communityId)
+                .orElseThrow(() -> new CommunityNotFoundException(communityId));
+        Community community = communityEntityMapper.map(communityEntity);
+
+        return membershipJpaRepository.findByCommunityIdAndRoleWithUser(communityId, role).stream()
                 .map(e -> toDomain(e, community))
                 .toList();
     }

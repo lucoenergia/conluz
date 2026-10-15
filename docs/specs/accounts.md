@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember` |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #394 |
+| **Last reviewed against code** | #395 |
 
 ## Purpose
 
@@ -86,13 +86,13 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 - **Rule:** When no account has the personal ID entered, member registration MUST create one without a password,
   without a number, without having to change its password, with the member record's full name as its name and
   the record's contact email as its email (no email when the record has none). When an account has that personal
-  ID, with or without a password, member registration MUST NOT write it. Member registration MUST be the only
-  path that creates an account without a password.
+  ID, with or without a password, member registration MUST NOT write it. Member registration, which inviting a
+  community admin uses (MEM-020), MUST be the only path that creates an account without a password.
 - **Rationale:** The person sets their first password by accepting the invitation (ADR-0003 §6, §7). The member
   number belongs to each community's member record, not to the account (ADR-0003 §1). Changing an existing
   account would let one community overwrite another's view of the person, and would reveal that the account
   existed.
-- **Source:** #392, ADR-0003 §1, §3 and §7
+- **Source:** #392, #395, ADR-0003 §1, §3 and §7
 
 ### ACC-007 — An account's first password is set only by accepting an invitation
 

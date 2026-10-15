@@ -51,7 +51,13 @@ public class UpdateMembershipRoleController {
     @PatchMapping("/{userId}")
     @Operation(
             summary = "Updates the role of a membership.",
-            description = "Changes the role of a user within a community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.",
+            description = """
+                    Changes the role of a user within a community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.
+
+                    Giving a membership the `COMMUNITY_ADMIN` role requires a contact email on its member record: \
+                    without one it responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and the role is \
+                    left as it was.
+                    """,
             tags = ApiTag.MEMBERSHIPS,
             operationId = "updateMembershipRole",
             security = @SecurityRequirement(name = "bearerToken")

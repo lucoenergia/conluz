@@ -58,6 +58,7 @@ final class CapabilityInventory {
         report("canUpdateCommunity", capability(COMMUNITY, "canUpdate"));
         report("canEnableCommunity", capability(COMMUNITY, "canEnable"));
         report("canDisableCommunity", capability(COMMUNITY, "canDisable"));
+        report("canManageCommunityAdmins", capability(COMMUNITY, "canManageAdmins"));
         report("canManageCommunity", capability(COMMUNITY, "canManage"));
         report("canReadCommunityProduction", capability(COMMUNITY, "canReadProduction"));
         report("canListSupplies", capability(COMMUNITY, "canListSupplies"));

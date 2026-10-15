@@ -42,6 +42,11 @@ class PlatformAccessGuardImpl implements PlatformAccessGuard {
     }
 
     @Override
+    public boolean canManageCommunityAdmins(UUID communityId) {
+        return administersPlatform();
+    }
+
+    @Override
     public boolean canGrantPlatformAdmin(UUID userId) {
         return administersPlatform();
     }

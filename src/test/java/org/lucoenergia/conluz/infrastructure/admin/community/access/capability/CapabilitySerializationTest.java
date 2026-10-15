@@ -33,7 +33,7 @@ class CapabilitySerializationTest {
                 Set.of("canCreateCommunity", "canListUsers", "canAdministerPlatform", "canCreateUsers"));
 
         assertKeys(CommunityCapabilitiesResponse.builder().build(),
-                Set.of("canRead", "canUpdate", "canEnable", "canDisable", "canManage",
+                Set.of("canRead", "canUpdate", "canEnable", "canDisable", "canManageAdmins", "canManage",
                         "canManageMemberships", "canRegisterMembers", "canInviteMembers", "canManageMembershipInvestment",
                         "canListPlants",
                         "canCreatePlants", "canCreateUsers", "canReadProduction", "canListSupplies"));

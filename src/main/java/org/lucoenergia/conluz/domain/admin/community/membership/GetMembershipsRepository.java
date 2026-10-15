@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.membership;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.shared.UserId;
 
 import java.util.Collection;
@@ -14,6 +15,15 @@ public interface GetMembershipsRepository {
     List<CommunityMembership> findByCommunityId(UUID communityId);
 
     List<CommunityMembership> findByUserId(UUID userId);
+
+    /**
+     * The memberships of a community with the given role, in every state, with their accounts, by full name and then
+     * user id.
+     *
+     * @throws org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException if the community does not
+     *         exist
+     */
+    List<CommunityMembership> findByCommunityIdAndRole(UUID communityId, CommunityRole role);
 
     /**
      * The one membership of a user in a community, if it exists. Empty is the ordinary answer for
