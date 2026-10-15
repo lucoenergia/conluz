@@ -81,7 +81,7 @@ public class CreateMembershipRepositoryDatabase implements CreateMembershipRepos
     }
 
     @Override
-    public CommunityMembership createPending(UUID communityId, UserId userId, MemberRecord record,
+    public CommunityMembership createPending(UUID communityId, UserId userId, MemberRecord record, CommunityRole role,
                                              UserId invitedBy) {
         CommunityEntity communityEntity = communityJpaRepository.findById(communityId)
                 .orElseThrow(() -> new CommunityNotFoundException(communityId));
@@ -98,7 +98,7 @@ public class CreateMembershipRepositoryDatabase implements CreateMembershipRepos
                 .withId(UUID.randomUUID())
                 .withUser(userEntity)
                 .withCommunity(communityEntity)
-                .withRole(CommunityRole.COMMUNITY_MEMBER)
+                .withRole(role)
                 .withEnabled(true)
                 .withFullName(record.fullName())
                 .withMemberNumber(record.memberNumber())
