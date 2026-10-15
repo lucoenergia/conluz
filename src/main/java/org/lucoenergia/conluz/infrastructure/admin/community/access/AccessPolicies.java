@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
 import org.lucoenergia.conluz.domain.admin.community.access.policy.CommunityAccessPolicy;
+import org.lucoenergia.conluz.domain.admin.community.access.policy.MemberDataPolicy;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.MembershipAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.PlantAccessPolicy;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.PlatformAccessPolicy;
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Component;
  * outside a request. So the wiring lives here instead: this class knows about Spring, the policies
  * it holds do not. Policies are stateless, so one instance each is enough.</p>
  *
- * <p>Deliberately a holder rather than seven {@code @Bean} methods: {@link CommunityAccessGuardImpl}
+ * <p>Deliberately a holder rather than eight {@code @Bean} methods: {@link CommunityAccessGuardImpl}
  * already takes six repositories, and injecting every policy separately would give it a
  * thirteen-argument constructor.</p>
  */
@@ -32,6 +33,7 @@ public class AccessPolicies {
     private final UserAccessPolicy user = new UserAccessPolicy();
     private final PlantAccessPolicy plant = new PlantAccessPolicy(supply);
     private final SharingAgreementAccessPolicy sharingAgreement = new SharingAgreementAccessPolicy(plant);
+    private final MemberDataPolicy memberData = new MemberDataPolicy();
 
     public CommunityAccessPolicy community() {
         return community;
@@ -59,5 +61,9 @@ public class AccessPolicies {
 
     public SharingAgreementAccessPolicy sharingAgreement() {
         return sharingAgreement;
+    }
+
+    public MemberDataPolicy memberData() {
+        return memberData;
     }
 }

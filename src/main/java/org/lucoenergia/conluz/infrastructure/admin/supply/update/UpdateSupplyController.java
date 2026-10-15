@@ -21,6 +21,7 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.S
 import java.util.Map;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 /**
  * Updates an existing supply
@@ -33,13 +34,16 @@ public class UpdateSupplyController {
     private final UpdateSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MemberDataAssembler memberDataAssembler;
 
     public UpdateSupplyController(UpdateSupplyService service,
                                   SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                  UserCapabilitiesAssembler userCapabilitiesAssembler) {
+                                  UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                  MemberDataAssembler memberDataAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.memberDataAssembler = memberDataAssembler;
     }
 
     @PutMapping("/supplies/{supplyId}")
@@ -75,7 +79,8 @@ public class UpdateSupplyController {
                                       @Valid @RequestBody UpdateSupplyBody body) {
         Supply updated = service.update(SupplyId.of(supplyId), body.mapToSupply());
         return new SupplyResponse(updated, capabilitiesAssembler.assemble(currentUser, updated),
-                ownerCapabilities(currentUser, updated));
+                ownerCapabilities(currentUser, updated),
+                memberDataAssembler.ofSupplyOwner(updated));
     }
 
     /**

@@ -31,7 +31,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -121,6 +123,44 @@ class GetMembershipsRepositoryTest extends BaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("MEM-026 the memberships of some users in some communities are those pairs only, with their records")
+    void findByUserIdsAndCommunityIds_returnsOnlyThoseUsersInThoseCommunities() {
+        Community a = createCommunityRepository.create(CommunityMother.random().build());
+        Community b = createCommunityRepository.create(CommunityMother.random().build());
+        Community other = createCommunityRepository.create(CommunityMother.random().build());
+        User inBoth = createUser();
+        User inA = createUser();
+        User notAsked = createUser();
+        createMembershipRepository.create(a.getId(), inBoth.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.createPending(b.getId(), UserId.of(inBoth.getId()),
+                new MemberRecord("Name in B", 2, null, null, null), CommunityRole.COMMUNITY_MEMBER,
+                UserId.of(inA.getId()));
+        createMembershipRepository.create(other.getId(), inBoth.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(a.getId(), inA.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(a.getId(), notAsked.getId(), CommunityRole.COMMUNITY_MEMBER);
+        entityManager.flush();
+        entityManager.clear();
+
+        List<CommunityMembership> found = getMembershipsRepository.findByUserIdsAndCommunityIds(
+                List.of(inBoth.getId(), inA.getId()), List.of(a.getId(), b.getId()));
+
+        assertEquals(Set.of(inBoth.getId() + "@" + a.getId(), inBoth.getId() + "@" + b.getId(),
+                        inA.getId() + "@" + a.getId()),
+                found.stream().map(m -> m.getUser().getId() + "@" + m.getCommunity().getId())
+                        .collect(Collectors.toSet()));
+        assertEquals("Name in B", found.stream().filter(m -> m.getCommunity().getId().equals(b.getId()))
+                .findFirst().orElseThrow().getFullName());
+    }
+
+    @Test
+    void findByUserIdsAndCommunityIds_answersEmpty_forEmptyInput() {
+        assertEquals(List.of(), getMembershipsRepository.findByUserIdsAndCommunityIds(List.of(),
+                List.of(UUID.randomUUID())));
+        assertEquals(List.of(), getMembershipsRepository.findByUserIdsAndCommunityIds(List.of(UUID.randomUUID()),
+                List.of()));
+    }
+
+    @Test
     void findByCommunityIdAndRole_refusesAnUnknownCommunity() {
         assertThrows(CommunityNotFoundException.class, () -> getMembershipsRepository.findByCommunityIdAndRole(
                 UUID.randomUUID(), CommunityRole.COMMUNITY_ADMIN));
@@ -139,6 +179,8 @@ class GetMembershipsRepositoryTest extends BaseIntegrationTest {
         assertMatchesRow(row, single(getMembershipsRepository.findByUserIds(List.of(user.getId())).get(user.getId())));
         assertMatchesRow(row, getMembershipsRepository.findByUserIdAndCommunityId(user.getId(), community.getId())
                 .orElseThrow());
+        assertMatchesRow(row, single(getMembershipsRepository.findByUserIdsAndCommunityIds(List.of(user.getId()),
+                List.of(community.getId()))));
         assertMatchesRow(row, updateMembershipRoleRepository.updateRole(community.getId(), user.getId(),
                 CommunityRole.COMMUNITY_ADMIN));
         assertMatchesRow(row, single(getMembershipsRepository.findByCommunityIdAndRole(community.getId(),

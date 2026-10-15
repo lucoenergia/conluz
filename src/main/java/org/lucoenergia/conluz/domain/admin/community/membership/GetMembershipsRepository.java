@@ -42,6 +42,12 @@ public interface GetMembershipsRepository {
     Map<UUID, List<CommunityMembership>> findByUserIds(Collection<UUID> userIds);
 
     /**
+     * The memberships, in every state, of any of the given users in any of the given communities, with their
+     * community and user, in a single query. Empty input answers an empty list without querying.
+     */
+    List<CommunityMembership> findByUserIdsAndCommunityIds(Collection<UUID> userIds, Collection<UUID> communityIds);
+
+    /**
      * The users whose memberships of the community are eligible for a first invitation: awaiting acceptance, with a
      * contact email, and never invited. In ascending user id, the order their rows are locked in.
      *

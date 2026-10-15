@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.Map;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 /**
  * Get all users — platform admin sees all; anyone else sees themselves and the users of the
@@ -43,14 +44,17 @@ public class GetAllUsersController {
     private final PaginationRequestMapper paginationRequestMapper;
     private final CommunityAccessGuard communityAccessGuard;
     private final UserCapabilitiesAssembler capabilitiesAssembler;
+    private final MemberDataAssembler memberDataAssembler;
 
     public GetAllUsersController(GetUserService service, PaginationRequestMapper paginationRequestMapper,
                                  UserCapabilitiesAssembler capabilitiesAssembler,
-                                 CommunityAccessGuard communityAccessGuard) {
+                                 CommunityAccessGuard communityAccessGuard,
+                                 MemberDataAssembler memberDataAssembler) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
         this.communityAccessGuard = communityAccessGuard;
         this.capabilitiesAssembler = capabilitiesAssembler;
+        this.memberDataAssembler = memberDataAssembler;
     }
 
     @GetMapping
@@ -109,7 +113,10 @@ public class GetAllUsersController {
         Map<UUID, UserCapabilitiesResponse> capabilities =
                 capabilitiesAssembler.assembleAllWithLoadedMemberships(currentUser, users.getItems());
         List<UserResponse> responseUsers = users.getItems().stream()
-                .map(user -> new UserResponse(user, capabilities.get(user.getId()), scope)).toList();
+                .map(user -> new UserResponse(user,
+                        memberDataAssembler.forUserWithLoadedMemberships(currentUser, user),
+                        capabilities.get(user.getId()), scope))
+                .toList();
 
         return new PagedResult<>(responseUsers, users.getSize(), users.getTotalElements(), users.getTotalPages(),
                 users.getNumber());

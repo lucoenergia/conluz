@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 /**
  * Get user by ID
@@ -35,13 +36,16 @@ public class GetUserByIdController {
     private final GetUserService service;
     private final CommunityAccessGuard communityAccessGuard;
     private final UserCapabilitiesAssembler capabilitiesAssembler;
+    private final MemberDataAssembler memberDataAssembler;
 
     public GetUserByIdController(GetUserService service,
                                  CommunityAccessGuard communityAccessGuard,
-                                 UserCapabilitiesAssembler capabilitiesAssembler) {
+                                 UserCapabilitiesAssembler capabilitiesAssembler,
+                                 MemberDataAssembler memberDataAssembler) {
         this.service = service;
         this.communityAccessGuard = communityAccessGuard;
         this.capabilitiesAssembler = capabilitiesAssembler;
+        this.memberDataAssembler = memberDataAssembler;
     }
 
     @GetMapping("/{userId}")
@@ -80,7 +84,8 @@ public class GetUserByIdController {
         User user = service.findById(UserId.of(userId));
         // GetUserService attaches every membership of the user, and the capabilities are assembled from
         // all of them; the scope narrows what the response shows only afterwards, so it cannot move one.
-        return new UserResponse(user, capabilitiesAssembler.assembleWithLoadedMemberships(currentUser, user),
+        return new UserResponse(user, memberDataAssembler.forUserWithLoadedMemberships(currentUser, user),
+                capabilitiesAssembler.assembleWithLoadedMemberships(currentUser, user),
                 communityAccessGuard.visibleUsers());
     }
 }

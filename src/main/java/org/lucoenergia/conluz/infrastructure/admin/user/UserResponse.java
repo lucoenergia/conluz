@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
@@ -17,14 +18,15 @@ public class UserResponse {
 
     private final UUID id;
     private final String personalId;
-    @Schema(types = {"integer", "null"})
+    @Schema(description = "Member number." + MemberDataSchema.SOURCE, types = {"integer", "null"})
     private final Integer number;
+    @Schema(description = "Full name." + MemberDataSchema.SOURCE)
     private final String fullName;
-    @Schema(types = {"string", "null"})
+    @Schema(description = "Address." + MemberDataSchema.SOURCE, types = {"string", "null"})
     private final String address;
-    @Schema(types = {"string", "null"})
+    @Schema(description = "Email." + MemberDataSchema.SOURCE, types = {"string", "null"})
     private final String email;
-    @Schema(types = {"string", "null"})
+    @Schema(description = "Phone number." + MemberDataSchema.SOURCE, types = {"string", "null"})
     private final String phoneNumber;
     private final Boolean enabled;
     private final Boolean isPlatformAdmin;
@@ -44,13 +46,25 @@ public class UserResponse {
      * change one.
      */
     public UserResponse(User user, UserCapabilitiesResponse capabilities, UserScope scope) {
+        this(user, MemberData.ofAccount(user), capabilities, scope);
+    }
+
+    /**
+     * A user showing the given member data, read from the account or from a member record (MEM-026). Every other
+     * field still comes from the account.
+     */
+    public UserResponse(User user, MemberData memberData, UserCapabilitiesResponse capabilities) {
+        this(user, memberData, capabilities, UserScope.all());
+    }
+
+    public UserResponse(User user, MemberData memberData, UserCapabilitiesResponse capabilities, UserScope scope) {
         id = user.getId();
         personalId = user.getPersonalId();
-        number = user.getNumber();
-        fullName = user.getFullName();
-        address = user.getAddress();
-        email = user.getEmail();
-        phoneNumber = user.getPhoneNumber();
+        number = memberData.number();
+        fullName = memberData.fullName();
+        address = memberData.address();
+        email = memberData.email();
+        phoneNumber = memberData.phoneNumber();
         enabled = user.isEnabled();
         isPlatformAdmin = user.isPlatformAdmin();
         Map<String, String> membershipMap = new HashMap<>();

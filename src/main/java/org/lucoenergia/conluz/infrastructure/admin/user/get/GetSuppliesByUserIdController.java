@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -27,9 +28,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.Map;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 /**
  * Get supplies for a specific user
@@ -42,15 +45,18 @@ public class GetSuppliesByUserIdController {
     private final CommunityAccessGuard communityAccessGuard;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MemberDataAssembler memberDataAssembler;
 
     public GetSuppliesByUserIdController(GetSupplyService supplyService,
                                          CommunityAccessGuard communityAccessGuard,
                                          SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                         UserCapabilitiesAssembler userCapabilitiesAssembler) {
+                                         UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                         MemberDataAssembler memberDataAssembler) {
         this.supplyService = supplyService;
         this.communityAccessGuard = communityAccessGuard;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.memberDataAssembler = memberDataAssembler;
     }
 
     @GetMapping("/{userId}/supplies")
@@ -101,9 +107,12 @@ public class GetSuppliesByUserIdController {
                 userCapabilitiesAssembler.assembleAllFetchingMemberships(currentUser,
                         supplies.stream().map(Supply::getUser).filter(Objects::nonNull).toList());
 
+        // One query for the member records of every owner on this page as well.
+        Function<Supply, MemberData> ownerData = memberDataAssembler.ofSupplyOwners(supplies);
+
         return supplies.stream()
                 .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
-                        ownerCapabilitiesOf(supply, ownerCapabilities)))
+                        ownerCapabilitiesOf(supply, ownerCapabilities), ownerData.apply(supply)))
                 .toList();
     }
 

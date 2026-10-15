@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -27,9 +28,11 @@ import java.util.List;
 import java.util.UUID;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.Map;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 /**
  * Get the supplies of a community visible to the current user. The caller must be a member of the
@@ -43,17 +46,20 @@ public class GetAllSuppliesController {
     private final PaginationRequestMapper paginationRequestMapper;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MemberDataAssembler memberDataAssembler;
     private final CommunityAccessGuard communityAccessGuard;
 
     public GetAllSuppliesController(GetSupplyService service, PaginationRequestMapper paginationRequestMapper,
                                     CommunityAccessGuard communityAccessGuard,
                                     SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                    UserCapabilitiesAssembler userCapabilitiesAssembler) {
+                                    UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                    MemberDataAssembler memberDataAssembler) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
         this.communityAccessGuard = communityAccessGuard;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.memberDataAssembler = memberDataAssembler;
     }
 
 
@@ -104,9 +110,12 @@ public class GetAllSuppliesController {
                 userCapabilitiesAssembler.assembleAllFetchingMemberships(currentUser,
                         supplies.getItems().stream().map(Supply::getUser).filter(Objects::nonNull).toList());
 
+        // One query for the member records of every owner on this page as well.
+        Function<Supply, MemberData> ownerData = memberDataAssembler.ofSupplyOwners(supplies.getItems());
+
         List<SupplyResponse> suppliesResponse = supplies.getItems().stream()
                 .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
-                        ownerCapabilitiesOf(supply, ownerCapabilities)))
+                        ownerCapabilitiesOf(supply, ownerCapabilities), ownerData.apply(supply)))
                 .toList();
 
         return new PagedResult<>(suppliesResponse, supplies.getSize(), supplies.getTotalElements(),

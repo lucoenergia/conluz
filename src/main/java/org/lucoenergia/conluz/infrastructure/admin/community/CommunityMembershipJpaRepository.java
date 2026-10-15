@@ -69,10 +69,10 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
     List<Object[]> countMembersByCommunityIds(@Param("ids") Set<UUID> ids);
 
     /**
-     * The names of the active admins of each given community; a pending or disabled admin membership
-     * is not named.
+     * The names of the active admins of each given community, from their member records in it; a pending or
+     * disabled admin membership is not named.
      */
-    @Query("SELECT m.community.id, u.fullName FROM community_memberships m JOIN m.user u WHERE m.community.id IN :ids "
+    @Query("SELECT m.community.id, m.fullName FROM community_memberships m WHERE m.community.id IN :ids "
             + "AND m.role = 'COMMUNITY_ADMIN' AND " + ActiveMembershipJpql.ACTIVE_MEMBERSHIP)
     List<Object[]> findAdminNamesByCommunityIds(@Param("ids") Set<UUID> ids);
 
@@ -115,6 +115,16 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
             "LEFT JOIN FETCH m.community LEFT JOIN FETCH m.user " +
             "WHERE m.user.id IN :userIds")
     List<CommunityMembershipEntity> findByUserIdInWithCommunityAndUser(@Param("userIds") Collection<UUID> userIds);
+
+    /**
+     * The memberships of any of the given users in any of the given communities, eagerly fetching the community and
+     * the user, so a page of responses reads the member records it shows in one query.
+     */
+    @Query("SELECT m FROM community_memberships m " +
+            "LEFT JOIN FETCH m.community LEFT JOIN FETCH m.user " +
+            "WHERE m.user.id IN :userIds AND m.community.id IN :communityIds")
+    List<CommunityMembershipEntity> findByUserIdInAndCommunityIdInWithCommunityAndUser(
+            @Param("userIds") Collection<UUID> userIds, @Param("communityIds") Collection<UUID> communityIds);
 
     /**
      * The users of the community's memberships eligible for a first invitation (MEM-012), in ascending user id.

@@ -82,6 +82,18 @@ public class GetMembershipsRepositoryDatabase implements GetMembershipsRepositor
     }
 
     @Override
+    public List<CommunityMembership> findByUserIdsAndCommunityIds(Collection<UUID> userIds,
+                                                                  Collection<UUID> communityIds) {
+        if (userIds == null || userIds.isEmpty() || communityIds == null || communityIds.isEmpty()) {
+            return List.of();
+        }
+        return membershipJpaRepository.findByUserIdInAndCommunityIdInWithCommunityAndUser(userIds, communityIds)
+                .stream()
+                .map(e -> toDomain(e, e.getCommunity() != null ? communityEntityMapper.map(e.getCommunity()) : null))
+                .toList();
+    }
+
+    @Override
     public Optional<CommunityMembership> findByUserIdAndCommunityId(UUID userId, UUID communityId) {
         return membershipJpaRepository.findByUserIdAndCommunityId(userId, communityId)
                 .map(entity -> toDomain(entity,
