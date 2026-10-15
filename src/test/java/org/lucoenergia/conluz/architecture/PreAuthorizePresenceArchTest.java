@@ -47,7 +47,9 @@ public class PreAuthorizePresenceArchTest extends BaseArchTest {
             "InitController#init",
             "GetInfoController#getInfo",
             "RequestPasswordResetController#requestPasswordReset",
-            "ResetPasswordController#resetPassword");
+            "ResetPasswordController#resetPassword",
+            "InspectInvitationController#inspectInvitation",
+            "AcceptInvitationController#acceptInvitation");
 
     @Test
     void everyHandlerMethodIsAuthorized() {

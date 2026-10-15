@@ -16,7 +16,9 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
+import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.domain.shared.email.EmailSender;
@@ -76,6 +78,11 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     protected EmailSender emailSender;
     @MockitoSpyBean
     protected GetUserRepository getUserRepository;
+    // Declared here rather than where they are used, so that every subclass keeps sharing one context
+    @MockitoSpyBean
+    protected ConsumeOneTimeTokenService consumeOneTimeTokenService;
+    @MockitoSpyBean
+    protected LockUserRepository lockUserRepository;
     @Autowired
     protected CreateUserRepository createUserRepository;
     @Autowired
@@ -106,7 +113,7 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     @BeforeEach
     void startWithAnEmptyMailboxAndCaptureLogs() throws Exception {
         GREEN_MAIL.purgeEmailFromAllMailboxes();
-        clearInvocations(emailSender);
+        clearInvocations(emailSender, consumeOneTimeTokenService, lockUserRepository);
         logs = LogCapture.ofRoot();
     }
 
