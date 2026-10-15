@@ -42,7 +42,8 @@ public class EnableDatadisConfigController {
             summary = "Enables a community's Datadis configuration.",
             description = """
                     This endpoint enables the community's Datadis configuration, changing nothing else: the stored
-                    username, password and base URL are not rewritten. The request has no body.
+                    username, password and base URL are not rewritten. The request has no body. It undoes what
+                    disabling does to the community's Datadis integration; see `POST .../config/datadis/disable`.
 
                     Enabling requires the stored configuration to be complete: a non-blank username, a base URL the
                     configuration write would accept, and a non-empty password. Otherwise the request is rejected

@@ -220,7 +220,7 @@ class EnableHuaweiConfigControllerTest extends BaseControllerTest {
         MockHttpServletRequestBuilder configurationWrite = put(String.format(CONFIG_URL_TEMPLATE, plantId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": true}
+                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
                         """.formatted(BASE_URL));
         MockHttpServletRequestBuilder enableRequest = post(String.format(URL_TEMPLATE, plantId));
         if (authHeader != null) {
@@ -264,7 +264,7 @@ class EnableHuaweiConfigControllerTest extends BaseControllerTest {
                 .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(
-                        new ConfigureHuaweiBody(USERNAME, PASSWORD, baseUrl, Boolean.TRUE))));
+                        new ConfigureHuaweiBody(USERNAME, PASSWORD, baseUrl))));
     }
 
     private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {

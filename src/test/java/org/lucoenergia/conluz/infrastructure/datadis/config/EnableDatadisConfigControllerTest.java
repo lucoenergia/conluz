@@ -208,7 +208,7 @@ class EnableDatadisConfigControllerTest extends BaseControllerTest {
         MockHttpServletRequestBuilder configurationWrite = put(String.format(CONFIG_URL_TEMPLATE, communityId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": true}
+                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
                         """.formatted(BASE_URL));
         MockHttpServletRequestBuilder enableRequest = post(String.format(URL_TEMPLATE, communityId));
         if (authHeader != null) {
@@ -249,7 +249,7 @@ class EnableDatadisConfigControllerTest extends BaseControllerTest {
                 .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(communityId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(
-                        new ConfigureDatadisBody(USERNAME, PASSWORD, baseUrl, Boolean.TRUE))));
+                        new ConfigureDatadisBody(USERNAME, PASSWORD, baseUrl))));
     }
 
     private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {

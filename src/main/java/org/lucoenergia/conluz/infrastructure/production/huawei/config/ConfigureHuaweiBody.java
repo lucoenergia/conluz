@@ -4,13 +4,12 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.URL;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfiguration;
 
 @Schema(requiredProperties = {
-        "username", "baseUrl", "enabled"
+        "username", "baseUrl"
 })
 public class ConfigureHuaweiBody {
 
@@ -28,8 +27,6 @@ public class ConfigureHuaweiBody {
     @NotBlank
     @URL
     private String baseUrl;
-    @NotNull
-    private Boolean enabled;
 
     /**
      * Jackson binds through this constructor and the setters, so an absent property is never set and keeps
@@ -38,11 +35,10 @@ public class ConfigureHuaweiBody {
     public ConfigureHuaweiBody() {
     }
 
-    public ConfigureHuaweiBody(String username, String password, String baseUrl, Boolean enabled) {
+    public ConfigureHuaweiBody(String username, String password, String baseUrl) {
         this.username = username;
         this.password = password;
         this.baseUrl = baseUrl;
-        this.enabled = enabled;
     }
 
     public String getUsername() {
@@ -69,19 +65,10 @@ public class ConfigureHuaweiBody {
         this.baseUrl = baseUrl;
     }
 
-    public Boolean getEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(Boolean enabled) {
-        this.enabled = enabled;
-    }
-
     public SetHuaweiConfiguration mapToSetHuaweiConfiguration() {
         SetHuaweiConfiguration.Builder builder = new SetHuaweiConfiguration.Builder()
                 .withUsername(username)
-                .withBaseUrl(baseUrl)
-                .withEnabled(enabled);
+                .withBaseUrl(baseUrl);
         if (password != null) {
             builder.withPassword(password);
         }

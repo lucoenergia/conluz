@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.production.huawei.config;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -33,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -42,6 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SetHuaweiConfigControllerTest extends BaseControllerTest {
 
     private static final String URL_TEMPLATE = "/api/v1/plants/%s/production/huawei/config";
+    private static final String ENABLE_URL_TEMPLATE = "/api/v1/plants/%s/production/huawei/config/enable";
 
     private static final String STORED_PASSWORD = "storedPassword";
     private static final String OTHER_BASE_URL = "https://fusionsolar.example.com/thirdData";
@@ -64,7 +68,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         Plant plant = createPlant();
 
         ConfigureHuaweiBody body = new ConfigureHuaweiBody("testUser", "testPass",
-                HuaweiConfig.DEFAULT_BASE_URL, Boolean.TRUE);
+                HuaweiConfig.DEFAULT_BASE_URL);
         String bodyAsString = objectMapper.writeValueAsString(body);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
@@ -79,7 +83,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.username").value("testUser"))
                 .andExpect(jsonPath("$.passwordSet").value(true))
                 .andExpect(jsonPath("$.baseUrl").value(HuaweiConfig.DEFAULT_BASE_URL))
-                .andExpect(jsonPath("$.enabled").value(true));
+                .andExpect(jsonPath("$.enabled").value(false));
     }
 
     @Test
@@ -89,7 +93,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         seedConfig(plant.getId(), STORED_PASSWORD);
 
         putConfig(plant, """
-                {"username": "newUser", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.passwordSet").value(true));
@@ -98,7 +102,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         assertThat(stored.getPassword()).isEqualTo(STORED_PASSWORD);
         assertThat(stored.getUsername()).isEqualTo("newUser");
         assertThat(stored.getBaseUrl()).isEqualTo(OTHER_BASE_URL);
-        assertThat(stored.getEnabled()).isFalse();
+        assertThat(stored.getEnabled()).isTrue();
     }
 
     @Test
@@ -110,7 +114,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         seedConfig(otherPlant.getId(), "otherPassword");
 
         putConfig(plant, """
-                {"username": "newUser", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isOk());
 
@@ -129,7 +133,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         seedConfig(plant.getId(), STORED_PASSWORD);
 
         putConfig(plant, """
-                {"username": "seedUser", "password": "newPassword", "baseUrl": "%s", "enabled": true}
+                {"username": "seedUser", "password": "newPassword", "baseUrl": "%s"}
                 """.formatted(HuaweiConfig.DEFAULT_BASE_URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.passwordSet").value(true));
@@ -143,7 +147,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         Plant plant = createPlant();
 
         putConfig(plant, """
-                {"username": "newUser", "baseUrl": "%s", "enabled": true}
+                {"username": "newUser", "baseUrl": "%s"}
                 """.formatted(HuaweiConfig.DEFAULT_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.HUAWEI_CONFIG_PASSWORD_REQUIRED.name()));
@@ -170,7 +174,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         seedConfig(plant.getId(), STORED_PASSWORD);
 
         putConfig(plant, """
-                {"username": "newUser", "password": null, "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "password": null, "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value(nullValue()))
@@ -185,7 +189,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         Plant plant = createPlant();
 
         putConfig(plant, """
-                {"username": "newUser", "password": null, "baseUrl": "%s", "enabled": true}
+                {"username": "newUser", "password": null, "baseUrl": "%s"}
                 """.formatted(HuaweiConfig.DEFAULT_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value(nullValue()));
@@ -200,7 +204,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         seedConfig(plant.getId(), STORED_PASSWORD);
 
         putConfig(plant, """
-                {"username": "newUser", "password": "", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "password": "", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(containsString("password")));
@@ -214,7 +218,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         Plant plant = createPlant();
 
         putConfig(plant, """
-                {"username": "newUser", "password": "", "baseUrl": "%s", "enabled": true}
+                {"username": "newUser", "password": "", "baseUrl": "%s"}
                 """.formatted(HuaweiConfig.DEFAULT_BASE_URL))
                 .andExpect(status().isBadRequest());
 
@@ -227,7 +231,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         Plant plant = createPlant();
 
         putConfig(plant, """
-                {"username": " ", "password": "newPassword", "baseUrl": "%s", "enabled": true}
+                {"username": " ", "password": "newPassword", "baseUrl": "%s"}
                 """.formatted(HuaweiConfig.DEFAULT_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(containsString("username")));
@@ -246,12 +250,150 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": false}
+                                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
                                 """.formatted(OTHER_BASE_URL)))
                 .andDo(print())
                 .andExpect(status().isForbidden());
 
         assertSeedConfigUnchanged(plant.getId(), STORED_PASSWORD);
+    }
+
+    @Test
+    @DisplayName("HCF-006 AC1 a write on a plant without configuration stores it disabled")
+    void newConfigurationIsStoredDisabled() throws Exception {
+        Plant plant = createPlant();
+
+        putConfig(plant, """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
+
+        assertThat(stored(plant.getId()).orElseThrow().getEnabled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("HCF-006 AC2 a write on an enabled configuration keeps it enabled and updates the other fields")
+    void enabledConfigurationStaysEnabled() throws Exception {
+        Plant plant = createPlant();
+        seedConfig(plant.getId(), STORED_PASSWORD, true);
+
+        putConfig(plant, """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(true));
+
+        HuaweiConfig stored = stored(plant.getId()).orElseThrow();
+        assertThat(stored.getEnabled()).isTrue();
+        assertThat(stored.getUsername()).isEqualTo("newUser");
+        assertThat(stored.getPassword()).isEqualTo("newPassword");
+        assertThat(stored.getBaseUrl()).isEqualTo(OTHER_BASE_URL);
+    }
+
+    @Test
+    @DisplayName("HCF-006 AC3 a write on a disabled configuration keeps it disabled")
+    void disabledConfigurationStaysDisabled() throws Exception {
+        Plant plant = createPlant();
+        seedConfig(plant.getId(), STORED_PASSWORD, false);
+
+        putConfig(plant, """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
+
+        HuaweiConfig stored = stored(plant.getId()).orElseThrow();
+        assertThat(stored.getEnabled()).isFalse();
+        assertThat(stored.getUsername()).isEqualTo("newUser");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "false", "null"})
+    @DisplayName("HCF-006 AC4 a body carrying enabled is rejected and changes nothing")
+    void enabledInBodyWithConfigIsRejected(String enabled) throws Exception {
+        Plant plant = createPlant();
+        seedConfig(plant.getId(), STORED_PASSWORD);
+
+        putConfig(plant, """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": %s}
+                """.formatted(OTHER_BASE_URL, enabled))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value(nullValue()))
+                .andExpect(jsonPath("$.message").value(containsString("enabled")));
+
+        assertSeedConfigUnchanged(plant.getId(), STORED_PASSWORD);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "false", "null"})
+    @DisplayName("HCF-006 AC4 a body carrying enabled is rejected on a plant without configuration and creates none")
+    void enabledInBodyWithoutConfigIsRejected(String enabled) throws Exception {
+        Plant plant = createPlant();
+
+        putConfig(plant, """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": %s}
+                """.formatted(OTHER_BASE_URL, enabled))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("enabled")));
+
+        assertThat(stored(plant.getId())).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @DisplayName("HCF-006 AC5 updating the credentials of an enabled configuration keeps it enabled and complete")
+    void updatedCredentialsKeepConfigurationEnabledAndComplete(boolean withNewPassword) throws Exception {
+        Plant plant = createPlant();
+        seedConfig(plant.getId(), STORED_PASSWORD, true);
+        String body = withNewPassword
+                ? """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL)
+                : """
+                {"username": "newUser", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL);
+
+        putConfig(plant, body).andExpect(status().isOk());
+
+        HuaweiConfig stored = stored(plant.getId()).orElseThrow();
+        assertThat(stored.getEnabled()).isTrue();
+        assertThat(stored.getUsername()).isEqualTo("newUser");
+        assertThat(stored.getPassword()).isEqualTo(withNewPassword ? "newPassword" : STORED_PASSWORD);
+        assertThat(stored.getBaseUrl()).isEqualTo(OTHER_BASE_URL);
+
+        mockMvc.perform(post(String.format(ENABLE_URL_TEMPLATE, plant.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID)))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("HCF-006 a write on one plant leaves another plant's enabled untouched")
+    void writeDoesNotTouchOtherPlantsEnabled() throws Exception {
+        Plant enabledPlant = createPlant();
+        Plant disabledPlant = createPlant();
+        seedConfig(enabledPlant.getId(), STORED_PASSWORD, true);
+        seedConfig(disabledPlant.getId(), STORED_PASSWORD, false);
+
+        putConfig(enabledPlant, """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk());
+
+        HuaweiConfig disabled = stored(disabledPlant.getId()).orElseThrow();
+        assertThat(disabled.getEnabled()).isFalse();
+        assertThat(disabled.getUsername()).isEqualTo("seedUser");
+
+        putConfig(disabledPlant, """
+                {"username": "otherUser", "password": "otherPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk());
+
+        HuaweiConfig enabled = stored(enabledPlant.getId()).orElseThrow();
+        assertThat(enabled.getEnabled()).isTrue();
+        assertThat(enabled.getUsername()).isEqualTo("newUser");
+        assertThat(stored(disabledPlant.getId()).orElseThrow().getEnabled()).isFalse();
     }
 
     @Test
@@ -286,7 +428,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
         seedConfig(plant.getId(), storedPassword);
 
         putConfig(plant, """
-                {"username": "newUser", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.HUAWEI_CONFIG_PASSWORD_REQUIRED.name()));
@@ -302,11 +444,15 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
     }
 
     private void seedConfig(UUID plantId, String password) {
+        seedConfig(plantId, password, true);
+    }
+
+    private void seedConfig(UUID plantId, String password, boolean enabled) {
         setHuaweiConfigurationRepository.setHuaweiConfiguration(plantId, new HuaweiConfig.Builder()
                 .setUsername("seedUser")
                 .setPassword(password)
                 .setBaseUrl(HuaweiConfig.DEFAULT_BASE_URL)
-                .setEnabled(Boolean.TRUE)
+                .setEnabled(enabled)
                 .build());
     }
 

@@ -6,14 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Production`; operations `getHuaweiConfig`, `configureHuawei`, `enableHuaweiConfig`, `disableHuaweiConfig` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #414 |
+| **Last reviewed against code** | #425 |
 
 ## Purpose
 
-The credentials and settings a plant uses to reach the Huawei FusionSolar API. This spec covers
-how the stored password is set, kept and protected when the configuration is written, and how the
-configuration is enabled and disabled; the other fields and the sync jobs that use the configuration
-are not specified yet.
+The credentials and settings a plant uses to reach the Huawei FusionSolar API. This spec covers how
+the stored password is set, kept and protected when the configuration is written, that writing it
+never changes whether it is enabled, and how the configuration is enabled and disabled; the other
+fields and the sync jobs that use the configuration are not specified yet.
 
 ## Glossary
 
@@ -81,11 +81,29 @@ are not specified yet.
   here.
 - **Source:** #414
 
+### HCF-006 — A configuration write never changes `enabled`
+
+- **Status:** Active
+- **Rule:** A write of a plant's Huawei configuration MUST NOT change `enabled`. A configuration the
+  write creates MUST be stored disabled; one it updates keeps its stored `enabled`, including when an
+  enable or disable runs while the write is in progress. A request that carries `enabled`, with any
+  value including `null`, MUST be rejected with `400`, and nothing is stored or changed.
+- **Rationale:** Since #414 a configuration is switched on and off by its own operations, and
+  switching it on is checked for a complete configuration (HCF-005). A write that also set `enabled`
+  could switch an integration on without that check, or switch it off as a side effect of correcting
+  its credentials. Starting disabled leaves the decision to the operation that checks it. Rejecting
+  the field, rather than ignoring it, tells a client that still sends it that it no longer has any
+  effect.
+- **Source:** #425
+
 ## Impossible states
 
 - A configuration written from #399 on with no password — prevented by HCF-002 and by the contract
-  rejecting an empty password. The configuration write therefore adds no validation of "enabled
-  without a password"; enabling through `enableHuaweiConfig` is checked by HCF-005.
+  rejecting an empty password.
+- An incomplete configuration enabled by a configuration write — prevented by HCF-006: the write never
+  changes `enabled`, so a configuration is enabled only through `enableHuaweiConfig`, which HCF-005
+  checks. A write that keeps a configuration enabled also leaves it complete, since the write accepts
+  only a non-blank username, a valid base URL and a non-empty password (HCF-002).
 - Two configurations for one plant — prevented by the `huawei_config_plant_id_uq` unique constraint
   (#414).
 

@@ -179,7 +179,7 @@ class DisableHuaweiConfigControllerTest extends BaseControllerTest {
         MockHttpServletRequestBuilder configurationWrite = put(String.format(CONFIG_URL_TEMPLATE, plantId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": false}
+                        {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
                         """.formatted(BASE_URL));
         MockHttpServletRequestBuilder disableRequest = post(String.format(URL_TEMPLATE, plantId));
         if (authHeader != null) {

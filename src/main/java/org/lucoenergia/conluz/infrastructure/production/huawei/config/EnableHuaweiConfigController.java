@@ -42,7 +42,8 @@ public class EnableHuaweiConfigController {
             summary = "Enables a plant's Huawei configuration.",
             description = """
                     This endpoint enables the plant's Huawei configuration, changing nothing else: the stored
-                    username, password and base URL are not rewritten. The request has no body.
+                    username, password and base URL are not rewritten. The request has no body. It undoes what
+                    disabling does to the plant's Huawei services; see `POST .../config/disable`.
 
                     Enabling requires the stored configuration to be complete: a non-blank username, a base URL the
                     configuration write would accept, and a non-empty password. Otherwise the request is rejected
