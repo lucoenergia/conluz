@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `updateMembershipRole`, `createUser`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `updateMembershipRole`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #395 |
+| **Last reviewed against code** | #396 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how the existing creation paths and member registration fill the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, what giving a membership the admin role requires, and which memberships grant access; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, what giving a membership the admin role requires, which memberships grant access, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -389,6 +389,32 @@ lazily, as issues touch it.
   community they cannot use. Reading the state under the lock keeps a membership disabled meanwhile from being sent
   a link. Withdrawing a link sends nothing, so it stays available.
 - **Source:** #395, ADR-0003 §2
+
+### MEM-026 — Community responses, and user responses read by a community admin, show the member record
+
+- **Status:** Active
+- **Rule:** A user embedded in a response scoped to one community — the user of a membership
+  (`getMemberships`, `createMembership`, `updateMembershipRole`) and the owner of a supply (`getSupply`,
+  `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`) — MUST
+  show the full name, number, email, address and phone of their member record in that community: the path
+  community for memberships, the supply's community for supplies, whoever the caller is. A community's admin
+  names (`getAllCommunities`, `getCommunityById`) MUST be the full names of the admins' member records in that
+  community. When a supply's owner has no membership in the supply's community, those five fields MUST be blank
+  (an empty full name, the other four null), never the account's. A user read through `getAllUsers`,
+  `getUserById` or returned by `updateUser` MUST show the account's data to the user themselves and to the
+  platform admin; to any other caller, the five fields MUST come from the user's member record in a community
+  the caller administers through an active admin membership and, when there are several, in the one whose id is
+  the lowest in the canonical text form of the id (the order PostgreSQL gives `uuid`). Every other field MUST
+  keep coming from the account.
+- **Rationale:** ADR-0003 §1 obliges every response built for a community admin to read member data from the
+  member record. Since member registration finds an existing account silently (MEM-008), the account may hold
+  what another community or the person entered: showing it would disclose that data and reveal that the person
+  already had an account. Choosing one record deterministically keeps repeated reads consistent; both
+  candidates belong to communities the caller administers, so the choice reveals nothing. A supply whose owner
+  left its community has no record to show, and falling back to the account would leak it. Records of accounts
+  with a single membership are copied again from the account once, so that edits made to the account since the
+  copy of #388 still show.
+- **Source:** #396, ADR-0003 §1
 
 ## Impossible states
 
