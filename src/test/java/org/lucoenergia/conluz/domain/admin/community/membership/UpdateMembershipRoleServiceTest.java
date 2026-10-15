@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.community.membership;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -7,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
@@ -31,10 +33,12 @@ class UpdateMembershipRoleServiceTest {
     private GetCommunityRepository getCommunityRepository;
     @Mock
     private GetOneTimeTokenService getOneTimeTokenService;
+    @Mock
+    private GetMembershipsRepository getMembershipsRepository;
 
     private UpdateMembershipRoleService service() {
         return new UpdateMembershipRoleServiceImpl(updateMembershipRoleRepository, getCommunityRepository,
-                getOneTimeTokenService);
+                getOneTimeTokenService, getMembershipsRepository);
     }
 
     @Test
@@ -68,5 +72,53 @@ class UpdateMembershipRoleServiceTest {
                 () -> service().updateRole(communityId, UUID.randomUUID(), CommunityRole.COMMUNITY_ADMIN));
 
         verifyNoInteractions(updateMembershipRoleRepository, getOneTimeTokenService);
+    }
+
+    @Test
+    @DisplayName("MEM-024 giving the admin role to a membership without a contact email is refused before writing")
+    void updateRole_refusesAdminRole_whenTheRecordHasNoContactEmail() {
+        Community community = CommunityMother.random().build();
+        UUID userId = UUID.randomUUID();
+        when(getCommunityRepository.findById(community.getId())).thenReturn(Optional.of(community));
+        when(getMembershipsRepository.findByUserIdAndCommunityId(userId, community.getId()))
+                .thenReturn(Optional.of(new CommunityMembership.Builder().withRole(CommunityRole.COMMUNITY_MEMBER)
+                        .build()));
+
+        assertThrows(MembershipWithoutContactEmailException.class,
+                () -> service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN));
+
+        verifyNoInteractions(updateMembershipRoleRepository, getOneTimeTokenService);
+    }
+
+    @Test
+    @DisplayName("MEM-024 a membership that is already an admin keeps the role without a contact email")
+    void updateRole_keepsAnExistingAdmin_withoutAContactEmail() {
+        Community community = CommunityMother.random().build();
+        UUID userId = UUID.randomUUID();
+        when(getCommunityRepository.findById(community.getId())).thenReturn(Optional.of(community));
+        when(getMembershipsRepository.findByUserIdAndCommunityId(userId, community.getId()))
+                .thenReturn(Optional.of(new CommunityMembership.Builder().withRole(CommunityRole.COMMUNITY_ADMIN)
+                        .build()));
+        CommunityMembership expected = mock(CommunityMembership.class);
+        when(updateMembershipRoleRepository.updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN))
+                .thenReturn(expected);
+
+        assertSame(expected, service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN)
+                .membership());
+    }
+
+    @Test
+    @DisplayName("MEM-024 demoting to member needs no contact email, and the record is not read")
+    void updateRole_toMember_doesNotReadTheRecord() {
+        Community community = CommunityMother.random().build();
+        UUID userId = UUID.randomUUID();
+        when(getCommunityRepository.findById(community.getId())).thenReturn(Optional.of(community));
+        CommunityMembership expected = mock(CommunityMembership.class);
+        when(updateMembershipRoleRepository.updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER))
+                .thenReturn(expected);
+
+        assertSame(expected, service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER)
+                .membership());
+        verifyNoInteractions(getMembershipsRepository);
     }
 }
