@@ -72,13 +72,15 @@ class ResendInvitationServiceTest {
 
     private ResendInvitationService service(String publicUrl, boolean emailEnabled) {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        return new ResendInvitationServiceImpl(new InvitationSending(lockUserRepository, lockMembershipRepository,
+        InvitationSending sending = new InvitationSending(lockUserRepository, lockMembershipRepository,
                 getMembershipsRepository, createOneTimeTokenService, getOneTimeTokenService,
                 updateMembershipInvitationRepository, emailSender,
                 new InvitationEmailFactory(mock(MessageSource.class)), InvitationLink.of(publicUrl),
                 new EmailProperties(emailEnabled, "smtp.test", "587", null, null, "no-reply@conluz.test", null,
                         true),
-                clock), getOneTimeTokenService, clock);
+                clock);
+        return new ResendInvitationServiceImpl(new InvitationResending(sending, getOneTimeTokenService, clock),
+                sending);
     }
 
     @Test

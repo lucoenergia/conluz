@@ -60,12 +60,13 @@ class RevokeInvitationServiceTest {
      * A server that cannot send: revoking does not depend on it.
      */
     private RevokeInvitationService service() {
-        return new RevokeInvitationServiceImpl(new InvitationSending(lockUserRepository, lockMembershipRepository,
+        InvitationSending sending = new InvitationSending(lockUserRepository, lockMembershipRepository,
                 getMembershipsRepository, createOneTimeTokenService, getOneTimeTokenService,
                 updateMembershipInvitationRepository, emailSender,
                 new InvitationEmailFactory(mock(MessageSource.class)), InvitationLink.of(""),
                 new EmailProperties(false, "smtp.test", "587", null, null, "no-reply@conluz.test", null, true),
-                Clock.systemUTC()), revokeOneTimeTokenService);
+                Clock.systemUTC());
+        return new RevokeInvitationServiceImpl(new InvitationRevoking(sending, revokeOneTimeTokenService), sending);
     }
 
     @Test

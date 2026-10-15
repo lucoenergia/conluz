@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -88,6 +89,15 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
      */
     @Query("SELECT m FROM community_memberships m LEFT JOIN FETCH m.user WHERE m.community.id = :communityId")
     List<CommunityMembershipEntity> findByCommunityIdWithUser(@Param("communityId") UUID communityId);
+
+    /**
+     * The memberships of a community with the given role, whatever their state, eagerly fetching the user: the
+     * platform admin's list of a community's admins reads each one's personal id from the account.
+     */
+    @Query("SELECT m FROM community_memberships m JOIN FETCH m.user u WHERE m.community.id = :communityId "
+            + "AND m.role = :role ORDER BY m.fullName, u.id")
+    List<CommunityMembershipEntity> findByCommunityIdAndRoleWithUser(@Param("communityId") UUID communityId,
+                                                                     @Param("role") CommunityRole role);
 
     /**
      * Finds all memberships for the given set of users, eagerly fetching both the associated

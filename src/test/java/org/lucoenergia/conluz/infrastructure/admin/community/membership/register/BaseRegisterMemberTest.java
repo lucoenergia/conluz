@@ -185,9 +185,16 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     }
 
     protected String loginAsPlatformAdmin() throws Exception {
+        return loginUser(newPlatformAdmin());
+    }
+
+    /**
+     * A platform admin without memberships.
+     */
+    protected User newPlatformAdmin() {
         User admin = newUser();
         managePlatformAdminRepository.grant(UserId.of(admin.getId()));
-        return loginUser(admin);
+        return admin;
     }
 
     // --- Registering ---
@@ -230,6 +237,30 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return UUID.fromString(objectMapper.readTree(response).get("user").get("id").asText());
+    }
+
+    // --- Inviting a community admin ---
+
+    /**
+     * An admin invitation body with every field filled, and a fresh personal id and contact email.
+     */
+    protected Map<String, Object> newAdminRecord() {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("personalId", UserMother.randomPersonalId());
+        body.put("fullName", "Marta Ruiz Sanz");
+        body.put("contactEmail", newEmail());
+        body.put("phoneNumber", "611111111");
+        return body;
+    }
+
+    protected ResultActions inviteAdmin(String bearer, UUID communityId, Map<String, Object> body) throws Exception {
+        if (body.get("personalId") instanceof String personalId) {
+            personalIds.add(UserPersonalId.normalize(personalId));
+        }
+        return mockMvc.perform(post("/api/v1/communities/{communityId}/admins/invite", communityId)
+                .header(HttpHeaders.AUTHORIZATION, bearer)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)));
     }
 
     // --- Inviting ---
