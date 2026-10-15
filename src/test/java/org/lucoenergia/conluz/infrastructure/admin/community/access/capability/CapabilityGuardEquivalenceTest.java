@@ -162,6 +162,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canUpdate", capabilities.isCanUpdate(), () -> guard.canUpdateCommunity(id));
             assertSame("canEnable", capabilities.isCanEnable(), () -> guard.canEnableCommunity(id));
             assertSame("canDisable", capabilities.isCanDisable(), () -> guard.canDisableCommunity(id));
+            assertSame("canManageAdmins", capabilities.isCanManageAdmins(), () -> guard.canManageCommunityAdmins(id));
             assertSame("canManage", capabilities.isCanManage(), () -> guard.canManageCommunity(id));
             assertSame("canManageMemberships", capabilities.isCanManageMemberships(),
                     () -> guard.canManageMemberships(id));

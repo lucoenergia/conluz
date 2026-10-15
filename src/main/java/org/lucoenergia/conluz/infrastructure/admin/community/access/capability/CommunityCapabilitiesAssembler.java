@@ -34,6 +34,7 @@ public class CommunityCapabilitiesAssembler {
                 .withCanUpdate(administersPlatform)
                 .withCanEnable(administersPlatform)
                 .withCanDisable(administersPlatform)
+                .withCanManageAdmins(administersPlatform)
                 .withCanManage(policies.community().canManage(caller, communityId).isAllowed())
                 .withCanManageMemberships(policies.membership().canManageMemberships(caller, communityId).isAllowed())
                 .withCanRegisterMembers(policies.membership().canRegisterMembers(caller, communityId).isAllowed())

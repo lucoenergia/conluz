@@ -49,7 +49,9 @@ class CommunityCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canInviteMembers").value(true))
                 .andExpect(jsonPath("$.capabilities.canCreatePlants").value(true))
                 // Updating a community is platform-wide, and this caller only administers it.
-                .andExpect(jsonPath("$.capabilities.canUpdate").value(false));
+                .andExpect(jsonPath("$.capabilities.canUpdate").value(false))
+                // So is appointing and suspending its admins.
+                .andExpect(jsonPath("$.capabilities.canManageAdmins").value(false));
     }
 
     @Test
@@ -67,6 +69,17 @@ class CommunityCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canManageMemberships").value(false))
                 .andExpect(jsonPath("$.capabilities.canInviteMembers").value(false))
                 .andExpect(jsonPath("$.capabilities.canCreatePlants").value(false));
+    }
+
+    @Test
+    void theDetailEndpointReportsThatThePlatformAdminMayManageTheCommunityAdmins() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String platformAdminToken = loginAsDefaultPlatformAdmin();
+
+        mockMvc.perform(get("/api/v1/communities/{communityId}", community.getId())
+                        .header(HttpHeaders.AUTHORIZATION, platformAdminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.capabilities.canManageAdmins").value(true));
     }
 
     /**

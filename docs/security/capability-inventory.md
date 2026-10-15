@@ -100,6 +100,7 @@ with no guard".
 | `canUpdate` | `canUpdateCommunity` |
 | `canEnable` | `canEnableCommunity` |
 | `canDisable` | `canDisableCommunity` |
+| `canManageAdmins` | `canManageCommunityAdmins` (invite, list, resend and revoke the invitation of, enable and disable the community's admins) |
 | `canManage` | `canManageCommunity` |
 | `canManageMemberships` | `canManageMemberships` |
 | `canRegisterMembers` | `canRegisterMembers` |
@@ -111,8 +112,8 @@ with no guard".
 | `canReadProduction` | `canReadCommunityProduction` |
 | `canListSupplies` | `canListSupplies` |
 
-`canUpdate`, `canEnable` and `canDisable` are platform-wide decisions: administering a community does
-not confer them. `canReadProduction` and `canListSupplies` are the opposite — membership, not
+`canUpdate`, `canEnable`, `canDisable` and `canManageAdmins` are platform-wide decisions: administering
+a community does not confer them. `canReadProduction` and `canListSupplies` are the opposite — membership, not
 administration, so a platform admin who is not a member gets neither.
 
 ### Supply — `SupplyResponse.capabilities`

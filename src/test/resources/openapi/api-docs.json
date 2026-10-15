@@ -179,6 +179,10 @@
             "description" : "Whether the caller administers this community: creating and importing its supplies, reading and writing its Datadis and Shelly configuration, and triggering its synchronisation endpoints.",
             "type" : "boolean"
           },
+          "canManageAdmins" : {
+            "description" : "Whether the caller may invite, list, re-invite, enable and disable this community's admins (/api/v1/communities/{communityId}/admins). A platform-wide decision: being a community admin does not confer it.",
+            "type" : "boolean"
+          },
           "canManageMembershipInvestment" : {
             "description" : "Whether the caller may set or clear the investment recorded on this community's memberships. Stricter than canManageMemberships: an investment is the member's own money, so there is no platform-admin bypass.",
             "type" : "boolean"
@@ -213,6 +217,7 @@
           "canListPlants",
           "canListSupplies",
           "canManage",
+          "canManageAdmins",
           "canManageMembershipInvestment",
           "canManageMemberships",
           "canRead",
