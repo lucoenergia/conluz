@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfigPasswordRequiredException;
+import org.lucoenergia.conluz.domain.datadis.LockDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfiguration;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationService;
@@ -34,6 +35,8 @@ class SetDatadisConfigurationServiceTest {
     private static final String BASE_URL = "https://datadis.example.com";
 
     @Mock
+    private LockDatadisConfigRepository lockDatadisConfigRepository;
+    @Mock
     private GetDatadisConfigRepository getDatadisConfigRepository;
     @Mock
     private SetDatadisConfigurationRepository setDatadisConfigurationRepository;
@@ -42,14 +45,14 @@ class SetDatadisConfigurationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SetDatadisConfigurationServiceImpl(getDatadisConfigRepository, setDatadisConfigurationRepository);
+        service = new SetDatadisConfigurationServiceImpl(lockDatadisConfigRepository, getDatadisConfigRepository,
+                setDatadisConfigurationRepository);
     }
 
     @Test
     @DisplayName("DCF-001 without a password the stored non-empty password is written back with the other fields")
     void keepsStoredPassword() {
-        when(getDatadisConfigRepository.findByCommunityId(COMMUNITY_ID))
-                .thenReturn(Optional.of(storedConfig("storedPassword")));
+        givenStored(storedConfig("storedPassword"));
 
         service.setDatadisConfiguration(COMMUNITY_ID, configuration());
 
@@ -57,7 +60,6 @@ class SetDatadisConfigurationServiceTest {
         assertThat(written.getPassword()).isEqualTo("storedPassword");
         assertThat(written.getUsername()).isEqualTo("newUser");
         assertThat(written.getBaseUrl()).isEqualTo(BASE_URL);
-        assertThat(written.getEnabled()).isFalse();
     }
 
     @Test
@@ -71,7 +73,7 @@ class SetDatadisConfigurationServiceTest {
     @Test
     @DisplayName("DCF-002 without a password and without a configuration nothing is written")
     void rejectsMissingPasswordWithoutConfig() {
-        when(getDatadisConfigRepository.findByCommunityId(COMMUNITY_ID)).thenReturn(Optional.empty());
+        when(lockDatadisConfigRepository.lock(COMMUNITY_ID)).thenReturn(false);
 
         assertThatThrownBy(() -> service.setDatadisConfiguration(COMMUNITY_ID, configuration()))
                 .isInstanceOf(DatadisConfigPasswordRequiredException.class);
@@ -82,12 +84,16 @@ class SetDatadisConfigurationServiceTest {
     @NullAndEmptySource
     @DisplayName("DCF-002 without a password and with a stored null or empty password nothing is written")
     void rejectsMissingPasswordOverStoredBlankPassword(String storedPassword) {
-        when(getDatadisConfigRepository.findByCommunityId(COMMUNITY_ID))
-                .thenReturn(Optional.of(storedConfig(storedPassword)));
+        givenStored(storedConfig(storedPassword));
 
         assertThatThrownBy(() -> service.setDatadisConfiguration(COMMUNITY_ID, configuration()))
                 .isInstanceOf(DatadisConfigPasswordRequiredException.class);
         verify(setDatadisConfigurationRepository, never()).setDatadisConfiguration(any(), any());
+    }
+
+    private void givenStored(DatadisConfig stored) {
+        when(lockDatadisConfigRepository.lock(COMMUNITY_ID)).thenReturn(true);
+        when(getDatadisConfigRepository.findByCommunityId(COMMUNITY_ID)).thenReturn(Optional.of(stored));
     }
 
     private DatadisConfig written() {
@@ -107,8 +113,7 @@ class SetDatadisConfigurationServiceTest {
     private static SetDatadisConfiguration.Builder builder() {
         return new SetDatadisConfiguration.Builder()
                 .withUsername("newUser")
-                .withBaseUrl(BASE_URL)
-                .withEnabled(Boolean.FALSE);
+                .withBaseUrl(BASE_URL);
     }
 
     private static DatadisConfig storedConfig(String password) {

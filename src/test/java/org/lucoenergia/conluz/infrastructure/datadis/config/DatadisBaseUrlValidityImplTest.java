@@ -33,7 +33,7 @@ class DatadisBaseUrlValidityImplTest {
     }
 
     private static boolean bodyAccepts(String baseUrl) {
-        ConfigureDatadisBody body = new ConfigureDatadisBody("user", "secret", baseUrl, Boolean.TRUE);
+        ConfigureDatadisBody body = new ConfigureDatadisBody("user", "secret", baseUrl);
         return VALIDATOR.validateProperty(body, "baseUrl").isEmpty();
     }
 }

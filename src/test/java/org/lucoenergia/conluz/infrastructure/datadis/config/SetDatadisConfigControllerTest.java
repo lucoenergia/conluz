@@ -59,7 +59,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
                 .build());
 
         ConfigureDatadisBody body = new ConfigureDatadisBody("testUsernameNew", "testPasswordNew",
-                DatadisConfig.DEFAULT_BASE_URL, Boolean.TRUE);
+                DatadisConfig.DEFAULT_BASE_URL);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -73,13 +73,13 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.username").value("testUsernameNew"))
                 .andExpect(jsonPath("$.passwordSet").value(true))
                 .andExpect(jsonPath("$.baseUrl").value(DatadisConfig.DEFAULT_BASE_URL))
-                .andExpect(jsonPath("$.enabled").value(true));
+                .andExpect(jsonPath("$.enabled").value(false));
     }
 
     @Test
     void testNewConfigureDatadis() throws Exception {
         ConfigureDatadisBody body = new ConfigureDatadisBody("testUser", "testPass",
-                DatadisConfig.DEFAULT_BASE_URL, Boolean.TRUE);
+                DatadisConfig.DEFAULT_BASE_URL);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -93,7 +93,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.username").value("testUser"))
                 .andExpect(jsonPath("$.passwordSet").value(true))
                 .andExpect(jsonPath("$.baseUrl").value(DatadisConfig.DEFAULT_BASE_URL))
-                .andExpect(jsonPath("$.enabled").value(true));
+                .andExpect(jsonPath("$.enabled").value(false));
     }
 
     @Test
@@ -103,7 +103,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         seedConfig(community.getId(), STORED_PASSWORD);
 
         putConfig(community.getId(), """
-                {"username": "newUser", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.passwordSet").value(true));
@@ -112,7 +112,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         assertThat(stored.getPassword()).isEqualTo(STORED_PASSWORD);
         assertThat(stored.getUsername()).isEqualTo("newUser");
         assertThat(stored.getBaseUrl()).isEqualTo(OTHER_BASE_URL);
-        assertThat(stored.getEnabled()).isFalse();
+        assertThat(stored.getEnabled()).isTrue();
     }
 
     @Test
@@ -124,7 +124,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         seedConfig(other.getId(), "otherPassword");
 
         putConfig(community.getId(), """
-                {"username": "newUser", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isOk());
 
@@ -138,7 +138,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         seedConfig(community.getId(), STORED_PASSWORD);
 
         putConfig(community.getId(), """
-                {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isOk());
 
@@ -151,7 +151,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         Community community = createCommunity();
 
         putConfig(community.getId(), """
-                {"username": "newUser", "baseUrl": "%s", "enabled": true}
+                {"username": "newUser", "baseUrl": "%s"}
                 """.formatted(DatadisConfig.DEFAULT_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.DATADIS_CONFIG_PASSWORD_REQUIRED.name()));
@@ -178,7 +178,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         seedConfig(community.getId(), STORED_PASSWORD);
 
         putConfig(community.getId(), """
-                {"username": "newUser", "password": null, "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "password": null, "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value(nullValue()))
@@ -193,7 +193,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         Community community = createCommunity();
 
         putConfig(community.getId(), """
-                {"username": "newUser", "password": null, "baseUrl": "%s", "enabled": true}
+                {"username": "newUser", "password": null, "baseUrl": "%s"}
                 """.formatted(DatadisConfig.DEFAULT_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value(nullValue()));
@@ -208,7 +208,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         seedConfig(community.getId(), STORED_PASSWORD);
 
         putConfig(community.getId(), """
-                {"username": "newUser", "password": "", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "password": "", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(containsString("password")));
@@ -222,7 +222,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         Community community = createCommunity();
 
         putConfig(community.getId(), """
-                {"username": "newUser", "password": "", "baseUrl": "%s", "enabled": true}
+                {"username": "newUser", "password": "", "baseUrl": "%s"}
                 """.formatted(DatadisConfig.DEFAULT_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(containsString("password")));
@@ -234,7 +234,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
     @DisplayName("a blank username is rejected and stores nothing")
     void blankUsernameIsRejected() throws Exception {
         assertInvalidBodyStoresNothing("""
-                {"username": " ", "password": "newPassword", "baseUrl": "%s", "enabled": true}
+                {"username": " ", "password": "newPassword", "baseUrl": "%s"}
                 """.formatted(DatadisConfig.DEFAULT_BASE_URL), "username");
     }
 
@@ -242,7 +242,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
     @DisplayName("a missing username is rejected and stores nothing")
     void missingUsernameIsRejected() throws Exception {
         assertInvalidBodyStoresNothing("""
-                {"password": "newPassword", "baseUrl": "%s", "enabled": true}
+                {"password": "newPassword", "baseUrl": "%s"}
                 """.formatted(DatadisConfig.DEFAULT_BASE_URL), "username");
     }
 
@@ -250,7 +250,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
     @DisplayName("a blank base URL is rejected and stores nothing")
     void blankBaseUrlIsRejected() throws Exception {
         assertInvalidBodyStoresNothing("""
-                {"username": "newUser", "password": "newPassword", "baseUrl": "", "enabled": true}
+                {"username": "newUser", "password": "newPassword", "baseUrl": ""}
                 """, "baseUrl");
     }
 
@@ -258,16 +258,8 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
     @DisplayName("a malformed base URL is rejected and stores nothing")
     void malformedBaseUrlIsRejected() throws Exception {
         assertInvalidBodyStoresNothing("""
-                {"username": "newUser", "password": "newPassword", "baseUrl": "not a url", "enabled": true}
+                {"username": "newUser", "password": "newPassword", "baseUrl": "not a url"}
                 """, "baseUrl");
-    }
-
-    @Test
-    @DisplayName("a missing enabled flag is rejected and stores nothing")
-    void missingEnabledIsRejected() throws Exception {
-        assertInvalidBodyStoresNothing("""
-                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
-                """.formatted(DatadisConfig.DEFAULT_BASE_URL), "enabled");
     }
 
     @Test
@@ -329,7 +321,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         String authHeader = loginAsPartner();
 
         ConfigureDatadisBody body = new ConfigureDatadisBody("testUsername", "testPassword",
-                DatadisConfig.DEFAULT_BASE_URL, Boolean.FALSE);
+                DatadisConfig.DEFAULT_BASE_URL);
 
         mockMvc.perform(put(String.format(URL_TEMPLATE, DEFAULT_COMMUNITY_ID))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -345,7 +337,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
         seedConfig(community.getId(), storedPassword);
 
         putConfig(community.getId(), """
-                {"username": "newUser", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value(RestErrorCode.DATADIS_CONFIG_PASSWORD_REQUIRED.name()));
@@ -378,7 +370,7 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
 
     private static String validBody() {
         return """
-                {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": false}
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
                 """.formatted(OTHER_BASE_URL);
     }
 
