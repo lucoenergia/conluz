@@ -1,6 +1,24 @@
 {
   "components" : {
     "schemas" : {
+      "AcceptInvitationBody" : {
+        "properties" : {
+          "newPassword" : {
+            "description" : "The account's first password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed.",
+            "minLength" : 15,
+            "type" : "string"
+          },
+          "token" : {
+            "description" : "The token from the invitation link: everything after the `#` of `<web client>/accept-invitation#<token>`, exactly as it appears there.",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "newPassword",
+          "token"
+        ],
+        "type" : "object"
+      },
       "ActivateCoefficientsBody" : {
         "properties" : {
           "appliedOn" : {
@@ -939,6 +957,35 @@
             "type" : "number"
           }
         },
+        "type" : "object"
+      },
+      "InvitationInspectionResponse" : {
+        "properties" : {
+          "community" : {
+            "$ref" : "#/components/schemas/CommunityReferenceResponse",
+            "description" : "The community the invitation is for"
+          },
+          "loginRequired" : {
+            "description" : "Whether the person must log in to accept the invitation: true when the account already has a password, so the invitation is accepted through `acceptInvitationAsCurrentUser` after logging in; false when it has none, so it is accepted through `acceptInvitation`, choosing its first password.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [
+          "community",
+          "loginRequired"
+        ],
+        "type" : "object"
+      },
+      "InvitationTokenBody" : {
+        "properties" : {
+          "token" : {
+            "description" : "The token from the invitation link: everything after the `#` of `<web client>/accept-invitation#<token>`, exactly as it appears there.",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "token"
+        ],
         "type" : "object"
       },
       "LoginRequest" : {
@@ -2124,6 +2171,8 @@
               "MEMBERSHIP_INVITATION_UNAVAILABLE",
               "MEMBERSHIP_NOT_INVITED",
               "MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED",
+              "MEMBERSHIP_INVITATION_TOKEN_INVALID",
+              "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
               "COMMUNITY_ALREADY_EXISTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
               "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
@@ -10290,6 +10339,263 @@
         ]
       }
     },
+    "/api/v1/invitations/accept" : {
+      "post" : {
+        "description" : "This endpoint accepts the invitation of an account that has no password yet, with the token from\nthe emailed link `<web client>/accept-invitation#<token>` and the account's first password. It\nrequires no authentication, and any token presented with it is ignored.\n\nThe password must meet the same policy as a password change: between 15 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded.\n\nOn success the server answers 204 with no body: the token is used up, the password is set, the\nmembership is accepted, and, when the account had no email, the member record's contact email\nbecomes its email. The person is not logged in; the client must log in with the new password. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nAn account that already has a password is answered 409 with the\n`MEMBERSHIP_INVITATION_LOGIN_REQUIRED` code: the person must log in and accept with\n`acceptInvitationAsCurrentUser`. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter. In both cases nothing changes and\nthe token can be used again.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
+        "operationId" : "acceptInvitation",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcceptInvitationBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "Invitation accepted and first password set. No session is opened."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Invalid token" : {
+                    "description" : "Invalid token",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "MEMBERSHIP_INVITATION_TOKEN_INVALID",
+                          "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password policy violation" : {
+                    "description" : "Password policy violation",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_POLICY_VIOLATION",
+                          "message" : "The password must be at least 15 characters long.",
+                          "params" : {
+                            "rule" : "TOO_SHORT"
+                          }
+                        }
+                      ],
+                      "message" : "The password must be at least 15 characters long.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The body is invalid, the token cannot be used (`MEMBERSHIP_INVITATION_TOKEN_INVALID`), or the new password breaks the password policy (`USER_PASSWORD_POLICY_VIOLATION`, with the failed rule in `params.rule`)."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Login required" : {
+                    "description" : "Login required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
+                          "message" : "This invitation is for an account that already has a password. Log in to accept it.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "This invitation is for an account that already has a password. Log in to accept it.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The account already has a password: log in and accept with `acceptInvitationAsCurrentUser`. Nothing changed and the token is still usable."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "AUTH_TOO_MANY_FAILED_ATTEMPTS",
+                      "message" : "Too many failed attempts. Please wait before trying again.",
+                      "params" : {
+                        "retryAfterSeconds" : "843"
+                      }
+                    }
+                  ],
+                  "message" : "Too many failed attempts. Please wait before trying again.",
+                  "status" : 429,
+                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "Too many failed attempts on this account or from this client address (`AUTH_TOO_MANY_FAILED_ATTEMPTS`). The password was not checked. Retry after the number of seconds in the `Retry-After` header, also given in `params.retryAfterSeconds`.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Seconds, rounded up, until an attempt will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "summary" : "Accepts an invitation, setting the account's first password",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/invitations/inspect" : {
+      "post" : {
+        "description" : "This endpoint tells the holder of an invitation link, `<web client>/accept-invitation#<token>`,\nwhich community the invitation is for and how to accept it. It requires no authentication, and\nany token presented with it is ignored. It uses up nothing and changes nothing: the link stays\nusable.\n\nWhen `loginRequired` is false, the account has no password: the client asks for a first password\nand accepts with `acceptInvitation`. When it is true, the account already has a password: the\nclient asks the person to log in and accepts with `acceptInvitationAsCurrentUser`.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
+        "operationId" : "inspectInvitation",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InvitationTokenBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InvitationInspectionResponse"
+                }
+              }
+            },
+            "description" : "The invitation can be accepted"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Invalid token" : {
+                    "description" : "Invalid token",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "MEMBERSHIP_INVITATION_TOKEN_INVALID",
+                          "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The body is invalid, or the token cannot be used (`MEMBERSHIP_INVITATION_TOKEN_INVALID`)."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "AUTH_TOO_MANY_FAILED_ATTEMPTS",
+                      "message" : "Too many failed attempts. Please wait before trying again.",
+                      "params" : {
+                        "retryAfterSeconds" : "843"
+                      }
+                    }
+                  ],
+                  "message" : "Too many failed attempts. Please wait before trying again.",
+                  "status" : 429,
+                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "Too many failed attempts on this account or from this client address (`AUTH_TOO_MANY_FAILED_ATTEMPTS`). The password was not checked. Retry after the number of seconds in the `Retry-After` header, also given in `params.retryAfterSeconds`.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Seconds, rounded up, until an attempt will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "summary" : "Inspects an invitation before accepting it",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
     "/api/v1/login" : {
       "post" : {
         "description" : "This endpoint is dedicated to user authentication, requiring clients to provide a valid username and password in the request body. Upon successful authentication, the server generates and returns an authentication token, utilizing JSON Web Tokens (JWT). This token serves as a secure means for subsequent authorized access to protected resources within the system. The server responds with an HTTP status code of 200, along with the generated token. In case of authentication failure or invalid credentials, the server issues an appropriate error status code, accompanied by a descriptive error message. After 5 failed attempts on the same account, or 20 from the same client address, within 15 minutes, further attempts are answered 429 with a Retry-After header, without checking the password, until the 15 minutes that started with the first failure have passed.",
@@ -16708,6 +17014,154 @@
         "summary" : "Get current authenticated user",
         "tags" : [
           "Users"
+        ]
+      }
+    },
+    "/api/v1/users/current/invitations/accept" : {
+      "post" : {
+        "description" : "This endpoint accepts an invitation of one of the caller's own memberships, with the token from\nthe emailed link `<web client>/accept-invitation#<token>`. It is the way to accept for an account\nthat already has a password; the password is neither read nor changed.\n\nOn success the server answers 204 with no body: the token is used up and the membership is\naccepted. The client should then read the current user again to see the new membership. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nA token of another account's membership is answered like any unusable token.\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nA caller who must change their password is answered 403 with the `USER_PASSWORD_CHANGE_REQUIRED`\ncode before the token is looked at; the link stays usable once the password has been changed.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.\n\n**Required: any authenticated user (accepts their own membership).**",
+        "operationId" : "acceptInvitationAsCurrentUser",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InvitationTokenBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "Invitation accepted."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Invalid token" : {
+                    "description" : "Invalid token",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "MEMBERSHIP_INVITATION_TOKEN_INVALID",
+                          "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The body is invalid, or the token cannot be used by the caller (`MEMBERSHIP_INVITATION_TOKEN_INVALID`)."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "Your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is \\\ntrue on `GET /api/v1/users/current`, every request other than reading the current user, changing the \\\npassword and logging out is refused."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "AUTH_TOO_MANY_FAILED_ATTEMPTS",
+                      "message" : "Too many failed attempts. Please wait before trying again.",
+                      "params" : {
+                        "retryAfterSeconds" : "843"
+                      }
+                    }
+                  ],
+                  "message" : "Too many failed attempts. Please wait before trying again.",
+                  "status" : 429,
+                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "Too many failed attempts on this account or from this client address (`AUTH_TOO_MANY_FAILED_ATTEMPTS`). The password was not checked. Retry after the number of seconds in the `Retry-After` header, also given in `params.retryAfterSeconds`.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Seconds, rounded up, until an attempt will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Accepts an invitation of the logged-in user",
+        "tags" : [
+          "Memberships"
         ]
       }
     },

@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember` |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #392 |
+| **Last reviewed against code** | #394 |
 
 ## Purpose
 
@@ -93,6 +93,18 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   account would let one community overwrite another's view of the person, and would reveal that the account
   existed.
 - **Source:** #392, ADR-0003 §1, §3 and §7
+
+### ACC-007 — An account's first password is set only by accepting an invitation
+
+- **Status:** Active
+- **Rule:** The only way to give a passwordless account a password MUST be accepting one of its invitations
+  without logging in (`acceptInvitation`, MEM-016). Accepting MUST also set the account's email to the accepted
+  member record's contact email when the account has none, and MUST NOT change an email the account already has.
+- **Rationale:** Login, recovery and reset refuse a passwordless account (ACC-001, ACC-002, ACC-005); the
+  invitation link, sent to the member record's contact email, is what proves the person (ADR-0003 §6, §7). Without
+  an email the person could not recover the password they just chose. Whoever accepts first takes the account
+  over, an accepted risk recorded in ADR-0003.
+- **Source:** #394, ADR-0003 §6 and §7
 
 ## Impossible states
 

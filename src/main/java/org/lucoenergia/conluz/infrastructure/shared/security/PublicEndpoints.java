@@ -14,7 +14,8 @@ import java.util.stream.Stream;
  *
  * <p>The paths in the first list are public on any HTTP method. The password recovery endpoints (#362) sit under
  * {@code /api/v1/users}, next to endpoints that require authentication, so each is public on its exact path and
- * method only.</p>
+ * method only. So are the invitation endpoints that need no login (#394): accepting as the logged-in user sits under
+ * {@code /api/v1/users/current} and requires authentication.</p>
  */
 public final class PublicEndpoints {
 
@@ -31,7 +32,11 @@ public final class PublicEndpoints {
                             PathPatternRequestMatcher.withDefaults()
                                     .matcher(HttpMethod.POST, "/api/v1/users/password/recover"),
                             PathPatternRequestMatcher.withDefaults()
-                                    .matcher(HttpMethod.POST, "/api/v1/users/password/reset")))
+                                    .matcher(HttpMethod.POST, "/api/v1/users/password/reset"),
+                            PathPatternRequestMatcher.withDefaults()
+                                    .matcher(HttpMethod.POST, "/api/v1/invitations/inspect"),
+                            PathPatternRequestMatcher.withDefaults()
+                                    .matcher(HttpMethod.POST, "/api/v1/invitations/accept")))
             .toList());
 
     private PublicEndpoints() {

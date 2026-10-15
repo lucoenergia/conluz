@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Declares no properties of its own, so its subclasses share the context of every {@link BaseSendingMemberTest}.
  * Emails are counted as they arrive: {@link #awaitNextEmails(int)} waits for the next ones and returns only them.</p>
  */
-abstract class BaseInvitationTest extends BaseSendingMemberTest {
+public abstract class BaseInvitationTest extends BaseSendingMemberTest {
 
     protected static final Pattern LINK = Pattern.compile(
             Pattern.quote(PUBLIC_WEB_URL + "/accept-invitation#") + "([A-Za-z0-9_-]+)");
@@ -49,7 +49,7 @@ abstract class BaseInvitationTest extends BaseSendingMemberTest {
     /**
      * A pending member of a community, registered and invited by one of its admins, and the link they were sent.
      */
-    protected record InvitedMember(Community community, String bearer, UUID userId, String personalId,
+    public record InvitedMember(Community community, String bearer, UUID userId, String personalId,
                                    String contactEmail, String token) {
     }
 

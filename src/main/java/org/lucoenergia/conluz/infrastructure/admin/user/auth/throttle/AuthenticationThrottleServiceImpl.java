@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle;
 
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.InvitationAttempt;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.LoginAttempt;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.PasswordChangeAttempt;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.PasswordResetAttempt;
@@ -54,6 +55,11 @@ public class AuthenticationThrottleServiceImpl implements AuthenticationThrottle
     @Override
     public PasswordResetAttempt startPasswordReset(String clientIp) {
         return new PasswordResetAttemptImpl(reserveClientIp(clientIp), accountCounter, clientIp);
+    }
+
+    @Override
+    public InvitationAttempt startInvitation(String clientIp) {
+        return new InvitationAttemptImpl(reserveClientIp(clientIp), accountCounter, clientIp);
     }
 
     /**

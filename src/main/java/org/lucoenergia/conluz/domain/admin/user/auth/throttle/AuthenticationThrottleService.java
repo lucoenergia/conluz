@@ -4,8 +4,8 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 
 /**
  * Slows down password guessing on the endpoints that check a password: login and password change. Password recovery
- * (#362) uses the client address counter alone: every recovery request counts against it, and so does every reset
- * with an invalid token.
+ * (#362) and invitations (#394) use the client address counter alone: every recovery request counts against it, and
+ * so does every reset, inspection or acceptance with an unusable token.
  * <p>
  * Failed attempts are counted twice: per account and per client address. Both endpoints feed the same counters,
  * and the account is identified by its normalised personal ID in both, so failed logins and wrong current
@@ -60,4 +60,14 @@ public interface AuthenticationThrottleService {
      * @throws TooManyFailedAttemptsException if the client address is throttled
      */
     PasswordResetAttempt startPasswordReset(String clientIp);
+
+    /**
+     * Admits an invitation inspection or acceptance, or refuses it while the client address is throttled. The
+     * account is not known until the invitation token has been checked, so only the client address is counted.
+     *
+     * @param clientIp the address of the client
+     * @return the admitted attempt, to be settled with its outcome and closed
+     * @throws TooManyFailedAttemptsException if the client address is throttled
+     */
+    InvitationAttempt startInvitation(String clientIp);
 }

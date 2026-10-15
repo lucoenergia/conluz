@@ -9,6 +9,8 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavail
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotInvitedException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
+import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationLoginRequiredException;
+import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationTokenInvalidException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
@@ -202,5 +204,35 @@ public class CommunityExceptionHandler {
         return ResponseEntity.status(response.getStatusCode())
                 .header(HttpHeaders.RETRY_AFTER, retryAfterSeconds)
                 .body(response.getBody());
+    }
+
+    /**
+     * The same answer whatever made the invitation token unusable. Not logged here: the throttling logs each
+     * unusable token once, with the client address.
+     */
+    @ExceptionHandler(InvitationTokenInvalidException.class)
+    public ResponseEntity<RestError> handleException(InvitationTokenInvalidException e) {
+        String message = messageSource.getMessage(
+                "error.membership.invitation.token.invalid",
+                List.of().toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.buildWithoutLogging(message, RestErrorCode.MEMBERSHIP_INVITATION_TOKEN_INVALID, null,
+                HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * A 409: the invitation is valid, but its account has a password, so it is accepted only after logging in. An
+     * expected answer that the client turns into a login, so it is not logged.
+     */
+    @ExceptionHandler(InvitationLoginRequiredException.class)
+    public ResponseEntity<RestError> handleException(InvitationLoginRequiredException e) {
+        String message = messageSource.getMessage(
+                "error.membership.invitation.login.required",
+                List.of().toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.buildWithoutLogging(message, RestErrorCode.MEMBERSHIP_INVITATION_LOGIN_REQUIRED, null,
+                HttpStatus.CONFLICT);
     }
 }

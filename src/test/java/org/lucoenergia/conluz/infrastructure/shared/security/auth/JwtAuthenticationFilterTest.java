@@ -157,7 +157,14 @@ class JwtAuthenticationFilterTest {
             "POST, /api/v1/users/password/reset/extra, false",
             "POST, /api/v1/logout, false",
             "PUT, /api/v1/users/current/password, false",
-            "GET, /api/v1/users/current, false"
+            "GET, /api/v1/users/current, false",
+            "POST, /api/v1/invitations/inspect, true",
+            "POST, /api/v1/invitations/accept, true",
+            "GET, /api/v1/invitations/inspect, false",
+            "PUT, /api/v1/invitations/accept, false",
+            "POST, /api/v1/invitations, false",
+            "POST, /api/v1/invitations/accept/extra, false",
+            "POST, /api/v1/users/current/invitations/accept, false"
     })
     void onlyPublicEndpoints_skipTheFilter(String method, String path, boolean skipped) {
         MockHttpServletRequest publicOrNot = new MockHttpServletRequest(method, path);
