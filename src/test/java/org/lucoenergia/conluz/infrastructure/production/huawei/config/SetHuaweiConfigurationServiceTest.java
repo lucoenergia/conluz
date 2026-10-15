@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.config.HuaweiConfigPasswordRequiredException;
+import org.lucoenergia.conluz.domain.production.huawei.config.LockHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfiguration;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationService;
@@ -34,6 +35,8 @@ class SetHuaweiConfigurationServiceTest {
     private static final String BASE_URL = "https://fusionsolar.example.com/thirdData";
 
     @Mock
+    private LockHuaweiConfigRepository lockHuaweiConfigRepository;
+    @Mock
     private GetHuaweiConfigRepository getHuaweiConfigRepository;
     @Mock
     private SetHuaweiConfigurationRepository setHuaweiConfigurationRepository;
@@ -42,13 +45,14 @@ class SetHuaweiConfigurationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SetHuaweiConfigurationServiceImpl(getHuaweiConfigRepository, setHuaweiConfigurationRepository);
+        service = new SetHuaweiConfigurationServiceImpl(lockHuaweiConfigRepository, getHuaweiConfigRepository,
+                setHuaweiConfigurationRepository);
     }
 
     @Test
     @DisplayName("HCF-001 without a password the stored non-empty password is written back with the other fields")
     void keepsStoredPassword() {
-        when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID)).thenReturn(Optional.of(storedConfig("stored")));
+        givenStored(storedConfig("stored"));
 
         service.setHuaweiConfiguration(PLANT_ID, configuration());
 
@@ -56,7 +60,6 @@ class SetHuaweiConfigurationServiceTest {
         assertThat(written.getPassword()).isEqualTo("stored");
         assertThat(written.getUsername()).isEqualTo("newUser");
         assertThat(written.getBaseUrl()).isEqualTo(BASE_URL);
-        assertThat(written.getEnabled()).isFalse();
     }
 
     @Test
@@ -70,7 +73,7 @@ class SetHuaweiConfigurationServiceTest {
     @Test
     @DisplayName("HCF-002 without a password and without a configuration nothing is written")
     void rejectsMissingPasswordWithoutConfig() {
-        when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID)).thenReturn(Optional.empty());
+        when(lockHuaweiConfigRepository.lock(PLANT_ID)).thenReturn(false);
 
         assertThatThrownBy(() -> service.setHuaweiConfiguration(PLANT_ID, configuration()))
                 .isInstanceOf(HuaweiConfigPasswordRequiredException.class);
@@ -81,8 +84,7 @@ class SetHuaweiConfigurationServiceTest {
     @NullAndEmptySource
     @DisplayName("HCF-002 without a password and with a stored null or empty password nothing is written")
     void rejectsMissingPasswordOverStoredBlankPassword(String storedPassword) {
-        when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID))
-                .thenReturn(Optional.of(storedConfig(storedPassword)));
+        givenStored(storedConfig(storedPassword));
 
         assertThatThrownBy(() -> service.setHuaweiConfiguration(PLANT_ID, configuration()))
                 .isInstanceOf(HuaweiConfigPasswordRequiredException.class);
@@ -100,8 +102,7 @@ class SetHuaweiConfigurationServiceTest {
     private static SetHuaweiConfiguration.Builder builder() {
         return new SetHuaweiConfiguration.Builder()
                 .withUsername("newUser")
-                .withBaseUrl(BASE_URL)
-                .withEnabled(Boolean.FALSE);
+                .withBaseUrl(BASE_URL);
     }
 
     private static HuaweiConfig storedConfig(String password) {
@@ -112,6 +113,11 @@ class SetHuaweiConfigurationServiceTest {
                 .setEnabled(Boolean.TRUE)
                 .setPlantId(PLANT_ID)
                 .build();
+    }
+
+    private void givenStored(HuaweiConfig stored) {
+        when(lockHuaweiConfigRepository.lock(PLANT_ID)).thenReturn(true);
+        when(getHuaweiConfigRepository.getHuaweiConfig(PLANT_ID)).thenReturn(Optional.of(stored));
     }
 
     private HuaweiConfig written() {

@@ -58,13 +58,12 @@ public class SetHuaweiConfigController {
                       (for example `https://localhost:8000/thirdData`). Mock services
                       that emulate the SmartPVMS V6 Northbound Interface can be targeted by
                       providing their base URL here.
-                    - **enabled** (required, boolean): Master switch for every Huawei-related
-                      service of the plant. When `false`, scheduled syncs and aggregation jobs are
-                      skipped and the manual sync endpoints respond with `409 Conflict`. Set this to
-                      `false` for plants that use a different inverter vendor (e.g. Greenheiss).
 
-                    To only switch the configuration on or off, use `POST .../config/enable` and
-                    `POST .../config/disable`: they change nothing else and take no request body.
+                    The request body does not carry `enabled`, and a body that does is rejected with
+                    `400`. This endpoint never changes whether the Huawei integration is enabled: a new
+                    configuration starts disabled, and an existing one keeps its current state. To switch
+                    it on or off, use `POST .../config/enable` and `POST .../config/disable`. Enabling
+                    requires a complete configuration.
 
                     This configuration is a mandatory step to be able to retrieve the plant's production
                     data from the Huawei API.

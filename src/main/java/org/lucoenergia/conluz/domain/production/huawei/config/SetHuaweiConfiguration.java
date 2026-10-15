@@ -12,13 +12,11 @@ public class SetHuaweiConfiguration {
     private final String username;
     private final Optional<String> password;
     private final String baseUrl;
-    private final Boolean enabled;
 
     private SetHuaweiConfiguration(Builder builder) {
         this.username = builder.username;
         this.password = builder.password;
         this.baseUrl = builder.baseUrl;
-        this.enabled = builder.enabled;
     }
 
     public String getUsername() {
@@ -36,15 +34,10 @@ public class SetHuaweiConfiguration {
         return baseUrl;
     }
 
-    public Boolean getEnabled() {
-        return enabled;
-    }
-
     public static class Builder {
         private String username;
         private Optional<String> password = Optional.empty();
         private String baseUrl;
-        private Boolean enabled;
 
         public Builder withUsername(String username) {
             this.username = username;
@@ -61,11 +54,6 @@ public class SetHuaweiConfiguration {
 
         public Builder withBaseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
-            return this;
-        }
-
-        public Builder withEnabled(Boolean enabled) {
-            this.enabled = enabled;
             return this;
         }
 

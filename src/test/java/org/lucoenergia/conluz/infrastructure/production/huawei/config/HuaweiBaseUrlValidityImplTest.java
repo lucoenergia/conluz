@@ -33,7 +33,7 @@ class HuaweiBaseUrlValidityImplTest {
     }
 
     private static boolean bodyAccepts(String baseUrl) {
-        ConfigureHuaweiBody body = new ConfigureHuaweiBody("user", "secret", baseUrl, Boolean.TRUE);
+        ConfigureHuaweiBody body = new ConfigureHuaweiBody("user", "secret", baseUrl);
         return VALIDATOR.validateProperty(body, "baseUrl").isEmpty();
     }
 }
