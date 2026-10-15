@@ -140,6 +140,7 @@ The change is introduced additively. The remaining steps are tracked in #329:
 - The same person can carry inconsistent data across communities, by design.
 - The platform admin sees community admins' identification and contact data, DNI included. #329 originally limited it to names and emails.
 - **Accepted risk:** without a per-community cap, a misused community admin account could exhaust the shared email quota (about 500 a day), delaying other emails such as password recovery for everyone.
+- **Accepted risk:** whoever first accepts an invitation for a passwordless account takes that account over. They choose its password, and when the account has no email, its email becomes the accepting record's contact email, where password recovery sends its link. For example, a person registered in community A who has not accepted yet can be registered by the admin of community B with a contact email that admin controls, by mistake or on purpose; accepting B's invitation gives them the person's identity on the platform. The person can then neither accept A's invitation, since the account has a password and must log in, nor recover the password. A's data stays out of reach, because A's link goes to A's contact email. Only accounts that have never accepted an invitation are exposed: the public acceptance refuses an account with a password. Acceptable while each community has a single trusted admin.
 - **Obligation:** every check of "is an active member" goes through the single predicate. No new code may test `enabled` or `accepted_at` inline.
 - **Obligation:** responses built for a community admin read member data from the member record, never from the account.
 - **Obligation:** every flow that touches an account, a membership and tokens takes the locks in the order user → membership → token.
@@ -159,6 +160,7 @@ The change is introduced additively. The remaining steps are tracked in #329:
 - Invitation sending is misused, or the shared email quota is reached because of invitations. Add a per-community daily cap.
 - A community is left without an admin and the platform admin cannot repair it quickly enough. Add a last-community-admin rule.
 - A second backend instance is deployed: the email queue and throttling counters are per instance.
+- A passwordless account is taken over through another community's invitation.
 
 ## References
 
