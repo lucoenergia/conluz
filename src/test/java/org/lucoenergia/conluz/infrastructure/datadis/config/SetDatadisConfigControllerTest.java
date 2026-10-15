@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.datadis.config;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SetDatadisConfigControllerTest extends BaseControllerTest {
 
     private static final String URL_TEMPLATE = "/api/v1/communities/%s/config/datadis";
+    private static final String ENABLE_URL_TEMPLATE = "/api/v1/communities/%s/config/datadis/enable";
 
     private static final String STORED_PASSWORD = "storedPassword";
     private static final String OTHER_BASE_URL = "https://datadis.example.com";
@@ -290,6 +294,144 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("DCF-006 AC1 a write on a community without configuration stores it disabled")
+    void newConfigurationIsStoredDisabled() throws Exception {
+        Community community = createCommunity();
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
+
+        assertThat(stored(community.getId()).orElseThrow().getEnabled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("DCF-006 AC2 a write on an enabled configuration keeps it enabled and updates the other fields")
+    void enabledConfigurationStaysEnabled() throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD, true);
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(true));
+
+        DatadisConfig stored = stored(community.getId()).orElseThrow();
+        assertThat(stored.getEnabled()).isTrue();
+        assertThat(stored.getUsername()).isEqualTo("newUser");
+        assertThat(stored.getPassword()).isEqualTo("newPassword");
+        assertThat(stored.getBaseUrl()).isEqualTo(OTHER_BASE_URL);
+    }
+
+    @Test
+    @DisplayName("DCF-006 AC3 a write on a disabled configuration keeps it disabled")
+    void disabledConfigurationStaysDisabled() throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD, false);
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
+
+        DatadisConfig stored = stored(community.getId()).orElseThrow();
+        assertThat(stored.getEnabled()).isFalse();
+        assertThat(stored.getUsername()).isEqualTo("newUser");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "false", "null"})
+    @DisplayName("DCF-006 AC4 a body carrying enabled is rejected and changes nothing")
+    void enabledInBodyWithConfigIsRejected(String enabled) throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD);
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": %s}
+                """.formatted(OTHER_BASE_URL, enabled))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value(nullValue()))
+                .andExpect(jsonPath("$.message").value(containsString("enabled")));
+
+        assertSeedConfigUnchanged(community.getId(), STORED_PASSWORD);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "false", "null"})
+    @DisplayName("DCF-006 AC4 a body carrying enabled is rejected on a community without configuration and creates none")
+    void enabledInBodyWithoutConfigIsRejected(String enabled) throws Exception {
+        Community community = createCommunity();
+
+        putConfig(community.getId(), """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s", "enabled": %s}
+                """.formatted(OTHER_BASE_URL, enabled))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("enabled")));
+
+        assertThat(stored(community.getId())).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @DisplayName("DCF-006 AC5 updating the credentials of an enabled configuration keeps it enabled and complete")
+    void updatedCredentialsKeepConfigurationEnabledAndComplete(boolean withNewPassword) throws Exception {
+        Community community = createCommunity();
+        seedConfig(community.getId(), STORED_PASSWORD, true);
+        String body = withNewPassword
+                ? """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL)
+                : """
+                {"username": "newUser", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL);
+
+        putConfig(community.getId(), body).andExpect(status().isOk());
+
+        DatadisConfig stored = stored(community.getId()).orElseThrow();
+        assertThat(stored.getEnabled()).isTrue();
+        assertThat(stored.getUsername()).isEqualTo("newUser");
+        assertThat(stored.getPassword()).isEqualTo(withNewPassword ? "newPassword" : STORED_PASSWORD);
+        assertThat(stored.getBaseUrl()).isEqualTo(OTHER_BASE_URL);
+
+        mockMvc.perform(post(String.format(ENABLE_URL_TEMPLATE, community.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("DCF-006 a write on one community leaves another community's enabled untouched")
+    void writeDoesNotTouchOtherCommunitysEnabled() throws Exception {
+        Community enabledCommunity = createCommunity();
+        Community disabledCommunity = createCommunity();
+        seedConfig(enabledCommunity.getId(), STORED_PASSWORD, true);
+        seedConfig(disabledCommunity.getId(), STORED_PASSWORD, false);
+
+        putConfig(enabledCommunity.getId(), """
+                {"username": "newUser", "password": "newPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk());
+
+        DatadisConfig disabled = stored(disabledCommunity.getId()).orElseThrow();
+        assertThat(disabled.getEnabled()).isFalse();
+        assertThat(disabled.getUsername()).isEqualTo("seedUser");
+
+        putConfig(disabledCommunity.getId(), """
+                {"username": "otherUser", "password": "otherPassword", "baseUrl": "%s"}
+                """.formatted(OTHER_BASE_URL))
+                .andExpect(status().isOk());
+
+        DatadisConfig enabled = stored(enabledCommunity.getId()).orElseThrow();
+        assertThat(enabled.getEnabled()).isTrue();
+        assertThat(enabled.getUsername()).isEqualTo("newUser");
+        assertThat(stored(disabledCommunity.getId()).orElseThrow().getEnabled()).isFalse();
+    }
+
+    @Test
     void testWithoutBody() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -360,11 +502,15 @@ class SetDatadisConfigControllerTest extends BaseControllerTest {
     }
 
     private void seedConfig(UUID communityId, String password) {
+        seedConfig(communityId, password, true);
+    }
+
+    private void seedConfig(UUID communityId, String password, boolean enabled) {
         setDatadisConfigurationRepository.setDatadisConfiguration(communityId, new DatadisConfig.Builder()
                 .setUsername("seedUser")
                 .setPassword(password)
                 .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
-                .setEnabled(Boolean.TRUE)
+                .setEnabled(enabled)
                 .build());
     }
 
