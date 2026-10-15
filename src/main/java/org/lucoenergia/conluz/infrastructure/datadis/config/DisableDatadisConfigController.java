@@ -40,6 +40,10 @@ public class DisableDatadisConfigController {
                     This endpoint disables the community's Datadis configuration, changing nothing else: the stored
                     username, password and base URL are not rewritten. The request has no body.
 
+                    A disabled configuration switches off the community's Datadis integration: the scheduled Datadis
+                    sync and aggregation jobs skip the community, and the operations that sync or aggregate its
+                    Datadis data respond with `409 Conflict`.
+
                     Disabling never requires complete data: it succeeds whatever the stored configuration holds,
                     which is how a configuration with missing credentials is switched off.
 

@@ -40,6 +40,10 @@ public class DisableHuaweiConfigController {
                     This endpoint disables the plant's Huawei configuration, changing nothing else: the stored
                     username, password and base URL are not rewritten. The request has no body.
 
+                    A disabled configuration switches off every Huawei-related service of the plant: the scheduled
+                    syncs and aggregation jobs skip the plant, and the manual sync endpoints respond with
+                    `409 Conflict`. Disable it for plants that use a different inverter vendor (e.g. Greenheiss).
+
                     Disabling never requires complete data: it succeeds whatever the stored configuration holds,
                     which is how a configuration with missing credentials is switched off.
 
