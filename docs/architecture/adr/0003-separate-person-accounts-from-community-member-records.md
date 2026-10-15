@@ -95,7 +95,7 @@ The goal is that the platform admin never sees members' personal data, and that 
 
 The change is introduced additively. The remaining steps are tracked in #329:
 - **Existing endpoints stay as they are.** `POST /api/v1/users` and the current CSV import keep creating active memberships until they are retired, and the new flows live on new endpoints.
-- **Responses expose the member record alongside the embedded user,** until the web client reads member records.
+- **The embedded user carries the member record's data** in responses scoped to a community, and in user responses read by a community admin, until the web client reads member records (#396). Its shape is unchanged, so the client keeps working.
 - **The embedded user is then removed** from community-admin responses, together with the platform admin's access to users and memberships.
 
 ## What states mean after this decision
