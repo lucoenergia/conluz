@@ -21,6 +21,8 @@ public interface SendInvitationService {
      *         membership in the community
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException if the membership has
      *         been accepted: the person is already a member, so there is nothing to invite them to
+     * @throws org.lucoenergia.conluz.domain.admin.community.MembershipDisabledException if the pending membership
+     *         is disabled
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyInvitedException if the membership has
      *         already been sent its invitation
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException if the member

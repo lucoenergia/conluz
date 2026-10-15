@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -200,6 +201,28 @@ class ResendInvitationControllerTest extends BaseInvitationTest {
 
         assertThat(tokenCount(personalId)).isZero();
         assertThat(invitedAt(personalId, community.getId())).isNull();
+        verify(emailSender, never()).send(any());
+        assertNoSecretIn(response);
+    }
+
+    @Test
+    @DisplayName("MEM-025 a disabled invited membership is answered 409, its link keeps working, and nothing is "
+            + "issued or sent")
+    void aDisabledMembership_isAnswered409() throws Exception {
+        InvitedMember member = invitedMember();
+        UUID communityId = member.community().getId();
+        MembershipStateTestSupport.markDisabled(membershipJpaRepository, member.userId(), communityId);
+        Map<String, Object> membershipBefore = membershipRow(member.personalId(), communityId);
+        List<Map<String, Object>> tokensBefore = tokenRows(member.personalId());
+        clearInvocations(emailSender);
+
+        String response = resend(member)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_DISABLED"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(membershipRow(member.personalId(), communityId)).isEqualTo(membershipBefore);
+        assertThat(tokenRows(member.personalId())).isEqualTo(tokensBefore);
         verify(emailSender, never()).send(any());
         assertNoSecretIn(response);
     }

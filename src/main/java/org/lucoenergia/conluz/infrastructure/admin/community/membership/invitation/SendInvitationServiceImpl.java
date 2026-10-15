@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitat
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipDisabledException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyInvitedException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
@@ -34,6 +35,10 @@ public class SendInvitationServiceImpl implements SendInvitationService {
         CommunityMembership membership = sending.lockAndRead(communityId, userId);
         if (!membership.isPending()) {
             throw new MembershipAlreadyExistsException(communityId, userId.getId());
+        }
+        // Pending but disabled: checked under the lock, so a membership disabled meanwhile is not sent a link
+        if (!membership.isAwaitingAcceptance()) {
+            throw new MembershipDisabledException(communityId, userId.getId());
         }
         if (membership.getInvitedAt() != null) {
             throw new MembershipAlreadyInvitedException(communityId, userId.getId());

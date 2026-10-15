@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseSendingMemberTest;
 
 import java.sql.Timestamp;
@@ -203,6 +204,28 @@ class SendInvitationControllerTest extends BaseSendingMemberTest {
         assertThat(tokenCount(personalId)).isZero();
         assertThat(membershipRow(personalId, community.getId()).get("invited_at")).isNull();
         verify(emailSender, never()).send(any());
+    }
+
+    @Test
+    @DisplayName("MEM-025 a disabled pending membership is answered 409, and nothing is issued or sent")
+    void aDisabledMembership_isAnswered409() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        Map<String, Object> body = newRecord();
+        String personalId = (String) body.get("personalId");
+        UUID userId = registered(bearer, community.getId(), body);
+        MembershipStateTestSupport.markDisabled(membershipJpaRepository, userId, community.getId());
+        Map<String, Object> membershipBefore = membershipRow(personalId, community.getId());
+
+        String response = invite(bearer, community.getId(), userId)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_DISABLED"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(tokenCount(personalId)).isZero();
+        assertThat(membershipRow(personalId, community.getId())).isEqualTo(membershipBefore);
+        verify(emailSender, never()).send(any());
+        assertNoSecretIn(response);
     }
 
     @Test

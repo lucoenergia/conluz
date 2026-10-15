@@ -2170,6 +2170,7 @@
               "MEMBERSHIP_WITHOUT_CONTACT_EMAIL",
               "MEMBERSHIP_INVITATION_UNAVAILABLE",
               "MEMBERSHIP_NOT_INVITED",
+              "MEMBERSHIP_DISABLED",
               "MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED",
               "MEMBERSHIP_INVITATION_TOKEN_INVALID",
               "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
@@ -7222,7 +7223,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/invitation/resend" : {
       "post" : {
-        "description" : "Emails the member a new invitation link, at the contact email the community's member record has now, and stops the previous link from working, whether it was still valid, had expired or had been revoked. The new link is valid for 7 days, and `invitedAt` becomes the resend's instant. Only an active community admin of the community may resend; a platform admin may not.\n\nA membership is sent at most 4 invitations in any 24 hours, the first included. Over that, it responds 429 with the `MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED` code and the number of seconds until a resend is accepted again in the `Retry-After` header and in `params.retryAfterSeconds`.\n\nA membership never invited responds 409 with the `MEMBERSHIP_NOT_INVITED` code (send its first invitation instead), one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: the previous link and `invitedAt` stay as they were.\n",
+        "description" : "Emails the member a new invitation link, at the contact email the community's member record has now, and stops the previous link from working, whether it was still valid, had expired or had been revoked. The new link is valid for 7 days, and `invitedAt` becomes the resend's instant. Only an active community admin of the community may resend; a platform admin may not.\n\nA membership is sent at most 4 invitations in any 24 hours, the first included. Over that, it responds 429 with the `MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED` code and the number of seconds until a resend is accepted again in the `Retry-After` header and in `params.retryAfterSeconds`.\n\nA membership never invited responds 409 with the `MEMBERSHIP_NOT_INVITED` code (send its first invitation instead), one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, a disabled one responds 409 with the `MEMBERSHIP_DISABLED` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: the previous link and `invitedAt` stay as they were.\n",
         "operationId" : "resendInvitation",
         "parameters" : [
           {
@@ -7355,7 +7356,7 @@
                 }
               }
             },
-            "description" : "The membership has never been invited, or has been accepted."
+            "description" : "The membership has never been invited, has been accepted, or is disabled."
           },
           "429" : {
             "content" : {
@@ -7607,7 +7608,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/invite" : {
       "post" : {
-        "description" : "Emails the member an invitation to accept their pending membership, at the contact email of the community's member record, never the account's email. The link is valid for 7 days. Only an active community admin of the community may invite; a platform admin may not.\n\nThis sends the first invitation only; every later send goes through `resendInvitation`. A membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: `invitedAt` stays null and the same request can be repeated once sending works.\n",
+        "description" : "Emails the member an invitation to accept their pending membership, at the contact email of the community's member record, never the account's email. The link is valid for 7 days. Only an active community admin of the community may invite; a platform admin may not.\n\nThis sends the first invitation only; every later send goes through `resendInvitation`. A membership that has already been invited responds 409 with the `MEMBERSHIP_ALREADY_INVITED` code, one that has been accepted responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, a disabled one responds 409 with the `MEMBERSHIP_DISABLED` code, and a member record without a contact email responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded: `invitedAt` stays null and the same request can be repeated once sending works.\n",
         "operationId" : "sendInvitation",
         "parameters" : [
           {
@@ -7740,7 +7741,7 @@
                 }
               }
             },
-            "description" : "The membership has already been invited, or has been accepted."
+            "description" : "The membership has already been invited, has been accepted, or is disabled."
           },
           "500" : {
             "content" : {
