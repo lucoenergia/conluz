@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `updateMembershipRole`, `createUser`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `updateMembershipRole`, `createUser`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #393 |
+| **Last reviewed against code** | #394 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how the existing creation paths and member registration fill the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, and which memberships grant access; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, and which memberships grant access; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -28,6 +28,7 @@ lazily, as issues touch it.
 | Existing creation path | Adding a user to a community (`createMembership`), creating a user in a community (`createUser` with a community) and importing users into a community (`createUsersWithFile`). |
 | Member registration | A community admin registering a member by personal ID and member record (`registerMember`). It is not an existing creation path. |
 | Contact email | The email address in a member record. Distinct from the account's email. |
+| Usable invitation token | A valid `INVITATION` token (OTT-008) whose membership is still pending and whose account is enabled. Whether the membership is enabled does not matter (MEM-018). |
 | Awaiting acceptance | A membership that is pending and enabled: one a community still wants the member to accept. |
 | Invitation link | The `INVITATION` token sent to a member, and the link that carries it. Its expiry is that of the membership's valid `INVITATION` token (OTT-002). |
 
@@ -229,6 +230,84 @@ lazily, as issues touch it.
 - **Rationale:** A community admin decides from it whether a resend is needed. One query keeps the roster's cost
   independent of its size.
 - **Source:** #393
+
+### MEM-014 — Inspecting an invitation tells the community and whether the person must log in, and writes nothing
+
+- **Status:** Active
+- **Rule:** Anyone holding a usable invitation token MAY inspect it without authentication (`inspectInvitation`).
+  The answer MUST be 200 with the membership's community (id and name) and `loginRequired`: true when the account
+  has a password, false when it has none. Inspecting MUST NOT use up the token and MUST NOT write anything.
+- **Rationale:** The acceptance screen must know, before asking anything, whether to ask for a first password or
+  to send the person to log in (ADR-0003 §6). Only the holder of the link learns the community and the account's
+  password state; the token is the only credential.
+- **Source:** #394, ADR-0003 §6
+
+### MEM-015 — Every unusable invitation token is answered the same
+
+- **Status:** Active
+- **Rule:** On `inspectInvitation`, `acceptInvitation` and `acceptInvitationAsCurrentUser`, a token that is not a
+  usable invitation token — unknown, malformed, expired, used or revoked; of a membership that is no longer
+  pending; of a disabled account; or, on `acceptInvitationAsCurrentUser`, of another account's membership — MUST be
+  answered 400 `MEMBERSHIP_INVITATION_TOKEN_INVALID`, identically in every case, and MUST change nothing. Each such
+  answer MUST count as one failure against the client address (#332) and MUST be logged as one warning with the
+  client address only. Over the address's limit, the three endpoints MUST answer 429 with `Retry-After` before the
+  token is looked at.
+- **Rationale:** The reason a link is unusable must not be learnt by trying tokens, and guessing tokens must be
+  slowed down like guessing passwords (ADR-0002 §6). A token of someone else's membership proves nothing about
+  the caller.
+- **Source:** #394, ADR-0002 §6, ADR-0003 §6
+
+### MEM-016 — Accepting an invitation without logging in sets the account's first password
+
+- **Status:** Active
+- **Rule:** `acceptInvitation` takes a token and a new password, without authentication. With a usable invitation
+  token, in this order:
+  1. if the account has a password, it MUST answer 409 `MEMBERSHIP_INVITATION_LOGIN_REQUIRED`, without using up
+     the token or touching the password;
+  2. a new password that breaks the password policy (#330) MUST be refused as on a password change, without using
+     up the token;
+  3. otherwise it MUST use up the token, set the password (clearing the "must change password" flag, with the
+     change instant from the clock session tokens are compared with), set the account's email to the member
+     record's contact email when the account has no email and the record has one, mark the membership accepted,
+     and answer 204 with no body and no session. Neither refusal counts against the client address.
+- **Rationale:** An account without a password proves the person by choosing its first password through the link
+  sent to the member record's contact email (ADR-0003 §6, §7). An account with a password proves the person by
+  logging in, and the link never sets or changes an existing password. The policy is checked before the token is
+  used up so that a rejected password does not cost the link (ADR-0002 §6). The contact email becomes the
+  account's so that the person can recover the password they just chose.
+- **Source:** #394, ADR-0002 §6, ADR-0003 §6 and §7
+
+### MEM-017 — Accepting an invitation as the logged-in user accepts only the caller's own membership
+
+- **Status:** Active
+- **Rule:** `acceptInvitationAsCurrentUser` takes a token from an authenticated caller. With a usable invitation
+  token of one of the caller's own memberships, it MUST use up the token, mark the membership accepted, and answer
+  204. It MUST NOT read or change the password. A caller who must change their password MUST be refused with 403
+  `USER_PASSWORD_CHANGE_REQUIRED` before the token is looked at, so the link stays usable once the password has
+  been changed.
+- **Rationale:** Logging in proves the person; the token then only says which membership to accept (ADR-0003 §6).
+- **Source:** #394, ADR-0003 §6
+
+### MEM-018 — A disabled membership can be accepted, and still grants nothing
+
+- **Status:** Active
+- **Rule:** Both acceptance endpoints MUST accept a pending membership whether or not it is enabled. A disabled
+  membership, once accepted, MUST still grant no access until it is enabled (MEM-004).
+- **Rationale:** Pending and disabled are independent (ADR-0003 §2, "What states mean"): accepting records that
+  the person took up the invitation, and enabling is the community's separate decision.
+- **Source:** #394, ADR-0003 §2
+
+### MEM-019 — Accepting locks the user, then the membership, then the token, and is logged
+
+- **Status:** Active
+- **Rule:** An acceptance MUST find the token's membership without locking, lock the user row, then the membership
+  row, read both again under the locks, and only then use up the token, continuing only if it belongs to the same
+  membership (OTT-004). The acceptance instant MUST come from the application clock. Each acceptance MUST be
+  logged as one line with the user, the community and the endpoint, and no log line, response or exception MUST
+  contain the token, its hash, a password or an email address.
+- **Rationale:** Resending, revoking and issuing take the same locks in the same order, so an acceptance
+  concurrent with any of them cannot deadlock, and its checks see the state the write will change.
+- **Source:** #394, ADR-0003 §4, OTT-004
 
 ## Impossible states
 
