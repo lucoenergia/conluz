@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `updateMembershipRole`, `createUser`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `updateMembershipRole`, `createUser`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #394 |
+| **Last reviewed against code** | #395 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how the existing creation paths and member registration fill the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, and which memberships grant access; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, what giving a membership the admin role requires, and which memberships grant access; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -150,8 +150,8 @@ lazily, as issues touch it.
   `<public web URL>/accept-invitation#<token>` with the token only in the fragment. It MUST refuse, issuing and
   sending nothing: an accepted membership with 409 `MEMBERSHIP_ALREADY_EXISTS`; a membership already invited with
   409 `MEMBERSHIP_ALREADY_INVITED`; a member record without a contact email with 400
-  `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`. When the server cannot send it, because the public web URL is not configured
-  or email sending is disabled, it MUST refuse with 503 `MEMBERSHIP_INVITATION_UNAVAILABLE` before locking or
+  `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`; a disabled membership as MEM-025 says. When the server cannot send it, because
+  the public web URL is not configured or email sending is disabled, it MUST refuse with 503 `MEMBERSHIP_INVITATION_UNAVAILABLE` before locking or
   issuing anything, leave the invitation instant empty, and log one warning naming only the email category. It
   MUST log one line with the user and the community, and no email address.
 - **Rationale:** The contact email is the community's own way to reach the member (ADR-0003 §1, §8); the account's
@@ -160,7 +160,7 @@ lazily, as issues touch it.
   resend, limited per membership and day (ADR-0003 §5, MEM-010). Inviting exists only to send the email: an
   invitation recorded but never sent would tell the community admin the member was invited, and leave the
   membership "already invited" with nothing in the member's inbox.
-- **Source:** #392, ADR-0003 §1, §5, §6 and §8, ADR-0002
+- **Source:** #392, #395, ADR-0003 §1, §5, §6 and §8, ADR-0002
 
 ### MEM-010 — Resending an invitation sends a new link, at most 4 sends per membership in 24 hours
 
@@ -171,10 +171,10 @@ lazily, as issues touch it.
   email the member record's current contact email the same text and link as MEM-009. It MUST refuse, issuing and
   sending nothing: an accepted membership with 409 `MEMBERSHIP_ALREADY_EXISTS`; a membership never invited with
   409 `MEMBERSHIP_NOT_INVITED`; a member record without a contact email with 400
-  `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`; and a membership with 4 or more `INVITATION` tokens issued in the last 24
-  hours, whatever their state, with 429 `MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED` and a `Retry-After` header,
-  also in the error's `retryAfterSeconds` parameter, of the whole seconds until the oldest of them is more than 24
-  hours old. The count MUST be taken under the membership's lock. When the server cannot send, it MUST refuse
+  `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`; a disabled membership as MEM-025 says; and a membership with 4 or more
+  `INVITATION` tokens issued in the last 24 hours, whatever their state, with 429
+  `MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED` and a `Retry-After` header, also in the error's `retryAfterSeconds`
+  parameter, of the whole seconds until the oldest of them is more than 24 hours old. The count MUST be taken under the membership's lock. When the server cannot send, it MUST refuse
   exactly as MEM-009 does, before locking or issuing anything. It MUST log one line with the user, the community
   and the outcome, and no email address.
 - **Rationale:** A link expires after 7 days (OTT-002) and an email can be lost after commit, so a member must be
@@ -184,7 +184,7 @@ lazily, as issues touch it.
   counting only once it is more than 24 hours old, so a wait of a whole number of seconds is followed by one more.
   The current contact email is used because correcting a wrong address is a reason to resend. A membership never
   invited is invited with `sendInvitation`, which records the first send.
-- **Source:** #393, ADR-0003 §5
+- **Source:** #393, #395, ADR-0003 §5
 
 ### MEM-011 — Revoking an invitation withdraws its link and keeps the membership
 
@@ -308,6 +308,87 @@ lazily, as issues touch it.
 - **Rationale:** Resending, revoking and issuing take the same locks in the same order, so an acceptance
   concurrent with any of them cannot deadlock, and its checks see the state the write will change.
 - **Source:** #394, ADR-0003 §4, OTT-004
+
+### MEM-020 — Inviting a community admin registers and invites in one operation
+
+- **Status:** Active
+- **Rule:** Only a platform admin MAY invite a community admin; a community admin MUST NOT, of this community or any
+  other. The invitation takes a personal ID, a full name, a contact email, all required, and an optional phone. It
+  MUST first check that the server can send, and refuse with 503 `MEMBERSHIP_INVITATION_UNAVAILABLE` before
+  creating anything when it cannot, as MEM-009 does. It MUST then, in one transaction, register the person as
+  MEM-007 and MEM-008 say, with the role `COMMUNITY_ADMIN`, the platform admin as the inviter and the record as
+  entered (no member number, no address), and send the invitation as MEM-009 does. A person who already has a
+  membership in the community, whatever its role or state, MUST be refused with 409 `MEMBERSHIP_ALREADY_EXISTS`,
+  creating and sending nothing. The answer and the log MUST be the same whether or not the account existed. It MUST
+  log one line with the user and the community, and no email address or unmasked personal ID.
+- **Rationale:** ADR-0003 §3 gives members and community admins one flow, so the same registration creates both.
+  A platform admin appoints a community's first admin, who has no one to send them the invitation later, so the
+  invitation is part of the operation, and refusing before registering keeps an admin from being created who
+  cannot be told. An admin is identified and contacted through the contact email (ADR-0003 §8), so it is required.
+- **Source:** #395, ADR-0003 §3 and §8
+
+### MEM-021 — The admin list shows each admin membership's record and the personal ID, and nothing else
+
+- **Status:** Active
+- **Rule:** Only a platform admin MAY list a community's admins. The list MUST hold every membership of the
+  community with the role `COMMUNITY_ADMIN`, in every state, and no other. Each entry MUST show the full name,
+  contact email and phone from that membership's member record, the personal ID from the account, whether the
+  membership is accepted and enabled, when it was last invited and when its invitation link expires. It MUST NOT
+  show anything else from the account, nor anything from any other membership of the same person. The link
+  expiries MUST be read in one query for the whole list.
+- **Rationale:** ADR-0003 §3 lets the platform admin identify and contact every community's admins, and its
+  obligations limit that to admin memberships: a person who administers two communities appears in each with that
+  community's record, and their membership elsewhere stays the other community's business. Reading the expiries
+  per entry would cost a query per admin.
+- **Source:** #395, ADR-0003 §3
+
+### MEM-022 — The platform admin resends and revokes an admin's invitation with the member rules
+
+- **Status:** Active
+- **Rule:** Only a platform admin MAY resend or revoke the invitation of a community admin's membership through the
+  admin endpoints. Resending MUST follow MEM-010 and revoking MUST follow MEM-011, with their refusals, limit and
+  codes. A membership without the role `COMMUNITY_ADMIN` MUST be answered 404, as one that does not exist. Each
+  MUST log one line with the user, the community and the outcome, and no email address.
+- **Rationale:** An admin's invitation is a member's invitation sent by someone else, so the same rules apply. The
+  admin endpoints are scoped to admin memberships, so they reveal nothing about the community's members.
+- **Source:** #395, ADR-0003 §3 and §5
+
+### MEM-023 — Enabling and disabling an admin membership writes only that membership
+
+- **Status:** Active
+- **Rule:** Only a platform admin MAY enable or disable a community admin's membership. It MUST write only that
+  membership's `enabled` flag, never the account, and MUST take the user, then the membership lock. Setting the
+  state the membership already has MUST change nothing and succeed. A membership without the role
+  `COMMUNITY_ADMIN` MUST be answered 404, as one that does not exist. Once disabled, the membership MUST grant
+  nothing from the admin's next request (MEM-004), while their other memberships keep granting what they did. It
+  MUST log one line with the user, the community and the operation.
+- **Rationale:** Suspending an admin of one community must not lock them out of the others (ADR-0003 §2); the
+  account's flag would. Memberships are read again on every request (#390), so no session needs revoking.
+  Disabling a member's membership is out of scope (#395).
+- **Source:** #395, ADR-0003 §2 and §3
+
+### MEM-024 — Giving a membership the admin role requires a contact email
+
+- **Status:** Active
+- **Rule:** Changing a membership's role to `COMMUNITY_ADMIN` through `updateMembershipRole` MUST be refused with
+  400 `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`, changing nothing, when its member record has no contact email. A
+  membership that already has the role is not refused.
+- **Rationale:** ADR-0003 §8 makes the contact email required for admins: it is how the platform admin contacts
+  them (MEM-021). An existing admin without one is left as it is, so the rule does not refuse a request that
+  changes nothing.
+- **Source:** #395, ADR-0003 §8
+
+### MEM-025 — A disabled membership is not sent an invitation
+
+- **Status:** Active
+- **Rule:** Sending (MEM-009) or resending (MEM-010) the invitation of a pending membership that is disabled MUST be
+  refused with 409 `MEMBERSHIP_DISABLED`, issuing and sending nothing, whatever the membership's role. The state
+  MUST be read under the membership's lock. Revoking its invitation MUST still work (MEM-011). Bulk sending already
+  skips it (MEM-012).
+- **Rationale:** A disabled membership grants nothing (MEM-004), so an invitation would ask someone to join a
+  community they cannot use. Reading the state under the lock keeps a membership disabled meanwhile from being sent
+  a link. Withdrawing a link sends nothing, so it stays available.
+- **Source:** #395, ADR-0003 §2
 
 ## Impossible states
 
