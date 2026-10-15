@@ -84,9 +84,13 @@ Configure them through the existing endpoints, which handle community and plant 
 
 | Integration | Endpoint | Body | Required |
 |---|---|---|---|
-| Datadis | `PUT /api/v1/communities/{communityId}/config/datadis` | `username`, `password`, `baseUrl`, `enabled` | Community admin |
-| Huawei  | `PUT /api/v1/plants/{plantId}/production/huawei/config` | `username`, `password`, `baseUrl`, `enabled` | Community admin (of the plant's community) |
-| Shelly  | `PUT /api/v1/communities/{communityId}/config/shelly`   | `enabled`                                     | Community admin |
+| Datadis | `PUT /api/v1/communities/{communityId}/config/datadis` | `username`, `password`, `baseUrl` | Community admin |
+| Huawei  | `PUT /api/v1/plants/{plantId}/production/huawei/config` | `username`, `password`, `baseUrl` | Community admin (of the plant's community) |
+| Shelly  | `PUT /api/v1/communities/{communityId}/config/shelly`   | `enabled`                         | Community admin |
+
+A Datadis or Huawei configuration starts disabled, and its `PUT` never changes that. Enable it
+afterwards with `POST /api/v1/communities/{communityId}/config/datadis/enable` or
+`POST /api/v1/plants/{plantId}/production/huawei/config/enable`.
 
 Prefer the endpoints over raw SQL. `shelly_config` in particular has no unique constraint on
 `community_id` and its `community_id` is `NOT NULL` with a foreign key, so a hand-written `INSERT`
