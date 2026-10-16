@@ -76,6 +76,15 @@ class MembershipAccessGuardImpl implements MembershipAccessGuard {
     }
 
     @Override
+    public boolean canEditMemberRecord(UUID communityId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        return resolve(policy.canEditMemberRecords(user, communityId), communityId);
+    }
+
+    @Override
     public boolean canManageMembershipInvestment(UUID communityId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {

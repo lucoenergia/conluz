@@ -88,6 +88,9 @@ final class CapabilityInventory {
         report("canChangeMemberState",
                 capability(MEMBERSHIP, "canEnable"),
                 capability(MEMBERSHIP, "canDisable"));
+        // Any membership of the community may be edited, so the decision is the community's; it is reported on each
+        // membership, where a client offers the edit.
+        report("canEditMemberRecord", capability(MEMBERSHIP, "canEditRecord"));
 
         // --- supply ---
         // Also the plant's canReadSupply: PlantResponse.supply is a reference carrying no owner, so

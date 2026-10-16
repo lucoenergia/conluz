@@ -243,6 +243,7 @@ is the caller — nobody may act on themselves that way, admins included.
 | `canInvite` | `canInviteMembers(communityId)` (invite, resend and revoke the invitation) |
 | `canEnable` | `canChangeMemberState(communityId, userId)` |
 | `canDisable` | `canChangeMemberState(communityId, userId)` |
+| `canEditRecord` | `canEditMemberRecord(communityId)` |
 
 A platform admin may administer a roster without being able to touch its members' money: the
 investment and payback rules have no platform-admin branch, and `canManageMemberships` does.
@@ -254,6 +255,13 @@ reports both `false` — the platform admin suspends admins through `/communitie
 (`canManageAdmins`). Both stay `true` whatever the membership's current state; whether it is enabled
 right now is `MembershipResponse.enabled`. They are separate fields, like the user's and the
 community's `canEnable`/`canDisable`, because they are separate controls to offer.
+
+`canEditRecord` is the way a community admin changes a member's data, since they may not edit the
+account (#416, MEM-028). Unlike `canEnable`/`canDisable` it does not depend on the membership in
+hand: any membership of the community may be edited, an admin's and the caller's own included, so
+it is decided on the community alone — only an active admin of it, with no platform-admin bypass —
+and assembled with no query. It stays `true` whatever the record holds; that an admin's record must
+keep a contact email is answered by the request (400 `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`).
 
 ## What is not reported
 
