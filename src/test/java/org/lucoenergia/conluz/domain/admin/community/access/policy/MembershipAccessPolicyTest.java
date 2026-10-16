@@ -1,10 +1,15 @@
 package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -145,6 +150,101 @@ class MembershipAccessPolicyTest {
     void canInviteMembers_isNotVisible_forAnAdminOfAnotherCommunity() {
         assertEquals(AccessDecision.NOT_VISIBLE,
                 policy.canInviteMembers(PolicyFixtures.adminOf(PolicyFixtures.community()), UUID.randomUUID()));
+    }
+
+    // --- canChangeMemberState ---
+
+    @Test
+    @DisplayName("MEM-027 an active community admin may enable and disable a member's membership")
+    void canChangeMemberState_allows_anActiveCommunityAdminOnAMembersMembership() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.ALLOWED, policy.canChangeMemberState(PolicyFixtures.adminOf(community),
+                community.getId(), membershipIn(community, CommunityRole.COMMUNITY_MEMBER)));
+    }
+
+    @Test
+    @DisplayName("MEM-027 a pending member's membership may be enabled and disabled too")
+    void canChangeMemberState_allows_anActiveCommunityAdminOnAPendingMembersMembership() {
+        Community community = PolicyFixtures.community();
+        CommunityMembership pending = PolicyFixtures.pending(
+                PolicyFixtures.membershipIn(community, CommunityRole.COMMUNITY_MEMBER, true));
+        assertEquals(AccessDecision.ALLOWED, policy.canChangeMemberState(PolicyFixtures.adminOf(community),
+                community.getId(), () -> pending));
+    }
+
+    @Test
+    @DisplayName("MEM-027 a disabled member's membership may be enabled")
+    void canChangeMemberState_allows_anActiveCommunityAdminOnADisabledMembersMembership() {
+        Community community = PolicyFixtures.community();
+        CommunityMembership disabled = PolicyFixtures.membershipIn(community, CommunityRole.COMMUNITY_MEMBER, false);
+        assertEquals(AccessDecision.ALLOWED, policy.canChangeMemberState(PolicyFixtures.adminOf(community),
+                community.getId(), () -> disabled));
+    }
+
+    @Test
+    @DisplayName("MEM-027 an admin's membership is not visible, as one that does not exist")
+    void canChangeMemberState_isNotVisible_onAnAdminsMembership() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE, policy.canChangeMemberState(PolicyFixtures.adminOf(community),
+                community.getId(), membershipIn(community, CommunityRole.COMMUNITY_ADMIN)));
+    }
+
+    @Test
+    @DisplayName("MEM-027 a user without a membership in the community is not visible")
+    void canChangeMemberState_isNotVisible_withoutAMembership() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE, policy.canChangeMemberState(PolicyFixtures.adminOf(community),
+                community.getId(), () -> null));
+    }
+
+    @Test
+    @DisplayName("MEM-027 a platform admin who is not an admin of the community is forbidden")
+    void canChangeMemberState_forbids_aPlatformAdminWhoIsNotACommunityAdminThere() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN, policy.canChangeMemberState(PolicyFixtures.platformAdmin(),
+                community.getId(), membershipIn(community, CommunityRole.COMMUNITY_MEMBER)));
+        assertEquals(AccessDecision.FORBIDDEN, policy.canChangeMemberState(PolicyFixtures.platformAdminMemberOf(community),
+                community.getId(), membershipIn(community, CommunityRole.COMMUNITY_MEMBER)));
+    }
+
+    @Test
+    @DisplayName("MEM-027 a plain member is forbidden")
+    void canChangeMemberState_forbids_aPlainMember() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN, policy.canChangeMemberState(PolicyFixtures.memberOf(community),
+                community.getId(), membershipIn(community, CommunityRole.COMMUNITY_MEMBER)));
+    }
+
+    @Test
+    @DisplayName("MEM-027 a pending admin, a disabled admin and an admin of another community cannot see the community")
+    void canChangeMemberState_isNotVisible_forAnAdminWhoCannotSeeTheCommunity() {
+        Community community = PolicyFixtures.community();
+        for (User caller : new User[]{PolicyFixtures.pendingAdminOf(community),
+                PolicyFixtures.disabledAdminOf(community), PolicyFixtures.adminOf(PolicyFixtures.community())}) {
+            assertEquals(AccessDecision.NOT_VISIBLE, policy.canChangeMemberState(caller, community.getId(),
+                    membershipIn(community, CommunityRole.COMMUNITY_MEMBER)));
+        }
+    }
+
+    @Test
+    void canChangeMemberState_doesNotLoadTheMembership_forACallerRefusedOnTheCommunity() {
+        Community community = PolicyFixtures.community();
+        AtomicInteger loads = new AtomicInteger();
+        Supplier<CommunityMembership> counted = () -> {
+            loads.incrementAndGet();
+            return PolicyFixtures.membershipIn(community, CommunityRole.COMMUNITY_MEMBER, true);
+        };
+
+        policy.canChangeMemberState(PolicyFixtures.platformAdmin(), community.getId(), counted);
+        policy.canChangeMemberState(PolicyFixtures.memberOf(community), community.getId(), counted);
+        policy.canChangeMemberState(PolicyFixtures.stranger(), community.getId(), counted);
+
+        assertEquals(0, loads.get());
+    }
+
+    private static Supplier<CommunityMembership> membershipIn(Community community, CommunityRole role) {
+        CommunityMembership membership = PolicyFixtures.membershipIn(community, role, true);
+        return () -> membership;
     }
 
         // --- canManageInvestment ---

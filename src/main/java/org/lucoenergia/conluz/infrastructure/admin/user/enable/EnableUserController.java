@@ -8,7 +8,7 @@ import org.lucoenergia.conluz.domain.admin.user.enable.EnableUserService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenAccountChangeErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,7 +36,9 @@ public class EnableUserController {
                     This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path.
                     
                     Proper authentication, through an authentication token, is required for secure access.
-                    **Required: Platform Admin or Community Admin. You cannot enable your own account.**
+                    **Required: Platform Admin. You cannot enable your own account.**
+                    
+                    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To suspend a member in one community, enable or disable their membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/enable` or `/disable`).
                     
                     Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled.
                     
@@ -50,10 +52,10 @@ public class EnableUserController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User disabled successfully"
+                    description = "User enabled successfully"
             )
     })
-    @ForbiddenErrorResponse
+    @ForbiddenAccountChangeErrorResponse
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse

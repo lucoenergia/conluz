@@ -1,8 +1,11 @@
 package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Access rules for the memberships of a community, and for the personal financial data hanging off
@@ -47,6 +50,45 @@ public class MembershipAccessPolicy {
      */
     public AccessDecision canInviteMembers(User caller, UUID communityId) {
         return canRegisterMembers(caller, communityId);
+    }
+
+    /**
+     * Enabling and disabling memberships of a community, as far as the community alone decides it: only its active
+     * community admins, with no platform-admin bypass. Disabling a member is a decision of the community, taken on
+     * the membership, not on the account the person shares with their other communities (#415). A member can see the
+     * community, so they are forbidden rather than not-found.
+     *
+     * <p>The membership itself is decided by {@link #canChangeMemberState}, which starts here.</p>
+     */
+    public AccessDecision canChangeMemberStates(User caller, UUID communityId) {
+        if (!CallerMemberships.canSeeCommunity(caller, communityId)) {
+            return AccessDecision.NOT_VISIBLE;
+        }
+        return CallerMemberships.hasCommunityAdminRoleIn(caller, communityId)
+                ? AccessDecision.ALLOWED
+                : AccessDecision.FORBIDDEN;
+    }
+
+    /**
+     * Enabling or disabling one membership: {@link #canChangeMemberStates} for its community, and then only a
+     * membership with the {@code COMMUNITY_MEMBER} role, pending or accepted, enabled or not. A membership with any
+     * other role is not visible, as one that does not exist: admin memberships are the platform admin's to suspend
+     * (#395).
+     *
+     * <p>The target is the user's membership of {@code communityId}, {@code null} when they have none. It arrives as
+     * a {@link Supplier} so that a caller refused on the community never pays for loading it; a capability assembler
+     * passes the membership it already holds.</p>
+     */
+    public AccessDecision canChangeMemberState(User caller, UUID communityId,
+                                               Supplier<CommunityMembership> targetMembership) {
+        AccessDecision community = canChangeMemberStates(caller, communityId);
+        if (community != AccessDecision.ALLOWED) {
+            return community;
+        }
+        CommunityMembership target = targetMembership.get();
+        return target != null && target.getRole() == CommunityRole.COMMUNITY_MEMBER
+                ? AccessDecision.ALLOWED
+                : AccessDecision.NOT_VISIBLE;
     }
 
     /**

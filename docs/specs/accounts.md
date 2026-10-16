@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin` |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `updateUser`, `enableUser`, `disableUser`, `deleteUser` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #395 |
+| **Last reviewed against code** | #415 |
 
 ## Purpose
 
@@ -105,6 +105,23 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   an email the person could not recover the password they just chose. Whoever accepts first takes the account
   over, an accepted risk recorded in ADR-0003.
 - **Source:** #394, ADR-0003 §6 and §7
+
+### ACC-008 — A community admin cannot change another user's account
+
+- **Status:** Active
+- **Rule:** A caller who is not a platform admin MUST be refused with 403 when they edit (`updateUser`), enable
+  (`enableUser`), disable (`disableUser`) or delete (`deleteUser`) the account of another user they can see,
+  whatever their role in that user's communities, and nothing MUST be written. A user they cannot see MUST keep
+  being answered 404. A community admin MAY still edit their own account through `updateUser`, and MUST still be
+  refused enabling, disabling or deleting it. The platform admin's access to the four operations, and the refusal
+  to disable or delete the last enabled platform admin, MUST NOT change. A member's data in a community is
+  changed on their member record (#416); a member is suspended in a community by disabling their membership
+  (MEM-027).
+- **Rationale:** An account belongs to the person, and the same account can belong to several communities
+  (ADR-0003 §1). Its email receives the password recovery link, so a community admin who could change it could
+  take the account over, together with its access to every other community. Disabling or deleting it would
+  remove the person from every community, not only the admin's.
+- **Source:** #415, ADR-0003 §1
 
 ## Impossible states
 

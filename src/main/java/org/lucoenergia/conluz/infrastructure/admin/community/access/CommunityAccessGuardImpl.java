@@ -40,7 +40,7 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         this.helper = new CommunityAccessGuardHelper(authService, getCommunityRepository);
         this.communityAccessPolicy = policies.community();
         this.supplyAccessGuard = new SupplyAccessGuardImpl(helper, getSupplyRepository, policies.supply());
-        this.membershipAccessGuard = new MembershipAccessGuardImpl(helper, policies.membership());
+        this.membershipAccessGuard = new MembershipAccessGuardImpl(helper, getMembershipsRepository, policies.membership());
         this.userAccessGuard = new UserAccessGuardImpl(helper, getMembershipsRepository, policies.user());
         this.plantAccessGuard = new PlantAccessGuardImpl(helper, getPlantRepository, getSupplyRepository,
                 getSharingAgreementRepository, policies.plant(), policies.sharingAgreement());
@@ -122,6 +122,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canInviteMembers(UUID communityId) {
         return membershipAccessGuard.canInviteMembers(communityId);
+    }
+
+    @Override
+    public boolean canChangeMemberState(UUID communityId, UUID userId) {
+        return membershipAccessGuard.canChangeMemberState(communityId, userId);
     }
 
     @Override

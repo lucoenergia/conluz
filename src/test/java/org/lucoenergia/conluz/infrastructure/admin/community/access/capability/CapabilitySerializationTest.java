@@ -53,7 +53,8 @@ class CapabilitySerializationTest {
                         "canGrantPlatformAdmin", "canRevokePlatformAdmin", "canListSupplies"));
 
         assertKeys(MembershipCapabilitiesResponse.builder().build(),
-                Set.of("canUpdateRole", "canDelete", "canManageInvestment", "canReadPayback", "canInvite"));
+                Set.of("canUpdateRole", "canDelete", "canManageInvestment", "canReadPayback", "canInvite",
+                        "canEnable", "canDisable"));
 
         assertKeys(PartitionCoefficientCapabilitiesResponse.builder().build(),
                 Set.of("canReadSharingAgreement"));

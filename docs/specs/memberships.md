@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `updateMembershipRole`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMembershipRole`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #396 |
+| **Last reviewed against code** | #415 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how the existing creation paths and member registration fill the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, what giving a membership the admin role requires, which memberships grant access, and where responses read member data from; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, what giving a membership the admin role requires, which memberships grant access, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -415,6 +415,23 @@ lazily, as issues touch it.
   with a single membership are copied again from the account once, so that edits made to the account since the
   copy of #388 still show.
 - **Source:** #396, ADR-0003 §1
+
+### MEM-027 — A community admin enables and disables the memberships of their community's members
+
+- **Status:** Active
+- **Rule:** Only an active community admin of the community MAY enable or disable a membership in it; a platform
+  admin who is not one MUST be refused with 403. Only a membership with the role `COMMUNITY_MEMBER`, pending or
+  accepted, MAY be enabled or disabled this way: a membership with any other role MUST be answered 404, as one
+  that does not exist, and is managed by the platform admin (MEM-023). It MUST write only that membership's
+  `enabled` flag, never the account, and MUST take the user, then the membership lock. Setting the state the
+  membership already has MUST change nothing and succeed. Once disabled, the membership MUST grant nothing from
+  the member's next request (MEM-004), while their other memberships keep granting what they did, and it is not
+  sent an invitation (MEM-025). It MUST log one line with the user, the community and the operation.
+- **Rationale:** A community admin cannot enable or disable the account, which is shared by every community the
+  person belongs to (ACC-008); suspending a member is a decision of one community, and its effect must stay in
+  it (ADR-0003 §2). Admin memberships stay with the platform admin, who appoints and suspends admins (#395).
+  Memberships are read again on every request (#390), so no session needs revoking.
+- **Source:** #415, #395, ADR-0003 §1 and §2
 
 ## Impossible states
 

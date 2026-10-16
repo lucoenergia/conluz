@@ -13,7 +13,9 @@ import java.util.UUID;
  *
  * <p>{@code canUpdateRole} and {@code canDelete} share the guard {@code canManageMemberships}, which
  * is community-wide rather than per-membership; they are reported separately because they are
- * separate things to offer a user, and because the rule behind them may not stay shared.</p>
+ * separate things to offer a user, and because the rule behind them may not stay shared. {@code canEnable} and
+ * {@code canDisable} share {@code canChangeMemberState} for the same reason, which is decided on the membership in
+ * hand, its role included.</p>
  */
 @Component
 public class MembershipCapabilitiesAssembler {
@@ -29,6 +31,8 @@ public class MembershipCapabilitiesAssembler {
         UUID userId = membership.getUser() != null ? membership.getUser().getId() : null;
         boolean canManageMemberships = policies.membership()
                 .canManageMemberships(caller, communityId).isAllowed();
+        boolean canChangeState = policies.membership()
+                .canChangeMemberState(caller, communityId, () -> membership).isAllowed();
 
         return MembershipCapabilitiesResponse.builder()
                 .withCanUpdateRole(canManageMemberships)
@@ -36,6 +40,8 @@ public class MembershipCapabilitiesAssembler {
                 .withCanManageInvestment(policies.membership().canManageInvestment(caller, communityId).isAllowed())
                 .withCanReadPayback(policies.membership().canReadMembershipPrivateData(caller, communityId, userId).isAllowed())
                 .withCanInvite(policies.membership().canInviteMembers(caller, communityId).isAllowed())
+                .withCanEnable(canChangeState)
+                .withCanDisable(canChangeState)
                 .build();
     }
 }

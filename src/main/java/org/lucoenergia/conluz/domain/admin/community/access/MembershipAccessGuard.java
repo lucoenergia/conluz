@@ -28,6 +28,22 @@ public interface MembershipAccessGuard {
     boolean canInviteMembers(UUID communityId);
 
     /**
+     * Whether the current user may enable or disable the membership of {@code userId} in this community. Only an
+     * active {@code COMMUNITY_ADMIN} of {@code communityId} qualifies, as for {@link #canRegisterMembers(UUID)}, and
+     * only on a membership with the {@code COMMUNITY_MEMBER} role.
+     *
+     * <ul>
+     *     <li>anonymous → {@code false} (→ 401),</li>
+     *     <li>a caller who cannot see the community → throws {@code CommunityNotFoundException} (→ 404),</li>
+     *     <li>a caller who can see it but is not one of its active community admins, a platform admin
+     *         included → {@code false} (→ 403),</li>
+     *     <li>one of its admins, when the user has no membership there or it has another role → throws
+     *         {@code MembershipNotFoundException} (→ 404).</li>
+     * </ul>
+     */
+    boolean canChangeMemberState(UUID communityId, UUID userId);
+
+    /**
      * Whether the current user may set or clear the investment recorded on a membership of this
      * community. Stricter than {@link #canManageMemberships(UUID)}, which lets any platform admin
      * through: an investment is the member's own money, and administering the platform is not the

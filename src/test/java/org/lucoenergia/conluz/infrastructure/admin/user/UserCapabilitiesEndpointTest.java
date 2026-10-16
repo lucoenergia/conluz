@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -96,6 +97,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-008 a community admin is offered reading a member, but no change to their account")
     void theDetailEndpointReportsWhatAnAdminMayDoToAMember() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         User member = persistMemberOf(community);
@@ -104,11 +106,42 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
-                .andExpect(jsonPath("$.capabilities.canEdit").value(true))
-                .andExpect(jsonPath("$.capabilities.canDelete").value(true))
+                .andExpect(jsonPath("$.capabilities.canEdit").value(false))
+                .andExpect(jsonPath("$.capabilities.canDelete").value(false))
+                .andExpect(jsonPath("$.capabilities.canEnable").value(false))
+                .andExpect(jsonPath("$.capabilities.canDisable").value(false))
                 .andExpect(jsonPath("$.capabilities.canListSupplies").value(true))
                 // Granting platform admin is not a community admin's to give.
                 .andExpect(jsonPath("$.capabilities.canGrantPlatformAdmin").value(false));
+    }
+
+    @Test
+    @DisplayName("ACC-008 the platform admin is still offered every change to a member's account")
+    void thePlatformAdminIsOfferedEveryChangeToAMembersAccount() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User member = persistMemberOf(community);
+
+        mockMvc.perform(get("/api/v1/users/{userId}", member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.capabilities.canEdit").value(true))
+                .andExpect(jsonPath("$.capabilities.canDelete").value(true))
+                .andExpect(jsonPath("$.capabilities.canEnable").value(true))
+                .andExpect(jsonPath("$.capabilities.canDisable").value(true));
+    }
+
+    @Test
+    @DisplayName("ACC-008 a community admin is still offered editing their own account, and nothing else on it")
+    void aCommunityAdminIsOfferedEditingTheirOwnAccount() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+
+        mockMvc.perform(get("/api/v1/users/current")
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.capabilities.canEdit").value(true))
+                .andExpect(jsonPath("$.capabilities.canDelete").value(false))
+                .andExpect(jsonPath("$.capabilities.canEnable").value(false))
+                .andExpect(jsonPath("$.capabilities.canDisable").value(false));
     }
 
     @Test
@@ -139,7 +172,8 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.capabilities.canRead").value(true))
-                .andExpect(jsonPath("$.user.capabilities.canEdit").value(true))
+                // A community admin may not change the owner's account (#415).
+                .andExpect(jsonPath("$.user.capabilities.canEdit").value(false))
                 .andExpect(jsonPath("$.user.memberships").isEmpty());
     }
 

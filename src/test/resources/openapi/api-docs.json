@@ -1224,6 +1224,14 @@
             "description" : "Whether the caller may remove this membership from the community.",
             "type" : "boolean"
           },
+          "canDisable" : {
+            "description" : "Whether the caller may disable this membership (POST /api/v1/communities/{communityId}/memberships/{userId}/disable). Only an active admin of the community, and only on a membership with the COMMUNITY_MEMBER role. Whether it is enabled right now is the membership's enabled field.",
+            "type" : "boolean"
+          },
+          "canEnable" : {
+            "description" : "Whether the caller may enable this membership (POST /api/v1/communities/{communityId}/memberships/{userId}/enable). Only an active admin of the community, and only on a membership with the COMMUNITY_MEMBER role. Whether it is disabled right now is the membership's enabled field.",
+            "type" : "boolean"
+          },
           "canInvite" : {
             "description" : "Whether the caller may invite this member to accept the membership, and resend or revoke its invitation. Whether one can be sent right now depends on the membership's state, its contact email and how many invitations it has been sent in the last 24 hours.",
             "type" : "boolean"
@@ -1243,6 +1251,8 @@
         },
         "required" : [
           "canDelete",
+          "canDisable",
+          "canEnable",
           "canInvite",
           "canManageInvestment",
           "canReadPayback",
@@ -3521,19 +3531,19 @@
         "description" : "What the caller may do with this user.",
         "properties" : {
           "canDelete" : {
-            "description" : "Whether the caller may delete this user. Always false when the user is the caller: nobody may delete themselves, admins included.",
+            "description" : "Whether the caller may delete this user. Always false when the user is the caller: nobody may delete themselves, admins included. False for a community admin: only the platform admin may delete another user's account.",
             "type" : "boolean"
           },
           "canDisable" : {
-            "description" : "Whether the caller may disable this user. Always false when the user is the caller.",
+            "description" : "Whether the caller may disable this user. Always false when the user is the caller. False for a community admin: only the platform admin may disable another user's account; a community admin disables the membership instead.",
             "type" : "boolean"
           },
           "canEdit" : {
-            "description" : "Whether the caller may edit this user administratively (PUT /api/v1/users/{userId}). This is false for an ordinary member looking at their own record: changing one's own contact details goes through PUT /api/v1/users/profile, which any authenticated caller may use.",
+            "description" : "Whether the caller may edit this user administratively (PUT /api/v1/users/{userId}). This is false for an ordinary member looking at their own record: changing one's own contact details goes through PUT /api/v1/users/profile, which any authenticated caller may use. False for a community admin on any other user: only the platform admin may change another user's account.",
             "type" : "boolean"
           },
           "canEnable" : {
-            "description" : "Whether the caller may enable this user. Always false when the user is the caller.",
+            "description" : "Whether the caller may enable this user. Always false when the user is the caller. False for a community admin: only the platform admin may enable another user's account.",
             "type" : "boolean"
           },
           "canGrantPlatformAdmin" : {
@@ -7625,6 +7635,264 @@
           }
         ],
         "summary" : "Retrieves the monthly consumption of every supply of a membership, added up per month.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/{userId}/disable" : {
+      "post" : {
+        "description" : "Disables a member's membership of this community: from the member's next request it grants no access to this community, while their other communities are unaffected, and no invitation is sent to it. Only the membership is written, never the account, which the person shares with their other communities. Disabling a disabled membership changes nothing.\n\nThis is how a community suspends a member: a community admin cannot disable the account itself (`POST /api/v1/users/{userId}/disable`).\n\nOnly memberships with the COMMUNITY_MEMBER role, pending or accepted: a membership with any other role, or none, is answered 404. Admin memberships are disabled by the platform admin (`POST /api/v1/communities/{communityId}/admins/{userId}/disable`).\n\n**Required: Community Admin of this community.** A platform admin who is not one is refused with 403.\n",
+        "operationId" : "disableMembership",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "Membership disabled"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Disables a member's membership.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/{userId}/enable" : {
+      "post" : {
+        "description" : "Enables a member's membership of this community, so that it grants access to this community again once it is accepted. Only the membership is written, never the account, which the person shares with their other communities. Enabling an enabled membership changes nothing.\n\nOnly memberships with the COMMUNITY_MEMBER role, pending or accepted: a membership with any other role, or none, is answered 404. Admin memberships are enabled by the platform admin (`POST /api/v1/communities/{communityId}/admins/{userId}/enable`).\n\n**Required: Community Admin of this community.** A platform admin who is not one is refused with 403.\n",
+        "operationId" : "enableMembership",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "Membership enabled"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Enables a member's membership.",
         "tags" : [
           "Memberships"
         ]
@@ -18775,7 +19043,7 @@
     },
     "/api/v1/users/{userId}" : {
       "delete" : {
-        "description" : "    This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.\n\n    To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.\n    **Required: Platform Admin or Community Admin. You cannot delete your own account.**\n\n    Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.\n\n    In cases where the deletion process encounters errors, the server returns an appropriate error status code, along with a descriptive error message to guide clients in diagnosing and addressing the issue.\n",
+        "description" : "    This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.\n\n    To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.\n    **Required: Platform Admin. You cannot delete your own account.**\n\n    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To remove a member from one community, delete their membership instead (`DELETE /api/v1/communities/{communityId}/memberships/{userId}`); to suspend them, disable it (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`).\n\n    Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.\n\n    In cases where the deletion process encounters errors, the server returns an appropriate error status code, along with a descriptive error message to guide clients in diagnosing and addressing the issue.\n",
         "operationId" : "deleteUser",
         "parameters" : [
           {
@@ -18853,7 +19121,7 @@
                 }
               }
             },
-            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`). Only a platform admin may change another user's account: anyone else is refused, whatever their role in that user's communities, because the account is shared by every community the person belongs to. While `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
           },
           "404" : {
             "content" : {
@@ -19018,7 +19286,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint enables the update of user information by specifying the user's unique identifier in the endpoint path.\n\nClients send a request containing the updated user details, and authentication, through an authentication token, is required for secure access.\n**Required: Platform Admin or Community Admin**\n\nA successful update results in an HTTP status code of 200, indicating that the user information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nThe `personalId` is normalised before it is stored or compared: surrounding and inner whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased. If another user already has the same normalised `personalId`, the server responds 409 with the `USER_ALREADY_EXISTS` code; the error does not repeat the value.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.",
+        "description" : "This endpoint enables the update of user information by specifying the user's unique identifier in the endpoint path.\n\nClients send a request containing the updated user details, and authentication, through an authentication token, is required for secure access.\n**Required: Platform Admin. A Community Admin may use it only on their own account.**\n\nCommunity admins cannot change another user's account: the account belongs to the person, it is shared by every community they belong to, and its email receives the password recovery link (#415). A member's data in a community is edited on their member record (#416).\n\nA successful update results in an HTTP status code of 200, indicating that the user information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nThe `personalId` is normalised before it is stored or compared: surrounding and inner whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased. If another user already has the same normalised `personalId`, the server responds 409 with the `USER_ALREADY_EXISTS` code; the error does not repeat the value.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.",
         "operationId" : "updateUser",
         "parameters" : [
           {
@@ -19113,7 +19381,7 @@
                 }
               }
             },
-            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`). Only a platform admin may change another user's account: anyone else is refused, whatever their role in that user's communities, because the account is shared by every community the person belongs to. While `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
           },
           "404" : {
             "content" : {
@@ -19178,7 +19446,7 @@
     },
     "/api/v1/users/{userId}/disable" : {
       "post" : {
-        "description" : "    This endpoint is designed to disable a user within the system by specifying the user's unique identifier in the endpoint path.\n\n    This operation requires proper authentication, through an authentication token, to ensure secure access.\n    **Required: Platform Admin or Community Admin. You cannot disable your own account.**\n\n    Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been disabled.\n\n    The endpoint provides an effective means to temporarily suspend user accounts or restrict access, crucial for security and user management purposes.\n\n    In cases where the disablement encounters errors, the server returns an appropriate error status code along with a descriptive error message to guide clients in addressing and resolving the issue.\n",
+        "description" : "    This endpoint is designed to disable a user within the system by specifying the user's unique identifier in the endpoint path.\n\n    This operation requires proper authentication, through an authentication token, to ensure secure access.\n    **Required: Platform Admin. You cannot disable your own account.**\n\n    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To suspend a member in one community, enable or disable their membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/enable` or `/disable`).\n\n    Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been disabled.\n\n    The endpoint provides an effective means to temporarily suspend user accounts or restrict access, crucial for security and user management purposes.\n\n    In cases where the disablement encounters errors, the server returns an appropriate error status code along with a descriptive error message to guide clients in addressing and resolving the issue.\n",
         "operationId" : "disableUser",
         "parameters" : [
           {
@@ -19256,7 +19524,7 @@
                 }
               }
             },
-            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`). Only a platform admin may change another user's account: anyone else is refused, whatever their role in that user's communities, because the account is shared by every community the person belongs to. While `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
           },
           "500" : {
             "content" : {
@@ -19285,7 +19553,7 @@
     },
     "/api/v1/users/{userId}/enable" : {
       "post" : {
-        "description" : "This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path.\n\nProper authentication, through an authentication token, is required for secure access.\n**Required: Platform Admin or Community Admin. You cannot enable your own account.**\n\nUpon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled.\n\nThis endpoint provides a crucial mechanism for restoring user access or lifting restrictions, supporting effective user management.\n\nIn situations where the enabling process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.",
+        "description" : "This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path.\n\nProper authentication, through an authentication token, is required for secure access.\n**Required: Platform Admin. You cannot enable your own account.**\n\nCommunity admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To suspend a member in one community, enable or disable their membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/enable` or `/disable`).\n\nUpon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled.\n\nThis endpoint provides a crucial mechanism for restoring user access or lifting restrictions, supporting effective user management.\n\nIn situations where the enabling process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.",
         "operationId" : "enableUser",
         "parameters" : [
           {
@@ -19300,7 +19568,7 @@
         ],
         "responses" : {
           "200" : {
-            "description" : "User disabled successfully"
+            "description" : "User enabled successfully"
           },
           "400" : {
             "content" : {
@@ -19363,7 +19631,7 @@
                 }
               }
             },
-            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`). Only a platform admin may change another user's account: anyone else is refused, whatever their role in that user's communities, because the account is shared by every community the person belongs to. While `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
           },
           "500" : {
             "content" : {

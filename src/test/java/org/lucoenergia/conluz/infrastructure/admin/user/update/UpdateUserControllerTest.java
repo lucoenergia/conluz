@@ -1,12 +1,22 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.update;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.admin.user.update.UpdateUserBody;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -16,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,6 +48,147 @@ class UpdateUserControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private GetUserRepository getUserRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
+    @Autowired
+    private CommunityMembershipJpaRepository membershipJpaRepository;
+
+    @Test
+    @DisplayName("ACC-008 a community admin editing an active member of their community is refused, and the account is unchanged")
+    void aCommunityAdminEditingAMemberIsForbidden() throws Exception {
+        Community community = newCommunity();
+        User member = persistMemberOf(community);
+        List<Object> before = accountOf(member);
+
+        mockMvc.perform(put(URL + "/{userId}", member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(takeoverBody())))
+                .andExpect(status().isForbidden());
+
+        assertEquals(before, accountOf(member));
+    }
+
+    @Test
+    @DisplayName("ACC-008 a community admin editing a member who also belongs to another community is refused, and the account is unchanged")
+    void aCommunityAdminEditingAMemberOfTwoCommunitiesIsForbidden() throws Exception {
+        Community administered = newCommunity();
+        Community other = newCommunity();
+        User member = persistMemberOf(administered);
+        createMembershipService.create(other.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        List<Object> before = accountOf(member);
+
+        mockMvc.perform(put(URL + "/{userId}", member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(administered.getId()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(takeoverBody())))
+                .andExpect(status().isForbidden());
+
+        assertEquals(before, accountOf(member));
+    }
+
+    /**
+     * A pending member is not visible to a community admin (MEM-004), so the refusal is the 404 every
+     * other read of them gets, not a 403.
+     */
+    @Test
+    @DisplayName("ACC-008 a community admin editing a pending member of their community is refused, and the account is unchanged")
+    void aCommunityAdminEditingAPendingMemberIsToldTheUserIsMissing() throws Exception {
+        Community community = newCommunity();
+        User member = persistMemberOf(community);
+        MembershipStateTestSupport.markPending(membershipJpaRepository, member.getId(), community.getId());
+        List<Object> before = accountOf(member);
+
+        mockMvc.perform(put(URL + "/{userId}", member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(takeoverBody())))
+                .andExpect(status().isNotFound());
+
+        assertEquals(before, accountOf(member));
+    }
+
+    @Test
+    @DisplayName("ACC-008 a community admin still edits their own account")
+    void aCommunityAdminEditingThemselvesIsAllowed() throws Exception {
+        Community community = newCommunity();
+        User admin = UserMother.randomUser();
+        admin.enable();
+        createUserRepository.create(admin);
+        createMembershipService.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        UpdateUserBody body = bodyWithPersonalId(admin.getPersonalId());
+
+        mockMvc.perform(put(URL + "/{userId}", admin.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk());
+
+        User stored = getUserRepository.findById(UserId.of(admin.getId())).orElseThrow();
+        assertEquals(body.getFullName(), stored.getFullName());
+        assertEquals(body.getEmail(), stored.getEmail());
+    }
+
+    @Test
+    @DisplayName("ACC-008 the platform admin still edits the account of a community member")
+    void thePlatformAdminEditingACommunityMemberIsAllowed() throws Exception {
+        Community community = newCommunity();
+        User member = persistMemberOf(community);
+        UpdateUserBody body = takeoverBody();
+
+        mockMvc.perform(put(URL + "/{userId}", member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk());
+
+        User stored = getUserRepository.findById(UserId.of(member.getId())).orElseThrow();
+        assertEquals(List.of(body.getNumber(), body.getPersonalId(), body.getFullName(), body.getAddress(),
+                        body.getEmail(), body.getPhoneNumber()),
+                Arrays.asList(stored.getNumber(), stored.getPersonalId(), stored.getFullName(), stored.getAddress(),
+                        stored.getEmail(), stored.getPhoneNumber()));
+    }
+
+    private Community newCommunity() {
+        return createCommunityRepository.create(CommunityMother.random().build());
+    }
+
+    private User persistMemberOf(Community community) {
+        User member = UserMother.randomUser();
+        member.enable();
+        createUserRepository.create(member);
+        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        return member;
+    }
+
+    /**
+     * Every field of the stored account, read back through the domain, so that a refused request can be
+     * shown to have written nothing.
+     */
+    private List<Object> accountOf(User user) {
+        User stored = getUserRepository.findById(UserId.of(user.getId())).orElseThrow();
+        return Arrays.asList(stored.getPersonalId(), stored.getNumber(), stored.getFullName(), stored.getAddress(),
+                stored.getEmail(), stored.getPhoneNumber(), stored.getPassword(), stored.isEnabled(),
+                stored.isPlatformAdmin(), stored.getPasswordChangedAt(), stored.getDisabledAt());
+    }
+
+    /**
+     * A body changing every field, with an email the caller would control.
+     */
+    private static UpdateUserBody takeoverBody() {
+        UpdateUserBody body = new UpdateUserBody();
+        body.setNumber(999);
+        body.setPersonalId("99999999R");
+        body.setFullName("Taken Over");
+        body.setAddress("Attacker Street 1");
+        body.setEmail("attacker@example.com");
+        body.setPhoneNumber("+34600000000");
+        return body;
+    }
 
     @ParameterizedTest
     @ValueSource(strings = {"12345678a", " 12345678 A ", "12345678-A", "12.345.678-A"})

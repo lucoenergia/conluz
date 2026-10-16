@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access.capability;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
@@ -331,6 +332,34 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
                     () -> guard.canReadMembershipPrivateData(communityId, userId));
             assertSame("canInvite", capabilities.isCanInvite(),
                     () -> guard.canInviteMembers(communityId));
+            assertSame("canEnable", capabilities.isCanEnable(),
+                    () -> guard.canChangeMemberState(communityId, userId));
+            assertSame("canDisable", capabilities.isCanDisable(),
+                    () -> guard.canChangeMemberState(communityId, userId));
+        });
+    }
+
+    /**
+     * Enabling and disabling are decided on the membership's role as well, which the matrix above, built on a
+     * member's membership, cannot reach: on an admin's membership both must be refused, by the capability and the
+     * guard alike.
+     */
+    @Test
+    @DisplayName("MEM-027 enabling and disabling an admin's membership is reported as its guard decides it")
+    void theMembershipStateCapabilitiesEqualTheirGuardOnAnAdminsMembership() {
+        User admin = persistUser();
+        createMembershipService.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        CommunityMembership membership = getMembershipsRepository
+                .findByUserIdAndCommunityId(admin.getId(), communityA.getId()).orElseThrow();
+        UUID communityId = communityA.getId();
+        UUID userId = admin.getId();
+
+        forEachCaller(caller -> {
+            MembershipCapabilitiesResponse capabilities = membershipAssembler.assemble(caller, membership);
+            assertSame("canEnable", capabilities.isCanEnable(),
+                    () -> guard.canChangeMemberState(communityId, userId));
+            assertSame("canDisable", capabilities.isCanDisable(),
+                    () -> guard.canChangeMemberState(communityId, userId));
         });
     }
 

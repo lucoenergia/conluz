@@ -158,7 +158,10 @@ class GetUserByIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.memberships['" + target.communityA.getId() + "']")
                         .value(CommunityRole.COMMUNITY_MEMBER.name()))
                 // Decided on the full memberships, before the response narrowed them.
-                .andExpect(jsonPath("$.capabilities.canEdit").value(true));
+                .andExpect(jsonPath("$.capabilities.canRead").value(true))
+                .andExpect(jsonPath("$.capabilities.canListSupplies").value(true))
+                // Administering one of them is never enough to change the account (#415).
+                .andExpect(jsonPath("$.capabilities.canEdit").value(false));
     }
 
     @Test

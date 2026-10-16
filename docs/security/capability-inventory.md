@@ -48,8 +48,11 @@ See also [`authorization-policy.md`](authorization-policy.md) for the rules them
 
 Nested value objects (contract, distributor, Shelly, files) carry no capabilities either, and
 neither do the responses of `permitAll` or plain `isAuthenticated()` endpoints — including
-`PUT /users/profile`, `PUT /users/current/password` and `POST /users/current/invitations/accept`, which any
-authenticated caller may use on themselves. A partition coefficient
+`PUT /users/current/password` and `POST /users/current/invitations/accept`, which any authenticated
+caller may use on themselves. The exception is `PUT /users/profile`: it answers with the caller's
+`UserResponse`, which carries the user capabilities like every other `UserResponse`, assembled for
+the caller on their own record. No capability reports the endpoint itself, since any authenticated
+caller may use it. A partition coefficient
 period is not a resource a caller acts on either; it carries capabilities only because of rule 4.
 
 ## What is reported
@@ -194,6 +197,10 @@ web gate the link on both capabilities.
 | `canRevokePlatformAdmin` | `canRevokePlatformAdmin` |
 | `canListSupplies` | `canListSuppliesOfUser` |
 
+`canEdit`, `canDelete`, `canEnable` and `canDisable` are `false` for a community admin on any other
+user, whatever their role in that user's communities: only the platform admin changes another user's
+account (#415, ACC-008). A community admin on their own record still gets `canEdit`.
+
 `canListSupplies` predicts whether `GET /users/{userId}/supplies` is **allowed**, and it predicts
 that exactly: the guard behind it is unchanged by what the listing returns. What the listing is
 **scoped to** is a separate question, answered by `SupplyAccessPolicy.visibleSuppliesOwnedBy` — the
@@ -234,9 +241,19 @@ is the caller — nobody may act on themselves that way, admins included.
 | `canManageInvestment` | `canManageMembershipInvestment(communityId)` |
 | `canReadPayback` | `canReadMembershipPayback(communityId, userId)` |
 | `canInvite` | `canInviteMembers(communityId)` (invite, resend and revoke the invitation) |
+| `canEnable` | `canChangeMemberState(communityId, userId)` |
+| `canDisable` | `canChangeMemberState(communityId, userId)` |
 
 A platform admin may administer a roster without being able to touch its members' money: the
 investment and payback rules have no platform-admin branch, and `canManageMemberships` does.
+
+`canEnable` and `canDisable` are the way a community admin suspends a member, since they may not
+disable the account (#415, MEM-027). They are decided on the membership in hand, role included: only
+an active admin of the community, and only on a `COMMUNITY_MEMBER` membership, so an admin's row
+reports both `false` — the platform admin suspends admins through `/communities/{communityId}/admins`
+(`canManageAdmins`). Both stay `true` whatever the membership's current state; whether it is enabled
+right now is `MembershipResponse.enabled`. They are separate fields, like the user's and the
+community's `canEnable`/`canDisable`, because they are separate controls to offer.
 
 ## What is not reported
 

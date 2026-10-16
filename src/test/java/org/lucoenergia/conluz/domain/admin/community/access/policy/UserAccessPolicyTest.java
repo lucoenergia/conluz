@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
@@ -81,10 +82,31 @@ class UserAccessPolicyTest {
     }
 
     @Test
-    void canEdit_allows_aCommunityAdminOfTheTargetCommunity() {
+    @DisplayName("ACC-008 a community admin may not edit a member of their community")
+    void canEdit_forbids_aCommunityAdminOfTheTargetCommunity() {
         Community shared = PolicyFixtures.community();
-        assertEquals(AccessDecision.ALLOWED, policy.canEdit(PolicyFixtures.adminOf(shared),
+        assertEquals(AccessDecision.FORBIDDEN, policy.canEdit(PolicyFixtures.adminOf(shared),
                 UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    @DisplayName("ACC-008 a community admin may not edit a member they share with another community")
+    void canEdit_forbids_aCommunityAdminOfOneOfTheTargetCommunities() {
+        Community administered = PolicyFixtures.community();
+        Community other = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN, policy.canEdit(PolicyFixtures.adminOf(administered),
+                UUID.randomUUID(), () -> List.of(
+                        PolicyFixtures.membershipIn(administered, CommunityRole.COMMUNITY_MEMBER, true),
+                        PolicyFixtures.membershipIn(other, CommunityRole.COMMUNITY_MEMBER, true))));
+    }
+
+    @Test
+    @DisplayName("ACC-008 a community admin may not edit another admin of their community")
+    void canEdit_forbids_aCommunityAdminEditingAnotherAdminOfTheirCommunity() {
+        Community shared = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN, policy.canEdit(PolicyFixtures.adminOf(shared),
+                UUID.randomUUID(), () -> List.of(
+                        PolicyFixtures.membershipIn(shared, CommunityRole.COMMUNITY_ADMIN, true))));
     }
 
     @Test
@@ -95,8 +117,8 @@ class UserAccessPolicyTest {
 
     @Test
     void canEdit_forbids_aPlainMemberEditingThemselves() {
-        // Today's behaviour: the self branch gets them past visibility, but editing needs the
-        // platform-admin or community-admin branch, so an ordinary member is forbidden.
+        // The self branch gets them past visibility, but editing oneself needs a community they
+        // administer, so an ordinary member is forbidden.
         Community own = PolicyFixtures.community();
         User caller = PolicyFixtures.memberOf(own);
 
@@ -104,6 +126,7 @@ class UserAccessPolicyTest {
     }
 
     @Test
+    @DisplayName("ACC-008 a community admin keeps editing their own account")
     void canEdit_allows_aCommunityAdminEditingThemselves() {
         Community own = PolicyFixtures.community();
         User caller = PolicyFixtures.adminOf(own);
@@ -278,8 +301,8 @@ class UserAccessPolicyTest {
     }
 
     // --- canEditOther ---
-    // Backs deleting, enabling and disabling. It is canEdit plus "not yourself", in that order --
-    // the order matters, and these tests pin it.
+    // Backs deleting, enabling and disabling. Visibility first, then "not yourself", then only a
+    // platform admin -- the order matters, and these tests pin it.
 
     @Test
     void canEditOther_allows_aPlatformAdminActingOnSomebodyElse() {
@@ -288,10 +311,20 @@ class UserAccessPolicyTest {
     }
 
     @Test
-    void canEditOther_allows_aCommunityAdminActingOnAMemberOfThatCommunity() {
+    @DisplayName("ACC-008 a community admin may not enable, disable or delete a member of their community")
+    void canEditOther_isForbidden_forACommunityAdminActingOnAMemberOfThatCommunity() {
         Community shared = PolicyFixtures.community();
-        assertEquals(AccessDecision.ALLOWED,
+        assertEquals(AccessDecision.FORBIDDEN,
                 policy.canEditOther(PolicyFixtures.adminOf(shared), UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    @DisplayName("ACC-008 a community admin may not enable, disable or delete a platform admin of their community")
+    void canEditOther_isForbidden_forACommunityAdminActingOnAPlatformAdminOfThatCommunity() {
+        Community shared = PolicyFixtures.community();
+        User target = PolicyFixtures.platformAdminMemberOf(shared);
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canEditOther(PolicyFixtures.adminOf(shared), target.getId(), target::getMemberships));
     }
 
     @Test
@@ -309,9 +342,8 @@ class UserAccessPolicyTest {
     }
 
     /**
-     * The edit decision is settled before the self check, so a plain member acting on themselves is
-     * forbidden for want of the edit right -- not not-visible, which they would be if the self
-     * check ran first and the visibility branch never got to pass.
+     * A plain member acting on themselves sees themselves, so they are forbidden -- not not-visible,
+     * which they would be if visibility were decided by the community-admin branch alone.
      */
     @Test
     void canEditOther_isForbidden_forAPlainMemberActingOnThemselves() {
