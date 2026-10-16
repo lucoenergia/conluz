@@ -52,7 +52,7 @@ public class EnableUserController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User disabled successfully"
+                    description = "User enabled successfully"
             )
     })
     @ForbiddenAccountChangeErrorResponse

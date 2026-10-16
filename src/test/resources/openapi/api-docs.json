@@ -19568,7 +19568,7 @@
         ],
         "responses" : {
           "200" : {
-            "description" : "User disabled successfully"
+            "description" : "User enabled successfully"
           },
           "400" : {
             "content" : {
