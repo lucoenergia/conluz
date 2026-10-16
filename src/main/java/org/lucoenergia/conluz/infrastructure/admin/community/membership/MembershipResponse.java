@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
@@ -38,7 +39,7 @@ public class MembershipResponse {
                               UserCapabilitiesResponse userCapabilities, MembershipCapabilitiesResponse capabilities) {
         this.id = membership.getId();
         this.user = membership.getUser() != null
-                ? new UserResponse(membership.getUser(), userCapabilities)
+                ? new UserResponse(membership.getUser(), MemberDataView.ofRecord(membership), userCapabilities)
                 : null;
         this.communityId = membership.getCommunity().getId();
         this.role = membership.getRole();

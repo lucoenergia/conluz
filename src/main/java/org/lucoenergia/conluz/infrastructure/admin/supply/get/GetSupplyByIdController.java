@@ -22,6 +22,7 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.S
 import java.util.Map;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 /**
  * Controller for retrieving a supply by its ID
@@ -33,13 +34,16 @@ public class GetSupplyByIdController {
     private final GetSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MemberDataAssembler memberDataAssembler;
 
     public GetSupplyByIdController(GetSupplyService service,
                                    SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                  UserCapabilitiesAssembler userCapabilitiesAssembler) {
+                                  UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                  MemberDataAssembler memberDataAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.memberDataAssembler = memberDataAssembler;
     }
 
     @GetMapping("/{supplyId}")
@@ -69,7 +73,8 @@ public class GetSupplyByIdController {
                                    @PathVariable("supplyId") UUID supplyId) {
         Supply supply = service.getById(SupplyId.of(supplyId));
         return new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
-                ownerCapabilities(currentUser, supply));
+                ownerCapabilities(currentUser, supply),
+                memberDataAssembler.ofSupplyOwner(supply));
     }
 
     /**

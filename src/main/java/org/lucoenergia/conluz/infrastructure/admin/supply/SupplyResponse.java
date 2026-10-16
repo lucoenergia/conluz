@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
@@ -47,16 +48,18 @@ public class SupplyResponse {
      *                          assembled here because deciding it needs the owner's memberships,
      *                          which a supply does not carry: a listing batches that lookup once for
      *                          the whole page.
+     * @param ownerData         the owner's member data, from their member record in the supply's community
+     *                          (MEM-026); a listing reads those records once for the whole page.
      */
     public SupplyResponse(Supply supply, SupplyCapabilitiesResponse capabilities,
-                          UserCapabilitiesResponse ownerCapabilities) {
+                          UserCapabilitiesResponse ownerCapabilities, MemberDataView ownerData) {
         this.id = supply.getId();
         this.code = supply.getCode();
         this.name = supply.getName();
         this.address = supply.getAddress();
         this.addressRef = supply.getAddressRef();
         this.enabled = supply.getEnabled();
-        this.user = supply.getUser() != null ? new UserResponse(supply.getUser(), ownerCapabilities) : null;
+        this.user = supply.getUser() != null ? new UserResponse(supply.getUser(), ownerData, ownerCapabilities) : null;
         this.contract = supply.getContract() != null ? new SupplyContractResponse(supply.getContract()) : null;
         this.distributor = supply.getDistributor() != null ? new SupplyDistributorResponse(supply.getDistributor()) : null;
         this.shelly = supply.getShelly() != null ? new SupplyShellyResponse(supply.getShelly()) : null;

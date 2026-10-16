@@ -28,6 +28,7 @@ import java.util.UUID;
 import java.util.Map;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 /**
  * Adds a new supply
@@ -43,13 +44,16 @@ public class CreateSupplyController {
     private final CreateSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MemberDataAssembler memberDataAssembler;
 
     public CreateSupplyController(CreateSupplyService service,
                                   SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                  UserCapabilitiesAssembler userCapabilitiesAssembler) {
+                                  UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                  MemberDataAssembler memberDataAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.memberDataAssembler = memberDataAssembler;
     }
 
     @PostMapping
@@ -95,7 +99,8 @@ public class CreateSupplyController {
                                       @Valid @RequestBody CreateSupplyBody body) {
         Supply newSupply = service.create(body.mapToSupply(), UserPersonalId.of(body.getPersonalId()), body.getCommunityId());
         return new SupplyResponse(newSupply, capabilitiesAssembler.assemble(currentUser, newSupply),
-                ownerCapabilities(currentUser, newSupply));
+                ownerCapabilities(currentUser, newSupply),
+                memberDataAssembler.ofSupplyOwner(newSupply));
     }
 
     /**

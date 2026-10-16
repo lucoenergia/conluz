@@ -23,6 +23,7 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.S
 import java.util.Map;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -31,13 +32,16 @@ public class DisableSupplyController {
     private final DisableSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final UserCapabilitiesAssembler userCapabilitiesAssembler;
+    private final MemberDataAssembler memberDataAssembler;
 
     public DisableSupplyController(DisableSupplyService service,
                                    SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                  UserCapabilitiesAssembler userCapabilitiesAssembler) {
+                                  UserCapabilitiesAssembler userCapabilitiesAssembler,
+                                  MemberDataAssembler memberDataAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.userCapabilitiesAssembler = userCapabilitiesAssembler;
+        this.memberDataAssembler = memberDataAssembler;
     }
 
     @PostMapping(path = "/supplies/{supplyId}/disable")
@@ -72,7 +76,8 @@ public class DisableSupplyController {
                                        @PathVariable("supplyId") UUID supplyId) {
         Supply updated = service.disable(SupplyId.of(supplyId));
         return new SupplyResponse(updated, capabilitiesAssembler.assemble(currentUser, updated),
-                ownerCapabilities(currentUser, updated));
+                ownerCapabilities(currentUser, updated),
+                memberDataAssembler.ofSupplyOwner(updated));
     }
 
     /**

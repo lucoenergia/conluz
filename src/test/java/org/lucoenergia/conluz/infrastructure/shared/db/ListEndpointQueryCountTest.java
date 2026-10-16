@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.shared.db;
 import jakarta.persistence.EntityManager;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
@@ -93,6 +94,24 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         long forFive = statementsFor(url, adminToken);
 
         assertEquals(forOne, forFive, "listing supplies must not issue a query per supply");
+    }
+
+    @Test
+    @DisplayName("MEM-026 listing a community's supplies reads every owner's member record in one query")
+    void listingACommunitysSuppliesOwnedByMembersCostsTheSameForOneAndForFive() throws Exception {
+        // Owners who are members of the community, so each supply has a member record to show
+        String adminToken = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        String url = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/supplies";
+
+        persistSuppliesOwnedBy(persistMember(), 1);
+        long forOne = statementsFor(url, adminToken);
+
+        for (int i = 0; i < 4; i++) {
+            persistSuppliesOwnedBy(persistMember(), 1);
+        }
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "listing supplies must not read a member record per supply");
     }
 
     @Test

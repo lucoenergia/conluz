@@ -3582,6 +3582,7 @@
       "UserResponse" : {
         "properties" : {
           "address" : {
+            "description" : "Address. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "type" : [
               "string",
               "null"
@@ -3592,6 +3593,7 @@
             "description" : "What the caller may do with this user."
           },
           "email" : {
+            "description" : "Email. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "type" : [
               "string",
               "null"
@@ -3601,6 +3603,7 @@
             "type" : "boolean"
           },
           "fullName" : {
+            "description" : "Full name. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "type" : "string"
           },
           "id" : {
@@ -3617,6 +3620,7 @@
             "type" : "object"
           },
           "number" : {
+            "description" : "Member number. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "format" : "int32",
             "type" : [
               "integer",
@@ -3627,6 +3631,7 @@
             "type" : "string"
           },
           "phoneNumber" : {
+            "description" : "Phone number. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "type" : [
               "string",
               "null"

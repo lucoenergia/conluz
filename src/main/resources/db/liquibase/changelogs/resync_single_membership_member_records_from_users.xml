@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Copies each user's data into their member record again, for users with exactly one membership (#396).
+         Since the copy of #388, PUT /api/v1/users/{userId} and PUT /api/v1/users/profile write the user but not
+         the member record, and responses now read member data from the record (ADR-0003 §1), so a user edited
+         since then would otherwise show their older data.
+
+         Only memberships still holding a copy are rewritten:
+         - users with several memberships are left untouched: each record there is its community's own data;
+         - memberships created by member registration are left untouched, for the same reason. They are the ones
+           awaiting acceptance (accepted_at NULL) or carrying an inviter or an invitation instant; a membership
+           created through an existing creation path is accepted on creation and records neither (MEM-001).
+
+         - full_name, member_number, address and phone_number are copied as they are.
+         - contact_email is copied from users.email, except that an empty or blank value becomes NULL, as in the
+           copy of #388. Blank means only space, tab, line feed, carriage return, form feed and vertical tab.
+
+         The rollback is empty: the record values this changeset overwrites are not kept, so they cannot be
+         restored. -->
+    <changeSet id="resync_single_membership_member_records_from_users" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot re-sync the member records of community_memberships: the member record or invitation columns are missing. Nothing was changed.">
+            <columnExists tableName="community_memberships" columnName="full_name"/>
+            <columnExists tableName="community_memberships" columnName="member_number"/>
+            <columnExists tableName="community_memberships" columnName="contact_email"/>
+            <columnExists tableName="community_memberships" columnName="address"/>
+            <columnExists tableName="community_memberships" columnName="phone_number"/>
+            <columnExists tableName="community_memberships" columnName="accepted_at"/>
+            <columnExists tableName="community_memberships" columnName="invited_by"/>
+            <columnExists tableName="community_memberships" columnName="invited_at"/>
+        </preConditions>
+        <sql>
+            UPDATE community_memberships m
+            SET full_name     = u.full_name,
+                member_number = u.number,
+                contact_email = CASE
+                                    WHEN regexp_replace(u.email, '[ \t\n\r\f\v]', '', 'g') = '' THEN NULL
+                                    ELSE u.email
+                                END,
+                address       = u.address,
+                phone_number  = u.phone_number
+            FROM users u
+            WHERE u.id = m.user_id
+              AND m.accepted_at IS NOT NULL
+              AND m.invited_by IS NULL
+              AND m.invited_at IS NULL
+              AND (SELECT count(*) FROM community_memberships other WHERE other.user_id = m.user_id) = 1
+        </sql>
+        <!-- Empty on purpose: the overwritten record values are not kept, so there is nothing to restore. Rolling
+             back only removes this changeset from the changelog. -->
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

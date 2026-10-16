@@ -22,6 +22,7 @@ import java.util.UUID;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 
 /**
@@ -34,11 +35,14 @@ public class UpdateUserController {
 
     private final UpdateUserService service;
     private final UserCapabilitiesAssembler capabilitiesAssembler;
+    private final MemberDataAssembler memberDataAssembler;
 
     public UpdateUserController(UpdateUserService service,
-                                UserCapabilitiesAssembler capabilitiesAssembler) {
+                                UserCapabilitiesAssembler capabilitiesAssembler,
+                                MemberDataAssembler memberDataAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
+        this.memberDataAssembler = memberDataAssembler;
     }
 
     @PutMapping("/users/{userId}")
@@ -108,6 +112,7 @@ public class UpdateUserController {
         UserCapabilitiesResponse capabilities =
                 capabilitiesAssembler.assembleFetchingMemberships(currentUser, userId);
         User updated = service.update(body.toUser(userId));
-        return new UserResponse(updated, capabilities);
+        return new UserResponse(updated, memberDataAssembler.forUserFetchingMemberships(currentUser, updated),
+                capabilities);
     }
 }
