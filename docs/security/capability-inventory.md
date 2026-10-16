@@ -194,6 +194,10 @@ web gate the link on both capabilities.
 | `canRevokePlatformAdmin` | `canRevokePlatformAdmin` |
 | `canListSupplies` | `canListSuppliesOfUser` |
 
+`canEdit`, `canDelete`, `canEnable` and `canDisable` are `false` for a community admin on any other
+user, whatever their role in that user's communities: only the platform admin changes another user's
+account (#415, ACC-008). A community admin on their own record still gets `canEdit`.
+
 `canListSupplies` predicts whether `GET /users/{userId}/supplies` is **allowed**, and it predicts
 that exactly: the guard behind it is unchanged by what the listing returns. What the listing is
 **scoped to** is a separate question, answered by `SupplyAccessPolicy.visibleSuppliesOwnedBy` — the

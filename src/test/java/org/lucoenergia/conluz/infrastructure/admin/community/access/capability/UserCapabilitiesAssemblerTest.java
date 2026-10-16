@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access.capability;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -75,7 +76,8 @@ class UserCapabilitiesAssemblerTest {
     }
 
     @Test
-    void aCommunityAdminMayAdministerAMemberOfTheirCommunity() {
+    @DisplayName("ACC-008 a community admin may read a member of their community, but not change their account")
+    void aCommunityAdminMayReadAMemberOfTheirCommunityButNotChangeTheirAccount() {
         Community community = CapabilityFixtures.community();
         User target = CapabilityFixtures.memberOf(community);
 
@@ -83,8 +85,10 @@ class UserCapabilitiesAssemblerTest {
                 assembler().assembleWithLoadedMemberships(CapabilityFixtures.adminOf(community), target);
 
         assertTrue(capabilities.isCanRead());
-        assertTrue(capabilities.isCanEdit());
-        assertTrue(capabilities.isCanDelete());
+        assertFalse(capabilities.isCanEdit());
+        assertFalse(capabilities.isCanDelete());
+        assertFalse(capabilities.isCanEnable());
+        assertFalse(capabilities.isCanDisable());
         assertTrue(capabilities.isCanListSupplies());
         assertFalse(capabilities.isCanGrantPlatformAdmin());
         assertFalse(capabilities.isCanRevokePlatformAdmin());

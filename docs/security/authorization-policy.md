@@ -26,7 +26,12 @@ objects the API returns, which report one endpoint's decision each and are liste
   - List, view, create, edit and remove communities.
   - Add and remove admins to/from communities.
 - Community admins (scoped to the community they administer) can:
-  - Import, create, edit, view, list and remove members.
+  - Import, create, view, list and remove members. They do **not** change a member's account: editing
+    (`PUT /api/v1/users/{userId}`), enabling, disabling and deleting another user's account are the
+    platform admin's alone, because the account is shared by every community the person belongs to
+    and its email receives password recovery (#415, ACC-008). A member's data in a community is
+    edited on their member record (#416); a member is suspended in one community by disabling their
+    membership (MEM-027).
   - Import, create, edit, view, list and remove supplies of those members.
   - Create, edit, view, list and remove plants.
   - Create, edit, view, list and remove sharing agreements.
@@ -38,8 +43,8 @@ objects the API returns, which report one endpoint's decision each and are liste
 - Any authenticated user can get prices.
 - Any user can modify their **own contact details** — email, address and phone number — through
   `PUT /api/v1/users/profile`. Name, DNI (`personalId`) and member number are an administrative
-  change: they go through `PUT /api/v1/users/{userId}`, which is Platform Admin or Community Admin
-  only. Nobody may enable, disable or delete themselves.
+  change: they go through `PUT /api/v1/users/{userId}`, which is the Platform Admin's, plus a
+  Community Admin's on their own account only (#415). Nobody may enable, disable or delete themselves.
 
 ### What a platform admin does **not** get
 
@@ -71,8 +76,8 @@ nothing; on a **single object** they get **404** (`canReadSupply`, `canReadPlant
 - List endpoints: compute the visible scope in the controller via the guard (`visibleCommunityIds()` for membership scope, `adminCommunityIds()` for admin-only scope) and pass it as a plain parameter to the service/repository query — the service must not call the guard itself.
 - A listing resolved by a **target id** (`/users/{userId}/supplies`, …) is scoped to what the **caller** may see, not to the target. The guard decides whether the caller may ask; it does not widen what comes back. Derive the scope from the listed aggregate's own policy — the set form of its single-object read rule — so that no row is returned that the object's own `GET` would answer 404 on for the same caller. A guard that admits a caller through *any one* community says nothing about the target's other communities: `GET /users/{userId}/supplies` uses `visibleSuppliesOfUser` (`SupplyAccessPolicy.visibleSuppliesOwnedBy`, the set form of `isVisible`) for exactly this reason (#326). The same holds for a listing with no target: `GET /users` is admitted by `canListUsers` but scoped by `visibleUsers` (`UserAccessPolicy.visibleUsers`, the set form of `canSee`), not by `visibleCommunityIds()` (#336). Pin the equivalence with a policy test over a matrix of callers and rows.
 - `isAuthenticated()` alone is acceptable ONLY for endpoints any authenticated user may call without object scope (e.g. `GET /prices`). Otherwise use a `@communityAccessGuard` method.
-- Self-service: enabling, disabling or deleting one's own account MUST be rejected for everyone, including admins. That rule lives inside `canDeleteUser`, `canEnableUser` and `canDisableUser` rather than in SpEL; each settles the edit decision first and only then refuses a caller acting on themselves, so a caller who cannot see the target still gets a 404 and a caller who can gets a 403.
-- Self-service edits go through their **own endpoint**, not through a widened guard: `PUT /api/v1/users/profile` is `isAuthenticated()` and acts on the caller, so it needs no object-scoped rule and cannot be pointed at anyone else. `canEditUser` therefore stays an administrative decision — a plain member editing themselves via `PUT /users/{userId}` is a **403**, on purpose. Add a self-service endpoint rather than a self branch when a user needs to change their own data.
+- Self-service: enabling, disabling or deleting one's own account MUST be rejected for everyone, including admins. That rule lives inside `canDeleteUser`, `canEnableUser` and `canDisableUser` rather than in SpEL; each settles visibility first and only then refuses a caller acting on themselves, so a caller who cannot see the target still gets a 404 and a caller who can gets a 403. On anyone else, the three allow only the platform admin: a community admin who can see the user gets a 403 (#415).
+- Self-service edits go through their **own endpoint**, not through a widened guard: `PUT /api/v1/users/profile` is `isAuthenticated()` and acts on the caller, so it needs no object-scoped rule and cannot be pointed at anyone else. `canEditUser` therefore stays an administrative decision — a plain member editing themselves via `PUT /users/{userId}` is a **403**, on purpose, and so is a community admin editing anyone but themselves (#415). Add a self-service endpoint rather than a self branch when a user needs to change their own data.
 - New endpoints without an authorization clause are NOT permitted. Add a controller test for every endpoint asserting **401** (no token); **404** when an authenticated caller cannot see the targeted object (object-scoped denial); and **403** when the caller can see the object but lacks permission for the action (role/scope denials and self-service).
 
 ## Error responses for denied access (401 / 403 / 404)

@@ -67,6 +67,43 @@ class UpdateProfileControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-008 a member of a community still updates their own profile")
+    void aMemberOfACommunityStillUpdatesTheirOwnProfile() throws Exception {
+        User member = enabledMemberOfDefaultCommunity();
+
+        mockMvc.perform(put(URL)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(member))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("propio@email.com", "Calle Propia 2", "+34600333444")))
+                .andExpect(status().isOk());
+
+        User stored = reload(member);
+        assertEquals("propio@email.com", stored.getEmail());
+        assertEquals("Calle Propia 2", stored.getAddress());
+        assertEquals("+34600333444", stored.getPhoneNumber());
+    }
+
+    @Test
+    @DisplayName("ACC-008 a community admin, refused on other accounts, still updates their own profile")
+    void aCommunityAdminStillUpdatesTheirOwnProfile() throws Exception {
+        User admin = UserMother.randomUser();
+        admin.enable();
+        createUserRepository.create(admin);
+        createMembershipService.create(DEFAULT_COMMUNITY_ID, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+
+        mockMvc.perform(put(URL)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("admin.propio@email.com", "Calle Admin 3", "+34600555666")))
+                .andExpect(status().isOk());
+
+        User stored = reload(admin);
+        assertEquals("admin.propio@email.com", stored.getEmail());
+        assertEquals("Calle Admin 3", stored.getAddress());
+        assertEquals("+34600555666", stored.getPhoneNumber());
+    }
+
+    @Test
     void theIdentifyingFieldsAreUntouched() throws Exception {
         // The whole reason this endpoint exists rather than a self branch on canEditUser.
         User member = enabledMemberOfDefaultCommunity();

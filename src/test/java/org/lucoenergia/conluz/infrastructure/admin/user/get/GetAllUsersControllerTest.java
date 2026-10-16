@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -412,8 +413,10 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         JsonNode row = rowOf(world.inAAndB, world.adminOfAMemberOfBToken);
 
         // Decided on inAAndB's full memberships: the admin of A administers one of them.
-        assertTrue(row.get("capabilities").get("canEdit").asBoolean());
+        assertTrue(row.get("capabilities").get("canRead").asBoolean());
         assertTrue(row.get("capabilities").get("canListSupplies").asBoolean());
+        // Administering one of them is never enough to change the account (#415).
+        assertFalse(row.get("capabilities").get("canEdit").asBoolean());
     }
 
     private record TwoCommunities(Community communityA, Community communityB, User adminOfAMemberOfB,

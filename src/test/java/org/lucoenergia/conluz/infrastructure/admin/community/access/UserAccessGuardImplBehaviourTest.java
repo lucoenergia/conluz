@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -158,7 +159,8 @@ class UserAccessGuardImplBehaviourTest {
     }
 
     @Test
-    void canEditUser_returnsTrue_whenCallerIsCommunityAdminOfTargetUserCommunity() {
+    @DisplayName("ACC-008 a community admin may not edit a member of their community")
+    void canEditUser_returnsFalse_whenCallerIsCommunityAdminOfTargetUserCommunity() {
         UUID sharedCommunityId = UUID.randomUUID();
         UUID targetUserId = UUID.randomUUID();
         when(getMembershipsRepository.findByUserId(targetUserId))
@@ -167,7 +169,7 @@ class UserAccessGuardImplBehaviourTest {
         User caller = callerAdminOf(sharedCommunityId, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
 
-        assertTrue(guard().canEditUser(targetUserId));
+        assertFalse(guard().canEditUser(targetUserId));
     }
 
     @Test

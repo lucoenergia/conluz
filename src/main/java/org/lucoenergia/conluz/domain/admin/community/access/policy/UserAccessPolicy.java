@@ -34,7 +34,12 @@ public class UserAccessPolicy {
     /**
      * Editing is narrower than reading: seeing a user through the self branch does not by itself
      * confer the right to change them, so an ordinary member editing their own record is forbidden
-     * rather than allowed. (That is today's behaviour, and this rule reproduces it.)
+     * rather than allowed.
+     *
+     * <p>Only a platform admin may edit another user. A community admin may not, whatever their role in
+     * the user's communities (#415): the account is the person's, shared by every community they belong
+     * to, and its email receives the password recovery link. A community admin keeps editing their own
+     * account, as they did before.</p>
      */
     public AccessDecision canEdit(User caller, UUID userId,
                                   Supplier<List<CommunityMembership>> targetMemberships) {
@@ -44,29 +49,35 @@ public class UserAccessPolicy {
         if (CallerMemberships.isPlatformAdmin(caller)) {
             return AccessDecision.ALLOWED;
         }
-        return administersACommunityOf(caller, targetMemberships)
+        return CallerMemberships.isCurrentUser(caller, userId) && administersACommunityOf(caller, targetMemberships)
                 ? AccessDecision.ALLOWED
                 : AccessDecision.FORBIDDEN;
     }
 
     /**
-     * Editing someone <em>other</em> than oneself. Backs deleting, enabling and disabling a user,
-     * all three of which must be refused for everyone acting on their own account, admins included.
+     * Acting on the account of someone <em>other</em> than oneself. Backs deleting, enabling and
+     * disabling a user, all three of which must be refused for everyone acting on their own account,
+     * admins included.
      *
-     * <p>The edit decision is settled first and the self check only then, which is the order the
-     * SpEL's short-circuiting {@code and} had: a caller who cannot see the target still gets
-     * not-visible (→ 404), and a platform admin acting on themselves gets forbidden (→ 403) rather
-     * than being told they do not exist.</p>
+     * <p>Only a platform admin may do it. A community admin may not (#415): the account is shared by
+     * every community the person belongs to, so disabling or deleting it would remove them from all of
+     * them; a community suspends a member by disabling their membership instead.</p>
+     *
+     * <p>Visibility is settled first and the self check only then: a caller who cannot see the target
+     * still gets not-visible (→ 404), and a platform admin acting on themselves gets forbidden (→ 403)
+     * rather than being told they do not exist.</p>
      */
     public AccessDecision canEditOther(User caller, UUID userId,
                                        Supplier<List<CommunityMembership>> targetMemberships) {
-        AccessDecision edit = canEdit(caller, userId, targetMemberships);
-        if (edit != AccessDecision.ALLOWED) {
-            return edit;
+        if (!canSee(caller, userId, targetMemberships)) {
+            return AccessDecision.NOT_VISIBLE;
         }
-        return CallerMemberships.isCurrentUser(caller, userId)
-                ? AccessDecision.FORBIDDEN
-                : AccessDecision.ALLOWED;
+        if (CallerMemberships.isCurrentUser(caller, userId)) {
+            return AccessDecision.FORBIDDEN;
+        }
+        return CallerMemberships.isPlatformAdmin(caller)
+                ? AccessDecision.ALLOWED
+                : AccessDecision.FORBIDDEN;
     }
 
     /**

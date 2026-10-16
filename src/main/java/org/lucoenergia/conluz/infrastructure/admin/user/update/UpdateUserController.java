@@ -52,7 +52,9 @@ public class UpdateUserController {
                 This endpoint enables the update of user information by specifying the user's unique identifier in the endpoint path.
                 
                 Clients send a request containing the updated user details, and authentication, through an authentication token, is required for secure access.
-                **Required: Platform Admin or Community Admin**
+                **Required: Platform Admin. A Community Admin may use it only on their own account.**
+                
+                Community admins cannot change another user's account: the account belongs to the person, it is shared by every community they belong to, and its email receives the password recovery link (#415). A member's data in a community is edited on their member record (#416).
                 
                 A successful update results in an HTTP status code of 200, indicating that the user information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.
                 
@@ -95,7 +97,7 @@ public class UpdateUserController {
                     )
             )
     })
-    @ForbiddenErrorResponse
+    @ForbiddenAccountChangeErrorResponse
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse

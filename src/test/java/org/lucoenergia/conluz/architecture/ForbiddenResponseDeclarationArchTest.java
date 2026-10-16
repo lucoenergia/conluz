@@ -7,6 +7,7 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.shared.security.PasswordChangeAllowedEndpoints;
 import org.lucoenergia.conluz.infrastructure.shared.security.PublicEndpoints;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenAccountChangeErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.PasswordChangeRequiredErrorResponse;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -25,8 +26,9 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 /**
  * Architecture test enforcing that every endpoint that can refuse a user who must change their password (#342)
  * documents that 403, and that the endpoints that never refuse them do not. It is documented by
- * {@link ForbiddenErrorResponse}, together with an authorization refusal, or by
- * {@link PasswordChangeRequiredErrorResponse} alone, where the authorization never answers 403; never by both.
+ * {@link ForbiddenErrorResponse} (or {@link ForbiddenAccountChangeErrorResponse}, its variant for the endpoints that
+ * change a user's account), together with an authorization refusal, or by {@link PasswordChangeRequiredErrorResponse}
+ * alone, where the authorization never answers 403; never by two of them.
  *
  * <p>The refusal comes from a filter, not from the endpoint, so nothing else would make a new endpoint declare it.
  * Which endpoints are exempt is read from {@link PasswordChangeAllowedEndpoints} itself, by matching each handler's
@@ -56,19 +58,23 @@ public class ForbiddenResponseDeclarationArchTest extends BaseArchTest {
                 }
                 List<MockHttpServletRequest> requests = requestsMappedBy(method, mapping);
                 String id = javaMethod.getOwner().getSimpleName() + "#" + javaMethod.getName();
-                boolean withAuthorization = javaMethod.isAnnotatedWith(ForbiddenErrorResponse.class);
+                boolean generic = javaMethod.isAnnotatedWith(ForbiddenErrorResponse.class);
+                boolean accountChange = javaMethod.isAnnotatedWith(ForbiddenAccountChangeErrorResponse.class);
+                boolean withAuthorization = generic || accountChange;
                 boolean alone = javaMethod.isAnnotatedWith(PasswordChangeRequiredErrorResponse.class);
 
-                if (withAuthorization && alone) {
-                    events.add(SimpleConditionEvent.violated(javaMethod, id + " declares both "
-                            + "@ForbiddenErrorResponse and @PasswordChangeRequiredErrorResponse"));
+                if ((generic ? 1 : 0) + (accountChange ? 1 : 0) + (alone ? 1 : 0) > 1) {
+                    events.add(SimpleConditionEvent.violated(javaMethod, id + " declares more than one of "
+                            + "@ForbiddenErrorResponse, @ForbiddenAccountChangeErrorResponse and "
+                            + "@PasswordChangeRequiredErrorResponse"));
                 } else if (requests.stream().anyMatch(PasswordChangeAllowedEndpoints.MATCHER::matches)) {
                     events.add(new SimpleConditionEvent(javaMethod, !withAuthorization && !alone, id + " is always "
                             + "allowed to a user who must change their password, but declares a 403 for them"));
                 } else if (!requests.stream().allMatch(PublicEndpoints.MATCHER::matches)) {
                     events.add(new SimpleConditionEvent(javaMethod, withAuthorization || alone, id + " refuses a "
-                            + "user who must change their password with 403, but declares neither "
-                            + "@ForbiddenErrorResponse nor @PasswordChangeRequiredErrorResponse"));
+                            + "user who must change their password with 403, but declares none of "
+                            + "@ForbiddenErrorResponse, @ForbiddenAccountChangeErrorResponse and "
+                            + "@PasswordChangeRequiredErrorResponse"));
                 }
             }
         };

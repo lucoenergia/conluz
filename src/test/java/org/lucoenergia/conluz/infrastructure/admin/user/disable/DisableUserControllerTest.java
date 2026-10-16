@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.disable;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -11,6 +12,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
@@ -51,6 +53,8 @@ class DisableUserControllerTest extends BaseControllerTest {
     private CreateMembershipService createMembershipService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private ManagePlatformAdminRepository managePlatformAdminRepository;
 
     private static final String CURRENT_USER_URL = "/api/v1/users/current";
     private static final String NEW_PASSWORD = "a brand new password for this user";
@@ -124,7 +128,27 @@ class DisableUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testDisableLastPlatformAdminIsRejected() throws Exception {
+    @DisplayName("ACC-008 a community admin disabling a member of their community is refused, and the account is unchanged")
+    void aCommunityAdminDisablingAMemberIsForbidden() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User member = UserMother.randomUser();
+        member.setEnabled(true);
+        createUserRepository.create(member);
+        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+
+        mockMvc.perform(post(String.format("/api/v1/users/%s/disable", member.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId()))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+
+        User stored = getUserRepository.findById(UserId.of(member.getId())).orElseThrow();
+        Assertions.assertTrue(stored.isEnabled());
+        Assertions.assertNull(stored.getDisabledAt());
+    }
+
+    @Test
+    @DisplayName("ACC-008 a community admin disabling a platform admin who is a member of their community is refused")
+    void aCommunityAdminDisablingThePlatformAdminOfTheirCommunityIsForbidden() throws Exception {
 
         // Initialize the default platform admin.
         init();
@@ -137,9 +161,35 @@ class DisableUserControllerTest extends BaseControllerTest {
         // Create a community admin of that community (not a platform admin) and log in.
         String authHeader = loginAsCommunityAdmin(community.getId());
 
-        // The default admin is the only platform admin (count == 1). Disabling them
-        // is rejected with 409, because the system can never be left with zero enabled platform admins.
+        // Disabling the account would remove them from every community: not a community admin's to do.
         mockMvc.perform(post(String.format("/api/v1/users/%s/disable", defaultAdmin.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
+
+        // The default admin is still enabled, with no disable recorded.
+        User stored = getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).get();
+        Assertions.assertTrue(stored.isEnabled());
+        Assertions.assertNull(stored.getDisabledAt());
+    }
+
+    /**
+     * Only a platform admin may disable another user, and they count as an enabled platform admin themselves, so the
+     * last one can only be "left" when the target is already disabled: that is the one path to the 409 left.
+     */
+    @Test
+    void testDisableLastPlatformAdminIsRejected() throws Exception {
+
+        // The default platform admin is the only enabled one; the target is a disabled platform admin.
+        String authHeader = loginAsDefaultPlatformAdmin();
+        User disabledAdmin = UserMother.randomUser();
+        disabledAdmin.setEnabled(false);
+        createUserRepository.create(disabledAdmin);
+        managePlatformAdminRepository.grant(UserId.of(disabledAdmin.getId()));
+
+        mockMvc.perform(post(String.format("/api/v1/users/%s/disable", disabledAdmin.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -150,14 +200,15 @@ class DisableUserControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.errors[0].params").value(nullValue()))
                 .andExpect(jsonPath("$.errors[0].message").isNotEmpty());
 
-        // The default admin is still enabled.
-        Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID))
-                .get().isEnabled());
+        // Nothing was recorded on the target.
+        Assertions.assertNull(getUserRepository.findById(UserId.of(disabledAdmin.getId())).orElseThrow()
+                .getDisabledAt());
     }
+
     @Test
     void testCannotActOnOwnAccount() throws Exception {
-        // Nobody may disable themselves, platform admin included: the guard settles the edit
-        // decision first and then refuses because the target is the caller -- a 403, not a 404.
+        // Nobody may disable themselves, platform admin included: the guard settles visibility
+        // first and then refuses because the target is the caller -- a 403, not a 404.
         String authHeader = loginAsDefaultPlatformAdmin();
 
         User self = getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).get();

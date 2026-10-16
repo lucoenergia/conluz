@@ -1,10 +1,17 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.enable;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -29,6 +36,27 @@ class EnableUserControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private GetUserRepository getUserRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
+
+    @Test
+    @DisplayName("ACC-008 a community admin enabling a member of their community is refused, and the account is unchanged")
+    void aCommunityAdminEnablingAMemberIsForbidden() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User member = UserMother.randomUser();
+        member.setEnabled(false);
+        createUserRepository.create(member);
+        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+
+        mockMvc.perform(post(String.format("/api/v1/users/%s/enable", member.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId()))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+
+        Assertions.assertFalse(getUserRepository.findById(UserId.of(member.getId())).orElseThrow().isEnabled());
+    }
 
     @Test
     void testEnableUser() throws Exception {

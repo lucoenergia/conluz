@@ -33,7 +33,9 @@ public class DeleteUserController {
                     This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.
 
                     To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.
-                    **Required: Platform Admin or Community Admin. You cannot delete your own account.**
+                    **Required: Platform Admin. You cannot delete your own account.**
+                    
+                    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To remove a member from one community, delete their membership instead (`DELETE /api/v1/communities/{communityId}/memberships/{userId}`); to suspend them, disable it (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`).
 
                     Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.
 
@@ -49,7 +51,7 @@ public class DeleteUserController {
                     description = "User deleted successfully"
             )
     })
-    @ForbiddenErrorResponse
+    @ForbiddenAccountChangeErrorResponse
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
