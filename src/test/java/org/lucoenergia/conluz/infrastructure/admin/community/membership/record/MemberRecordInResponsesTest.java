@@ -214,8 +214,9 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
-    @DisplayName("MEM-026 A community admin updating the user is answered with the record of their community")
-    void aCommunityAdminUpdatingTheUserIsAnsweredWithTheirCommunitysRecord() throws Exception {
+    @DisplayName("ACC-008 A community admin updating the user is refused, so the response carries neither the record nor "
+            + "the account")
+    void aCommunityAdminUpdatingTheUserIsRefused() throws Exception {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("number", person.getNumber());
         body.put("personalId", person.getPersonalId());
@@ -224,7 +225,14 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
         body.put("address", person.getAddress());
         body.put("phoneNumber", person.getPhoneNumber());
 
-        assertShowsRecord(json(perform(adminOfA, put("/api/v1/users/{userId}", person.getId()), body)), recordA);
+        String response = mockMvc.perform(put("/api/v1/users/{userId}", person.getId())
+                        .header(HttpHeaders.AUTHORIZATION, adminOfA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isForbidden())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(response).doesNotContain(person.getFullName(), (String) recordA.get("fullName"));
     }
 
     @Test

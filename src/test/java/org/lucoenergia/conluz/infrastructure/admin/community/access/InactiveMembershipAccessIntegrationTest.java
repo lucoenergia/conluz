@@ -163,7 +163,8 @@ class InactiveMembershipAccessIntegrationTest extends BaseControllerTest {
         Map<String, BooleanSupplier> actions = new LinkedHashMap<>();
         actions.put("memberships: manage the community's memberships", () -> guard.canManageMemberships(community.getId()));
         actions.put("users: create a user in the community", () -> guard.canCreateUserIn(community.getId()));
-        actions.put("users: edit a member", () -> guard.canEditUser(owner.getId()));
+        actions.put("memberships: enable or disable a member's membership",
+                () -> guard.canChangeMemberState(community.getId(), owner.getId()));
         actions.put("users: list users", () -> guard.canListUsers());
         actions.put("plants: create a plant", () -> guard.canCreatePlant(supply.getCode()));
         actions.put("plants: manage a plant", () -> guard.canManagePlant(plant.getId()));
