@@ -238,9 +238,19 @@ is the caller — nobody may act on themselves that way, admins included.
 | `canManageInvestment` | `canManageMembershipInvestment(communityId)` |
 | `canReadPayback` | `canReadMembershipPayback(communityId, userId)` |
 | `canInvite` | `canInviteMembers(communityId)` (invite, resend and revoke the invitation) |
+| `canEnable` | `canChangeMemberState(communityId, userId)` |
+| `canDisable` | `canChangeMemberState(communityId, userId)` |
 
 A platform admin may administer a roster without being able to touch its members' money: the
 investment and payback rules have no platform-admin branch, and `canManageMemberships` does.
+
+`canEnable` and `canDisable` are the way a community admin suspends a member, since they may not
+disable the account (#415, MEM-027). They are decided on the membership in hand, role included: only
+an active admin of the community, and only on a `COMMUNITY_MEMBER` membership, so an admin's row
+reports both `false` — the platform admin suspends admins through `/communities/{communityId}/admins`
+(`canManageAdmins`). Both stay `true` whatever the membership's current state; whether it is enabled
+right now is `MembershipResponse.enabled`. They are separate fields, like the user's and the
+community's `canEnable`/`canDisable`, because they are separate controls to offer.
 
 ## What is not reported
 

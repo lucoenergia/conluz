@@ -84,6 +84,10 @@ final class CapabilityInventory {
         report("canInviteMembers",
                 capability(COMMUNITY, "canInviteMembers"),
                 capability(MEMBERSHIP, "canInvite"));
+        // Decided on the membership in hand, its role included, so only the membership reports it.
+        report("canChangeMemberState",
+                capability(MEMBERSHIP, "canEnable"),
+                capability(MEMBERSHIP, "canDisable"));
 
         // --- supply ---
         // Also the plant's canReadSupply: PlantResponse.supply is a reference carrying no owner, so

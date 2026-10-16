@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -8,8 +9,10 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.MembershipAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
@@ -23,6 +26,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -42,10 +46,13 @@ class MembershipAccessGuardImplBehaviourTest {
     private AuthService authService;
     @Mock
     private GetCommunityRepository getCommunityRepository;
+    @Mock
+    private GetMembershipsRepository getMembershipsRepository;
 
     private MembershipAccessGuard guard() {
         return new MembershipAccessGuardImpl(
                 new CommunityAccessGuardHelper(authService, getCommunityRepository),
+                getMembershipsRepository,
                 new AccessPolicies().membership());
     }
 
@@ -297,6 +304,79 @@ class MembershipAccessGuardImplBehaviourTest {
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
         assertFalse(guard().canReadMembershipPrivateData(community.getId(), null));
+    }
+
+    // --- canChangeMemberState ---
+
+    @Test
+    @DisplayName("MEM-027 an active community admin may change the state of a member's membership")
+    void canChangeMemberState_returnsTrue_forAnActiveCommunityAdminOnAMembersMembership() {
+        Community community = CommunityMother.random().build();
+        User target = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
+        when(authService.getCurrentUser())
+                .thenReturn(Optional.of(userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true)));
+        when(getMembershipsRepository.findByUserIdAndCommunityId(target.getId(), community.getId()))
+                .thenReturn(Optional.of(target.getMemberships().get(0)));
+
+        assertTrue(guard().canChangeMemberState(community.getId(), target.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-027 an admin's membership is not found")
+    void canChangeMemberState_throwsMembershipNotFound_onAnAdminsMembership() {
+        Community community = CommunityMother.random().build();
+        User target = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
+        when(authService.getCurrentUser())
+                .thenReturn(Optional.of(userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true)));
+        when(getMembershipsRepository.findByUserIdAndCommunityId(target.getId(), community.getId()))
+                .thenReturn(Optional.of(target.getMemberships().get(0)));
+
+        assertThrows(MembershipNotFoundException.class,
+                () -> guard().canChangeMemberState(community.getId(), target.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-027 a user without a membership in the community is not found")
+    void canChangeMemberState_throwsMembershipNotFound_withoutAMembership() {
+        Community community = CommunityMother.random().build();
+        UUID userId = UUID.randomUUID();
+        when(authService.getCurrentUser())
+                .thenReturn(Optional.of(userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true)));
+        when(getMembershipsRepository.findByUserIdAndCommunityId(userId, community.getId()))
+                .thenReturn(Optional.empty());
+
+        assertThrows(MembershipNotFoundException.class,
+                () -> guard().canChangeMemberState(community.getId(), userId));
+    }
+
+    @Test
+    @DisplayName("MEM-027 a platform admin who is not an admin of the community is refused, without loading the membership")
+    void canChangeMemberState_returnsFalse_forAPlatformAdmin() {
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+
+        assertFalse(guard().canChangeMemberState(UUID.randomUUID(), UUID.randomUUID()));
+        verifyNoInteractions(getMembershipsRepository);
+    }
+
+    @Test
+    @DisplayName("MEM-027 a disabled admin cannot see the community")
+    void canChangeMemberState_throwsCommunityNotFound_forADisabledAdmin() {
+        Community community = CommunityMother.random().build();
+        when(authService.getCurrentUser())
+                .thenReturn(Optional.of(userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, false)));
+
+        assertThrows(CommunityNotFoundException.class,
+                () -> guard().canChangeMemberState(community.getId(), UUID.randomUUID()));
+        verifyNoInteractions(getMembershipsRepository);
+    }
+
+    @Test
+    void canChangeMemberState_returnsFalse_whenNoAuthenticatedUser() {
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canChangeMemberState(UUID.randomUUID(), UUID.randomUUID()));
     }
 
     // --- helpers ---

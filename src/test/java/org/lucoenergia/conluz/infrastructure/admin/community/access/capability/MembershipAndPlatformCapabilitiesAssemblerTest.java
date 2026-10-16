@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access.capability;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
@@ -35,6 +36,36 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanManageInvestment());
         assertTrue(capabilities.isCanReadPayback());
         assertTrue(capabilities.isCanInvite());
+        assertTrue(capabilities.isCanEnable());
+        assertTrue(capabilities.isCanDisable());
+    }
+
+    @Test
+    @DisplayName("MEM-027 a community admin may not enable or disable an admin's membership")
+    void aCommunityAdminMayNotChangeTheStateOfAnAdminsMembership() {
+        Community community = CapabilityFixtures.community();
+        CommunityMembership adminMembership = CapabilityFixtures.membershipOf(
+                CapabilityFixtures.stranger(), community, CommunityRole.COMMUNITY_ADMIN, true);
+
+        MembershipCapabilitiesResponse capabilities =
+                membershipAssembler.assemble(CapabilityFixtures.adminOf(community), adminMembership);
+
+        assertFalse(capabilities.isCanEnable());
+        assertFalse(capabilities.isCanDisable());
+    }
+
+    @Test
+    @DisplayName("MEM-027 a community admin may enable a disabled member's membership: the capability is not its state")
+    void aCommunityAdminMayChangeTheStateOfADisabledMembersMembership() {
+        Community community = CapabilityFixtures.community();
+        CommunityMembership disabled = CapabilityFixtures.membershipOf(
+                CapabilityFixtures.stranger(), community, CommunityRole.COMMUNITY_MEMBER, false);
+
+        MembershipCapabilitiesResponse capabilities =
+                membershipAssembler.assemble(CapabilityFixtures.adminOf(community), disabled);
+
+        assertTrue(capabilities.isCanEnable());
+        assertTrue(capabilities.isCanDisable());
     }
 
     /**
@@ -55,6 +86,8 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanManageInvestment());
         assertFalse(capabilities.isCanInvite());
+        assertFalse(capabilities.isCanEnable());
+        assertFalse(capabilities.isCanDisable());
     }
 
     @Test
@@ -85,6 +118,9 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanManageInvestment());
         assertFalse(capabilities.isCanReadPayback());
         assertFalse(capabilities.isCanInvite());
+        // Suspending a member is the community's decision, with no platform-admin bypass (MEM-027).
+        assertFalse(capabilities.isCanEnable());
+        assertFalse(capabilities.isCanDisable());
     }
 
     @Test

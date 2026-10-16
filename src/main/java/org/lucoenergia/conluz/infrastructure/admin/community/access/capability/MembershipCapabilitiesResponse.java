@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * the agreement's {@code status} that says the action would be rejected right now. Clients read
  * both.</p>
  */
-@Schema(description = "What the caller may do with this membership.", requiredProperties = {"canUpdateRole", "canDelete", "canManageInvestment", "canReadPayback", "canInvite"})
+@Schema(description = "What the caller may do with this membership.", requiredProperties = {"canUpdateRole", "canDelete", "canManageInvestment", "canReadPayback", "canInvite", "canEnable", "canDisable"})
 public class MembershipCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may change this membership's role.")
@@ -29,12 +29,20 @@ public class MembershipCapabilitiesResponse {
     @Schema(description = "Whether the caller may invite this member to accept the membership, and resend or revoke its invitation. Whether one can be sent right now depends on the membership's state, its contact email and how many invitations it has been sent in the last 24 hours.")
     private final boolean canInvite;
 
+    @Schema(description = "Whether the caller may enable this membership (POST /api/v1/communities/{communityId}/memberships/{userId}/enable). Only an active admin of the community, and only on a membership with the COMMUNITY_MEMBER role. Whether it is disabled right now is the membership's enabled field.")
+    private final boolean canEnable;
+
+    @Schema(description = "Whether the caller may disable this membership (POST /api/v1/communities/{communityId}/memberships/{userId}/disable). Only an active admin of the community, and only on a membership with the COMMUNITY_MEMBER role. Whether it is enabled right now is the membership's enabled field.")
+    private final boolean canDisable;
+
     private MembershipCapabilitiesResponse(Builder builder) {
         this.canUpdateRole = builder.canUpdateRole;
         this.canDelete = builder.canDelete;
         this.canManageInvestment = builder.canManageInvestment;
         this.canReadPayback = builder.canReadPayback;
         this.canInvite = builder.canInvite;
+        this.canEnable = builder.canEnable;
+        this.canDisable = builder.canDisable;
     }
 
     public boolean isCanUpdateRole() {
@@ -57,6 +65,14 @@ public class MembershipCapabilitiesResponse {
         return canInvite;
     }
 
+    public boolean isCanEnable() {
+        return canEnable;
+    }
+
+    public boolean isCanDisable() {
+        return canDisable;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -72,6 +88,8 @@ public class MembershipCapabilitiesResponse {
         private boolean canManageInvestment;
         private boolean canReadPayback;
         private boolean canInvite;
+        private boolean canEnable;
+        private boolean canDisable;
 
         public Builder withCanUpdateRole(boolean canUpdateRole) {
             this.canUpdateRole = canUpdateRole;
@@ -95,6 +113,16 @@ public class MembershipCapabilitiesResponse {
 
         public Builder withCanInvite(boolean canInvite) {
             this.canInvite = canInvite;
+            return this;
+        }
+
+        public Builder withCanEnable(boolean canEnable) {
+            this.canEnable = canEnable;
+            return this;
+        }
+
+        public Builder withCanDisable(boolean canDisable) {
+            this.canDisable = canDisable;
             return this;
         }
 

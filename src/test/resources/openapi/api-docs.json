@@ -1224,6 +1224,14 @@
             "description" : "Whether the caller may remove this membership from the community.",
             "type" : "boolean"
           },
+          "canDisable" : {
+            "description" : "Whether the caller may disable this membership (POST /api/v1/communities/{communityId}/memberships/{userId}/disable). Only an active admin of the community, and only on a membership with the COMMUNITY_MEMBER role. Whether it is enabled right now is the membership's enabled field.",
+            "type" : "boolean"
+          },
+          "canEnable" : {
+            "description" : "Whether the caller may enable this membership (POST /api/v1/communities/{communityId}/memberships/{userId}/enable). Only an active admin of the community, and only on a membership with the COMMUNITY_MEMBER role. Whether it is disabled right now is the membership's enabled field.",
+            "type" : "boolean"
+          },
           "canInvite" : {
             "description" : "Whether the caller may invite this member to accept the membership, and resend or revoke its invitation. Whether one can be sent right now depends on the membership's state, its contact email and how many invitations it has been sent in the last 24 hours.",
             "type" : "boolean"
@@ -1243,6 +1251,8 @@
         },
         "required" : [
           "canDelete",
+          "canDisable",
+          "canEnable",
           "canInvite",
           "canManageInvestment",
           "canReadPayback",
@@ -7625,6 +7635,264 @@
           }
         ],
         "summary" : "Retrieves the monthly consumption of every supply of a membership, added up per month.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/{userId}/disable" : {
+      "post" : {
+        "description" : "Disables a member's membership of this community: from the member's next request it grants no access to this community, while their other communities are unaffected, and no invitation is sent to it. Only the membership is written, never the account, which the person shares with their other communities. Disabling a disabled membership changes nothing.\n\nThis is how a community suspends a member: a community admin cannot disable the account itself (`POST /api/v1/users/{userId}/disable`).\n\nOnly memberships with the COMMUNITY_MEMBER role, pending or accepted: a membership with any other role, or none, is answered 404. Admin memberships are disabled by the platform admin (`POST /api/v1/communities/{communityId}/admins/{userId}/disable`).\n\n**Required: Community Admin of this community.** A platform admin who is not one is refused with 403.\n",
+        "operationId" : "disableMembership",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "Membership disabled"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Disables a member's membership.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/{userId}/enable" : {
+      "post" : {
+        "description" : "Enables a member's membership of this community, so that it grants access to this community again once it is accepted. Only the membership is written, never the account, which the person shares with their other communities. Enabling an enabled membership changes nothing.\n\nOnly memberships with the COMMUNITY_MEMBER role, pending or accepted: a membership with any other role, or none, is answered 404. Admin memberships are enabled by the platform admin (`POST /api/v1/communities/{communityId}/admins/{userId}/enable`).\n\n**Required: Community Admin of this community.** A platform admin who is not one is refused with 403.\n",
+        "operationId" : "enableMembership",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "Membership enabled"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Enables a member's membership.",
         "tags" : [
           "Memberships"
         ]
