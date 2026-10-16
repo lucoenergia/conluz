@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.shared.email.EmailAddresses;
 import org.lucoenergia.conluz.infrastructure.shared.personalid.NotEmptyOnceNormalised;
 
 @Schema(requiredProperties = {"personalId", "fullName"})
@@ -25,7 +26,7 @@ public class RegisterMemberBody {
     @Min(value = 0)
     private Integer memberNumber;
 
-    @Schema(description = "The email address this community contacts the member at. If given, the member is emailed an invitation to accept the membership. Omit it, or send null or an empty string, if there is none.",
+    @Schema(description = "The email address this community contacts the member at. Registering sends nothing: the invitation to accept the membership is sent to this address with sendInvitation. Omit it, or send null, an empty or a blank string, if there is none.",
             types = {"string", "null"})
     @Email
     private String contactEmail;
@@ -67,7 +68,8 @@ public class RegisterMemberBody {
     }
 
     public void setContactEmail(String contactEmail) {
-        this.contactEmail = contactEmail;
+        // Before validation, so that only a value that is not blank is checked as an email address
+        this.contactEmail = EmailAddresses.blankToNull(contactEmail);
     }
 
     public String getAddress() {
