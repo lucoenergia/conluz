@@ -39,3 +39,14 @@ jobs:
       # uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
       # with:
       #   arguments: build
+
+    - name: Publish test report
+      if: ${{ !cancelled() }}
+      uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6.5.0
+      with:
+        report_paths: 'build/test-results/test/*.xml'
+        annotate_only: true
+        job_summary: true
+        detailed_summary: true
+        include_passed: false
+        require_tests: false
