@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -108,7 +108,7 @@ public class GetSuppliesByUserIdController {
                         supplies.stream().map(Supply::getUser).filter(Objects::nonNull).toList());
 
         // One query for the member records of every owner on this page as well.
-        Function<Supply, MemberData> ownerData = memberDataAssembler.ofSupplyOwners(supplies);
+        Function<Supply, MemberDataView> ownerData = memberDataAssembler.ofSupplyOwners(supplies);
 
         return supplies.stream()
                 .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),

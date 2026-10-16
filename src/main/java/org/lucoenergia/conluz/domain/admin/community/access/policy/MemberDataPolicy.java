@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
 import java.util.Comparator;
@@ -31,8 +31,8 @@ public class MemberDataPolicy {
      *
      * @param memberRecord the user's membership in that community, or {@code null} if they have none
      */
-    public MemberData inCommunity(CommunityMembership memberRecord) {
-        return memberRecord != null ? MemberData.ofRecord(memberRecord) : MemberData.absent();
+    public MemberDataView inCommunity(CommunityMembership memberRecord) {
+        return memberRecord != null ? MemberDataView.ofRecord(memberRecord) : MemberDataView.absent();
     }
 
     /**
@@ -40,22 +40,22 @@ public class MemberDataPolicy {
      * caller sees the user's member record in a community the caller administers, the one with the lowest id when
      * there are several, and no member data when there is none.
      */
-    public MemberData forUser(User caller, User target, Supplier<List<CommunityMembership>> targetMemberships) {
+    public MemberDataView forUser(User caller, User target, Supplier<List<CommunityMembership>> targetMemberships) {
         if (CallerMemberships.isCurrentUser(caller, target.getId()) || CallerMemberships.isPlatformAdmin(caller)) {
-            return MemberData.ofAccount(target);
+            return MemberDataView.ofAccount(target);
         }
         Set<UUID> administered = CallerMemberships.adminCommunityIds(caller);
         if (administered.isEmpty()) {
-            return MemberData.absent();
+            return MemberDataView.absent();
         }
         List<CommunityMembership> memberships = targetMemberships.get();
         if (memberships == null) {
-            return MemberData.absent();
+            return MemberDataView.absent();
         }
         return memberships.stream()
                 .filter(m -> m.getCommunity() != null && administered.contains(m.getCommunity().getId()))
                 .min(LOWEST_COMMUNITY_ID)
-                .map(MemberData::ofRecord)
-                .orElse(MemberData.absent());
+                .map(MemberDataView::ofRecord)
+                .orElse(MemberDataView.absent());
     }
 }

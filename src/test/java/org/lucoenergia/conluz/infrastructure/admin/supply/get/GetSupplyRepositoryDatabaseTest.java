@@ -5,7 +5,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
@@ -396,7 +396,7 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
         // assemblers, which ListEndpointQueryCountTest covers.
         SupplyCapabilitiesResponse capabilities = SupplyCapabilitiesResponse.builder().build();
         UserCapabilitiesResponse ownerCapabilities = UserCapabilitiesResponse.builder().build();
-        MemberData ownerData = MemberData.absent();
+        MemberDataView ownerData = MemberDataView.absent();
 
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();

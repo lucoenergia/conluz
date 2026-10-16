@@ -7,7 +7,8 @@ import java.util.regex.Pattern;
 /**
  * The data a community holds about one of its members, exactly as the community entered it (ADR-0003 §1).
  * Every value but the full name is optional, and an optional value that is empty or blank is recorded as
- * {@code null}: "not recorded" has one spelling. Nothing is trimmed.
+ * {@code null}: "not recorded" has one spelling. Nothing is trimmed. This is what is written to a record; what a
+ * response shows is {@link MemberDataView}.
  */
 public record MemberRecord(String fullName, Integer memberNumber, String contactEmail, String address,
                            String phoneNumber) {

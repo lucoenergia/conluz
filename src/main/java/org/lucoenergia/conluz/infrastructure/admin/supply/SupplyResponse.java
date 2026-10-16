@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
@@ -52,7 +52,7 @@ public class SupplyResponse {
      *                          (MEM-026); a listing reads those records once for the whole page.
      */
     public SupplyResponse(Supply supply, SupplyCapabilitiesResponse capabilities,
-                          UserCapabilitiesResponse ownerCapabilities, MemberData ownerData) {
+                          UserCapabilitiesResponse ownerCapabilities, MemberDataView ownerData) {
         this.id = supply.getId();
         this.code = supply.getCode();
         this.name = supply.getName();

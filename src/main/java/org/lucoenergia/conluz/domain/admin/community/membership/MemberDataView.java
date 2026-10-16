@@ -8,17 +8,17 @@ import org.lucoenergia.conluz.domain.admin.user.User;
  * the account or from one member record (MEM-026). Values are carried exactly as stored, unlike
  * {@link MemberRecord}, which normalises what a community enters.
  */
-public record MemberData(String fullName, Integer number, String email, String address, String phoneNumber) {
+public record MemberDataView(String fullName, Integer number, String email, String address, String phoneNumber) {
 
-    private static final MemberData ABSENT = new MemberData("", null, null, null, null);
+    private static final MemberDataView ABSENT = new MemberDataView("", null, null, null, null);
 
-    public static MemberData ofAccount(User user) {
-        return new MemberData(user.getFullName(), user.getNumber(), user.getEmail(), user.getAddress(),
+    public static MemberDataView ofAccount(User user) {
+        return new MemberDataView(user.getFullName(), user.getNumber(), user.getEmail(), user.getAddress(),
                 user.getPhoneNumber());
     }
 
-    public static MemberData ofRecord(CommunityMembership membership) {
-        return new MemberData(membership.getFullName(), membership.getMemberNumber(), membership.getContactEmail(),
+    public static MemberDataView ofRecord(CommunityMembership membership) {
+        return new MemberDataView(membership.getFullName(), membership.getMemberNumber(), membership.getContactEmail(),
                 membership.getAddress(), membership.getPhoneNumber());
     }
 
@@ -26,7 +26,7 @@ public record MemberData(String fullName, Integer number, String email, String a
      * No member data: there is no member record to read, and the account must not be read instead. The full name
      * is empty rather than null because every response declares it as a string.
      */
-    public static MemberData absent() {
+    public static MemberDataView absent() {
         return ABSENT;
     }
 }

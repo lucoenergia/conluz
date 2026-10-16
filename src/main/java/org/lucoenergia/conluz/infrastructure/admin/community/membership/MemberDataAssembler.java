@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.AccessPolicies;
@@ -38,14 +38,14 @@ public class MemberDataAssembler {
     /**
      * The owner's member record in the supply's community.
      */
-    public MemberData ofSupplyOwner(Supply supply) {
+    public MemberDataView ofSupplyOwner(Supply supply) {
         return ofSupplyOwners(List.of(supply)).apply(supply);
     }
 
     /**
      * Each owner's member record in their supply's community, read in one query for all the supplies.
      */
-    public Function<Supply, MemberData> ofSupplyOwners(Collection<Supply> supplies) {
+    public Function<Supply, MemberDataView> ofSupplyOwners(Collection<Supply> supplies) {
         Set<UUID> ownerIds = supplies.stream()
                 .map(Supply::getUser)
                 .filter(Objects::nonNull)
@@ -67,7 +67,7 @@ public class MemberDataAssembler {
     /**
      * What the caller sees about a user who carries all their memberships. Issues no query.
      */
-    public MemberData forUserWithLoadedMemberships(User caller, User target) {
+    public MemberDataView forUserWithLoadedMemberships(User caller, User target) {
         return policies.memberData().forUser(caller, target, target::getMemberships);
     }
 
@@ -75,7 +75,7 @@ public class MemberDataAssembler {
      * What the caller sees about a user whose memberships are not loaded. Queries them only when the caller is
      * neither the user nor the platform admin.
      */
-    public MemberData forUserFetchingMemberships(User caller, User target) {
+    public MemberDataView forUserFetchingMemberships(User caller, User target) {
         return policies.memberData().forUser(caller, target,
                 () -> getMembershipsRepository.findByUserId(target.getId()));
     }

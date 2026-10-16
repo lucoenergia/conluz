@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.UserScope;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
@@ -46,18 +46,18 @@ public class UserResponse {
      * change one.
      */
     public UserResponse(User user, UserCapabilitiesResponse capabilities, UserScope scope) {
-        this(user, MemberData.ofAccount(user), capabilities, scope);
+        this(user, MemberDataView.ofAccount(user), capabilities, scope);
     }
 
     /**
      * A user showing the given member data, read from the account or from a member record (MEM-026). Every other
      * field still comes from the account.
      */
-    public UserResponse(User user, MemberData memberData, UserCapabilitiesResponse capabilities) {
+    public UserResponse(User user, MemberDataView memberData, UserCapabilitiesResponse capabilities) {
         this(user, memberData, capabilities, UserScope.all());
     }
 
-    public UserResponse(User user, MemberData memberData, UserCapabilitiesResponse capabilities, UserScope scope) {
+    public UserResponse(User user, MemberDataView memberData, UserCapabilitiesResponse capabilities, UserScope scope) {
         id = user.getId();
         personalId = user.getPersonalId();
         number = memberData.number();

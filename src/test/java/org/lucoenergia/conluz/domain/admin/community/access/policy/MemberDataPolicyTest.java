@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberData;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 
@@ -30,13 +30,13 @@ class MemberDataPolicyTest {
     void inCommunity_isTheRecord() {
         CommunityMembership record = record(PolicyFixtures.community(), "Name in A");
 
-        assertEquals(MemberData.ofRecord(record), policy.inCommunity(record));
+        assertEquals(MemberDataView.ofRecord(record), policy.inCommunity(record));
     }
 
     @Test
     @DisplayName("MEM-026 Inside a community, a user without a record has no member data")
     void inCommunity_isAbsent_withoutARecord() {
-        assertEquals(new MemberData("", null, null, null, null), policy.inCommunity(null));
+        assertEquals(new MemberDataView("", null, null, null, null), policy.inCommunity(null));
     }
 
     // --- forUser ---
@@ -47,7 +47,7 @@ class MemberDataPolicyTest {
         User user = UserMother.randomUser();
         AtomicInteger loads = new AtomicInteger();
 
-        assertEquals(MemberData.ofAccount(user), policy.forUser(user, user, counting(loads, List.of())));
+        assertEquals(MemberDataView.ofAccount(user), policy.forUser(user, user, counting(loads, List.of())));
         assertEquals(0, loads.get());
     }
 
@@ -58,7 +58,7 @@ class MemberDataPolicyTest {
         User target = UserMother.randomUser();
         AtomicInteger loads = new AtomicInteger();
 
-        assertEquals(MemberData.ofAccount(target), policy.forUser(PolicyFixtures.platformAdmin(), target,
+        assertEquals(MemberDataView.ofAccount(target), policy.forUser(PolicyFixtures.platformAdmin(), target,
                 counting(loads, List.of(record(community, "Name in A")))));
         assertEquals(0, loads.get());
     }
@@ -70,7 +70,7 @@ class MemberDataPolicyTest {
         Community other = PolicyFixtures.community();
         CommunityMembership recordInAdministered = record(administered, "Name in A");
 
-        assertEquals(MemberData.ofRecord(recordInAdministered),
+        assertEquals(MemberDataView.ofRecord(recordInAdministered),
                 policy.forUser(PolicyFixtures.adminOf(administered), UserMother.randomUser(),
                         () -> List.of(record(other, "Name in B"), recordInAdministered)));
     }
@@ -84,10 +84,10 @@ class MemberDataPolicyTest {
         CommunityMembership recordInLow = record(low, "Name in low");
         CommunityMembership recordInHigh = record(high, "Name in high");
 
-        MemberData seen = policy.forUser(adminOf(low, high), UserMother.randomUser(),
+        MemberDataView seen = policy.forUser(adminOf(low, high), UserMother.randomUser(),
                 () -> List.of(recordInHigh, recordInLow));
 
-        assertEquals(MemberData.ofRecord(recordInLow), seen);
+        assertEquals(MemberDataView.ofRecord(recordInLow), seen);
     }
 
     @Test
@@ -95,9 +95,9 @@ class MemberDataPolicyTest {
     void forUser_isAbsent_withoutASharedAdministeredCommunity() {
         Community community = PolicyFixtures.community();
 
-        assertEquals(MemberData.absent(), policy.forUser(PolicyFixtures.adminOf(PolicyFixtures.community()),
+        assertEquals(MemberDataView.absent(), policy.forUser(PolicyFixtures.adminOf(PolicyFixtures.community()),
                 UserMother.randomUser(), () -> List.of(record(community, "Name in A"))));
-        assertEquals(MemberData.absent(), policy.forUser(PolicyFixtures.memberOf(community),
+        assertEquals(MemberDataView.absent(), policy.forUser(PolicyFixtures.memberOf(community),
                 UserMother.randomUser(), () -> List.of(record(community, "Name in A"))));
     }
 
@@ -106,7 +106,7 @@ class MemberDataPolicyTest {
     void forUser_ignoresAPendingAdminMembership() {
         Community community = PolicyFixtures.community();
 
-        assertEquals(MemberData.absent(), policy.forUser(PolicyFixtures.pendingAdminOf(community),
+        assertEquals(MemberDataView.absent(), policy.forUser(PolicyFixtures.pendingAdminOf(community),
                 UserMother.randomUser(), () -> List.of(record(community, "Name in A"))));
     }
 
