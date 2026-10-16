@@ -92,6 +92,21 @@ public class MembershipAccessPolicy {
     }
 
     /**
+     * Editing the member records of a community: only its active community admins, with no platform-admin bypass.
+     * A member record is what the community itself knows about a member (ADR-0003 §1), so only the community's own
+     * administration changes it. Any membership of the community may be edited, whatever its role and state, so the
+     * target plays no part here. A member can see the community, so they are forbidden rather than not-found.
+     */
+    public AccessDecision canEditMemberRecords(User caller, UUID communityId) {
+        if (!CallerMemberships.canSeeCommunity(caller, communityId)) {
+            return AccessDecision.NOT_VISIBLE;
+        }
+        return CallerMemberships.hasCommunityAdminRoleIn(caller, communityId)
+                ? AccessDecision.ALLOWED
+                : AccessDecision.FORBIDDEN;
+    }
+
+    /**
      * Setting or clearing the investment recorded on a membership. Stricter than
      * {@link #canManageMemberships}: an investment is the member's own money, and administering the
      * platform is not the same as administering this community's finances, so there is no

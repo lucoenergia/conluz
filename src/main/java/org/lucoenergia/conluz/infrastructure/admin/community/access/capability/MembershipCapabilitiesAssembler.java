@@ -42,6 +42,7 @@ public class MembershipCapabilitiesAssembler {
                 .withCanInvite(policies.membership().canInviteMembers(caller, communityId).isAllowed())
                 .withCanEnable(canChangeState)
                 .withCanDisable(canChangeState)
+                .withCanEditRecord(policies.membership().canEditMemberRecords(caller, communityId).isAllowed())
                 .build();
     }
 }

@@ -116,6 +116,63 @@ class MembershipAccessPolicyTest {
                 policy.canRegisterMembers(PolicyFixtures.adminOf(PolicyFixtures.community()), UUID.randomUUID()));
     }
 
+    // --- canEditMemberRecords ---
+    // Only an active community admin of the community: no platform-admin bypass, and no check on the target.
+
+    @Test
+    @DisplayName("MEM-028 an active community admin may edit the member records of their community")
+    void canEditMemberRecords_allows_anActiveCommunityAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.ALLOWED,
+                policy.canEditMemberRecords(PolicyFixtures.adminOf(community), community.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-028 a platform admin who is not an admin of the community is forbidden")
+    void canEditMemberRecords_forbids_aPlatformAdminWhoIsNotACommunityAdminThere() {
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canEditMemberRecords(PolicyFixtures.platformAdmin(), UUID.randomUUID()));
+    }
+
+    @Test
+    @DisplayName("MEM-028 a platform admin who is a plain member of the community is forbidden")
+    void canEditMemberRecords_forbids_aPlatformAdminWhoIsAPlainMemberThere() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canEditMemberRecords(PolicyFixtures.platformAdminMemberOf(community), community.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-028 a plain member is forbidden")
+    void canEditMemberRecords_forbids_aPlainMember() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canEditMemberRecords(PolicyFixtures.memberOf(community), community.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-028 a pending admin cannot see the community")
+    void canEditMemberRecords_isNotVisible_forAPendingAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canEditMemberRecords(PolicyFixtures.pendingAdminOf(community), community.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-028 a disabled admin cannot see the community")
+    void canEditMemberRecords_isNotVisible_forADisabledAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canEditMemberRecords(PolicyFixtures.disabledAdminOf(community), community.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-028 an admin of another community cannot see the community")
+    void canEditMemberRecords_isNotVisible_forAnAdminOfAnotherCommunity() {
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canEditMemberRecords(PolicyFixtures.adminOf(PolicyFixtures.community()), UUID.randomUUID()));
+    }
+
     // --- canInviteMembers ---
     // The same callers as canRegisterMembers.
 

@@ -113,6 +113,22 @@ class RegisterMemberControllerTest extends BaseSendingMemberTest {
     }
 
     @Test
+    @DisplayName("MEM-007 a blank contact email is recorded as none, not refused")
+    void aBlankContactEmail_isRecordedAsNone() throws Exception {
+        Community community = newCommunity();
+        Map<String, Object> body = newRecord();
+        body.put("contactEmail", "  ");
+
+        register(loginAsAdminOf(community), community.getId(), body)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contactEmail").isEmpty());
+
+        assertThat(membershipRow((String) body.get("personalId"), community.getId()).get("contact_email")).isNull();
+        assertThat(accountRow((String) body.get("personalId")).get("email")).isNull();
+        verify(emailSender, never()).send(any());
+    }
+
+    @Test
     @DisplayName("MEM-007 empty or blank optional values of the record are recorded as none, and nothing is trimmed")
     void emptyOrBlankOptionalValues_areRecordedAsNone() throws Exception {
         Community community = newCommunity();
@@ -509,7 +525,8 @@ class RegisterMemberControllerTest extends BaseSendingMemberTest {
                 .isEqualTo(accountRow(json.get("personalId").asText()).get("id").toString());
         assertThat(fieldNames(json.get("community"))).isEqualTo(new TreeSet<>(Set.of("id", "name")));
         assertThat(fieldNames(json.get("capabilities"))).isEqualTo(new TreeSet<>(Set.of("canUpdateRole", "canDelete",
-                "canManageInvestment", "canReadPayback", "canInvite", "canEnable", "canDisable")));
+                "canManageInvestment", "canReadPayback", "canInvite", "canEnable", "canDisable",
+                "canEditRecord")));
     }
 
     // --- Logging ---

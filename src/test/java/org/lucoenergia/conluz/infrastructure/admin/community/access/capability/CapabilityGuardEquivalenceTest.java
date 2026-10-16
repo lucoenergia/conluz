@@ -336,6 +336,28 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
                     () -> guard.canChangeMemberState(communityId, userId));
             assertSame("canDisable", capabilities.isCanDisable(),
                     () -> guard.canChangeMemberState(communityId, userId));
+            assertSame("canEditRecord", capabilities.isCanEditRecord(),
+                    () -> guard.canEditMemberRecord(communityId));
+        });
+    }
+
+    /**
+     * Unlike enabling and disabling, editing a record does not depend on the membership's role: on an admin's
+     * membership the capability and the guard must still agree, for every caller.
+     */
+    @Test
+    @DisplayName("MEM-028 editing an admin's member record is reported as its guard decides it")
+    void theRecordCapabilityEqualsItsGuardOnAnAdminsMembership() {
+        User admin = persistUser();
+        createMembershipService.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        CommunityMembership membership = getMembershipsRepository
+                .findByUserIdAndCommunityId(admin.getId(), communityA.getId()).orElseThrow();
+        UUID communityId = communityA.getId();
+
+        forEachCaller(caller -> {
+            MembershipCapabilitiesResponse capabilities = membershipAssembler.assemble(caller, membership);
+            assertSame("canEditRecord", capabilities.isCanEditRecord(),
+                    () -> guard.canEditMemberRecord(communityId));
         });
     }
 

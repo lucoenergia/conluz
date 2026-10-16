@@ -130,6 +130,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canEditMemberRecord(UUID communityId) {
+        return membershipAccessGuard.canEditMemberRecord(communityId);
+    }
+
+    @Override
     public boolean canManageMembershipInvestment(UUID communityId) {
         return membershipAccessGuard.canManageMembershipInvestment(communityId);
     }

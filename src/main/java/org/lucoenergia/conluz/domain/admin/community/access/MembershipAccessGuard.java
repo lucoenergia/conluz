@@ -44,6 +44,14 @@ public interface MembershipAccessGuard {
     boolean canChangeMemberState(UUID communityId, UUID userId);
 
     /**
+     * Whether the current user may edit the member records of this community. The same callers as
+     * {@link #canRegisterMembers(UUID)}, with the same outcomes, on any membership of the community whatever its
+     * role and state. Whether the membership exists is not decided here: the service performs that lookup and
+     * answers 404 on its own.
+     */
+    boolean canEditMemberRecord(UUID communityId);
+
+    /**
      * Whether the current user may set or clear the investment recorded on a membership of this
      * community. Stricter than {@link #canManageMemberships(UUID)}, which lets any platform admin
      * through: an investment is the member's own money, and administering the platform is not the

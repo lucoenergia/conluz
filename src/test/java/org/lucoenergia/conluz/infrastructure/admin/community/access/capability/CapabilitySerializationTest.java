@@ -54,7 +54,7 @@ class CapabilitySerializationTest {
 
         assertKeys(MembershipCapabilitiesResponse.builder().build(),
                 Set.of("canUpdateRole", "canDelete", "canManageInvestment", "canReadPayback", "canInvite",
-                        "canEnable", "canDisable"));
+                        "canEnable", "canDisable", "canEditRecord"));
 
         assertKeys(PartitionCoefficientCapabilitiesResponse.builder().build(),
                 Set.of("canReadSharingAgreement"));

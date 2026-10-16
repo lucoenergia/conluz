@@ -1228,6 +1228,10 @@
             "description" : "Whether the caller may disable this membership (POST /api/v1/communities/{communityId}/memberships/{userId}/disable). Only an active admin of the community, and only on a membership with the COMMUNITY_MEMBER role. Whether it is enabled right now is the membership's enabled field.",
             "type" : "boolean"
           },
+          "canEditRecord" : {
+            "description" : "Whether the caller may edit this membership's member record (PUT /api/v1/communities/{communityId}/memberships/{userId}/record). Only an active admin of the community, on any membership of it whatever its role and state. Whether a change is accepted right now depends on the record sent: a membership with the COMMUNITY_ADMIN role must keep a contact email.",
+            "type" : "boolean"
+          },
           "canEnable" : {
             "description" : "Whether the caller may enable this membership (POST /api/v1/communities/{communityId}/memberships/{userId}/enable). Only an active admin of the community, and only on a membership with the COMMUNITY_MEMBER role. Whether it is disabled right now is the membership's enabled field.",
             "type" : "boolean"
@@ -1252,6 +1256,7 @@
         "required" : [
           "canDelete",
           "canDisable",
+          "canEditRecord",
           "canEnable",
           "canInvite",
           "canManageInvestment",
@@ -2119,7 +2124,7 @@
             ]
           },
           "contactEmail" : {
-            "description" : "The email address this community contacts the member at. If given, the member is emailed an invitation to accept the membership. Omit it, or send null or an empty string, if there is none.",
+            "description" : "The email address this community contacts the member at. Registering sends nothing: the invitation to accept the membership is sent to this address with sendInvitation. Omit it, or send null, an empty or a blank string, if there is none.",
             "type" : [
               "string",
               "null"
@@ -3333,6 +3338,49 @@
         "required" : [
           "code",
           "name"
+        ],
+        "type" : "object"
+      },
+      "UpdateMemberRecordBody" : {
+        "properties" : {
+          "address" : {
+            "description" : "The member's address, as this community records it. Omit it, or send null, an empty or a blank string, if there is none; one already recorded is then cleared.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "contactEmail" : {
+            "description" : "The email address this community contacts the member at, and where the next invitation is sent. Omit it, or send null, an empty or a blank string, if there is none; one already recorded is then cleared. A membership with the COMMUNITY_ADMIN role must keep one.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "fullName" : {
+            "description" : "The member's full name, as this community records it.",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "memberNumber" : {
+            "description" : "The member's number in this community. Omit it, or send null, if the community does not record one; a number already recorded is then cleared.",
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : [
+              "integer",
+              "null"
+            ]
+          },
+          "phoneNumber" : {
+            "description" : "The member's phone number, as this community records it. Omit it, or send null, an empty or a blank string, if there is none; one already recorded is then cleared.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "fullName"
         ],
         "type" : "object"
       },
@@ -9169,6 +9217,152 @@
           }
         ],
         "summary" : "Retrieves a membership's payback progress.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/{userId}/record" : {
+      "put" : {
+        "description" : "Replaces the record this community keeps on a member: full name, member number, contact email, address and phone number. The whole record is sent: an optional value that is missing, null, empty or blank is cleared. Only the record is written, never the person's account, which they share with their other communities, nor the membership's role, state or invitation.\n\nAny membership of the community may be edited, whatever its role and whether it is pending, accepted or disabled, the caller's own included. A user with no membership in the community responds 404.\n\nA membership with the `COMMUNITY_ADMIN` role must keep a contact email: a record without one responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and nothing is changed.\n\nAn invitation link already sent stays valid; the next invitation, or resend, goes to the new contact email.\n\n**Required: Community Admin of this community.** A platform admin who is not one is refused with 403.\n",
+        "operationId" : "updateMemberRecord",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateMemberRecordBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberResponse"
+                }
+              }
+            },
+            "description" : "Member record updated"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Replaces the member record of a membership.",
         "tags" : [
           "Memberships"
         ]
