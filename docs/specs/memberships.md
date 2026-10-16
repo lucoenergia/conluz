@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMembershipRole`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #415 |
+| **Last reviewed against code** | #416 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how the existing creation paths and member registration fill the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, what giving a membership the admin role requires, which memberships grant access, and where responses read member data from; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships and edits member records, what giving a membership the admin role requires, which memberships grant access, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -432,6 +432,26 @@ lazily, as issues touch it.
   it (ADR-0003 §2). Admin memberships stay with the platform admin, who appoints and suspends admins (#395).
   Memberships are read again on every request (#390), so no session needs revoking.
 - **Source:** #415, #395, ADR-0003 §1 and §2
+
+### MEM-028 — A community admin edits the member records of their community
+
+- **Status:** Active
+- **Rule:** Only an active community admin of the community MAY change a member record in it through
+  `updateMemberRecord`; a platform admin who is not one MUST be refused with 403. Any membership of the community
+  MAY be edited, whatever its role and state, the caller's own included; a user with no membership in it MUST be
+  answered 404. The request replaces the whole record: a contact email, address or phone number that is missing,
+  empty or blank, and a missing member number, MUST be stored as none, and nothing is trimmed. A membership with
+  the role `COMMUNITY_ADMIN` whose new record has no contact email MUST be refused with 400
+  `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`, changing nothing. The change MUST write only the record's full name, member
+  number, contact email, address and phone number, never the account, the role, the state or the invitation, and
+  MUST take the user, then the membership lock. An invitation link already sent stays valid; the next send or
+  resend goes to the new contact email (MEM-009, MEM-010). It MUST log one line with the user and the community,
+  and never an email address.
+- **Rationale:** The account belongs to the person and is shared by every community they belong to; what a
+  community knows about a member is its own record (ADR-0003 §1), so correcting it must not reach the account
+  or another community (ACC-008). Admins need a contact email (ADR-0003 §8, MEM-024), so it cannot be removed
+  from an admin's record. A blank email is "no email", as everywhere else (ACC-003).
+- **Source:** #416, ADR-0003 §1 and §8
 
 ## Impossible states
 
