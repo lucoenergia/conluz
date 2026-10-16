@@ -71,6 +71,23 @@ tasks.named('test') {
     // Every cached Spring test context stays in memory for the whole run; Gradle's default of 512m runs out
     // a couple of contexts past today's count (see application-test.properties).
     maxHeapSize = '1g'
+    testLogging {
+        events "failed", "skipped"
+        exceptionFormat "full"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+        showStandardStreams false
+        // CI runs Gradle with --info, whose defaults also print every test's standard output
+        info {
+            events "failed", "skipped"
+            exceptionFormat "full"
+            showExceptions true
+            showCauses true
+            showStackTraces true
+            showStandardStreams false
+        }
+    }
 }
 
 jar {
