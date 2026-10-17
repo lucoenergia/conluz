@@ -36,7 +36,7 @@ class CreateSupplyServiceTest {
 
 
     @Test
-    void createLocksTheOwnerBeforeCheckingTheirMembership() {
+    void sup002_createLocksTheOwnerBeforeCheckingTheirMembership() {
         Supply supply = new Supply.Builder().withCode("code").withAddress("address").build();
         User user = UserMother.randomUser();
         UUID communityId = UUID.randomUUID();
@@ -53,7 +53,7 @@ class CreateSupplyServiceTest {
     }
 
     @Test
-    void createRejectsAnOwnerDeletedWhileWaitingForTheLockExactlyLikeAnUnknownOne() {
+    void sup002_createRejectsAnOwnerDeletedWhileWaitingForTheLockExactlyLikeAnUnknownOne() {
         Supply supply = new Supply.Builder().withCode("code").withAddress("address").build();
         User user = UserMother.randomUser();
         UUID communityId = UUID.randomUUID();
