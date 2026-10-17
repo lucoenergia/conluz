@@ -141,7 +141,7 @@ Table "sharing_agreement_file" {
   "content" bytea [not null, note: 'The raw file bytes. Stored verbatim; this phase does not parse the distributor file.']
   "content_hash" text [not null, note: 'Hash of content, to detect re-uploads of the same file.']
   "uploaded_at" timestamp [not null]
-  "uploaded_by" uuid [not null, note: 'The user who uploaded this file. Unlike sharing_agreement.created_by, this is never NULL: every file was uploaded by a real person, even when the owning agreement was created by the system.']
+  "uploaded_by" uuid [note: '''The user who uploaded this file. NULL means the uploader\'s account has been deleted.''']
   Note: 'Evidence file(s) uploaded for a sharing_agreement. Zero files is a valid state; when more than one exists, the most recently uploaded is authoritative.'
 }
 
@@ -232,7 +232,7 @@ Ref "sharing_agreement_created_by_fk":"users"."id" ?<? "sharing_agreement"."crea
 
 Ref "sharing_agreement_file_sharing_agreement_id_fk":"sharing_agreement"."id" <? "sharing_agreement_file"."sharing_agreement_id" [delete: cascade]
 
-Ref "sharing_agreement_file_uploaded_by_fk":"users"."id" <? "sharing_agreement_file"."uploaded_by"
+Ref "sharing_agreement_file_uploaded_by_fk":"users"."id" ?<? "sharing_agreement_file"."uploaded_by" [delete: set null]
 
 Ref "sharing_agreement_plant_id_fk":"plants"."id" <? "sharing_agreement"."plant_id"
 

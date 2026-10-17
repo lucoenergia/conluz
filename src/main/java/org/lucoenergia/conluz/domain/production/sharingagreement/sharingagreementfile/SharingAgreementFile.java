@@ -15,6 +15,9 @@ public class SharingAgreementFile {
     private final byte[] content;
     private final String contentHash;
     private final Instant uploadedAt;
+    /**
+     * The user who uploaded the file, or {@code null} when that user's account has been deleted (#412).
+     */
     private final UUID uploadedBy;
 
     private SharingAgreementFile(Builder builder) {
