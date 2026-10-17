@@ -2295,6 +2295,8 @@
               "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
               "MEMBERSHIP_OWNS_SUPPLIES",
               "COMMUNITY_ALREADY_EXISTS",
+              "SUPPLY_HAS_PLANTS",
+              "SUPPLY_HAS_PARTITION_COEFFICIENTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
               "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
               "SHARING_AGREEMENT_NOT_REVERTIBLE",
@@ -2660,6 +2662,10 @@
             "description" : "Whether the caller may create a plant on this supply (POST /api/v1/plants).",
             "type" : "boolean"
           },
+          "canDelete" : {
+            "description" : "Whether the caller may delete this supply (DELETE /api/v1/supplies/{supplyId}). Authorization only: a supply with plants or partition coefficients is still refused with 409.",
+            "type" : "boolean"
+          },
           "canEdit" : {
             "description" : "Whether the caller may update, enable or disable this supply. Narrower than canRead: the owner can read their supply but only a community admin may change it.",
             "type" : "boolean"
@@ -2675,6 +2681,7 @@
         },
         "required" : [
           "canCreatePlant",
+          "canDelete",
           "canEdit",
           "canRead",
           "canReadPartitionCoefficients"
@@ -7260,7 +7267,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}" : {
       "delete" : {
-        "description" : "Deletes the membership of the specified user in the community, with its member record and its invitation tokens. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.\n\nThe membership of a user who owns supplies in the community is not deleted: the request is answered 409 with `MEMBERSHIP_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`). Supplies the user owns in other communities do not prevent it.\n",
+        "description" : "Deletes the membership of the specified user in the community, with its member record and its invitation tokens. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.\n\nThe membership of a user who owns supplies in the community is not deleted: the request is answered 409 with `MEMBERSHIP_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`); to delete it, delete their supplies in the community first (`DELETE /api/v1/supplies/{supplyId}`). Supplies the user owns in other communities do not prevent it.\n",
         "operationId" : "deleteMembership",
         "parameters" : [
           {
@@ -7369,14 +7376,14 @@
                   "errors" : [
                     {
                       "code" : "MEMBERSHIP_OWNS_SUPPLIES",
-                      "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies in the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so their membership cannot be deleted. To stop their access, disable the membership instead.",
+                      "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies in the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so their membership cannot be deleted. To stop their access, disable the membership instead; to delete it, delete their supplies in the community first.",
                       "params" : {
                         "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
                         "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
                       }
                     }
                   ],
-                  "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies in the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so their membership cannot be deleted. To stop their access, disable the membership instead.",
+                  "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies in the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so their membership cannot be deleted. To stop their access, disable the membership instead; to delete it, delete their supplies in the community first.",
                   "status" : 409,
                   "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
                   "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
@@ -7386,7 +7393,7 @@
                 }
               }
             },
-            "description" : "The user owns supplies in the community, so the membership is not deleted, and nothing is. To stop their access, disable the membership instead."
+            "description" : "The user owns supplies in the community, so the membership is not deleted, and nothing is. To stop their access, disable the membership instead; to delete it, delete their supplies in the community first."
           },
           "500" : {
             "content" : {
@@ -16083,6 +16090,172 @@
       }
     },
     "/api/v1/supplies/{supplyId}" : {
+      "delete" : {
+        "description" : "Deletes the supply with its contract, distributor and Shelly details.\n**Required: Community Admin of the supply's community.** A platform admin who does not administer it is answered 404, as for any other access to a supply.\n\nA supply that a plant is attached to, or for which a sharing agreement holds partition coefficients, is not deleted: the request is answered 409 with `SUPPLY_HAS_PLANTS` or `SUPPLY_HAS_PARTITION_COEFFICIENTS`, and nothing is deleted. To stop using such a supply, disable it instead (`POST /api/v1/supplies/{supplyId}/disable`).\n\nThe supply's consumption and production series are not deleted.\n",
+        "operationId" : "deleteSupply",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "supplyId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "Supply deleted successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Has partition coefficients" : {
+                    "description" : "Has partition coefficients",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "SUPPLY_HAS_PARTITION_COEFFICIENTS",
+                          "message" : "A sharing agreement holds partition coefficients for the supply with ID '3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b', so it cannot be deleted. To stop using it, disable the supply instead.",
+                          "params" : {
+                            "supplyId" : "3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b"
+                          }
+                        }
+                      ],
+                      "message" : "A sharing agreement holds partition coefficients for the supply with ID '3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b', so it cannot be deleted. To stop using it, disable the supply instead.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Has plants" : {
+                    "description" : "Has plants",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "SUPPLY_HAS_PLANTS",
+                          "message" : "A plant is attached to the supply with ID '3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b', so it cannot be deleted. To stop using it, disable the supply instead.",
+                          "params" : {
+                            "supplyId" : "3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b"
+                          }
+                        }
+                      ],
+                      "message" : "A plant is attached to the supply with ID '3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b', so it cannot be deleted. To stop using it, disable the supply instead.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "A plant is attached to the supply, or a sharing agreement holds partition coefficients for it. Nothing is deleted. To stop using the supply, disable it instead."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Removes a supply by ID",
+        "tags" : [
+          "Supplies"
+        ]
+      },
       "get" : {
         "description" : "This endpoint retrieves a supply by its unique identifier.\n\n**Required: Community Admin of the supply's community, or the supply owner.**",
         "operationId" : "getSupply",
@@ -19265,7 +19438,7 @@
     },
     "/api/v1/users/{userId}" : {
       "delete" : {
-        "description" : "    This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.\n\n    To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.\n    **Required: Platform Admin. You cannot delete your own account.**\n\n    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To remove a member from one community, delete their membership instead (`DELETE /api/v1/communities/{communityId}/memberships/{userId}`); to suspend them, disable it (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`).\n\n    Deleting the account also deletes every membership of the user, in every community, with its member record, and every token of the user. Memberships the user invited are kept, with no inviter, and sharing agreements and distributor files the user created, edited or uploaded are kept, with no creator, editor or uploader.\n\n    The account of a user who owns supplies, in any community, is not deleted: the request is answered 409 with `USER_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the account instead (`POST /api/v1/users/{userId}/disable`). The last enabled platform admin is not deleted either (409 `USER_LAST_PLATFORM_ADMIN`).\n\n    Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.\n\n    In cases where the deletion process encounters errors, the server returns an appropriate error status code, along with a descriptive error message to guide clients in diagnosing and addressing the issue.\n",
+        "description" : "    This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.\n\n    To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.\n    **Required: Platform Admin. You cannot delete your own account.**\n\n    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To remove a member from one community, delete their membership instead (`DELETE /api/v1/communities/{communityId}/memberships/{userId}`); to suspend them, disable it (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`).\n\n    Deleting the account also deletes every membership of the user, in every community, with its member record, and every token of the user. Memberships the user invited are kept, with no inviter, and sharing agreements and distributor files the user created, edited or uploaded are kept, with no creator, editor or uploader.\n\n    The account of a user who owns supplies, in any community, is not deleted: the request is answered 409 with `USER_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the account instead (`POST /api/v1/users/{userId}/disable`); to delete it, delete their supplies first (`DELETE /api/v1/supplies/{supplyId}`). The last enabled platform admin is not deleted either (409 `USER_LAST_PLATFORM_ADMIN`).\n\n    Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.\n\n    In cases where the deletion process encounters errors, the server returns an appropriate error status code, along with a descriptive error message to guide clients in diagnosing and addressing the issue.\n",
         "operationId" : "deleteUser",
         "parameters" : [
           {
@@ -19384,13 +19557,13 @@
                       "errors" : [
                         {
                           "code" : "USER_OWNS_SUPPLIES",
-                          "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead.",
+                          "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead; to delete it, delete their supplies first.",
                           "params" : {
                             "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
                           }
                         }
                       ],
-                      "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead.",
+                      "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead; to delete it, delete their supplies first.",
                       "status" : 409,
                       "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
@@ -19402,7 +19575,7 @@
                 }
               }
             },
-            "description" : "The request conflicts with the current state: the user owns supplies, or is the last enabled platform admin. Nothing is deleted. To stop the access of a supply owner, disable the account instead."
+            "description" : "The request conflicts with the current state: the user owns supplies, or is the last enabled platform admin. Nothing is deleted. To stop the access of a supply owner, disable the account instead; to delete it, delete their supplies first."
           },
           "500" : {
             "content" : {

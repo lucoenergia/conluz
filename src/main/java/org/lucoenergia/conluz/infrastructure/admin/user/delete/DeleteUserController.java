@@ -44,7 +44,7 @@ public class DeleteUserController {
 
                     Deleting the account also deletes every membership of the user, in every community, with its member record, and every token of the user. Memberships the user invited are kept, with no inviter, and sharing agreements and distributor files the user created, edited or uploaded are kept, with no creator, editor or uploader.
 
-                    The account of a user who owns supplies, in any community, is not deleted: the request is answered 409 with `USER_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the account instead (`POST /api/v1/users/{userId}/disable`). The last enabled platform admin is not deleted either (409 `USER_LAST_PLATFORM_ADMIN`).
+                    The account of a user who owns supplies, in any community, is not deleted: the request is answered 409 with `USER_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the account instead (`POST /api/v1/users/{userId}/disable`); to delete it, delete their supplies first (`DELETE /api/v1/supplies/{supplyId}`). The last enabled platform admin is not deleted either (409 `USER_LAST_PLATFORM_ADMIN`).
 
                     Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.
 
@@ -61,7 +61,7 @@ public class DeleteUserController {
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "The request conflicts with the current state: the user owns supplies, or is the last enabled platform admin. Nothing is deleted. To stop the access of a supply owner, disable the account instead.",
+                    description = "The request conflicts with the current state: the user owns supplies, or is the last enabled platform admin. Nothing is deleted. To stop the access of a supply owner, disable the account instead; to delete it, delete their supplies first.",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class),
@@ -72,11 +72,11 @@ public class DeleteUserController {
                                                     {
                                                        "timestamp": "2026-10-17T10:10:25.534035352+02:00",
                                                        "status": 409,
-                                                       "message": "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead.",
+                                                       "message": "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead; to delete it, delete their supplies first.",
                                                        "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
                                                        "errors": [
                                                          {
-                                                           "message": "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead.",
+                                                           "message": "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead; to delete it, delete their supplies first.",
                                                            "code": "USER_OWNS_SUPPLIES",
                                                            "params": {
                                                              "userId": "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"

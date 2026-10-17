@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * the agreement's {@code status} that says the action would be rejected right now. Clients read
  * both.</p>
  */
-@Schema(description = "What the caller may do with this supply.", requiredProperties = {"canRead", "canEdit", "canReadPartitionCoefficients", "canCreatePlant"})
+@Schema(description = "What the caller may do with this supply.", requiredProperties = {"canRead", "canEdit", "canDelete", "canReadPartitionCoefficients", "canCreatePlant"})
 public class SupplyCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may read this supply and its consumption and production series.")
@@ -19,6 +19,9 @@ public class SupplyCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may update, enable or disable this supply. Narrower than canRead: the owner can read their supply but only a community admin may change it.")
     private final boolean canEdit;
+
+    @Schema(description = "Whether the caller may delete this supply (DELETE /api/v1/supplies/{supplyId}). Authorization only: a supply with plants or partition coefficients is still refused with 409.")
+    private final boolean canDelete;
 
     @Schema(description = "Whether the caller may read this supply's partition coefficients. The same access reading the supply requires -- the coefficients describe the owner's own share.")
     private final boolean canReadPartitionCoefficients;
@@ -29,6 +32,7 @@ public class SupplyCapabilitiesResponse {
     private SupplyCapabilitiesResponse(Builder builder) {
         this.canRead = builder.canRead;
         this.canEdit = builder.canEdit;
+        this.canDelete = builder.canDelete;
         this.canReadPartitionCoefficients = builder.canReadPartitionCoefficients;
         this.canCreatePlant = builder.canCreatePlant;
     }
@@ -39,6 +43,10 @@ public class SupplyCapabilitiesResponse {
 
     public boolean isCanEdit() {
         return canEdit;
+    }
+
+    public boolean isCanDelete() {
+        return canDelete;
     }
 
     public boolean isCanReadPartitionCoefficients() {
@@ -61,6 +69,7 @@ public class SupplyCapabilitiesResponse {
 
         private boolean canRead;
         private boolean canEdit;
+        private boolean canDelete;
         private boolean canReadPartitionCoefficients;
         private boolean canCreatePlant;
 
@@ -71,6 +80,11 @@ public class SupplyCapabilitiesResponse {
 
         public Builder withCanEdit(boolean canEdit) {
             this.canEdit = canEdit;
+            return this;
+        }
+
+        public Builder withCanDelete(boolean canDelete) {
+            this.canDelete = canDelete;
             return this;
         }
 

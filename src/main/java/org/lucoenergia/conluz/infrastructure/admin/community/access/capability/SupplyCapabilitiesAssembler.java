@@ -25,6 +25,8 @@ public class SupplyCapabilitiesAssembler {
         return SupplyCapabilitiesResponse.builder()
                 .withCanRead(policies.supply().canRead(caller, supply).isAllowed())
                 .withCanEdit(policies.supply().canEdit(caller, supply).isAllowed())
+                // Deleting a supply is guarded by canEditSupply, the guard of every other change to it
+                .withCanDelete(policies.supply().canEdit(caller, supply).isAllowed())
                 .withCanReadPartitionCoefficients(
                         policies.supply().canReadPartitionCoefficients(caller, supply).isAllowed())
                 .withCanCreatePlant(policies.plant().canCreate(caller, supply).isAllowed())

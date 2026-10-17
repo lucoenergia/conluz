@@ -14,6 +14,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -79,5 +81,10 @@ public class GetPlantRepositoryDatabase implements GetPlantRepository {
     @Override
     public Set<String> findSupplyCodesByCommunity(UUID communityId) {
         return new HashSet<>(plantRepository.findSupplyCodesByCommunityId(communityId));
+    }
+
+    @Override
+    public boolean existsBySupply(SupplyId supplyId) {
+        return plantRepository.existsBySupplyId(supplyId.getId());
     }
 }

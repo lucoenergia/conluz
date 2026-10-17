@@ -31,6 +31,7 @@ class SupplyAndPlantCapabilitiesAssemblerTest {
 
         assertTrue(capabilities.isCanRead());
         assertTrue(capabilities.isCanEdit());
+        assertTrue(capabilities.isCanDelete());
         assertTrue(capabilities.isCanReadPartitionCoefficients());
         assertTrue(capabilities.isCanCreatePlant());
     }
@@ -50,6 +51,7 @@ class SupplyAndPlantCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanRead());
         assertTrue(capabilities.isCanReadPartitionCoefficients());
         assertFalse(capabilities.isCanEdit());
+        assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanCreatePlant());
     }
 
@@ -63,6 +65,7 @@ class SupplyAndPlantCapabilitiesAssemblerTest {
 
         assertFalse(capabilities.isCanRead());
         assertFalse(capabilities.isCanEdit());
+        assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanReadPartitionCoefficients());
         assertFalse(capabilities.isCanCreatePlant());
     }

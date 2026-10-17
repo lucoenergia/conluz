@@ -46,6 +46,9 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
 
     boolean existsByUserIdAndCommunityId(UUID userId, UUID communityId);
 
+    @Query(value = "SELECT id FROM supplies WHERE id = :supplyId FOR UPDATE", nativeQuery = true)
+    Optional<UUID> lockById(@Param("supplyId") UUID supplyId);
+
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     List<SupplyEntity> findByUserId(UUID userId);
 
