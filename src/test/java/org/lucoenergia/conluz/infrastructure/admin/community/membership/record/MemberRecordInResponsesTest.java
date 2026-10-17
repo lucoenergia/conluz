@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -163,8 +162,10 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     @Test
     @DisplayName("MEM-026 A supply whose owner left its community shows no member data")
     void aSupplyWhoseOwnerLeftItsCommunityShowsNoMemberData() throws Exception {
-        perform(adminOfA, delete("/api/v1/communities/{communityId}/memberships/{userId}", communityA.getId(),
-                person.getId()));
+        // Written directly: deleting the membership of a supply owner is refused since #412 (MEM-029), but data
+        // written before it can still hold a supply whose owner left its community
+        jdbcTemplate.update("DELETE FROM community_memberships WHERE user_id = ? AND community_id = ?", person.getId(),
+                communityA.getId());
 
         JsonNode owner = json(perform(adminOfA, get("/api/v1/supplies/{supplyId}", supplyInA.getId()))).get("user");
 
