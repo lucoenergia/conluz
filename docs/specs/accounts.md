@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `updateUser`, `enableUser`, `disableUser`, `deleteUser` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #415 |
+| **Last reviewed against code** | #412 |
 
 ## Purpose
 
@@ -123,7 +123,32 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   remove the person from every community, not only the admin's.
 - **Source:** #415, ADR-0003 §1
 
+### ACC-009 — Deleting an account deletes its memberships, and is refused for a supply owner
+
+- **Status:** Active
+- **Rule:** Deleting a user (`deleteUser`) MUST, in one transaction, delete every membership of the user, in every
+  community, with its member record and its tokens, and then the account with its remaining tokens (OTT-005). A
+  user who owns a supply in any community, enabled or not, MUST be refused with 409 `USER_OWNS_SUPPLIES`, and
+  nothing MUST be deleted. The refusal to delete the last enabled platform admin (409 `USER_LAST_PLATFORM_ADMIN`)
+  and who may delete a user (ACC-008) MUST NOT change. Memberships the user invited MUST be kept, with no inviter
+  (MEM-003); sharing agreements and distributor files the user created, edited or uploaded MUST be kept, with no
+  creator, editor or uploader. The deletion MUST lock the user row before checking for supplies; supply creation
+  locks the same row (SUP-002), so a supply created at the same time either refuses the deletion or finds the user
+  gone. A deletion MUST never fail with an unhandled database error.
+- **Rationale:** A membership cannot exist without its account, and since #388 every registered user has one, so
+  deleting the account alone always failed on the membership's foreign key. A supply carries the community's
+  energy data and its sharing agreements, so it is removed deliberately (SUP-001), never as a side effect of
+  deleting its owner; a supply owner's access is withdrawn by disabling the account (`disableUser`). Who invited a
+  member, or created, edited or uploaded an agreement's records, is a historical detail; the records themselves
+  belong to the community and must outlive the person.
+- **Source:** #412, ADR-0003 §1
+
 ## Impossible states
 
 - An account whose email is an empty or blank string — prevented by ACC-003 and by the migration that turned the
   existing ones into NULL.
+- A membership whose account no longer exists — prevented by ACC-009, and by the foreign key
+  `community_memberships_user_id_fk`, which has no `ON DELETE` rule: a deletion that skipped ACC-009 would fail
+  rather than leave the membership behind.
+- A supply whose owner's account no longer exists — prevented by ACC-009, and by the foreign key
+  `supplies_user_id_fk`.
