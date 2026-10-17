@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.supply;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
@@ -11,9 +12,11 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyServiceImpl;
+import org.mockito.InOrder;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,11 +34,49 @@ import static org.mockito.Mockito.when;
 
 class CreateSupplyServiceTest {
 
+
+    @Test
+    void createLocksTheOwnerBeforeCheckingTheirMembership() {
+        Supply supply = new Supply.Builder().withCode("code").withAddress("address").build();
+        User user = UserMother.randomUser();
+        UUID communityId = UUID.randomUUID();
+        when(userRepository.findByPersonalId(any(UserPersonalId.class))).thenReturn(Optional.of(user));
+        when(getMembershipsRepository.findByUserIdAndCommunityId(user.getId(), communityId))
+                .thenReturn(Optional.of(membership(user, true)));
+
+        createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), communityId);
+
+        InOrder order = inOrder(lockUserRepository, getMembershipsRepository, supplyRepository);
+        order.verify(lockUserRepository).lock(UserId.of(user.getId()));
+        order.verify(getMembershipsRepository).findByUserIdAndCommunityId(user.getId(), communityId);
+        order.verify(supplyRepository).create(any(Supply.class), any(UserId.class), eq(communityId));
+    }
+
+    @Test
+    void createRejectsAnOwnerDeletedWhileWaitingForTheLockExactlyLikeAnUnknownOne() {
+        Supply supply = new Supply.Builder().withCode("code").withAddress("address").build();
+        User user = UserMother.randomUser();
+        UUID communityId = UUID.randomUUID();
+        when(userRepository.findByPersonalId(any(UserPersonalId.class))).thenReturn(Optional.of(user));
+        when(lockUserRepository.lock(UserId.of(user.getId()))).thenReturn(false);
+
+        assertThrows(UserNotFoundException.class,
+                () -> createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), communityId));
+
+        verifyNoInteractions(getMembershipsRepository);
+        verifyNoInteractions(supplyRepository);
+    }
     private final GetUserRepository userRepository = mock(GetUserRepository.class);
     private final CreateSupplyRepository supplyRepository = mock(CreateSupplyRepository.class);
     private final GetMembershipsRepository getMembershipsRepository = mock(GetMembershipsRepository.class);
+    private final LockUserRepository lockUserRepository = mock(LockUserRepository.class);
     private final CreateSupplyService createSupplyService =
-            new CreateSupplyServiceImpl(supplyRepository, userRepository, getMembershipsRepository);
+            new CreateSupplyServiceImpl(supplyRepository, userRepository, getMembershipsRepository, lockUserRepository);
+
+    @BeforeEach
+    void lockSucceeds() {
+        when(lockUserRepository.lock(any(UserId.class))).thenReturn(true);
+    }
 
     @Test
     void testCreateSupplyWithUserPersonalIdWhenUserExist_success() {

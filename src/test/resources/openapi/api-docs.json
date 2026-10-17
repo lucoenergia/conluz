@@ -2282,6 +2282,7 @@
               "USER_PASSWORD_UNCHANGED",
               "USER_PASSWORD_CHANGE_REQUIRED",
               "USER_PASSWORD_RESET_TOKEN_INVALID",
+              "USER_OWNS_SUPPLIES",
               "AUTH_TOO_MANY_FAILED_ATTEMPTS",
               "MEMBERSHIP_ALREADY_EXISTS",
               "MEMBERSHIP_ALREADY_INVITED",
@@ -19237,7 +19238,7 @@
     },
     "/api/v1/users/{userId}" : {
       "delete" : {
-        "description" : "    This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.\n\n    To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.\n    **Required: Platform Admin. You cannot delete your own account.**\n\n    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To remove a member from one community, delete their membership instead (`DELETE /api/v1/communities/{communityId}/memberships/{userId}`); to suspend them, disable it (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`).\n\n    Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.\n\n    In cases where the deletion process encounters errors, the server returns an appropriate error status code, along with a descriptive error message to guide clients in diagnosing and addressing the issue.\n",
+        "description" : "    This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.\n\n    To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.\n    **Required: Platform Admin. You cannot delete your own account.**\n\n    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To remove a member from one community, delete their membership instead (`DELETE /api/v1/communities/{communityId}/memberships/{userId}`); to suspend them, disable it (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`).\n\n    Deleting the account also deletes every membership of the user, in every community, with its member record, and every token of the user. Memberships the user invited are kept, with no inviter, and sharing agreements and distributor files the user created, edited or uploaded are kept, with no creator, editor or uploader.\n\n    The account of a user who owns supplies, in any community, is not deleted: the request is answered 409 with `USER_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the account instead (`POST /api/v1/users/{userId}/disable`). The last enabled platform admin is not deleted either (409 `USER_LAST_PLATFORM_ADMIN`).\n\n    Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the user has been successfully removed.\n\n    In cases where the deletion process encounters errors, the server returns an appropriate error status code, along with a descriptive error message to guide clients in diagnosing and addressing the issue.\n",
         "operationId" : "deleteUser",
         "parameters" : [
           {
@@ -19329,6 +19330,52 @@
               }
             },
             "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Last platform admin" : {
+                    "description" : "Last platform admin",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_LAST_PLATFORM_ADMIN",
+                          "message" : "Cannot perform this action as it would leave the system with zero platform admins.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "Cannot perform this action as it would leave the system with zero platform admins.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Owns supplies" : {
+                    "description" : "Owns supplies",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_OWNS_SUPPLIES",
+                          "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead.",
+                          "params" : {
+                            "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                          }
+                        }
+                      ],
+                      "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies, so their account cannot be deleted. To stop their access, disable the account instead.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The request conflicts with the current state: the user owns supplies, or is the last enabled platform admin. Nothing is deleted. To stop the access of a supply owner, disable the account instead."
           },
           "500" : {
             "content" : {

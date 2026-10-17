@@ -125,4 +125,14 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
         }
         return supplyEntityMapper.mapList(supplyRepository.findByIdInWithAssociations(ids));
     }
+
+    @Override
+    public boolean existsByOwner(UserId ownerId) {
+        return supplyRepository.existsByUserId(ownerId.getId());
+    }
+
+    @Override
+    public boolean existsByOwnerAndCommunity(UserId ownerId, UUID communityId) {
+        return supplyRepository.existsByUserIdAndCommunityId(ownerId.getId(), communityId);
+    }
 }

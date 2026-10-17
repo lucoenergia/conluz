@@ -42,6 +42,10 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
 
     int countByCode(String code);
 
+    boolean existsByUserId(UUID userId);
+
+    boolean existsByUserIdAndCommunityId(UUID userId, UUID communityId);
+
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     List<SupplyEntity> findByUserId(UUID userId);
 

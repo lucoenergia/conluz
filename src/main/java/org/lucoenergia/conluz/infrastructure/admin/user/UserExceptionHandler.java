@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.create.DefaultAdminUserAlreadyInitializedException;
+import org.lucoenergia.conluz.domain.admin.user.delete.UserOwnsSuppliesException;
 import org.lucoenergia.conluz.domain.admin.user.password.IncorrectCurrentPasswordException;
 import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyViolationException;
 import org.lucoenergia.conluz.domain.admin.user.password.PasswordUnchangedException;
@@ -83,6 +84,22 @@ public class UserExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.USER_LAST_PLATFORM_ADMIN, null, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 409: the user owns supplies, so their account is not deleted (ACC-009).
+     */
+    @ExceptionHandler(UserOwnsSuppliesException.class)
+    public ResponseEntity<RestError> handleException(UserOwnsSuppliesException e) {
+        String userId = e.getUserId().getId().toString();
+
+        String message = messageSource.getMessage(
+                "error.user.owns.supplies",
+                List.of(userId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.USER_OWNS_SUPPLIES, Map.of("userId", userId),
+                HttpStatus.CONFLICT);
     }
 
     /**

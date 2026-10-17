@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -138,4 +139,12 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
             + "AND m.contactEmail IS NOT NULL AND m.invitedAt IS NULL AND "
             + ActiveMembershipJpql.AWAITING_ACCEPTANCE)
     long countFirstInvitationCandidates(@Param("communityId") UUID communityId);
+
+    /**
+     * Deletes every membership of the user, in one statement. Their tokens go with them ({@code ON DELETE CASCADE}
+     * on {@code one_time_token.membership_id}).
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM community_memberships m WHERE m.user.id = :userId")
+    int deleteByUserId(@Param("userId") UUID userId);
 }
