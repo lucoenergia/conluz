@@ -1,19 +1,32 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
+import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisterMemberService;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
+import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -47,6 +61,18 @@ class DeleteMembershipControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateMembershipService createMembershipService;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private RegisterMemberService registerMemberService;
+    @Autowired
+    private CreateOneTimeTokenService createOneTimeTokenService;
+    @Autowired
+    private CreateSupplyService createSupplyService;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private EntityManager entityManager;
 
     @Test
     void deletingAMembershipThatDoesNotExistIsReportedAsNotFound() throws Exception {
@@ -139,6 +165,115 @@ class DeleteMembershipControllerTest extends BaseControllerTest {
 
         assertTrue(!responses.path("404").isMissingNode(),
                 () -> "the DELETE operation declares no 404: " + fieldNames(responses));
+    }
+
+    @Test
+    @DisplayName("MEM-029 deleting the membership of a member who owns a supply in the community is refused with 409 "
+            + "MEMBERSHIP_OWNS_SUPPLIES, and nothing is deleted")
+    void deletingTheMembershipOfASupplyOwnerInTheCommunityIsRefused() throws Exception {
+        UUID community = newCommunity();
+        User member = registerInvitedMember(community);
+        Supply supply = createSupply(member, community);
+        String adminToken = loginAsCommunityAdmin(community);
+
+        mockMvc.perform(delete(PATH, community, member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_OWNS_SUPPLIES"))
+                .andExpect(jsonPath("$.errors[0].params.userId").value(member.getId().toString()))
+                .andExpect(jsonPath("$.errors[0].params.communityId").value(community.toString()))
+                .andExpect(jsonPath("$.errors[0].message").isNotEmpty());
+
+        assertTrue(membershipExists(community, member.getId()), "the membership must not have been deleted");
+        assertEquals(1, count("SELECT count(*) FROM one_time_token WHERE user_id = ?", member.getId()));
+        assertEquals(1, count("SELECT count(*) FROM supplies WHERE id = ? AND user_id = ? AND community_id = ?",
+                supply.getId(), member.getId(), community));
+    }
+
+    @Test
+    @DisplayName("MEM-029 supplies the member owns in another community do not prevent deleting their membership, and "
+            + "are left alone")
+    void suppliesInAnotherCommunityDoNotPreventDeletingTheMembership() throws Exception {
+        UUID community = newCommunity();
+        UUID otherCommunity = newCommunity();
+        User member = registerInvitedMember(community);
+        createMembershipService.create(otherCommunity, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        Supply supply = createSupply(member, otherCommunity);
+        String adminToken = loginAsCommunityAdmin(community);
+
+        mockMvc.perform(delete(PATH, community, member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
+                .andExpect(status().isOk());
+
+        assertFalse(membershipExists(community, member.getId()), "the membership should have been deleted");
+        assertEquals(0, count("SELECT count(*) FROM one_time_token WHERE user_id = ?", member.getId()));
+        assertTrue(membershipExists(otherCommunity, member.getId()),
+                "the membership in the other community must not have been touched");
+        assertEquals(1, count("SELECT count(*) FROM supplies WHERE id = ? AND user_id = ? AND community_id = ?",
+                supply.getId(), member.getId(), otherCommunity));
+    }
+
+    @Test
+    @DisplayName("MEM-029 deleting the membership of a member who owns no supply deletes it with its invitation tokens, "
+            + "and no other token")
+    void deletingTheMembershipOfAMemberWithoutSuppliesDeletesItAndItsTokens() throws Exception {
+        UUID community = newCommunity();
+        User member = registerInvitedMember(community);
+        User other = registerInvitedMember(community);
+        String adminToken = loginAsCommunityAdmin(community);
+
+        mockMvc.perform(delete(PATH, community, member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
+                .andExpect(status().isOk());
+
+        assertFalse(membershipExists(community, member.getId()), "the membership should have been deleted");
+        assertEquals(0, count("SELECT count(*) FROM one_time_token WHERE user_id = ?", member.getId()));
+        assertEquals(1, count("SELECT count(*) FROM users WHERE id = ?", member.getId()));
+        assertEquals(1, count("SELECT count(*) FROM one_time_token WHERE user_id = ?", other.getId()));
+    }
+
+    @Test
+    void theContractDeclaresTheConflictOfDeletingTheMembershipOfASupplyOwner() throws Exception {
+        mockMvc.perform(get("/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/communities/{communityId}/memberships/{userId}'].delete"
+                        + ".responses['409'].content['application/json'].example.errors[0].code")
+                        .value("MEMBERSHIP_OWNS_SUPPLIES"));
+    }
+
+    private UUID newCommunity() {
+        return createCommunityRepository.create(CommunityMother.random().build()).getId();
+    }
+
+    /**
+     * A member registered through the registration flow, with a pending membership and an invitation token.
+     */
+    private User registerInvitedMember(UUID communityId) {
+        User member = persistUser();
+        registerMemberService.register(communityId, UserId.of(persistUser().getId()),
+                UserPersonalId.of(member.getPersonalId()),
+                new MemberRecord(member.getFullName(), null, "member-" + UUID.randomUUID() + "@example.org", null,
+                        null));
+        createOneTimeTokenService.issueForMembership(UserId.of(member.getId()), communityId,
+                OneTimeTokenPurpose.INVITATION);
+        return member;
+    }
+
+    private Supply createSupply(User owner, UUID communityId) {
+        return createSupplyService.create(SupplyMother.random(owner).build(), UserPersonalId.of(owner.getPersonalId()),
+                communityId);
+    }
+
+    /**
+     * Counts with plain SQL, after flushing what the request left in the persistence context: the test's transaction
+     * is still open, and what is asserted is what the database holds.
+     */
+    private int count(String sql, Object... parameters) {
+        entityManager.flush();
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, parameters);
+        return count == null ? 0 : count;
     }
 
     private boolean membershipExists(UUID communityId, UUID userId) {
