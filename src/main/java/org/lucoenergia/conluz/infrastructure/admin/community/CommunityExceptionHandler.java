@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationResendL
 import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipDisabledException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipOwnsSuppliesException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotInvitedException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationLoginRequiredException;
@@ -196,6 +197,23 @@ public class CommunityExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_DISABLED,
+                Map.of("userId", userId, "communityId", communityId), HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 409: the user owns supplies in the community, so their membership there is not deleted (MEM-029).
+     */
+    @ExceptionHandler(MembershipOwnsSuppliesException.class)
+    public ResponseEntity<RestError> handleException(MembershipOwnsSuppliesException e) {
+        String userId = e.getUserId().toString();
+        String communityId = e.getCommunityId().toString();
+
+        String message = messageSource.getMessage(
+                "error.membership.owns.supplies",
+                List.of(userId, communityId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_OWNS_SUPPLIES,
                 Map.of("userId", userId, "communityId", communityId), HttpStatus.CONFLICT);
     }
 

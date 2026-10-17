@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembershipRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
 import org.springframework.stereotype.Repository;
@@ -36,5 +37,10 @@ public class DeleteMembershipRepositoryDatabase implements DeleteMembershipRepos
                 .orElseThrow(() -> new MembershipNotFoundException(communityId, userId));
 
         membershipJpaRepository.delete(membership);
+    }
+
+    @Override
+    public void deleteByUser(UserId userId) {
+        membershipJpaRepository.deleteByUserId(userId.getId());
     }
 }

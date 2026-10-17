@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.springframework.stereotype.Service;
@@ -23,18 +24,27 @@ public class CreateSupplyServiceImpl implements CreateSupplyService {
     private final CreateSupplyRepository repository;
     private final GetUserRepository getUserRepository;
     private final GetMembershipsRepository getMembershipsRepository;
+    private final LockUserRepository lockUserRepository;
 
     public CreateSupplyServiceImpl(CreateSupplyRepository repository, GetUserRepository getUserRepository,
-                                   GetMembershipsRepository getMembershipsRepository) {
+                                   GetMembershipsRepository getMembershipsRepository,
+                                   LockUserRepository lockUserRepository) {
         this.repository = repository;
         this.getUserRepository = getUserRepository;
         this.getMembershipsRepository = getMembershipsRepository;
+        this.lockUserRepository = lockUserRepository;
     }
 
     @Override
     public Supply create(Supply supply, UserPersonalId id, UUID communityId) {
         Optional<User> user = getUserRepository.findByPersonalId(id);
         if (user.isEmpty()) {
+            throw new UserNotFoundException(id);
+        }
+        // Deleting the owner, or their membership in this community, locks the owner's row first (ACC-009,
+        // MEM-029). Locking it here, before the membership check, makes the two wait for each other: the
+        // deletion then sees this supply and is refused, or this check finds the owner or membership gone.
+        if (!lockUserRepository.lock(UserId.of(user.get().getId()))) {
             throw new UserNotFoundException(id);
         }
         // The owner must belong to the supply's community (#341). A user who does not is reported

@@ -417,7 +417,7 @@ CREATE TABLE public.sharing_agreement_file (
                                                content bytea NOT NULL,
                                                content_hash text NOT NULL,
                                                uploaded_at timestamp with time zone NOT NULL,
-                                               uploaded_by uuid NOT NULL
+                                               uploaded_by uuid
 );
 
 
@@ -460,7 +460,7 @@ COMMENT ON COLUMN public.sharing_agreement_file.content_hash IS 'Hash of content
 -- Name: COLUMN sharing_agreement_file.uploaded_by; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.sharing_agreement_file.uploaded_by IS 'The user who uploaded this file. Unlike sharing_agreement.created_by, this is never NULL: every file was uploaded by a real person, even when the owning agreement was created by the system.';
+COMMENT ON COLUMN public.sharing_agreement_file.uploaded_by IS 'The user who uploaded this file. NULL means the uploader''s account has been deleted.';
 
 
 --
@@ -946,7 +946,7 @@ ALTER TABLE ONLY public.sharing_agreement_file
 --
 
 ALTER TABLE ONLY public.sharing_agreement_file
-    ADD CONSTRAINT sharing_agreement_file_uploaded_by_fk FOREIGN KEY (uploaded_by) REFERENCES public.users(id);
+    ADD CONSTRAINT sharing_agreement_file_uploaded_by_fk FOREIGN KEY (uploaded_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --

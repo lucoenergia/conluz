@@ -96,7 +96,7 @@ final class CapabilityInventory {
         // Also the plant's canReadSupply: PlantResponse.supply is a reference carrying no owner, so
         // the plant reports whether following it would succeed.
         report("canReadSupply", capability(SUPPLY, "canRead"), capability(PLANT, "canReadSupply"));
-        report("canEditSupply", capability(SUPPLY, "canEdit"));
+        report("canEditSupply", capability(SUPPLY, "canEdit"), capability(SUPPLY, "canDelete"));
         report("canReadSupplyPartitionCoefficients", capability(SUPPLY, "canReadPartitionCoefficients"));
         report("canCreatePlant", capability(SUPPLY, "canCreatePlant"));
 

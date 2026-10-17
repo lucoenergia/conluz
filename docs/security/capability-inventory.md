@@ -125,6 +125,7 @@ administration, so a platform admin who is not a member gets neither.
 |---|---|
 | `canRead` | `canReadSupply` |
 | `canEdit` | `canEditSupply` |
+| `canDelete` | `canEditSupply` |
 | `canReadPartitionCoefficients` | `canReadSupplyPartitionCoefficients` |
 | `canCreatePlant` | `canCreatePlant(supplyCode)` |
 

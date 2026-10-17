@@ -38,6 +38,8 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
 
     int countByProviderCode(String providerCode);
 
+    boolean existsBySupplyId(UUID supplyId);
+
     @EntityGraph(attributePaths = {"supply", "supply.user", "supply.community", "supply.contract",
             "supply.distributor", "supply.shelly"})
     Optional<PlantEntity> findByProviderCode(String providerCode);

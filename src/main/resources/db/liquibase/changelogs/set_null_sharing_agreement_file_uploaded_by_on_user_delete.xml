@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Deleting a user must never fail on a reference the user cannot remove (#412). uploaded_by had no
+         onDelete clause (default RESTRICT) and was NOT NULL, so deleting a user who had uploaded a distributor
+         file failed with an unhandled foreign-key violation. The file is the community's evidence for a sharing
+         agreement and must outlive its uploader, so the column becomes nullable and the foreign key sets it to
+         NULL, as sharing_agreement.created_by and updated_by already do. NULL in uploaded_by means the uploader's
+         account has been deleted. No existing row changes.
+
+         The rollback restores NOT NULL only if every file still has an uploader. An uploader cannot be
+         invented, so otherwise it HALTs, listing the ids of those files, and nothing is rolled back. -->
+    <changeSet id="set_null_sharing_agreement_file_uploaded_by_on_user_delete" author="Víctor Cañizares">
+        <preConditions onFail="HALT">
+            <columnExists tableName="sharing_agreement_file" columnName="uploaded_by"/>
+            <foreignKeyConstraintExists foreignKeyTableName="sharing_agreement_file"
+                                        foreignKeyName="sharing_agreement_file_uploaded_by_fk"/>
+        </preConditions>
+        <dropNotNullConstraint tableName="sharing_agreement_file"
+                               columnName="uploaded_by"
+                               columnDataType="UUID"/>
+        <dropForeignKeyConstraint baseTableName="sharing_agreement_file"
+                                  constraintName="sharing_agreement_file_uploaded_by_fk"/>
+        <addForeignKeyConstraint baseTableName="sharing_agreement_file" baseColumnNames="uploaded_by"
+                                 constraintName="sharing_agreement_file_uploaded_by_fk"
+                                 referencedTableName="users" referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+        <setColumnRemarks tableName="sharing_agreement_file"
+                          columnName="uploaded_by"
+                          columnDataType="UUID"
+                          remarks="The user who uploaded this file. NULL means the uploader's account has been deleted."/>
+        <rollback>
+            <sql splitStatements="false">
+                DO $$
+                DECLARE
+                    uploaderless TEXT;
+                BEGIN
+                    SELECT string_agg(id::TEXT, ', ' ORDER BY id) INTO uploaderless FROM sharing_agreement_file WHERE uploaded_by IS NULL;
+                    IF uploaderless IS NOT NULL THEN
+                        RAISE EXCEPTION 'Cannot make sharing_agreement_file.uploaded_by NOT NULL again: some files have no uploader (ids: %). Nothing was rolled back. List them with: SELECT id FROM sharing_agreement_file WHERE uploaded_by IS NULL; then give them an uploader or delete them, and roll back again.', uploaderless;
+                    END IF;
+                END
+                $$
+            </sql>
+            <setColumnRemarks tableName="sharing_agreement_file"
+                              columnName="uploaded_by"
+                              columnDataType="UUID"
+                              remarks="The user who uploaded this file. Unlike sharing_agreement.created_by, this is never NULL: every file was uploaded by a real person, even when the owning agreement was created by the system."/>
+            <dropForeignKeyConstraint baseTableName="sharing_agreement_file"
+                                      constraintName="sharing_agreement_file_uploaded_by_fk"/>
+            <addForeignKeyConstraint baseTableName="sharing_agreement_file" baseColumnNames="uploaded_by"
+                                     constraintName="sharing_agreement_file_uploaded_by_fk"
+                                     referencedTableName="users" referencedColumnNames="id"/>
+            <addNotNullConstraint tableName="sharing_agreement_file"
+                                  columnName="uploaded_by"
+                                  columnDataType="UUID"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

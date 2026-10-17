@@ -5,6 +5,8 @@ import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -46,4 +48,9 @@ public interface GetPlantRepository {
      * supplies back a plant so their Datadis surplus can be derived into production.
      */
     Set<String> findSupplyCodesByCommunity(UUID communityId);
+
+    /**
+     * Whether any plant is attached to the given supply.
+     */
+    boolean existsBySupply(SupplyId supplyId);
 }

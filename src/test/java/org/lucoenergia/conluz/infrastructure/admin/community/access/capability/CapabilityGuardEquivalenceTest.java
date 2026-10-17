@@ -188,6 +188,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             SupplyCapabilitiesResponse capabilities = supplyAssembler.assemble(caller, supply);
             assertSame("canRead", capabilities.isCanRead(), () -> guard.canReadSupply(id));
             assertSame("canEdit", capabilities.isCanEdit(), () -> guard.canEditSupply(id));
+            assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canEditSupply(id));
             assertSame("canReadPartitionCoefficients", capabilities.isCanReadPartitionCoefficients(),
                     () -> guard.canReadSupplyPartitionCoefficients(id));
             assertSame("canCreatePlant", capabilities.isCanCreatePlant(),

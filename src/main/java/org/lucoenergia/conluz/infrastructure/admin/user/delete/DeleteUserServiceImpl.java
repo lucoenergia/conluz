@@ -1,9 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.delete;
 
+import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembershipRepository;
+import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.delete.DeleteUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.delete.DeleteUserService;
+import org.lucoenergia.conluz.domain.admin.user.delete.UserOwnsSuppliesException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -17,16 +22,33 @@ public class DeleteUserServiceImpl implements DeleteUserService {
     private final DeleteUserRepository repository;
     private final GetUserRepository getUserRepository;
     private final ManagePlatformAdminRepository platformAdminRepository;
+    private final LockUserRepository lockUserRepository;
+    private final GetSupplyRepository getSupplyRepository;
+    private final DeleteMembershipRepository deleteMembershipRepository;
 
     public DeleteUserServiceImpl(DeleteUserRepository repository,
                                  GetUserRepository getUserRepository,
-                                 ManagePlatformAdminRepository platformAdminRepository) {
+                                 ManagePlatformAdminRepository platformAdminRepository,
+                                 LockUserRepository lockUserRepository,
+                                 GetSupplyRepository getSupplyRepository,
+                                 DeleteMembershipRepository deleteMembershipRepository) {
         this.repository = repository;
         this.getUserRepository = getUserRepository;
         this.platformAdminRepository = platformAdminRepository;
+        this.lockUserRepository = lockUserRepository;
+        this.getSupplyRepository = getSupplyRepository;
+        this.deleteMembershipRepository = deleteMembershipRepository;
     }
 
+    /**
+     * Deletes the account with its memberships, their member records and every token, or refuses and deletes nothing
+     * (ACC-009). The user row is locked first, as supply creation locks it before checking the owner's membership:
+     * a supply created concurrently is either seen here, and refuses the deletion, or finds the user gone.
+     */
     public void delete(UserId id) {
+        if (!lockUserRepository.lock(id)) {
+            throw new UserNotFoundException(id);
+        }
         getUserRepository.findById(id)
                 .filter(User::isPlatformAdmin)
                 .ifPresent(user -> {
@@ -34,6 +56,11 @@ public class DeleteUserServiceImpl implements DeleteUserService {
                         throw new LastPlatformAdminException();
                     }
                 });
+        if (getSupplyRepository.existsByOwner(id)) {
+            throw new UserOwnsSuppliesException(id);
+        }
+        // community_memberships.user_id has no ON DELETE rule: the memberships go first, their tokens with them
+        deleteMembershipRepository.deleteByUser(id);
         repository.delete(id);
     }
 }

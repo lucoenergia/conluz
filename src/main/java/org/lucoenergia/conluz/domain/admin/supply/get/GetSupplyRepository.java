@@ -52,6 +52,16 @@ public interface GetSupplyRepository {
     List<Supply> findByUserId(UserId userId);
 
     /**
+     * Whether the given user owns any supply, in any community, enabled or not.
+     */
+    boolean existsByOwner(UserId ownerId);
+
+    /**
+     * Whether the given user owns any supply in the given community, enabled or not.
+     */
+    boolean existsByOwnerAndCommunity(UserId ownerId, UUID communityId);
+
+    /**
      * Supplies owned by the given user whose community is one of {@code communityIds}, in one
      * query. An empty set yields an empty list.
      */

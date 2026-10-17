@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #416 |
+| **Last reviewed against code** | #412 |
 
 ## Purpose
 
@@ -453,6 +453,22 @@ lazily, as issues touch it.
   from an admin's record. A blank email is "no email", as everywhere else (ACC-003).
 - **Source:** #416, ADR-0003 §1 and §8
 
+### MEM-029 — The membership of a supply owner in the community is not deleted
+
+- **Status:** Active
+- **Rule:** Deleting a membership (`deleteMembership`) whose user owns a supply in that community, enabled or not,
+  MUST be refused with 409 `MEMBERSHIP_OWNS_SUPPLIES`, and nothing MUST be deleted. Supplies the user owns in other
+  communities MUST NOT prevent it. Otherwise the membership MUST be deleted with its member record and its tokens
+  (OTT-005), and the account kept. The deletion MUST lock the user, then the membership, before checking for
+  supplies; supply creation locks the user too (SUP-002), so a supply created at the same time either refuses the
+  deletion or finds the membership gone. Who may delete a membership MUST NOT change.
+- **Rationale:** The owner of a supply belongs to the supply's community (#341, SUP-002). Since #415, deleting the
+  membership is how a community admin removes someone from their community, and it used to leave supplies whose
+  owner was no longer a member. Suspending the member, by disabling the membership (MEM-027), withdraws their
+  access and keeps their supplies and records; deleting the membership is possible once their supplies in the
+  community are deleted (SUP-001).
+- **Source:** #412, #341, #415
+
 ## Impossible states
 
 - A membership without a full name — prevented by the NOT NULL constraint on
@@ -460,3 +476,12 @@ lazily, as issues touch it.
 - A membership whose `invited_by` refers to a user that no longer exists (a dangling reference)
   prevented by the foreign key `community_memberships_invited_by_fk`, 
   which sets `invited_by` to NULL when that user is deleted (MEM-003).
+- A supply whose owner has no membership in the supply's community — prevented by SUP-002 when the supply is
+  created and by MEM-029 when the membership is deleted, except for data written before them (see Accepted
+  exceptions).
+
+## Accepted exceptions
+
+| Exception | Reason | Expires when | Source |
+| --- | --- | --- | --- |
+| Supplies whose owner has no membership in the supply's community, left by membership deletions before MEM-029 | They cannot be fixed automatically: whether to register the owner again or delete the supply is a decision for the community | The query in the pull request of #412 returns no rows in every deployment | #412 |
