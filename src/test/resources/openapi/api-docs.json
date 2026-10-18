@@ -1010,6 +1010,144 @@
         ],
         "type" : "object"
       },
+      "ImportMembersResponse" : {
+        "description" : "The outcome of importing a file of members.",
+        "properties" : {
+          "failed" : {
+            "description" : "How many rows were not registered. Each has a code and a message in `rows`.",
+            "example" : 2,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "registered" : {
+            "description" : "How many rows were registered.",
+            "example" : 118,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ImportMembersRowResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [
+          "failed",
+          "registered",
+          "rows"
+        ],
+        "type" : "object"
+      },
+      "ImportMembersRowResponse" : {
+        "description" : "The result of one data row of an imported file. It carries nothing the file did not hold, and is the same whether or not the person already had an account.",
+        "properties" : {
+          "code" : {
+            "description" : "Why the row failed: MEMBERSHIP_ALREADY_EXISTS if the person already has a membership in this community, possibly from an earlier row of the same file; MEMBERSHIP_IMPORT_ROW_INVALID if a value breaks a rule of the registration; MEMBERSHIP_IMPORT_ROW_MALFORMED if the row does not have as many cells as the header. Null for a registered row.",
+            "enum" : [
+              "USER_LAST_PLATFORM_ADMIN",
+              "USER_ALREADY_EXISTS",
+              "USER_PASSWORD_POLICY_VIOLATION",
+              "USER_CURRENT_PASSWORD_INCORRECT",
+              "USER_PASSWORD_UNCHANGED",
+              "USER_PASSWORD_CHANGE_REQUIRED",
+              "USER_PASSWORD_RESET_TOKEN_INVALID",
+              "USER_OWNS_SUPPLIES",
+              "AUTH_TOO_MANY_FAILED_ATTEMPTS",
+              "MEMBERSHIP_ALREADY_EXISTS",
+              "MEMBERSHIP_ALREADY_INVITED",
+              "MEMBERSHIP_WITHOUT_CONTACT_EMAIL",
+              "MEMBERSHIP_INVITATION_UNAVAILABLE",
+              "MEMBERSHIP_NOT_INVITED",
+              "MEMBERSHIP_DISABLED",
+              "MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED",
+              "MEMBERSHIP_INVITATION_TOKEN_INVALID",
+              "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
+              "MEMBERSHIP_OWNS_SUPPLIES",
+              "MEMBERSHIP_IMPORT_INVALID_ENCODING",
+              "MEMBERSHIP_IMPORT_AMBIGUOUS_SEPARATOR",
+              "MEMBERSHIP_IMPORT_MALFORMED_FILE",
+              "MEMBERSHIP_IMPORT_UNKNOWN_HEADERS",
+              "MEMBERSHIP_IMPORT_DUPLICATED_HEADERS",
+              "MEMBERSHIP_IMPORT_MISSING_HEADERS",
+              "MEMBERSHIP_IMPORT_TOO_MANY_ROWS",
+              "MEMBERSHIP_IMPORT_ROW_INVALID",
+              "MEMBERSHIP_IMPORT_ROW_MALFORMED",
+              "COMMUNITY_ALREADY_EXISTS",
+              "SUPPLY_HAS_PLANTS",
+              "SUPPLY_HAS_PARTITION_COEFFICIENTS",
+              "SHARING_AGREEMENT_NOT_DRAFT",
+              "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
+              "SHARING_AGREEMENT_NOT_REVERTIBLE",
+              "SHARING_AGREEMENT_HAS_APPLIED_COEFFICIENTS",
+              "SHARING_AGREEMENT_DUPLICATE_CUPS",
+              "SHARING_AGREEMENT_DUPLICATE_SUPPLY",
+              "SHARING_AGREEMENT_NOT_PUBLISHED",
+              "SHARING_AGREEMENT_COEFFICIENT_NOT_IN_AGREEMENT",
+              "SHARING_AGREEMENT_DATE_IN_FUTURE",
+              "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_AFTER_PREDECESSOR",
+              "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR",
+              "SHARING_AGREEMENT_COEFFICIENT_HAS_SUCCESSOR",
+              "SHARING_AGREEMENT_COEFFICIENT_NOT_ACTIVE",
+              "SHARING_AGREEMENT_COEFFICIENT_OVERLAP_CONFLICT",
+              "SHARING_AGREEMENT_CLOSURE_DATE_NOT_AFTER_ACTIVATION",
+              "SHARING_AGREEMENT_COEFFICIENT_PERIOD_OVERLAP",
+              "DISTRIBUTOR_FILE_FILENAME_SHAPE_INVALID",
+              "DISTRIBUTOR_FILE_PLANT_REGULATORY_CODE_MISSING",
+              "DISTRIBUTOR_FILE_FILENAME_REGULATORY_CODE_MISMATCH",
+              "DISTRIBUTOR_FILE_VALUE_DECIMAL_SEPARATOR_INVALID",
+              "DISTRIBUTOR_FILE_VALUE_SCALE_INVALID",
+              "DISTRIBUTOR_FILE_CUPS_LENGTH_INVALID",
+              "DISTRIBUTOR_FILE_CUPS_DUPLICATE",
+              "DISTRIBUTOR_FILE_COEFFICIENT_SUM_INVALID",
+              "DISTRIBUTOR_FILE_CUPS_UNKNOWN",
+              "DISTRIBUTOR_FILE_LINE_MALFORMED",
+              "SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID",
+              "PLANT_MISSING_REGULATORY_CODE",
+              "HUAWEI_CONFIG_PASSWORD_REQUIRED",
+              "SUPPLY_CUPS_NOT_NORMALIZABLE",
+              "SUPPLY_CUPS_COLLISION",
+              "DATADIS_CONFIG_PASSWORD_REQUIRED",
+              "HUAWEI_CONFIG_NOT_FOUND",
+              "HUAWEI_CONFIG_INCOMPLETE",
+              "DATADIS_CONFIG_NOT_FOUND",
+              "DATADIS_CONFIG_INCOMPLETE"
+            ],
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "line" : {
+            "description" : "The line of the file the row starts on, the header being line 1.",
+            "example" : 2,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "message" : {
+            "description" : "Why the row failed, as a readable message naming the columns and rules broken but never their values. Null for a registered row.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "outcome" : {
+            "description" : "REGISTERED if the member was registered, with a pending membership; FAILED if nothing was registered for this row.",
+            "enum" : [
+              "REGISTERED",
+              "FAILED"
+            ],
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "code",
+          "line",
+          "message",
+          "outcome"
+        ],
+        "type" : "object"
+      },
       "InitBody" : {
         "properties" : {
           "defaultAdminUser" : {
@@ -2294,6 +2432,15 @@
               "MEMBERSHIP_INVITATION_TOKEN_INVALID",
               "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
               "MEMBERSHIP_OWNS_SUPPLIES",
+              "MEMBERSHIP_IMPORT_INVALID_ENCODING",
+              "MEMBERSHIP_IMPORT_AMBIGUOUS_SEPARATOR",
+              "MEMBERSHIP_IMPORT_MALFORMED_FILE",
+              "MEMBERSHIP_IMPORT_UNKNOWN_HEADERS",
+              "MEMBERSHIP_IMPORT_DUPLICATED_HEADERS",
+              "MEMBERSHIP_IMPORT_MISSING_HEADERS",
+              "MEMBERSHIP_IMPORT_TOO_MANY_ROWS",
+              "MEMBERSHIP_IMPORT_ROW_INVALID",
+              "MEMBERSHIP_IMPORT_ROW_MALFORMED",
               "COMMUNITY_ALREADY_EXISTS",
               "SUPPLY_HAS_PLANTS",
               "SUPPLY_HAS_PARTITION_COEFFICIENTS",
@@ -6947,6 +7094,164 @@
           }
         ],
         "summary" : "Creates a new membership in a community.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/import" : {
+      "post" : {
+        "description" : "Registers each data row of a CSV file as a member of the community, as `registerMember` does: a pending membership with the role COMMUNITY_MEMBER and the row as the community's member record. Only an active community admin of the community may import members; a platform admin may not.\n\nNothing is sent to the members and no invitation is issued. Invite them afterwards with `sendInvitations`.\n\n**The file.** UTF-8, with or without a byte order mark, separated by `,` or `;`, told from the header line. The header line names the columns, in any order: `personalId` and `fullName` are required; `memberNumber`, `contactEmail`, `address` and `phoneNumber` are optional. No other column is accepted. Each value follows the rules of the same field of `registerMember`. At most 1000 data rows; rows whose cells are all empty are skipped.\n\n**Whole-file refusals.** If the file is not valid UTF-8, its separator cannot be told, it is not valid CSV, its header names an unknown column, a column twice or lacks a required one, or it has more than 1000 data rows, the response is 400 with a dedicated code, and nothing is registered.\n\n**Rows.** Otherwise each row is registered in a transaction of its own, so a row that fails keeps the others. The response has one result per row. A person who already has an account is registered exactly as a new one, and their result is the same. A person who already has a membership in this community, including from an earlier row of the same file, fails with `MEMBERSHIP_ALREADY_EXISTS`. Importing the same file again is therefore safe: rows already registered fail with that code, and the rest are registered.\n",
+        "operationId" : "importMembers",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "file" : {
+                    "description" : "CSV file of members, UTF-8, separated by `,` or `;`, with a header line naming the columns personalId, fullName, memberNumber, contactEmail, address and phoneNumber.",
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [
+                  "file"
+                ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportMembersResponse"
+                }
+              }
+            },
+            "description" : "The file was read, and each row was registered or failed."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_IMPORT_UNKNOWN_HEADERS",
+                      "message" : "The file has columns that are not imported: 'password'. The columns are personalId, fullName, memberNumber, contactEmail, address and phoneNumber.",
+                      "params" : {
+                        "headers" : "password"
+                      }
+                    }
+                  ],
+                  "message" : "The file has columns that are not imported: 'password'. The columns are personalId, fullName, memberNumber, contactEmail, address and phoneNumber.",
+                  "status" : 400,
+                  "timestamp" : "2026-10-18T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The file was refused as a whole and nothing was registered. The code tells why: MEMBERSHIP_IMPORT_INVALID_ENCODING, MEMBERSHIP_IMPORT_AMBIGUOUS_SEPARATOR, MEMBERSHIP_IMPORT_MALFORMED_FILE, MEMBERSHIP_IMPORT_UNKNOWN_HEADERS, MEMBERSHIP_IMPORT_DUPLICATED_HEADERS, MEMBERSHIP_IMPORT_MISSING_HEADERS (each with the offending header names in `params.headers`, comma-separated) or MEMBERSHIP_IMPORT_TOO_MANY_ROWS (with the limit in `params.maxRows`)."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Imports members into a community from a CSV file.",
         "tags" : [
           "Memberships"
         ]
