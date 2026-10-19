@@ -60,7 +60,7 @@ class TokenRejectionControllerTest extends BaseControllerTest {
 
     @BeforeEach
     void setUp() {
-        tokens = new CraftedTokens(jwtConfiguration.getSecretKey());
+        tokens = new CraftedTokens(jwtConfiguration.getSecretKey(), clock);
         logs = LogCapture.ofRoot();
     }
 
@@ -122,7 +122,7 @@ class TokenRejectionControllerTest extends BaseControllerTest {
     @Test
     void aSignedTokenWithoutTheClaimsEveryIssuedTokenHas_isRejected() throws Exception {
         User user = createEnabledUser();
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         String subject = user.getId().toString();
 
         expectRejected(tokens.signed(b -> b.setId(UUID.randomUUID().toString())
@@ -161,18 +161,18 @@ class TokenRejectionControllerTest extends BaseControllerTest {
     @Test
     void aTokenIssuedBeforeThePasswordChange_isRejected() throws Exception {
         User user = createEnabledUser();
-        update(user, entity -> entity.setPasswordChangedAt(Instant.now()));
+        update(user, entity -> entity.setPasswordChangedAt(clock.instant()));
 
-        expectRejected(tokens.issuedAt(user.getId(), Instant.now().minusSeconds(60)),
+        expectRejected(tokens.issuedAt(user.getId(), clock.instant().minusSeconds(60)),
                 TokenRejectionReason.ISSUED_BEFORE_PASSWORD_CHANGE, user.getId());
     }
 
     @Test
     void aTokenIssuedBeforeTheLastDisable_isRejected_afterTheUserIsEnabledAgain() throws Exception {
         User user = createEnabledUser();
-        update(user, entity -> entity.setDisabledAt(Instant.now()));
+        update(user, entity -> entity.setDisabledAt(clock.instant()));
 
-        expectRejected(tokens.issuedAt(user.getId(), Instant.now().minusSeconds(60)),
+        expectRejected(tokens.issuedAt(user.getId(), clock.instant().minusSeconds(60)),
                 TokenRejectionReason.ISSUED_BEFORE_DISABLE, user.getId());
     }
 

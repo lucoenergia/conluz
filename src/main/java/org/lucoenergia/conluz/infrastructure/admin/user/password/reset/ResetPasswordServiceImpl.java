@@ -18,7 +18,7 @@ import org.lucoenergia.conluz.infrastructure.admin.user.password.UserPasswordEnc
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Optional;
 
 @Service
@@ -32,6 +32,7 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
     private final GetUserRepository getUserRepository;
     private final ChangePasswordRepository changePasswordRepository;
     private final UserPasswordEncoder userPasswordEncoder;
+    private final Clock clock;
 
     public ResetPasswordServiceImpl(AuthenticationThrottleService authenticationThrottleService,
                                     GetOneTimeTokenService getOneTimeTokenService,
@@ -39,7 +40,8 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
                                     LockUserRepository lockUserRepository,
                                     GetUserRepository getUserRepository,
                                     ChangePasswordRepository changePasswordRepository,
-                                    UserPasswordEncoder userPasswordEncoder) {
+                                    UserPasswordEncoder userPasswordEncoder,
+                                    Clock clock) {
         this.authenticationThrottleService = authenticationThrottleService;
         this.getOneTimeTokenService = getOneTimeTokenService;
         this.consumeOneTimeTokenService = consumeOneTimeTokenService;
@@ -47,6 +49,7 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
         this.getUserRepository = getUserRepository;
         this.changePasswordRepository = changePasswordRepository;
         this.userPasswordEncoder = userPasswordEncoder;
+        this.clock = clock;
     }
 
     @Override
@@ -87,10 +90,7 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
                 throw invalid(attempt);
             }
 
-            // Two clocks meet here. The token's times came from the application Clock, but password_changed_at is
-            // compared with the issue time of session tokens, which come from the JVM clock: it must come from the
-            // same one, or the earlier sessions would not be ended.
-            changePasswordRepository.changePassword(userId, userPasswordEncoder.encode(newPassword), Instant.now());
+            changePasswordRepository.changePassword(userId, userPasswordEncoder.encode(newPassword), clock.instant());
 
             attempt.succeeded(user);
         }

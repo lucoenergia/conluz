@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,7 +56,7 @@ class ChangePasswordControllerTest extends BaseControllerTest {
         String usedToken = login(user.getPersonalId(), user.getPassword());
         String otherToken = login(user.getPersonalId(), user.getPassword());
         // Both tokens must carry an iat in a second strictly before the change
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
 
         changePassword(usedToken, user.getPassword(), NEW_PASSWORD)
                 .andExpect(status().isNoContent())
@@ -107,7 +108,7 @@ class ChangePasswordControllerTest extends BaseControllerTest {
         String oldToken = login(user.getPersonalId(), user.getPassword());
         changePassword(oldToken, user.getPassword(), NEW_PASSWORD).andExpect(status().isNoContent());
 
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
         String newToken = login(user.getPersonalId(), NEW_PASSWORD);
 
         getCurrentUser(newToken).andExpect(status().isOk());
@@ -325,14 +326,4 @@ class ChangePasswordControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.errors[0].params.rule").value(rule));
     }
 
-    /**
-     * Blocks until the wall clock has moved into a later second than the one it is in now, so that every token
-     * issued before the call carries an {@code iat} strictly earlier than anything that happens after it.
-     */
-    private static void awaitTheNextSecond() throws InterruptedException {
-        long currentSecond = Instant.now().getEpochSecond();
-        while (Instant.now().getEpochSecond() <= currentSecond) {
-            Thread.sleep(50);
-        }
-    }
 }

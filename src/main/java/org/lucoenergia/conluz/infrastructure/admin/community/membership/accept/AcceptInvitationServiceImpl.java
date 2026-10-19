@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.util.Optional;
 
 @Service
@@ -74,10 +73,7 @@ public class AcceptInvitationServiceImpl implements AcceptInvitationService {
 
             consume(rawToken, invitation.token(), attempt);
 
-            // Two clocks meet here. The token's times and the acceptance instant come from the application Clock,
-            // but password_changed_at is compared with the issue time of session tokens, which come from the JVM
-            // clock: it must come from the same one (ADR-0002).
-            changePasswordRepository.changePassword(userId, userPasswordEncoder.encode(newPassword), Instant.now());
+            changePasswordRepository.changePassword(userId, userPasswordEncoder.encode(newPassword), clock.instant());
 
             // Without an email the person could not recover the password just chosen
             if (user.getEmail() == null) {

@@ -287,16 +287,6 @@ public abstract class BasePasswordResetTest extends BaseControllerTest {
                 "SELECT password, must_change_password, password_changed_at FROM users WHERE id = ?", user.getId());
     }
 
-    /**
-     * Blocks until the wall clock has moved into a later second than the one it is in now, so that every session
-     * token issued before the call carries an {@code iat} strictly earlier than anything that happens after it.
-     */
-    protected static void awaitTheNextSecond() throws InterruptedException {
-        long currentSecond = Instant.now().getEpochSecond();
-        while (Instant.now().getEpochSecond() <= currentSecond) {
-            Thread.sleep(50);
-        }
-    }
 
     /**
      * Runs both tasks on their own threads, released together once both are ready, and returns what each returned

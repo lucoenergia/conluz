@@ -14,16 +14,6 @@ public class BlacklistedToken {
     private final Instant revokedAt;
 
     /**
-     * Creates a new blacklisted token.
-     *
-     * @param jti        The JWT ID of the token
-     * @param expiration The expiration date of the token
-     */
-    public BlacklistedToken(String jti, Instant expiration) {
-        this(jti, expiration, Instant.now());
-    }
-
-    /**
      * Creates a new blacklisted token with a specific revocation time.
      *
      * @param jti        The JWT ID of the token

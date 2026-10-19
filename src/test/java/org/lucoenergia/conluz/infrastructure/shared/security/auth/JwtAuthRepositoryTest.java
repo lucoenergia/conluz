@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,12 +22,14 @@ import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
 import org.lucoenergia.conluz.domain.admin.user.auth.VerifiedToken;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator;
-import org.mockito.InjectMocks;
+import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -40,11 +43,23 @@ class JwtAuthRepositoryTest {
 
     private final static String SECRET_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
-    @InjectMocks
-    private JwtAuthRepository repository;
+    /**
+     * Not on a second boundary, so that a test can tell the instant of the clock from {@code iat}, which only has
+     * second precision.
+     */
+    private static final Instant NOW = Instant.parse("2026-01-01T10:00:00.400Z");
+
+    private final MutableClock clock = new MutableClock(NOW);
 
     @Mock
     private JwtConfiguration jwtConfiguration;
+
+    private JwtAuthRepository repository;
+
+    @BeforeEach
+    void createRepository() {
+        repository = new JwtAuthRepository(jwtConfiguration, clock);
+    }
 
     @Test
     void testGetAValidToken() {
@@ -321,8 +336,8 @@ class JwtAuthRepositoryTest {
     private static final UUID SUBJECT = UUID.randomUUID();
 
     static Stream<Arguments> tokensRejectedWithoutATrustedSubject() {
-        CraftedTokens tokens = new CraftedTokens(SECRET_KEY);
-        Instant now = Instant.now();
+        CraftedTokens tokens = new CraftedTokens(SECRET_KEY, Clock.fixed(NOW, ZoneOffset.UTC));
+        Instant now = NOW;
         return Stream.of(
                 Arguments.of("tampered", tokens.tampered(SUBJECT), TokenRejectionReason.INVALID_SIGNATURE),
                 Arguments.of("other key", tokens.signedWithOtherKey(SUBJECT), TokenRejectionReason.INVALID_SIGNATURE),
@@ -379,7 +394,7 @@ class JwtAuthRepositoryTest {
     @Test
     void verify_rejectsAnExpiredToken_withItsVerifiedSubject() {
         Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(SECRET_KEY);
-        String expired = new CraftedTokens(SECRET_KEY).expired(SUBJECT);
+        String expired = new CraftedTokens(SECRET_KEY, clock).expired(SUBJECT);
 
         InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
                 () -> repository.verify(Token.of(expired)));
@@ -405,7 +420,7 @@ class JwtAuthRepositoryTest {
         Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(null);
 
         Assertions.assertThrows(SecretKeyNotFoundException.class,
-                () -> repository.verify(Token.of(new CraftedTokens(SECRET_KEY).valid(SUBJECT))));
+                () -> repository.verify(Token.of(new CraftedTokens(SECRET_KEY, clock).valid(SUBJECT))));
     }
 
     @Test

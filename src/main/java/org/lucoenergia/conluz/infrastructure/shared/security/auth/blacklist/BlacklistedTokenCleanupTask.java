@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
+import java.time.Clock;
 
 /**
  * Scheduled task to clean up expired blacklisted tokens.
@@ -17,9 +17,11 @@ public class BlacklistedTokenCleanupTask {
     private static final Logger LOGGER = LoggerFactory.getLogger(BlacklistedTokenCleanupTask.class);
 
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final Clock clock;
 
-    public BlacklistedTokenCleanupTask(BlacklistedTokenRepository blacklistedTokenRepository) {
+    public BlacklistedTokenCleanupTask(BlacklistedTokenRepository blacklistedTokenRepository, Clock clock) {
         this.blacklistedTokenRepository = blacklistedTokenRepository;
+        this.clock = clock;
     }
 
     /**
@@ -28,7 +30,7 @@ public class BlacklistedTokenCleanupTask {
     @Scheduled(cron = "0 0 * * * *") // Every hour
     public void cleanupExpiredTokens() {
         LOGGER.info("Starting cleanup of expired blacklisted tokens");
-        int deletedCount = blacklistedTokenRepository.deleteAllExpiredBefore(Instant.now());
+        int deletedCount = blacklistedTokenRepository.deleteAllExpiredBefore(clock.instant());
         LOGGER.info("Deleted {} expired blacklisted tokens", deletedCount);
     }
 }

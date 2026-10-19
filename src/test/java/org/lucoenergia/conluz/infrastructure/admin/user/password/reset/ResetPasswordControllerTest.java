@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,7 @@ class ResetPasswordControllerTest extends BasePasswordResetTest {
         String newPassword = newPassword();
         assertThat(userRow(user).get("must_change_password")).isEqualTo(true);
         // Sessions opened in the same second as the reset are not told apart from it
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
 
         reset(token, newPassword).andExpect(status().isNoContent());
 

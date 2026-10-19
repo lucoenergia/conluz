@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
@@ -21,37 +22,40 @@ import java.util.function.Consumer;
 
 /**
  * Builds tokens the way a client or an attacker could, independently of the code under test: signed with the
- * application's key, with another key, with another algorithm, unsigned, tampered or malformed.
+ * application's key, with another key, with another algorithm, unsigned, tampered or malformed. Their times are
+ * read from {@code clock}, which must be the clock the application validates them with.
  */
 public class CraftedTokens {
 
     private static final Duration LIFETIME = Duration.ofHours(1);
 
     private final Key key;
+    private final Clock clock;
 
-    public CraftedTokens(String base64SecretKey) {
+    public CraftedTokens(String base64SecretKey, Clock clock) {
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(base64SecretKey));
+        this.clock = clock;
     }
 
     /**
      * A token the application would accept for that user: signed with its key, with every claim it issues.
      */
     public String valid(UUID userId) {
-        return issuedAt(userId, Instant.now());
+        return issuedAt(userId, clock.instant());
     }
 
     /**
      * Signed with the application's key, and otherwise valid, but issued at {@code issuedAt}.
      */
     public String issuedAt(UUID userId, Instant issuedAt) {
-        return signed(builder -> withClaims(builder, userId, issuedAt, Instant.now().plus(LIFETIME)));
+        return signed(builder -> withClaims(builder, userId, issuedAt, clock.instant().plus(LIFETIME)));
     }
 
     /**
      * Signed with the application's key, with an expiry in the past.
      */
     public String expired(UUID userId) {
-        Instant issuedAt = Instant.now().minus(LIFETIME.multipliedBy(2));
+        Instant issuedAt = clock.instant().minus(LIFETIME.multipliedBy(2));
         return signed(builder -> withClaims(builder, userId, issuedAt, issuedAt.plus(LIFETIME)));
     }
 
@@ -59,7 +63,7 @@ public class CraftedTokens {
      * Unsigned ({@code alg: none}) and expired: jjwt checks the expiry of unsigned tokens too.
      */
     public String expiredUnsigned(UUID userId) {
-        Instant issuedAt = Instant.now().minus(LIFETIME.multipliedBy(2));
+        Instant issuedAt = clock.instant().minus(LIFETIME.multipliedBy(2));
         JwtBuilder builder = Jwts.builder();
         withClaims(builder, userId, issuedAt, issuedAt.plus(LIFETIME));
         return builder.compact();
@@ -93,8 +97,8 @@ public class CraftedTokens {
         return Jwts.builder()
                 .setSubject(userId.toString())
                 .setId(UUID.randomUUID().toString())
-                .setIssuedAt(Date.from(Instant.now()))
-                .setExpiration(Date.from(Instant.now().plus(LIFETIME)))
+                .setIssuedAt(Date.from(clock.instant()))
+                .setExpiration(Date.from(clock.instant().plus(LIFETIME)))
                 .signWith(Keys.secretKeyFor(SignatureAlgorithm.HS256), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -104,7 +108,7 @@ public class CraftedTokens {
      */
     public String unsigned(UUID userId) {
         JwtBuilder builder = Jwts.builder();
-        withClaims(builder, userId, Instant.now(), Instant.now().plus(LIFETIME));
+        withClaims(builder, userId, clock.instant(), clock.instant().plus(LIFETIME));
         return builder.compact();
     }
 
@@ -116,7 +120,7 @@ public class CraftedTokens {
             KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
             generator.initialize(2048);
             JwtBuilder builder = Jwts.builder();
-            withClaims(builder, userId, Instant.now(), Instant.now().plus(LIFETIME));
+            withClaims(builder, userId, clock.instant(), clock.instant().plus(LIFETIME));
             return builder.signWith(generator.generateKeyPair().getPrivate(), SignatureAlgorithm.RS256).compact();
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
@@ -128,7 +132,7 @@ public class CraftedTokens {
      */
     public String signedWithHs512(UUID userId) {
         JwtBuilder builder = Jwts.builder();
-        withClaims(builder, userId, Instant.now(), Instant.now().plus(LIFETIME));
+        withClaims(builder, userId, clock.instant(), clock.instant().plus(LIFETIME));
         return builder.signWith(Keys.secretKeyFor(SignatureAlgorithm.HS512), SignatureAlgorithm.HS512).compact();
     }
 

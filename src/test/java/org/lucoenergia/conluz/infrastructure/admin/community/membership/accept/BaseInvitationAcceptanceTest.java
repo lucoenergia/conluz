@@ -9,9 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
 
@@ -62,18 +60,6 @@ public abstract class BaseInvitationAcceptanceTest extends BaseInvitationTest {
         String password = "first-password-" + UUID.randomUUID();
         remember(password);
         return password;
-    }
-
-    /**
-     * Moves the application clock one day ahead of the JVM clock, so that a time taken from the wrong clock shows.
-     */
-    protected void moveTheClockAheadOfTheJvmClock() {
-        // To a whole second, which the database stores exactly
-        Instant ahead = Instant.now().plus(Duration.ofDays(1)).truncatedTo(ChronoUnit.SECONDS);
-        Duration behind = Duration.between(clock.instant(), ahead);
-        if (!behind.isNegative()) {
-            clock.advance(behind);
-        }
     }
 
     // --- Requests ---
