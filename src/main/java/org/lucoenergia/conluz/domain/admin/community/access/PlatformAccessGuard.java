@@ -31,6 +31,11 @@ public interface PlatformAccessGuard {
     boolean canGrantPlatformAdmin(UUID userId);
 
     /**
+     * Listing the platform admins. Only a platform admin may see who else holds the role.
+     */
+    boolean canListPlatformAdmins();
+
+    /**
      * Unlike its siblings this one does read {@code userId}: a platform admin must not be able to
      * strip their own flag, so it absorbs the {@code and !isCurrentUser(#userId)} that used to sit
      * in the SpEL.

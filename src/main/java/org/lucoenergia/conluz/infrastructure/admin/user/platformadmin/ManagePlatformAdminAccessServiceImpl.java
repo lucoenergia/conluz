@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.platformadmin;
 
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminRule;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccessService;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -26,7 +27,7 @@ public class ManagePlatformAdminAccessServiceImpl implements ManagePlatformAdmin
     public void revoke(UserId id) {
         // Accepted read-then-write TOCTOU: two simultaneous revokes could theoretically leave zero
         // admins. Not guarded with DB locking by design (single cooperative deployment, human-driven).
-        if (repository.countPlatformAdmins() <= 1) {
+        if (LastPlatformAdminRule.blocksRevocation(repository.countPlatformAdmins())) {
             throw new LastPlatformAdminException();
         }
         repository.revoke(id);

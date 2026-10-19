@@ -24,10 +24,10 @@ public class PlatformCapabilitiesAssembler {
     }
 
     public PlatformCapabilitiesResponse assemble(User caller) {
-        // Three of these four lines evaluate to the same predicate today -- each reduces to "is the
-        // caller a platform admin" -- and no test can tell them apart while they do. They are three
+        // Four of these five lines evaluate to the same predicate today -- each reduces to "is the
+        // caller a platform admin" -- and no test can tell them apart while they do. They are four
         // different questions: may I open the administration surface, may I create a community, may
-        // I create a user belonging to no community. They are kept apart so any one of them can
+        // I create a user belonging to no community, may I list the platform admins. They are kept apart so any one of them can
         // diverge without a call site changing, so do not fold them into a shared local or a single
         // field. See the platform section of docs/security/capability-inventory.md.
         return PlatformCapabilitiesResponse.builder()
@@ -38,6 +38,7 @@ public class PlatformCapabilitiesAssembler {
                 // authorization-policy.md records that a platform admin may create a user attached
                 // to no community, which is what POST /api/v1/users does without a communityId.
                 .withCanCreateUsers(policies.user().canCreateIn(caller, null).isAllowed())
+                .withCanListPlatformAdmins(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .build();
     }
 }

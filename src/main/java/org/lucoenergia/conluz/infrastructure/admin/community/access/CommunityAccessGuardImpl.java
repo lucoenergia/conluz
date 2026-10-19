@@ -278,6 +278,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canListPlatformAdmins() {
+        return platformAccessGuard.canListPlatformAdmins();
+    }
+
+    @Override
     public boolean canRevokePlatformAdmin(UUID userId) {
         return platformAccessGuard.canRevokePlatformAdmin(userId);
     }

@@ -51,6 +51,8 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     long countByIsPlatformAdminTrueAndEnabledTrue();
 
+    List<UserEntity> findAllByIsPlatformAdminTrueOrderByFullNameAscIdAsc();
+
     @Query("SELECT u FROM users u WHERE EXISTS(SELECT s FROM supplies s WHERE s.user = u)")
     List<UserEntity> findAllUsersWithAtLeastOneSupply();
 

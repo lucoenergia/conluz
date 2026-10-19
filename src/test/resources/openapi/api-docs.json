@@ -2257,6 +2257,60 @@
         ],
         "type" : "object"
       },
+      "PlatformAdminCapabilitiesResponse" : {
+        "description" : "What the caller may do with this platform admin.",
+        "properties" : {
+          "canRevoke" : {
+            "description" : "Whether the caller may revoke this user's platform-admin flag (POST /api/v1/users/{userId}/revoke-platform-admin). Always false when the user is the caller: an admin may not strip their own flag. Whether the revoke would be accepted right now is the platform admin's revocable field.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [
+          "canRevoke"
+        ],
+        "type" : "object"
+      },
+      "PlatformAdminResponse" : {
+        "description" : "A platform admin, identified by their own account.",
+        "properties" : {
+          "capabilities" : {
+            "$ref" : "#/components/schemas/PlatformAdminCapabilitiesResponse",
+            "description" : "What the caller may do with this platform admin."
+          },
+          "email" : {
+            "description" : "The email address of the platform admin's account. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "enabled" : {
+            "description" : "Whether the account is enabled. A disabled platform admin keeps the role but cannot log in.",
+            "type" : "boolean"
+          },
+          "fullName" : {
+            "description" : "The platform admin's full name, as their account records it.",
+            "type" : "string"
+          },
+          "revocable" : {
+            "description" : "Whether revoking this user's platform-admin flag would be accepted right now. False while no more than one platform admin is enabled: the revoke is then refused with USER_LAST_PLATFORM_ADMIN. Independent of capabilities.canRevoke, which says whether the caller may ask for it.",
+            "type" : "boolean"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/UserReferenceResponse",
+            "description" : "The platform admin's account, by id only: the {userId} the platform-admin endpoints take."
+          }
+        },
+        "required" : [
+          "capabilities",
+          "email",
+          "enabled",
+          "fullName",
+          "revocable",
+          "user"
+        ],
+        "type" : "object"
+      },
       "PlatformCapabilitiesResponse" : {
         "description" : "What the caller may do on the platform as a whole.",
         "properties" : {
@@ -2272,6 +2326,10 @@
             "description" : "Whether the caller may create a user attached to no community (POST /api/v1/users with no communityId). CommunityCapabilitiesResponse.canCreateUsers answers the same question for one community.",
             "type" : "boolean"
           },
+          "canListPlatformAdmins" : {
+            "description" : "Whether the caller may list the platform admins (GET /api/v1/platform-admins).",
+            "type" : "boolean"
+          },
           "canListUsers" : {
             "description" : "Whether the caller may list users (GET /api/v1/users).",
             "type" : "boolean"
@@ -2281,6 +2339,7 @@
           "canAdministerPlatform",
           "canCreateCommunity",
           "canCreateUsers",
+          "canListPlatformAdmins",
           "canListUsers"
         ],
         "type" : "object"
@@ -16148,6 +16207,99 @@
         "summary" : "Reverts a PUBLISHED sharing agreement back to DRAFT",
         "tags" : [
           "Sharing agreements"
+        ]
+      }
+    },
+    "/api/v1/platform-admins" : {
+      "get" : {
+        "description" : "Every user with the platform-admin role, enabled or not, by full name and then id: the user id, and the full name, email and state of their own account. No personal id, no member record and no memberships. Each one says whether revoking the role would be accepted right now, and whether the caller may revoke it. Only a platform admin may list them.\n",
+        "operationId" : "getPlatformAdmins",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PlatformAdminResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "The platform admins"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Lists the platform admins.",
+        "tags" : [
+          "Users"
         ]
       }
     },

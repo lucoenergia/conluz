@@ -30,7 +30,7 @@ See also [`authorization-policy.md`](authorization-policy.md) for the rules them
    coefficient period's plant and agreement), it is loaded **once for the page** — by the controller,
    or by an assembler that takes the whole page (`UserCapabilitiesAssembler.assembleAll…`,
    `PartitionCoefficientCapabilitiesAssembler.assembleAll`). `ListEndpointQueryCountTest` compares one
-   item against five on all seven listings and on the three coefficient reads;
+   item against five on all eight listings and on the three coefficient reads;
    `CoefficientWriteQueryCountTest` does the same for the write endpoints that return coefficients.
 4. **References carry no capabilities.** The `*ReferenceResponse` types in `shared/web/reference` are
    identifiers, not resources. When a response embeds a reference the client may navigate to, the
@@ -69,6 +69,7 @@ must not read another person's record and conclude something about its own permi
 | `canListUsers` | `canListUsers` | `GET /users` |
 | `canAdministerPlatform` | *(no guard — see below)* | — |
 | `canCreateUsers` | `canCreateUserIn(null)` | `POST /users` with no `communityId` |
+| `canListPlatformAdmins` | `canListPlatformAdmins` | `GET /platform-admins` |
 
 Both of the last two sit on the **platform** scope because neither names a resource.
 `canAdministerPlatform` gates a *surface* — the communities administration page, the platform
@@ -81,13 +82,14 @@ authenticated caller may call it, scoped to the communities they can see — so 
 communities **administration page** is not a fact about that listing. It is a decision about
 administering the platform, and this is the capability that says so.
 
-Three of the four coincide today, and the doc says so rather than leaving a reader to discover it:
-`canCreateCommunity` and `canAdministerPlatform` are the *same expression*, both reading
-`PlatformAccessPolicy.canAdministerPlatform` — there is no `canCreateCommunity` policy method — and
+Four of the five coincide today, and the doc says so rather than leaving a reader to discover it:
+`canCreateCommunity`, `canAdministerPlatform` and `canListPlatformAdmins` are the *same expression*,
+all reading `PlatformAccessPolicy.canAdministerPlatform` — there is no `canCreateCommunity` or
+`canListPlatformAdmins` policy method — and
 `UserAccessPolicy.canCreateIn(caller, null)` reduces to the same predicate a third time, since its
 platform-admin branch runs before the community is considered. They answer different questions —
 "may I open the administration surface", "may I create a community", "may I create a user belonging
-to no community" — and are kept apart so any one can diverge without a call site changing, the same
+to no community", "may I see who the platform admins are" — and are kept apart so any one can diverge without a call site changing, the same
 argument made below for the sharing-agreement pair.
 
 The cost of that, stated plainly: while they coincide **no test can tell them apart**, so swapping
@@ -232,6 +234,23 @@ does not reveal what the listing withholds.
 member number are an administrative change, and contact details go through `PUT /users/profile`.
 `canDelete`, `canEnable`, `canDisable` and `canRevokePlatformAdmin` are always `false` when the user
 is the caller — nobody may act on themselves that way, admins included.
+
+### Platform admin — `PlatformAdminResponse.capabilities`
+
+Each row of `GET /api/v1/platform-admins`.
+
+| Capability | Guard |
+|---|---|
+| `canRevoke` | `canRevokePlatformAdmin` |
+
+It reads the same policy as `UserResponse.capabilities.canRevokePlatformAdmin`, and like it is always
+`false` on the caller's own row. It is decided from the caller and the row's id alone, so the list
+costs no query per row.
+
+The last-platform-admin rule is **not** part of it (rule 1): revoking is refused with 409
+`USER_LAST_PLATFORM_ADMIN` while no more than one platform admin is enabled, whoever the target is,
+and that is state. The row reports it separately as `revocable`, computed from the loaded list by the
+same `LastPlatformAdminRule` the revoke applies. A client offers the revoke when both are `true`.
 
 ### Membership — `MembershipResponse.capabilities`
 

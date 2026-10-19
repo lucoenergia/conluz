@@ -52,6 +52,11 @@ class PlatformAccessGuardImpl implements PlatformAccessGuard {
     }
 
     @Override
+    public boolean canListPlatformAdmins() {
+        return administersPlatform();
+    }
+
+    @Override
     public boolean canRevokePlatformAdmin(UUID userId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
