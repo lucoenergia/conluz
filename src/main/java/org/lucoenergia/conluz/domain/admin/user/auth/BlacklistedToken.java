@@ -63,15 +63,6 @@ public class BlacklistedToken {
         return revokedAt;
     }
 
-    /**
-     * Checks if the token has expired.
-     *
-     * @return true if the token has expired, false otherwise
-     */
-    public boolean isExpired() {
-        return expiration.isBefore(Instant.now());
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
