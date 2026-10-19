@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.shared;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
+import org.lucoenergia.conluz.infrastructure.shared.security.FastPasswordEncoderTestConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClockConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -15,7 +16,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
 @ActiveProfiles({"test"})
-@Import(MutableClockConfiguration.class)
+@Import({MutableClockConfiguration.class, FastPasswordEncoderTestConfiguration.class})
 public abstract class BaseIntegrationTest {
 
     /**
