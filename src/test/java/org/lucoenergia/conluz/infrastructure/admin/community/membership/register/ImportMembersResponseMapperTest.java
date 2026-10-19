@@ -92,6 +92,38 @@ class ImportMembersResponseMapperTest {
                 .isEqualTo("The row does not have as many values as the header has columns.");
     }
 
+    @Test
+    @DisplayName("ACC-010 a row with an invalid personal ID has the code USER_PERSONAL_ID_INVALID, its message in the "
+            + "caller's language and its INVALID_PERSONAL_ID error")
+    void anInvalidPersonalId_hasItsCodeMessageAndError() {
+        ImportedMemberRow invalidPersonalId = new ImportedMemberRow(2, MemberImportRowOutcome.INVALID_PERSONAL_ID,
+                List.of(ColumnViolation.of("personalId", MemberImportConstraint.INVALID_PERSONAL_ID)));
+
+        ImportMembersRowResponse row = mapper.toResponse(new ImportedMembers(List.of(invalidPersonalId)),
+                Locale.ENGLISH).getRows().get(0);
+
+        assertThat(row.getOutcome()).isEqualTo(ImportMembersRowResponse.Outcome.FAILED);
+        assertThat(row.getCode()).isEqualTo(RestErrorCode.USER_PERSONAL_ID_INVALID);
+        assertThat(row.getErrors())
+                .extracting(ImportMembersRowErrorResponse::getColumn, ImportMembersRowErrorResponse::getConstraint,
+                        ImportMembersRowErrorResponse::getParams)
+                .containsExactly(tuple("personalId", MemberImportConstraint.INVALID_PERSONAL_ID, Map.of()));
+        assertThat(row.getMessage()).isEqualTo("The DNI/NIE/NIF is not valid. Check the digits and the letter.");
+        assertThat(messageOf(invalidPersonalId, SPANISH))
+                .isEqualTo("El DNI/NIE/NIF no es válido. Revisa los números y la letra.");
+    }
+
+    @Test
+    @DisplayName("ACC-010 the constraint INVALID_PERSONAL_ID has its own message, in English and in Spanish")
+    void theInvalidPersonalIdConstraint_hasItsMessage() {
+        ImportedMemberRow row = invalid(2, ColumnViolation.of("personalId", MemberImportConstraint.INVALID_PERSONAL_ID));
+
+        assertThat(messageOf(row, Locale.ENGLISH))
+                .isEqualTo("The row has invalid values: personalId is not a valid DNI/NIE/NIF.");
+        assertThat(messageOf(row, SPANISH))
+                .isEqualTo("La fila tiene valores no válidos: personalId no es un DNI/NIE/NIF válido.");
+    }
+
     private String messageOf(ImportedMemberRow row, Locale locale) {
         return mapper.toResponse(new ImportedMembers(List.of(row)), locale).getRows().get(0).getMessage();
     }

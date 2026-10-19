@@ -2,6 +2,8 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.registe
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetupTest;
 import jakarta.mail.internet.MimeMessage;
@@ -46,7 +48,10 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -197,6 +202,20 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
         return admin;
     }
 
+    /**
+     * An account holding {@code personalId} as it is, created through the account creation that predates the check
+     * of the identifier (#398), as accounts stored before it were created.
+     */
+    protected User accountWithPersonalId(String personalId) {
+        User user = UserMother.randomUserWithPersonalId(personalId);
+        user.enable();
+        remember(user.getPassword());
+        remember(user.getEmail());
+        createUserRepository.create(user);
+        personalIds.add(personalId);
+        return user;
+    }
+
     // --- Registering ---
 
     /**
@@ -308,6 +327,27 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     protected List<Map<String, Object>> tokenRows(String personalId) {
         return jdbcTemplate.queryForList("SELECT t.* FROM one_time_token t JOIN users u ON u.id = t.user_id "
                 + "WHERE u.personal_id = ?", personalId);
+    }
+
+    // --- Refusals ---
+
+    /**
+     * Asserts that no account was looked up with {@code personalId} once normalised.
+     */
+    protected void assertNotLookedUp(String personalId) {
+        String normalised = UserPersonalId.normalize(personalId);
+        verify(getUserRepository, never()).findByPersonalId(argThat((UserPersonalId id) ->
+                id != null && normalised.equals(UserPersonalId.normalize(id.getPersonalId()))));
+    }
+
+    /**
+     * An error response without its timestamp and trace id, which differ on every response.
+     */
+    protected JsonNode withoutTrace(String response) throws Exception {
+        ObjectNode node = (ObjectNode) objectMapper.readTree(response);
+        node.remove("timestamp");
+        node.remove("traceId");
+        return node;
     }
 
     // --- Emails ---

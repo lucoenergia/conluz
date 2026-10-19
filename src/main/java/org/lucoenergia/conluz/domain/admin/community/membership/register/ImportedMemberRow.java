@@ -7,7 +7,8 @@ import java.util.Map;
  * The outcome of one data row of an imported file.
  *
  * @param line          the line of the file the row starts on, the header being line 1
- * @param violations    why the row is {@link MemberImportRowOutcome#INVALID}, one per rule broken; empty otherwise
+ * @param violations    why the row is {@link MemberImportRowOutcome#INVALID}, one per rule broken, or
+ *                      {@link MemberImportRowOutcome#INVALID_PERSONAL_ID}; empty otherwise
  */
 public record ImportedMemberRow(int line, MemberImportRowOutcome outcome, List<ColumnViolation> violations) {
 

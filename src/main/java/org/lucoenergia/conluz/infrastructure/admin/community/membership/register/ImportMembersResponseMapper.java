@@ -40,6 +40,8 @@ public class ImportMembersResponseMapper {
                     message(locale, "error.membership.import.row.invalid", row.violations().stream()
                             .map(violation -> describe(violation, locale))
                             .collect(Collectors.joining("; "))));
+            case INVALID_PERSONAL_ID -> failed(row, RestErrorCode.USER_PERSONAL_ID_INVALID,
+                    message(locale, "error.user.personal.id.invalid"));
             case MALFORMED -> failed(row, RestErrorCode.MEMBERSHIP_IMPORT_ROW_MALFORMED,
                     message(locale, "error.membership.import.row.malformed"));
         };
@@ -59,6 +61,7 @@ public class ImportMembersResponseMapper {
             case REQUIRED -> message(locale, "error.membership.import.row.required", column);
             case NOT_EMPTY_ONCE_NORMALISED ->
                     message(locale, "error.membership.import.row.not.empty.once.normalised", column);
+            case INVALID_PERSONAL_ID -> message(locale, "error.membership.import.row.invalid.personal.id", column);
             case MIN -> message(locale, "error.membership.import.row.min", column, violation.params().get("min"));
             case EMAIL -> message(locale, "error.membership.import.row.email", column);
             case NOT_AN_INTEGER -> message(locale, "error.membership.import.row.not.an.integer", column);

@@ -112,7 +112,8 @@ lazily, as issues touch it.
   unless they are one. Member registration MUST create a membership with the role `COMMUNITY_MEMBER`, enabled,
   pending, with the registering community admin as its inviter, and MUST issue no invitation token and send
   nothing: the invitation is a separate action (MEM-009). A personal ID that is empty once normalised (made
-  only of whitespace, dots and hyphens) MUST be refused with 400 before any account is looked up or written. Its
+  only of whitespace, dots and hyphens) MUST be refused with 400 before any account is looked up or written; any
+  other personal ID that is not a valid DNI, NIE or NIF once normalised MUST be refused as ACC-010 says. Its
   member record MUST be the values entered, untrimmed, with an empty or blank optional value recorded as none. If
   the person already has a membership in the community, pending, active or disabled, registration MUST answer 409
   `MEMBERSHIP_ALREADY_EXISTS` and change nothing.
@@ -123,7 +124,7 @@ lazily, as issues touch it.
   personal ID that normalises to nothing would land on one shared account with an empty personal ID. Registering
   sends nothing so that a community can record its members and get ready before inviting them, as the CSV import
   already does (ADR-0003 §5).
-- **Source:** #392, ADR-0003 §1, §2 and §3
+- **Source:** #392, #398, ADR-0003 §1, §2 and §3
 
 ### MEM-008 — Member registration never reveals whether the person had an account
 
@@ -498,7 +499,7 @@ lazily, as issues touch it.
   registered as MEM-007 and MEM-008 register a member, in a transaction of its own and in the order of the file.
   The response MUST be 200 with the counts of registered and failed rows, and one result per row: its line in the
   file, its outcome, for a failed row a code and a message, and a list of errors, empty unless the row is
-  `MEMBERSHIP_IMPORT_ROW_INVALID`.
+  `MEMBERSHIP_IMPORT_ROW_INVALID` or `USER_PERSONAL_ID_INVALID`.
   - A row whose person already has a membership in the community, in any state and including from an earlier row
     of the same file, MUST fail with `MEMBERSHIP_ALREADY_EXISTS`.
   - A row breaking a rule of the registration MUST fail with `MEMBERSHIP_IMPORT_ROW_INVALID`, and list each rule
@@ -506,6 +507,9 @@ lazily, as issues touch it.
     `REQUIRED` (an empty or blank required value), `NOT_EMPTY_ONCE_NORMALISED` (a personal ID of only whitespace,
     dots and hyphens), `MIN` (with `min`), `EMAIL` or `NOT_AN_INTEGER`. Every constraint of the registration body
     MUST have a code.
+  - A row that keeps every rule of the registration body but whose personal ID is not a valid DNI, NIE or NIF once
+    normalised (ACC-010) MUST fail with `USER_PERSONAL_ID_INVALID`, and list one error: the constraint
+    `INVALID_PERSONAL_ID` of the column `personalId`, without parameters.
   - A row without as many cells as the header MUST fail with `MEMBERSHIP_IMPORT_ROW_MALFORMED`.
   - A row whose person has an account but no membership here MUST be registered, and its result MUST be identical
     to a new person's.
@@ -544,7 +548,7 @@ lazily, as issues touch it.
   A headerless file puts a member's data where the headers go, which is why the headers are answered to the
   caller, who typed them, but never logged.
 - **Source:** #397, ADR-0003 §3 and §5; reading Windows-1252 and the structured, localised row errors were
-  decided by the maintainer in the review of #397.
+  decided by the maintainer in the review of #397; the identifier check, #398.
 
 ## Impossible states
 

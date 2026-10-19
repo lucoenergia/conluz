@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import org.lucoenergia.conluz.domain.admin.user.UserAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+import org.lucoenergia.conluz.domain.admin.user.UserPersonalIdInvalidException;
 import org.lucoenergia.conluz.domain.admin.user.create.DefaultAdminUserAlreadyInitializedException;
 import org.lucoenergia.conluz.domain.admin.user.delete.UserOwnsSuppliesException;
 import org.lucoenergia.conluz.domain.admin.user.password.IncorrectCurrentPasswordException;
@@ -62,6 +63,21 @@ public class UserExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.USER_ALREADY_EXISTS, null, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A personal ID that is not a valid DNI, NIE or NIF (#398). Neither the message nor the params carry the
+     * personal ID or the rule it breaks, so the answer is the same whether or not an account holds that value.
+     */
+    @ExceptionHandler(UserPersonalIdInvalidException.class)
+    public ResponseEntity<RestError> handleException(UserPersonalIdInvalidException e) {
+
+        String message = messageSource.getMessage(
+                "error.user.personal.id.invalid",
+                List.of().toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.USER_PERSONAL_ID_INVALID, null, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(UserNotFoundException.class)

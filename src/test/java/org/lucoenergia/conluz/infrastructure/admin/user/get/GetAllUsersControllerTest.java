@@ -238,7 +238,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         createUserRepository.create(userOne);
         User userOneB = UserMother.randomUser();
         userOneB.setFullName("Bod Dylan");
-        userOne.setPersonalId("bbb");
+        userOneB.setPersonalId("bbb");
         createUserRepository.create(userOneB);
         User userTwo = UserMother.randomUser();
         userTwo.setFullName("Bruce Dickinson");

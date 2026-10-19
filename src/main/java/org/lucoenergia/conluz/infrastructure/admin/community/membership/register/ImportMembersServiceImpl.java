@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.register.Importe
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportConstraint;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportFileRefusedException;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportRowOutcome;
+import org.lucoenergia.conluz.domain.admin.user.UserPersonalIdInvalidException;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.personalid.NotEmptyOnceNormalised;
 import org.slf4j.Logger;
@@ -53,6 +54,8 @@ public class ImportMembersServiceImpl implements ImportMembersService {
             NotEmptyOnceNormalised.class, MemberImportConstraint.NOT_EMPTY_ONCE_NORMALISED,
             Min.class, MemberImportConstraint.MIN,
             Email.class, MemberImportConstraint.EMAIL);
+
+    private static final String PERSONAL_ID_COLUMN = "personalId";
 
     private final MemberImportCsvReader reader;
     private final MemberImportRowStep step;
@@ -106,6 +109,9 @@ public class ImportMembersServiceImpl implements ImportMembersService {
             return ImportedMemberRow.of(row.line(), MemberImportRowOutcome.REGISTERED);
         } catch (MembershipAlreadyExistsException e) {
             return ImportedMemberRow.of(row.line(), MemberImportRowOutcome.ALREADY_MEMBER);
+        } catch (UserPersonalIdInvalidException e) {
+            return new ImportedMemberRow(row.line(), MemberImportRowOutcome.INVALID_PERSONAL_ID,
+                    List.of(ColumnViolation.of(PERSONAL_ID_COLUMN, MemberImportConstraint.INVALID_PERSONAL_ID)));
         }
     }
 

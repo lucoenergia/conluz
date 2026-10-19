@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -72,6 +73,18 @@ class InitControllerTest extends BaseControllerTest {
                 .andExpect(status().isBadRequest());
 
         Assertions.assertFalse(getUserRepository.existsByPersonalId(UserPersonalId.of("33600009J")));
+    }
+
+    @Test
+    @DisplayName("ACC-010 initialisation still accepts a default admin identifier that member registration refuses")
+    void anIdentifierRegistrationRefuses_isStillAccepted() throws Exception {
+        allowInitialisationAgain();
+        String personalId = UserMother.invalidPersonalIds().get(0);
+
+        postInit(objectMapper.writeValueAsString(bodyWith(personalId, "a".repeat(15))))
+                .andExpect(status().isOk());
+
+        Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(personalId)));
     }
 
     @Test
