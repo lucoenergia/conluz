@@ -43,6 +43,7 @@ final class CapabilityInventory {
     static final String USER = "user";
     static final String MEMBERSHIP = "membership";
     static final String PARTITION_COEFFICIENT = "partitionCoefficient";
+    static final String PLATFORM_ADMIN = "platformAdmin";
 
     private static final Map<String, Set<Capability>> REPORTED = new LinkedHashMap<>();
     private static final Map<String, String> SERVER_ONLY = new LinkedHashMap<>();
@@ -52,6 +53,7 @@ final class CapabilityInventory {
         // --- platform ---
         report("canCreateCommunity", capability(PLATFORM, "canCreateCommunity"));
         report("canListUsers", capability(PLATFORM, "canListUsers"));
+        report("canListPlatformAdmins", capability(PLATFORM, "canListPlatformAdmins"));
 
         // --- community ---
         report("canReadCommunity", capability(COMMUNITY, "canRead"));
@@ -123,7 +125,9 @@ final class CapabilityInventory {
         report("canEnableUser", capability(USER, "canEnable"));
         report("canDisableUser", capability(USER, "canDisable"));
         report("canGrantPlatformAdmin", capability(USER, "canGrantPlatformAdmin"));
-        report("canRevokePlatformAdmin", capability(USER, "canRevokePlatformAdmin"));
+        report("canRevokePlatformAdmin",
+                capability(USER, "canRevokePlatformAdmin"),
+                capability(PLATFORM_ADMIN, "canRevoke"));
         report("canListSuppliesOfUser", capability(USER, "canListSupplies"));
 
         // --- reported to nobody ---

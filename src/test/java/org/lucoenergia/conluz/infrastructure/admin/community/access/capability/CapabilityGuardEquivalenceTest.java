@@ -120,6 +120,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     private PlatformCapabilitiesAssembler platformAssembler;
     @Autowired
     private PartitionCoefficientCapabilitiesAssembler partitionCoefficientAssembler;
+    @Autowired
+    private PlatformAdminCapabilitiesAssembler platformAdminAssembler;
 
     private Community communityA;
     private Community communityB;
@@ -314,6 +316,22 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         });
     }
 
+    /**
+     * A row of the platform-admin list, about another platform admin and about the caller themselves:
+     * canRevoke must be false on the caller's own row however privileged they are.
+     */
+    @Test
+    void thePlatformAdminCapabilitiesEqualTheirGuards() {
+        UUID otherAdminId = callers.get("platform admin, not a member").getId();
+        forEachCaller(caller -> {
+            UUID selfId = caller.getId();
+            assertSame("canRevoke", platformAdminAssembler.assemble(caller, otherAdminId).isCanRevoke(),
+                    () -> guard.canRevokePlatformAdmin(otherAdminId));
+            assertSame("canRevoke on themselves", platformAdminAssembler.assemble(caller, selfId).isCanRevoke(),
+                    () -> guard.canRevokePlatformAdmin(selfId));
+        });
+    }
+
     @Test
     void theMembershipCapabilitiesEqualTheirGuards() {
         CommunityMembership membership = getMembershipsRepository
@@ -397,6 +415,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             // so this is the guard call the endpoint makes when none is given.
             assertSame("canCreateUsers", capabilities.isCanCreateUsers(),
                     () -> guard.canCreateUserIn(null));
+            assertSame("canListPlatformAdmins", capabilities.isCanListPlatformAdmins(),
+                    () -> guard.canListPlatformAdmins());
             // canAdministerPlatform is deliberately absent: it has no guard to be equal to -- it
             // gates a surface rather than an endpoint -- exactly as community.canCreatePlants is
             // absent from theCommunityCapabilitiesEqualTheirGuards. Its anchor is

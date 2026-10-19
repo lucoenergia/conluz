@@ -15,6 +15,7 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPar
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccessService;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -81,6 +82,8 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
     private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
+    @Autowired
+    private ManagePlatformAdminAccessService managePlatformAdminAccessService;
 
     @Test
     void listingACommunitysSuppliesCostsTheSameForOneAndForFive() throws Exception {
@@ -223,6 +226,24 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         long forFive = statementsFor(url, adminToken);
 
         assertEquals(forOne, forFive, "listing users must not issue a query per user");
+    }
+
+    @Test
+    @DisplayName("ACC-011 listing the platform admins costs the same for one and for five")
+    void listingPlatformAdminsCostsTheSameForOneAndForFive() throws Exception {
+        // The default admin is the one platform admin
+        String adminToken = loginAsDefaultPlatformAdmin();
+        String url = "/api/v1/platform-admins";
+
+        long forOne = statementsFor(url, adminToken);
+
+        // Members of a community, so a row that loaded its memberships would show in the count
+        for (int i = 0; i < 4; i++) {
+            managePlatformAdminAccessService.grant(UserId.of(persistMember().getId()));
+        }
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "listing the platform admins must not issue a query per admin");
     }
 
     @Test

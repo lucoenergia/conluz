@@ -14,7 +14,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * <p>Returned only by {@code GET /api/v1/users/current}: these are facts about the caller, not
  * about a user, so they do not belong on {@link org.lucoenergia.conluz.infrastructure.admin.user.UserResponse}.</p>
  */
-@Schema(description = "What the caller may do on the platform as a whole.", requiredProperties = {"canCreateCommunity", "canListUsers", "canAdministerPlatform", "canCreateUsers"})
+@Schema(description = "What the caller may do on the platform as a whole.", requiredProperties = {"canCreateCommunity", "canListUsers", "canAdministerPlatform", "canCreateUsers", "canListPlatformAdmins"})
 public class PlatformCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may create a community (POST /api/v1/communities).")
@@ -29,11 +29,15 @@ public class PlatformCapabilitiesResponse {
     @Schema(description = "Whether the caller may create a user attached to no community (POST /api/v1/users with no communityId). CommunityCapabilitiesResponse.canCreateUsers answers the same question for one community.")
     private final boolean canCreateUsers;
 
+    @Schema(description = "Whether the caller may list the platform admins (GET /api/v1/platform-admins).")
+    private final boolean canListPlatformAdmins;
+
     private PlatformCapabilitiesResponse(Builder builder) {
         this.canCreateCommunity = builder.canCreateCommunity;
         this.canListUsers = builder.canListUsers;
         this.canAdministerPlatform = builder.canAdministerPlatform;
         this.canCreateUsers = builder.canCreateUsers;
+        this.canListPlatformAdmins = builder.canListPlatformAdmins;
     }
 
     public boolean isCanCreateCommunity() {
@@ -52,6 +56,10 @@ public class PlatformCapabilitiesResponse {
         return canCreateUsers;
     }
 
+    public boolean isCanListPlatformAdmins() {
+        return canListPlatformAdmins;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -66,6 +74,7 @@ public class PlatformCapabilitiesResponse {
         private boolean canListUsers;
         private boolean canAdministerPlatform;
         private boolean canCreateUsers;
+        private boolean canListPlatformAdmins;
 
         public Builder withCanCreateCommunity(boolean canCreateCommunity) {
             this.canCreateCommunity = canCreateCommunity;
@@ -84,6 +93,11 @@ public class PlatformCapabilitiesResponse {
 
         public Builder withCanCreateUsers(boolean canCreateUsers) {
             this.canCreateUsers = canCreateUsers;
+            return this;
+        }
+
+        public Builder withCanListPlatformAdmins(boolean canListPlatformAdmins) {
+            this.canListPlatformAdmins = canListPlatformAdmins;
             return this;
         }
 
