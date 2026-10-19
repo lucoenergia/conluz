@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser`, `getPlatformAdmins` |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser`, `getPlatformAdmins`, `grantPlatformAdmin`, `revokePlatformAdmin` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #451 |
+| **Last reviewed against code** | #456 |
 
 ## Purpose
 
@@ -186,15 +186,49 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   full name, its email (NULL when it has none) and whether it is enabled, plus `revocable` and
   `capabilities.canRevoke`; it MUST NOT carry the personal ID, anything from a member record, or any membership.
   `capabilities.canRevoke` MUST be decided by the same policy as the guard of `revokePlatformAdmin`, so it is false
-  on the caller's own row. `revocable` MUST be false exactly while `revokePlatformAdmin` would be refused with 409
-  `USER_LAST_PLATFORM_ADMIN`, that is while no more than one platform admin is enabled, whoever the row is.
+  on the caller's own row. `revocable` MUST be false exactly when ACC-013's last-platform-admin rule would refuse
+  revoking that row, that is only for an enabled platform admin while no more than one platform admin is enabled; a
+  disabled platform admin's row MUST be revocable.
 - **Rationale:** The users page is being removed from the web client and the platform admin's access to the users
   listing is being closed (#329), which would leave nobody able to see who the platform admins are or find the one
   to revoke. Platform admins are identified by their own account, not by any community's record, so only the account
   is shown, and only what identifies it. Whether the caller may revoke is authorization and whether the revoke would
   be accepted is state; reporting both, from the rules the revoke applies, keeps the client from re-deriving either.
 - **Source:** #451. Reporting the last-platform-admin rule as the row's `revocable`, apart from
-  `capabilities.canRevoke`, was decided by the maintainer in the plan of #451.
+  `capabilities.canRevoke`, was decided by the maintainer in the plan of #451. #456 made `revocable` per row, with
+  ACC-013.
+
+### ACC-012 — Only a platform admin may grant the platform-admin role
+
+- **Status:** Active
+- **Rule:** Granting the platform-admin role (`grantPlatformAdmin`) MUST be allowed only to a platform admin; any
+  other caller MUST be refused with 403, and an anonymous one with 401. An unknown user MUST be answered 404. Granting
+  the role to a user who already holds it MUST succeed and change nothing.
+- **Rationale:** The role gives access to the whole platform, so only someone who already holds it may hand it on.
+  Making the grant idempotent lets a client retry it without first reading the user's state.
+- **Source:** #456, specifying the behaviour in place since the grant was introduced.
+
+### ACC-013 — Revoking the platform-admin role checks the target and keeps an enabled platform admin
+
+- **Status:** Active
+- **Rule:** Revoking the platform-admin role (`revokePlatformAdmin`) MUST be allowed only to a platform admin, and
+  never on their own account; any other caller MUST be refused with 403, and an anonymous one with 401. The checks
+  MUST run in this order, after authorization:
+  1. an unknown user MUST be answered 404;
+  2. a user who does not hold the role MUST be answered 409 `USER_NOT_PLATFORM_ADMIN`, and nothing MUST change;
+  3. revoking the role from an **enabled** platform admin while no more than one platform admin is enabled MUST be
+     answered 409 `USER_LAST_PLATFORM_ADMIN`. Revoking the role from a **disabled** platform admin MUST be allowed
+     whatever the number of enabled platform admins, since it leaves that number as it is.
+
+  Otherwise the role MUST be revoked. Because a disabled account cannot authenticate and the caller may not revoke
+  themselves, the third check can only refuse a revoke that runs at the same time as another one; it MUST still be
+  applied.
+- **Rationale:** Revoking a role nobody holds is a mistake the caller should hear about rather than a silent success,
+  and an unknown user is a 404 regardless of how many platform admins there are. The last-platform-admin rule exists
+  to keep someone able to administer the platform: only enabled platform admins can, so only they count, and a
+  disabled platform admin must not be impossible to clean up just because one other admin is enabled.
+- **Source:** #456. The target checks and the exception for disabled platform admins were decided by the
+  maintainer; until then revoke refused whenever at most one platform admin was enabled, whoever the target was.
 
 ## Impossible states
 
