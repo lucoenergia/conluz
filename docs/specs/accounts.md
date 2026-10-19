@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser` |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser`, `getPlatformAdmins` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #398 |
+| **Last reviewed against code** | #451 |
 
 ## Purpose
 
@@ -175,6 +175,26 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   identifiers would lock out accounts that already work.
 - **Source:** #398. Accepting the NIF of a natural person with `K`, `L` or `M`, and the CIF letters that require a
   digit, require a letter or accept either, were decided by the maintainer in the plan of #398.
+
+### ACC-011 — Only a platform admin may list the platform admins, identified by their own account only
+
+- **Status:** Active
+- **Rule:** Listing the platform admins (`getPlatformAdmins`) MUST be allowed only to a platform admin; any other
+  caller MUST be refused with 403, and an anonymous one with 401. It MUST list every account holding the
+  platform-admin role, enabled or not, by full name and then id, and MUST cost the same number of statements
+  whatever the number of platform admins. Each row MUST carry exactly the account's id (as a `user` reference), its
+  full name, its email (NULL when it has none) and whether it is enabled, plus `revocable` and
+  `capabilities.canRevoke`; it MUST NOT carry the personal ID, anything from a member record, or any membership.
+  `capabilities.canRevoke` MUST be decided by the same policy as the guard of `revokePlatformAdmin`, so it is false
+  on the caller's own row. `revocable` MUST be false exactly while `revokePlatformAdmin` would be refused with 409
+  `USER_LAST_PLATFORM_ADMIN`, that is while no more than one platform admin is enabled, whoever the row is.
+- **Rationale:** The users page is being removed from the web client and the platform admin's access to the users
+  listing is being closed (#329), which would leave nobody able to see who the platform admins are or find the one
+  to revoke. Platform admins are identified by their own account, not by any community's record, so only the account
+  is shown, and only what identifies it. Whether the caller may revoke is authorization and whether the revoke would
+  be accepted is state; reporting both, from the rules the revoke applies, keeps the client from re-deriving either.
+- **Source:** #451. Reporting the last-platform-admin rule as the row's `revocable`, apart from
+  `capabilities.canRevoke`, was decided by the maintainer in the plan of #451.
 
 ## Impossible states
 
