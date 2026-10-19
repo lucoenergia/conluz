@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
@@ -117,6 +118,20 @@ class TokenRejectionControllerTest extends BaseControllerTest {
         User user = createEnabledUser();
 
         expectRejected(tokens.expired(user.getId()), TokenRejectionReason.EXPIRED, user.getId());
+    }
+
+    @Test
+    void aSessionToken_isAcceptedUntilItExpires_andRejectedOnceTheClockPassesItsExpiry() throws Exception {
+        User user = createEnabledUser();
+        String token = rawToken(loginUser(user));
+        Duration lifetime = Duration.ofMinutes(jwtConfiguration.getExpirationTime());
+
+        clock.advance(lifetime.minusSeconds(1));
+        mockMvc.perform(get(CURRENT_USER_URL).with(from(IP)).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        clock.advance(Duration.ofSeconds(2));
+        expectRejected(token, TokenRejectionReason.EXPIRED, user.getId());
     }
 
     @Test

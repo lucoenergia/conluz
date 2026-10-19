@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.*;
@@ -60,6 +61,26 @@ public class BaseControllerTest extends BaseIntegrationTest {
     @BeforeEach
     void startWithNoFailedAuthenticationAttempts() {
         clock.advance(Duration.ofMinutes(16));
+    }
+
+    /**
+     * Moves the application clock forwards to {@code instant}. Unlike {@link #travelTo}, it never moves it back, so
+     * no failed-attempt window can be left open and nothing needs to be restored.
+     */
+    protected void advanceTo(Instant instant) {
+        Duration ahead = Duration.between(clock.instant(), instant);
+        if (ahead.isNegative()) {
+            throw new IllegalArgumentException(instant + " is before the clock, at " + clock.instant());
+        }
+        clock.advance(ahead);
+    }
+
+    /**
+     * The start of a whole second at least one second ahead of the clock, so that a test can place events before it
+     * and at fractions of it, which a token's {@code iat} cannot tell apart.
+     */
+    protected Instant aComingSecond() {
+        return clock.instant().truncatedTo(ChronoUnit.SECONDS).plusSeconds(2);
     }
 
     /**

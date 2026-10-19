@@ -276,6 +276,25 @@ class ChangePasswordControllerTest extends BaseControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void theChangeIsRecordedWithTheApplicationClock_andEndsTheSessionsOfEarlierSecondsOnly() throws Exception {
+        User user = createFlaggedUser();
+        Instant second = aComingSecond();
+        advanceTo(second.minusMillis(100));
+        String earlierSecond = login(user.getPersonalId(), user.getPassword());
+        String usedForTheChange = login(user.getPersonalId(), user.getPassword());
+
+        advanceTo(second.plusMillis(400));
+        changePassword(usedForTheChange, user.getPassword(), NEW_PASSWORD).andExpect(status().isNoContent());
+        advanceTo(second.plusMillis(700));
+        String sameSecond = login(user.getPersonalId(), NEW_PASSWORD);
+
+        Assertions.assertEquals(second.plusMillis(400),
+                getUserRepository.findById(UserId.of(user.getId())).orElseThrow().getPasswordChangedAt());
+        getCurrentUser(earlierSecond).andExpect(status().isUnauthorized());
+        getCurrentUser(sameSecond).andExpect(status().isOk());
+    }
+
     private User createFlaggedUser() {
         User user = UserMother.randomUser();
         user.enable();

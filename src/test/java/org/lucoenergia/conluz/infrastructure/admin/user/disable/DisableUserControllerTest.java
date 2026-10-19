@@ -361,6 +361,25 @@ class DisableUserControllerTest extends BaseControllerTest {
         getCurrentUser(loginUser(user)).andExpect(status().isOk());
     }
 
+    @Test
+    void aDisable_endsTheSessionsOfEarlierSecondsOnly_onceTheUserIsEnabledAgain() throws Exception {
+        String adminToken = loginAsDefaultPlatformAdmin();
+        User user = createEnabledUser();
+        Instant second = aComingSecond();
+        advanceTo(second.minusMillis(100));
+        String earlierSecond = loginUser(user);
+
+        advanceTo(second.plusMillis(400));
+        disable(adminToken, user).andExpect(status().isOk());
+        enable(adminToken, user).andExpect(status().isOk());
+        advanceTo(second.plusMillis(700));
+        String sameSecond = loginUser(user);
+
+        Assertions.assertEquals(second.plusMillis(400), reload(user).getDisabledAt());
+        getCurrentUser(earlierSecond).andExpect(status().isUnauthorized());
+        getCurrentUser(sameSecond).andExpect(status().isOk());
+    }
+
     private User createEnabledUser() {
         User user = UserMother.randomUser();
         user.enable();
