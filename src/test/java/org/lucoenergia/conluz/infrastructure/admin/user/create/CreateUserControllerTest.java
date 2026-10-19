@@ -99,6 +99,30 @@ class CreateUserControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-010 the legacy user creation still accepts identifiers that member registration refuses")
+    void anIdentifierRegistrationRefuses_isStillAccepted() throws Exception {
+        String authHeader = loginAsDefaultPlatformAdmin();
+
+        for (String personalId : UserMother.invalidPersonalIds()) {
+            Map<String, Object> body = Map.of(
+                    "personalId", personalId,
+                    "fullName", "John Doe",
+                    "number", 1,
+                    "email", "johndoe-" + personalId + "@email.com",
+                    "password", "a secure password1!");
+
+            mockMvc.perform(post(URL)
+                            .header(HttpHeaders.AUTHORIZATION, authHeader)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.personalId").value(personalId));
+
+            Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(personalId)));
+        }
+    }
+
+    @Test
     void testMinimumBody() throws Exception {
 
         String authHeader = loginAsDefaultPlatformAdmin();

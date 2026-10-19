@@ -12,7 +12,6 @@ import org.lucoenergia.conluz.domain.admin.community.admins.InviteCommunityAdmin
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
@@ -58,6 +57,11 @@ public class InviteCommunityAdminController {
                     or state, responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code, and nothing is created or \
                     sent.
 
+                    The DNI/NIE/NIF may be typed in any case, with spaces, dots and hyphens. Once those are removed \
+                    it must be a valid DNI, NIE or NIF, with the control letter or character matching its digits; \
+                    otherwise it responds 400 with the `USER_PERSONAL_ID_INVALID` code, and nothing is created or \
+                    sent.
+
                     If the server cannot send emails right now (no public web URL configured, or email sending \
                     disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything \
                     is created.
@@ -71,6 +75,50 @@ public class InviteCommunityAdminController {
                     responseCode = "200",
                     description = "Community admin registered and invited",
                     useReturnTypeSchema = true
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "The request is not valid. A body that breaks a validation rule is answered without "
+                            + "a code. A `personalId` that is not a valid DNI, NIE or NIF once normalised is answered "
+                            + "with the `USER_PERSONAL_ID_INVALID` code, the same whether or not an account holds "
+                            + "that value, and nothing is created or sent.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RestError.class),
+                            examples = {
+                                    @ExampleObject(
+                                            name = "invalidPersonalId",
+                                            summary = "The personal ID is not a valid DNI, NIE or NIF",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2026-10-19T10:10:25.534035352+02:00",
+                                                       "status": 400,
+                                                       "message": "The DNI/NIE/NIF is not valid. Check the digits and the letter.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                                       "errors": [
+                                                         {
+                                                           "message": "The DNI/NIE/NIF is not valid. Check the digits and the letter.",
+                                                           "code": "USER_PERSONAL_ID_INVALID",
+                                                           "params": null
+                                                         }
+                                                       ]
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "invalidRequest",
+                                            summary = "The body breaks a validation rule",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2026-10-19T10:10:25.534035352+02:00",
+                                                       "status": 400,
+                                                       "message": "The request contains invalid data.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013"
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
             ),
             @ApiResponse(
                     responseCode = "409",
@@ -109,7 +157,6 @@ public class InviteCommunityAdminController {
                     )
             )
     })
-    @BadRequestErrorResponse
     @InternalServerErrorResponse
     @UnauthorizedErrorResponse
     @ForbiddenErrorResponse

@@ -20,6 +20,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberI
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportFileProblem;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportFileRefusedException;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportRowOutcome;
+import org.lucoenergia.conluz.domain.admin.user.UserPersonalIdInvalidException;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.mockito.InOrder;
@@ -91,6 +92,26 @@ class ImportMembersServiceTest {
                 eq(new MemberRecord("Ana", 7, null, "Calle", null)));
         order.verify(step).register(eq(COMMUNITY_ID), eq(ADMIN), personalId("2"),
                 eq(new MemberRecord("Luis", null, null, null, null)));
+    }
+
+    @Test
+    @DisplayName("ACC-010 a personal ID the registration refuses as invalid is a row error with the constraint "
+            + "INVALID_PERSONAL_ID of the column personalId, and the following rows are registered")
+    void anInvalidPersonalId_isARowError_andTheImportGoesOn() {
+        when(reader.read(FILE)).thenReturn(file(
+                row(2, Map.of("personalId", "1", "fullName", "Ana")),
+                row(3, Map.of("personalId", "2", "fullName", "Luis"))));
+        doThrow(new UserPersonalIdInvalidException())
+                .when(step).register(eq(COMMUNITY_ID), eq(ADMIN), personalId("1"), any());
+
+        ImportedMembers imported = service.importMembers(COMMUNITY_ID, ADMIN, FILE);
+
+        assertThat(imported.rows()).extracting(ImportedMemberRow::outcome)
+                .containsExactly(MemberImportRowOutcome.INVALID_PERSONAL_ID, MemberImportRowOutcome.REGISTERED);
+        assertThat(imported.rows().get(0).violations())
+                .containsExactly(ColumnViolation.of("personalId", MemberImportConstraint.INVALID_PERSONAL_ID));
+        assertThat(imported.registered()).isEqualTo(1);
+        assertThat(imported.failed()).isEqualTo(1);
     }
 
     @Test

@@ -8,11 +8,13 @@ import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembership
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisteredMember;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserPersonalIdInvalidException;
 import org.lucoenergia.conluz.domain.admin.user.create.CreatePasswordlessUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.shared.UserPersonalIdValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -54,15 +56,23 @@ public class MembershipRegistration {
     }
 
     /**
+     * @throws UserPersonalIdInvalidException if the personal id, once normalised, is not a valid DNI, NIE or NIF;
+     *         nothing is looked up or written
      * @throws CommunityNotFoundException if the community does not exist
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException if the person already
      *         has a membership in the community, whatever its state
      */
     public RegisteredMember register(UUID communityId, UserId registeredBy, UserPersonalId personalId,
                                      MemberRecord record, CommunityRole role) {
+        // Validated once normalised, so that typing variants of a valid identifier pass, and before any lookup, so
+        // that the refusal is the same whether or not an account holds the value
+        String normalized = UserPersonalId.normalize(personalId.getPersonalId());
+        if (!UserPersonalIdValidator.isValid(normalized)) {
+            throw new UserPersonalIdInvalidException();
+        }
+
         getCommunityRepository.findById(communityId)
                 .orElseThrow(() -> new CommunityNotFoundException(communityId));
-        String normalized = UserPersonalId.normalize(personalId.getPersonalId());
 
         // An existing account is found silently and never written. A missing one is created without a password;
         // if a concurrent registration creates it first, that account is used instead

@@ -1,7 +1,8 @@
 package org.lucoenergia.conluz.domain.admin.community.membership.register;
 
 /**
- * A rule of the registration that a value of an imported row breaks. Each rule of the registration body has one.
+ * A rule of the registration that a value of an imported row breaks. Each rule of the registration body has one, and
+ * so does the registration's own check of the personal ID.
  */
 public enum MemberImportConstraint {
 
@@ -13,6 +14,10 @@ public enum MemberImportConstraint {
      * The value holds only characters that normalisation removes: whitespace, dots and hyphens.
      */
     NOT_EMPTY_ONCE_NORMALISED,
+    /**
+     * The personal ID, once normalised, is not a valid DNI, NIE or NIF (#398).
+     */
+    INVALID_PERSONAL_ID,
     /**
      * The number is below the minimum, given as the parameter {@code min}.
      */
