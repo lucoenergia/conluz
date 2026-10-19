@@ -11,7 +11,8 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(requiredProperties = {"id", "user", "communityId", "role", "enabled", "acceptedAt", "invitationExpiresAt", "capabilities"})
+@Schema(requiredProperties = {"id", "user", "communityId", "role", "enabled", "acceptedAt", "invitedAt", "invitationExpiresAt",
+        "capabilities"})
 public class MembershipResponse {
 
     private final UUID id;
@@ -24,6 +25,9 @@ public class MembershipResponse {
             + "grants no access until it is accepted. Independent of enabled.",
             example = "2026-01-01T00:00:00Z", types = {"string", "null"})
     private final Instant acceptedAt;
+    @Schema(description = "When the membership was last sent an invitation. Null if none has been sent.",
+            example = "2026-01-01T00:00:00Z", types = {"string", "null"})
+    private final Instant invitedAt;
     @Schema(description = "When the membership's invitation link expires. Null when it has no link that can still "
             + "be used: none was sent, it was revoked or used, or it has expired.",
             example = "2026-01-08T00:00:00Z", types = {"string", "null"})
@@ -45,6 +49,7 @@ public class MembershipResponse {
         this.role = membership.getRole();
         this.enabled = membership.isEnabled();
         this.acceptedAt = membership.getAcceptedAt();
+        this.invitedAt = membership.getInvitedAt();
         this.invitationExpiresAt = invitationExpiresAt;
         this.capabilities = capabilities;
     }
@@ -71,6 +76,10 @@ public class MembershipResponse {
 
     public Instant getAcceptedAt() {
         return acceptedAt;
+    }
+
+    public Instant getInvitedAt() {
+        return invitedAt;
     }
 
     public Instant getInvitationExpiresAt() {
