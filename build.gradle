@@ -71,6 +71,11 @@ tasks.named('test') {
     // Every cached Spring test context stays in memory for the whole run; Gradle's default of 512m runs out
     // a couple of contexts past today's count (see application-test.properties).
     maxHeapSize = '1g'
+    // Each fork starts its own PostgreSQL and InfluxDB containers and builds its own Spring contexts, so the
+    // count is capped at half the CPUs and at four. Tests inside a fork still run one at a time: they share
+    // state (committed data, Hibernate statistics, captured logs, the mutable clock) that rules out JUnit's
+    // in-JVM parallel execution (#443).
+    maxParallelForks = Math.max(1, Math.min(4, Runtime.runtime.availableProcessors().intdiv(2)))
     testLogging {
         events "failed", "skipped"
         exceptionFormat "full"
