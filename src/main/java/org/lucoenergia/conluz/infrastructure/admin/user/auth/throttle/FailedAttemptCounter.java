@@ -108,6 +108,14 @@ class FailedAttemptCounter {
         windows.remove(cut(key));
     }
 
+    /**
+     * Forgets every key's failures and reservations.
+     */
+    synchronized void clear() {
+        windows.clear();
+        reservations.clear();
+    }
+
     synchronized int size() {
         return windows.size();
     }

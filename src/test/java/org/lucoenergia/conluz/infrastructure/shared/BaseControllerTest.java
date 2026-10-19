@@ -1,15 +1,18 @@
 package org.lucoenergia.conluz.infrastructure.shared;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.config.init.InitBody;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
+import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.AuthenticationThrottleCounters;
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.*;
@@ -40,6 +44,13 @@ public class BaseControllerTest extends BaseIntegrationTest {
     protected MutableClock clock;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AuthenticationThrottleService authenticationThrottleService;
+
+    /**
+     * Where the clock was before this test first called {@link #travelTo}, or {@code null} if it did not.
+     */
+    private Instant instantBeforeTravel;
 
     /**
      * The failed-attempt counters of login and password change live in memory and are shared by every test that
@@ -49,6 +60,28 @@ public class BaseControllerTest extends BaseIntegrationTest {
     @BeforeEach
     void startWithNoFailedAuthenticationAttempts() {
         clock.advance(Duration.ofMinutes(16));
+    }
+
+    /**
+     * Moves the application clock to {@code instant}, which may be in its past, until the end of the test. The
+     * failed-attempt counters are cleared on every move: a window opened at a later instant would otherwise stay
+     * open after the clock went back, and throttle requests of this test or the following ones.
+     */
+    protected void travelTo(Instant instant) {
+        if (instantBeforeTravel == null) {
+            instantBeforeTravel = clock.instant();
+        }
+        clock.setInstant(instant);
+        AuthenticationThrottleCounters.clearAll(authenticationThrottleService);
+    }
+
+    @AfterEach
+    void returnFromTravel() {
+        if (instantBeforeTravel != null) {
+            clock.setInstant(instantBeforeTravel);
+            instantBeforeTravel = null;
+            AuthenticationThrottleCounters.clearAll(authenticationThrottleService);
+        }
     }
 
     protected MvcResult init() throws Exception {
