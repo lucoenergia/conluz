@@ -10,7 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Component
@@ -21,13 +23,16 @@ public class DatadisSyncDailyJob implements Job {
     private final DatadisSyncService datadisSyncService;
     private final GetDatadisConfigurationService getDatadisConfigurationService;
     private final DatadisSyncWindow syncWindow;
+    private final Clock clock;
 
     public DatadisSyncDailyJob(DatadisSyncService datadisSyncService,
                                GetDatadisConfigurationService getDatadisConfigurationService,
-                               DatadisSyncWindow syncWindow) {
+                               DatadisSyncWindow syncWindow,
+                               Clock clock) {
         this.datadisSyncService = datadisSyncService;
         this.getDatadisConfigurationService = getDatadisConfigurationService;
         this.syncWindow = syncWindow;
+        this.clock = clock;
     }
 
     @Override
@@ -41,7 +46,7 @@ public class DatadisSyncDailyJob implements Job {
 
         LOGGER.info("Datadis daily sync started for {} communities...", enabledConfigs.size());
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock.withZone(ZoneId.systemDefault()));
         LocalDate firstDay = syncWindow.firstDay(today);
 
         for (DatadisConfig config : enabledConfigs) {

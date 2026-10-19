@@ -6,7 +6,9 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Schema(requiredProperties = {"year"})
 public class SyncDatadisConsumptionsBody {
@@ -57,14 +59,15 @@ public class SyncDatadisConsumptionsBody {
     }
 
     /**
-     * Converts the year to the end date (December 31st of the year).
+     * Converts the year to the end date (December 31st of the year), or today if that is earlier.
      *
-     * @return LocalDate representing December 31st of the specified year
+     * @param clock the source of today, read in the JVM's default zone
+     * @return LocalDate representing December 31st of the specified year, or today
      */
     @JsonIgnore
-    public LocalDate getEndDate() {
+    public LocalDate getEndDate(Clock clock) {
         LocalDate lastDayOfYear = LocalDate.of(year, 12, 31);
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock.withZone(ZoneId.systemDefault()));
         if (lastDayOfYear.isAfter(today)) {
             return today;
         }

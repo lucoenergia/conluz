@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Clock;
 import java.util.UUID;
 
 @RestController
@@ -28,9 +29,11 @@ import java.util.UUID;
 public class SyncDatadisConsumptionsController {
 
     private final DatadisSyncService datadisSyncService;
+    private final Clock clock;
 
-    public SyncDatadisConsumptionsController(DatadisSyncService datadisSyncService) {
+    public SyncDatadisConsumptionsController(DatadisSyncService datadisSyncService, Clock clock) {
         this.datadisSyncService = datadisSyncService;
+        this.clock = clock;
     }
 
     @PostMapping
@@ -82,6 +85,7 @@ public class SyncDatadisConsumptionsController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncDatadisConsumptions(@PathVariable UUID communityId,
                                         @Valid @RequestBody SyncDatadisConsumptionsBody body) {
-        datadisSyncService.synchronize(communityId, body.getStartDate(), body.getEndDate(), body.getSupplyCode());
+        datadisSyncService.synchronize(communityId, body.getStartDate(), body.getEndDate(clock),
+                body.getSupplyCode());
     }
 }
