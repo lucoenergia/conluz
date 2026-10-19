@@ -1,26 +1,82 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.aggregate;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
+import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
+import org.lucoenergia.conluz.domain.production.huawei.sync.HuaweiSyncWindow;
 import org.mockito.Mockito;
 
-import java.time.LocalDate;
+import java.time.Clock;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
-import static org.mockito.Mockito.times;
+import static org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiJobTestSupport.MADRID;
+import static org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiJobTestSupport.clockAt;
+import static org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiJobTestSupport.enabledConfig;
+import static org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiJobTestSupport.zoneResolver;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 class HuaweiProductionYearlyAggregationJobTest {
 
+    private static final UUID PLANT_A = UUID.randomUUID();
+    private static final UUID PLANT_B = UUID.randomUUID();
+
+    private final HuaweiProductionYearlyAggregationService service =
+            Mockito.mock(HuaweiProductionYearlyAggregationService.class);
+    private final GetHuaweiConfigurationService configService = Mockito.mock(GetHuaweiConfigurationService.class);
+
+    @BeforeEach
+    void setUp() {
+        when(configService.findAllEnabled()).thenReturn(List.of(enabledConfig(PLANT_A), enabledConfig(PLANT_B)));
+    }
+
     @Test
-    void testRun_ShouldCallServiceWithCurrentYear() {
-        HuaweiProductionYearlyAggregationService mockService = Mockito.mock(HuaweiProductionYearlyAggregationService.class);
-        HuaweiProductionYearlyAggregationJob job = new HuaweiProductionYearlyAggregationJob(mockService);
+    void thePlantOfEveryEnabledConfigIsAggregated() {
+        job(clockAt("2026-10-19T01:00:00Z")).run();
 
-        LocalDate today = LocalDate.now();
-        int year = today.getYear();
+        verify(service).aggregatePlantYearlyProduction(PLANT_A, 2026);
+        verify(service).aggregatePlantYearlyProduction(PLANT_B, 2026);
+        verifyNoMoreInteractions(service);
+    }
 
-        job.run();
+    @Test
+    void aConfigWithoutPlantIsSkipped() {
+        when(configService.findAllEnabled()).thenReturn(List.of(enabledConfig(null), enabledConfig(PLANT_B)));
 
-        verify(mockService, times(1)).aggregateYearlyProductions(year);
+        job(clockAt("2026-10-19T01:00:00Z")).run();
+
+        verify(service).aggregatePlantYearlyProduction(PLANT_B, 2026);
+        verifyNoMoreInteractions(service);
+    }
+
+    @Test
+    void aFailingPlantDoesNotStopTheOthers() {
+        doThrow(new RuntimeException("boom")).when(service).aggregatePlantYearlyProduction(eq(PLANT_A), anyInt());
+
+        job(clockAt("2026-10-19T01:00:00Z")).run();
+
+        verify(service).aggregatePlantYearlyProduction(PLANT_B, 2026);
+    }
+
+    @Test
+    void nothingIsAggregatedWithoutEnabledConfigs() {
+        when(configService.findAllEnabled()).thenReturn(Collections.emptyList());
+
+        job(clockAt("2026-10-19T01:00:00Z")).run();
+
+        verifyNoInteractions(service);
+    }
+
+    private HuaweiProductionYearlyAggregationJob job(Clock clock) {
+        return new HuaweiProductionYearlyAggregationJob(service, clock, configService, HuaweiSyncWindow.DEFAULT,
+                zoneResolver(MADRID));
     }
 }

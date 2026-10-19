@@ -56,6 +56,14 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
     }
 
     @Override
+    public void aggregatePlantYearlyProduction(UUID plantId, int year) {
+        getEnergyStationRepository.findById(plantId).ifPresentOrElse(
+                plant -> aggregateForPlantYear(plant, year),
+                () -> LOGGER.warn("Plant not found for yearly production aggregation, plantId={}", plantId)
+        );
+    }
+
+    @Override
     public void aggregateYearlyProductions(UUID communityId, int year) {
         for (Plant plant : communityPlants(communityId)) {
             aggregateForPlantYear(plant, year);

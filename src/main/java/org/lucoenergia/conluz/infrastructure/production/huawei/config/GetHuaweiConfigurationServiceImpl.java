@@ -35,6 +35,11 @@ public class GetHuaweiConfigurationServiceImpl implements GetHuaweiConfiguration
     }
 
     @Override
+    public List<HuaweiConfig> findAllEnabled() {
+        return getHuaweiConfigRepository.getEnabledHuaweiConfigs();
+    }
+
+    @Override
     public Optional<HuaweiConfig> getHuaweiConfiguration(UUID plantId) {
         return getHuaweiConfigRepository.getHuaweiConfig(plantId);
     }

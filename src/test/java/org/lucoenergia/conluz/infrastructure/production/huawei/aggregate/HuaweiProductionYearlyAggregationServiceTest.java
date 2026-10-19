@@ -205,4 +205,39 @@ class HuaweiProductionYearlyAggregationServiceTest {
 
         verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(plant), eq(2024));
     }
+
+    // aggregatePlantYearlyProduction: one plant, found by id
+
+    @Test
+    void testAggregatePlantYearly_aggregatesTheRequestedYearForThatPlantOnly() {
+        Plant plant = PlantMother.random().build();
+        when(getEnergyStationRepository.findById(plant.getId())).thenReturn(Optional.of(plant));
+
+        service.aggregatePlantYearlyProduction(plant.getId(), 2026);
+
+        verify(aggregationRepository).aggregateYearlyProduction(plant, 2026);
+        verifyNoMoreInteractions(aggregationRepository);
+    }
+
+    @Test
+    void testAggregatePlantYearly_whenPlantNotFound_thenSkipsAggregation() {
+        UUID missingPlantId = UUID.randomUUID();
+        when(getEnergyStationRepository.findById(missingPlantId)).thenReturn(Optional.empty());
+
+        service.aggregatePlantYearlyProduction(missingPlantId, 2026);
+
+        verifyNoInteractions(aggregationRepository);
+    }
+
+    @Test
+    void testAggregatePlantYearly_whenRepositoryFails_thenDoesNotPropagate() {
+        Plant plant = PlantMother.random().build();
+        when(getEnergyStationRepository.findById(plant.getId())).thenReturn(Optional.of(plant));
+        doThrow(new RuntimeException("InfluxDB connection error"))
+                .when(aggregationRepository).aggregateYearlyProduction(any(Plant.class), anyInt());
+
+        service.aggregatePlantYearlyProduction(plant.getId(), 2026);
+
+        verify(aggregationRepository).aggregateYearlyProduction(plant, 2026);
+    }
 }

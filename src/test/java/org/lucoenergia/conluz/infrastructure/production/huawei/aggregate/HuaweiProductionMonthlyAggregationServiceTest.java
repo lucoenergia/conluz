@@ -233,4 +233,39 @@ class HuaweiProductionMonthlyAggregationServiceTest {
 
         verify(aggregationRepository, times(1)).aggregateMonthlyProduction(eq(plant), eq(Month.JUNE), eq(2024));
     }
+
+    // aggregatePlantMonthlyProduction: one plant, found by id
+
+    @Test
+    void testAggregatePlantMonthly_aggregatesTheRequestedPeriodForThatPlantOnly() {
+        Plant plant = PlantMother.random().build();
+        when(getEnergyStationRepository.findById(plant.getId())).thenReturn(Optional.of(plant));
+
+        service.aggregatePlantMonthlyProduction(plant.getId(), Month.OCTOBER, 2026);
+
+        verify(aggregationRepository).aggregateMonthlyProduction(plant, Month.OCTOBER, 2026);
+        verifyNoMoreInteractions(aggregationRepository);
+    }
+
+    @Test
+    void testAggregatePlantMonthly_whenPlantNotFound_thenSkipsAggregation() {
+        UUID missingPlantId = UUID.randomUUID();
+        when(getEnergyStationRepository.findById(missingPlantId)).thenReturn(Optional.empty());
+
+        service.aggregatePlantMonthlyProduction(missingPlantId, Month.OCTOBER, 2026);
+
+        verifyNoInteractions(aggregationRepository);
+    }
+
+    @Test
+    void testAggregatePlantMonthly_whenRepositoryFails_thenDoesNotPropagate() {
+        Plant plant = PlantMother.random().build();
+        when(getEnergyStationRepository.findById(plant.getId())).thenReturn(Optional.of(plant));
+        doThrow(new RuntimeException("InfluxDB connection error"))
+                .when(aggregationRepository).aggregateMonthlyProduction(any(Plant.class), any(Month.class), anyInt());
+
+        service.aggregatePlantMonthlyProduction(plant.getId(), Month.OCTOBER, 2026);
+
+        verify(aggregationRepository).aggregateMonthlyProduction(plant, Month.OCTOBER, 2026);
+    }
 }

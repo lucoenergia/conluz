@@ -57,6 +57,14 @@ public class HuaweiProductionMonthlyAggregationServiceImpl implements HuaweiProd
     }
 
     @Override
+    public void aggregatePlantMonthlyProduction(UUID plantId, Month month, int year) {
+        getEnergyStationRepository.findById(plantId).ifPresentOrElse(
+                plant -> aggregateForPlantMonthYear(plant, month, year),
+                () -> LOGGER.warn("Plant not found for monthly production aggregation, plantId={}", plantId)
+        );
+    }
+
+    @Override
     public void aggregateMonthlyProductions(UUID communityId, int year) {
         for (Plant plant : communityPlants(communityId)) {
             for (Month month : Month.values()) {

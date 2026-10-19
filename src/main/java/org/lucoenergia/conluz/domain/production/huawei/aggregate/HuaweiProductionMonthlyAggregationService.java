@@ -18,6 +18,12 @@ public interface HuaweiProductionMonthlyAggregationService {
      */
     void aggregateMonthlyProductions(Month month, int year);
 
+    /**
+     * Aggregates a single plant, found by its id, for a specific month and year. Nothing is
+     * aggregated if the plant does not exist.
+     */
+    void aggregatePlantMonthlyProduction(UUID plantId, Month month, int year);
+
     // --- Community-scoped variants: only the given community's plants are aggregated ---
 
     void aggregateMonthlyProductions(UUID communityId, int year);

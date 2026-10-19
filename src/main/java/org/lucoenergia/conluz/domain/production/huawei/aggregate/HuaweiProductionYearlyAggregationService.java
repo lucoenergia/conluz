@@ -16,6 +16,12 @@ public interface HuaweiProductionYearlyAggregationService {
      */
     void aggregateYearlyProductions(int year);
 
+    /**
+     * Aggregates a single plant, found by its id, for a specific year. Nothing is aggregated if the
+     * plant does not exist.
+     */
+    void aggregatePlantYearlyProduction(UUID plantId, int year);
+
     // --- Community-scoped variants: only the given community's plants are aggregated ---
 
     void aggregateYearlyProductions(UUID communityId, int year);
