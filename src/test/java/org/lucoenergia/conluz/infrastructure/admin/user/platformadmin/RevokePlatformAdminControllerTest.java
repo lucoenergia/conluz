@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.platformadmin;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -36,8 +37,12 @@ class RevokePlatformAdminControllerTest extends BaseControllerTest {
      * Creates and persists an enabled platform-admin user.
      */
     private User createPlatformAdmin() {
+        return createPlatformAdmin(true);
+    }
+
+    private User createPlatformAdmin(boolean enabled) {
         User admin = UserMother.randomUser();
-        admin.setEnabled(true);
+        admin.setEnabled(enabled);
         admin.setPlatformAdmin(true);
         createUserRepository.create(admin);
         return admin;
@@ -60,11 +65,12 @@ class RevokePlatformAdminControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testRevokeLastPlatformAdminIsRejected() throws Exception {
+    @DisplayName("ACC-013 revoking a user who is not a platform admin is refused, and nothing changes")
+    void testRevokeUserWhoIsNotAPlatformAdminIsRejected() throws Exception {
 
-        // Only the default platform admin exists (count == 1). Revoking any user is rejected with 409,
-        // because the system can never be left with zero platform admins.
+        // A second enabled platform admin, so the last-admin rail could not be what refuses it
         String authHeader = loginAsDefaultPlatformAdmin();
+        createPlatformAdmin();
 
         User target = UserMother.randomUser();
         target.setEnabled(true);
@@ -78,12 +84,31 @@ class RevokePlatformAdminControllerTest extends BaseControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
-                .andExpect(jsonPath("$.errors[0].code").value("USER_LAST_PLATFORM_ADMIN"))
+                .andExpect(jsonPath("$.errors[0].code").value("USER_NOT_PLATFORM_ADMIN"))
                 .andExpect(jsonPath("$.errors[0].params").value(nullValue()))
                 .andExpect(jsonPath("$.errors[0].message").isNotEmpty());
 
-        // The default platform admin still holds the flag.
+        // Nothing changed: the target still lacks the flag and the default platform admin still holds it
+        Assertions.assertFalse(getUserRepository.findByPersonalId(UserPersonalId.of(target.getPersonalId()))
+                .get().isPlatformAdmin());
         Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID))
+                .get().isPlatformAdmin());
+    }
+
+    @Test
+    @DisplayName("ACC-013 revoking a disabled platform admin is allowed while only one platform admin is enabled")
+    void testRevokeDisabledPlatformAdminWithOneEnabledAdmin() throws Exception {
+
+        // The caller is the only enabled platform admin
+        String authHeader = loginAsDefaultPlatformAdmin();
+        User disabledAdmin = createPlatformAdmin(false);
+
+        mockMvc.perform(post(String.format("/api/v1/users/%s/revoke-platform-admin", disabledAdmin.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        Assertions.assertFalse(getUserRepository.findByPersonalId(UserPersonalId.of(disabledAdmin.getPersonalId()))
                 .get().isPlatformAdmin());
     }
 
@@ -107,12 +132,11 @@ class RevokePlatformAdminControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-013 revoking an unknown user answers 404, whatever the number of enabled platform admins")
     void testWithUnknownUser() throws Exception {
 
-        // A second platform admin keeps the count above one, so the last-admin rail passes and the
-        // unknown target id surfaces as a 404 rather than a 409.
+        // Only the default platform admin exists: the target is checked before the last-admin rail
         String authHeader = loginAsDefaultPlatformAdmin();
-        createPlatformAdmin();
 
         final String userId = UUID.randomUUID().toString();
 

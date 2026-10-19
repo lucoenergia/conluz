@@ -26,9 +26,8 @@ public class GetPlatformAdminsServiceImpl implements GetPlatformAdminsService {
         // The list holds every platform admin, so its enabled ones are exactly what the revoke counts: no second
         // query, and no window between the list and the count
         long enabled = admins.stream().filter(User::isEnabled).count();
-        boolean revocable = !LastPlatformAdminRule.blocksRevocation(enabled);
         return admins.stream()
-                .map(admin -> new PlatformAdmin(admin, revocable))
+                .map(admin -> new PlatformAdmin(admin, !LastPlatformAdminRule.blocksRevocation(admin, enabled)))
                 .toList();
     }
 }

@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public enum RestErrorCode {
 
     USER_LAST_PLATFORM_ADMIN,
+    USER_NOT_PLATFORM_ADMIN,
     USER_ALREADY_EXISTS,
     USER_PASSWORD_POLICY_VIOLATION,
     USER_CURRENT_PASSWORD_INCORRECT,

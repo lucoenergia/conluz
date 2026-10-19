@@ -158,8 +158,8 @@ class GetPlatformAdminsControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("ACC-011 with one enabled platform admin no row is revocable, and revoking really is refused")
-    void withTheLastEnabledPlatformAdminNoRowIsRevocable() throws Exception {
+    @DisplayName("ACC-011 with one enabled platform admin a disabled one is revocable, and revoking it really succeeds")
+    void withOneEnabledPlatformAdminADisabledOneIsRevocable() throws Exception {
         String authHeader = loginAsDefaultPlatformAdmin();
         User self = defaultAdmin();
         // A disabled platform admin does not count towards the last-platform-admin rule
@@ -169,15 +169,30 @@ class GetPlatformAdminsControllerTest extends BaseControllerTest {
         JsonNode disabledRow = rowOf(rows, disabledAdmin.getId());
         JsonNode selfRow = rowOf(rows, self.getId());
 
-        assertFalse(disabledRow.get("revocable").asBoolean());
+        assertTrue(disabledRow.get("revocable").asBoolean());
         assertTrue(disabledRow.get("capabilities").get("canRevoke").asBoolean());
         assertFalse(selfRow.get("revocable").asBoolean());
-        assertFalse(selfRow.get("capabilities").get("canRevoke").asBoolean());
 
         mockMvc.perform(post("/api/v1/users/" + disabledAdmin.getId() + "/revoke-platform-admin")
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.errors[0].code").value("USER_LAST_PLATFORM_ADMIN"));
+                .andExpect(status().isOk());
+        assertFalse(listedIds(authHeader).contains(disabledAdmin.getId().toString()));
+    }
+
+    @Test
+    @DisplayName("ACC-011 the last enabled platform admin is not revocable, and revoking it is refused")
+    void theLastEnabledPlatformAdminIsNotRevocable() throws Exception {
+        String authHeader = loginAsDefaultPlatformAdmin();
+        // The last enabled platform admin is necessarily the caller: a disabled account cannot authenticate
+        User self = defaultAdmin();
+        platformAdmin("Aaron Disabled Admin", false, null);
+
+        JsonNode selfRow = rowOf(list(authHeader), self.getId());
+
+        assertFalse(selfRow.get("revocable").asBoolean());
+        assertFalse(selfRow.get("capabilities").get("canRevoke").asBoolean());
+
+        // The guard answers first; LastPlatformAdminException is covered by ManagePlatformAdminAccessServiceTest
         mockMvc.perform(post("/api/v1/users/" + self.getId() + "/revoke-platform-admin")
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andExpect(status().isForbidden());
