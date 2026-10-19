@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `updateUser`, `enableUser`, `disableUser`, `deleteUser` |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #412 |
+| **Last reviewed against code** | #398 |
 
 ## Purpose
 
@@ -23,6 +23,7 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 | Blank | Made only of space, tab, line feed, carriage return, form feed and vertical tab. |
 | Existing creation path | Creating a user (`createUser`), importing users (`createUsersWithFile`) and creating the default admin (`init`). Each of them takes a password. |
 | Member registration | A community admin registering a member by personal ID and member record (`registerMember`), which finds the account with that personal ID or creates one (ADR-0003 §3). |
+| Normalised personal ID | A personal ID with its whitespace, dots and hyphens removed and its letters upper-cased, the form accounts are stored and found by (#331). |
 
 ## Rules
 
@@ -142,6 +143,38 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   member, or created, edited or uploaded an agreement's records, is a historical detail; the records themselves
   belong to the community and must outlive the person.
 - **Source:** #412, ADR-0003 §1
+
+### ACC-010 — Member registration, admin invitation and the member import accept only a valid DNI, NIE or NIF
+
+- **Status:** Active
+- **Rule:** Member registration (`registerMember`), inviting a community admin (`inviteCommunityAdmin`) and the
+  member import (`importMembers`) MUST accept a personal ID only if, once normalised, it is one of:
+  - a DNI: 8 digits and a control letter, the letter of the number modulo 23 in `TRWAGMYFPDXBNJZSQVHLCKE`;
+  - an NIE: `X`, `Y` or `Z`, 7 digits and a control letter, computed as a DNI's with the prefix read as 0, 1 or 2;
+  - a NIF of a natural person starting with `K`, `L` or `M`: the letter, 7 digits and a control letter, computed as a
+    DNI's on the 7 digits;
+  - a CIF: an organisation letter (`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `J`, `N`, `P`, `Q`, `R`, `S`, `U`, `V`,
+    `W`), 7 digits and a control character, which MUST be the control digit for `A`, `B`, `E` and `H`, the control
+    letter (`JABCDEFGHI` indexed by the digit) for `N`, `P`, `Q`, `R`, `S` and `W`, and MAY be either for `C`, `D`,
+    `F`, `G`, `J`, `U` and `V`.
+
+  The check MUST run on the normalised value, so any typing variant of a valid identifier is accepted, and before
+  any community or account is looked up or anything is written. Any other personal ID MUST be refused with 400
+  `USER_PERSONAL_ID_INVALID`; in the import, its row MUST fail with that code and the one error `INVALID_PERSONAL_ID`
+  of the column `personalId` (MEM-030), and the other rows MUST be processed. The refusal MUST be the same whether
+  or not an account holds that value, MUST NOT tell which rule the value breaks, and neither the answer nor any log
+  line MUST hold the value unmasked. A personal ID made only of whitespace, dots and hyphens keeps its own refusal
+  (MEM-007). The existing creation paths (`createUser`, `createUsersWithFile`, `init`) MUST NOT apply this check,
+  and the personal IDs already stored MUST NOT be checked or changed.
+- **Rationale:** Since #392, #395 and #397, community admins and the platform admin type other people's
+  identifiers. A mistyped one creates a second account, which later duplicates the person when the right one is
+  registered, and breaks Datadis, which needs the holder's correct NIF; the control character catches almost every
+  single typing error. Checking only the normalised value keeps spaces, dots, hyphens and lower case harmless.
+  Refusing before any lookup, with one answer for every rule, keeps the refusal from revealing whether an account
+  exists. The existing creation paths are left as they are because they are being replaced, and checking stored
+  identifiers would lock out accounts that already work.
+- **Source:** #398. Accepting the NIF of a natural person with `K`, `L` or `M`, and the CIF letters that require a
+  digit, require a letter or accept either, were decided by the maintainer in the plan of #398.
 
 ## Impossible states
 
