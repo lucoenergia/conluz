@@ -1,13 +1,16 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.sync.HuaweiSyncWindow;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.Period;
+import java.time.ZoneId;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -20,12 +23,16 @@ class SyncPreviousDaysHuaweiHourlyProductionJobTest {
     private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-19T01:00:00+02:00");
 
     private final SyncHuaweiProductionService syncService = mock(SyncHuaweiProductionService.class);
-    private final DateConverter dateConverter = mock(DateConverter.class);
+    private final TimeConfiguration timeConfiguration = mock(TimeConfiguration.class);
     private final GetHuaweiConfigurationService configService = mock(GetHuaweiConfigurationService.class);
+
+    @BeforeEach
+    void inMadrid() {
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
+    }
 
     @Test
     void theDefaultWindowSyncsTheSevenDaysBeforeToday() {
-        when(dateConverter.now()).thenReturn(NOW);
 
         job(HuaweiSyncWindow.DEFAULT).run();
 
@@ -36,7 +43,6 @@ class SyncPreviousDaysHuaweiHourlyProductionJobTest {
 
     @Test
     void theFirstSyncedDayFollowsTheWindow() {
-        when(dateConverter.now()).thenReturn(NOW);
 
         job(new HuaweiSyncWindow(Period.ofDays(3))).run();
 
@@ -55,6 +61,7 @@ class SyncPreviousDaysHuaweiHourlyProductionJobTest {
     }
 
     private SyncPreviousDaysHuaweiHourlyProductionJob job(HuaweiSyncWindow window) {
-        return new SyncPreviousDaysHuaweiHourlyProductionJob(syncService, dateConverter, configService, window);
+        return new SyncPreviousDaysHuaweiHourlyProductionJob(syncService, Clock.fixed(NOW.toInstant(), NOW.getOffset()),
+                timeConfiguration, configService, window);
     }
 }

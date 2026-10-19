@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 
 @Component
@@ -17,10 +18,13 @@ public class SyncDailyPricesJob implements Job {
 
     private final TimeConfiguration timeConfiguration;
     private final SyncDailyPricesService syncDailyPricesService;
+    private final Clock clock;
 
-    public SyncDailyPricesJob(TimeConfiguration timeConfiguration, SyncDailyPricesService syncDailyPricesService) {
+    public SyncDailyPricesJob(TimeConfiguration timeConfiguration, SyncDailyPricesService syncDailyPricesService,
+                              Clock clock) {
         this.timeConfiguration = timeConfiguration;
         this.syncDailyPricesService = syncDailyPricesService;
+        this.clock = clock;
     }
 
     /**
@@ -32,7 +36,7 @@ public class SyncDailyPricesJob implements Job {
     public void run() {
         LOGGER.info("OMIE prices daily retrieval started...");
 
-        OffsetDateTime today = timeConfiguration.now();
+        OffsetDateTime today = OffsetDateTime.ofInstant(clock.instant(), timeConfiguration.getZoneId());
         OffsetDateTime todayMinusOneWeek = today.minusWeeks(1);
 
         syncDailyPricesService.syncDailyPricesByDateInterval(todayMinusOneWeek, today);

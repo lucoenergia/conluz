@@ -3,12 +3,13 @@ package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
 import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 
 @Component
@@ -17,13 +18,16 @@ public class SyncTodaysHuaweiHourlyProductionJob implements Job {
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncTodaysHuaweiHourlyProductionJob.class);
 
     private final SyncHuaweiProductionService syncHuaweiProductionService;
-    private final DateConverter dateConverter;
+    private final Clock clock;
+    private final TimeConfiguration timeConfiguration;
     private final GetHuaweiConfigurationService getHuaweiConfigurationService;
 
     public SyncTodaysHuaweiHourlyProductionJob(SyncHuaweiProductionService syncHuaweiProductionService,
-            DateConverter dateConverter, GetHuaweiConfigurationService getHuaweiConfigurationService) {
+            Clock clock, TimeConfiguration timeConfiguration,
+            GetHuaweiConfigurationService getHuaweiConfigurationService) {
         this.syncHuaweiProductionService = syncHuaweiProductionService;
-        this.dateConverter = dateConverter;
+        this.clock = clock;
+        this.timeConfiguration = timeConfiguration;
         this.getHuaweiConfigurationService = getHuaweiConfigurationService;
     }
 
@@ -40,7 +44,7 @@ public class SyncTodaysHuaweiHourlyProductionJob implements Job {
         LOGGER.info("Huawei hourly production sync started...");
 
         // Calculate date interval to get data
-        OffsetDateTime today = dateConverter.now();
+        OffsetDateTime today = OffsetDateTime.ofInstant(clock.instant(), timeConfiguration.getZoneId());
 
         syncHuaweiProductionService.syncHourlyProduction(today, today);
 

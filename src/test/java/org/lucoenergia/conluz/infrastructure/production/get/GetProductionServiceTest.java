@@ -21,6 +21,7 @@ import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.mockito.Mockito;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -57,7 +58,8 @@ class GetProductionServiceTest {
     private final TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
 
     private final GetProductionService service = new GetProductionServiceImpl(
-            getProductionRepository, getSupplyRepository, getPlantRepository, coefficientResolver, timeConfiguration);
+            getProductionRepository, getSupplyRepository, getPlantRepository, coefficientResolver, timeConfiguration,
+            Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC));
 
     private static final UUID PLANT_ID = UUID.randomUUID();
     private static final UUID OTHER_PLANT_ID = UUID.randomUUID();
@@ -449,7 +451,6 @@ class GetProductionServiceTest {
         Community community = CommunityMother.random().withId(communityId).build();
         Supply supply = SupplyMother.random().withId(supplyUuid).withCommunity(community).build();
         when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-        when(timeConfiguration.now()).thenReturn(OffsetDateTime.parse("2025-01-01T00:00:00Z"));
         stubPlant(PLANT_ID, STATION_CODE);
         when(coefficientResolver.resolveCoefficientsBySupplyAtInstant(supplyUuid, Instant.parse("2025-01-01T00:00:00Z")))
                 .thenReturn(Map.of(PLANT_ID, BigDecimal.valueOf(0.5)));

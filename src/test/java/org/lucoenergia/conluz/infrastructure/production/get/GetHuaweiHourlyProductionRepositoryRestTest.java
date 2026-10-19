@@ -115,7 +115,6 @@ class GetHuaweiHourlyProductionRepositoryRestTest {
     void setUp() {
         TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
         when(timeConfiguration.getZoneId()).thenReturn(zoneId);
-        when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
         DateConverter dateConverter = new DateConverter(timeConfiguration);
 
         repositoryRest = new GetHuaweiHourlyProductionRepositoryRest(new ObjectMapper(), huaweiAuthorizer,
