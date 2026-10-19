@@ -20,11 +20,13 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * When a membership's invitation link expires, as every response that shows a membership reports it.
+ * When a membership was last invited and when its invitation link expires, as every response that shows a
+ * membership reports them.
  */
 class MembershipInvitationExpiryControllerTest extends BaseInvitationTest {
 
@@ -91,7 +93,8 @@ class MembershipInvitationExpiryControllerTest extends BaseInvitationTest {
     }
 
     @Test
-    @DisplayName("MEM-013 the roster reads every link expiry in one query, whatever the number of invited members")
+    @DisplayName("MEM-013 the roster reads every invitation and link expiry in one query, whatever the number of "
+            + "invited members")
     void theRoster_readsTheExpiriesInOneQuery() throws Exception {
         Community community = newCommunity();
         String bearer = loginAsAdminOf(community);
@@ -104,6 +107,111 @@ class MembershipInvitationExpiryControllerTest extends BaseInvitationTest {
         long forFive = statementsForRoster(bearer, community.getId());
 
         assertThat(forFive).as("the roster must not query once per invited member").isEqualTo(forOne);
+    }
+
+    @Test
+    @DisplayName("MEM-013 the roster shows a membership never invited with no invitation and no link")
+    void theRoster_showsANeverInvitedMembershipWithNoInvitation() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        UUID notInvited = registered(bearer, community.getId(), newRecord());
+
+        JsonNode roster = roster(bearer, community.getId());
+        assertThat(invitedAtIn(roster, notInvited)).isNull();
+        assertThat(expiryIn(roster, notInvited)).isNull();
+    }
+
+    @Test
+    @DisplayName("MEM-013 the roster shows when an invited membership was invited and when its link expires")
+    void theRoster_showsWhenAnInvitedMembershipWasInvited() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        Instant invitedAt = clock.instant();
+        InvitedMember invited = invitedMemberOf(community, bearer);
+
+        JsonNode roster = roster(bearer, community.getId());
+        assertThat(invitedAtIn(roster, invited.userId())).isEqualTo(invitedAt.toString());
+        assertThat(expiryIn(roster, invited.userId())).isEqualTo(invitedAt.plus(LINK_LIFETIME).toString());
+    }
+
+    @Test
+    @DisplayName("MEM-013 the roster keeps showing when a membership was invited once its link expired")
+    void theRoster_keepsTheInvitationOnceTheLinkExpired() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        Instant invitedAt = clock.instant();
+        InvitedMember invited = invitedMemberOf(community, bearer);
+        clock.advance(LINK_LIFETIME);
+
+        JsonNode roster = roster(bearer, community.getId());
+        assertThat(invitedAtIn(roster, invited.userId())).isEqualTo(invitedAt.toString());
+        assertThat(expiryIn(roster, invited.userId())).isNull();
+    }
+
+    @Test
+    @DisplayName("MEM-013 the roster keeps showing when a membership was invited once its link was revoked")
+    void theRoster_keepsTheInvitationOnceTheLinkWasRevoked() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        Instant invitedAt = clock.instant();
+        InvitedMember invited = invitedMemberOf(community, bearer);
+        revoke(invited).andExpect(status().isOk());
+
+        JsonNode roster = roster(bearer, community.getId());
+        assertThat(invitedAtIn(roster, invited.userId())).isEqualTo(invitedAt.toString());
+        assertThat(expiryIn(roster, invited.userId())).isNull();
+    }
+
+    @Test
+    @DisplayName("MEM-013 after a resend the roster shows the resend as when the membership was last invited")
+    void theRoster_showsTheResendAsTheLastInvitation() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        InvitedMember invited = invitedMemberOf(community, bearer);
+        clock.advance(Duration.ofDays(1));
+        Instant resentAt = clock.instant();
+        resend(invited).andExpect(status().isOk());
+        awaitNextEmails(1);
+
+        JsonNode roster = roster(bearer, community.getId());
+        assertThat(invitedAtIn(roster, invited.userId())).isEqualTo(resentAt.toString());
+        assertThat(expiryIn(roster, invited.userId())).isEqualTo(resentAt.plus(LINK_LIFETIME).toString());
+    }
+
+    /**
+     * A membership is created accepted (MEM-001) and never invited, so its {@code invitedAt} is always null here.
+     */
+    @Test
+    @DisplayName("MEM-013 creating a membership shows that it was never invited")
+    void creatingAMembership_showsNoInvitation() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        User user = newUser();
+
+        JsonNode created = objectMapper.readTree(mockMvc.perform(
+                        post("/api/v1/communities/{communityId}/memberships", community.getId())
+                                .header(HttpHeaders.AUTHORIZATION, bearer)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"userId\":\"" + user.getId() + "\",\"role\":\"COMMUNITY_MEMBER\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        assertThat(created.has("invitedAt")).isTrue();
+        assertThat(created.get("invitedAt").isNull()).isTrue();
+    }
+
+    @Test
+    @DisplayName("MEM-013 changing a pending membership's role shows when it was invited")
+    void updatingTheRole_showsWhenItWasInvited() throws Exception {
+        Instant invitedAt = clock.instant();
+        InvitedMember member = invitedMember();
+
+        mockMvc.perform(patch("/api/v1/communities/{communityId}/memberships/{userId}",
+                        member.community().getId(), member.userId())
+                        .header(HttpHeaders.AUTHORIZATION, member.bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"COMMUNITY_ADMIN\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.invitedAt").value(invitedAt.toString()));
     }
 
     private JsonNode roster(String bearer, UUID communityId) throws Exception {
@@ -119,6 +227,17 @@ class MembershipInvitationExpiryControllerTest extends BaseInvitationTest {
                 assertThat(row.has("invitationExpiresAt")).isTrue();
                 JsonNode expiry = row.get("invitationExpiresAt");
                 return expiry.isNull() ? null : expiry.asText();
+            }
+        }
+        throw new AssertionError("The roster has no membership of " + userId);
+    }
+
+    private static String invitedAtIn(JsonNode roster, UUID userId) {
+        for (JsonNode row : roster) {
+            if (userId.toString().equals(row.get("user").get("id").asText())) {
+                assertThat(row.has("invitedAt")).isTrue();
+                JsonNode invitedAt = row.get("invitedAt");
+                return invitedAt.isNull() ? null : invitedAt.asText();
             }
         }
         throw new AssertionError("The roster has no membership of " + userId);

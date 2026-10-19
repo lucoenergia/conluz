@@ -1878,6 +1878,15 @@
               "null"
             ]
           },
+          "invitedAt" : {
+            "description" : "When the membership was last sent an invitation. Null if none has been sent.",
+            "example" : "2026-01-01T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "role" : {
             "enum" : [
               "COMMUNITY_MEMBER",
@@ -1901,6 +1910,7 @@
           "enabled",
           "id",
           "invitationExpiresAt",
+          "invitedAt",
           "role",
           "user"
         ],

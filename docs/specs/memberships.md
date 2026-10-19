@@ -221,15 +221,18 @@ lazily, as issues touch it.
   for "active" (MEM-004), keeps the code and the queries in step.
 - **Source:** #393, ADR-0003 §5
 
-### MEM-013 — A member shows when its invitation link expires
+### MEM-013 — A member shows when it was last invited and when its invitation link expires
 
 - **Status:** Active
-- **Rule:** Every response that shows a membership MUST show when its invitation link expires: the expiry of its
-  valid `INVITATION` token, or null when it has none, including after a revoke and once it has expired. The roster
-  MUST read the expiries of all its memberships in one query.
-- **Rationale:** A community admin decides from it whether a resend is needed. One query keeps the roster's cost
-  independent of its size.
-- **Source:** #393
+- **Rule:** Every response that shows a membership MUST show when it was last sent an invitation (`invitedAt`), or
+  null if it never was, and when its invitation link expires: the expiry of its valid `INVITATION` token, or null
+  when it has none, including after a revoke and once it has expired. A revoke or an expiry leaves `invitedAt` as it
+  was; a resend sets it to the resend's instant. The roster MUST read the expiries of all its memberships in one
+  query, and MUST NOT query once per membership for `invitedAt`.
+- **Rationale:** A community admin decides from them which action applies: a membership never invited is sent its
+  first invitation, and one whose link expired or was revoked is resent one. The link expiry alone is null in both
+  cases. One query keeps the roster's cost independent of its size.
+- **Source:** #393, #441
 
 ### MEM-014 — Inspecting an invitation tells the community and whether the person must log in, and writes nothing
 
