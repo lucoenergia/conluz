@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -20,6 +21,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -60,14 +62,15 @@ class RegisterMemberControllerTest extends BaseSendingMemberTest {
     void aNewDni_getsAnAccountWithoutAPassword() throws Exception {
         Community community = newCommunity();
         Map<String, Object> body = newRecord();
-        String digits = String.format("%08d", new java.util.Random().nextInt(100_000_000));
+        String dni = UserMother.randomPersonalId();
+        String digits = dni.substring(0, 8);
         // Typed with separators and a lower-case letter: the account is stored under the normalised form
         body.put("personalId", digits.substring(0, 2) + "." + digits.substring(2, 5) + "." + digits.substring(5)
-                + "-z");
+                + "-" + dni.substring(8).toLowerCase(Locale.ROOT));
 
         register(loginAsAdminOf(community), community.getId(), body).andExpect(status().isOk());
 
-        Map<String, Object> account = accountRow(digits + "Z");
+        Map<String, Object> account = accountRow(dni);
         assertThat(account.get("password")).isNull();
         assertThat(account.get("number")).isNull();
         assertThat(account.get("must_change_password")).isEqualTo(false);

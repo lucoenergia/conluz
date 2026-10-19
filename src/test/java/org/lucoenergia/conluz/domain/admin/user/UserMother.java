@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class UserMother {
 
@@ -60,12 +61,37 @@ public class UserMother {
         return user;
     }
 
+    private static final String DNI_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE";
+
     /**
-     * Already in the normalised form the application stores (upper case, no separators), so a
-     * fixture saved straight through the JPA repository is found by the normalising lookups.
+     * Numbers handed out in sequence, so two fixtures of the same run never share a personal ID. They
+     * start at random in a range no hard-coded DNI of the tests falls in (90,000,000 to 99,887,765),
+     * leaving room for close to 900,000 fixtures per run.
+     */
+    private static final AtomicInteger NEXT_DNI_NUMBER =
+            new AtomicInteger(90_000_000 + RandomUtils.nextInt(0, 9_000_000));
+
+    /**
+     * A valid DNI (#398), already in the normalised form the application stores (upper case, no
+     * separators), so a fixture saved straight through the JPA repository is found by the normalising
+     * lookups.
      */
     public static String randomPersonalId() {
-        return RandomStringUtils.randomAlphabetic(9).toUpperCase(Locale.ROOT);
+        return validDni(NEXT_DNI_NUMBER.getAndIncrement());
+    }
+
+    /**
+     * The DNI of an 8-digit number: the number, zero-padded, followed by its control letter.
+     */
+    public static String validDni(int number) {
+        return String.format(Locale.ROOT, "%08d", number) + dniLetter(number);
+    }
+
+    /**
+     * The control letter of a DNI number.
+     */
+    public static char dniLetter(int number) {
+        return DNI_LETTERS.charAt(number % 23);
     }
 
     public static String randomPassword() {
