@@ -20,7 +20,8 @@ public interface ImportMembersService {
     int MAX_ROWS = 1000;
 
     /**
-     * @param csv the file's content: UTF-8, optionally with a byte order mark, separated by {@code ,} or {@code ;}
+     * @param csv the file's content: UTF-8, optionally with a byte order mark, or Windows-1252, separated by
+     *            {@code ,} or {@code ;}
      * @return the outcome of each data row, in the order of the file
      * @throws MemberImportFileRefusedException if the file as a whole cannot be imported. Checked before any row is
      *         registered, so nothing is registered

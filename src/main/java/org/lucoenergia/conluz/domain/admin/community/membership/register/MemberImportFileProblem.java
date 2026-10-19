@@ -6,7 +6,8 @@ package org.lucoenergia.conluz.domain.admin.community.membership.register;
 public enum MemberImportFileProblem {
 
     /**
-     * The file is not valid UTF-8.
+     * The file is neither UTF-8 nor Windows-1252: it starts with a UTF-16 byte order mark, it holds invalid UTF-8
+     * after a UTF-8 byte order mark, or, without one, a byte that Windows-1252 does not define.
      */
     INVALID_ENCODING,
     /**

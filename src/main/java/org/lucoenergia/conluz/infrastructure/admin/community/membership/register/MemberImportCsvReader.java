@@ -13,9 +13,10 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -29,6 +30,12 @@ import java.util.Set;
  * checks run in this order, and the first that fails refuses the file: the encoding, the separator, the CSV syntax,
  * unknown headers, duplicated headers, missing required headers, and the number of rows. The cells are kept as they
  * are, untrimmed, as a registration body's values are.</p>
+ *
+ * <p>The encoding is told by a fixed rule, without guessing from the text: a file starting with the UTF-8 byte order
+ * mark is UTF-8; one starting with a UTF-16 byte order mark is refused; any other is UTF-8 if it is valid UTF-8, and
+ * Windows-1252 otherwise. Spanish Excel saves "CSV UTF-8" with the byte order mark, and its default "CSV" in
+ * Windows-1252, without one. Windows-1252 text with accents is practically never valid UTF-8: UTF-8 would require
+ * each accented letter to be followed by one or more of the bytes Windows-1252 uses for symbols such as € or ™.</p>
  */
 @Component
 public class MemberImportCsvReader {
@@ -37,15 +44,18 @@ public class MemberImportCsvReader {
             "phoneNumber");
     static final List<String> REQUIRED_COLUMNS = List.of("personalId", "fullName");
 
-    private static final char BYTE_ORDER_MARK = '﻿';
+    private static final byte[] UTF_8_BOM = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+    private static final byte[] UTF_16_BE_BOM = {(byte) 0xFE, (byte) 0xFF};
+    private static final byte[] UTF_16_LE_BOM = {(byte) 0xFF, (byte) 0xFE};
 
     /**
-     * @return the data rows, in the order of the file, without the rows whose cells are all blank, such as the
-     *         {@code ;;;;;} lines a spreadsheet exports after its last row
+     * @return the file's encoding, and its data rows, in the order of the file, without the rows whose cells are all
+     *         blank, such as the {@code ;;;;;} lines a spreadsheet exports after its last row
      * @throws MemberImportFileRefusedException if the file cannot be imported
      */
-    public List<MemberImportCsvRow> read(byte[] content) {
-        String text = decode(content);
+    public MemberImportCsv read(byte[] content) {
+        MemberImportEncoding encoding = encodingOf(content);
+        String text = decode(content, encoding);
         char separator = separatorOf(firstLine(text));
 
         try (CSVReader reader = new CSVReaderBuilder(new StringReader(text))
@@ -72,26 +82,57 @@ public class MemberImportCsvReader {
                 }
                 rows.add(rowOf(line, columns, cells));
             }
-            return rows;
+            return new MemberImportCsv(encoding, rows);
         } catch (CsvValidationException | IOException e) {
             // Reading from a string fails only on the CSV syntax, for example a quoted value that is never closed
             throw new MemberImportFileRefusedException(MemberImportFileProblem.MALFORMED_FILE);
         }
     }
 
-    private static String decode(byte[] content) {
-        String text;
+    private static MemberImportEncoding encodingOf(byte[] content) {
+        if (startsWith(content, UTF_8_BOM)) {
+            return MemberImportEncoding.UTF_8;
+        }
+        // Excel's "Unicode text" is UTF-16 and separated by tabs: it is not a CSV file
+        if (startsWith(content, UTF_16_BE_BOM) || startsWith(content, UTF_16_LE_BOM)) {
+            throw new MemberImportFileRefusedException(MemberImportFileProblem.INVALID_ENCODING);
+        }
+        return isValid(content, MemberImportEncoding.UTF_8)
+                ? MemberImportEncoding.UTF_8 : MemberImportEncoding.WINDOWS_1252;
+    }
+
+    /**
+     * Strict: a byte the encoding does not define, such as {@code 0x81} in Windows-1252, refuses the file rather
+     * than being replaced.
+     */
+    private static String decode(byte[] content, MemberImportEncoding encoding) {
+        // The byte order mark is not part of the first header
+        int offset = startsWith(content, UTF_8_BOM) ? UTF_8_BOM.length : 0;
         try {
-            text = StandardCharsets.UTF_8.newDecoder()
-                    .onMalformedInput(CodingErrorAction.REPORT)
-                    .onUnmappableCharacter(CodingErrorAction.REPORT)
-                    .decode(ByteBuffer.wrap(content))
-                    .toString();
+            return decoderOf(encoding).decode(ByteBuffer.wrap(content, offset, content.length - offset)).toString();
         } catch (CharacterCodingException e) {
             throw new MemberImportFileRefusedException(MemberImportFileProblem.INVALID_ENCODING);
         }
-        // Spreadsheets save UTF-8 with a byte order mark; it is not part of the first header
-        return !text.isEmpty() && text.charAt(0) == BYTE_ORDER_MARK ? text.substring(1) : text;
+    }
+
+    private static boolean isValid(byte[] content, MemberImportEncoding encoding) {
+        try {
+            decoderOf(encoding).decode(ByteBuffer.wrap(content));
+            return true;
+        } catch (CharacterCodingException e) {
+            return false;
+        }
+    }
+
+    private static CharsetDecoder decoderOf(MemberImportEncoding encoding) {
+        return encoding.charset().newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT);
+    }
+
+    private static boolean startsWith(byte[] content, byte[] prefix) {
+        return content.length >= prefix.length
+                && Arrays.equals(content, 0, prefix.length, prefix, 0, prefix.length);
     }
 
     private static String firstLine(String text) {

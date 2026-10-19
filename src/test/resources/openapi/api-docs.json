@@ -1026,6 +1026,7 @@
             "type" : "integer"
           },
           "rows" : {
+            "description" : "One result per data row of the file, in the order of the file. Rows whose cells are all empty are skipped and have no result.",
             "items" : {
               "$ref" : "#/components/schemas/ImportMembersRowResponse"
             },
@@ -1036,6 +1037,44 @@
           "failed",
           "registered",
           "rows"
+        ],
+        "type" : "object"
+      },
+      "ImportMembersRowErrorResponse" : {
+        "description" : "A rule of the registration that a value of the row breaks. It names the column and the rule, never the value.",
+        "properties" : {
+          "column" : {
+            "description" : "The header of the column whose value breaks the rule.",
+            "example" : "memberNumber",
+            "type" : "string"
+          },
+          "constraint" : {
+            "description" : "The rule broken: REQUIRED if a required value is empty or blank; NOT_EMPTY_ONCE_NORMALISED if the personal ID holds only whitespace, dots and hyphens; MIN if the number is below `params.min`; EMAIL if the value is not an email address; NOT_AN_INTEGER if the value is not a whole number. A newer server may add rules, so a client must also handle one it does not know.",
+            "enum" : [
+              "REQUIRED",
+              "NOT_EMPTY_ONCE_NORMALISED",
+              "MIN",
+              "EMAIL",
+              "NOT_AN_INTEGER"
+            ],
+            "example" : "MIN",
+            "type" : "string"
+          },
+          "params" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "description" : "The rule's parameters, keyed in camelCase for use as i18n interpolation variables and formatted without a locale: `min` for MIN. Empty if the rule has none.",
+            "example" : {
+              "min" : "0"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [
+          "column",
+          "constraint",
+          "params"
         ],
         "type" : "object"
       },
@@ -1118,6 +1157,13 @@
               "null"
             ]
           },
+          "errors" : {
+            "description" : "For MEMBERSHIP_IMPORT_ROW_INVALID, each rule broken, in the order of the columns, so that a client can write its own text; the same rules as `message`. Empty for any other row.",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportMembersRowErrorResponse"
+            },
+            "type" : "array"
+          },
           "line" : {
             "description" : "The line of the file the row starts on, the header being line 1.",
             "example" : 2,
@@ -1125,7 +1171,7 @@
             "type" : "integer"
           },
           "message" : {
-            "description" : "Why the row failed, as a readable message naming the columns and rules broken but never their values. Null for a registered row.",
+            "description" : "Why the row failed, as a readable message in the language of the request's Accept-Language, naming the columns and rules broken but never their values. Null for a registered row.",
             "type" : [
               "string",
               "null"
@@ -1142,6 +1188,7 @@
         },
         "required" : [
           "code",
+          "errors",
           "line",
           "message",
           "outcome"
@@ -7101,7 +7148,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/import" : {
       "post" : {
-        "description" : "Registers each data row of a CSV file as a member of the community, as `registerMember` does: a pending membership with the role COMMUNITY_MEMBER and the row as the community's member record. Only an active community admin of the community may import members; a platform admin may not.\n\nNothing is sent to the members and no invitation is issued. Invite them afterwards with `sendInvitations`.\n\n**The file.** UTF-8, with or without a byte order mark, separated by `,` or `;`, told from the header line. The header line names the columns, in any order: `personalId` and `fullName` are required; `memberNumber`, `contactEmail`, `address` and `phoneNumber` are optional. No other column is accepted. Each value follows the rules of the same field of `registerMember`. At most 1000 data rows; rows whose cells are all empty are skipped.\n\n**Whole-file refusals.** If the file is not valid UTF-8, its separator cannot be told, it is not valid CSV, its header names an unknown column, a column twice or lacks a required one, or it has more than 1000 data rows, the response is 400 with a dedicated code, and nothing is registered.\n\n**Rows.** Otherwise each row is registered in a transaction of its own, so a row that fails keeps the others. The response has one result per row. A person who already has an account is registered exactly as a new one, and their result is the same. A person who already has a membership in this community, including from an earlier row of the same file, fails with `MEMBERSHIP_ALREADY_EXISTS`. Importing the same file again is therefore safe: rows already registered fail with that code, and the rest are registered.\n",
+        "description" : "Registers each data row of a CSV file as a member of the community, as `registerMember` does: a pending membership with the role COMMUNITY_MEMBER and the row as the community's member record. Only an active community admin of the community may import members; a platform admin may not.\n\nNothing is sent to the members and no invitation is issued. Invite them afterwards with `sendInvitations`.\n\n**The file.** UTF-8 or Windows-1252, the two encodings Spanish Excel saves a CSV file in (\"CSV UTF-8\" and \"CSV\"), separated by `,` or `;`, told from the header line. A file starting with a UTF-8 byte order mark is read as UTF-8; one starting with a UTF-16 byte order mark is refused; any other is read as UTF-8 if it is valid UTF-8, and as Windows-1252 otherwise. The header line names the columns, in any order: `personalId` and `fullName` are required; `memberNumber`, `contactEmail`, `address` and `phoneNumber` are optional. No other column is accepted. Each value follows the rules of the same field of `registerMember`. At most 1000 data rows; rows whose cells are all empty are skipped.\n\n**Whole-file refusals.** If the file is neither UTF-8 nor Windows-1252, its separator cannot be told, it is not valid CSV, its header names an unknown column, a column twice or lacks a required one, or it has more than 1000 data rows, the response is 400 with a dedicated code, and nothing is registered.\n\n**Rows.** Otherwise each row is registered in a transaction of its own, so a row that fails keeps the others. The response has one result per row. A person who already has an account is registered exactly as a new one, and their result is the same. A person who already has a membership in this community, including from an earlier row of the same file, fails with `MEMBERSHIP_ALREADY_EXISTS`. Importing the same file again is therefore safe: rows already registered fail with that code, and the rest are registered.\n\nA row whose values break rules of the registration fails with `MEMBERSHIP_IMPORT_ROW_INVALID` and lists each rule broken in `errors`, by column and constraint code, for a client to write its own text. Every `message` is in the language of the request's Accept-Language.\n",
         "operationId" : "importMembers",
         "parameters" : [
           {
@@ -7120,7 +7167,7 @@
               "schema" : {
                 "properties" : {
                   "file" : {
-                    "description" : "CSV file of members, UTF-8, separated by `,` or `;`, with a header line naming the columns personalId, fullName, memberNumber, contactEmail, address and phoneNumber.",
+                    "description" : "CSV file of members, UTF-8 or Windows-1252, separated by `,` or `;`, with a header line naming the columns personalId, fullName, memberNumber, contactEmail, address and phoneNumber.",
                     "format" : "binary",
                     "type" : "string"
                   }

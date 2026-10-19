@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.register;
 
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
@@ -14,8 +13,8 @@ public class ImportMembersResponse {
     @Schema(description = "How many rows were not registered. Each has a code and a message in `rows`.",
             example = "2")
     private final int failed;
-    @ArraySchema(arraySchema = @Schema(description = "One result per data row of the file, in the order of the "
-            + "file. Rows whose cells are all empty are skipped and have no result."))
+    @Schema(description = "One result per data row of the file, in the order of the "
+            + "file. Rows whose cells are all empty are skipped and have no result.")
     private final List<ImportMembersRowResponse> rows;
 
     public ImportMembersResponse(int registered, int failed, List<ImportMembersRowResponse> rows) {

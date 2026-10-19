@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportMembersService;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportedMemberRow;
+import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportedMemberRow.ColumnViolation;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportedMembers;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -64,16 +66,19 @@ public class ImportMembersController {
                     Nothing is sent to the members and no invitation is issued. Invite them afterwards with \
                     `sendInvitations`.
 
-                    **The file.** UTF-8, with or without a byte order mark, separated by `,` or `;`, told from the \
-                    header line. The header line names the columns, in any order: `personalId` and `fullName` are \
-                    required; `memberNumber`, `contactEmail`, `address` and `phoneNumber` are optional. No other \
-                    column is accepted. Each value follows the rules of the same field of `registerMember`. At \
-                    most 1000 data rows; rows whose cells are all empty are skipped.
+                    **The file.** UTF-8 or Windows-1252, the two encodings Spanish Excel saves a CSV file in \
+                    ("CSV UTF-8" and "CSV"), separated by `,` or `;`, told from the header line. A file starting \
+                    with a UTF-8 byte order mark is read as UTF-8; one starting with a UTF-16 byte order mark is \
+                    refused; any other is read as UTF-8 if it is valid UTF-8, and as Windows-1252 otherwise. The \
+                    header line names the columns, in any order: `personalId` and `fullName` are required; \
+                    `memberNumber`, `contactEmail`, `address` and `phoneNumber` are optional. No other column is \
+                    accepted. Each value follows the rules of the same field of `registerMember`. At most 1000 \
+                    data rows; rows whose cells are all empty are skipped.
 
-                    **Whole-file refusals.** If the file is not valid UTF-8, its separator cannot be told, it is \
-                    not valid CSV, its header names an unknown column, a column twice or lacks a required one, or \
-                    it has more than 1000 data rows, the response is 400 with a dedicated code, and nothing is \
-                    registered.
+                    **Whole-file refusals.** If the file is neither UTF-8 nor Windows-1252, its separator cannot \
+                    be told, it is not valid CSV, its header names an unknown column, a column twice or lacks a \
+                    required one, or it has more than 1000 data rows, the response is 400 with a dedicated code, \
+                    and nothing is registered.
 
                     **Rows.** Otherwise each row is registered in a transaction of its own, so a row that fails \
                     keeps the others. The response has one result per row. A person who already has an account is \
@@ -81,6 +86,10 @@ public class ImportMembersController {
                     membership in this community, including from an earlier row of the same file, fails with \
                     `MEMBERSHIP_ALREADY_EXISTS`. Importing the same file again is therefore safe: rows already \
                     registered fail with that code, and the rest are registered.
+
+                    A row whose values break rules of the registration fails with `MEMBERSHIP_IMPORT_ROW_INVALID` \
+                    and lists each rule broken in `errors`, by column and constraint code, for a client to write \
+                    its own text. Every `message` is in the language of the request's Accept-Language.
                     """,
             tags = ApiTag.MEMBERSHIPS,
             operationId = "importMembers",
@@ -133,8 +142,9 @@ public class ImportMembersController {
     public ImportMembersResponse importMembers(
             @AuthenticationPrincipal User currentUser,
             @PathVariable("communityId") UUID communityId,
-            @Parameter(description = "CSV file of members, UTF-8, separated by `,` or `;`, with a header line naming "
-                    + "the columns personalId, fullName, memberNumber, contactEmail, address and phoneNumber.",
+            @Parameter(description = "CSV file of members, UTF-8 or Windows-1252, separated by `,` or `;`, with a "
+                    + "header line naming the columns personalId, fullName, memberNumber, contactEmail, address and "
+                    + "phoneNumber.",
                     required = true)
             @RequestParam("file") MultipartFile file) throws IOException {
         ImportedMembers imported = service.importMembers(communityId, UserId.of(currentUser.getId()),
@@ -146,13 +156,12 @@ public class ImportMembersController {
     private ImportMembersRowResponse rowOf(ImportedMemberRow row) {
         return switch (row.outcome()) {
             case REGISTERED -> new ImportMembersRowResponse(row.line(), ImportMembersRowResponse.Outcome.REGISTERED,
-                    null, null);
+                    null, null, List.of());
             case ALREADY_MEMBER -> failed(row, RestErrorCode.MEMBERSHIP_ALREADY_EXISTS,
                     message("error.membership.import.row.already.exists"));
             case INVALID -> failed(row, RestErrorCode.MEMBERSHIP_IMPORT_ROW_INVALID,
                     message("error.membership.import.row.invalid", row.violations().stream()
-                            .map(violation -> message("error.membership.import.row.violation",
-                                    violation.column(), violation.reason()))
+                            .map(this::describe)
                             .collect(Collectors.joining("; "))));
             case MALFORMED -> failed(row, RestErrorCode.MEMBERSHIP_IMPORT_ROW_MALFORMED,
                     message("error.membership.import.row.malformed"));
@@ -160,7 +169,22 @@ public class ImportMembersController {
     }
 
     private static ImportMembersRowResponse failed(ImportedMemberRow row, RestErrorCode code, String message) {
-        return new ImportMembersRowResponse(row.line(), ImportMembersRowResponse.Outcome.FAILED, code, message);
+        return new ImportMembersRowResponse(row.line(), ImportMembersRowResponse.Outcome.FAILED, code, message,
+                row.violations().stream()
+                        .map(violation -> new ImportMembersRowErrorResponse(violation.column(),
+                                violation.constraint(), violation.params()))
+                        .toList());
+    }
+
+    private String describe(ColumnViolation violation) {
+        String column = violation.column();
+        return switch (violation.constraint()) {
+            case REQUIRED -> message("error.membership.import.row.required", column);
+            case NOT_EMPTY_ONCE_NORMALISED -> message("error.membership.import.row.not.empty.once.normalised", column);
+            case MIN -> message("error.membership.import.row.min", column, violation.params().get("min"));
+            case EMAIL -> message("error.membership.import.row.email", column);
+            case NOT_AN_INTEGER -> message("error.membership.import.row.not.an.integer", column);
+        };
     }
 
     private String message(String key, Object... args) {

@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -37,6 +38,7 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
     private static final List<String> COLUMNS = List.of("personalId", "fullName", "memberNumber", "contactEmail",
             "address", "phoneNumber");
     private static final byte[] BOM = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+    private static final Charset WINDOWS_1252 = Charset.forName("windows-1252");
 
     // --- AC1, AC2: the file as spreadsheets export it ---
 
@@ -50,18 +52,37 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
     @Test
     @DisplayName("MEM-030 a comma-separated file registers every row the same way")
     void aCommaSeparatedFile_registersEveryRow() throws Exception {
-        importsEveryRowIntact(',', false);
+        importsEveryRowIntact(',', false, StandardCharsets.UTF_8);
+    }
+
+    @Test
+    @DisplayName("MEM-030 a file as Excel saves CSV on Windows, in Windows-1252, separated by semicolons and without a "
+            + "byte order mark, registers every row with every character intact")
+    void aWindows1252File_registersEveryRow() throws Exception {
+        importsEveryRowIntact(';', false, WINDOWS_1252);
+    }
+
+    @Test
+    @DisplayName("MEM-030 a UTF-8 file without a byte order mark, with the same characters, is read as UTF-8")
+    void aUtf8FileWithoutABom_isReadAsUtf8() throws Exception {
+        importsEveryRowIntact(';', false, StandardCharsets.UTF_8);
     }
 
     private void importsEveryRowIntact(char separator, boolean bom) throws Exception {
+        importsEveryRowIntact(separator, bom, StandardCharsets.UTF_8);
+    }
+
+    private void importsEveryRowIntact(char separator, boolean bom, Charset charset) throws Exception {
         Community community = newCommunity();
         User admin = memberOf(community, CommunityRole.COMMUNITY_ADMIN);
         List<Map<String, String>> rows = List.of(
                 newRow("Begoña Íñiguez Peña", "Plaza de la Constitución 1, Luco de Jiloca"),
-                newRow("José Ángel Muñoz", "Camino del Pajar, s/n"),
-                newRow("Ñuria Güell", "Calle Ramón y Cajal 3"));
+                newRow("José Ángel Muñoz", "Camino del Pajar, s/n, cuota 12,50 €"),
+                newRow("Ñuria Güell", "Calle Ramón y Cajal 3, Pingüino"));
+        byte[] content = bom ? csv(separator, true, COLUMNS, rows) : csv(separator, COLUMNS, rows, charset);
+        logs.clear();
 
-        importFile(loginUser(admin), community.getId(), csv(separator, bom, COLUMNS, rows))
+        importFile(loginUser(admin), community.getId(), content)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.registered").value(3))
                 .andExpect(jsonPath("$.failed").value(0))
@@ -86,6 +107,11 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
             assertThat(membership.get("phone_number")).isEqualTo(row.get("phoneNumber"));
             assertThat(accountRow(row.get("personalId")).get("password")).isNull();
         }
+        String encoding = charset.equals(WINDOWS_1252) ? "WINDOWS-1252" : "UTF-8";
+        assertThat(logs.allOfThisThread())
+                .filteredOn(event -> event.getFormattedMessage().startsWith("Members imported"))
+                .singleElement()
+                .satisfies(event -> assertThat(event.getFormattedMessage()).endsWith(", encoding=" + encoding));
     }
 
     // --- AC3: a DNI with an account in another community ---
@@ -348,14 +374,30 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
     }
 
     @Test
-    @DisplayName("MEM-030 a file that is not valid UTF-8 is refused and nothing is registered")
-    void invalidUtf8_isRefused() throws Exception {
+    @DisplayName("MEM-030 a UTF-16 file with its byte order mark, as Excel saves Unicode text, is refused and nothing "
+            + "is registered")
+    void aUtf16File_isRefused() throws Exception {
         Map<String, String> row = newRow("Peña", "Calle 1");
-        // As Excel saves "CSV (separated by semicolons)" on Windows
-        byte[] windows1252 = new String(csv(';', false, COLUMNS, List.of(row)), StandardCharsets.UTF_8)
-                .getBytes(java.nio.charset.Charset.forName("windows-1252"));
+        byte[] text = csv(';', COLUMNS, List.of(row), StandardCharsets.UTF_16LE);
+        byte[] utf16 = new byte[text.length + 2];
+        utf16[0] = (byte) 0xFF;
+        utf16[1] = (byte) 0xFE;
+        System.arraycopy(text, 0, utf16, 2, text.length);
 
-        assertRefused(windows1252, "MEMBERSHIP_IMPORT_INVALID_ENCODING", row);
+        assertRefused(utf16, "MEMBERSHIP_IMPORT_INVALID_ENCODING", row);
+    }
+
+    @Test
+    @DisplayName("MEM-030 a file that is not valid UTF-8 and holds a byte Windows-1252 does not define is refused and "
+            + "nothing is registered")
+    void anUndefinedWindows1252Byte_isRefused() throws Exception {
+        Map<String, String> row = newRow("Peña", "Calle 1");
+        byte[] windows1252 = csv(';', COLUMNS, List.of(row), WINDOWS_1252);
+        byte[] content = new byte[windows1252.length + 1];
+        System.arraycopy(windows1252, 0, content, 0, windows1252.length);
+        content[windows1252.length] = (byte) 0x81;
+
+        assertRefused(content, "MEMBERSHIP_IMPORT_INVALID_ENCODING", row);
     }
 
     @Test
@@ -418,14 +460,29 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
                 .andExpect(jsonPath("$.registered").value(2))
                 .andExpect(jsonPath("$.failed").value(4))
                 .andExpect(jsonPath("$.rows[0].outcome").value("REGISTERED"))
+                .andExpect(jsonPath("$.rows[0].errors.length()").value(0))
                 .andExpect(jsonPath("$.rows[1].code").value("MEMBERSHIP_IMPORT_ROW_INVALID"))
                 .andExpect(jsonPath("$.rows[1].message").value(org.hamcrest.Matchers.containsString("fullName")))
+                .andExpect(jsonPath("$.rows[1].errors.length()").value(1))
+                .andExpect(jsonPath("$.rows[1].errors[0].column").value("fullName"))
+                .andExpect(jsonPath("$.rows[1].errors[0].constraint").value("REQUIRED"))
+                .andExpect(jsonPath("$.rows[1].errors[0].params.length()").value(0))
                 .andExpect(jsonPath("$.rows[2].code").value("MEMBERSHIP_IMPORT_ROW_INVALID"))
                 .andExpect(jsonPath("$.rows[2].message").value(org.hamcrest.Matchers.containsString("memberNumber")))
+                .andExpect(jsonPath("$.rows[2].errors.length()").value(1))
+                .andExpect(jsonPath("$.rows[2].errors[0].column").value("memberNumber"))
+                .andExpect(jsonPath("$.rows[2].errors[0].constraint").value("MIN"))
+                .andExpect(jsonPath("$.rows[2].errors[0].params.min").value("0"))
                 .andExpect(jsonPath("$.rows[3].code").value("MEMBERSHIP_IMPORT_ROW_INVALID"))
                 .andExpect(jsonPath("$.rows[3].message").value(org.hamcrest.Matchers.containsString("contactEmail")))
+                .andExpect(jsonPath("$.rows[3].errors.length()").value(1))
+                .andExpect(jsonPath("$.rows[3].errors[0].column").value("contactEmail"))
+                .andExpect(jsonPath("$.rows[3].errors[0].constraint").value("EMAIL"))
                 .andExpect(jsonPath("$.rows[4].code").value("MEMBERSHIP_IMPORT_ROW_INVALID"))
                 .andExpect(jsonPath("$.rows[4].message").value(org.hamcrest.Matchers.containsString("personalId")))
+                .andExpect(jsonPath("$.rows[4].errors.length()").value(1))
+                .andExpect(jsonPath("$.rows[4].errors[0].column").value("personalId"))
+                .andExpect(jsonPath("$.rows[4].errors[0].constraint").value("NOT_EMPTY_ONCE_NORMALISED"))
                 .andExpect(jsonPath("$.rows[5].outcome").value("REGISTERED"))
                 .andReturn().getResponse().getContentAsString();
 
@@ -453,13 +510,99 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
                 .andExpect(jsonPath("$.rows[1].line").value(3))
                 .andExpect(jsonPath("$.rows[1].code").value("MEMBERSHIP_IMPORT_ROW_MALFORMED"))
                 .andExpect(jsonPath("$.rows[1].message").value(
-                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("only-one-cell"))));
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("only-one-cell"))))
+                .andExpect(jsonPath("$.rows[1].errors.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("MEM-030 a member number that is not a whole number is a row error with the code NOT_AN_INTEGER")
+    void aMemberNumberThatIsNotAWholeNumber_isARowError() throws Exception {
+        Community community = newCommunity();
+        Map<String, String> row = newRow("Ana", "Calle 1");
+        row.put("memberNumber", "7b");
+
+        String response = importFile(loginAsAdminOf(community), community.getId(),
+                csv(';', false, COLUMNS, List.of(row)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows[0].code").value("MEMBERSHIP_IMPORT_ROW_INVALID"))
+                .andExpect(jsonPath("$.rows[0].errors.length()").value(1))
+                .andExpect(jsonPath("$.rows[0].errors[0].column").value("memberNumber"))
+                .andExpect(jsonPath("$.rows[0].errors[0].constraint").value("NOT_AN_INTEGER"))
+                .andExpect(jsonPath("$.rows[0].errors[0].params.length()").value(0))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(response).doesNotContain("7b");
+        assertThat(accountCount(row.get("personalId"))).isZero();
+    }
+
+    // --- Localised messages ---
+
+    @Test
+    @DisplayName("MEM-030 with Accept-Language es, every row message is wholly in Spanish and lists every rule broken")
+    void rowMessages_areInSpanish() throws Exception {
+        assertRowMessages("es",
+                "La fila tiene valores no válidos: fullName es obligatorio; memberNumber debe ser 0 o mayor; "
+                        + "contactEmail debe ser una dirección de correo electrónico.",
+                "Esta persona ya es miembro de la comunidad, posiblemente por una fila anterior del fichero.",
+                "La fila no tiene tantos valores como columnas tiene la cabecera.");
+    }
+
+    @Test
+    @DisplayName("MEM-030 with Accept-Language en, every row message is wholly in English and lists every rule broken")
+    void rowMessages_areInEnglish() throws Exception {
+        assertRowMessages("en",
+                "The row has invalid values: fullName is required; memberNumber must be 0 or greater; "
+                        + "contactEmail must be an email address.",
+                "This person is already a member of the community, possibly from an earlier row of the file.",
+                "The row does not have as many values as the header has columns.");
+    }
+
+    /**
+     * Imports a row with three invalid values, a row of an existing member and a malformed row, and checks each
+     * message exactly, so that no word of another language, nor any value, can be in it.
+     */
+    private void assertRowMessages(String language, String invalid, String alreadyMember, String malformed)
+            throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        Map<String, Object> existingRecord = newRecord();
+        registered(bearer, community.getId(), existingRecord);
+        Map<String, String> existing = newRow("Ana", "Calle 1");
+        existing.put("personalId", (String) existingRecord.get("personalId"));
+        Map<String, String> invalidRow = newRow("", "Calle 2");
+        invalidRow.put("memberNumber", "-7");
+        String typedEmail = "luis-" + UUID.randomUUID() + "-at-nowhere";
+        remember(typedEmail);
+        invalidRow.put("contactEmail", typedEmail);
+        String file = new String(csv(';', false, COLUMNS, List.of(invalidRow, existing)), StandardCharsets.UTF_8)
+                + "only-one-cell\r\n";
+
+        String response = mockMvc.perform(multipart(URL, community.getId())
+                        .file(new MockMultipartFile("file", "socios.csv", "text/csv",
+                                file.getBytes(StandardCharsets.UTF_8)))
+                        .header(HttpHeaders.AUTHORIZATION, bearer)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, language))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows[0].message").value(invalid))
+                .andExpect(jsonPath("$.rows[0].errors[*].column").value(org.hamcrest.Matchers.contains(
+                        "fullName", "memberNumber", "contactEmail")))
+                .andExpect(jsonPath("$.rows[0].errors[*].constraint").value(org.hamcrest.Matchers.contains(
+                        "REQUIRED", "MIN", "EMAIL")))
+                .andExpect(jsonPath("$.rows[1].code").value("MEMBERSHIP_ALREADY_EXISTS"))
+                .andExpect(jsonPath("$.rows[1].message").value(alreadyMember))
+                .andExpect(jsonPath("$.rows[1].errors.length()").value(0))
+                .andExpect(jsonPath("$.rows[2].code").value("MEMBERSHIP_IMPORT_ROW_MALFORMED"))
+                .andExpect(jsonPath("$.rows[2].message").value(malformed))
+                .andExpect(jsonPath("$.rows[2].errors.length()").value(0))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(response).doesNotContain(typedEmail).doesNotContain("-7").doesNotContain("only-one-cell");
     }
 
     // --- Response and logging ---
 
     @Test
-    @DisplayName("MEM-030 a row result carries exactly its line, outcome, code and message")
+    @DisplayName("MEM-030 a row result carries exactly its line, outcome, code, message and errors")
     void aRowResult_hasExactlyItsFields() throws Exception {
         Community community = newCommunity();
         String bearer = loginAsAdminOf(community);
@@ -475,7 +618,9 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
 
         assertThat(fieldNames(response)).containsExactlyInAnyOrder("registered", "failed", "rows");
         for (JsonNode row : response.get("rows")) {
-            assertThat(fieldNames(row)).containsExactlyInAnyOrder("line", "outcome", "code", "message");
+            assertThat(fieldNames(row)).containsExactlyInAnyOrder("line", "outcome", "code", "message", "errors");
+            assertThat(row.get("errors").isArray()).isTrue();
+            assertThat(row.get("errors")).isEmpty();
         }
         assertThat(response.get("rows").get(0).get("code").isNull()).isTrue();
         assertThat(response.get("rows").get(0).get("message").isNull()).isTrue();
@@ -502,7 +647,7 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
                 .satisfies(event -> {
                     assertThat(event.getLevel().toString()).isEqualTo("INFO");
                     assertThat(event.getFormattedMessage()).isEqualTo("Members imported: communityId="
-                            + community.getId() + ", registered=1, failed=1");
+                            + community.getId() + ", registered=1, failed=1, encoding=UTF-8");
                 });
         // The registration's own line, with the masked personal id, is the only line per row
         assertThat(logs.allOfThisThread())
@@ -551,6 +696,21 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
      * ended with CRLF as spreadsheets end them.
      */
     private static byte[] csv(char separator, boolean bom, List<String> columns, List<Map<String, String>> rows) {
+        byte[] content = csv(separator, columns, rows, StandardCharsets.UTF_8);
+        if (!bom) {
+            return content;
+        }
+        byte[] withBom = new byte[BOM.length + content.length];
+        System.arraycopy(BOM, 0, withBom, 0, BOM.length);
+        System.arraycopy(content, 0, withBom, BOM.length, content.length);
+        return withBom;
+    }
+
+    /**
+     * A file in {@code charset}, without a byte order mark.
+     */
+    private static byte[] csv(char separator, List<String> columns, List<Map<String, String>> rows,
+                              Charset charset) {
         StringBuilder text = new StringBuilder(String.join(String.valueOf(separator), columns)).append("\r\n");
         for (Map<String, String> row : rows) {
             List<String> cells = new ArrayList<>();
@@ -559,14 +719,7 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
             }
             text.append(String.join(String.valueOf(separator), cells)).append("\r\n");
         }
-        byte[] content = text.toString().getBytes(StandardCharsets.UTF_8);
-        if (!bom) {
-            return content;
-        }
-        byte[] withBom = new byte[BOM.length + content.length];
-        System.arraycopy(BOM, 0, withBom, 0, BOM.length);
-        System.arraycopy(content, 0, withBom, BOM.length, content.length);
-        return withBom;
+        return text.toString().getBytes(charset);
     }
 
     private static String quoted(String value, char separator) {

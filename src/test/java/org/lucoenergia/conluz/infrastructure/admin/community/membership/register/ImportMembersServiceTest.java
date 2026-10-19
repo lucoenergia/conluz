@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.registe
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import jakarta.validation.metadata.BeanDescriptor;
+import jakarta.validation.metadata.PropertyDescriptor;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +16,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportedMemberRow;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportedMemberRow.ColumnViolation;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportedMembers;
+import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportConstraint;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportFileProblem;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportFileRefusedException;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportRowOutcome;
@@ -22,10 +25,10 @@ import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.support.StaticMessageSource;
 
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -60,11 +63,7 @@ class ImportMembersServiceTest {
     @BeforeEach
     void setUp() {
         Validator validator = VALIDATORS.getValidator();
-        StaticMessageSource messageSource = new StaticMessageSource();
-        messageSource.addMessage("error.membership.import.row.not.a.whole.number", Locale.getDefault(),
-                "must be a whole number");
-        messageSource.setUseCodeAsDefaultMessage(true);
-        service = new ImportMembersServiceImpl(reader, step, validator, messageSource);
+        service = new ImportMembersServiceImpl(reader, step, validator);
     }
 
     @AfterAll
@@ -75,7 +74,7 @@ class ImportMembersServiceTest {
     @Test
     @DisplayName("MEM-030 each row is registered as a member registration body would be, in the order of the file")
     void eachRow_isRegisteredInOrder() {
-        when(reader.read(FILE)).thenReturn(List.of(
+        when(reader.read(FILE)).thenReturn(file(
                 row(2, Map.of("personalId", "1", "fullName", "Ana", "memberNumber", "7", "contactEmail", "  ",
                         "address", "Calle", "phoneNumber", "")),
                 row(3, Map.of("personalId", "2", "fullName", "Luis"))));
@@ -97,7 +96,7 @@ class ImportMembersServiceTest {
     @Test
     @DisplayName("MEM-030 a person already in the community is a row error, and the following rows are registered")
     void anExistingMember_isARowError_andTheImportGoesOn() {
-        when(reader.read(FILE)).thenReturn(List.of(
+        when(reader.read(FILE)).thenReturn(file(
                 row(2, Map.of("personalId", "1", "fullName", "Ana")),
                 row(3, Map.of("personalId", "2", "fullName", "Luis"))));
         doThrow(new MembershipAlreadyExistsException(COMMUNITY_ID, UUID.randomUUID()))
@@ -112,9 +111,9 @@ class ImportMembersServiceTest {
     }
 
     @Test
-    @DisplayName("MEM-030 an invalid row names its columns and rules, never its values, and is not registered")
-    void anInvalidRow_namesItsColumns_andIsNotRegistered() {
-        when(reader.read(FILE)).thenReturn(List.of(
+    @DisplayName("MEM-030 an invalid row lists every rule broken, by column and constraint code, and is not registered")
+    void anInvalidRow_listsEveryRuleBroken_andIsNotRegistered() {
+        when(reader.read(FILE)).thenReturn(file(
                 row(2, Map.of("personalId", ".-.", "fullName", " ", "memberNumber", "-1",
                         "contactEmail", "not-an-email"))));
 
@@ -122,30 +121,63 @@ class ImportMembersServiceTest {
 
         ImportedMemberRow result = imported.rows().get(0);
         assertThat(result.outcome()).isEqualTo(MemberImportRowOutcome.INVALID);
-        assertThat(result.violations()).extracting(ColumnViolation::column)
-                .containsExactly("personalId", "fullName", "memberNumber", "contactEmail");
-        assertThat(result.violations()).extracting(ColumnViolation::reason)
-                .noneMatch(reason -> reason.contains("not-an-email") || reason.contains("-1"));
+        assertThat(result.violations()).containsExactly(
+                ColumnViolation.of("personalId", MemberImportConstraint.NOT_EMPTY_ONCE_NORMALISED),
+                ColumnViolation.of("fullName", MemberImportConstraint.REQUIRED),
+                new ColumnViolation("memberNumber", MemberImportConstraint.MIN, Map.of("min", "0")),
+                ColumnViolation.of("contactEmail", MemberImportConstraint.EMAIL));
         verify(step, never()).register(any(), any(), any(), any());
     }
 
     @Test
-    @DisplayName("MEM-030 a member number that is not a whole number is described without repeating it")
+    @DisplayName("MEM-030 an empty required value is REQUIRED, and a blank personal id breaks both of its rules")
+    void emptyRequiredValues_areRequired() {
+        when(reader.read(FILE)).thenReturn(file(
+                row(2, Map.of("personalId", "  ", "fullName", ""))));
+
+        ImportedMemberRow result = service.importMembers(COMMUNITY_ID, ADMIN, FILE).rows().get(0);
+
+        assertThat(result.violations()).containsExactly(
+                ColumnViolation.of("personalId", MemberImportConstraint.REQUIRED),
+                ColumnViolation.of("personalId", MemberImportConstraint.NOT_EMPTY_ONCE_NORMALISED),
+                ColumnViolation.of("fullName", MemberImportConstraint.REQUIRED));
+    }
+
+    @Test
+    @DisplayName("MEM-030 a member number that is not a whole number is NOT_AN_INTEGER")
     void aMemberNumberThatIsNotAWholeNumber_isInvalid() {
-        when(reader.read(FILE)).thenReturn(List.of(
+        when(reader.read(FILE)).thenReturn(file(
                 row(2, Map.of("personalId", "1", "fullName", "Ana", "memberNumber", "7b"))));
 
         ImportedMemberRow result = service.importMembers(COMMUNITY_ID, ADMIN, FILE).rows().get(0);
 
         assertThat(result.outcome()).isEqualTo(MemberImportRowOutcome.INVALID);
-        assertThat(result.violations()).containsExactly(new ColumnViolation("memberNumber", "must be a whole number"));
+        assertThat(result.violations()).containsExactly(
+                ColumnViolation.of("memberNumber", MemberImportConstraint.NOT_AN_INTEGER));
         verify(step, never()).register(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("MEM-030 every constraint of the registration body has a constraint code")
+    void everyConstraintOfTheRegistrationBody_hasACode() {
+        BeanDescriptor body = VALIDATORS.getValidator().getConstraintsForClass(RegisterMemberBody.class);
+        List<Class<? extends Annotation>> constraints = new ArrayList<>();
+        body.getConstraintDescriptors().forEach(descriptor -> constraints.add(descriptor.getAnnotation()
+                .annotationType()));
+        for (PropertyDescriptor property : body.getConstrainedProperties()) {
+            property.getConstraintDescriptors().forEach(descriptor -> constraints.add(descriptor.getAnnotation()
+                    .annotationType()));
+        }
+
+        assertThat(constraints).isNotEmpty();
+        assertThat(constraints).allSatisfy(constraint ->
+                assertThat(ImportMembersServiceImpl.CONSTRAINTS).containsKey(constraint));
     }
 
     @Test
     @DisplayName("MEM-030 a malformed row is a row error and is not registered")
     void aMalformedRow_isARowError() {
-        when(reader.read(FILE)).thenReturn(List.of(MemberImportCsvRow.malformed(4)));
+        when(reader.read(FILE)).thenReturn(file(MemberImportCsvRow.malformed(4)));
 
         ImportedMembers imported = service.importMembers(COMMUNITY_ID, ADMIN, FILE);
 
@@ -166,7 +198,7 @@ class ImportMembersServiceTest {
     @Test
     @DisplayName("MEM-030 an unexpected failure is not turned into a row error")
     void anUnexpectedFailure_isNotARowError() {
-        when(reader.read(FILE)).thenReturn(List.of(row(2, Map.of("personalId", "1", "fullName", "Ana"))));
+        when(reader.read(FILE)).thenReturn(file(row(2, Map.of("personalId", "1", "fullName", "Ana"))));
         doThrow(new CommunityNotFoundException(COMMUNITY_ID)).when(step).register(any(), any(), any(), any());
 
         assertThatThrownBy(() -> service.importMembers(COMMUNITY_ID, ADMIN, FILE))
@@ -175,6 +207,10 @@ class ImportMembersServiceTest {
 
     private static UserPersonalId personalId(String value) {
         return argThat(personalId -> value.equals(personalId.getPersonalId()));
+    }
+
+    private static MemberImportCsv file(MemberImportCsvRow... rows) {
+        return new MemberImportCsv(MemberImportEncoding.UTF_8, List.of(rows));
     }
 
     private static MemberImportCsvRow row(int line, Map<String, String> values) {
