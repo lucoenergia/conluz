@@ -20,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,7 +53,8 @@ class JwtAuthenticationExceptionFilterTest {
         InvalidTokenException invalidTokenException = new InvalidTokenException(TokenRejectionReason.USER_DISABLED,
                 userId);
         when(request.getRemoteAddr()).thenReturn("203.0.113.7");
-        RestError restError = new RestError(HttpStatus.UNAUTHORIZED.value(), "Invalid token error",
+        RestError restError = new RestError(OffsetDateTime.parse("2026-01-01T00:00:00Z"), HttpStatus.UNAUTHORIZED.value(),
+                "Invalid token error",
                 UUID.randomUUID().toString());
         ResponseEntity<RestError> errorResponse = new ResponseEntity<>(restError, HttpStatus.UNAUTHORIZED);
 

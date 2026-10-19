@@ -20,6 +20,9 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,7 +36,7 @@ class CommunityContextFilterTest {
 
     private final CommunityContext communityContext = new CommunityContext();
     private final CommunityContextFilter filter = new CommunityContextFilter(communityContext,
-            new ObjectMapper().findAndRegisterModules(), new ErrorBuilder(mock(MessageSource.class)));
+            new ObjectMapper().findAndRegisterModules(), new ErrorBuilder(mock(MessageSource.class), Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)));
 
     private final Community community = CommunityMother.random().build();
 

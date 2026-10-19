@@ -12,6 +12,10 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,7 +24,7 @@ import static org.mockito.ArgumentMatchers.eq;
 class CsvParseExceptionHandlerTest {
 
     private final MessageSource messageSource = Mockito.mock(MessageSource.class);
-    private final ErrorBuilder errorBuilder = new ErrorBuilder(messageSource);
+    private final ErrorBuilder errorBuilder = new ErrorBuilder(messageSource, Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC));
     private final CsvParseExceptionHandler exceptionHandler = new CsvParseExceptionHandler(messageSource, errorBuilder);
 
     @BeforeEach
