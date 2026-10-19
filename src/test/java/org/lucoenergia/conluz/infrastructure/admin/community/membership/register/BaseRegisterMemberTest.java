@@ -219,6 +219,14 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
         return email;
     }
 
+    /**
+     * Deletes the account with this normalised personal id, and its memberships, after the test: for accounts a
+     * test creates other than through {@link #register}.
+     */
+    protected void deleteAfterwards(String personalId) {
+        personalIds.add(personalId);
+    }
+
     protected ResultActions register(String bearer, UUID communityId, Map<String, Object> body) throws Exception {
         if (body.get("personalId") instanceof String personalId) {
             personalIds.add(UserPersonalId.normalize(personalId));

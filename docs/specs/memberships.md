@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #412 |
+| **Last reviewed against code** | #397 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how the existing creation paths and member registration fill the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships and edits member records, what giving a membership the admin role requires, which memberships grant access, and where responses read member data from; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, which memberships grant access, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -468,6 +468,80 @@ lazily, as issues touch it.
   access and keeps their supplies and records; deleting the membership is possible once their supplies in the
   community are deleted (SUP-001).
 - **Source:** #412, #341, #415
+
+### MEM-030 — A community admin imports members from a CSV file through the registration, without sending
+
+- **Status:** Active
+- **Rule:** Only an active community admin of the community MAY import members into it (`importMembers`), as for
+  registration (MEM-007). The file:
+  - MUST be UTF-8 or Windows-1252, told by this rule and by no guess from the text: a file starting with a UTF-8
+    byte order mark MUST be read as strict UTF-8, without the mark; a file starting with a UTF-16 byte order mark
+    MUST be refused; any other file MUST be read as UTF-8 if it is valid UTF-8, and as strict Windows-1252
+    otherwise. Invalid UTF-8 after a UTF-8 byte order mark, and a byte Windows-1252 does not define (`0x81`,
+    `0x8D`, `0x8F`, `0x90`, `0x9D`), MUST refuse the file.
+  - Its first line is the header. Its separator MUST be `;` if the header line holds a `;` and no `,`, and `,`
+    otherwise; a header line holding both MUST be refused.
+  - Its columns are named in the header, trimmed and case-sensitive, in any order: `personalId` and `fullName`
+    are required; `memberNumber`, `contactEmail`, `address` and `phoneNumber` are optional. An unknown column, a
+    column named twice or a missing required column MUST be refused, naming those headers.
+  - MUST hold at most 1000 data rows. Rows whose cells are all blank MUST be skipped and not counted.
+
+  A refused file MUST be answered 400 with one dedicated code (`MEMBERSHIP_IMPORT_INVALID_ENCODING`,
+  `MEMBERSHIP_IMPORT_AMBIGUOUS_SEPARATOR`, `MEMBERSHIP_IMPORT_MALFORMED_FILE`, `MEMBERSHIP_IMPORT_UNKNOWN_HEADERS`,
+  `MEMBERSHIP_IMPORT_DUPLICATED_HEADERS`, `MEMBERSHIP_IMPORT_MISSING_HEADERS` or `MEMBERSHIP_IMPORT_TOO_MANY_ROWS`),
+  checked before any row is registered, so that nothing is registered.
+
+  Otherwise each row MUST be bound and validated as a registration body is, with its cells untrimmed, and
+  registered as MEM-007 and MEM-008 register a member, in a transaction of its own and in the order of the file.
+  The response MUST be 200 with the counts of registered and failed rows, and one result per row: its line in the
+  file, its outcome, for a failed row a code and a message, and a list of errors, empty unless the row is
+  `MEMBERSHIP_IMPORT_ROW_INVALID`.
+  - A row whose person already has a membership in the community, in any state and including from an earlier row
+    of the same file, MUST fail with `MEMBERSHIP_ALREADY_EXISTS`.
+  - A row breaking a rule of the registration MUST fail with `MEMBERSHIP_IMPORT_ROW_INVALID`, and list each rule
+    broken, in the order of the columns, as an error with its column, a constraint code and the rule's parameters:
+    `REQUIRED` (an empty or blank required value), `NOT_EMPTY_ONCE_NORMALISED` (a personal ID of only whitespace,
+    dots and hyphens), `MIN` (with `min`), `EMAIL` or `NOT_AN_INTEGER`. Every constraint of the registration body
+    MUST have a code.
+  - A row without as many cells as the header MUST fail with `MEMBERSHIP_IMPORT_ROW_MALFORMED`.
+  - A row whose person has an account but no membership here MUST be registered, and its result MUST be identical
+    to a new person's.
+
+  A row's message MUST be written wholly in the language of the request, from the codes, and never with the
+  validator's own text. A row's result MUST contain no cell value and nothing the file did not hold, such as an
+  account's id.
+
+  The import MUST issue no invitation token and send nothing. It MUST log one line with the community, the
+  counts and the encoding the file was read in (`UTF-8` or `WINDOWS-1252`), and, per registered row, only the registration's own line (MEM-008); a refusal MUST be logged with the
+  community and its reason, but not with the headers.
+
+  If an unexpected error stops an import midway, the rows before it stay registered while the response is an
+  error. Importing the same file again MUST then be safe: the registered rows fail with `MEMBERSHIP_ALREADY_EXISTS`
+  and the rest are registered.
+- **Rationale:** A community records its members in bulk and gets ready before inviting them, as ADR-0003 §5 says
+  the import does. Invitations are then sent at most 50 at a time (MEM-012), so a large import cannot overflow the
+  email queue.
+
+  The columns are the registration body's field names, so the import and the registration accept the same values
+  and record them the same way. A column the import does not read is refused rather than ignored, so a file in
+  the old import's format, with its password, community and role columns, is not half-imported.
+
+  Spanish Excel saves "CSV UTF-8" separated by `;` and with a byte order mark, and its default "CSV" separated by
+  `;` in Windows-1252, without one; both are read. Windows-1252 text with accents is practically never valid UTF-8,
+  so the fixed rule tells the two apart without guessing. Decoding is strict, so a file in any other encoding is
+  refused rather than imported with its accents corrupted; UTF-16, which Excel saves as "Unicode text", separated
+  by tabs, is not a CSV file.
+
+  The errors let a client write its own text in its own language. The validator's text is in the server's
+  language, so a message mixing it with localised text would be in two languages.
+
+  One transaction per row keeps one person's error from undoing the rest, and holds the locks for one row at a
+  time. The limit keeps one request bounded, and any community fits within it.
+
+  A headerless file puts a member's data where the headers go, which is why the headers are answered to the
+  caller, who typed them, but never logged.
+- **Source:** #397, ADR-0003 §3 and §5; reading Windows-1252 and the structured, localised row errors were
+  decided by the maintainer in the review of #397.
 
 ## Impossible states
 

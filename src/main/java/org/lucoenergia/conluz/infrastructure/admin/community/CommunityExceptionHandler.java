@@ -13,6 +13,8 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipNotInvitedExcepti
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationLoginRequiredException;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationTokenInvalidException;
+import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportMembersService;
+import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportFileRefusedException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
@@ -270,5 +272,42 @@ public class CommunityExceptionHandler {
         );
         return errorBuilder.buildWithoutLogging(message, RestErrorCode.MEMBERSHIP_INVITATION_LOGIN_REQUIRED, null,
                 HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 400: the file of members cannot be imported as a whole, and nothing was registered. Not logged here: the
+     * headers are what the caller typed, but a file without a header line holds a member's data in its first line;
+     * the service has already logged the refusal without them.
+     */
+    @ExceptionHandler(MemberImportFileRefusedException.class)
+    public ResponseEntity<RestError> handleException(MemberImportFileRefusedException e) {
+        // Quoted in the message, so that a blank header can be seen; comma-separated in the params for the client
+        List<String> named = List.of(String.join(", ", e.getHeaders().stream().map(h -> "'" + h + "'").toList()));
+        Map<String, String> headers = Map.of("headers", String.join(",", e.getHeaders()));
+        return switch (e.getProblem()) {
+            case INVALID_ENCODING -> importRefused("error.membership.import.invalid.encoding", List.of(),
+                    RestErrorCode.MEMBERSHIP_IMPORT_INVALID_ENCODING, Map.of());
+            case AMBIGUOUS_SEPARATOR -> importRefused("error.membership.import.ambiguous.separator", List.of(),
+                    RestErrorCode.MEMBERSHIP_IMPORT_AMBIGUOUS_SEPARATOR, Map.of());
+            case MALFORMED_FILE -> importRefused("error.membership.import.malformed.file", List.of(),
+                    RestErrorCode.MEMBERSHIP_IMPORT_MALFORMED_FILE, Map.of());
+            case UNKNOWN_HEADERS -> importRefused("error.membership.import.unknown.headers", named,
+                    RestErrorCode.MEMBERSHIP_IMPORT_UNKNOWN_HEADERS, headers);
+            case DUPLICATED_HEADERS -> importRefused("error.membership.import.duplicated.headers", named,
+                    RestErrorCode.MEMBERSHIP_IMPORT_DUPLICATED_HEADERS, headers);
+            case MISSING_HEADERS -> importRefused("error.membership.import.missing.headers", named,
+                    RestErrorCode.MEMBERSHIP_IMPORT_MISSING_HEADERS, headers);
+            case TOO_MANY_ROWS -> {
+                String maxRows = String.valueOf(ImportMembersService.MAX_ROWS);
+                yield importRefused("error.membership.import.too.many.rows", List.of(maxRows),
+                        RestErrorCode.MEMBERSHIP_IMPORT_TOO_MANY_ROWS, Map.of("maxRows", maxRows));
+            }
+        };
+    }
+
+    private ResponseEntity<RestError> importRefused(String messageKey, List<String> args, RestErrorCode code,
+                                                    Map<String, String> params) {
+        String message = messageSource.getMessage(messageKey, args.toArray(), LocaleContextHolder.getLocale());
+        return errorBuilder.buildWithoutLogging(message, code, params, HttpStatus.BAD_REQUEST);
     }
 }
