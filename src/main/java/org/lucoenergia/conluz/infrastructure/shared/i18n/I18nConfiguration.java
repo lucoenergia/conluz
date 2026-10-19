@@ -13,6 +13,8 @@ public class I18nConfiguration {
         ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
         messageSource.setBasename("classpath:messages");
         messageSource.setDefaultEncoding("UTF-8");
+        // A language without its own messages gets the default messages, in English, and not the server's language
+        messageSource.setFallbackToSystemLocale(false);
         return messageSource;
     }
 }

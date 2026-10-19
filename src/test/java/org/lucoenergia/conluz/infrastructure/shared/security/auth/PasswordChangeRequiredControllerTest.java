@@ -109,7 +109,11 @@ class PasswordChangeRequiredControllerTest extends BaseControllerTest {
     void theRefusal_carriesTheLocalisedMessage() throws Exception {
         String token = loginUser(createCommunityMemberWhoMustChangePassword(community.getId()));
 
-        getCommunity(token)
+        // The filter answers before the dispatcher, in the request's own locale, which MockMvc sets to English
+        // unless the request names one
+        mockMvc.perform(get("/api/v1/communities/" + community.getId())
+                        .header(HttpHeaders.AUTHORIZATION, token)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "es"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("Debe cambiar su contraseña antes de continuar."))
                 .andExpect(jsonPath("$.errors[0].message").value("Debe cambiar su contraseña antes de continuar."));
