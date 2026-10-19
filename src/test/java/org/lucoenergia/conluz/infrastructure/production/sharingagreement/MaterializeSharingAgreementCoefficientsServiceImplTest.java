@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
@@ -30,9 +31,11 @@ import org.lucoenergia.conluz.infrastructure.production.sharingagreement.Sharing
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,7 +45,15 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Not {@code @Transactional}: the atomicity tests need every write to commit, so each test deletes what it created
+ * afterwards, or a later test class counting rows would find them.
+ */
 class MaterializeSharingAgreementCoefficientsServiceImplTest extends BaseIntegrationTest {
+
+    private final List<UUID> communities = new ArrayList<>();
+    private final List<UUID> users = new ArrayList<>();
+    private final List<UUID> plants = new ArrayList<>();
 
     @Autowired
     private MaterializeSharingAgreementCoefficientsService materializeService;
@@ -62,13 +73,36 @@ class MaterializeSharingAgreementCoefficientsServiceImplTest extends BaseIntegra
     private SupplyPartitionCoefficientJpaRepository supplyPartitionCoefficientJpaRepository;
     @Autowired
     private SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @AfterEach
+    void deleteWhatTheTestCreated() {
+        for (UUID plant : plants) {
+            // Takes the agreement's coefficients and files with it
+            jdbcTemplate.update("DELETE FROM sharing_agreement WHERE plant_id = ?", plant);
+            jdbcTemplate.update("DELETE FROM plants WHERE id = ?", plant);
+        }
+        for (UUID user : users) {
+            // Takes the supply's contract, distributor and Shelly rows with it
+            jdbcTemplate.update("DELETE FROM supplies WHERE user_id = ?", user);
+            jdbcTemplate.update("DELETE FROM users WHERE id = ?", user);
+        }
+        for (UUID community : communities) {
+            jdbcTemplate.update("DELETE FROM communities WHERE id = ?", community);
+        }
+    }
 
     private CommunityEntity persistCommunity() {
-        return communityJpaRepository.save(CommunityMother.randomEntity().build());
+        CommunityEntity community = communityJpaRepository.save(CommunityMother.randomEntity().build());
+        communities.add(community.getId());
+        return community;
     }
 
     private UserEntity persistUser() {
-        return userRepository.save(UserMother.randomUserEntity());
+        UserEntity user = userRepository.save(UserMother.randomUserEntity());
+        users.add(user.getId());
+        return user;
     }
 
     private SupplyEntity persistSupply(UserEntity user, CommunityEntity community, String cups) {
@@ -78,7 +112,9 @@ class MaterializeSharingAgreementCoefficientsServiceImplTest extends BaseIntegra
     }
 
     private PlantEntity persistPlant(SupplyEntity supply) {
-        return plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
+        PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
+        plants.add(plant.getId());
+        return plant;
     }
 
     private SharingAgreementEntity persistAgreement(PlantEntity plant, SharingAgreementStatus status) {
