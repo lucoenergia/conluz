@@ -9,12 +9,10 @@ import java.util.UUID;
 public interface HuaweiProductionYearlyAggregationService {
 
     /**
-     * Aggregates monthly production data into yearly totals for all plants
-     * for a specific year.
-     *
-     * @param year the year to aggregate
+     * Aggregates a single plant, found by its id, for a specific year. Nothing is aggregated if the
+     * plant does not exist.
      */
-    void aggregateYearlyProductions(int year);
+    void aggregatePlantYearlyProduction(UUID plantId, int year);
 
     // --- Community-scoped variants: only the given community's plants are aggregated ---
 
