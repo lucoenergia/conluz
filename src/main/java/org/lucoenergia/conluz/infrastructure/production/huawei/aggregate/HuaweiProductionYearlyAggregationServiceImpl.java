@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.aggregate;
 
 import org.lucoenergia.conluz.domain.production.get.GetEnergyStationRepository;
-import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
@@ -35,24 +34,6 @@ public class HuaweiProductionYearlyAggregationServiceImpl implements HuaweiProdu
         this.aggregationRepository = aggregationRepository;
         this.getHuaweiConfigRepository = getHuaweiConfigRepository;
         this.getPlantRepository = getPlantRepository;
-    }
-
-    @Override
-    public void aggregateYearlyProductions(int year) {
-        List<HuaweiConfig> enabledConfigs = getHuaweiConfigRepository.getEnabledHuaweiConfigs();
-        if (enabledConfigs.isEmpty()) {
-            LOGGER.debug("No enabled Huawei configs found. Skipping yearly production aggregation.");
-            return;
-        }
-        for (HuaweiConfig config : enabledConfigs) {
-            Optional<Plant> plant = config.getPlantId() != null
-                    ? getEnergyStationRepository.findById(config.getPlantId())
-                    : Optional.empty();
-            plant.ifPresentOrElse(
-                    p -> aggregateForPlantYear(p, year),
-                    () -> LOGGER.warn("Plant not found for Huawei config with plantId={}", config.getPlantId())
-            );
-        }
     }
 
     @Override
