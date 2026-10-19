@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -597,6 +598,122 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(response).doesNotContain(typedEmail).doesNotContain("-7").doesNotContain("only-one-cell");
+    }
+
+    // --- The identifier must be a valid DNI, NIE or NIF ---
+
+    @Test
+    @DisplayName("ACC-010 a valid DNI, NIE, NIF or CIF, typed in lower case with spaces, dots and hyphens, is "
+            + "registered and stored normalised")
+    void aValidIdentifierInAnyTypingVariant_isRegistered() throws Exception {
+        Community community = newCommunity();
+        String dni = UserMother.randomPersonalId();
+        String nie = UserMother.randomNie();
+        String nif = UserMother.randomPersonalNif();
+        Map<String, String> typed = new LinkedHashMap<>();
+        typed.put(dni, dni.substring(0, 2) + "." + dni.substring(2, 5) + "." + dni.substring(5, 8) + "-"
+                + dni.substring(8).toLowerCase(java.util.Locale.ROOT));
+        typed.put(nie, nie.toLowerCase(java.util.Locale.ROOT).substring(0, 1) + " " + nie.substring(1));
+        typed.put(nif, nif.toLowerCase(java.util.Locale.ROOT));
+        typed.put("J99999997", "j-9999999-7");
+        List<Map<String, String>> rows = new ArrayList<>();
+        for (Map.Entry<String, String> identifier : typed.entrySet()) {
+            remember(identifier.getKey());
+            deleteAfterwards(identifier.getKey());
+            Map<String, String> row = newRow("Ana", "Calle 1");
+            row.put("personalId", identifier.getValue());
+            rows.add(row);
+        }
+
+        importFile(loginAsAdminOf(community), community.getId(), csv(';', true, COLUMNS, rows))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.registered").value(typed.size()))
+                .andExpect(jsonPath("$.failed").value(0));
+
+        for (String normalised : typed.keySet()) {
+            assertThat(membershipRow(normalised, community.getId())).isNotEmpty();
+        }
+    }
+
+    @Test
+    @DisplayName("ACC-010 a row whose personal ID is not a valid DNI, NIE or NIF fails with USER_PERSONAL_ID_INVALID "
+            + "and the constraint INVALID_PERSONAL_ID, before any lookup, and the other rows are registered")
+    void aRowWithAnInvalidIdentifier_isARowError_andTheOthersAreRegistered() throws Exception {
+        Community community = newCommunity();
+        List<String> invalid = UserMother.invalidPersonalIds();
+        List<Map<String, String>> rows = new ArrayList<>();
+        rows.add(newRow("Ana", "Calle 1"));
+        for (String personalId : invalid) {
+            remember(personalId);
+            Map<String, String> row = newRow("Luis", "Calle 2");
+            row.put("personalId", personalId);
+            rows.add(row);
+        }
+        rows.add(newRow("Marta", "Calle 3"));
+
+        String response = mockMvc.perform(multipart(URL, community.getId())
+                        .file(new MockMultipartFile("file", "socios.csv", "text/csv", csv(';', true, COLUMNS, rows)))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsAdminOf(community))
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.registered").value(2))
+                .andExpect(jsonPath("$.failed").value(3))
+                .andExpect(jsonPath("$.rows[0].outcome").value("REGISTERED"))
+                .andExpect(jsonPath("$.rows[4].outcome").value("REGISTERED"))
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode results = json(response).get("rows");
+        for (int i = 1; i <= invalid.size(); i++) {
+            JsonNode row = results.get(i);
+            assertThat(row.get("line").asInt()).isEqualTo(i + 2);
+            assertThat(row.get("outcome").asText()).isEqualTo("FAILED");
+            assertThat(row.get("code").asText()).isEqualTo("USER_PERSONAL_ID_INVALID");
+            assertThat(row.get("message").asText())
+                    .isEqualTo("The DNI/NIE/NIF is not valid. Check the digits and the letter.");
+            assertThat(row.get("errors")).hasSize(1);
+            assertThat(row.get("errors").get(0).get("column").asText()).isEqualTo("personalId");
+            assertThat(row.get("errors").get(0).get("constraint").asText()).isEqualTo("INVALID_PERSONAL_ID");
+            assertThat(row.get("errors").get(0).get("params")).isEmpty();
+            String personalId = invalid.get(i - 1);
+            assertThat(accountCount(personalId)).as(personalId).isZero();
+            assertNotLookedUp(personalId);
+        }
+        assertThat(membershipRow(rows.get(0).get("personalId"), community.getId())).isNotEmpty();
+        assertThat(membershipRow(rows.get(4).get("personalId"), community.getId())).isNotEmpty();
+        assertThat(membershipsIn(community)).isEqualTo(1 + 2);
+        assertNoSecretIn(response);
+        verify(emailSender, never()).send(any());
+    }
+
+    @Test
+    @DisplayName("ACC-010 a row with an invalid identifier that an existing account holds fails exactly as one no "
+            + "account holds, and the account is neither looked up nor written")
+    void aRowWithAnInvalidIdentifierOfAnExistingAccount_failsAsAnUnknownOne() throws Exception {
+        Community community = newCommunity();
+        String stored = UserMother.invalidPersonalIds().get(0);
+        accountWithPersonalId(stored);
+        remember(stored);
+        Map<String, Object> accountBefore = accountRow(stored);
+        clearInvocations(getUserRepository);
+        String unknown = UserMother.invalidPersonalIds().get(0);
+        remember(unknown);
+        Map<String, String> unknownRow = newRow("Ana", "Calle 1");
+        unknownRow.put("personalId", unknown);
+        Map<String, String> existingRow = newRow("Ana", "Calle 1");
+        existingRow.put("personalId", stored);
+
+        JsonNode results = json(importFile(loginAsAdminOf(community), community.getId(),
+                csv(';', true, COLUMNS, List.of(unknownRow, existingRow)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString()).get("rows");
+
+        ((com.fasterxml.jackson.databind.node.ObjectNode) results.get(0)).remove("line");
+        ((com.fasterxml.jackson.databind.node.ObjectNode) results.get(1)).remove("line");
+        assertThat(results.get(1)).isEqualTo(results.get(0));
+        assertThat(results.get(1).get("code").asText()).isEqualTo("USER_PERSONAL_ID_INVALID");
+        assertThat(accountRow(stored)).isEqualTo(accountBefore);
+        assertThat(membershipCount(stored)).isZero();
+        assertNotLookedUp(stored);
     }
 
     // --- Response and logging ---

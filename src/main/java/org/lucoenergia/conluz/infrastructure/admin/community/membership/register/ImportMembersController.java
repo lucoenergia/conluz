@@ -83,7 +83,11 @@ public class ImportMembersController {
 
                     A row whose values break rules of the registration fails with `MEMBERSHIP_IMPORT_ROW_INVALID` \
                     and lists each rule broken in `errors`, by column and constraint code, for a client to write \
-                    its own text. Every `message` is in the language of the request's Accept-Language.
+                    its own text. A row whose `personalId`, once its spaces, dots and hyphens are removed and its \
+                    letters upper-cased, is not a valid DNI, NIE or NIF fails with `USER_PERSONAL_ID_INVALID`, the \
+                    code `registerMember` answers with, and lists the constraint `INVALID_PERSONAL_ID` of the \
+                    column `personalId` in `errors`. Every `message` is in the language of the request's \
+                    Accept-Language.
                     """,
             tags = ApiTag.MEMBERSHIPS,
             operationId = "importMembers",
@@ -93,7 +97,40 @@ public class ImportMembersController {
             @ApiResponse(
                     responseCode = "200",
                     description = "The file was read, and each row was registered or failed.",
-                    useReturnTypeSchema = true
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ImportMembersResponse.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                               "registered": 1,
+                                               "failed": 1,
+                                               "rows": [
+                                                 {
+                                                   "line": 2,
+                                                   "outcome": "REGISTERED",
+                                                   "code": null,
+                                                   "message": null,
+                                                   "errors": []
+                                                 },
+                                                 {
+                                                   "line": 3,
+                                                   "outcome": "FAILED",
+                                                   "code": "USER_PERSONAL_ID_INVALID",
+                                                   "message": "The DNI/NIE/NIF is not valid. Check the digits and the letter.",
+                                                   "errors": [
+                                                     {
+                                                       "column": "personalId",
+                                                       "constraint": "INVALID_PERSONAL_ID",
+                                                       "params": {}
+                                                     }
+                                                   ]
+                                                 }
+                                               ]
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "400",

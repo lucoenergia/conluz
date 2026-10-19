@@ -22,7 +22,8 @@ public class ImportMembersRowResponse {
     private final Outcome outcome;
     @Schema(description = "Why the row failed: MEMBERSHIP_ALREADY_EXISTS if the person already has a membership in "
             + "this community, possibly from an earlier row of the same file; MEMBERSHIP_IMPORT_ROW_INVALID if a "
-            + "value breaks a rule of the registration; MEMBERSHIP_IMPORT_ROW_MALFORMED if the row does not have as "
+            + "value breaks a rule of the registration; USER_PERSONAL_ID_INVALID if the personal ID, once "
+            + "normalised, is not a valid DNI, NIE or NIF; MEMBERSHIP_IMPORT_ROW_MALFORMED if the row does not have as "
             + "many cells as the header. Null for a registered row.",
             types = {"string", "null"})
     private final RestErrorCode code;
@@ -32,8 +33,9 @@ public class ImportMembersRowResponse {
             types = {"string", "null"})
     private final String message;
     @Schema(description = "For MEMBERSHIP_IMPORT_ROW_INVALID, each rule broken, in the "
-            + "order of the columns, so that a client can write its own text; the same rules as `message`. Empty "
-            + "for any other row.")
+            + "order of the columns, so that a client can write its own text; the same rules as `message`. For "
+            + "USER_PERSONAL_ID_INVALID, the one rule INVALID_PERSONAL_ID of the column `personalId`. Empty for any "
+            + "other row.")
     private final List<ImportMembersRowErrorResponse> errors;
 
     public ImportMembersRowResponse(int line, Outcome outcome, RestErrorCode code, String message,

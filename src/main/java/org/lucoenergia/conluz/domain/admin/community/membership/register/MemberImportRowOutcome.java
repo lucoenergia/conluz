@@ -16,6 +16,10 @@ public enum MemberImportRowOutcome {
      */
     INVALID,
     /**
+     * The personal ID, once normalised, is not a valid DNI, NIE or NIF (#398). Nothing is registered.
+     */
+    INVALID_PERSONAL_ID,
+    /**
      * The row does not have as many cells as the header. Nothing is registered.
      */
     MALFORMED

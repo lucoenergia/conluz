@@ -13,7 +13,8 @@ public class ImportMembersRowErrorResponse {
     @Schema(description = "The header of the column whose value breaks the rule.", example = "memberNumber")
     private final String column;
     @Schema(description = "The rule broken: REQUIRED if a required value is empty or blank; NOT_EMPTY_ONCE_NORMALISED "
-            + "if the personal ID holds only whitespace, dots and hyphens; MIN if the number is below `params.min`; "
+            + "if the personal ID holds only whitespace, dots and hyphens; INVALID_PERSONAL_ID if the personal ID, once "
+            + "normalised, is not a valid DNI, NIE or NIF; MIN if the number is below `params.min`; "
             + "EMAIL if the value is not an email address; NOT_AN_INTEGER if the value is not a whole number. A newer "
             + "server may add rules, so a client must also handle one it does not know.",
             example = "MIN")

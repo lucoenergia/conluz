@@ -10,17 +10,21 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -206,6 +210,93 @@ class InviteCommunityAdminControllerTest extends BaseCommunityAdminTest {
 
             assertThat(accountCount("")).isZero();
         }
+        verify(emailSender, never()).send(any());
+    }
+
+    @Test
+    @DisplayName("ACC-010 a valid DNI, NIE, NIF or CIF, typed in lower case with spaces, dots and hyphens, is "
+            + "accepted and stored normalised")
+    void aValidIdentifierInAnyTypingVariant_isAccepted() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsPlatformAdmin();
+        String dni = UserMother.randomPersonalId();
+        String nie = UserMother.randomNie();
+        String nif = UserMother.randomPersonalNif();
+        Map<String, String> typed = new LinkedHashMap<>();
+        typed.put(dni, dni.substring(0, 2) + "." + dni.substring(2, 5) + "." + dni.substring(5, 8) + "-"
+                + dni.substring(8).toLowerCase(Locale.ROOT));
+        typed.put(nie, " " + nie.toLowerCase(Locale.ROOT) + " ");
+        typed.put(nif, nif.substring(0, 1).toLowerCase(Locale.ROOT) + "-" + nif.substring(1));
+        typed.put("C1234567D", "c.1234567.d");
+
+        for (Map.Entry<String, String> identifier : typed.entrySet()) {
+            Map<String, Object> body = newAdminRecord();
+            body.put("personalId", identifier.getValue());
+
+            inviteAdmin(bearer, community.getId(), body)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.personalId").value(identifier.getKey()));
+
+            assertThat(accountCount(identifier.getKey())).as(identifier.getValue()).isEqualTo(1);
+        }
+        awaitNextEmails(typed.size());
+    }
+
+    @Test
+    @DisplayName("ACC-010 a wrong control letter, a wrong length or an unknown prefix is refused with "
+            + "USER_PERSONAL_ID_INVALID before any lookup, and nothing is created, issued or sent")
+    void anInvalidIdentifier_isRefusedBeforeAnyLookup_andCreatesNothing() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsPlatformAdmin();
+
+        for (String personalId : UserMother.invalidPersonalIds()) {
+            remember(personalId);
+            Map<String, Object> body = newAdminRecord();
+            body.put("personalId", personalId);
+
+            String response = inviteAdmin(bearer, community.getId(), body)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors.length()").value(1))
+                    .andExpect(jsonPath("$.errors[0].code").value("USER_PERSONAL_ID_INVALID"))
+                    .andReturn().getResponse().getContentAsString();
+
+            assertThat(accountCount(personalId)).as(personalId).isZero();
+            assertThat(tokenCount(personalId)).isZero();
+            assertNotLookedUp(personalId);
+            assertNoSecretIn(response);
+        }
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM community_memberships WHERE community_id = ?",
+                Integer.class, community.getId())).isZero();
+        verify(emailSender, never()).send(any());
+    }
+
+    @Test
+    @DisplayName("ACC-010 an invalid identifier that an existing account holds is refused exactly as one no account "
+            + "holds, and the account is neither looked up nor written")
+    void anInvalidIdentifierOfAnExistingAccount_isRefusedAsAnUnknownOne() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsPlatformAdmin();
+        String stored = UserMother.invalidPersonalIds().get(0);
+        accountWithPersonalId(stored);
+        remember(stored);
+        Map<String, Object> accountBefore = accountRow(stored);
+        clearInvocations(getUserRepository);
+
+        Map<String, Object> unknownBody = newAdminRecord();
+        unknownBody.put("personalId", UserMother.invalidPersonalIds().get(0));
+        String unknown = inviteAdmin(bearer, community.getId(), unknownBody)
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse().getContentAsString();
+        Map<String, Object> existingBody = newAdminRecord();
+        existingBody.put("personalId", stored);
+        String existing = inviteAdmin(bearer, community.getId(), existingBody)
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(withoutTrace(existing)).isEqualTo(withoutTrace(unknown));
+        assertThat(accountRow(stored)).isEqualTo(accountBefore);
+        assertThat(membershipCount(stored)).isZero();
+        assertNotLookedUp(stored);
         verify(emailSender, never()).send(any());
     }
 

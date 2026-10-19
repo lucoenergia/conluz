@@ -25,6 +25,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Files;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -323,6 +324,31 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
 
         assertMemberOf("334000002A", communityA.getId());
         assertMemberOf("334000003A", communityA.getId());
+    }
+
+    @Test
+    @DisplayName("ACC-010 the legacy user import still accepts identifiers that the member import refuses")
+    void identifiersTheMemberImportRefuses_areStillImported() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsCommunityAdmin(community.getId());
+        List<String> personalIds = UserMother.invalidPersonalIds();
+
+        String csvContent = HEADER
+                + row(1, personalIds.get(0), "", "")
+                + row(2, personalIds.get(1), "", "")
+                + row(3, personalIds.get(2), "", "");
+
+        mockMvc.perform(multipart(URL)
+                        .file(csv(csvContent))
+                        .param("communityId", community.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", containsInAnyOrder(personalIds.toArray())))
+                .andExpect(jsonPath("$.errors").isEmpty());
+
+        for (String personalId : personalIds) {
+            assertMemberOf(personalId, community.getId());
+        }
     }
 
     @Test

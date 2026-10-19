@@ -4,6 +4,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -92,6 +93,37 @@ public class UserMother {
      */
     public static char dniLetter(int number) {
         return DNI_LETTERS.charAt(number % 23);
+    }
+
+    /**
+     * A valid NIE starting with {@code X}, not shared with any other fixture of the run: its control letter is the
+     * one of its 7 digits, the prefix standing for 0.
+     */
+    public static String randomNie() {
+        int digits = NEXT_DNI_NUMBER.getAndIncrement() % 10_000_000;
+        return "X" + String.format(Locale.ROOT, "%07d", digits) + dniLetter(digits);
+    }
+
+    /**
+     * A valid NIF of a natural person starting with {@code K}, not shared with any other fixture of the run: its
+     * control letter is the one of its 7 digits, computed as a DNI's.
+     */
+    public static String randomPersonalNif() {
+        int digits = NEXT_DNI_NUMBER.getAndIncrement() % 10_000_000;
+        return "K" + String.format(Locale.ROOT, "%07d", digits) + dniLetter(digits);
+    }
+
+    /**
+     * A wrong control letter, a wrong length and an unknown prefix, each made from a fresh valid DNI so that no
+     * account holds it.
+     */
+    public static List<String> invalidPersonalIds() {
+        String dni = randomPersonalId();
+        char letter = dni.charAt(8);
+        String wrongLetter = dni.substring(0, 8) + (letter == 'T' ? 'R' : 'T');
+        String wrongLength = dni.substring(1);
+        String unknownPrefix = "T" + dni.substring(1);
+        return List.of(wrongLetter, wrongLength, unknownPrefix);
     }
 
     public static String randomPassword() {
