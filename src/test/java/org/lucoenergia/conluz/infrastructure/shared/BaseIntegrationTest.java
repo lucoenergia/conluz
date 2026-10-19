@@ -1,9 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.shared;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
+import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.AuthenticationThrottleCounters;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.security.FastPasswordEncoderTestConfiguration;
+import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClockConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
@@ -48,6 +53,22 @@ public abstract class BaseIntegrationTest {
         if (!INFLUX_DB_CONTAINER.isRunning()) {
             INFLUX_DB_CONTAINER.start();
         }
+    }
+
+    @Autowired
+    private MutableClock startClock;
+    @Autowired
+    private AuthenticationThrottleService startThrottleService;
+
+    /**
+     * Every test starts at the same instant, whatever ran before it in the same application context, with no
+     * failed authentication attempt counted. The counters live in memory and are shared by the whole context, and
+     * a window opened by an earlier test would otherwise still be open after the clock goes back.
+     */
+    @BeforeEach
+    void startAtTheSameInstantWithNoFailedAuthenticationAttempts() {
+        startClock.setInstant(MutableClockConfiguration.START);
+        AuthenticationThrottleCounters.clearAll(startThrottleService);
     }
 
     @DynamicPropertySource
