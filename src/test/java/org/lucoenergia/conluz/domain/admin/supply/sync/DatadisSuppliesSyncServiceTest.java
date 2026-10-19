@@ -25,7 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @Transactional
@@ -128,7 +130,14 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
         service.synchronizeSupplies();
 
         // Assert
-        Mockito.verify(getSupplyRepositoryDatadis, times(1)).getSuppliesByUser(Mockito.any(User.class));
+        // Other tests may have committed users with supplies, which the sync processes too: only this test's users
+        // are checked
+        UUID withoutSupply = userOne.getId();
+        UUID withSupplies = userTwo.getId();
+        Mockito.verify(getSupplyRepositoryDatadis, never())
+                .getSuppliesByUser(argThat(user -> user.getId().equals(withoutSupply)));
+        Mockito.verify(getSupplyRepositoryDatadis, times(1))
+                .getSuppliesByUser(argThat(user -> user.getId().equals(withSupplies)));
         Assertions.assertEquals(datadisSupply.getAddress(), getSupplyRepository.findById(SupplyId.of(supplyOne.getId())).get().getAddress());
     }
 }
