@@ -179,7 +179,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     void updatesOnlyDescriptiveFields() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
         Instant originalCreatedAt = draftAgreement.getCreatedAt();
-        Instant before = Instant.now();
+        Instant before = clock.instant();
 
         mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

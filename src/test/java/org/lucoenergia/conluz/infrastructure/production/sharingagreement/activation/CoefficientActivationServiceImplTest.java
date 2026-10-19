@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -69,11 +70,12 @@ class CoefficientActivationServiceImplTest {
     private CoefficientActivationServiceImpl service() {
         return new CoefficientActivationServiceImpl(getSharingAgreementService, getCoefficientRepository,
                 saveCoefficientRepository, recomputeStatusRepository, getSupplyRepository, zoneResolver,
-                overlapCheckRepository);
+                overlapCheckRepository, CLOCK);
     }
 
     private static final UUID PLANT_ID = UUID.randomUUID();
     private static final ZoneId UTC = ZoneOffset.UTC;
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-19T10:00:00Z"), UTC);
 
     private SharingAgreement agreement(UUID id, SharingAgreementStatus status) {
         return new SharingAgreement.Builder().withId(id).withPlantId(PLANT_ID).withStatus(status).build();
@@ -110,7 +112,7 @@ class CoefficientActivationServiceImplTest {
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.DRAFT));
 
         assertThrows(SharingAgreementNotPublishedException.class,
-                () -> service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(), List.of(UUID.randomUUID())));
+                () -> service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(CLOCK), List.of(UUID.randomUUID())));
         verify(getCoefficientRepository, never()).findAllByIdAndSharingAgreementId(any(), any());
     }
 
@@ -122,7 +124,7 @@ class CoefficientActivationServiceImplTest {
         when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
         stubFound(agreementId);
 
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(), List.of());
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(CLOCK), List.of());
 
         assertTrue(result.isEmpty());
     }
@@ -135,7 +137,7 @@ class CoefficientActivationServiceImplTest {
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement);
 
         assertThrows(SharingAgreementPlantMismatchException.class,
-                () -> service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(), List.of(UUID.randomUUID())));
+                () -> service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(CLOCK), List.of(UUID.randomUUID())));
     }
 
     // ---- setValidFrom: activate / correct ----
@@ -153,7 +155,7 @@ class CoefficientActivationServiceImplTest {
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, null)).thenReturn(Optional.empty());
         stubSave();
 
-        LocalDate appliedOn = LocalDate.now(UTC).minusDays(10);
+        LocalDate appliedOn = LocalDate.now(CLOCK).minusDays(10);
         List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId));
 
         assertEquals(1, result.size());
@@ -178,7 +180,7 @@ class CoefficientActivationServiceImplTest {
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, null)).thenReturn(Optional.of(predecessor));
         stubSave();
 
-        LocalDate appliedOn = LocalDate.now(UTC).minusDays(1);
+        LocalDate appliedOn = LocalDate.now(CLOCK).minusDays(1);
         Instant newValidFrom = appliedOn.atStartOfDay(UTC).toInstant();
         List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, targetAgreementId, appliedOn, List.of(coefficientId));
 
@@ -195,9 +197,9 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID predecessorId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant originalValidFrom = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant originalValidFrom = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, originalValidFrom, null);
-        Instant predecessorValidFrom = LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant();
+        Instant predecessorValidFrom = LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, agreementId, supplyId, predecessorValidFrom, originalValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
@@ -207,7 +209,7 @@ class CoefficientActivationServiceImplTest {
                 .thenReturn(Optional.of(predecessor));
         stubSave();
 
-        LocalDate corrected = LocalDate.now(UTC).minusDays(5);
+        LocalDate corrected = LocalDate.now(CLOCK).minusDays(5);
         Instant newValidFrom = corrected.atStartOfDay(UTC).toInstant();
         List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, corrected, List.of(coefficientId));
 
@@ -224,11 +226,11 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID predecessorId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant originalValidFrom = LocalDate.now(UTC).minusDays(20).atStartOfDay(UTC).toInstant();
-        Instant ownValidTo = LocalDate.now(UTC).minusDays(5).atStartOfDay(UTC).toInstant(); // closed by a later cascade
+        Instant originalValidFrom = LocalDate.now(CLOCK).minusDays(20).atStartOfDay(UTC).toInstant();
+        Instant ownValidTo = LocalDate.now(CLOCK).minusDays(5).atStartOfDay(UTC).toInstant(); // closed by a later cascade
         SupplyPartitionCoefficient superseded = coefficient(coefficientId, agreementId, supplyId, originalValidFrom, ownValidTo);
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, agreementId, supplyId,
-                LocalDate.now(UTC).minusDays(40).atStartOfDay(UTC).toInstant(), originalValidFrom);
+                LocalDate.now(CLOCK).minusDays(40).atStartOfDay(UTC).toInstant(), originalValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
         when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
@@ -237,7 +239,7 @@ class CoefficientActivationServiceImplTest {
                 .thenReturn(Optional.of(predecessor));
         stubSave();
 
-        LocalDate corrected = LocalDate.now(UTC).minusDays(15);
+        LocalDate corrected = LocalDate.now(CLOCK).minusDays(15);
         service().setValidFrom(PLANT_ID, agreementId, corrected, List.of(coefficientId));
 
         verify(getCoefficientRepository).findPredecessor(PLANT_ID, supplyId, coefficientId, originalValidFrom);
@@ -249,8 +251,8 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID predecessorId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant predecessorValidFrom = LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant();
-        Instant originalValidFrom = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant predecessorValidFrom = LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant();
+        Instant originalValidFrom = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, originalValidFrom, null);
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, agreementId, supplyId, predecessorValidFrom, originalValidFrom);
 
@@ -276,8 +278,8 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID predecessorId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant predecessorValidFrom = LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant();
-        Instant originalValidFrom = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant predecessorValidFrom = LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant();
+        Instant originalValidFrom = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, originalValidFrom, null);
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, agreementId, supplyId, predecessorValidFrom, originalValidFrom);
 
@@ -299,8 +301,8 @@ class CoefficientActivationServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         UUID coefficientId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant originalValidFrom = LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant();
-        Instant ownValidTo = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant originalValidFrom = LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant();
+        Instant ownValidTo = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, originalValidFrom, ownValidTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
@@ -324,11 +326,11 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID predecessorId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant ownValidFrom = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
-        Instant ownValidTo = LocalDate.now(UTC).minusDays(2).atStartOfDay(UTC).toInstant();
+        Instant ownValidFrom = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant ownValidTo = LocalDate.now(CLOCK).minusDays(2).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, ownValidFrom, ownValidTo);
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, agreementId, supplyId,
-                LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant(), ownValidFrom);
+                LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant(), ownValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
         when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
@@ -350,10 +352,10 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID predecessorId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant ownValidFrom = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant ownValidFrom = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, ownValidFrom, null);
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, agreementId, supplyId,
-                LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant(), ownValidFrom);
+                LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant(), ownValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
         when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
@@ -372,8 +374,8 @@ class CoefficientActivationServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         UUID coefficientId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant ownValidFrom = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
-        Instant ownValidTo = LocalDate.now(UTC).minusDays(2).atStartOfDay(UTC).toInstant();
+        Instant ownValidFrom = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant ownValidTo = LocalDate.now(CLOCK).minusDays(2).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, ownValidFrom, ownValidTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
@@ -403,7 +405,7 @@ class CoefficientActivationServiceImplTest {
         when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
         stubFound(agreementId, pending);
 
-        LocalDate tomorrow = LocalDate.now(UTC).plusDays(1);
+        LocalDate tomorrow = LocalDate.now(CLOCK).plusDays(1);
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
                 () -> service().setValidFrom(PLANT_ID, agreementId, tomorrow, List.of(coefficientId)));
 
@@ -416,7 +418,7 @@ class CoefficientActivationServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         UUID coefficientId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        LocalDate appliedOn = LocalDate.now(UTC).minusDays(5);
+        LocalDate appliedOn = LocalDate.now(CLOCK).minusDays(5);
         Instant validFrom = appliedOn.atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, validFrom, null);
 
@@ -442,7 +444,7 @@ class CoefficientActivationServiceImplTest {
         stubFound(agreementId); // empty -- the id belongs to no coefficient of this agreement
 
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
-                () -> service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(UTC).minusDays(1), List.of(unknownId)));
+                () -> service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(CLOCK).minusDays(1), List.of(unknownId)));
 
         assertEquals(CoefficientActivationErrorCode.COEFFICIENT_NOT_IN_AGREEMENT, exception.getErrors().get(0).getCode());
     }
@@ -461,7 +463,7 @@ class CoefficientActivationServiceImplTest {
         when(getCoefficientRepository.findPredecessor(eq(PLANT_ID), eq(supplyId), eq(validId), any()))
                 .thenReturn(Optional.empty());
 
-        LocalDate appliedOn = LocalDate.now(UTC).minusDays(1);
+        LocalDate appliedOn = LocalDate.now(CLOCK).minusDays(1);
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
                 () -> service().setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(validId, unknownId)));
 
@@ -479,7 +481,7 @@ class CoefficientActivationServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         UUID coefficientId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validFrom = LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant();
+        Instant validFrom = LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient open = coefficient(coefficientId, agreementId, supplyId, validFrom, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
@@ -487,7 +489,7 @@ class CoefficientActivationServiceImplTest {
         stubFound(agreementId, open);
         stubSave();
 
-        LocalDate closedOn = LocalDate.now(UTC).minusDays(1);
+        LocalDate closedOn = LocalDate.now(CLOCK).minusDays(1);
         List<SupplyPartitionCoefficient> result = service().setValidTo(PLANT_ID, agreementId, closedOn, List.of(coefficientId));
 
         assertEquals(1, result.size());
@@ -507,7 +509,7 @@ class CoefficientActivationServiceImplTest {
         stubFound(agreementId, pending);
 
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
-                () -> service().setValidTo(PLANT_ID, agreementId, LocalDate.now(UTC).minusDays(1), List.of(coefficientId)));
+                () -> service().setValidTo(PLANT_ID, agreementId, LocalDate.now(CLOCK).minusDays(1), List.of(coefficientId)));
 
         assertEquals(CoefficientActivationErrorCode.COEFFICIENT_NOT_ACTIVE, exception.getErrors().get(0).getCode());
         verify(saveCoefficientRepository, never()).save(any());
@@ -518,7 +520,7 @@ class CoefficientActivationServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         UUID coefficientId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        LocalDate validFromDate = LocalDate.now(UTC).minusDays(10);
+        LocalDate validFromDate = LocalDate.now(CLOCK).minusDays(10);
         Instant validFrom = validFromDate.atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient open = coefficient(coefficientId, agreementId, supplyId, validFrom, null);
 
@@ -537,8 +539,8 @@ class CoefficientActivationServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         UUID coefficientId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validFrom = LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant();
-        Instant currentValidTo = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant validFrom = LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant();
+        Instant currentValidTo = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, currentValidTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
@@ -548,7 +550,7 @@ class CoefficientActivationServiceImplTest {
                 .thenReturn(Optional.empty());
         stubSave();
 
-        LocalDate corrected = LocalDate.now(UTC).minusDays(5);
+        LocalDate corrected = LocalDate.now(CLOCK).minusDays(5);
         List<SupplyPartitionCoefficient> result = service().setValidTo(PLANT_ID, agreementId, corrected, List.of(coefficientId));
 
         assertEquals(corrected.atStartOfDay(UTC).toInstant(), result.get(0).getValidTo());
@@ -562,8 +564,8 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID successorId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validFrom = LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant();
-        Instant currentValidTo = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant validFrom = LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant();
+        Instant currentValidTo = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, currentValidTo);
         SupplyPartitionCoefficient successor = coefficient(successorId, agreementId, supplyId, currentValidTo, null);
 
@@ -574,7 +576,7 @@ class CoefficientActivationServiceImplTest {
                 .thenReturn(Optional.of(successor));
 
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
-                () -> service().setValidTo(PLANT_ID, agreementId, LocalDate.now(UTC).minusDays(5), List.of(coefficientId)));
+                () -> service().setValidTo(PLANT_ID, agreementId, LocalDate.now(CLOCK).minusDays(5), List.of(coefficientId)));
 
         assertEquals(CoefficientActivationErrorCode.COEFFICIENT_HAS_SUCCESSOR, exception.getErrors().get(0).getCode());
         verify(saveCoefficientRepository, never()).save(any());
@@ -588,9 +590,9 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID nextId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validFrom = LocalDate.now(UTC).minusDays(60).atStartOfDay(UTC).toInstant();
-        Instant currentValidTo = LocalDate.now(UTC).minusDays(40).atStartOfDay(UTC).toInstant(); // self-authored, exit case
-        Instant nextValidFrom = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant(); // unrelated, later, non-adjacent
+        Instant validFrom = LocalDate.now(CLOCK).minusDays(60).atStartOfDay(UTC).toInstant();
+        Instant currentValidTo = LocalDate.now(CLOCK).minusDays(40).atStartOfDay(UTC).toInstant(); // self-authored, exit case
+        Instant nextValidFrom = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant(); // unrelated, later, non-adjacent
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, currentValidTo);
         SupplyPartitionCoefficient next = coefficient(nextId, UUID.randomUUID(), supplyId, nextValidFrom, null);
 
@@ -613,9 +615,9 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID nextId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validFrom = LocalDate.now(UTC).minusDays(60).atStartOfDay(UTC).toInstant();
-        Instant currentValidTo = LocalDate.now(UTC).minusDays(40).atStartOfDay(UTC).toInstant();
-        Instant nextValidFrom = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant validFrom = LocalDate.now(CLOCK).minusDays(60).atStartOfDay(UTC).toInstant();
+        Instant currentValidTo = LocalDate.now(CLOCK).minusDays(40).atStartOfDay(UTC).toInstant();
+        Instant nextValidFrom = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, currentValidTo);
         SupplyPartitionCoefficient next = coefficient(nextId, UUID.randomUUID(), supplyId, nextValidFrom, null);
 
@@ -626,7 +628,7 @@ class CoefficientActivationServiceImplTest {
                 .thenReturn(Optional.of(next));
         stubSave();
 
-        LocalDate withinGap = LocalDate.now(UTC).minusDays(20); // strictly between currentValidTo and nextValidFrom
+        LocalDate withinGap = LocalDate.now(CLOCK).minusDays(20); // strictly between currentValidTo and nextValidFrom
         List<SupplyPartitionCoefficient> result = service().setValidTo(PLANT_ID, agreementId, withinGap, List.of(coefficientId));
 
         assertEquals(withinGap.atStartOfDay(UTC).toInstant(), result.get(0).getValidTo());
@@ -637,8 +639,8 @@ class CoefficientActivationServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         UUID coefficientId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validFrom = LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant();
-        Instant currentValidTo = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant validFrom = LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant();
+        Instant currentValidTo = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, currentValidTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
@@ -661,9 +663,9 @@ class CoefficientActivationServiceImplTest {
         UUID coefficientId = UUID.randomUUID();
         UUID nextId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validFrom = LocalDate.now(UTC).minusDays(60).atStartOfDay(UTC).toInstant();
-        Instant currentValidTo = LocalDate.now(UTC).minusDays(40).atStartOfDay(UTC).toInstant();
-        Instant nextValidFrom = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant validFrom = LocalDate.now(CLOCK).minusDays(60).atStartOfDay(UTC).toInstant();
+        Instant currentValidTo = LocalDate.now(CLOCK).minusDays(40).atStartOfDay(UTC).toInstant();
+        Instant nextValidFrom = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, currentValidTo);
         SupplyPartitionCoefficient next = coefficient(nextId, UUID.randomUUID(), supplyId, nextValidFrom, null);
 
@@ -684,8 +686,8 @@ class CoefficientActivationServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         UUID coefficientId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validFrom = LocalDate.now(UTC).minusDays(30).atStartOfDay(UTC).toInstant();
-        Instant validTo = LocalDate.now(UTC).minusDays(10).atStartOfDay(UTC).toInstant();
+        Instant validFrom = LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant();
+        Instant validTo = LocalDate.now(CLOCK).minusDays(10).atStartOfDay(UTC).toInstant();
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, validTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
@@ -731,7 +733,7 @@ class CoefficientActivationServiceImplTest {
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supply3, coefficient3, null)).thenReturn(Optional.empty());
         stubSave();
 
-        LocalDate appliedOn = LocalDate.now(UTC).minusDays(1);
+        LocalDate appliedOn = LocalDate.now(CLOCK).minusDays(1);
         service().setValidFrom(PLANT_ID, targetAgreementId, appliedOn, List.of(coefficient1, coefficient2, coefficient3));
 
         verify(recomputeStatusRepository, times(1)).recomputeStatus(targetAgreementId);
@@ -747,7 +749,7 @@ class CoefficientActivationServiceImplTest {
     void setValidFrom_convertsThroughResolvedZone_persistedInstantsDifferByDstOffset(String zoneIdValue) {
         ZoneId zoneId = ZoneId.of(zoneIdValue);
         ZoneRules rules = zoneId.getRules();
-        LocalDate today = LocalDate.now(zoneId);
+        LocalDate today = LocalDate.now(CLOCK.withZone(zoneId));
 
         // A past transition, deliberately -- appliedOn must never be in the future (D5), so both
         // fixture dates below need to already be behind "today". The *most recent* transition does not
@@ -757,7 +759,7 @@ class CoefficientActivationServiceImplTest {
         // transition is old enough -- otherwise this test breaks for a couple of days after every DST
         // change in either test zone (Pacific/Auckland switches in late September, Europe/Madrid in
         // late March and late October).
-        ZoneOffsetTransition transition = rules.previousTransition(Instant.now());
+        ZoneOffsetTransition transition = rules.previousTransition(CLOCK.instant());
         LocalDate dayBeforeTransition = null;
         LocalDate dayAfterTransition = null;
         while (transition != null) {
@@ -803,7 +805,7 @@ class CoefficientActivationServiceImplTest {
 
         CoefficientActivationServiceImpl serviceUnderTest = new CoefficientActivationServiceImpl(
                 agreementService, coefficientRepository, saveRepository, recomputeStatusRepository, getSupplyRepository,
-                resolver, overlapCheckRepository);
+                resolver, overlapCheckRepository, CLOCK);
         serviceUnderTest.setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId));
 
         return captor.getValue().getValidFrom();

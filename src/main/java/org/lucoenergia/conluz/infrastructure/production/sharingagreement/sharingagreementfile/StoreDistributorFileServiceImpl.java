@@ -23,7 +23,7 @@ import org.lucoenergia.conluz.infrastructure.shared.ContentHasher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,19 +49,22 @@ public class StoreDistributorFileServiceImpl implements StoreDistributorFileServ
     private final DistributorFileParser parser;
     private final SaveSharingAgreementFileRepository saveSharingAgreementFileRepository;
     private final MaterializeSharingAgreementCoefficientsService materializeSharingAgreementCoefficientsService;
+    private final Clock clock;
 
     public StoreDistributorFileServiceImpl(GetPlantRepository getPlantRepository,
                                             GetSupplyRepository getSupplyRepository,
                                             GetSharingAgreementService getSharingAgreementService,
                                             DistributorFileParser parser,
                                             SaveSharingAgreementFileRepository saveSharingAgreementFileRepository,
-                                            MaterializeSharingAgreementCoefficientsService materializeSharingAgreementCoefficientsService) {
+                                            MaterializeSharingAgreementCoefficientsService materializeSharingAgreementCoefficientsService,
+                                            Clock clock) {
         this.getPlantRepository = getPlantRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.getSharingAgreementService = getSharingAgreementService;
         this.parser = parser;
         this.saveSharingAgreementFileRepository = saveSharingAgreementFileRepository;
         this.materializeSharingAgreementCoefficientsService = materializeSharingAgreementCoefficientsService;
+        this.clock = clock;
     }
 
     @Override
@@ -88,7 +91,7 @@ public class StoreDistributorFileServiceImpl implements StoreDistributorFileServ
                 .withFilename(filename)
                 .withContent(content)
                 .withContentHash(ContentHasher.sha256Hex(content))
-                .withUploadedAt(Instant.now())
+                .withUploadedAt(clock.instant())
                 .withUploadedBy(uploadedBy)
                 .build();
 

@@ -21,6 +21,7 @@ import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -46,6 +47,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     private final GetSupplyRepository getSupplyRepository;
     private final ZoneResolver zoneResolver;
     private final CoefficientOverlapCheckRepository overlapCheckRepository;
+    private final Clock clock;
 
     public CoefficientActivationServiceImpl(GetSharingAgreementService getSharingAgreementService,
                                              GetSupplyPartitionCoefficientRepository getCoefficientRepository,
@@ -53,7 +55,8 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                                              RecomputeSharingAgreementStatusRepository recomputeStatusRepository,
                                              GetSupplyRepository getSupplyRepository,
                                              ZoneResolver zoneResolver,
-                                             CoefficientOverlapCheckRepository overlapCheckRepository) {
+                                             CoefficientOverlapCheckRepository overlapCheckRepository,
+                                             Clock clock) {
         this.getSharingAgreementService = getSharingAgreementService;
         this.getCoefficientRepository = getCoefficientRepository;
         this.saveCoefficientRepository = saveCoefficientRepository;
@@ -61,6 +64,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         this.getSupplyRepository = getSupplyRepository;
         this.zoneResolver = zoneResolver;
         this.overlapCheckRepository = overlapCheckRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -68,7 +72,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                                                            List<UUID> coefficientIds) {
         loadAgreement(plantId, sharingAgreementId);
         ZoneId zoneId = zoneResolver.resolveZoneId(plantId);
-        LocalDate today = LocalDate.now(zoneId);
+        LocalDate today = LocalDate.now(clock.withZone(zoneId));
         Instant newValidFrom = appliedOn == null ? null : appliedOn.atStartOfDay(zoneId).toInstant();
 
         Map<UUID, SupplyPartitionCoefficient> foundById = fetch(sharingAgreementId, coefficientIds);
@@ -130,7 +134,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                                                          List<UUID> coefficientIds) {
         loadAgreement(plantId, sharingAgreementId);
         ZoneId zoneId = zoneResolver.resolveZoneId(plantId);
-        LocalDate today = LocalDate.now(zoneId);
+        LocalDate today = LocalDate.now(clock.withZone(zoneId));
         Instant newValidTo = closedOn == null ? null : closedOn.atStartOfDay(zoneId).toInstant();
 
         Map<UUID, SupplyPartitionCoefficient> foundById = fetch(sharingAgreementId, coefficientIds);

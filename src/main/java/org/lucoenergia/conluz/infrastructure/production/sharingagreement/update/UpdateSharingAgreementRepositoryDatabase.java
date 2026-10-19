@@ -11,7 +11,7 @@ import org.lucoenergia.conluz.infrastructure.production.sharingagreement.Sharing
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.UUID;
 
 @Transactional
@@ -21,13 +21,16 @@ public class UpdateSharingAgreementRepositoryDatabase implements UpdateSharingAg
     private final SharingAgreementRepository sharingAgreementRepository;
     private final GetSharingAgreementFileSummaryRepository fileSummaryRepository;
     private final SharingAgreementEntityMapper mapper;
+    private final Clock clock;
 
     public UpdateSharingAgreementRepositoryDatabase(SharingAgreementRepository sharingAgreementRepository,
                                                      GetSharingAgreementFileSummaryRepository fileSummaryRepository,
-                                                     SharingAgreementEntityMapper mapper) {
+                                                     SharingAgreementEntityMapper mapper,
+                                                     Clock clock) {
         this.sharingAgreementRepository = sharingAgreementRepository;
         this.fileSummaryRepository = fileSummaryRepository;
         this.mapper = mapper;
+        this.clock = clock;
     }
 
     @Override
@@ -41,7 +44,7 @@ public class UpdateSharingAgreementRepositoryDatabase implements UpdateSharingAg
         entity.setName(update.getName());
         entity.setNotes(update.getNotes());
         entity.setInstalledPowerKw(update.getInstalledPowerKw());
-        entity.setUpdatedAt(Instant.now());
+        entity.setUpdatedAt(clock.instant());
         entity.setUpdatedBy(update.getUpdatedBy());
 
         SharingAgreement agreement = mapper.map(sharingAgreementRepository.save(entity));
