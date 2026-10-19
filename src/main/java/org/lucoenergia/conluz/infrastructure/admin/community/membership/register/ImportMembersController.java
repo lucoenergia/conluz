@@ -9,8 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportMembersService;
-import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportedMemberRow;
-import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportedMemberRow.ColumnViolation;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportedMembers;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -20,9 +18,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
-import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,9 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(
@@ -47,11 +41,11 @@ import java.util.stream.Collectors;
 public class ImportMembersController {
 
     private final ImportMembersService service;
-    private final MessageSource messageSource;
+    private final ImportMembersResponseMapper responseMapper;
 
-    public ImportMembersController(ImportMembersService service, MessageSource messageSource) {
+    public ImportMembersController(ImportMembersService service, ImportMembersResponseMapper responseMapper) {
         this.service = service;
-        this.messageSource = messageSource;
+        this.responseMapper = responseMapper;
     }
 
     @PostMapping
@@ -146,48 +140,10 @@ public class ImportMembersController {
                     + "header line naming the columns personalId, fullName, memberNumber, contactEmail, address and "
                     + "phoneNumber.",
                     required = true)
-            @RequestParam("file") MultipartFile file) throws IOException {
+            @RequestParam("file") MultipartFile file,
+            Locale locale) throws IOException {
         ImportedMembers imported = service.importMembers(communityId, UserId.of(currentUser.getId()),
                 file.getBytes());
-        return new ImportMembersResponse(imported.registered(), imported.failed(),
-                imported.rows().stream().map(this::rowOf).toList());
-    }
-
-    private ImportMembersRowResponse rowOf(ImportedMemberRow row) {
-        return switch (row.outcome()) {
-            case REGISTERED -> new ImportMembersRowResponse(row.line(), ImportMembersRowResponse.Outcome.REGISTERED,
-                    null, null, List.of());
-            case ALREADY_MEMBER -> failed(row, RestErrorCode.MEMBERSHIP_ALREADY_EXISTS,
-                    message("error.membership.import.row.already.exists"));
-            case INVALID -> failed(row, RestErrorCode.MEMBERSHIP_IMPORT_ROW_INVALID,
-                    message("error.membership.import.row.invalid", row.violations().stream()
-                            .map(this::describe)
-                            .collect(Collectors.joining("; "))));
-            case MALFORMED -> failed(row, RestErrorCode.MEMBERSHIP_IMPORT_ROW_MALFORMED,
-                    message("error.membership.import.row.malformed"));
-        };
-    }
-
-    private static ImportMembersRowResponse failed(ImportedMemberRow row, RestErrorCode code, String message) {
-        return new ImportMembersRowResponse(row.line(), ImportMembersRowResponse.Outcome.FAILED, code, message,
-                row.violations().stream()
-                        .map(violation -> new ImportMembersRowErrorResponse(violation.column(),
-                                violation.constraint(), violation.params()))
-                        .toList());
-    }
-
-    private String describe(ColumnViolation violation) {
-        String column = violation.column();
-        return switch (violation.constraint()) {
-            case REQUIRED -> message("error.membership.import.row.required", column);
-            case NOT_EMPTY_ONCE_NORMALISED -> message("error.membership.import.row.not.empty.once.normalised", column);
-            case MIN -> message("error.membership.import.row.min", column, violation.params().get("min"));
-            case EMAIL -> message("error.membership.import.row.email", column);
-            case NOT_AN_INTEGER -> message("error.membership.import.row.not.an.integer", column);
-        };
-    }
-
-    private String message(String key, Object... args) {
-        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
+        return responseMapper.toResponse(imported, locale);
     }
 }
