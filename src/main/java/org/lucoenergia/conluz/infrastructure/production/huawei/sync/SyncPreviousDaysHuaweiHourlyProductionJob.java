@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
 
 import org.lucoenergia.conluz.domain.production.huawei.config.GetHuaweiConfigurationService;
+import org.lucoenergia.conluz.domain.production.huawei.sync.HuaweiSyncWindow;
 import org.lucoenergia.conluz.domain.production.huawei.sync.SyncHuaweiProductionService;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
@@ -19,12 +20,15 @@ public class SyncPreviousDaysHuaweiHourlyProductionJob implements Job {
     private final SyncHuaweiProductionService syncHuaweiProductionService;
     private final DateConverter dateConverter;
     private final GetHuaweiConfigurationService getHuaweiConfigurationService;
+    private final HuaweiSyncWindow syncWindow;
 
     public SyncPreviousDaysHuaweiHourlyProductionJob(SyncHuaweiProductionService syncHuaweiProductionService,
-            DateConverter dateConverter, GetHuaweiConfigurationService getHuaweiConfigurationService) {
+            DateConverter dateConverter, GetHuaweiConfigurationService getHuaweiConfigurationService,
+            HuaweiSyncWindow syncWindow) {
         this.syncHuaweiProductionService = syncHuaweiProductionService;
         this.dateConverter = dateConverter;
         this.getHuaweiConfigurationService = getHuaweiConfigurationService;
+        this.syncWindow = syncWindow;
     }
 
     /**
@@ -39,11 +43,11 @@ public class SyncPreviousDaysHuaweiHourlyProductionJob implements Job {
         }
         LOGGER.info("Huawei hourly production sync started...");
 
-        // Calculate date interval to get data
+        // Calculate date interval to get data: from the first day of the window through yesterday
         OffsetDateTime today = dateConverter.now();
-        OffsetDateTime todayMinusOneWeek = today.minusWeeks(1);
+        OffsetDateTime firstDay = today.minus(syncWindow.lookback());
 
-        syncHuaweiProductionService.syncHourlyProduction(todayMinusOneWeek, today.minusDays(1));
+        syncHuaweiProductionService.syncHourlyProduction(firstDay, today.minusDays(1));
 
         LOGGER.info("...finished Huawei hourly sync.");
     }
