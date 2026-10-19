@@ -14,9 +14,14 @@ import java.time.Instant;
 @TestConfiguration
 public class MutableClockConfiguration {
 
+    /**
+     * Where the clock is at the start of every test.
+     */
+    public static final Instant START = Instant.parse("2026-01-01T00:00:00Z");
+
     @Bean
     @Primary
     public MutableClock mutableClock() {
-        return new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
+        return new MutableClock(START);
     }
 }

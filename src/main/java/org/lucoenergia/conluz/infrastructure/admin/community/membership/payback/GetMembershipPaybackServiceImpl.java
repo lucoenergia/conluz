@@ -12,12 +12,12 @@ import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.domain.shared.time.ClockProvider;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -61,7 +61,7 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
     private final GetSupplyRepository getSupplyRepository;
     private final SupplySavingsCalculator supplySavingsCalculator;
     private final ZoneResolver zoneResolver;
-    private final ClockProvider clockProvider;
+    private final Clock clock;
 
     public GetMembershipPaybackServiceImpl(
             GetMembershipsRepository getMembershipsRepository,
@@ -69,13 +69,13 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
             GetSupplyRepository getSupplyRepository,
             SupplySavingsCalculator supplySavingsCalculator,
             ZoneResolver zoneResolver,
-            ClockProvider clockProvider) {
+            Clock clock) {
         this.getMembershipsRepository = getMembershipsRepository;
         this.getSupplyPartitionCoefficientRepository = getSupplyPartitionCoefficientRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.supplySavingsCalculator = supplySavingsCalculator;
         this.zoneResolver = zoneResolver;
-        this.clockProvider = clockProvider;
+        this.clock = clock;
     }
 
     @Override
@@ -87,7 +87,7 @@ public class GetMembershipPaybackServiceImpl implements GetMembershipPaybackServ
 
         // Read once and shared by the start date and by "today", so the two cannot disagree about
         // which day it is, and so a request spanning midnight is priced against a single instant.
-        Instant now = clockProvider.now();
+        Instant now = clock.instant();
         ZoneId zone = zoneResolver.resolveZoneIdForCommunity(communityId);
 
         Optional<Instant> startInstant = getSupplyPartitionCoefficientRepository

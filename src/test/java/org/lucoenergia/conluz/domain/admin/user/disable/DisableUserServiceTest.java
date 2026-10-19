@@ -8,20 +8,22 @@ import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminE
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.disable.DisableUserServiceImpl;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DisableUserServiceTest {
+
+    private static final Instant NOW = Instant.parse("2026-01-01T10:00:00.123456789Z");
 
     @Mock
     private DisableUserRepository disableUserRepository;
@@ -31,7 +33,8 @@ class DisableUserServiceTest {
     private ManagePlatformAdminRepository platformAdminRepository;
 
     private DisableUserService service() {
-        return new DisableUserServiceImpl(disableUserRepository, getUserRepository, platformAdminRepository);
+        return new DisableUserServiceImpl(disableUserRepository, getUserRepository, platformAdminRepository,
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -80,17 +83,12 @@ class DisableUserServiceTest {
     }
 
     @Test
-    void disable_recordsTheInstantOfTheJvmClock() {
+    void disable_recordsTheInstantOfTheApplicationClock() {
         UserId id = UserId.of(UUID.randomUUID());
         when(getUserRepository.findById(id)).thenReturn(Optional.empty());
 
-        Instant before = Instant.now();
         service().disable(id);
-        Instant after = Instant.now();
 
-        ArgumentCaptor<Instant> disabledAt = ArgumentCaptor.forClass(Instant.class);
-        verify(disableUserRepository).disable(eq(id), disabledAt.capture());
-        assertFalse(disabledAt.getValue().isBefore(before));
-        assertFalse(disabledAt.getValue().isAfter(after));
+        verify(disableUserRepository).disable(id, NOW);
     }
 }

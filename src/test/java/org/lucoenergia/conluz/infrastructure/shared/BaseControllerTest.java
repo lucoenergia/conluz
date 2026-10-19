@@ -1,15 +1,16 @@
 package org.lucoenergia.conluz.infrastructure.shared;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.config.init.InitBody;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
+import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.AuthenticationThrottleCounters;
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,6 +19,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.*;
@@ -40,15 +43,37 @@ public class BaseControllerTest extends BaseIntegrationTest {
     protected MutableClock clock;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AuthenticationThrottleService authenticationThrottleService;
 
     /**
-     * The failed-attempt counters of login and password change live in memory and are shared by every test that
-     * runs in the same application context. Moving the clock past their window lets every test start with no
-     * failures counted, so the failures of one test never throttle another.
+     * Moves the application clock forwards to {@code instant}. Unlike {@link #travelTo}, it never moves it back, so
+     * no failed-attempt window can be left open.
      */
-    @BeforeEach
-    void startWithNoFailedAuthenticationAttempts() {
-        clock.advance(Duration.ofMinutes(16));
+    protected void advanceTo(Instant instant) {
+        Duration ahead = Duration.between(clock.instant(), instant);
+        if (ahead.isNegative()) {
+            throw new IllegalArgumentException(instant + " is before the clock, at " + clock.instant());
+        }
+        clock.advance(ahead);
+    }
+
+    /**
+     * The start of a whole second at least one second ahead of the clock, so that a test can place events before it
+     * and at fractions of it, which a token's {@code iat} cannot tell apart.
+     */
+    protected Instant aComingSecond() {
+        return clock.instant().truncatedTo(ChronoUnit.SECONDS).plusSeconds(2);
+    }
+
+    /**
+     * Moves the application clock to {@code instant}, which may be in its past, until the end of the test. The
+     * failed-attempt counters are cleared on every move: a window opened at a later instant would otherwise stay
+     * open after the clock went back. The next test starts at the usual instant again.
+     */
+    protected void travelTo(Instant instant) {
+        clock.setInstant(instant);
+        AuthenticationThrottleCounters.clearAll(authenticationThrottleService);
     }
 
     protected MvcResult init() throws Exception {

@@ -20,7 +20,7 @@ The constraints that shaped the design:
 - **Whoever holds a valid recovery token can take over the account.** Tokens therefore must not appear in server logs, proxy access logs or the database in usable form.
 - **Conluz is open source and deployed by others.** A safe configuration must not depend on rules outside this repository.
 - **The deployment is a single backend instance.** In-memory state is lost on restart. #332's throttling counters already accept this.
-- **Two clocks coexist.** JWT `iat` and `password_changed_at` come from the JVM clock (`Instant.now()`), while throttling uses an injected `Clock` that tests replace with a `MutableClock`. Comparing values from the two sources breaks silently (#355).
+- **Two clocks coexist.** JWT `iat` and `password_changed_at` come from the JVM clock (`Instant.now()`), while throttling uses an injected `Clock` that tests replace with a `MutableClock`. Comparing values from the two sources breaks silently. #355 has since unified them: every one of these times comes from the injected `Clock`.
 - **The provider for the MVP is Gmail SMTP,** which limits sending to about 500 emails a day.
 
 ## Decision
@@ -75,7 +75,7 @@ The emailed link is `<CONLUZ_PUBLIC_WEB_URL>/reset-password#<token>`. Browsers n
 - **The password policy and the current-password reuse check run before the token is consumed,** so a rejected password does not use up the link.
 - On success:
     - the password is stored and `must_change_password` is cleared;
-    - `password_changed_at` is set from the **JVM clock** (`Instant.now()`), because it is compared with JWT `iat`, which invalidates every earlier session;
+    - `password_changed_at` is set from the injected `Clock`, the clock JWT `iat` is issued with (#355), because it is compared with `iat`, which invalidates every earlier session;
     - the account's failed-attempt counter is reset.
 - **The user is not logged in.** The response is 204 with no body and no cookie.
 - Every unusable token (unknown, malformed, expired, used, revoked, a disabled user's, or a consume mismatch) answers the same 400 `USER_PASSWORD_RESET_TOKEN_INVALID`, and counts against the per-IP throttle.
@@ -139,7 +139,7 @@ These are the facts someone needs when a member says "I did not get the email":
 - A link stays valid for a day: a forwarded or exposed email gives an attacker that long, unless the member requests another.
 - The request endpoint's timing is not perfectly uniform: an eligible user costs a lock, a count and an insert that other cases do not (accepted).
 - **Obligation:** every flow that touches a user and their tokens locks the user row first. A flow that consumes a token before locking the user can deadlock.
-- **Obligation:** `password_changed_at` (and any other value compared with JWT `iat`) is written from the JVM clock, while token times use the injected `Clock`, until #355 unifies them. Never mix the two in one comparison.
+- **Obligation:** `password_changed_at`, and any other value compared with JWT `iat`, is written from the injected `Clock`, the clock tokens are issued and validated with (#355). Never read the JVM clock directly.
 - **Obligation:** no email body, subject, recipient, raw token or token hash is ever logged. Email bodies carry tokens.
 - **Obligation:** a new email type gets a category label and a plain-text body in `messages_es.properties`, in the informal register.
 - **Obligation:** a new public flow that can reveal whether an account exists answers identically in every case and counts against the per-IP throttle.
@@ -163,7 +163,6 @@ These are the facts someone needs when a member says "I did not get the email":
 - A second backend instance is deployed: the in-memory email queue and #332's counters are per instance.
 - Members without email become a significant share of a community's members. Reconsider an admin-initiated reset.
 - An email is reported lost often enough to matter. Reconsider a persistent queue with retries.
-- #355 unifies the clocks. The JVM-clock obligation above then ends.
 
 ## References
 

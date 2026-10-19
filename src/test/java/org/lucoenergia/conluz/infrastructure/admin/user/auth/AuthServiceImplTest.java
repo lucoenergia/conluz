@@ -18,6 +18,7 @@ import org.springframework.security.authentication.InternalAuthenticationService
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -47,8 +48,11 @@ class AuthServiceImplTest {
     private final AuthenticationThrottleService authenticationThrottleService =
             Mockito.mock(AuthenticationThrottleService.class);
 
+    private static final Instant NOW = Instant.parse("2026-01-01T10:00:00Z");
+    private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
+
     private final AuthServiceImpl authService = new AuthServiceImpl(authenticator, getUserRepository, authRepository,
-            blacklistedTokenRepository, authenticationThrottleService);
+            blacklistedTokenRepository, authenticationThrottleService, CLOCK);
 
     private static final String CLIENT_IP = "203.0.113.7";
     private final Credentials credentials = new Credentials("12.345.678-a", "a password");
@@ -152,7 +156,7 @@ class AuthServiceImplTest {
             throw new BadCredentialsException("Bad credentials");
         };
         AuthService throttled = new AuthServiceImpl(blockingAuthenticator, getUserRepository, authRepository,
-                blacklistedTokenRepository, new AuthenticationThrottleServiceImpl(Clock.systemUTC()));
+                blacklistedTokenRepository, new AuthenticationThrottleServiceImpl(Clock.systemUTC()), CLOCK);
         ExecutorService pool = Executors.newFixedThreadPool(requests);
         try {
             List<Future<?>> outcomes = new ArrayList<>();
@@ -187,7 +191,7 @@ class AuthServiceImplTest {
     void blacklistToken_shouldSaveTokenToBlacklist() {
         // Given
         String jti = "test-jti";
-        Date expirationDate = Date.from(Instant.now().plusSeconds(3600));
+        Date expirationDate = Date.from(NOW.plusSeconds(3600));
         Token token = Token.of("test-token");
         
         when(authRepository.getJtiFromToken(token)).thenReturn(Optional.of(jti));
@@ -197,7 +201,8 @@ class AuthServiceImplTest {
         boolean result = authService.blacklistToken(token);
         
         // Then
-        verify(blacklistedTokenRepository).save(any(BlacklistedToken.class));
+        verify(blacklistedTokenRepository).save(argThat(saved -> saved.getJti().equals(jti)
+                && saved.getExpiration().equals(NOW.plusSeconds(3600)) && saved.getRevokedAt().equals(NOW)));
         assertTrue(result);
     }
 
@@ -205,7 +210,7 @@ class AuthServiceImplTest {
     void blacklistToken_shouldReturnFalseWhenJtiIsMissing() {
         // Given
         Token token = Token.of("test-token");
-        Date expirationDate = Date.from(Instant.now().plusSeconds(3600));
+        Date expirationDate = Date.from(NOW.plusSeconds(3600));
         
         when(authRepository.getJtiFromToken(token)).thenReturn(Optional.empty());
         when(authRepository.getExpirationDate(token)).thenReturn(expirationDate);

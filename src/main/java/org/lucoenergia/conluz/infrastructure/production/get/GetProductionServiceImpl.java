@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.Year;
@@ -42,17 +43,20 @@ public class GetProductionServiceImpl implements GetProductionService {
     private final GetPlantRepository getPlantRepository;
     private final CoefficientResolver coefficientResolver;
     private final TimeConfiguration timeConfiguration;
+    private final Clock clock;
 
     public GetProductionServiceImpl(GetProductionRepository getProductionRepository,
                                 GetSupplyRepository getSupplyRepository,
                                 GetPlantRepository getPlantRepository,
                                 CoefficientResolver coefficientResolver,
-                                TimeConfiguration timeConfiguration) {
+                                TimeConfiguration timeConfiguration,
+                                Clock clock) {
         this.getProductionRepository = getProductionRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.getPlantRepository = getPlantRepository;
         this.coefficientResolver = coefficientResolver;
         this.timeConfiguration = timeConfiguration;
+        this.clock = clock;
     }
 
     // --- Supply-scoped variants ---
@@ -172,7 +176,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     // alignment); do not "fix" this as a drive-by change here.
 
     private InstantProduction instantProductionForSupply(UUID supplyId) {
-        Instant now = timeConfiguration.now().toInstant();
+        Instant now = clock.instant();
         Map<UUID, BigDecimal> coefficientsByPlant = coefficientResolver.resolveCoefficientsBySupplyAtInstant(supplyId, now);
 
         double power = 0d;

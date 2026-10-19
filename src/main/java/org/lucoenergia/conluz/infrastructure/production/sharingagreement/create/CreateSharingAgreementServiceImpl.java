@@ -11,7 +11,7 @@ import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.UUID;
 
 @Transactional
@@ -20,11 +20,14 @@ public class CreateSharingAgreementServiceImpl implements CreateSharingAgreement
 
     private final GetPlantRepository getPlantRepository;
     private final CreateSharingAgreementRepository repository;
+    private final Clock clock;
 
     public CreateSharingAgreementServiceImpl(GetPlantRepository getPlantRepository,
-                                              CreateSharingAgreementRepository repository) {
+                                              CreateSharingAgreementRepository repository,
+                                              Clock clock) {
         this.getPlantRepository = getPlantRepository;
         this.repository = repository;
+        this.clock = clock;
     }
 
     @Override
@@ -39,7 +42,7 @@ public class CreateSharingAgreementServiceImpl implements CreateSharingAgreement
                 .withNotes(request.getNotes())
                 .withStatus(SharingAgreementStatus.DRAFT)
                 .withInstalledPowerKw(request.getInstalledPowerKw())
-                .withCreatedAt(Instant.now())
+                .withCreatedAt(clock.instant())
                 .withCreatedBy(request.getCreatedBy())
                 .build();
 

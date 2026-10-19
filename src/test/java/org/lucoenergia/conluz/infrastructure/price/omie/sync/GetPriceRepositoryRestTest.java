@@ -56,7 +56,6 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_HOUR_PRICES)));
 
         when(timeConfiguration.getZoneId()).thenReturn(ZoneOffset.UTC);
-        when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
         when(conluzRestClientBuilder.build(eq(false), ArgumentMatchers.any(Duration.class))).thenReturn(okHttpClient);
         when(okHttpClient.newCall(argThat(argument ->
                 argument != null &&
@@ -146,7 +145,6 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_QUARTER_PRICES)));
 
         when(timeConfiguration.getZoneId()).thenReturn(ZoneOffset.UTC);
-        when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
         when(conluzRestClientBuilder.build(eq(false), ArgumentMatchers.any(Duration.class))).thenReturn(okHttpClient);
         when(okHttpClient.newCall(argThat(argument ->
                 argument != null &&
@@ -191,7 +189,6 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         String bodyString = new String(Files.readAllBytes(Paths.get(OMIE_QUARTER_PRICES_DST)));
 
         when(timeConfiguration.getZoneId()).thenReturn(ZoneOffset.UTC);
-        when(timeConfiguration.now()).thenReturn(OffsetDateTime.now());
         when(conluzRestClientBuilder.build(eq(false), ArgumentMatchers.any(Duration.class))).thenReturn(okHttpClient);
         when(okHttpClient.newCall(argThat(argument ->
                 argument != null &&

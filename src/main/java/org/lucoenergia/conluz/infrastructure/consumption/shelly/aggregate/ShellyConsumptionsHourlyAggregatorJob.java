@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -18,11 +19,14 @@ public class ShellyConsumptionsHourlyAggregatorJob implements Job {
 
     private final ShellyConsumptionsHourlyAggregatorService aggregator;
     private final GetShellyConfigurationService getShellyConfigurationService;
+    private final Clock clock;
 
     public ShellyConsumptionsHourlyAggregatorJob(ShellyConsumptionsHourlyAggregatorService aggregator,
-                                                 GetShellyConfigurationService getShellyConfigurationService) {
+                                                 GetShellyConfigurationService getShellyConfigurationService,
+                                                 Clock clock) {
         this.aggregator = aggregator;
         this.getShellyConfigurationService = getShellyConfigurationService;
+        this.clock = clock;
     }
 
     /**
@@ -45,7 +49,7 @@ public class ShellyConsumptionsHourlyAggregatorJob implements Job {
 
         // We perform the aggregation hourly between now and 5 hours before. This way, could have at least five retries
         // just in case the aggregation does not work the first time.
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
+        OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
         OffsetDateTime oneHourBefore = now.minusHours(5).truncatedTo(ChronoUnit.HOURS);
 
         aggregator.aggregate(oneHourBefore, now);

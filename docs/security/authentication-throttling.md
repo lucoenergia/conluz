@@ -340,7 +340,7 @@ The state is kept in memory, which suits the single instance Conluz runs as; it 
 | `ReservedSlot` | `infrastructure/admin/user/auth/throttle` | One attempt's reservation, settled exactly once; activation log lines |
 | `LoginAttemptImpl`, `PasswordChangeAttemptImpl`, `PasswordResetAttemptImpl`, `InvitationAttemptImpl` | `infrastructure/admin/user/auth/throttle` | The handles; failure log lines |
 | `FailedAttemptCounter` | `infrastructure/admin/user/auth/throttle` | Windows, reservations, bounds; one instance per scope |
-| `AuthenticationThrottleConfig` | `infrastructure/admin/user/auth/throttle` | The `Clock` the windows are measured with |
+| `ClockConfiguration` | `infrastructure/shared/time` | The application `Clock` the windows are measured with |
 | `AuthServiceImpl#login`, `ChangePasswordServiceImpl#changePassword`, `ResetPasswordServiceImpl#reset` | `infrastructure/admin/user/...` | Open the attempt and settle it with the outcome |
 | `RequestPasswordResetServiceImpl#request` | `infrastructure/admin/user/password/reset` | Counts the recovery request against the address |
 | `GetInvitationServiceImpl#inspect`, `AcceptInvitationServiceImpl` | `infrastructure/admin/community/membership/accept` | Open the invitation attempt and settle it with the outcome |

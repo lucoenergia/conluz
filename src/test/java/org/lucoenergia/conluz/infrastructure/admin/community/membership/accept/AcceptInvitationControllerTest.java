@@ -9,7 +9,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,9 +25,6 @@ class AcceptInvitationControllerTest extends BaseInvitationAcceptanceTest {
     @Test
     @DisplayName("MEM-016 a passwordless account accepts by setting its first password, then logs in and reaches its community")
     void aPasswordlessAccount_setsItsFirstPassword_becomesActive_andUsesUpTheLink() throws Exception {
-        // A password_changed_at taken from the application clock would then lie in the future, and end the session
-        // opened below
-        moveTheClockAheadOfTheJvmClock();
         InvitedMember member = invitedMember();
         UUID communityId = member.community().getId();
         String password = newPassword();
@@ -37,11 +33,9 @@ class AcceptInvitationControllerTest extends BaseInvitationAcceptanceTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.loginRequired").value(false));
 
-        Instant before = Instant.now();
         MvcResult result = accept(member.token(), password, "192.0.2.20")
                 .andExpect(status().isNoContent())
                 .andReturn();
-        Instant after = Instant.now();
 
         assertThat(result.getResponse().getContentAsString()).isEmpty();
         assertThat(result.getResponse().getHeader(HttpHeaders.SET_COOKIE)).isNull();
@@ -50,7 +44,7 @@ class AcceptInvitationControllerTest extends BaseInvitationAcceptanceTest {
         assertThat(account.get("password")).isNotNull();
         assertThat(account.get("must_change_password")).isEqualTo(false);
         assertThat(((Timestamp) account.get("password_changed_at")).toInstant())
-                .as("taken from the JVM clock").isBetween(before.minusMillis(1), after.plusMillis(1));
+                .as("taken from the clock session tokens are compared with").isEqualTo(clock.instant());
         assertThat(acceptedAt(member.personalId(), communityId)).isEqualTo(clock.instant());
         assertThat(logs.allOfThisThread()).anyMatch(event -> event.getFormattedMessage().equals(
                 "Invitation accepted: userId=" + member.userId() + ", communityId=" + communityId

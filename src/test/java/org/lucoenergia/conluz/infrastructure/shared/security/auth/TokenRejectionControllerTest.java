@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
@@ -60,7 +61,7 @@ class TokenRejectionControllerTest extends BaseControllerTest {
 
     @BeforeEach
     void setUp() {
-        tokens = new CraftedTokens(jwtConfiguration.getSecretKey());
+        tokens = new CraftedTokens(jwtConfiguration.getSecretKey(), clock);
         logs = LogCapture.ofRoot();
     }
 
@@ -120,9 +121,23 @@ class TokenRejectionControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void aSessionToken_isAcceptedUntilItExpires_andRejectedOnceTheClockPassesItsExpiry() throws Exception {
+        User user = createEnabledUser();
+        String token = rawToken(loginUser(user));
+        Duration lifetime = Duration.ofMinutes(jwtConfiguration.getExpirationTime());
+
+        clock.advance(lifetime.minusSeconds(1));
+        mockMvc.perform(get(CURRENT_USER_URL).with(from(IP)).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        clock.advance(Duration.ofSeconds(2));
+        expectRejected(token, TokenRejectionReason.EXPIRED, user.getId());
+    }
+
+    @Test
     void aSignedTokenWithoutTheClaimsEveryIssuedTokenHas_isRejected() throws Exception {
         User user = createEnabledUser();
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         String subject = user.getId().toString();
 
         expectRejected(tokens.signed(b -> b.setId(UUID.randomUUID().toString())
@@ -161,18 +176,18 @@ class TokenRejectionControllerTest extends BaseControllerTest {
     @Test
     void aTokenIssuedBeforeThePasswordChange_isRejected() throws Exception {
         User user = createEnabledUser();
-        update(user, entity -> entity.setPasswordChangedAt(Instant.now()));
+        update(user, entity -> entity.setPasswordChangedAt(clock.instant()));
 
-        expectRejected(tokens.issuedAt(user.getId(), Instant.now().minusSeconds(60)),
+        expectRejected(tokens.issuedAt(user.getId(), clock.instant().minusSeconds(60)),
                 TokenRejectionReason.ISSUED_BEFORE_PASSWORD_CHANGE, user.getId());
     }
 
     @Test
     void aTokenIssuedBeforeTheLastDisable_isRejected_afterTheUserIsEnabledAgain() throws Exception {
         User user = createEnabledUser();
-        update(user, entity -> entity.setDisabledAt(Instant.now()));
+        update(user, entity -> entity.setDisabledAt(clock.instant()));
 
-        expectRejected(tokens.issuedAt(user.getId(), Instant.now().minusSeconds(60)),
+        expectRejected(tokens.issuedAt(user.getId(), clock.instant().minusSeconds(60)),
                 TokenRejectionReason.ISSUED_BEFORE_DISABLE, user.getId());
     }
 

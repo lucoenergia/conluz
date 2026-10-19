@@ -22,7 +22,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,15 +38,18 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
     private final GetPlantRepository getPlantRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
+    private final Clock clock;
 
     public MaterializeSharingAgreementCoefficientsServiceImpl(GetSharingAgreementService getSharingAgreementService,
                                                                 GetPlantRepository getPlantRepository,
                                                                 GetSupplyRepository getSupplyRepository,
-                                                                SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository) {
+                                                                SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository,
+                                                                Clock clock) {
         this.getSharingAgreementService = getSharingAgreementService;
         this.getPlantRepository = getPlantRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.supplyPartitionCoefficientRepository = supplyPartitionCoefficientRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -128,7 +131,7 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
                 .withCoefficient(entry.getCoefficient())
                 .withValidFrom(null)
                 .withValidTo(null)
-                .withCreatedAt(Instant.now())
+                .withCreatedAt(clock.instant())
                 .build();
     }
 
@@ -146,7 +149,7 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
                 .withCoefficient(entry.getCoefficient())
                 .withValidFrom(null)
                 .withValidTo(null)
-                .withCreatedAt(Instant.now())
+                .withCreatedAt(clock.instant())
                 .build();
     }
 }

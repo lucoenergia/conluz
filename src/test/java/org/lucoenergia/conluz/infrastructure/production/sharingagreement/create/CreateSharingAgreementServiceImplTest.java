@@ -16,6 +16,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,13 +31,15 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CreateSharingAgreementServiceImplTest {
 
+    private static final Instant NOW = Instant.parse("2026-10-19T10:00:00Z");
+
     @Mock
     private GetPlantRepository getPlantRepository;
     @Mock
     private CreateSharingAgreementRepository repository;
 
     private CreateSharingAgreementServiceImpl service() {
-        return new CreateSharingAgreementServiceImpl(getPlantRepository, repository);
+        return new CreateSharingAgreementServiceImpl(getPlantRepository, repository, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -75,6 +80,6 @@ class CreateSharingAgreementServiceImplTest {
         assertEquals(0, BigDecimal.valueOf(3.5).compareTo(result.getInstalledPowerKw()));
         assertEquals(createdBy, result.getCreatedBy());
         assertNotNull(result.getId());
-        assertNotNull(result.getCreatedAt());
+        assertEquals(NOW, result.getCreatedAt());
     }
 }

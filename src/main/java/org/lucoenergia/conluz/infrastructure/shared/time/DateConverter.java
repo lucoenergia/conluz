@@ -89,10 +89,6 @@ public class DateConverter {
         return Instant.ofEpochMilli(milliseconds);
     }
 
-    public OffsetDateTime now() {
-        return timeConfiguration.now();
-    }
-
     public String convertToString(OffsetDateTime time) {
         // Convert to UTC by extracting the Instant
         return convertToString(time.toInstant());

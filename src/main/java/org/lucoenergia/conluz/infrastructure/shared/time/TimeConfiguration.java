@@ -22,8 +22,4 @@ public class TimeConfiguration {
 
         return zonedDateTime.getOffset();
     }
-
-    public OffsetDateTime now() {
-        return OffsetDateTime.now(getZoneId());
-    }
 }

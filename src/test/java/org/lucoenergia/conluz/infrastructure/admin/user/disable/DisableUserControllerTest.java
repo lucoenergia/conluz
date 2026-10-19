@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
 
@@ -229,7 +228,7 @@ class DisableUserControllerTest extends BaseControllerTest {
         User user = createEnabledUser();
         // Start at the beginning of a second, so the login and the disable most likely share it: the token is then
         // not older than the recorded disable, and only the enabled flag can reject it
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
         String token = loginUser(user);
         getCurrentUser(token).andExpect(status().isOk());
 
@@ -261,7 +260,7 @@ class DisableUserControllerTest extends BaseControllerTest {
         String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         String tokenBeforeTheDisable = loginUser(user);
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
 
         disable(adminToken, user).andExpect(status().isOk());
         enable(adminToken, user).andExpect(status().isOk());
@@ -277,7 +276,7 @@ class DisableUserControllerTest extends BaseControllerTest {
         User user = createEnabledUser();
         User someoneElse = createEnabledUser();
         String token = loginUser(user);
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
 
         disable(adminToken, someoneElse).andExpect(status().isOk());
 
@@ -291,12 +290,12 @@ class DisableUserControllerTest extends BaseControllerTest {
         String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         String tokenBeforeThePasswordChange = loginUser(user);
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
         changePassword(tokenBeforeThePasswordChange, user.getPassword(), NEW_PASSWORD)
                 .andExpect(status().isNoContent());
         user.setPassword(NEW_PASSWORD);
         String tokenBeforeTheDisable = loginUser(user);
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
 
         disable(adminToken, user).andExpect(status().isOk());
         enable(adminToken, user).andExpect(status().isOk());
@@ -311,12 +310,12 @@ class DisableUserControllerTest extends BaseControllerTest {
         String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         String tokenBeforeTheDisable = loginUser(user);
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
         disable(adminToken, user).andExpect(status().isOk());
         enable(adminToken, user).andExpect(status().isOk());
         String tokenBeforeThePasswordChange = loginUser(user);
         String tokenUsedForThePasswordChange = loginUser(user);
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
 
         changePassword(tokenUsedForThePasswordChange, user.getPassword(), NEW_PASSWORD)
                 .andExpect(status().isNoContent());
@@ -332,13 +331,13 @@ class DisableUserControllerTest extends BaseControllerTest {
         String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         String tokenBeforeTheFirstDisable = loginUser(user);
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
         disable(adminToken, user).andExpect(status().isOk());
         Instant firstDisable = reload(user).getDisabledAt();
         enable(adminToken, user).andExpect(status().isOk());
         String tokenBetweenTheDisables = loginUser(user);
         getCurrentUser(tokenBetweenTheDisables).andExpect(status().isOk());
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
 
         disable(adminToken, user).andExpect(status().isOk());
         Instant secondDisable = reload(user).getDisabledAt();
@@ -351,22 +350,34 @@ class DisableUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void theDisableIsRecordedWithTheJvmClock_theOneTokensAreIssuedWith() throws Exception {
+    void theDisableIsRecordedWithTheApplicationClock_theOneTokensAreIssuedWith() throws Exception {
         String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
-        // The application Clock bean is replaced in tests by a clock far from the JVM clock: a disable recorded
-        // with it would be told apart from one recorded with the JVM clock
-        Assertions.assertTrue(Duration.between(clock.instant(), Instant.now()).abs().toDays() > 1);
 
-        Instant before = Instant.now().truncatedTo(ChronoUnit.MICROS);
         disable(adminToken, user).andExpect(status().isOk());
-        Instant after = Instant.now();
         enable(adminToken, user).andExpect(status().isOk());
 
-        Instant disabledAt = reload(user).getDisabledAt();
-        Assertions.assertFalse(disabledAt.isBefore(before));
-        Assertions.assertFalse(disabledAt.isAfter(after));
+        Assertions.assertEquals(clock.instant(), reload(user).getDisabledAt());
         getCurrentUser(loginUser(user)).andExpect(status().isOk());
+    }
+
+    @Test
+    void aDisable_endsTheSessionsOfEarlierSecondsOnly_onceTheUserIsEnabledAgain() throws Exception {
+        String adminToken = loginAsDefaultPlatformAdmin();
+        User user = createEnabledUser();
+        Instant second = aComingSecond();
+        advanceTo(second.minusMillis(100));
+        String earlierSecond = loginUser(user);
+
+        advanceTo(second.plusMillis(400));
+        disable(adminToken, user).andExpect(status().isOk());
+        enable(adminToken, user).andExpect(status().isOk());
+        advanceTo(second.plusMillis(700));
+        String sameSecond = loginUser(user);
+
+        Assertions.assertEquals(second.plusMillis(400), reload(user).getDisabledAt());
+        getCurrentUser(earlierSecond).andExpect(status().isUnauthorized());
+        getCurrentUser(sameSecond).andExpect(status().isOk());
     }
 
     private User createEnabledUser() {
@@ -405,14 +416,4 @@ class DisableUserControllerTest extends BaseControllerTest {
                         "newPassword", newPassword))));
     }
 
-    /**
-     * Blocks until the wall clock has moved into a later second than the one it is in now, so that every token
-     * issued before the call carries an {@code iat} strictly earlier than anything that happens after it.
-     */
-    private static void awaitTheNextSecond() throws InterruptedException {
-        long currentSecond = Instant.now().getEpochSecond();
-        while (Instant.now().getEpochSecond() <= currentSecond) {
-            Thread.sleep(50);
-        }
-    }
 }

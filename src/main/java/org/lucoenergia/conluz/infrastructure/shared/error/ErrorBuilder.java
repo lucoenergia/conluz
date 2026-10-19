@@ -11,6 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,9 +24,11 @@ public class ErrorBuilder {
     private static final Logger LOGGER = LoggerFactory.getLogger(ErrorBuilder.class);
 
     private final MessageSource messageSource;
+    private final Clock clock;
 
-    public ErrorBuilder(MessageSource messageSource) {
+    public ErrorBuilder(MessageSource messageSource, Clock clock) {
         this.messageSource = messageSource;
+        this.clock = clock;
     }
 
     public ResponseEntity<RestError> build(Throwable exception, String messageKey, Object[] args, HttpStatus status) {
@@ -38,7 +43,7 @@ public class ErrorBuilder {
                 LocaleContextHolder.getLocale()
         );
 
-        return new ResponseEntity<>(new RestError(status.value(), message, traceId), status);
+        return new ResponseEntity<>(new RestError(now(), status.value(), message, traceId), status);
     }
 
     public ResponseEntity<RestError> build(String exceptionMessage, String messageKey, Object[] args, HttpStatus status) {
@@ -53,7 +58,7 @@ public class ErrorBuilder {
                 LocaleContextHolder.getLocale()
         );
 
-        return new ResponseEntity<>(new RestError(status.value(), message, traceId), status);
+        return new ResponseEntity<>(new RestError(now(), status.value(), message, traceId), status);
     }
 
     public ResponseEntity<RestError> build(String message, HttpStatus status) {
@@ -62,7 +67,7 @@ public class ErrorBuilder {
 
         LOGGER.error("Error message: {}. Trace ID: {}.", message, traceId);
 
-        return new ResponseEntity<>(new RestError(status.value(), message, traceId), status);
+        return new ResponseEntity<>(new RestError(now(), status.value(), message, traceId), status);
     }
 
     public ResponseEntity<RestError> build(String message, RestErrorCode code, Map<String, String> params,
@@ -72,7 +77,7 @@ public class ErrorBuilder {
 
         LOGGER.error("Error message: {}. Trace ID: {}.", message, traceId);
 
-        final RestError restError = new RestError(status.value(), message, traceId,
+        final RestError restError = new RestError(now(), status.value(), message, traceId,
                 List.of(new RestErrorDetail(message, code, params)));
 
         return new ResponseEntity<>(restError, status);
@@ -91,7 +96,8 @@ public class ErrorBuilder {
                 LocaleContextHolder.getLocale()
         );
 
-        return new ResponseEntity<>(new RestError(status.value(), message, UUID.randomUUID().toString()), status);
+        return new ResponseEntity<>(new RestError(now(), status.value(), message, UUID.randomUUID().toString()),
+                status);
     }
 
     /**
@@ -101,7 +107,7 @@ public class ErrorBuilder {
     public ResponseEntity<RestError> buildWithoutLogging(String message, RestErrorCode code,
                                                          Map<String, String> params, HttpStatus status) {
 
-        final RestError restError = new RestError(status.value(), message, UUID.randomUUID().toString(),
+        final RestError restError = new RestError(now(), status.value(), message, UUID.randomUUID().toString(),
                 List.of(new RestErrorDetail(message, code, params)));
 
         return new ResponseEntity<>(restError, status);
@@ -118,8 +124,15 @@ public class ErrorBuilder {
 
         LOGGER.error("Error message: {}. Trace ID: {}. {} error(s).", message, traceId, errors.size());
 
-        final RestError restError = new RestError(status.value(), message, traceId, errors);
+        final RestError restError = new RestError(now(), status.value(), message, traceId, errors);
 
         return new ResponseEntity<>(restError, status);
+    }
+
+    /**
+     * The instant of the error, with the offset of the JVM's default zone.
+     */
+    private OffsetDateTime now() {
+        return OffsetDateTime.now(clock.withZone(ZoneId.systemDefault()));
     }
 }

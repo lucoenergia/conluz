@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -22,10 +23,12 @@ import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharing
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharingagreementfile.SharingAgreementFileRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,9 +45,9 @@ import static org.mockito.Mockito.when;
  */
 class StoreDistributorFileServiceImplTransactionRollbackTest extends BaseIntegrationTest {
 
-    // This test class does not roll back (see class javadoc), so its writes persist in the shared
-    // Testcontainers database for the rest of the test run -- these constants must not collide with
-    // any other test class's hardcoded regulatory code / CUPS.
+    // This test class does not roll back (see class javadoc), so its writes are committed to the shared
+    // Testcontainers database until the test deletes them -- these constants must not collide with any other
+    // test class's hardcoded regulatory code / CUPS.
     private static final String REGULATORY_CODE = "ES0031300999999999FH0FA000";
     private static final String FILENAME = REGULATORY_CODE + "_2023.txt";
     private static final String CUPS_1 = "ES0031300999999998FH0F";
@@ -65,11 +68,39 @@ class StoreDistributorFileServiceImplTransactionRollbackTest extends BaseIntegra
     private SharingAgreementFileRepository sharingAgreementFileRepository;
     @MockitoBean
     private MaterializeSharingAgreementCoefficientsService materializeSharingAgreementCoefficientsService;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private final List<UUID> communities = new ArrayList<>();
+    private final List<UUID> users = new ArrayList<>();
+    private final List<UUID> plants = new ArrayList<>();
+
+    /**
+     * The test commits, so it deletes what it created, or a later test class counting rows would find them.
+     */
+    @AfterEach
+    void deleteWhatTheTestCreated() {
+        for (UUID plant : plants) {
+            // Takes the agreement's coefficients and files with it
+            jdbcTemplate.update("DELETE FROM sharing_agreement WHERE plant_id = ?", plant);
+            jdbcTemplate.update("DELETE FROM plants WHERE id = ?", plant);
+        }
+        for (UUID user : users) {
+            // Takes the supply's contract, distributor and Shelly rows with it
+            jdbcTemplate.update("DELETE FROM supplies WHERE user_id = ?", user);
+            jdbcTemplate.update("DELETE FROM users WHERE id = ?", user);
+        }
+        for (UUID community : communities) {
+            jdbcTemplate.update("DELETE FROM communities WHERE id = ?", community);
+        }
+    }
 
     @Test
     void materializationFailureAfterFileStorageRollsBackTheWholeTransaction() {
         CommunityEntity community = communityJpaRepository.save(CommunityMother.randomEntity().build());
+        communities.add(community.getId());
         UserEntity user = userRepository.save(UserMother.randomUserEntity());
+        users.add(user.getId());
         SupplyEntity supply = SupplyEntityMother.random(user, community);
         supply.setCode(CUPS_1);
         supply = supplyRepository.save(supply);
@@ -77,6 +108,7 @@ class StoreDistributorFileServiceImplTransactionRollbackTest extends BaseIntegra
                 .withSupply(supply)
                 .withRegulatoryCode(REGULATORY_CODE)
                 .build());
+        plants.add(plant.getId());
         SharingAgreementEntity agreement = new SharingAgreementEntity();
         agreement.setId(UUID.randomUUID());
         agreement.setPlant(plant);

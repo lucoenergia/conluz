@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -18,11 +19,14 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements
 
     private final ShellyMqttPowerMessagesToInstantConsumptionsProcessor processor;
     private final GetShellyConfigurationService getShellyConfigurationService;
+    private final Clock clock;
 
     public ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob(ShellyMqttPowerMessagesToInstantConsumptionsProcessor processor,
-                                                                    GetShellyConfigurationService getShellyConfigurationService) {
+                                                                    GetShellyConfigurationService getShellyConfigurationService,
+                                                                    Clock clock) {
         this.processor = processor;
         this.getShellyConfigurationService = getShellyConfigurationService;
+        this.clock = clock;
     }
 
     /**
@@ -52,7 +56,7 @@ public class ShellyMqttPowerMessagesToInstantConsumptionsProcessorJob implements
 
         // We perform the process every 30 seconds between now and 5 minutes before. This way, could have at least 10 retries
         // just in case the process does not work the first time.
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MINUTES);
+        OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MINUTES);
         OffsetDateTime periodBefore = now.minusMinutes(5);
 
         processor.process(periodBefore, now);

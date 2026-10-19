@@ -90,6 +90,19 @@ class AuthenticationThrottleControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void travellingBackInTime_leavesNoWindowOpenFromTheFuture() throws Exception {
+        User user = createEnabledUser();
+        for (int i = 0; i < 5; i++) {
+            login(user.getPersonalId(), WRONG_PASSWORD, IP).andExpect(status().isUnauthorized());
+        }
+        expectThrottled(login(user.getPersonalId(), user.getPassword(), IP), 900);
+
+        travelTo(clock.instant().minus(Duration.ofDays(30)));
+
+        login(user.getPersonalId(), user.getPassword(), IP).andExpect(status().isOk());
+    }
+
+    @Test
     void anUnknownPersonalId_isThrottledAtTheSamePoint_withTheSameResponse() throws Exception {
         User user = createEnabledUser();
         String unknownPersonalId = UserMother.randomPersonalId();

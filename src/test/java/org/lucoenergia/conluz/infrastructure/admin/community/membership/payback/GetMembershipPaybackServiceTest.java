@@ -20,14 +20,15 @@ import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.domain.shared.time.ClockProvider;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.mockito.ArgumentMatcher;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -72,15 +73,14 @@ class GetMembershipPaybackServiceTest {
     private final GetSupplyRepository getSupplyRepository = mock(GetSupplyRepository.class);
     private final SupplySavingsCalculator savingsCalculator = mock(SupplySavingsCalculator.class);
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
-    private final ClockProvider clockProvider = mock(ClockProvider.class);
+    private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private final GetMembershipPaybackService service = new GetMembershipPaybackServiceImpl(
             getMembershipsRepository, coefficientRepository, getSupplyRepository, savingsCalculator,
-            zoneResolver, clockProvider);
+            zoneResolver, clock);
 
     @BeforeEach
     void givenAFixedClockAndZone() {
-        when(clockProvider.now()).thenReturn(NOW);
         when(zoneResolver.resolveZoneIdForCommunity(COMMUNITY_ID)).thenReturn(ZONE);
     }
 

@@ -12,6 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +44,7 @@ class ResetPasswordControllerTest extends BasePasswordResetTest {
         String newPassword = newPassword();
         assertThat(userRow(user).get("must_change_password")).isEqualTo(true);
         // Sessions opened in the same second as the reset are not told apart from it
-        awaitTheNextSecond();
+        clock.advance(Duration.ofSeconds(1));
 
         reset(token, newPassword).andExpect(status().isNoContent());
 
@@ -54,6 +57,29 @@ class ResetPasswordControllerTest extends BasePasswordResetTest {
         assertThat(userRow(user).get("must_change_password")).isEqualTo(false);
         reset(token, newPassword()).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value(INVALID_TOKEN));
+    }
+
+    @Test
+    void theResetIsRecordedWithTheApplicationClock_andEndsTheSessionsOfEarlierSecondsOnly() throws Exception {
+        User user = newUser();
+        String token = issueDirectly(user);
+        String newPassword = newPassword();
+        Instant second = aComingSecond();
+        advanceTo(second.minusMillis(100));
+        String earlierSecond = loginUser(user);
+
+        advanceTo(second.plusMillis(400));
+        reset(token, newPassword).andExpect(status().isNoContent());
+        advanceTo(second.plusMillis(700));
+        user.setPassword(newPassword);
+        String sameSecond = loginUser(user);
+
+        assertThat(((Timestamp) userRow(user).get("password_changed_at")).toInstant())
+                .isEqualTo(second.plusMillis(400));
+        mockMvc.perform(get("/api/v1/users/current").header(HttpHeaders.AUTHORIZATION, earlierSecond))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/users/current").header(HttpHeaders.AUTHORIZATION, sameSecond))
+                .andExpect(status().isOk());
     }
 
     @Test

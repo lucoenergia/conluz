@@ -15,7 +15,7 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.Clock;
 
 @Service
 @Transactional
@@ -26,17 +26,20 @@ public class ChangePasswordServiceImpl implements ChangePasswordService {
     private final UserPasswordEncoder userPasswordEncoder;
     private final AuthService authService;
     private final AuthenticationThrottleService authenticationThrottleService;
+    private final Clock clock;
 
     public ChangePasswordServiceImpl(GetUserRepository getUserRepository,
                                      ChangePasswordRepository changePasswordRepository,
                                      UserPasswordEncoder userPasswordEncoder,
                                      AuthService authService,
-                                     AuthenticationThrottleService authenticationThrottleService) {
+                                     AuthenticationThrottleService authenticationThrottleService,
+                                     Clock clock) {
         this.getUserRepository = getUserRepository;
         this.changePasswordRepository = changePasswordRepository;
         this.userPasswordEncoder = userPasswordEncoder;
         this.authService = authService;
         this.authenticationThrottleService = authenticationThrottleService;
+        this.clock = clock;
     }
 
     @Override
@@ -63,7 +66,7 @@ public class ChangePasswordServiceImpl implements ChangePasswordService {
             // A new password that breaks the policy is refused here: the current password was right, so the
             // attempt neither counts as a failure nor resets the counter
             String encodedPassword = userPasswordEncoder.encode(newPassword);
-            changePasswordRepository.changePassword(userId, encodedPassword, Instant.now());
+            changePasswordRepository.changePassword(userId, encodedPassword, clock.instant());
 
             authService.blacklistToken(usedToken);
             attempt.succeeded();

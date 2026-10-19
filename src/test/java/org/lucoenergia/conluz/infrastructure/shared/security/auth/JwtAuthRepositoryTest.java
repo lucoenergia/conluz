@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,12 +22,16 @@ import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
 import org.lucoenergia.conluz.domain.admin.user.auth.VerifiedToken;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator;
-import org.mockito.InjectMocks;
+import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -40,11 +45,23 @@ class JwtAuthRepositoryTest {
 
     private final static String SECRET_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
-    @InjectMocks
-    private JwtAuthRepository repository;
+    /**
+     * Not on a second boundary, so that a test can tell the instant of the clock from {@code iat}, which only has
+     * second precision.
+     */
+    private static final Instant NOW = Instant.parse("2026-01-01T10:00:00.400Z");
+
+    private final MutableClock clock = new MutableClock(NOW);
 
     @Mock
     private JwtConfiguration jwtConfiguration;
+
+    private JwtAuthRepository repository;
+
+    @BeforeEach
+    void createRepository() {
+        repository = new JwtAuthRepository(jwtConfiguration, clock);
+    }
 
     @Test
     void testGetAValidToken() {
@@ -71,6 +88,41 @@ class JwtAuthRepositoryTest {
         Assertions.assertNotNull(token);
         Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
         Assertions.assertEquals(user.getId(), repository.verify(token).userId());
+    }
+
+    @Test
+    void aTokensIssueAndExpiryTimes_followTheApplicationClock() throws Exception {
+        User user = UserMother.randomUser();
+        mockJwtConfig();
+
+        Token first = repository.getToken(user);
+        clock.advance(Duration.ofDays(3));
+        Token later = repository.getToken(user);
+
+        // Both claims only have second precision
+        Instant firstIssue = NOW.truncatedTo(ChronoUnit.SECONDS);
+        Assertions.assertEquals(firstIssue, issuedAtOf(first));
+        Assertions.assertEquals(firstIssue.plus(Duration.ofMinutes(30)), expiresAtOf(first));
+        Instant laterIssue = NOW.plus(Duration.ofDays(3)).truncatedTo(ChronoUnit.SECONDS);
+        Assertions.assertEquals(laterIssue, issuedAtOf(later));
+        Assertions.assertEquals(laterIssue.plus(Duration.ofMinutes(30)), expiresAtOf(later));
+    }
+
+    @Test
+    void aToken_isAcceptedUntilItExpires_andRejectedOnceTheApplicationClockPassesItsExpiry() {
+        User user = UserMother.randomUser();
+        user.enable();
+        mockJwtConfig();
+        Token token = repository.getToken(user);
+
+        clock.advance(Duration.ofMinutes(30).minusSeconds(1));
+        Assertions.assertEquals(user.getId(), repository.verify(token).userId());
+        Assertions.assertEquals(Optional.empty(), repository.findRejectionReason(token, user));
+
+        clock.advance(Duration.ofSeconds(2));
+        InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
+                () -> repository.verify(token));
+        Assertions.assertEquals(TokenRejectionReason.EXPIRED, exception.getReason());
     }
 
     @Test
@@ -321,8 +373,8 @@ class JwtAuthRepositoryTest {
     private static final UUID SUBJECT = UUID.randomUUID();
 
     static Stream<Arguments> tokensRejectedWithoutATrustedSubject() {
-        CraftedTokens tokens = new CraftedTokens(SECRET_KEY);
-        Instant now = Instant.now();
+        CraftedTokens tokens = new CraftedTokens(SECRET_KEY, Clock.fixed(NOW, ZoneOffset.UTC));
+        Instant now = NOW;
         return Stream.of(
                 Arguments.of("tampered", tokens.tampered(SUBJECT), TokenRejectionReason.INVALID_SIGNATURE),
                 Arguments.of("other key", tokens.signedWithOtherKey(SUBJECT), TokenRejectionReason.INVALID_SIGNATURE),
@@ -379,7 +431,7 @@ class JwtAuthRepositoryTest {
     @Test
     void verify_rejectsAnExpiredToken_withItsVerifiedSubject() {
         Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(SECRET_KEY);
-        String expired = new CraftedTokens(SECRET_KEY).expired(SUBJECT);
+        String expired = new CraftedTokens(SECRET_KEY, clock).expired(SUBJECT);
 
         InvalidTokenException exception = Assertions.assertThrows(InvalidTokenException.class,
                 () -> repository.verify(Token.of(expired)));
@@ -405,7 +457,7 @@ class JwtAuthRepositoryTest {
         Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(null);
 
         Assertions.assertThrows(SecretKeyNotFoundException.class,
-                () -> repository.verify(Token.of(new CraftedTokens(SECRET_KEY).valid(SUBJECT))));
+                () -> repository.verify(Token.of(new CraftedTokens(SECRET_KEY, clock).valid(SUBJECT))));
     }
 
     @Test
@@ -426,9 +478,19 @@ class JwtAuthRepositoryTest {
      * Reads the {@code iat} claim straight from the token's payload, independently of the code under test.
      */
     private static Instant issuedAtOf(Token token) throws Exception {
+        return Instant.ofEpochSecond(claimsOf(token).get("iat").asLong());
+    }
+
+    /**
+     * Reads the {@code exp} claim straight from the token's payload, independently of the code under test.
+     */
+    private static Instant expiresAtOf(Token token) throws Exception {
+        return Instant.ofEpochSecond(claimsOf(token).get("exp").asLong());
+    }
+
+    private static JsonNode claimsOf(Token token) throws Exception {
         String payload = token.getToken().split("\\.")[1];
-        JsonNode claims = new ObjectMapper().readTree(Base64.getUrlDecoder().decode(payload));
-        return Instant.ofEpochSecond(claims.get("iat").asLong());
+        return new ObjectMapper().readTree(Base64.getUrlDecoder().decode(payload));
     }
 
     private void mockJwtConfig() {

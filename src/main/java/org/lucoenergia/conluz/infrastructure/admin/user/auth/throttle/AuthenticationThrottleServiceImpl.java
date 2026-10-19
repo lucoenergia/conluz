@@ -95,6 +95,14 @@ public class AuthenticationThrottleServiceImpl implements AuthenticationThrottle
     }
 
     /**
+     * Forgets every failure and reservation counted so far, by account and by client address.
+     */
+    void clearAllCounters() {
+        accountCounter.clear();
+        clientIpCounter.clear();
+    }
+
+    /**
      * The same normalisation the user lookup applies, so typing variants of one personal ID are one account, and
      * an unknown personal ID is counted exactly like an existing one.
      */

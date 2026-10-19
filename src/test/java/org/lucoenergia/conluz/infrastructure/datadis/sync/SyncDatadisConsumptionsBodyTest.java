@@ -2,51 +2,40 @@ package org.lucoenergia.conluz.infrastructure.datadis.sync;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SyncDatadisConsumptionsBodyTest {
 
+    private static final Instant NOW = Instant.parse("2026-10-19T12:00:00Z");
+    private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
+    /** Today as the body reads it: in the JVM's default zone. */
+    private static final LocalDate TODAY = LocalDate.ofInstant(NOW, ZoneId.systemDefault());
+
     @Test
     void testGetEndDate_WhenYearIsInThePast_ShouldReturnLastDayOfYear() {
-        // Arrange
-        int year = 2020;
-        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(year);
-        LocalDate expectedEndDate = LocalDate.of(year, 12, 31);
+        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(2020);
 
-        // Act
-        LocalDate actualEndDate = body.getEndDate();
-
-        // Assert
-        assertEquals(expectedEndDate, actualEndDate, "The end date should be the last day of the year for past years.");
+        assertEquals(LocalDate.of(2020, 12, 31), body.getEndDate(CLOCK),
+                "The end date should be the last day of the year for past years.");
     }
 
     @Test
     void testGetEndDate_WhenYearIsInTheFuture_ShouldReturnToday() {
-        // Arrange
-        int futureYear = LocalDate.now().getYear() + 1;
-        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(futureYear);
-        LocalDate today = LocalDate.now();
+        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(TODAY.getYear() + 1);
 
-        // Act
-        LocalDate actualEndDate = body.getEndDate();
-
-        // Assert
-        assertEquals(today, actualEndDate, "The end date should be today for future years.");
+        assertEquals(TODAY, body.getEndDate(CLOCK), "The end date should be today for future years.");
     }
 
     @Test
-    void testGetEndDate_WhenYearIsCurrentYearAndLastDayHasPassed_ShouldReturnLastDayOfYear() {
-        // Arrange
-        int currentYear = LocalDate.now().getYear();
-        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(currentYear);
-        LocalDate today = LocalDate.now();
+    void testGetEndDate_WhenYearIsTheCurrentYear_ShouldReturnToday() {
+        SyncDatadisConsumptionsBody body = new SyncDatadisConsumptionsBody(TODAY.getYear());
 
-        // Act
-        LocalDate actualEndDate = body.getEndDate();
-
-        // Assert
-        assertEquals(today, actualEndDate, "The end date should be today for future years.");
+        assertEquals(TODAY, body.getEndDate(CLOCK), "The end date should be today for the current year.");
     }
 }

@@ -63,7 +63,7 @@ class PublicEndpointTokenTest extends BaseControllerTest {
 
     @BeforeEach
     void setUp() {
-        tokens = new CraftedTokens(jwtConfiguration.getSecretKey());
+        tokens = new CraftedTokens(jwtConfiguration.getSecretKey(), clock);
         logs = LogCapture.ofRoot();
     }
 
@@ -134,7 +134,7 @@ class PublicEndpointTokenTest extends BaseControllerTest {
         mockMvc.perform(post("/api/v1/logout").header(HttpHeaders.AUTHORIZATION, "Bearer " + revoked))
                 .andExpect(status().isOk());
         UserEntity entity = userRepository.findById(user.getId()).orElseThrow();
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         entity.setPasswordChangedAt(now);
         entity.setDisabledAt(now);
         userRepository.save(entity);

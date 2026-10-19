@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +55,8 @@ class ChangePasswordServiceTest {
     private static final String CURRENT_PASSWORD = "the current password of the user";
     private static final String NEW_PASSWORD = "a brand new password for this user";
     private static final String CLIENT_IP = "203.0.113.7";
+    private static final Instant NOW = Instant.parse("2026-01-01T10:00:00.123456789Z");
+    private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private final BCryptPasswordEncoder bcrypt = spy(new BCryptPasswordEncoder(4));
     private final Token usedToken = Token.of("the.used.token");
@@ -79,13 +82,11 @@ class ChangePasswordServiceTest {
         when(getUserRepository.findById(argThat(id -> id.getId().equals(user.getId())))).thenReturn(Optional.of(user));
         lenient().when(authenticationThrottleService.startPasswordChange(user, CLIENT_IP)).thenReturn(attempt);
         service = new ChangePasswordServiceImpl(getUserRepository, changePasswordRepository,
-                new UserPasswordEncoder(bcrypt), authService, authenticationThrottleService);
+                new UserPasswordEncoder(bcrypt), authService, authenticationThrottleService, CLOCK);
     }
 
     @Test
     void storesTheHashOfTheNewPassword_andRevokesTheUsedToken() {
-        Instant before = Instant.now();
-
         service.changePassword(UserId.of(user.getId()), CURRENT_PASSWORD, NEW_PASSWORD, usedToken, CLIENT_IP);
 
         ArgumentCaptor<String> hash = ArgumentCaptor.forClass(String.class);
@@ -93,7 +94,7 @@ class ChangePasswordServiceTest {
         verify(changePasswordRepository).changePassword(argThat(id -> id.getId().equals(user.getId())), hash.capture(),
                 changedAt.capture());
         assertTrue(bcrypt.matches(NEW_PASSWORD, hash.getValue()));
-        assertFalse(changedAt.getValue().isBefore(before));
+        assertEquals(NOW, changedAt.getValue());
         verify(authService).blacklistToken(usedToken);
         verify(attempt).succeeded();
         verify(attempt).close();
@@ -194,7 +195,7 @@ class ChangePasswordServiceTest {
         };
         ChangePasswordService throttled = new ChangePasswordServiceImpl(getUserRepository, changePasswordRepository,
                 new UserPasswordEncoder(blockingEncoder), authService,
-                new AuthenticationThrottleServiceImpl(Clock.systemUTC()));
+                new AuthenticationThrottleServiceImpl(Clock.systemUTC()), CLOCK);
         UserId userId = UserId.of(user.getId());
         ExecutorService pool = Executors.newFixedThreadPool(requests);
         try {

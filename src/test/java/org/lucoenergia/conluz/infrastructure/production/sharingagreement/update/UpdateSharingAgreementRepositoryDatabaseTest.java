@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -56,6 +57,8 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
     private UserRepository userRepository;
     @Autowired
     private CommunityJpaRepository communityJpaRepository;
+    @Autowired
+    private Clock clock;
 
     private PlantEntity persistPlant() {
         UserEntity user = UserMother.randomUserEntity();
@@ -150,7 +153,7 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         assertNull(entity.getUpdatedAt());
         assertNull(entity.getUpdatedBy());
         UUID editorId = persistUser().getId();
-        Instant before = Instant.now();
+        Instant before = clock.instant();
 
         SharingAgreement result = repository.update(plant.getId(), entity.getId(),
                 anUpdate("New name", "New notes", BigDecimal.valueOf(9.5), editorId));

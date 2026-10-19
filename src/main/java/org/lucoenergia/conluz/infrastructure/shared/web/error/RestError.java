@@ -29,16 +29,17 @@ public class RestError {
      * Convenience constructor for the single-message case; derives {@code errors} from
      * {@code message}.
      */
-    public RestError(int status, String message, String traceId) {
-        this(status, message, traceId, List.of(new RestErrorDetail(message, null, null)));
+    public RestError(OffsetDateTime timestamp, int status, String message, String traceId) {
+        this(timestamp, status, message, traceId, List.of(new RestErrorDetail(message, null, null)));
     }
 
-    public RestError(int status, String message, String traceId, List<RestErrorDetail> errors) {
+    public RestError(OffsetDateTime timestamp, int status, String message, String traceId,
+                     List<RestErrorDetail> errors) {
         if (errors == null || errors.isEmpty()) {
             throw new IllegalArgumentException("errors must not be null or empty");
         }
 
-        this.timestamp = OffsetDateTime.now();
+        this.timestamp = timestamp;
         this.traceId = traceId;
 
         this.status = status;

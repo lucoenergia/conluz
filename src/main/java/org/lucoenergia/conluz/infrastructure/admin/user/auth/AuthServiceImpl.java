@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
@@ -28,15 +29,18 @@ public class AuthServiceImpl implements AuthService {
     private final AuthRepository authRepository;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final AuthenticationThrottleService authenticationThrottleService;
+    private final Clock clock;
 
     public AuthServiceImpl(Authenticator authenticator, GetUserRepository getUserRepository,
                            AuthRepository authRepository, BlacklistedTokenRepository blacklistedTokenRepository,
-                           AuthenticationThrottleService authenticationThrottleService) {
+                           AuthenticationThrottleService authenticationThrottleService,
+                           Clock clock) {
         this.authenticator = authenticator;
         this.getUserRepository = getUserRepository;
         this.authRepository = authRepository;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
         this.authenticationThrottleService = authenticationThrottleService;
+        this.clock = clock;
     }
 
     @Override
@@ -75,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (jti.isPresent() && expirationDate != null) {
             Instant expiration = expirationDate.toInstant();
-            blacklistedTokenRepository.save(new BlacklistedToken(jti.get(), expiration));
+            blacklistedTokenRepository.save(new BlacklistedToken(jti.get(), expiration, clock.instant()));
             return true;
         }
 

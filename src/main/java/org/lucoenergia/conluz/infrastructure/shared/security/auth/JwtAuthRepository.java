@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.security.Key;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -33,15 +34,17 @@ public class JwtAuthRepository implements AuthRepository {
     private static final String CUSTOM_CLAIM_COMMUNITY_MEMBERSHIPS = "community_memberships";
 
     private final JwtConfiguration jwtConfiguration;
+    private final Clock clock;
 
-    public JwtAuthRepository(JwtConfiguration jwtConfiguration) {
+    public JwtAuthRepository(JwtConfiguration jwtConfiguration, Clock clock) {
         this.jwtConfiguration = jwtConfiguration;
+        this.clock = clock;
     }
 
     @Override
     public Token getToken(User user) {
 
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         String jti = UUID.randomUUID().toString();
 
         String token = Jwts.builder()
@@ -116,7 +119,7 @@ public class JwtAuthRepository implements AuthRepository {
         if (!user.isEnabled()) {
             return Optional.of(TokenRejectionReason.USER_DISABLED);
         }
-        if (claims.getExpiration().before(new Date())) {
+        if (claims.getExpiration().toInstant().isBefore(clock.instant())) {
             return Optional.of(TokenRejectionReason.EXPIRED);
         }
         if (isIssuedBefore(claims, user.getPasswordChangedAt())) {
@@ -190,7 +193,7 @@ public class JwtAuthRepository implements AuthRepository {
         Key key = getKey();
         try {
             return Jwts
-                    .parserBuilder().setSigningKey(key).build()
+                    .parserBuilder().setSigningKey(key).setClock(() -> Date.from(clock.instant())).build()
                     .parseClaimsJws(token.getToken()).getBody();
         } catch (JwtException | IllegalArgumentException e) {
             throw new InvalidTokenException(reasonFor(e), verifiedSubjectOf(e));

@@ -20,8 +20,8 @@ class BlacklistedTokenRepositoryTest {
     void save_shouldConvertAndSaveToken() {
         // Given
         String jti = "test-jti";
-        Instant expiration = Instant.now().plusSeconds(3600);
-        BlacklistedToken token = new BlacklistedToken(jti, expiration);
+        Instant expiration = Instant.parse("2026-01-01T11:00:00Z");
+        BlacklistedToken token = new BlacklistedToken(jti, expiration, Instant.parse("2026-01-01T10:00:00Z"));
         
         BlacklistedTokenEntity entity = BlacklistedTokenEntity.fromDomain(token);
         when(jpaRepository.save(any(BlacklistedTokenEntity.class))).thenReturn(entity);
@@ -52,7 +52,7 @@ class BlacklistedTokenRepositoryTest {
     @Test
     void deleteAllExpiredBefore_shouldDelegateToJpaRepository() {
         // Given
-        Instant now = Instant.now();
+        Instant now = Instant.parse("2026-01-01T10:00:00Z");
         when(jpaRepository.deleteAllByExpirationBefore(now)).thenReturn(5);
         
         // When

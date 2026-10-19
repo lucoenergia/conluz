@@ -181,6 +181,20 @@ class FailedAttemptCounterTest {
         assertEquals(OptionalLong.of(900), counter.tryReserve("key", START));
     }
 
+    @Test
+    void clearForgetsTheFailuresAndReservationsOfEveryKey() {
+        fillUp("blocked", START);
+        fail("other", START);
+        reserve("other", START);
+
+        counter.clear();
+
+        assertEquals(0, counter.size());
+        assertEquals(0, counter.reservationCount());
+        assertEquals(OptionalLong.empty(), counter.retryAfterSeconds("blocked", START));
+        assertFalse(fail("blocked", START));
+    }
+
     private void reserve(String key, Instant now) {
         assertEquals(OptionalLong.empty(), counter.tryReserve(key, now));
     }
