@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -51,16 +50,9 @@ public class SystemClockArchTest extends BaseArchTest {
     private static final List<String> JAVA_TIME_TYPES = List.of("Instant", "LocalDate", "LocalDateTime", "LocalTime",
             "OffsetDateTime", "OffsetTime", "ZonedDateTime", "YearMonth", "Year", "MonthDay");
 
-    private static final String[] PACKAGES_ON_THE_CLOCK_BEAN = {
-            BASE_PACKAGE + ".infrastructure.shared.security..",
-            BASE_PACKAGE + ".infrastructure.admin.user..",
-            BASE_PACKAGE + ".domain.admin.user..",
-            BASE_PACKAGE + ".infrastructure.admin.community.membership.accept.."
-    };
-
     @Test
-    void authenticationAndSessionCodeReadsTheCurrentTimeOnlyFromTheClockBean() {
-        systemClockRule(resideInAnyPackage(PACKAGES_ON_THE_CLOCK_BEAN)).check(IMPORTED_CLASSES);
+    void productionCodeReadsTheCurrentTimeOnlyFromTheClockBean() {
+        systemClockRule(resideInAPackage(BASE_PACKAGE + "..")).check(IMPORTED_CLASSES);
     }
 
     static Stream<Arguments> fixturesReadingTheJvmClock() {
