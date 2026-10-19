@@ -14,7 +14,6 @@ import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
-import org.lucoenergia.conluz.domain.shared.time.ClockProvider;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
@@ -31,7 +30,6 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -41,7 +39,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -65,9 +62,6 @@ class GetMembershipPaybackControllerTest extends BaseControllerTest {
     private static final Instant ACTIVATED_AT = Instant.parse("2024-12-31T23:00:00Z");
     /** 2025-04-11T10:00 in Madrid, 100 civil days after the activation. */
     private static final Instant NOW = Instant.parse("2025-04-11T08:00:00Z");
-
-    @MockitoBean
-    private ClockProvider clockProvider;
 
     @Autowired
     private CommunityJpaRepository communityJpaRepository;
@@ -94,7 +88,7 @@ class GetMembershipPaybackControllerTest extends BaseControllerTest {
 
     @BeforeEach
     void givenAFixedClock() {
-        when(clockProvider.now()).thenReturn(NOW);
+        travelTo(NOW);
     }
 
     @AfterEach

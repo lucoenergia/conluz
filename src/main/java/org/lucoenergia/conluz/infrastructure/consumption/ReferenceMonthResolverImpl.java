@@ -4,9 +4,9 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
-import org.lucoenergia.conluz.domain.shared.time.ClockProvider;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.YearMonth;
@@ -32,17 +32,17 @@ import java.util.Optional;
 public class ReferenceMonthResolverImpl implements ReferenceMonthResolver {
 
     private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
-    private final ClockProvider clockProvider;
+    private final Clock clock;
 
     public ReferenceMonthResolverImpl(GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
-                                      ClockProvider clockProvider) {
+                                      Clock clock) {
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
-        this.clockProvider = clockProvider;
+        this.clock = clock;
     }
 
     @Override
     public Optional<YearMonth> resolveLatestPublishedMonth(List<Supply> supplies, ZoneId zone) {
-        YearMonth currentMonth = YearMonth.from(clockProvider.now().atZone(zone));
+        YearMonth currentMonth = YearMonth.from(clock.instant().atZone(zone));
         YearMonth firstCandidate = currentMonth.minusMonths(SEARCH_WINDOW_MONTHS);
         Instant windowStart = startOf(firstCandidate, zone);
         // Exclusive: the current month is never a candidate.

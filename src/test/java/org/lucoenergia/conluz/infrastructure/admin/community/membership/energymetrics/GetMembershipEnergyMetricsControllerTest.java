@@ -11,7 +11,6 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.shared.time.ClockProvider;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
@@ -22,7 +21,6 @@ import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFix
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +38,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture.hourlyRecord;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -69,9 +66,6 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     private static final String DAY_START = "2026-05-10T00:00:00+02:00";
     private static final String DAY_END = "2026-05-10T23:00:00+02:00";
 
-    @MockitoBean
-    private ClockProvider clockProvider;
-
     @Autowired
     private CommunityJpaRepository communityJpaRepository;
     @Autowired
@@ -89,7 +83,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
 
     @BeforeEach
     void givenAFixedClock() {
-        when(clockProvider.now()).thenReturn(NOW);
+        travelTo(NOW);
     }
 
     @AfterEach
@@ -248,7 +242,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("ENM-001 AC8 a complete month followed by one holding only unpublished surplus resolves the complete month")
     void aCompleteMonthFollowedByOneHoldingOnlyUnpublishedSurplusResolvesTheCompleteMonth() throws Exception {
-        when(clockProvider.now()).thenReturn(Instant.parse("2026-10-08T10:00:00Z"));
+        travelTo(Instant.parse("2026-10-08T10:00:00Z"));
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);

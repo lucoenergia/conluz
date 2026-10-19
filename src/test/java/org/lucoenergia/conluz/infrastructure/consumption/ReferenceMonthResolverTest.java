@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.consumption;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -8,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
-import org.lucoenergia.conluz.domain.shared.time.ClockProvider;
+import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 
 import java.time.Instant;
 import java.time.YearMonth;
@@ -47,14 +46,9 @@ class ReferenceMonthResolverTest {
 
     private final GetDatadisConsumptionAggregateRepository repository =
             mock(GetDatadisConsumptionAggregateRepository.class);
-    private final ClockProvider clockProvider = mock(ClockProvider.class);
+    private final MutableClock clock = new MutableClock(NOW);
 
-    private final ReferenceMonthResolver resolver = new ReferenceMonthResolverImpl(repository, clockProvider);
-
-    @BeforeEach
-    void givenAFixedClock() {
-        when(clockProvider.now()).thenReturn(NOW);
-    }
+    private final ReferenceMonthResolver resolver = new ReferenceMonthResolverImpl(repository, clock);
 
     /**
      * August is published in full; September holds only its first five days, 120 of its 720 hours.
@@ -78,7 +72,7 @@ class ReferenceMonthResolverTest {
     @Test
     @DisplayName("ENM-002 AC2 a month published in full is resolved as soon as it qualifies")
     void aMonthPublishedInFullIsResolvedAsSoonAsItQualifies() {
-        when(clockProvider.now()).thenReturn(Instant.parse("2026-10-02T06:00:00Z"));
+        clock.setInstant(Instant.parse("2026-10-02T06:00:00Z"));
         Supply supply = SupplyMother.random().build();
         givenPublishedPeriod(supply, "2025-01-01T00:00:00Z", "2026-09-30T21:00:00Z");
         givenPublishedHours(supply, YearMonth.of(2026, 9), 720);
@@ -126,7 +120,7 @@ class ReferenceMonthResolverTest {
     @Test
     @DisplayName("ENM-001 a month with exactly the threshold share of its hours published is published")
     void aMonthWithExactlyTheThresholdShareOfItsHoursPublishedIsPublished() {
-        when(clockProvider.now()).thenReturn(Instant.parse("2026-07-10T10:00:00Z"));
+        clock.setInstant(Instant.parse("2026-07-10T10:00:00Z"));
         Supply supply = SupplyMother.random().build();
         givenPublishedPeriod(supply, "2025-01-01T00:00:00Z", "2026-06-30T21:00:00Z");
         givenPublishedHours(supply, YearMonth.of(2026, 6), 648);
@@ -141,7 +135,7 @@ class ReferenceMonthResolverTest {
     @Test
     @DisplayName("ENM-001 a month one hour short of the threshold share is not published")
     void aMonthOneHourShortOfTheThresholdShareIsNotPublished() {
-        when(clockProvider.now()).thenReturn(Instant.parse("2026-07-10T10:00:00Z"));
+        clock.setInstant(Instant.parse("2026-07-10T10:00:00Z"));
         Supply supply = SupplyMother.random().build();
         givenPublishedPeriod(supply, "2025-01-01T00:00:00Z", "2026-06-30T21:00:00Z");
         givenPublishedHours(supply, YearMonth.of(2026, 6), 647);
@@ -157,7 +151,7 @@ class ReferenceMonthResolverTest {
     @Test
     @DisplayName("ENM-001 the hours of a month are counted in the zone across a daylight saving change")
     void theHoursOfAMonthAreCountedInTheZoneAcrossADaylightSavingChange() {
-        when(clockProvider.now()).thenReturn(Instant.parse("2026-11-10T10:00:00Z"));
+        clock.setInstant(Instant.parse("2026-11-10T10:00:00Z"));
         Supply supply = SupplyMother.random().build();
         givenPublishedPeriod(supply, "2025-01-01T00:00:00Z", "2026-10-31T22:00:00Z");
         givenPublishedHours(supply, YearMonth.of(2026, 10), 670);
