@@ -27,9 +27,9 @@ public class PlatformAdminResponse {
     @Schema(description = "Whether the account is enabled. A disabled platform admin keeps the role but cannot log in.")
     private final boolean enabled;
 
-    @Schema(description = "Whether revoking this user's platform-admin flag would be accepted right now. False while "
-            + "no more than one platform admin is enabled: the revoke is then refused with USER_LAST_PLATFORM_ADMIN. "
-            + "Independent of capabilities.canRevoke, which says whether the caller may ask for it.")
+    @Schema(description = "Whether revoking this user's platform-admin flag would be accepted right now. False only "
+            + "for the last enabled platform admin, whose revoke is refused with USER_LAST_PLATFORM_ADMIN; a disabled "
+            + "platform admin is always revocable. Independent of capabilities.canRevoke, which says whether the caller may ask for it.")
     private final boolean revocable;
 
     @Schema(description = "What the caller may do with this platform admin.")

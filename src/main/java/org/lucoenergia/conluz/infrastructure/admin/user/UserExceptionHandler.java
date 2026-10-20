@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicyViolation
 import org.lucoenergia.conluz.domain.admin.user.password.PasswordUnchangedException;
 import org.lucoenergia.conluz.domain.admin.user.password.reset.PasswordResetTokenInvalidException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.UserNotPlatformAdminException;
 import org.lucoenergia.conluz.infrastructure.admin.user.password.PasswordPolicyMessages;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
@@ -100,6 +101,20 @@ public class UserExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.USER_LAST_PLATFORM_ADMIN, null, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 409: revoking the platform-admin role from a user who does not hold it.
+     */
+    @ExceptionHandler(UserNotPlatformAdminException.class)
+    public ResponseEntity<RestError> handleException(UserNotPlatformAdminException e) {
+
+        String message = messageSource.getMessage(
+                "error.user.not.platform.admin",
+                List.of(e.getUserId().getId().toString()).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.USER_NOT_PLATFORM_ADMIN, null, HttpStatus.CONFLICT);
     }
 
     /**

@@ -1086,6 +1086,7 @@
             "description" : "Why the row failed: MEMBERSHIP_ALREADY_EXISTS if the person already has a membership in this community, possibly from an earlier row of the same file; MEMBERSHIP_IMPORT_ROW_INVALID if a value breaks a rule of the registration; USER_PERSONAL_ID_INVALID if the personal ID, once normalised, is not a valid DNI, NIE or NIF; MEMBERSHIP_IMPORT_ROW_MALFORMED if the row does not have as many cells as the header. Null for a registered row.",
             "enum" : [
               "USER_LAST_PLATFORM_ADMIN",
+              "USER_NOT_PLATFORM_ADMIN",
               "USER_ALREADY_EXISTS",
               "USER_PASSWORD_POLICY_VIOLATION",
               "USER_CURRENT_PASSWORD_INCORRECT",
@@ -2293,7 +2294,7 @@
             "type" : "string"
           },
           "revocable" : {
-            "description" : "Whether revoking this user's platform-admin flag would be accepted right now. False while no more than one platform admin is enabled: the revoke is then refused with USER_LAST_PLATFORM_ADMIN. Independent of capabilities.canRevoke, which says whether the caller may ask for it.",
+            "description" : "Whether revoking this user's platform-admin flag would be accepted right now. False only for the last enabled platform admin, whose revoke is refused with USER_LAST_PLATFORM_ADMIN; a disabled platform admin is always revocable. Independent of capabilities.canRevoke, which says whether the caller may ask for it.",
             "type" : "boolean"
           },
           "user" : {
@@ -2532,6 +2533,7 @@
             "description" : "Null for errors not yet migrated to the typed contract; clients must fall back to `message` for those.",
             "enum" : [
               "USER_LAST_PLATFORM_ADMIN",
+              "USER_NOT_PLATFORM_ADMIN",
               "USER_ALREADY_EXISTS",
               "USER_PASSWORD_POLICY_VIOLATION",
               "USER_CURRENT_PASSWORD_INCORRECT",
@@ -20816,7 +20818,7 @@
     },
     "/api/v1/users/{userId}/revoke-platform-admin" : {
       "post" : {
-        "description" : "This endpoint removes platform-administrator privileges from the user identified in the endpoint path.\n\nProper authentication, through an authentication token, is required for secure access.\n**Required: Platform Admin. You cannot revoke your own privileges.**\n\nTwo safety rails apply: the system can never be left with zero platform admins (the last platform admin cannot be revoked), and a platform admin cannot revoke their own privileges.\n\nUpon a successful request, the server responds with an HTTP status code of 200, indicating that the user is no longer a platform administrator.\n\nIn situations where the operation encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.",
+        "description" : "This endpoint removes platform-administrator privileges from the user identified in the endpoint path.\n\nProper authentication, through an authentication token, is required for secure access.\n**Required: Platform Admin. You cannot revoke your own privileges.**\n\nOnce the caller is allowed, the target is checked: an unknown user answers 404, and a user who is not a platform admin answers 409 USER_NOT_PLATFORM_ADMIN.\n\nTwo safety rails apply: a platform admin cannot revoke their own privileges, and the system can never be left without an enabled platform admin. Revoking the last enabled platform admin answers 409 USER_LAST_PLATFORM_ADMIN; since the caller is themselves an enabled platform admin, this can only happen when two revokes run at the same time. Revoking a disabled platform admin is always allowed, since it leaves the number of enabled platform admins as it is.\n\nUpon a successful request, the server responds with an HTTP status code of 200, indicating that the user is no longer a platform administrator.\n\nIn situations where the operation encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.",
         "operationId" : "revokePlatformAdmin",
         "parameters" : [
           {
@@ -20900,28 +20902,15 @@
             "content" : {
               "application/json" : {
                 "example" : {
-                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
-                  "status" : 404,
-                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                }
-              }
-            },
-            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
-          },
-          "409" : {
-            "content" : {
-              "application/json" : {
-                "example" : {
                   "errors" : [
                     {
-                      "code" : "USER_LAST_PLATFORM_ADMIN",
-                      "message" : "Cannot revoke the last platform administrator.",
+                      "code" : null,
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has not been found. Verify the ID is correct.",
                       "params" : null
                     }
                   ],
-                  "message" : "Cannot revoke the last platform administrator.",
-                  "status" : 409,
+                  "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has not been found. Verify the ID is correct.",
+                  "status" : 404,
                   "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
                   "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
                 },
@@ -20930,7 +20919,51 @@
                 }
               }
             },
-            "description" : "The request conflicts with the current state: the last platform admin cannot be revoked."
+            "description" : "The user does not exist."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "USER_LAST_PLATFORM_ADMIN" : {
+                    "description" : "The user is the last enabled platform admin.",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_LAST_PLATFORM_ADMIN",
+                          "message" : "Cannot perform this action as it would leave the system with zero platform admins.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "Cannot perform this action as it would leave the system with zero platform admins.",
+                      "status" : 409,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "USER_NOT_PLATFORM_ADMIN" : {
+                    "description" : "The user does not hold the platform-admin role.",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_NOT_PLATFORM_ADMIN",
+                          "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is not a platform admin.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is not a platform admin.",
+                      "status" : 409,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The request conflicts with the current state: the user is not a platform admin, or is the last enabled platform admin."
           },
           "500" : {
             "content" : {

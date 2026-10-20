@@ -13,7 +13,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
-import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
@@ -44,7 +43,9 @@ public class RevokePlatformAdminController {
                     Proper authentication, through an authentication token, is required for secure access.
                     **Required: Platform Admin. You cannot revoke your own privileges.**
 
-                    Two safety rails apply: the system can never be left with zero platform admins (the last platform admin cannot be revoked), and a platform admin cannot revoke their own privileges.
+                    Once the caller is allowed, the target is checked: an unknown user answers 404, and a user who is not a platform admin answers 409 USER_NOT_PLATFORM_ADMIN.
+
+                    Two safety rails apply: a platform admin cannot revoke their own privileges, and the system can never be left without an enabled platform admin. Revoking the last enabled platform admin answers 409 USER_LAST_PLATFORM_ADMIN; since the caller is themselves an enabled platform admin, this can only happen when two revokes run at the same time. Revoking a disabled platform admin is always allowed, since it leaves the number of enabled platform admins as it is.
 
                     Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user is no longer a platform administrator.
 
@@ -59,8 +60,8 @@ public class RevokePlatformAdminController {
                     description = "Platform-admin privileges revoked successfully"
             ),
             @ApiResponse(
-                    responseCode = "409",
-                    description = "The request conflicts with the current state: the last platform admin cannot be revoked.",
+                    responseCode = "404",
+                    description = "The user does not exist.",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class),
@@ -68,13 +69,13 @@ public class RevokePlatformAdminController {
                                     value = """
                                             {
                                                "timestamp": "2024-01-03T10:10:25.534035352+01:00",
-                                               "status": 409,
-                                               "message": "Cannot revoke the last platform administrator.",
+                                               "status": 404,
+                                               "message": "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has not been found. Verify the ID is correct.",
                                                "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
                                                "errors": [
                                                  {
-                                                   "message": "Cannot revoke the last platform administrator.",
-                                                   "code": "USER_LAST_PLATFORM_ADMIN",
+                                                   "message": "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has not been found. Verify the ID is correct.",
+                                                   "code": null,
                                                    "params": null
                                                  }
                                                ]
@@ -82,12 +83,59 @@ public class RevokePlatformAdminController {
                                             """
                             )
                     )
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "The request conflicts with the current state: the user is not a platform admin, or is the last enabled platform admin.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RestError.class),
+                            examples = {
+                                    @ExampleObject(
+                                            name = "USER_NOT_PLATFORM_ADMIN",
+                                            description = "The user does not hold the platform-admin role.",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2024-01-03T10:10:25.534035352+01:00",
+                                                       "status": 409,
+                                                       "message": "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is not a platform admin.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                                       "errors": [
+                                                         {
+                                                           "message": "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is not a platform admin.",
+                                                           "code": "USER_NOT_PLATFORM_ADMIN",
+                                                           "params": null
+                                                         }
+                                                       ]
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "USER_LAST_PLATFORM_ADMIN",
+                                            description = "The user is the last enabled platform admin.",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2024-01-03T10:10:25.534035352+01:00",
+                                                       "status": 409,
+                                                       "message": "Cannot perform this action as it would leave the system with zero platform admins.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                                       "errors": [
+                                                         {
+                                                           "message": "Cannot perform this action as it would leave the system with zero platform admins.",
+                                                           "code": "USER_LAST_PLATFORM_ADMIN",
+                                                           "params": null
+                                                         }
+                                                       ]
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
             )
     })
     @ForbiddenErrorResponse
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
-    @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canRevokePlatformAdmin(#userId)")
     public void revokePlatformAdmin(@PathVariable("userId") UUID userId) {

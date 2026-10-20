@@ -247,10 +247,10 @@ It reads the same policy as `UserResponse.capabilities.canRevokePlatformAdmin`, 
 `false` on the caller's own row. It is decided from the caller and the row's id alone, so the list
 costs no query per row.
 
-The last-platform-admin rule is **not** part of it (rule 1): revoking is refused with 409
-`USER_LAST_PLATFORM_ADMIN` while no more than one platform admin is enabled, whoever the target is,
-and that is state. The row reports it separately as `revocable`, computed from the loaded list by the
-same `LastPlatformAdminRule` the revoke applies. A client offers the revoke when both are `true`.
+The last-platform-admin rule is **not** part of it (rule 1): revoking the last enabled platform admin
+is refused with 409 `USER_LAST_PLATFORM_ADMIN`, and that is state. The row reports it separately as
+`revocable`, computed per row from the loaded list by the same `LastPlatformAdminRule` the revoke
+applies: false only for the last enabled platform admin, true for a disabled one. A client offers the revoke when both are `true`.
 
 ### Membership — `MembershipResponse.capabilities`
 

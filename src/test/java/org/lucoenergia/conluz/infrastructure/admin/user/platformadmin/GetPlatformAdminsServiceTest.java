@@ -44,13 +44,18 @@ class GetPlatformAdminsServiceTest {
     }
 
     @Test
-    @DisplayName("ACC-011 no platform admin is revocable while only one of them is enabled")
-    void noneIsRevocableWithOneEnabledAdmin() {
-        when(repository.findAll()).thenReturn(List.of(admin(true), admin(false), admin(false)));
+    @DisplayName("ACC-011 while only one platform admin is enabled, only that one is not revocable")
+    void onlyTheLastEnabledAdminIsNotRevocable() {
+        User enabled = admin(true);
+        User disabled = admin(false);
+        User otherDisabled = admin(false);
+        when(repository.findAll()).thenReturn(List.of(disabled, enabled, otherDisabled));
 
         List<PlatformAdmin> admins = service().findAll();
 
-        admins.forEach(admin -> assertFalse(admin.revocable()));
+        assertTrue(admins.get(0).revocable());
+        assertFalse(admins.get(1).revocable());
+        assertTrue(admins.get(2).revocable());
     }
 
     @Test
