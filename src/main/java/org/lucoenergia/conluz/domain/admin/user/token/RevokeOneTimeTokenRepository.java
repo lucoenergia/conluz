@@ -17,4 +17,7 @@ public interface RevokeOneTimeTokenRepository {
      * @throws MembershipNotFoundException if the user has no membership in the community
      */
     boolean revokeActiveForMembership(UserId userId, UUID communityId, OneTimeTokenPurpose purpose, Instant now);
+
+    boolean revokeActiveForPlatformAdminInvitation(UserId userId, UUID invitationId, OneTimeTokenPurpose purpose,
+                                                   Instant now);
 }

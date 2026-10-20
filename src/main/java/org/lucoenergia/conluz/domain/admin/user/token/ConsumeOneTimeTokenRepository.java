@@ -25,4 +25,8 @@ public interface ConsumeOneTimeTokenRepository {
      * @return the token's membership if this call marked it used, otherwise empty
      */
     Optional<OneTimeTokenMembership> consumeForMembership(String tokenHash, OneTimeTokenPurpose purpose, Instant now);
+
+    Optional<OneTimeTokenPlatformAdminInvitation> consumeForPlatformAdminInvitation(String tokenHash,
+                                                                                    OneTimeTokenPurpose purpose,
+                                                                                    Instant now);
 }

@@ -62,6 +62,15 @@ public class AcceptInvitationAsCurrentUserController {
                 A caller who must change their password is answered 403 with the `USER_PASSWORD_CHANGE_REQUIRED`
                 code before the token is looked at; the link stays usable once the password has been changed.
 
+                A platform-admin invitation, `PLATFORM` in `inspectInvitation`, also requires `confirmationCode`:
+                the code whoever invited gives the person by another channel. A community invitation ignores it.
+                On success the platform-admin role is granted, and, when the account had no email, the
+                invitation's destination email becomes its email. A missing or wrong code is answered 400 with the
+                `PLATFORM_ADMIN_INVITATION_CODE_INVALID` code: nothing is granted, the attempt counts against the
+                client address and against the invitation, and the link can be used again. The fifth missing or
+                wrong code on one invitation revokes its link and is answered 400 with the
+                `PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED` code: the invitation must be sent again.
+
                 Every unusable token counts against the client address, together with failed logins, password
                 changes and password resets: after 20 within 15 minutes, further requests are answered 429 with a
                 Retry-After header until the 15 minutes that started with the first failure have passed.
@@ -79,22 +88,61 @@ public class AcceptInvitationAsCurrentUserController {
             @ApiResponse(
                     responseCode = "400",
                     description = """
-                            The body is invalid, or the token cannot be used by the caller (`MEMBERSHIP_INVITATION_TOKEN_INVALID`).""",
+                            The body is invalid, the token cannot be used by the caller \
+                            (`MEMBERSHIP_INVITATION_TOKEN_INVALID`), or the confirmation code of a platform-admin \
+                            invitation is missing or wrong (`PLATFORM_ADMIN_INVITATION_CODE_INVALID`), for the fifth \
+                            time (`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED`).""",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class),
                             examples = {
+                                    @ExampleObject(
+                                            name = "Wrong confirmation code",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2026-10-20T10:10:25.534035352+02:00",
+                                                       "status": 400,
+                                                       "message": "The confirmation code is missing or wrong. Ask whoever invited you for it.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                                       "errors": [
+                                                         {
+                                                           "message": "The confirmation code is missing or wrong. Ask whoever invited you for it.",
+                                                           "code": "PLATFORM_ADMIN_INVITATION_CODE_INVALID",
+                                                           "params": null
+                                                         }
+                                                       ]
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Too many wrong confirmation codes",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2026-10-20T10:10:25.534035352+02:00",
+                                                       "status": 400,
+                                                       "message": "Too many wrong confirmation codes: the invitation link no longer works. Ask whoever invited you to send the invitation again.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                                       "errors": [
+                                                         {
+                                                           "message": "Too many wrong confirmation codes: the invitation link no longer works. Ask whoever invited you to send the invitation again.",
+                                                           "code": "PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED",
+                                                           "params": null
+                                                         }
+                                                       ]
+                                                    }
+                                                    """
+                                    ),
                                     @ExampleObject(
                                             name = "Invalid token",
                                             value = """
                                                     {
                                                        "timestamp": "2026-10-15T10:10:25.534035352+02:00",
                                                        "status": 400,
-                                                       "message": "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                                                       "message": "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                                                        "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
                                                        "errors": [
                                                          {
-                                                           "message": "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                                                           "message": "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                                                            "code": "MEMBERSHIP_INVITATION_TOKEN_INVALID",
                                                            "params": null
                                                          }
@@ -112,9 +160,10 @@ public class AcceptInvitationAsCurrentUserController {
     @InternalServerErrorResponse
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> acceptInvitationAsCurrentUser(@AuthenticationPrincipal User currentUser,
-                                                              @Valid @RequestBody InvitationTokenBody body,
+                                                              @Valid @RequestBody AcceptInvitationAsCurrentUserBody body,
                                                               HttpServletRequest request) {
-        service.acceptAsUser(UserId.of(currentUser.getId()), body.getToken(), request.getRemoteAddr());
+        service.acceptAsUser(UserId.of(currentUser.getId()), body.getToken(), body.getConfirmationCode(),
+                request.getRemoteAddr());
         return ResponseEntity.noContent().build();
     }
 }

@@ -45,6 +45,11 @@ public class OneTimeTokenEntity {
     private UUID membershipId;
 
     /**
+     * The platform-admin invitation the token was issued for, or null when the token is not bound to one.
+     */
+    private UUID platformAdminInvitationId;
+
+    /**
      * Default constructor required by JPA.
      */
     protected OneTimeTokenEntity() {
@@ -66,6 +71,14 @@ public class OneTimeTokenEntity {
         this.membershipId = membershipId;
     }
 
+    public static OneTimeTokenEntity forPlatformAdminInvitation(UUID id, UUID userId, UUID invitationId,
+                                                                OneTimeTokenPurpose purpose, String tokenHash,
+                                                                Instant createdAt, Instant expiresAt) {
+        OneTimeTokenEntity entity = new OneTimeTokenEntity(id, userId, purpose, tokenHash, createdAt, expiresAt);
+        entity.platformAdminInvitationId = invitationId;
+        return entity;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -76,6 +89,10 @@ public class OneTimeTokenEntity {
 
     public UUID getMembershipId() {
         return membershipId;
+    }
+
+    public UUID getPlatformAdminInvitationId() {
+        return platformAdminInvitationId;
     }
 
     public OneTimeTokenPurpose getPurpose() {

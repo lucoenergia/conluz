@@ -7,14 +7,11 @@ import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisteredMember;
-import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserPersonalIdInvalidException;
-import org.lucoenergia.conluz.domain.admin.user.create.CreatePasswordlessUserRepository;
-import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
-import org.lucoenergia.conluz.domain.shared.UserPersonalIdValidator;
+import org.lucoenergia.conluz.infrastructure.admin.user.create.PasswordlessAccountRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -38,19 +35,16 @@ public class MembershipRegistration {
     private static final Logger LOGGER = LoggerFactory.getLogger(MembershipRegistration.class);
 
     private final GetCommunityRepository getCommunityRepository;
-    private final GetUserRepository getUserRepository;
-    private final CreatePasswordlessUserRepository createPasswordlessUserRepository;
+    private final PasswordlessAccountRegistration passwordlessAccountRegistration;
     private final LockUserRepository lockUserRepository;
     private final CreateMembershipRepository createMembershipRepository;
 
     public MembershipRegistration(GetCommunityRepository getCommunityRepository,
-                                  GetUserRepository getUserRepository,
-                                  CreatePasswordlessUserRepository createPasswordlessUserRepository,
+                                  PasswordlessAccountRegistration passwordlessAccountRegistration,
                                   LockUserRepository lockUserRepository,
                                   CreateMembershipRepository createMembershipRepository) {
         this.getCommunityRepository = getCommunityRepository;
-        this.getUserRepository = getUserRepository;
-        this.createPasswordlessUserRepository = createPasswordlessUserRepository;
+        this.passwordlessAccountRegistration = passwordlessAccountRegistration;
         this.lockUserRepository = lockUserRepository;
         this.createMembershipRepository = createMembershipRepository;
     }
@@ -64,23 +58,13 @@ public class MembershipRegistration {
      */
     public RegisteredMember register(UUID communityId, UserId registeredBy, UserPersonalId personalId,
                                      MemberRecord record, CommunityRole role) {
-        // Validated once normalised, so that typing variants of a valid identifier pass, and before any lookup, so
-        // that the refusal is the same whether or not an account holds the value
-        String normalized = UserPersonalId.normalize(personalId.getPersonalId());
-        if (!UserPersonalIdValidator.isValid(normalized)) {
-            throw new UserPersonalIdInvalidException();
-        }
+        String normalized = passwordlessAccountRegistration.requireValid(personalId);
 
         getCommunityRepository.findById(communityId)
                 .orElseThrow(() -> new CommunityNotFoundException(communityId));
 
-        // An existing account is found silently and never written. A missing one is created without a password;
-        // if a concurrent registration creates it first, that account is used instead
-        UserId userId = getUserRepository.findByPersonalId(UserPersonalId.of(normalized))
-                .map(User::getId)
-                .map(UserId::of)
-                .orElseGet(() -> createPasswordlessUserRepository.createIfAbsent(UserPersonalId.of(normalized),
-                        record.fullName(), record.contactEmail()));
+        UserId userId = passwordlessAccountRegistration.findOrCreate(normalized, record.fullName(),
+                record.contactEmail());
 
         // Lock order: user row, then membership row, then token rows. Holding the user row also makes two
         // registrations of the same person in this community run one after the other, so the second one finds

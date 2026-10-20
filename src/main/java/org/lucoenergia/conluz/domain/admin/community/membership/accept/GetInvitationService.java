@@ -6,8 +6,9 @@ package org.lucoenergia.conluz.domain.admin.community.membership.accept;
 public interface GetInvitationService {
 
     /**
-     * Tells the community of the token's membership and whether its account must log in to accept it. Writes
-     * nothing, and leaves the token usable.
+     * Tells what the invitation is for: the community of the token's membership, or the platform-admin role; whether
+     * its account must log in to accept it; and whether a confirmation code is required. Writes nothing, and leaves
+     * the token usable.
      *
      * @param rawToken the token from the invitation link
      * @param clientIp the address of the client

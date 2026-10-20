@@ -232,7 +232,9 @@ CREATE TABLE public.one_time_token (
                                        expires_at timestamp with time zone NOT NULL,
                                        used_at timestamp with time zone,
                                        revoked_at timestamp with time zone,
-                                       membership_id uuid
+                                       membership_id uuid,
+                                       platform_admin_invitation_id uuid,
+                                       CONSTRAINT one_time_token_single_binding_check CHECK ((num_nonnulls(membership_id, platform_admin_invitation_id) <= 1))
 );
 
 
@@ -300,6 +302,13 @@ COMMENT ON COLUMN public.one_time_token.membership_id IS 'The membership the tok
 
 
 --
+-- Name: COLUMN one_time_token.platform_admin_invitation_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.one_time_token.platform_admin_invitation_id IS 'The platform-admin invitation the token was issued for. NULL means the token is not bound to one.';
+
+
+--
 -- Name: plants; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -322,6 +331,87 @@ CREATE TABLE public.plants (
 --
 
 COMMENT ON COLUMN public.plants.regulatory_code IS 'The identifier assigned by the regulator. In Spain this is the CAU (Codigo de Autoconsumo). It is not the provider''s station code (provider_code) and not a CUPS.';
+
+
+--
+-- Name: platform_admin_invitation; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.platform_admin_invitation (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    email character varying(250) NOT NULL,
+    full_name character varying(250) NOT NULL,
+    invited_by uuid,
+    invited_at timestamp with time zone NOT NULL,
+    accepted_at timestamp with time zone,
+    confirmation_code_hash character varying(64) NOT NULL,
+    failed_code_attempts integer DEFAULT 0 NOT NULL,
+    CONSTRAINT platform_admin_invitation_failed_code_attempts_check CHECK ((failed_code_attempts >= 0))
+);
+
+
+--
+-- Name: TABLE platform_admin_invitation; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.platform_admin_invitation IS 'Invitations to become a platform admin. Only the hash of each confirmation code is stored.';
+
+
+--
+-- Name: COLUMN platform_admin_invitation.user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.platform_admin_invitation.user_id IS 'The account invited to become a platform admin.';
+
+
+--
+-- Name: COLUMN platform_admin_invitation.email; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.platform_admin_invitation.email IS 'The email address the invitation is sent to.';
+
+
+--
+-- Name: COLUMN platform_admin_invitation.full_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.platform_admin_invitation.full_name IS 'The full name as typed by the inviter.';
+
+
+--
+-- Name: COLUMN platform_admin_invitation.invited_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.platform_admin_invitation.invited_by IS 'The platform admin who invited. NULL if that account has been deleted.';
+
+
+--
+-- Name: COLUMN platform_admin_invitation.invited_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.platform_admin_invitation.invited_at IS 'When the invitation was created.';
+
+
+--
+-- Name: COLUMN platform_admin_invitation.accepted_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.platform_admin_invitation.accepted_at IS 'When the invitation was accepted. NULL while it is pending.';
+
+
+--
+-- Name: COLUMN platform_admin_invitation.confirmation_code_hash; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.platform_admin_invitation.confirmation_code_hash IS 'Lowercase hex SHA-256 hash of the current confirmation code.';
+
+
+--
+-- Name: COLUMN platform_admin_invitation.failed_code_attempts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.platform_admin_invitation.failed_code_attempts IS 'How many wrong or missing confirmation codes have been tried since the current code was generated.';
 
 
 --
@@ -740,6 +830,14 @@ ALTER TABLE ONLY public.plants
 
 
 --
+-- Name: platform_admin_invitation platform_admin_invitation_id_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.platform_admin_invitation
+    ADD CONSTRAINT platform_admin_invitation_id_pk PRIMARY KEY (id);
+
+
+--
 -- Name: sharing_agreement_file sharing_agreement_file_id_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -851,7 +949,21 @@ CREATE UNIQUE INDEX one_time_token_membership_one_active_uq ON public.one_time_t
 -- Name: one_time_token_one_active_uq; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX one_time_token_one_active_uq ON public.one_time_token USING btree (user_id, purpose) WHERE ((membership_id IS NULL) AND (used_at IS NULL) AND (revoked_at IS NULL));
+CREATE UNIQUE INDEX one_time_token_one_active_uq ON public.one_time_token USING btree (user_id, purpose) WHERE ((membership_id IS NULL) AND (platform_admin_invitation_id IS NULL) AND (used_at IS NULL) AND (revoked_at IS NULL));
+
+
+--
+-- Name: one_time_token_platform_admin_invitation_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX one_time_token_platform_admin_invitation_created_at_idx ON public.one_time_token USING btree (platform_admin_invitation_id, created_at);
+
+
+--
+-- Name: one_time_token_platform_admin_invitation_one_active_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX one_time_token_platform_admin_invitation_one_active_uq ON public.one_time_token USING btree (platform_admin_invitation_id) WHERE ((platform_admin_invitation_id IS NOT NULL) AND (used_at IS NULL) AND (revoked_at IS NULL));
 
 
 --
@@ -859,6 +971,13 @@ CREATE UNIQUE INDEX one_time_token_one_active_uq ON public.one_time_token USING 
 --
 
 CREATE INDEX one_time_token_user_purpose_created_at_idx ON public.one_time_token USING btree (user_id, purpose, created_at);
+
+
+--
+-- Name: platform_admin_invitation_user_id_pending_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX platform_admin_invitation_user_id_pending_uq ON public.platform_admin_invitation USING btree (user_id) WHERE (accepted_at IS NULL);
 
 
 --
@@ -910,6 +1029,14 @@ ALTER TABLE ONLY public.one_time_token
 
 
 --
+-- Name: one_time_token one_time_token_platform_admin_invitation_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.one_time_token
+    ADD CONSTRAINT one_time_token_platform_admin_invitation_id_fk FOREIGN KEY (platform_admin_invitation_id) REFERENCES public.platform_admin_invitation(id) ON DELETE CASCADE;
+
+
+--
 -- Name: one_time_token one_time_token_user_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -923,6 +1050,22 @@ ALTER TABLE ONLY public.one_time_token
 
 ALTER TABLE ONLY public.plants
     ADD CONSTRAINT plants_supply_id_fk FOREIGN KEY (supply_id) REFERENCES public.supplies(id);
+
+
+--
+-- Name: platform_admin_invitation platform_admin_invitation_invited_by_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.platform_admin_invitation
+    ADD CONSTRAINT platform_admin_invitation_invited_by_fk FOREIGN KEY (invited_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: platform_admin_invitation platform_admin_invitation_user_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.platform_admin_invitation
+    ADD CONSTRAINT platform_admin_invitation_user_id_fk FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

@@ -81,4 +81,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/add_unique_constraint_to_datadis_config_community_id.xml" relativeToChangelogFile="true" />
     <include file="changelogs/resync_single_membership_member_records_from_users.xml" relativeToChangelogFile="true" />
     <include file="changelogs/set_null_sharing_agreement_file_uploaded_by_on_user_delete.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/create_platform_admin_invitation_table.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_platform_admin_invitation_id_to_one_time_token.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/bind_one_time_token_active_index_to_platform_admin_invitation.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

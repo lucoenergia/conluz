@@ -33,10 +33,11 @@ public class InvitationResending {
     private static final Logger LOGGER = LoggerFactory.getLogger(InvitationResending.class);
 
     /**
-     * One initial send plus at most 3 resends per membership in any 24 hours (ADR-0003 §5).
+     * One initial send plus at most 3 resends per membership in any 24 hours (ADR-0003 §5), and per platform-admin
+     * invitation (ADR-0004 §4).
      */
-    static final int MAX_SENDS_PER_WINDOW = 4;
-    static final Duration WINDOW = Duration.ofHours(24);
+    public static final int MAX_SENDS_PER_WINDOW = 4;
+    public static final Duration WINDOW = Duration.ofHours(24);
 
     private final InvitationSending sending;
     private final GetOneTimeTokenService getOneTimeTokenService;

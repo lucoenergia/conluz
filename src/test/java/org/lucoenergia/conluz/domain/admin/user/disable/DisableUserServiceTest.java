@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.user.disable;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -51,7 +52,7 @@ class DisableUserServiceTest {
     @Test
     void disable_withPlatformAdminAndAnotherAdminExists_delegatesToRepository() {
         UserId id = UserId.of(UUID.randomUUID());
-        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).build();
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).enabled(true).build();
         when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
         when(platformAdminRepository.countPlatformAdmins()).thenReturn(2L);
 
@@ -63,7 +64,7 @@ class DisableUserServiceTest {
     @Test
     void disable_withLastPlatformAdmin_throwsAndDoesNotDisable() {
         UserId id = UserId.of(UUID.randomUUID());
-        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).build();
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).enabled(true).build();
         when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
         when(platformAdminRepository.countPlatformAdmins()).thenReturn(1L);
 
@@ -90,5 +91,30 @@ class DisableUserServiceTest {
         service().disable(id);
 
         verify(disableUserRepository).disable(id, NOW);
+    }
+
+    @Test
+    @DisplayName("ACC-008 ACC-013 a disabled platform admin is disabled while only one platform admin is enabled, without counting")
+    void disable_withDisabledPlatformAdmin_isAllowedWhateverTheCount() {
+        UserId id = UserId.of(UUID.randomUUID());
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).enabled(false).build();
+        when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
+
+        service().disable(id);
+
+        verify(disableUserRepository).disable(eq(id), any(Instant.class));
+        verify(platformAdminRepository, never()).countPlatformAdmins();
+    }
+
+    @Test
+    @DisplayName("ACC-008 ACC-013 a user without the role is disabled without counting the platform admins")
+    void disable_withNonPlatformAdmin_doesNotCountThePlatformAdmins() {
+        UserId id = UserId.of(UUID.randomUUID());
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(false).enabled(true).build();
+        when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
+
+        service().disable(id);
+
+        verify(platformAdminRepository, never()).countPlatformAdmins();
     }
 }

@@ -54,6 +54,10 @@ final class CapabilityInventory {
         report("canCreateCommunity", capability(PLATFORM, "canCreateCommunity"));
         report("canListUsers", capability(PLATFORM, "canListUsers"));
         report("canListPlatformAdmins", capability(PLATFORM, "canListPlatformAdmins"));
+        report("canManagePlatformAdminInvitations",
+                capability(PLATFORM, "canInvitePlatformAdmins"),
+                capability(PLATFORM_ADMIN, "canResendInvitation"),
+                capability(PLATFORM_ADMIN, "canRevokeInvitation"));
 
         // --- community ---
         report("canReadCommunity", capability(COMMUNITY, "canRead"));

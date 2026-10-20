@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.token;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenMembership;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPlatformAdminInvitation;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenRetention;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -79,6 +80,33 @@ public class GetOneTimeTokenServiceImpl implements GetOneTimeTokenService {
     public Map<UUID, Instant> findValidExpiriesInCommunity(UUID communityId, OneTimeTokenPurpose purpose) {
         purpose.requireBoundToMembership();
         return repository.findValidExpiriesInCommunity(communityId, purpose, clock.instant());
+    }
+
+    @Override
+    public Optional<OneTimeTokenPlatformAdminInvitation> findPlatformAdminInvitation(String rawToken,
+                                                                                     OneTimeTokenPurpose purpose) {
+        purpose.requireBoundToPlatformAdminInvitation();
+        if (rawToken == null || rawToken.isBlank()) {
+            return Optional.empty();
+        }
+        return repository.findValidPlatformAdminInvitation(OneTimeTokenHash.of(rawToken), purpose, clock.instant());
+    }
+
+    @Override
+    public long countIssuedForPlatformAdminInvitationSince(UUID invitationId, OneTimeTokenPurpose purpose,
+                                                           Instant since) {
+        purpose.requireBoundToPlatformAdminInvitation();
+        requireWithinRetention(since);
+        return repository.countCreatedForPlatformAdminInvitationSince(invitationId, purpose, since);
+    }
+
+    @Override
+    public Optional<Instant> findEarliestIssuedForPlatformAdminInvitationSince(UUID invitationId,
+                                                                               OneTimeTokenPurpose purpose,
+                                                                               Instant since) {
+        purpose.requireBoundToPlatformAdminInvitation();
+        requireWithinRetention(since);
+        return repository.findEarliestCreatedForPlatformAdminInvitationSince(invitationId, purpose, since);
     }
 
     private void requireWithinRetention(Instant since) {

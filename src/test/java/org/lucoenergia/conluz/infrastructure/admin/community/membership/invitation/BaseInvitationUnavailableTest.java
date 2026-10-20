@@ -6,6 +6,8 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.UpdateMembershipInvitationRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.CreatePlatformAdminInvitationRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
@@ -13,6 +15,7 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseRegisterMemberTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -39,6 +42,8 @@ abstract class BaseInvitationUnavailableTest extends BaseRegisterMemberTest {
     private GetOneTimeTokenService getOneTimeTokenService;
     @Autowired
     private UpdateMembershipInvitationRepository updateMembershipInvitationRepository;
+    @Autowired
+    private CreatePlatformAdminInvitationRepository createPlatformAdminInvitationRepository;
 
     /**
      * @return the one warning a refusal logs
@@ -174,6 +179,65 @@ abstract class BaseInvitationUnavailableTest extends BaseRegisterMemberTest {
         assertThat(tokenCount(existing.getPersonalId())).isZero();
         verify(emailSender, never()).send(any());
         assertTheOneWarning();
+    }
+
+    @Test
+    @DisplayName("ACC-018 inviting a platform admin is refused with 503 before anything is looked up or created, and "
+            + "one warning names only the email category")
+    void aPlatformAdminInvitation_isRefusedBeforeAnythingIsLookedUp() throws Exception {
+        String bearer = loginAsPlatformAdmin();
+        String personalId = UserMother.randomPersonalId();
+        remember(personalId);
+        deleteAfterwards(personalId);
+        logs.clear();
+
+        String response = mockMvc.perform(post("/api/v1/platform-admins/invite")
+                        .header(HttpHeaders.AUTHORIZATION, bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("personalId", personalId,
+                                "fullName", "Irene Operadora Plataforma", "email", newEmail()))))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errors[0].code").value("PLATFORM_ADMIN_INVITATION_UNAVAILABLE"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertNotLookedUp(personalId);
+        assertThat(accountCount(personalId)).isZero();
+        verify(emailSender, never()).send(any());
+        assertThat(logs.warningsAndAboveOfThisThread())
+                .singleElement()
+                .satisfies(event -> assertThat(event.getFormattedMessage()).isEqualTo(
+                        expectedWarning().replace("Email INVITATION ", "Email PLATFORM_ADMIN_INVITATION ")));
+        assertNoSecretIn(response);
+    }
+
+    @Test
+    @DisplayName("ACC-019 resending a platform-admin invitation is refused with 503, nothing is issued or sent, and "
+            + "the link stays usable")
+    void aPlatformAdminInvitationResend_isRefused() throws Exception {
+        String bearer = loginAsPlatformAdmin();
+        User invited = newUser();
+        UserId userId = UserId.of(invited.getId());
+        // This server cannot send, so the invitation and its link are created through the repositories inviting
+        // uses, without the email; the hash stands for a code no test types
+        UUID invitationId = UUID.randomUUID();
+        createPlatformAdminInvitationRepository.create(invitationId, userId, newEmail(), "Irene Operadora",
+                userId, clock.instant(), "0".repeat(64));
+        String token = createOneTimeTokenService.issueForPlatformAdminInvitation(userId, invitationId,
+                OneTimeTokenPurpose.PLATFORM_ADMIN_INVITATION).value();
+        remember(token);
+        logs.clear();
+
+        String response = mockMvc.perform(post("/api/v1/platform-admins/{userId}/invitation/resend", invited.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errors[0].code").value("PLATFORM_ADMIN_INVITATION_UNAVAILABLE"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(tokenCount(invited.getPersonalId())).isEqualTo(1);
+        assertThat(getOneTimeTokenService.findPlatformAdminInvitation(token,
+                OneTimeTokenPurpose.PLATFORM_ADMIN_INVITATION)).isPresent();
+        verify(emailSender, never()).send(any());
+        assertNoSecretIn(response);
     }
 
     protected void assertTheOneWarning() {

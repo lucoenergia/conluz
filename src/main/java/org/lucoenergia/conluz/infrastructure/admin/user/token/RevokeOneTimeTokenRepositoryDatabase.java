@@ -29,4 +29,15 @@ public class RevokeOneTimeTokenRepositoryDatabase implements RevokeOneTimeTokenR
                 .orElseThrow(() -> new MembershipNotFoundException(communityId, userId.getId()));
         return jpaRepository.revokeActiveOfMembershipAndPurpose(membershipId, purpose, now) > 0;
     }
+
+    @Override
+    public boolean revokeActiveForPlatformAdminInvitation(UserId userId, UUID invitationId,
+                                                          OneTimeTokenPurpose purpose, Instant now) {
+        // The user row, then the invitation row, then the token rows, as when issuing
+        if (jpaRepository.lockUser(userId.getId()).isEmpty()
+                || jpaRepository.lockPlatformAdminInvitation(invitationId).isEmpty()) {
+            throw new IllegalStateException("The platform-admin invitation " + invitationId + " does not exist");
+        }
+        return jpaRepository.revokeActiveOfPlatformAdminInvitationAndPurpose(invitationId, purpose, now) > 0;
+    }
 }

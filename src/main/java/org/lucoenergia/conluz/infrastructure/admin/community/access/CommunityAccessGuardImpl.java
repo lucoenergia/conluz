@@ -287,6 +287,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
         return platformAccessGuard.canRevokePlatformAdmin(userId);
     }
 
+    @Override
+    public boolean canManagePlatformAdminInvitations() {
+        return platformAccessGuard.canManagePlatformAdminInvitations();
+    }
+
     private boolean resolveCommunity(AccessDecision decision, UUID communityId) {
         if (decision == AccessDecision.NOT_VISIBLE) {
             throw new CommunityNotFoundException(communityId);

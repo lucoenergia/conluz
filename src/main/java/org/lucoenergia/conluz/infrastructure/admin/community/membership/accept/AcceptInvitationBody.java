@@ -22,6 +22,13 @@ public class AcceptInvitationBody {
             non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed.""")
     private String newPassword;
 
+    @Schema(description = """
+            The confirmation code of a platform-admin invitation, as whoever invited gave it: 8 characters, in \
+            any case, with or without spaces and hyphens. Required when `inspectInvitation` answers \
+            `confirmationCodeRequired`; ignored for a community invitation.""",
+            types = {"string", "null"})
+    private String confirmationCode;
+
     public String getToken() {
         return token;
     }
@@ -36,5 +43,13 @@ public class AcceptInvitationBody {
 
     public void setNewPassword(String newPassword) {
         this.newPassword = newPassword;
+    }
+
+    public String getConfirmationCode() {
+        return confirmationCode;
+    }
+
+    public void setConfirmationCode(String confirmationCode) {
+        this.confirmationCode = confirmationCode;
     }
 }

@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.token;
 
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenMembership;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPlatformAdminInvitation;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Repository;
@@ -65,5 +66,27 @@ public class GetOneTimeTokenRepositoryDatabase implements GetOneTimeTokenReposit
         return jpaRepository.findValidExpiriesInCommunity(communityId, purpose, now).stream()
                 .collect(Collectors.toMap(OneTimeTokenExpiryView::getMembershipId,
                         OneTimeTokenExpiryView::getExpiresAt));
+    }
+
+    @Override
+    public Optional<OneTimeTokenPlatformAdminInvitation> findValidPlatformAdminInvitation(String tokenHash,
+                                                                                          OneTimeTokenPurpose purpose,
+                                                                                          Instant now) {
+        return jpaRepository.findValidPlatformAdminInvitation(tokenHash, purpose, now)
+                .map(OneTimeTokenPlatformAdminInvitationView::toDomain);
+    }
+
+    @Override
+    public long countCreatedForPlatformAdminInvitationSince(UUID invitationId, OneTimeTokenPurpose purpose,
+                                                            Instant since) {
+        return jpaRepository.countCreatedForPlatformAdminInvitationSince(invitationId, purpose, since);
+    }
+
+    @Override
+    public Optional<Instant> findEarliestCreatedForPlatformAdminInvitationSince(UUID invitationId,
+                                                                                OneTimeTokenPurpose purpose,
+                                                                                Instant since) {
+        return Optional.ofNullable(jpaRepository.findEarliestCreatedForPlatformAdminInvitationSince(invitationId,
+                purpose, since));
     }
 }

@@ -105,9 +105,13 @@ class GetPlatformAdminsControllerTest extends BaseControllerTest {
 
         assertEquals(2, rows.size());
         for (JsonNode row : rows) {
-            assertEquals(Set.of("user", "fullName", "email", "enabled", "revocable", "capabilities"), keys(row));
+            assertEquals(Set.of("user", "fullName", "email", "enabled", "revocable", "invitation", "capabilities"),
+                    keys(row));
             assertEquals(Set.of("id"), keys(row.get("user")));
-            assertEquals(Set.of("canRevoke"), keys(row.get("capabilities")));
+            // A user holding the role has no pending invitation (ADR-0004 §7)
+            assertTrue(row.get("invitation").isNull());
+            assertEquals(Set.of("canRevoke", "canResendInvitation", "canRevokeInvitation"),
+                    keys(row.get("capabilities")));
         }
     }
 

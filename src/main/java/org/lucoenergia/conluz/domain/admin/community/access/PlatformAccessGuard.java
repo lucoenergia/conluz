@@ -41,4 +41,11 @@ public interface PlatformAccessGuard {
      * in the SpEL.
      */
     boolean canRevokePlatformAdmin(UUID userId);
+
+    /**
+     * Inviting a person to the platform-admin role, and resending or revoking a pending invitation to it
+     * (ADR-0004). Only a platform admin may. The invited person cannot be the caller, who already holds the role,
+     * so there is no self-exclusion to absorb.
+     */
+    boolean canManagePlatformAdminInvitations();
 }

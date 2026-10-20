@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyRest;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyUpToChangeSet;
+import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.continueUpToChangeSet;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.freshDatabase;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.rollbackToChangeSet;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.seed;
@@ -64,7 +65,7 @@ class OneTimeTokenMembershipMigrationIntegrationTest {
             seed(connection, "UPDATE one_time_token SET revoked_at = now() WHERE id = '" + revoked + "'");
             UUID active = insertToken(connection, user, null, "PASSWORD_RESET", "b".repeat(64));
 
-            applyRest(connection);
+            continueUpToChangeSet(connection, INDEX_CHANGESET_ID);
 
             assertNull(membershipOf(connection, revoked));
             assertNull(membershipOf(connection, active));
@@ -209,7 +210,7 @@ class OneTimeTokenMembershipMigrationIntegrationTest {
             assertFalse(indexes.containsKey("one_time_token_membership_one_active_uq"));
             assertFalse(indexes.containsKey("one_time_token_membership_created_at_idx"));
 
-            applyRest(connection);
+            continueUpToChangeSet(connection, INDEX_CHANGESET_ID);
 
             assertTrue(changesetApplied(connection, INDEX_CHANGESET_ID));
             assertNull(membershipOf(connection, reset));

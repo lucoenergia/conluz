@@ -48,6 +48,17 @@ public class CreateOneTimeTokenServiceImpl implements CreateOneTimeTokenService 
         return token;
     }
 
+    @Override
+    public RawOneTimeToken issueForPlatformAdminInvitation(UserId userId, UUID invitationId,
+                                                           OneTimeTokenPurpose purpose) {
+        purpose.requireBoundToPlatformAdminInvitation();
+        RawOneTimeToken token = newToken();
+        Instant now = clock.instant();
+        repository.replaceActiveForPlatformAdminInvitation(userId, invitationId, purpose,
+                OneTimeTokenHash.of(token.value()), now, now.plus(purpose.lifetime()));
+        return token;
+    }
+
     private RawOneTimeToken newToken() {
         byte[] bytes = new byte[TOKEN_BYTES];
         secureRandom.nextBytes(bytes);

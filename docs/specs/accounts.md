@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser`, `getPlatformAdmins`, `grantPlatformAdmin`, `revokePlatformAdmin` |
-| **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #456 |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser`, `getPlatformAdmins`, `grantPlatformAdmin`, `revokePlatformAdmin`, `invitePlatformAdmin`, `resendPlatformAdminInvitation`, `revokePlatformAdminInvitation`, `inspectInvitation`, `acceptInvitationAsCurrentUser` |
+| **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`), ADR-0004 (`docs/architecture/adr/0004-grant-platform-admin-only-through-an-accepted-invitation-confirmed-out-of-band.md`) |
+| **Last reviewed against code** | #452 |
 
 ## Purpose
 
@@ -23,6 +23,8 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 | Blank | Made only of space, tab, line feed, carriage return, form feed and vertical tab. |
 | Existing creation path | Creating a user (`createUser`), importing users (`createUsersWithFile`) and creating the default admin (`init`). Each of them takes a password. |
 | Member registration | A community admin registering a member by personal ID and member record (`registerMember`), which finds the account with that personal ID or creates one (ADR-0003 §3). |
+| Platform-admin invitation | An invitation to the platform-admin role (ADR-0004 §2): the account, the destination email and the full name the inviter typed, who invited and when, when it was accepted, the hash of its confirmation code and its count of failed code attempts. Pending until accepted. |
+| Confirmation code | The 8-character code a platform-admin invitation requires on acceptance, which the inviter gives the person by another channel (ADR-0004 §4). |
 | Normalised personal ID | A personal ID with its whitespace, dots and hyphens removed and its letters upper-cased, the form accounts are stored and found by (#331). |
 
 ## Rules
@@ -88,24 +90,28 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   without a number, without having to change its password, with the member record's full name as its name and
   the record's contact email as its email (no email when the record has none). When an account has that personal
   ID, with or without a password, member registration MUST NOT write it. Member registration, which inviting a
-  community admin uses (MEM-020), MUST be the only path that creates an account without a password.
+  community admin uses (MEM-020), and inviting a platform admin (ACC-017), which creates the account the same way
+  with the full name and email the inviter typed, MUST be the only paths that create an account without a
+  password.
 - **Rationale:** The person sets their first password by accepting the invitation (ADR-0003 §6, §7). The member
   number belongs to each community's member record, not to the account (ADR-0003 §1). Changing an existing
   account would let one community overwrite another's view of the person, and would reveal that the account
   existed.
-- **Source:** #392, #395, ADR-0003 §1, §3 and §7
+- **Source:** #392, #395, ADR-0003 §1, §3 and §7. #452 added inviting a platform admin, through the same find or
+  create step, ADR-0004 §2.
 
 ### ACC-007 — An account's first password is set only by accepting an invitation
 
 - **Status:** Active
 - **Rule:** The only way to give a passwordless account a password MUST be accepting one of its invitations
-  without logging in (`acceptInvitation`, MEM-016). Accepting MUST also set the account's email to the accepted
-  member record's contact email when the account has none, and MUST NOT change an email the account already has.
+  without logging in (`acceptInvitation`, MEM-016), a community invitation or a platform-admin invitation. Accepting
+  MUST also set the account's email, when the account has none, to the accepted member record's contact email, or
+  to a platform-admin invitation's destination email, and MUST NOT change an email the account already has.
 - **Rationale:** Login, recovery and reset refuse a passwordless account (ACC-001, ACC-002, ACC-005); the
   invitation link, sent to the member record's contact email, is what proves the person (ADR-0003 §6, §7). Without
   an email the person could not recover the password they just chose. Whoever accepts first takes the account
   over, an accepted risk recorded in ADR-0003.
-- **Source:** #394, ADR-0003 §6 and §7
+- **Source:** #394, ADR-0003 §6 and §7. #452 added platform-admin invitations, ADR-0004 §6.
 
 ### ACC-008 — A community admin cannot change another user's account
 
@@ -114,15 +120,19 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   (`enableUser`), disable (`disableUser`) or delete (`deleteUser`) the account of another user they can see,
   whatever their role in that user's communities, and nothing MUST be written. A user they cannot see MUST keep
   being answered 404. A community admin MAY still edit their own account through `updateUser`, and MUST still be
-  refused enabling, disabling or deleting it. The platform admin's access to the four operations, and the refusal
-  to disable or delete the last enabled platform admin, MUST NOT change. A member's data in a community is
+  refused enabling, disabling or deleting it. The platform admin's access to the four operations MUST NOT change.
+  Disabling a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN` exactly when ACC-013's
+  last-platform-admin rule would refuse revoking their role: only an **enabled** platform admin while no more than
+  one platform admin is enabled. A disabled platform admin MAY be disabled again whatever the number of enabled
+  platform admins. A member's data in a community is
   changed on their member record (#416); a member is suspended in a community by disabling their membership
   (MEM-027).
 - **Rationale:** An account belongs to the person, and the same account can belong to several communities
   (ADR-0003 §1). Its email receives the password recovery link, so a community admin who could change it could
   take the account over, together with its access to every other community. Disabling or deleting it would
   remove the person from every community, not only the admin's.
-- **Source:** #415, ADR-0003 §1
+- **Source:** #415, ADR-0003 §1. #452 applied ACC-013's last-platform-admin rule, which until then refused any
+  platform admin while at most one was enabled, whoever the target was.
 
 ### ACC-009 — Deleting an account deletes its memberships, and is refused for a supply owner
 
@@ -130,8 +140,10 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 - **Rule:** Deleting a user (`deleteUser`) MUST, in one transaction, delete every membership of the user, in every
   community, with its member record and its tokens, and then the account with its remaining tokens (OTT-005). A
   user who owns a supply in any community, enabled or not, MUST be refused with 409 `USER_OWNS_SUPPLIES`, and
-  nothing MUST be deleted. The refusal to delete the last enabled platform admin (409 `USER_LAST_PLATFORM_ADMIN`)
-  and who may delete a user (ACC-008) MUST NOT change. Memberships the user invited MUST be kept, with no inviter
+  nothing MUST be deleted. Deleting a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN`, and nothing
+  deleted, exactly when ACC-013's last-platform-admin rule would refuse revoking their role: only an **enabled**
+  platform admin while no more than one platform admin is enabled; a disabled platform admin MAY be deleted. Who may
+  delete a user (ACC-008) MUST NOT change. Memberships the user invited MUST be kept, with no inviter
   (MEM-003); sharing agreements and distributor files the user created, edited or uploaded MUST be kept, with no
   creator, editor or uploader. The deletion MUST lock the user row before checking for supplies; supply creation
   locks the same row (SUP-002), so a supply created at the same time either refuses the deletion or finds the user
@@ -142,13 +154,15 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   deleting its owner; a supply owner's access is withdrawn by disabling the account (`disableUser`). Who invited a
   member, or created, edited or uploaded an agreement's records, is a historical detail; the records themselves
   belong to the community and must outlive the person.
-- **Source:** #412, ADR-0003 §1
+- **Source:** #412, ADR-0003 §1. #452 applied ACC-013's last-platform-admin rule, which until then refused any
+  platform admin while at most one was enabled, whoever the target was.
 
-### ACC-010 — Member registration, admin invitation and the member import accept only a valid DNI, NIE or NIF
+### ACC-010 — Member registration, admin invitations and the member import accept only a valid DNI, NIE or NIF
 
 - **Status:** Active
-- **Rule:** Member registration (`registerMember`), inviting a community admin (`inviteCommunityAdmin`) and the
-  member import (`importMembers`) MUST accept a personal ID only if, once normalised, it is one of:
+- **Rule:** Member registration (`registerMember`), inviting a community admin (`inviteCommunityAdmin`), inviting a
+  platform admin (`invitePlatformAdmin`) and the member import (`importMembers`) MUST accept a personal ID only if,
+  once normalised, it is one of:
   - a DNI: 8 digits and a control letter, the letter of the number modulo 23 in `TRWAGMYFPDXBNJZSQVHLCKE`;
   - an NIE: `X`, `Y` or `Z`, 7 digits and a control letter, computed as a DNI's with the prefix read as 0, 1 or 2;
   - a NIF of a natural person starting with `K`, `L` or `M`: the letter, 7 digits and a control letter, computed as a
@@ -174,21 +188,32 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   exists. The existing creation paths are left as they are because they are being replaced, and checking stored
   identifiers would lock out accounts that already work.
 - **Source:** #398. Accepting the NIF of a natural person with `K`, `L` or `M`, and the CIF letters that require a
-  digit, require a letter or accept either, were decided by the maintainer in the plan of #398.
+  digit, require a letter or accept either, were decided by the maintainer in the plan of #398. #452 added
+  `invitePlatformAdmin`.
 
-### ACC-011 — Only a platform admin may list the platform admins, identified by their own account only
+### ACC-011 — Only a platform admin may list the platform admins and the pending invitations to the role
 
 - **Status:** Active
 - **Rule:** Listing the platform admins (`getPlatformAdmins`) MUST be allowed only to a platform admin; any other
   caller MUST be refused with 403, and an anonymous one with 401. It MUST list every account holding the
-  platform-admin role, enabled or not, by full name and then id, and MUST cost the same number of statements
-  whatever the number of platform admins. Each row MUST carry exactly the account's id (as a `user` reference), its
-  full name, its email (NULL when it has none) and whether it is enabled, plus `revocable` and
-  `capabilities.canRevoke`; it MUST NOT carry the personal ID, anything from a member record, or any membership.
-  `capabilities.canRevoke` MUST be decided by the same policy as the guard of `revokePlatformAdmin`, so it is false
-  on the caller's own row. `revocable` MUST be false exactly when ACC-013's last-platform-admin rule would refuse
-  revoking that row, that is only for an enabled platform admin while no more than one platform admin is enabled; a
-  disabled platform admin's row MUST be revocable.
+  platform-admin role, enabled or not, by full name and then id, followed by every pending platform-admin invitation
+  whose account does not hold the role, by the full name the inviter typed and then id, and MUST cost the same
+  number of statements whatever the number of rows. Each row MUST carry exactly `user` (the account's id), `fullName`,
+  `email`, `enabled`, `revocable`, `invitation` and `capabilities` (`canRevoke`, `canResendInvitation`,
+  `canRevokeInvitation`); it MUST NOT carry the personal ID, anything from a member record, any membership, or a
+  confirmation code.
+  - On a platform admin's row, `fullName`, `email` (NULL when it has none) and `enabled` MUST be the account's, and
+    `invitation` MUST be NULL. `revocable` MUST be false exactly when ACC-013's last-platform-admin rule would refuse
+    revoking that row, that is only for an enabled platform admin while no more than one platform admin is enabled;
+    a disabled platform admin's row MUST be revocable.
+  - On a pending invitation's row, `fullName` and `email` MUST be the ones the inviter typed, `enabled` and
+    `revocable` MUST be NULL, and `invitation` MUST hold when it was sent and when its link expires, NULL when it
+    has no valid link: expired, or revoked. Nothing on it MUST come from the account, so that it is the same whether
+    or not the account existed (ACC-017).
+  - `capabilities.canRevoke` MUST be decided by the same policy as the guard of `revokePlatformAdmin`, so it is false
+    on the caller's own row. `canResendInvitation` and `canRevokeInvitation` MUST be decided by the same policy as
+    the guard of the invitation endpoints (ACC-018, ACC-019), on every row: they say whether the caller may ask, not
+    whether the row has an invitation.
 - **Rationale:** The users page is being removed from the web client and the platform admin's access to the users
   listing is being closed (#329), which would leave nobody able to see who the platform admins are or find the one
   to revoke. Platform admins are identified by their own account, not by any community's record, so only the account
@@ -196,7 +221,8 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   be accepted is state; reporting both, from the rules the revoke applies, keeps the client from re-deriving either.
 - **Source:** #451. Reporting the last-platform-admin rule as the row's `revocable`, apart from
   `capabilities.canRevoke`, was decided by the maintainer in the plan of #451. #456 made `revocable` per row, with
-  ACC-013.
+  ACC-013. #452 added the pending invitations (ADR-0004 §7); making `enabled` and `revocable` NULL on their rows was
+  decided by the maintainer in the plan of #452.
 
 ### ACC-012 — Only a platform admin may grant the platform-admin role
 
@@ -229,6 +255,100 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   disabled platform admin must not be impossible to clean up just because one other admin is enabled.
 - **Source:** #456. The target checks and the exception for disabled platform admins were decided by the
   maintainer; until then revoke refused whenever at most one platform admin was enabled, whoever the target was.
+### ACC-014 — The platform-admin role is granted only by accepting an invitation with its confirmation code
+
+- **Status:** Active
+- **Rule:** Inviting a person (`invitePlatformAdmin`) MUST NOT grant the role. Accepting a platform-admin invitation
+  (`acceptInvitation`, `acceptInvitationAsCurrentUser`) with its valid link and its confirmation code MUST, in one
+  transaction under the lock order user row, invitation row, token rows: use up the token, record the acceptance
+  instant, grant the role, set the account's email to the invitation's destination email when the account has none,
+  and, on `acceptInvitation`, set the first password as MEM-016 does. A disabled account MUST be able to accept: it
+  is granted the role and still cannot log in. A pending invitation MUST NOT count as a platform admin: not in
+  `revocable`, not in the last-platform-admin rule (ACC-013), nor anywhere else; every count reads only the role.
+  `grantPlatformAdmin` (ACC-012) is the one exception, transitional, recorded in ADR-0004.
+- **Rationale:** Granting by typing an identifier would hand platform-wide access to whatever account it names,
+  including a mistyped one; acceptance proves the person, and the code proves more than control of the mailbox
+  (ADR-0004 §1, §4). Refusing a disabled account would reveal that it exists and is disabled. A role not yet
+  accepted must not keep the platform administrable on paper only.
+- **Source:** #452, ADR-0004 §1, §4, §5 and "What the observable events now mean"
+
+### ACC-015 — The confirmation code is shown only in the response that generated it
+
+- **Status:** Active
+- **Rule:** Inviting and resending MUST each generate a new confirmation code of 8 characters from the Crockford
+  base32 alphabet (`0`-`9`, `A`-`Z` without `I`, `L`, `O` and `U`), drawn from a cryptographic random source, and
+  MUST return it only in that response. The code MUST NOT be emailed, logged, stored in clear, returned by any read
+  endpoint (`getPlatformAdmins`, `inspectInvitation`) or put in any exception message; only its hash MUST be stored,
+  and a typed code MUST be compared with it in constant time.
+- **Rationale:** The code protects only while it travels by another channel than the link (ADR-0004 §4). An
+  unambiguous alphabet lets it be read out over the phone.
+- **Source:** #452, ADR-0004 §4
+
+### ACC-016 — A missing or wrong code is counted, and the fifth one revokes the link
+
+- **Status:** Active
+- **Rule:** On either accept endpoint, a platform-admin invitation's code is checked after the checks of MEM-016 and
+  MEM-017, and is read in any case and without spaces or hyphens. A missing or wrong code MUST be answered 400
+  `PLATFORM_ADMIN_INVITATION_CODE_INVALID`, MUST grant nothing and change nothing but the invitation's count of
+  failed code attempts, which MUST be incremented and persisted although the request answers an error, and MUST
+  count as one failure against the client address (MEM-015), logged with the client address only. Concurrent wrong
+  codes MUST each be counted. The fifth one on the same invitation MUST revoke its link and be answered 400
+  `PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED`; from then on the link MUST be refused like any unusable token
+  (MEM-015). Resending resets the count (ACC-019).
+- **Rationale:** Five tries let a person mistype; more would let someone holding the link guess the code. A count
+  that rolled back with the error would never reach five (ADR-0004 §4).
+- **Source:** #452, ADR-0004 §4
+
+### ACC-017 — Inviting a personal ID with an account answers and logs as for a new one, and never writes it
+
+- **Status:** Active
+- **Rule:** Inviting a platform admin MUST find the account with the personal ID, or create one without a password
+  with the full name and email the inviter typed (ACC-006). An existing account, with or without a password, MUST NOT
+  be written. Apart from the user id and the code, the response, and the log lines, MUST be the same whether or not
+  the account existed: the invitation's row carries what the inviter typed and nothing from the account (ACC-011).
+- **Rationale:** No answer may tell the inviter that an account exists, nor overwrite a name or email a person
+  chose (ADR-0003, ADR-0004).
+- **Source:** #452, ADR-0003 §3, ADR-0004 §2
+
+### ACC-018 — Only a platform admin may invite a platform admin, and the refusals come in order
+
+- **Status:** Active
+- **Rule:** Inviting a platform admin (`invitePlatformAdmin`) MUST be allowed only to a platform admin; any other
+  caller MUST be refused with 403, and an anonymous one with 401. The personal ID, the full name and the email are
+  required. The checks MUST run in this order:
+  1. a server that cannot send invitations MUST answer 503 `PLATFORM_ADMIN_INVITATION_UNAVAILABLE` before anything is
+     looked up or written;
+  2. an invalid personal ID MUST be refused as ACC-010 says;
+  3. the account is found or created (ACC-017) and locked;
+  4. an account holding the role MUST be answered 409 `USER_ALREADY_PLATFORM_ADMIN`;
+  5. an account with a pending invitation MUST be answered 409 `PLATFORM_ADMIN_ALREADY_INVITED`.
+
+  Otherwise it MUST create a pending invitation, issue its link (OTT-011) and its code (ACC-015), answer the
+  invitation's row as the list shows it with the code, and email the link to the destination email once the
+  transaction commits. The email is in Spanish, tells the person that they will need the code from whoever invited
+  them, and MUST NOT contain the code.
+- **Rationale:** A platform-wide role is offered only by someone who holds it. Refusing before anything is written
+  keeps an invitation from being recorded without being sent. One pending invitation per account keeps one code in
+  play (ADR-0004 §2).
+- **Source:** #452, ADR-0004 §2, §3 and §4
+
+### ACC-019 — A platform admin resends and revokes a pending invitation with the community limits
+
+- **Status:** Active
+- **Rule:** Resending (`resendPlatformAdminInvitation`) and revoking (`revokePlatformAdminInvitation`) a
+  platform-admin invitation MUST be allowed only to a platform admin; any other caller MUST be refused with 403, and
+  an anonymous one with 401. An unknown user MUST be answered 404, and a user without a pending invitation 409
+  `PLATFORM_ADMIN_NOT_INVITED`. Both lock the user row, then the invitation row, then the token rows.
+  - Resending MUST answer 503 `PLATFORM_ADMIN_INVITATION_UNAVAILABLE` when the server cannot send, before anything is
+    written; MUST allow at most 4 sends per invitation in any 24 hours, the first one included, and answer 429
+    `PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED` with `Retry-After` beyond them, as MEM-010 does; and otherwise
+    MUST revoke the previous link, issue a new one and a new code, reset the count of failed code attempts, answer
+    the row with the new code, and email the new link once the transaction commits. The previous link and the
+    previous code MUST stop working.
+  - Revoking MUST make the invitation's link unusable and keep the invitation pending, listed without a valid link.
+- **Rationale:** The person may lose the email or the code, or the link may have been revoked after five wrong
+  codes; the same limits as for community invitations keep the inbox from being flooded (ADR-0003 §5, ADR-0004 §4).
+- **Source:** #452, ADR-0003 §5, ADR-0004 §2 and §4
 
 ## Impossible states
 
@@ -237,5 +357,9 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 - A membership whose account no longer exists — prevented by ACC-009, and by the foreign key
   `community_memberships_user_id_fk`, which has no `ON DELETE` rule: a deletion that skipped ACC-009 would fail
   rather than leave the membership behind.
+- Two pending platform-admin invitations for one account — prevented by ACC-018, and by the
+  `platform_admin_invitation_user_id_pending_uq` partial unique index.
+- A platform-admin invitation whose account no longer exists — prevented by `ON DELETE CASCADE` on
+  `platform_admin_invitation_user_id_fk`.
 - A supply whose owner's account no longer exists — prevented by ACC-009, and by the foreign key
   `supplies_user_id_fk`.

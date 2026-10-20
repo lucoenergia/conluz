@@ -19,6 +19,9 @@ import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdmi
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.CreatePlatformAdminInvitationRepository;
+import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,6 +87,10 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
     @Autowired
     private ManagePlatformAdminAccessService managePlatformAdminAccessService;
+    @Autowired
+    private CreatePlatformAdminInvitationRepository createPlatformAdminInvitationRepository;
+    @Autowired
+    private CreateOneTimeTokenService createOneTimeTokenService;
 
     @Test
     void listingACommunitysSuppliesCostsTheSameForOneAndForFive() throws Exception {
@@ -247,6 +254,25 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-011 listing the platform admins with pending invitations costs the same for one and for five")
+    void listingPlatformAdminsWithPendingInvitationsCostsTheSameForOneAndForFive() throws Exception {
+        String adminToken = loginAsDefaultPlatformAdmin();
+        String url = "/api/v1/platform-admins";
+
+        persistPendingPlatformAdminInvitation();
+        long forOne = statementsFor(url, adminToken);
+
+        // Pending invitations and platform admins mixed, with and without a valid link
+        persistPendingPlatformAdminInvitation();
+        persistPendingPlatformAdminInvitation();
+        managePlatformAdminAccessService.grant(UserId.of(persistMember().getId()));
+        managePlatformAdminAccessService.grant(UserId.of(persistMember().getId()));
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "listing the platform admins must not issue a query per pending invitation");
+    }
+
+    @Test
     void listingUsersCostsTheSameWhateverTheNumberOfCommunitiesInScope() throws Exception {
         // The scope is applied in one statement, not one lookup per administered community: one user
         // in one community must cost what five users spread over three communities cost.
@@ -392,6 +418,19 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         return user;
+    }
+
+    /**
+     * The repositories inviting uses, without the email: this context cannot send. The hash stands for a code no test
+     * types, since the invitation is only listed.
+     */
+    private void persistPendingPlatformAdminInvitation() {
+        UserId userId = UserId.of(persistMember().getId());
+        UUID invitationId = UUID.randomUUID();
+        createPlatformAdminInvitationRepository.create(invitationId, userId, "pending@example.org", "Pending Admin",
+                userId, clock.instant(), "0".repeat(64));
+        createOneTimeTokenService.issueForPlatformAdminInvitation(userId, invitationId,
+                OneTimeTokenPurpose.PLATFORM_ADMIN_INVITATION);
     }
 
     private User persistMember() {

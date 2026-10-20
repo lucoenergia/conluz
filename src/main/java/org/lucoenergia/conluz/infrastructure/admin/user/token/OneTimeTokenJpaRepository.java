@@ -33,6 +33,16 @@ public interface OneTimeTokenJpaRepository extends JpaRepository<OneTimeTokenEnt
             + "FOR NO KEY UPDATE", nativeQuery = true)
     Optional<UUID> lockMembership(@Param("userId") UUID userId, @Param("communityId") UUID communityId);
 
+    /**
+     * Locks the platform-admin invitation row until the end of the transaction, with the same lock mode as
+     * {@link #lockUser}. Lock the invitation's user row first.
+     *
+     * @return the invitation's id, or empty if it does not exist
+     */
+    @Query(value = "SELECT id FROM platform_admin_invitation WHERE id = :invitationId FOR NO KEY UPDATE",
+            nativeQuery = true)
+    Optional<UUID> lockPlatformAdminInvitation(@Param("invitationId") UUID invitationId);
+
     @Modifying
     @Query("UPDATE one_time_token t SET t.revokedAt = :now "
             + "WHERE t.userId = :userId AND t.purpose = :purpose AND t.usedAt IS NULL AND t.revokedAt IS NULL")
@@ -126,6 +136,54 @@ public interface OneTimeTokenJpaRepository extends JpaRepository<OneTimeTokenEnt
     List<OneTimeTokenExpiryView> findValidExpiriesInCommunity(@Param("communityId") UUID communityId,
                                                               @Param("purpose") OneTimeTokenPurpose purpose,
                                                               @Param("now") Instant now);
+
+    /**
+     * Revokes the invitation's active token, whatever its purpose:
+     * one_time_token_platform_admin_invitation_one_active_uq allows a single active token per invitation.
+     */
+    @Modifying
+    @Query("UPDATE one_time_token t SET t.revokedAt = :now "
+            + "WHERE t.platformAdminInvitationId = :invitationId AND t.usedAt IS NULL AND t.revokedAt IS NULL")
+    int revokeActiveOfPlatformAdminInvitation(@Param("invitationId") UUID invitationId, @Param("now") Instant now);
+
+    @Modifying
+    @Query("UPDATE one_time_token t SET t.revokedAt = :now "
+            + "WHERE t.platformAdminInvitationId = :invitationId AND t.purpose = :purpose AND t.usedAt IS NULL "
+            + "AND t.revokedAt IS NULL")
+    int revokeActiveOfPlatformAdminInvitationAndPurpose(@Param("invitationId") UUID invitationId,
+                                                        @Param("purpose") OneTimeTokenPurpose purpose,
+                                                        @Param("now") Instant now);
+
+    @Modifying
+    @Query("UPDATE one_time_token t SET t.usedAt = :now "
+            + "WHERE t.tokenHash = :tokenHash AND t.purpose = :purpose AND t.platformAdminInvitationId IS NOT NULL "
+            + "AND t.usedAt IS NULL AND t.revokedAt IS NULL AND t.expiresAt > :now")
+    int markUsedOfPlatformAdminInvitation(@Param("tokenHash") String tokenHash,
+                                          @Param("purpose") OneTimeTokenPurpose purpose, @Param("now") Instant now);
+
+    @Query("SELECT t.platformAdminInvitationId AS invitationId, t.userId AS userId FROM one_time_token t "
+            + "WHERE t.tokenHash = :tokenHash AND t.platformAdminInvitationId IS NOT NULL")
+    Optional<OneTimeTokenPlatformAdminInvitationView> findPlatformAdminInvitationByTokenHash(
+            @Param("tokenHash") String tokenHash);
+
+    @Query("SELECT t.platformAdminInvitationId AS invitationId, t.userId AS userId FROM one_time_token t "
+            + "WHERE t.tokenHash = :tokenHash AND t.purpose = :purpose AND t.platformAdminInvitationId IS NOT NULL "
+            + "AND t.usedAt IS NULL AND t.revokedAt IS NULL AND t.expiresAt > :now")
+    Optional<OneTimeTokenPlatformAdminInvitationView> findValidPlatformAdminInvitation(
+            @Param("tokenHash") String tokenHash, @Param("purpose") OneTimeTokenPurpose purpose,
+            @Param("now") Instant now);
+
+    @Query("SELECT COUNT(t) FROM one_time_token t "
+            + "WHERE t.platformAdminInvitationId = :invitationId AND t.purpose = :purpose AND t.createdAt >= :since")
+    long countCreatedForPlatformAdminInvitationSince(@Param("invitationId") UUID invitationId,
+                                                     @Param("purpose") OneTimeTokenPurpose purpose,
+                                                     @Param("since") Instant since);
+
+    @Query("SELECT MIN(t.createdAt) FROM one_time_token t "
+            + "WHERE t.platformAdminInvitationId = :invitationId AND t.purpose = :purpose AND t.createdAt >= :since")
+    Instant findEarliestCreatedForPlatformAdminInvitationSince(@Param("invitationId") UUID invitationId,
+                                                               @Param("purpose") OneTimeTokenPurpose purpose,
+                                                               @Param("since") Instant since);
 
     /**
      * The expression matches one_time_token_finished_at_idx. LEAST ignores NULLs, so a token qualifies as soon as

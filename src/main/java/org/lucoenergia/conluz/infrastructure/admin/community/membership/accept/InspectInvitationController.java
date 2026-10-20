@@ -48,6 +48,13 @@ public class InspectInvitationController {
                 and accepts with `acceptInvitation`. When it is true, the account already has a password: the
                 client asks the person to log in and accepts with `acceptInvitationAsCurrentUser`.
 
+                `kind` tells what the invitation is for: `COMMUNITY`, a membership of the community in
+                `community`; or `PLATFORM`, the platform-admin role, with `community` null. When
+                `confirmationCodeRequired` is true, as it is for every `PLATFORM` invitation, the client also asks
+                for the confirmation code that whoever invited gives the person by another channel, and sends it
+                as `confirmationCode` when accepting. A platform-admin invitation whose account is disabled can be
+                inspected and accepted too.
+
                 A token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership
                 has already been accepted, or whose account has been disabled, is answered 400 with the
                 `MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.
@@ -75,11 +82,11 @@ public class InspectInvitationController {
                                                     {
                                                        "timestamp": "2026-10-15T10:10:25.534035352+02:00",
                                                        "status": 400,
-                                                       "message": "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                                                       "message": "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                                                        "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
                                                        "errors": [
                                                          {
-                                                           "message": "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                                                           "message": "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                                                            "code": "MEMBERSHIP_INVITATION_TOKEN_INVALID",
                                                            "params": null
                                                          }

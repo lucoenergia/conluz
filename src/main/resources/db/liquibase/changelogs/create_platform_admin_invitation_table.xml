@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Platform-admin invitations (#452, ADR-0004 §2): the pending state of granting the platform-admin
+         role, which is granted only when the invited person accepts with the link and a confirmation code.
+
+         An invitation is deleted with its account (ON DELETE CASCADE): it means nothing without the account
+         it would grant the role to. Deleting the inviter keeps the invitation (ON DELETE SET NULL on
+         invited_by), as deleting a user does for the files they uploaded.
+
+         invited_by NULL means the inviter's account has been deleted. accepted_at NULL means the
+         invitation is pending.
+
+         platform_admin_invitation_user_id_pending_uq allows at most one pending invitation per account.
+         Inviting locks the account row before it looks for a pending invitation, so the index never fires
+         on that path; it guards the invariant for any other writer.
+
+         Only the SHA-256 hash of the confirmation code is stored, never the code itself. -->
+    <changeSet id="create_platform_admin_invitation_table" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot create platform_admin_invitation: the table already exists.">
+            <not>
+                <tableExists tableName="platform_admin_invitation"/>
+            </not>
+        </preConditions>
+        <createTable tableName="platform_admin_invitation"
+                     remarks="Invitations to become a platform admin. Only the hash of each confirmation code is stored.">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="platform_admin_invitation_id_pk"/>
+            </column>
+            <column name="user_id" type="UUID" remarks="The account invited to become a platform admin.">
+                <constraints nullable="false"
+                             foreignKeyName="platform_admin_invitation_user_id_fk"
+                             referencedTableName="users" referencedColumnNames="id"
+                             deleteCascade="true"/>
+            </column>
+            <column name="email" type="VARCHAR(250)" remarks="The email address the invitation is sent to.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="full_name" type="VARCHAR(250)" remarks="The full name as typed by the inviter.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="invited_by" type="UUID"
+                    remarks="The platform admin who invited. NULL if that account has been deleted.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="invited_at" type="TIMESTAMP WITH TIME ZONE" remarks="When the invitation was created.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accepted_at" type="TIMESTAMP WITH TIME ZONE"
+                    remarks="When the invitation was accepted. NULL while it is pending.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="confirmation_code_hash" type="VARCHAR(64)"
+                    remarks="Lowercase hex SHA-256 hash of the current confirmation code.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="failed_code_attempts" type="INTEGER" defaultValueNumeric="0"
+                    remarks="How many wrong or missing confirmation codes have been tried since the current code was generated.">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="platform_admin_invitation" baseColumnNames="invited_by"
+                                 constraintName="platform_admin_invitation_invited_by_fk"
+                                 referencedTableName="users" referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+        <sql>
+            CREATE UNIQUE INDEX platform_admin_invitation_user_id_pending_uq ON platform_admin_invitation (user_id)
+            WHERE accepted_at IS NULL
+        </sql>
+        <sql>
+            ALTER TABLE platform_admin_invitation ADD CONSTRAINT platform_admin_invitation_failed_code_attempts_check
+            CHECK (failed_code_attempts &gt;= 0)
+        </sql>
+        <rollback>
+            <dropTable tableName="platform_admin_invitation"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -51,4 +51,13 @@ public interface GetOneTimeTokenRepository {
      * unrevoked and expire after {@code now}. One query.
      */
     Map<UUID, Instant> findValidExpiriesInCommunity(UUID communityId, OneTimeTokenPurpose purpose, Instant now);
+
+    Optional<OneTimeTokenPlatformAdminInvitation> findValidPlatformAdminInvitation(String tokenHash,
+                                                                                   OneTimeTokenPurpose purpose,
+                                                                                   Instant now);
+
+    long countCreatedForPlatformAdminInvitationSince(UUID invitationId, OneTimeTokenPurpose purpose, Instant since);
+
+    Optional<Instant> findEarliestCreatedForPlatformAdminInvitationSince(UUID invitationId,
+                                                                         OneTimeTokenPurpose purpose, Instant since);
 }

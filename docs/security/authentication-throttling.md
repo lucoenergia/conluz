@@ -23,8 +23,8 @@ Invitations (#394) feed the **client address** counter only as well, see [Invita
 | Endpoint | Counted against the client address |
 |---|---|
 | `POST /api/v1/invitations/inspect` | every invitation token that cannot be used |
-| `POST /api/v1/invitations/accept` | every invitation token that cannot be used |
-| `POST /api/v1/users/current/invitations/accept` | every invitation token that cannot be used by the caller |
+| `POST /api/v1/invitations/accept` | every invitation token that cannot be used, and every missing or wrong confirmation code of a platform-admin invitation |
+| `POST /api/v1/users/current/invitations/accept` | every invitation token that cannot be used by the caller, and every missing or wrong confirmation code of a platform-admin invitation |
 
 The username is the member's NIF, which is semi-public, so there is deliberately **no hard lockout**: an account
 is only ever throttled for a bounded time, and it is released on its own.
@@ -165,6 +165,10 @@ and the attempt is settled like a reset:
 - an unusable token (unknown, malformed, expired, used, revoked, of a membership already accepted, of a disabled
   account, or, on the authenticated endpoint, of another account's membership) → `failed()`: one failure on the
   address and one WARN line;
+- a missing or wrong confirmation code of a platform-admin invitation (ADR-0004 §4, ACC-016) →
+  `failedConfirmationCode()`: one failure on the address and one WARN line, as for an unusable token. The code is
+  also counted on the invitation itself, in the database: the acceptance commits that count before the refusal is
+  thrown, and the fifth one revokes the link;
 - a successful inspection, an account that must log in to accept (409), or a first password that breaks the
   policy → `close()`: nothing counted;
 - a successful acceptance that set the first password → `succeeded(user)`: the slot is freed and the **account
@@ -304,6 +308,7 @@ A password, a token or a full `personalId` is never logged.
 | Wrong current password | `Failed password change: user=<uuid>, ip=203.0.113.7, reason=WRONG_CURRENT_PASSWORD` |
 | Unusable password reset token | `Failed password reset: ip=203.0.113.7, reason=INVALID_TOKEN` |
 | Unusable invitation token | `Refused invitation token: ip=203.0.113.7, reason=INVALID_TOKEN` |
+| Missing or wrong confirmation code | `Refused invitation token: ip=203.0.113.7, reason=WRONG_CONFIRMATION_CODE` |
 | A counter reaches its limit | `Authentication throttled: scope=account, account=***78A, retryAfter=900s` (`user=<uuid>` when reached through a password change) |
 | | `Authentication throttled: scope=ip, ip=203.0.113.7, retryAfter=900s` |
 
@@ -311,8 +316,10 @@ A password, a token or a full `personalId` is never logged.
   characters other than ASCII letters and digits are replaced, since the value comes from the client.
 - A recovery request writes no line here: it is logged once at INFO by `RequestPasswordResetServiceImpl`, with the
   masked account, the address and the outcome.
-- An accepted invitation writes no line here: it is logged once at INFO by `AcceptInvitationServiceImpl`, with the
-  user, the community and the endpoint.
+- An accepted invitation writes no line here: a community invitation is logged once at INFO under the
+  `AcceptInvitationServiceImpl` logger, with the user, the community and the endpoint; a platform-admin invitation
+  by `PlatformAdminInvitationAcceptance`, with the user and the endpoint, which also logs each refused code with the
+  user and the count of failed attempts, never the code.
 - Exactly one "Failed …" line is written per failed attempt; the attempt that reaches a limit also writes one
   activation line per counter it trips. Refused (429) attempts are not logged one by one.
 - These failures are no longer logged again as ERROR by `ErrorBuilder` (`buildWithoutLogging`), so their
@@ -333,7 +340,7 @@ The state is kept in memory, which suits the single instance Conluz runs as; it 
 | Class | Package | Role |
 |---|---|---|
 | `AuthenticationThrottleService` | `domain/admin/user/auth/throttle` | Port: `startLogin`, `startPasswordChange`, `countPasswordResetRequest`, `startPasswordReset`, `startInvitation` |
-| `LoginAttempt`, `PasswordChangeAttempt`, `PasswordResetAttempt`, `InvitationAttempt` | `domain/admin/user/auth/throttle` | Handles of an admitted attempt: `failed`, `succeeded`, `close` |
+| `LoginAttempt`, `PasswordChangeAttempt`, `PasswordResetAttempt`, `InvitationAttempt` | `domain/admin/user/auth/throttle` | Handles of an admitted attempt: `failed`, `succeeded`, `close` (and `failedConfirmationCode` on `InvitationAttempt`) |
 | `LoginFailureReason`, `TooManyFailedAttemptsException` | `domain/admin/user/auth/throttle` | Failure reason (logged only); the refusal carrying `retryAfterSeconds` |
 | `AuthenticationThrottleServiceImpl` | `infrastructure/admin/user/auth/throttle` | Limits, account normalisation, admission on both counters or on the address alone |
 | `UserPersonalId#mask` | `domain/shared` | The masking of a `personalId` in log lines |
@@ -343,7 +350,7 @@ The state is kept in memory, which suits the single instance Conluz runs as; it 
 | `ClockConfiguration` | `infrastructure/shared/time` | The application `Clock` the windows are measured with |
 | `AuthServiceImpl#login`, `ChangePasswordServiceImpl#changePassword`, `ResetPasswordServiceImpl#reset` | `infrastructure/admin/user/...` | Open the attempt and settle it with the outcome |
 | `RequestPasswordResetServiceImpl#request` | `infrastructure/admin/user/password/reset` | Counts the recovery request against the address |
-| `GetInvitationServiceImpl#inspect`, `AcceptInvitationServiceImpl` | `infrastructure/admin/community/membership/accept` | Open the invitation attempt and settle it with the outcome |
+| `GetInvitationServiceImpl#inspect`, `AcceptInvitationServiceImpl` | `infrastructure/admin/community/membership/accept` | Open the invitation attempt; the acceptance, outside any transaction, hands it to `CommunityInvitationAcceptance` or `PlatformAdminInvitationAcceptance`, which settle it with the outcome |
 | `PasswordlessAccountAuthenticationProvider` | `infrastructure/shared/security/auth` | Refuses an account without a password after one BCrypt comparison against a dummy hash |
 | `AuthenticationExceptionHandler` | `infrastructure/shared/security/auth` | 429 response; failed-login 401 without ERROR logging |
 | `TooManyRequestsErrorResponse` | `infrastructure/shared/web/apidocs/response` | The 429 in the OpenAPI document |

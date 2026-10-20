@@ -19,9 +19,9 @@ class InvitationAcceptanceMessagesTest {
 
     @ParameterizedTest
     @CsvSource(delimiter = '|', value = {
-            "messages.properties    | error.membership.invitation.token.invalid  | The invitation link is invalid or has expired. Please ask your community for a new one.",
+            "messages.properties    | error.membership.invitation.token.invalid  | The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
             "messages.properties    | error.membership.invitation.login.required | This invitation is for an account that already has a password. Log in to accept it.",
-            "messages_es.properties | error.membership.invitation.token.invalid  | El enlace de invitación no es válido o ha caducado. Pide uno nuevo a tu comunidad.",
+            "messages_es.properties | error.membership.invitation.token.invalid  | El enlace de invitación no es válido o ha caducado. Pide uno nuevo a quien te ha invitado.",
             "messages_es.properties | error.membership.invitation.login.required | Esta invitación es para una cuenta que ya tiene contraseña. Inicia sesión para aceptarla."
     })
     void eachLocaleHasTheMessage(String bundle, String key, String expected) throws IOException {

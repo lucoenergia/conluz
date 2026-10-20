@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenReposit
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenScope;
 import org.lucoenergia.conluz.domain.admin.user.token.RevokeOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 
@@ -33,6 +34,7 @@ class OneTimeTokenPurposeScopeTest {
     private static final String RAW_TOKEN = "a-raw-token-that-must-not-appear-in-the-message";
     private static final UserId USER = UserId.of(UUID.randomUUID());
     private static final UUID COMMUNITY = UUID.randomUUID();
+    private static final UUID INVITATION = UUID.randomUUID();
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
     private final CreateOneTimeTokenRepository createRepository = mock(CreateOneTimeTokenRepository.class);
@@ -45,11 +47,11 @@ class OneTimeTokenPurposeScopeTest {
     private final RevokeOneTimeTokenServiceImpl revoke = new RevokeOneTimeTokenServiceImpl(revokeRepository, clock);
 
     static Stream<OneTimeTokenPurpose> boundToMembership() {
-        return Arrays.stream(OneTimeTokenPurpose.values()).filter(OneTimeTokenPurpose::isBoundToMembership);
+        return Arrays.stream(OneTimeTokenPurpose.values()).filter(purpose -> purpose.scope() == OneTimeTokenScope.MEMBERSHIP);
     }
 
     static Stream<OneTimeTokenPurpose> boundOnlyToUser() {
-        return Arrays.stream(OneTimeTokenPurpose.values()).filter(purpose -> !purpose.isBoundToMembership());
+        return Arrays.stream(OneTimeTokenPurpose.values()).filter(purpose -> purpose.scope() == OneTimeTokenScope.USER);
     }
 
     static Stream<Arguments> userScopedOperations() {
@@ -108,6 +110,59 @@ class OneTimeTokenPurposeScopeTest {
             case "consumeForMembership" -> () -> consume.consumeForMembership(RAW_TOKEN, purpose);
             case "consumeForMembership a blank token" -> () -> consume.consumeForMembership(null, purpose);
             case "revokeForMembership" -> () -> revoke.revokeForMembership(USER, COMMUNITY, purpose);
+            default -> throw new IllegalStateException(operation);
+        });
+    }
+
+    static Stream<Arguments> operationsOfAnotherScopeThanTheirPurpose() {
+        Stream<Arguments> userAndMembershipOperations = Arrays.stream(OneTimeTokenPurpose.values())
+                .filter(purpose -> purpose.scope() == OneTimeTokenScope.PLATFORM_ADMIN_INVITATION)
+                .flatMap(purpose -> Stream.of(
+                        Arguments.of("issue", purpose),
+                        Arguments.of("findOwner", purpose),
+                        Arguments.of("consume", purpose),
+                        Arguments.of("issueForMembership", purpose),
+                        Arguments.of("findMembership", purpose),
+                        Arguments.of("consumeForMembership", purpose),
+                        Arguments.of("revokeForMembership", purpose)));
+        Stream<Arguments> platformAdminInvitationOperations = Arrays.stream(OneTimeTokenPurpose.values())
+                .filter(purpose -> purpose.scope() != OneTimeTokenScope.PLATFORM_ADMIN_INVITATION)
+                .flatMap(purpose -> Stream.of(
+                        Arguments.of("issueForPlatformAdminInvitation", purpose),
+                        Arguments.of("findPlatformAdminInvitation", purpose),
+                        Arguments.of("findPlatformAdminInvitation of a blank token", purpose),
+                        Arguments.of("countIssuedForPlatformAdminInvitationSince", purpose),
+                        Arguments.of("findEarliestIssuedForPlatformAdminInvitationSince", purpose),
+                        Arguments.of("consumeForPlatformAdminInvitation", purpose),
+                        Arguments.of("revokeForPlatformAdminInvitation", purpose)));
+        return Stream.concat(userAndMembershipOperations, platformAdminInvitationOperations);
+    }
+
+    @ParameterizedTest(name = "{0} with {1}")
+    @MethodSource("operationsOfAnotherScopeThanTheirPurpose")
+    @DisplayName("OTT-003 an operation refuses a purpose bound to a platform-admin invitation, and an operation on a "
+            + "platform-admin invitation refuses every other purpose")
+    void anOperation_refusesAPurposeOfAnotherScope(String operation, OneTimeTokenPurpose purpose) {
+        assertRefused(switch (operation) {
+            case "issue" -> () -> create.issue(USER, purpose);
+            case "findOwner" -> () -> get.findOwner(RAW_TOKEN, purpose);
+            case "consume" -> () -> consume.consume(RAW_TOKEN, purpose);
+            case "issueForMembership" -> () -> create.issueForMembership(USER, COMMUNITY, purpose);
+            case "findMembership" -> () -> get.findMembership(RAW_TOKEN, purpose);
+            case "consumeForMembership" -> () -> consume.consumeForMembership(RAW_TOKEN, purpose);
+            case "revokeForMembership" -> () -> revoke.revokeForMembership(USER, COMMUNITY, purpose);
+            case "issueForPlatformAdminInvitation" ->
+                    () -> create.issueForPlatformAdminInvitation(USER, INVITATION, purpose);
+            case "findPlatformAdminInvitation" -> () -> get.findPlatformAdminInvitation(RAW_TOKEN, purpose);
+            case "findPlatformAdminInvitation of a blank token" -> () -> get.findPlatformAdminInvitation("", purpose);
+            case "countIssuedForPlatformAdminInvitationSince" ->
+                    () -> get.countIssuedForPlatformAdminInvitationSince(INVITATION, purpose, clock.instant());
+            case "findEarliestIssuedForPlatformAdminInvitationSince" ->
+                    () -> get.findEarliestIssuedForPlatformAdminInvitationSince(INVITATION, purpose, clock.instant());
+            case "consumeForPlatformAdminInvitation" ->
+                    () -> consume.consumeForPlatformAdminInvitation(RAW_TOKEN, purpose);
+            case "revokeForPlatformAdminInvitation" ->
+                    () -> revoke.revokeForPlatformAdminInvitation(USER, INVITATION, purpose);
             default -> throw new IllegalStateException(operation);
         });
     }

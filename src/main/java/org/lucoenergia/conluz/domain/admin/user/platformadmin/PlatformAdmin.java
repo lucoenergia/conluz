@@ -9,5 +9,5 @@ import org.lucoenergia.conluz.domain.admin.user.User;
  *                  {@link LastPlatformAdminRule}: false only for the last enabled one. It is state, not authorization: whether the caller may revoke it is
  *                  a separate question.
  */
-public record PlatformAdmin(User user, boolean revocable) {
+public record PlatformAdmin(User user, boolean revocable) implements PlatformAdminListEntry {
 }

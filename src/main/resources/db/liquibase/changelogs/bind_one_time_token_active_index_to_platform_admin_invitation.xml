@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- One active token per platform-admin invitation (#452, ADR-0004 §3).
+
+         one_time_token_one_active_uq keeps its name and its invariant for tokens bound only to their user
+         (PASSWORD_RESET), and no longer covers tokens bound to a platform-admin invitation.
+         one_time_token_platform_admin_invitation_one_active_uq allows at most one active token per
+         invitation. Both are replaced in this one changeset, so no transaction ever sees the table without
+         an active-token index.
+
+         The rollback deletes every token bound to a platform-admin invitation before it restores the
+         previous index, which would otherwise count them among the tokens bound only to their user. They
+         can be issued again by resending the invitation. -->
+    <changeSet id="bind_one_time_token_active_index_to_platform_admin_invitation" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot bind the active-token index of one_time_token to platform-admin invitations: platform_admin_invitation_id is missing, one_time_token_one_active_uq is missing or is not the index bound to memberships, or one_time_token_platform_admin_invitation_one_active_uq already exists. Inspect with: SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'one_time_token';">
+            <columnExists tableName="one_time_token" columnName="platform_admin_invitation_id"/>
+            <sqlCheck expectedResult="1">
+                SELECT count(*) FROM pg_indexes
+                WHERE tablename = 'one_time_token' AND indexname = 'one_time_token_one_active_uq'
+                AND indexdef LIKE '%(user_id, purpose) WHERE ((membership_id IS NULL) AND (used_at IS NULL) AND (revoked_at IS NULL))'
+            </sqlCheck>
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM pg_indexes
+                WHERE tablename = 'one_time_token' AND indexname = 'one_time_token_platform_admin_invitation_one_active_uq'
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            DROP INDEX one_time_token_one_active_uq
+        </sql>
+        <sql>
+            CREATE UNIQUE INDEX one_time_token_one_active_uq ON one_time_token (user_id, purpose)
+            WHERE membership_id IS NULL AND platform_admin_invitation_id IS NULL
+            AND used_at IS NULL AND revoked_at IS NULL
+        </sql>
+        <sql>
+            CREATE UNIQUE INDEX one_time_token_platform_admin_invitation_one_active_uq
+            ON one_time_token (platform_admin_invitation_id)
+            WHERE platform_admin_invitation_id IS NOT NULL AND used_at IS NULL AND revoked_at IS NULL
+        </sql>
+        <rollback>
+            <sql>
+                DELETE FROM one_time_token WHERE platform_admin_invitation_id IS NOT NULL
+            </sql>
+            <sql>
+                DROP INDEX one_time_token_one_active_uq
+            </sql>
+            <sql>
+                CREATE UNIQUE INDEX one_time_token_one_active_uq ON one_time_token (user_id, purpose)
+                WHERE membership_id IS NULL AND used_at IS NULL AND revoked_at IS NULL
+            </sql>
+            <sql>
+                DROP INDEX one_time_token_platform_admin_invitation_one_active_uq
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

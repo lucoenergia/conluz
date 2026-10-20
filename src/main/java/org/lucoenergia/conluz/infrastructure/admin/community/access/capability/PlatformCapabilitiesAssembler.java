@@ -39,6 +39,7 @@ public class PlatformCapabilitiesAssembler {
                 // to no community, which is what POST /api/v1/users does without a communityId.
                 .withCanCreateUsers(policies.user().canCreateIn(caller, null).isAllowed())
                 .withCanListPlatformAdmins(policies.platform().canAdministerPlatform(caller).isAllowed())
+                .withCanInvitePlatformAdmins(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .build();
     }
 }
