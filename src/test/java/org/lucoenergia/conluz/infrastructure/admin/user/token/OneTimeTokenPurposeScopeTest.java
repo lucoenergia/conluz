@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenReposit
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenScope;
 import org.lucoenergia.conluz.domain.admin.user.token.RevokeOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 
@@ -45,11 +46,11 @@ class OneTimeTokenPurposeScopeTest {
     private final RevokeOneTimeTokenServiceImpl revoke = new RevokeOneTimeTokenServiceImpl(revokeRepository, clock);
 
     static Stream<OneTimeTokenPurpose> boundToMembership() {
-        return Arrays.stream(OneTimeTokenPurpose.values()).filter(OneTimeTokenPurpose::isBoundToMembership);
+        return Arrays.stream(OneTimeTokenPurpose.values()).filter(purpose -> purpose.scope() == OneTimeTokenScope.MEMBERSHIP);
     }
 
     static Stream<OneTimeTokenPurpose> boundOnlyToUser() {
-        return Arrays.stream(OneTimeTokenPurpose.values()).filter(purpose -> !purpose.isBoundToMembership());
+        return Arrays.stream(OneTimeTokenPurpose.values()).filter(purpose -> purpose.scope() == OneTimeTokenScope.USER);
     }
 
     static Stream<Arguments> userScopedOperations() {

@@ -8,7 +8,7 @@ import java.util.UUID;
 
 /**
  * Issues secret, single-use, expiring tokens for one {@link OneTimeTokenPurpose}, either to a user or for one of the
- * user's memberships, depending on {@link OneTimeTokenPurpose#isBoundToMembership()}.
+ * user's memberships, depending on {@link OneTimeTokenPurpose#scope()}.
  *
  * <p>A user has at most one active (unused and unrevoked) token per user-bound purpose, and a membership at most one
  * active token: issuing a new one revokes the earlier ones. Issuing locks the user row, then the membership row for
