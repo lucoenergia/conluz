@@ -14,7 +14,6 @@ import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.InvitationResending;
-import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.InvitationSending;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,6 @@ public class ResendPlatformAdminInvitationServiceImpl implements ResendPlatformA
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ResendPlatformAdminInvitationServiceImpl.class);
 
-    private final InvitationSending invitationSending;
     private final LockUserRepository lockUserRepository;
     private final LockPlatformAdminInvitationRepository lockInvitationRepository;
     private final GetPlatformAdminInvitationRepository getInvitationRepository;
@@ -38,14 +36,12 @@ public class ResendPlatformAdminInvitationServiceImpl implements ResendPlatformA
     private final PlatformAdminInvitationSending sending;
     private final Clock clock;
 
-    public ResendPlatformAdminInvitationServiceImpl(InvitationSending invitationSending,
-                                                    LockUserRepository lockUserRepository,
+    public ResendPlatformAdminInvitationServiceImpl(LockUserRepository lockUserRepository,
                                                     LockPlatformAdminInvitationRepository lockInvitationRepository,
                                                     GetPlatformAdminInvitationRepository getInvitationRepository,
                                                     GetOneTimeTokenService getOneTimeTokenService,
                                                     PlatformAdminInvitationSending sending,
                                                     Clock clock) {
-        this.invitationSending = invitationSending;
         this.lockUserRepository = lockUserRepository;
         this.lockInvitationRepository = lockInvitationRepository;
         this.getInvitationRepository = getInvitationRepository;
@@ -56,7 +52,7 @@ public class ResendPlatformAdminInvitationServiceImpl implements ResendPlatformA
 
     @Override
     public InvitedPlatformAdmin resend(UserId userId) {
-        invitationSending.requireAvailable();
+        sending.requireAvailable();
 
         // Lock order: user row, then invitation row, then token rows
         if (!lockUserRepository.lock(userId)) {

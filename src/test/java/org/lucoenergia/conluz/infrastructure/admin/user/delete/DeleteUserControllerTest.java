@@ -49,7 +49,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.PERSONAL_ID;
-import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -214,10 +213,12 @@ class DeleteUserControllerTest extends BaseControllerTest {
 
     /**
      * Only a platform admin may delete another user, and they count as an enabled platform admin themselves, so the
-     * last one can only be "left" when the target is already disabled: that is the one path to the 409 left.
+     * last-platform-admin rule can refuse a deletion only when it runs at the same time as another one: the rule is
+     * covered by DeleteUserServiceTest. A disabled platform admin does not count, so deleting one is allowed.
      */
     @Test
-    void testDeleteLastPlatformAdminIsRejected() throws Exception {
+    @DisplayName("ACC-009 deleting a disabled platform admin while only one platform admin is enabled is allowed")
+    void testDeleteDisabledPlatformAdminWithOneEnabledAdmin() throws Exception {
 
         // The default platform admin is the only enabled one; the target is a disabled platform admin.
         String authHeader = loginAsDefaultPlatformAdmin();
@@ -230,15 +231,12 @@ class DeleteUserControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()))
-                .andExpect(jsonPath("$.message").isNotEmpty())
-                .andExpect(jsonPath("$.errors[0].code").value("USER_LAST_PLATFORM_ADMIN"))
-                .andExpect(jsonPath("$.errors[0].params").value(nullValue()))
-                .andExpect(jsonPath("$.errors[0].message").isNotEmpty());
+                .andExpect(status().isOk());
 
-        // The target still exists.
-        Assertions.assertTrue(getUserRepository.findById(UserId.of(disabledAdmin.getId())).isPresent());
+        // The target is gone, and the one enabled platform admin is still there.
+        Assertions.assertTrue(getUserRepository.findById(UserId.of(disabledAdmin.getId())).isEmpty());
+        Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).orElseThrow()
+                .isEnabled());
     }
 
     @Test

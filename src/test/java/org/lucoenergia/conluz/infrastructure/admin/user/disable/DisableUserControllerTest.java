@@ -30,7 +30,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.PERSONAL_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -176,10 +175,12 @@ class DisableUserControllerTest extends BaseControllerTest {
 
     /**
      * Only a platform admin may disable another user, and they count as an enabled platform admin themselves, so the
-     * last one can only be "left" when the target is already disabled: that is the one path to the 409 left.
+     * last-platform-admin rule can refuse a disable only when it runs at the same time as another one: the rule is
+     * covered by DisableUserServiceTest. A disabled platform admin does not count, so disabling one again is allowed.
      */
     @Test
-    void testDisableLastPlatformAdminIsRejected() throws Exception {
+    @DisplayName("ACC-008 disabling a disabled platform admin while only one platform admin is enabled is allowed")
+    void testDisableDisabledPlatformAdminWithOneEnabledAdmin() throws Exception {
 
         // The default platform admin is the only enabled one; the target is a disabled platform admin.
         String authHeader = loginAsDefaultPlatformAdmin();
@@ -192,16 +193,14 @@ class DisableUserControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()))
-                .andExpect(jsonPath("$.message").isNotEmpty())
-                .andExpect(jsonPath("$.errors[0].code").value("USER_LAST_PLATFORM_ADMIN"))
-                .andExpect(jsonPath("$.errors[0].params").value(nullValue()))
-                .andExpect(jsonPath("$.errors[0].message").isNotEmpty());
+                .andExpect(status().isOk());
 
-        // Nothing was recorded on the target.
-        Assertions.assertNull(getUserRepository.findById(UserId.of(disabledAdmin.getId())).orElseThrow()
-                .getDisabledAt());
+        // The target stays disabled, now with its disable recorded, and the one enabled platform admin is untouched.
+        User target = getUserRepository.findById(UserId.of(disabledAdmin.getId())).orElseThrow();
+        Assertions.assertFalse(target.isEnabled());
+        Assertions.assertNotNull(target.getDisabledAt());
+        Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).orElseThrow()
+                .isEnabled());
     }
 
     @Test

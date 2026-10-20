@@ -12,7 +12,6 @@ import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.Platfor
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.UserAlreadyPlatformAdminException;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
-import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.InvitationSending;
 import org.lucoenergia.conluz.infrastructure.admin.user.create.PasswordlessAccountRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +27,6 @@ public class InvitePlatformAdminServiceImpl implements InvitePlatformAdminServic
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InvitePlatformAdminServiceImpl.class);
 
-    private final InvitationSending invitationSending;
     private final PasswordlessAccountRegistration passwordlessAccountRegistration;
     private final LockUserRepository lockUserRepository;
     private final GetUserRepository getUserRepository;
@@ -37,15 +35,13 @@ public class InvitePlatformAdminServiceImpl implements InvitePlatformAdminServic
     private final PlatformAdminInvitationSending sending;
     private final Clock clock;
 
-    public InvitePlatformAdminServiceImpl(InvitationSending invitationSending,
-                                          PasswordlessAccountRegistration passwordlessAccountRegistration,
+    public InvitePlatformAdminServiceImpl(PasswordlessAccountRegistration passwordlessAccountRegistration,
                                           LockUserRepository lockUserRepository,
                                           GetUserRepository getUserRepository,
                                           LockPlatformAdminInvitationRepository lockInvitationRepository,
                                           CreatePlatformAdminInvitationRepository createInvitationRepository,
                                           PlatformAdminInvitationSending sending,
                                           Clock clock) {
-        this.invitationSending = invitationSending;
         this.passwordlessAccountRegistration = passwordlessAccountRegistration;
         this.lockUserRepository = lockUserRepository;
         this.getUserRepository = getUserRepository;
@@ -59,7 +55,7 @@ public class InvitePlatformAdminServiceImpl implements InvitePlatformAdminServic
     public InvitedPlatformAdmin invite(UserId invitedBy, UserPersonalId personalId, String fullName, String email) {
         // Before anything is looked up or written: an invitation recorded but never sent would show the person as
         // invited with nothing in their inbox
-        invitationSending.requireAvailable();
+        sending.requireAvailable();
 
         String normalized = passwordlessAccountRegistration.requireValid(personalId);
         // An existing account is found silently and never written: everything below reads it only to refuse, and

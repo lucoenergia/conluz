@@ -2,7 +2,6 @@ package org.lucoenergia.conluz.infrastructure.admin.user.delete;
 
 import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.delete.DeleteUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.delete.DeleteUserService;
@@ -10,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.user.delete.UserOwnsSuppliesException
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminRule;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
@@ -50,11 +50,10 @@ public class DeleteUserServiceImpl implements DeleteUserService {
             throw new UserNotFoundException(id);
         }
         getUserRepository.findById(id)
-                .filter(User::isPlatformAdmin)
+                .filter(user -> LastPlatformAdminRule.blocksRevocation(user,
+                        platformAdminRepository::countPlatformAdmins))
                 .ifPresent(user -> {
-                    if (platformAdminRepository.countPlatformAdmins() <= 1) {
-                        throw new LastPlatformAdminException();
-                    }
+                    throw new LastPlatformAdminException();
                 });
         if (getSupplyRepository.existsByOwner(id)) {
             throw new UserOwnsSuppliesException(id);

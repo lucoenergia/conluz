@@ -67,7 +67,7 @@ public class InvitePlatformAdminController {
                     invitation 409 with the `PLATFORM_ADMIN_ALREADY_INVITED` code: resend that one instead.
 
                     If the server cannot send emails right now (no public web URL configured, or email sending \
-                    disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything \
+                    disabled), it responds 503 with the `PLATFORM_ADMIN_INVITATION_UNAVAILABLE` code before anything \
                     is looked up or created.
                     """,
             tags = ApiTag.USERS,
@@ -143,7 +143,7 @@ public class InvitePlatformAdminController {
             ),
             @ApiResponse(
                     responseCode = "503",
-                    description = "The server cannot send invitations right now (`MEMBERSHIP_INVITATION_UNAVAILABLE`). Nothing was recorded.",
+                    description = "The server cannot send invitations right now (`PLATFORM_ADMIN_INVITATION_UNAVAILABLE`). Nothing was recorded.",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class)

@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.platformadmin.invitation;
 
-import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationLoginRequiredException;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationTokenInvalidException;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.InvitationAttempt;
@@ -11,6 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicy;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.GetPlatformAdminInvitationRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.LockPlatformAdminInvitationRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.PlatformAdminInvitationLoginRequiredException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.PlatformAdminInvitation;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.UpdatePlatformAdminInvitationRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenService;
@@ -117,7 +117,7 @@ public class PlatformAdminInvitationAcceptance {
                                          InvitationAttempt attempt) {
         Usable invitation = lockAndFind(rawToken, attempt);
         if (invitation.user().getPassword() != null) {
-            throw new InvitationLoginRequiredException();
+            throw new PlatformAdminInvitationLoginRequiredException();
         }
         PasswordPolicy.check(newPassword);
 

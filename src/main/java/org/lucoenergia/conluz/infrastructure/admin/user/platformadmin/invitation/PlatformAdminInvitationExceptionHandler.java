@@ -3,7 +3,9 @@ package org.lucoenergia.conluz.infrastructure.admin.user.platformadmin.invitatio
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.ConfirmationCodeAttemptsExhaustedException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.ConfirmationCodeInvalidException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.PlatformAdminAlreadyInvitedException;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.PlatformAdminInvitationLoginRequiredException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.PlatformAdminInvitationResendLimitException;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.PlatformAdminInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.PlatformAdminNotInvitedException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.UserAlreadyPlatformAdminException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
@@ -71,6 +73,26 @@ public class PlatformAdminInvitationExceptionHandler {
         return ResponseEntity.status(response.getStatusCode())
                 .header(HttpHeaders.RETRY_AFTER, retryAfterSeconds)
                 .body(response.getBody());
+    }
+
+    /**
+     * A 503 before anything is looked up or written. The warning naming the email category is logged where the
+     * refusal is decided, so it is not logged again here.
+     */
+    @ExceptionHandler(PlatformAdminInvitationUnavailableException.class)
+    public ResponseEntity<RestError> handleException(PlatformAdminInvitationUnavailableException e) {
+        return errorBuilder.buildWithoutLogging(message("error.platform.admin.invitation.unavailable"),
+                RestErrorCode.PLATFORM_ADMIN_INVITATION_UNAVAILABLE, Map.of(), HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    /**
+     * A 409: the account has a password, so it accepts after logging in. An expected answer that the client turns
+     * into a login, so it is not logged.
+     */
+    @ExceptionHandler(PlatformAdminInvitationLoginRequiredException.class)
+    public ResponseEntity<RestError> handleException(PlatformAdminInvitationLoginRequiredException e) {
+        return errorBuilder.buildWithoutLogging(message("error.platform.admin.invitation.login.required"),
+                RestErrorCode.PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED, null, HttpStatus.CONFLICT);
     }
 
     /**

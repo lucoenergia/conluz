@@ -1127,6 +1127,8 @@
               "PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED",
               "PLATFORM_ADMIN_INVITATION_CODE_INVALID",
               "PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED",
+              "PLATFORM_ADMIN_INVITATION_UNAVAILABLE",
+              "PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED",
               "AUTH_TOO_MANY_FAILED_ATTEMPTS",
               "MEMBERSHIP_ALREADY_EXISTS",
               "MEMBERSHIP_ALREADY_INVITED",
@@ -2697,6 +2699,8 @@
               "PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED",
               "PLATFORM_ADMIN_INVITATION_CODE_INVALID",
               "PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED",
+              "PLATFORM_ADMIN_INVITATION_UNAVAILABLE",
+              "PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED",
               "AUTH_TOO_MANY_FAILED_ATTEMPTS",
               "MEMBERSHIP_ALREADY_EXISTS",
               "MEMBERSHIP_ALREADY_INVITED",
@@ -12477,7 +12481,7 @@
     },
     "/api/v1/invitations/accept" : {
       "post" : {
-        "description" : "This endpoint accepts the invitation of an account that has no password yet, with the token from\nthe emailed link `<web client>/accept-invitation#<token>` and the account's first password. It\nrequires no authentication, and any token presented with it is ignored.\n\nThe password must meet the same policy as a password change: between 15 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded.\n\nOn success the server answers 204 with no body: the token is used up, the password is set, the\nmembership is accepted, and, when the account had no email, the member record's contact email\nbecomes its email. The person is not logged in; the client must log in with the new password. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nAn account that already has a password is answered 409 with the\n`MEMBERSHIP_INVITATION_LOGIN_REQUIRED` code: the person must log in and accept with\n`acceptInvitationAsCurrentUser`. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter. In both cases nothing changes and\nthe token can be used again.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nA platform-admin invitation, `PLATFORM` in `inspectInvitation`, also requires `confirmationCode`:\nthe code whoever invited gives the person by another channel. A community invitation ignores it.\nOn success the platform-admin role is granted as well, and, when the account had no email, the\ninvitation's destination email becomes its email. A missing or wrong code is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_INVALID` code: nothing is granted, the attempt counts against the\nclient address and against the invitation, and the link can be used again. The fifth missing or\nwrong code on one invitation revokes its link and is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED` code: the invitation must be sent again. The\ncode is checked after the checks above, which neither count nor use it. A platform-admin\ninvitation whose account is disabled is accepted too: the role is granted, and the account still\ncannot log in.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
+        "description" : "This endpoint accepts the invitation of an account that has no password yet, with the token from\nthe emailed link `<web client>/accept-invitation#<token>` and the account's first password. It\nrequires no authentication, and any token presented with it is ignored.\n\nThe password must meet the same policy as a password change: between 15 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded.\n\nOn success the server answers 204 with no body: the token is used up, the password is set, the\nmembership is accepted, and, when the account had no email, the member record's contact email\nbecomes its email. The person is not logged in; the client must log in with the new password. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nAn account that already has a password is answered 409 with the\n`MEMBERSHIP_INVITATION_LOGIN_REQUIRED` code: the person must log in and accept with\n`acceptInvitationAsCurrentUser`. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter. In both cases nothing changes and\nthe token can be used again.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nA platform-admin invitation, `PLATFORM` in `inspectInvitation`, also requires `confirmationCode`:\nthe code whoever invited gives the person by another channel. A community invitation ignores it.\nOn success the platform-admin role is granted as well, and, when the account had no email, the\ninvitation's destination email becomes its email. A missing or wrong code is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_INVALID` code: nothing is granted, the attempt counts against the\nclient address and against the invitation, and the link can be used again. The fifth missing or\nwrong code on one invitation revokes its link and is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED` code: the invitation must be sent again. The\ncode is checked after the checks above, which neither count nor use it; for a platform-admin\ninvitation, an account that already has a password is answered 409 with the\n`PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED` code instead. A platform-admin\ninvitation whose account is disabled is accepted too: the role is granted, and the account still\ncannot log in.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
         "operationId" : "acceptInvitation",
         "requestBody" : {
           "content" : {
@@ -12503,11 +12507,11 @@
                       "errors" : [
                         {
                           "code" : "MEMBERSHIP_INVITATION_TOKEN_INVALID",
-                          "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                          "message" : "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                           "params" : null
                         }
                       ],
-                      "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                      "message" : "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                       "status" : 400,
                       "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
@@ -12590,6 +12594,22 @@
                       "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
                     }
+                  },
+                  "Login required, platform-admin invitation" : {
+                    "description" : "Login required, platform-admin invitation",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED",
+                          "message" : "This invitation is for an account that already has a password. Log in to accept it.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "This invitation is for an account that already has a password. Log in to accept it.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
                   }
                 },
                 "schema" : {
@@ -12597,7 +12617,7 @@
                 }
               }
             },
-            "description" : "The account already has a password: log in and accept with `acceptInvitationAsCurrentUser`. Nothing changed and the token is still usable."
+            "description" : "The account already has a password: log in and accept with `acceptInvitationAsCurrentUser`. Nothing changed and the token is still usable. `MEMBERSHIP_INVITATION_LOGIN_REQUIRED` for a community invitation, `PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED` for a platform-admin invitation."
           },
           "429" : {
             "content" : {
@@ -12690,11 +12710,11 @@
                       "errors" : [
                         {
                           "code" : "MEMBERSHIP_INVITATION_TOKEN_INVALID",
-                          "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                          "message" : "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                           "params" : null
                         }
                       ],
-                      "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                      "message" : "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                       "status" : 400,
                       "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
@@ -16494,7 +16514,7 @@
     },
     "/api/v1/platform-admins/invite" : {
       "post" : {
-        "description" : "Invites a person with their DNI/NIE/NIF, full name and email, and emails them a link to accept, valid for 7 days. Inviting grants nothing: the role is granted only when the person accepts with the link and the confirmation code in this response, which the inviter gives them by another channel, such as by phone or in person. The code is shown only in this response: no endpoint returns it again, and the email never contains it. Until the person accepts, the invitation is listed by `getPlatformAdmins` as pending, and never counts as a platform admin.\n\nThe account is found with the DNI/NIE/NIF, or created without a password. An existing account is never written, and the response is the same whether or not it existed: the row carries the name and email typed here, nothing from the account. Only a platform admin may invite.\n\nThe DNI/NIE/NIF may be typed in any case, with spaces, dots and hyphens. Once those are removed it must be a valid DNI, NIE or NIF; otherwise it responds 400 with the `USER_PERSONAL_ID_INVALID` code, and nothing is created or sent. A person who already holds the role is answered 409 with the `USER_ALREADY_PLATFORM_ADMIN` code, and one with a pending invitation 409 with the `PLATFORM_ADMIN_ALREADY_INVITED` code: resend that one instead.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is looked up or created.\n",
+        "description" : "Invites a person with their DNI/NIE/NIF, full name and email, and emails them a link to accept, valid for 7 days. Inviting grants nothing: the role is granted only when the person accepts with the link and the confirmation code in this response, which the inviter gives them by another channel, such as by phone or in person. The code is shown only in this response: no endpoint returns it again, and the email never contains it. Until the person accepts, the invitation is listed by `getPlatformAdmins` as pending, and never counts as a platform admin.\n\nThe account is found with the DNI/NIE/NIF, or created without a password. An existing account is never written, and the response is the same whether or not it existed: the row carries the name and email typed here, nothing from the account. Only a platform admin may invite.\n\nThe DNI/NIE/NIF may be typed in any case, with spaces, dots and hyphens. Once those are removed it must be a valid DNI, NIE or NIF; otherwise it responds 400 with the `USER_PERSONAL_ID_INVALID` code, and nothing is created or sent. A person who already holds the role is answered 409 with the `USER_ALREADY_PLATFORM_ADMIN` code, and one with a pending invitation 409 with the `PLATFORM_ADMIN_ALREADY_INVITED` code: resend that one instead.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `PLATFORM_ADMIN_INVITATION_UNAVAILABLE` code before anything is looked up or created.\n",
         "operationId" : "invitePlatformAdmin",
         "requestBody" : {
           "content" : {
@@ -16646,7 +16666,7 @@
                 }
               }
             },
-            "description" : "The server cannot send invitations right now (`MEMBERSHIP_INVITATION_UNAVAILABLE`). Nothing was recorded."
+            "description" : "The server cannot send invitations right now (`PLATFORM_ADMIN_INVITATION_UNAVAILABLE`). Nothing was recorded."
           }
         },
         "security" : [
@@ -16662,7 +16682,7 @@
     },
     "/api/v1/platform-admins/{userId}/invitation/resend" : {
       "post" : {
-        "description" : "Emails the person a new invitation link, at the address the invitation was sent to, and generates a new confirmation code, returned only in this response. The previous link and the previous code stop working, and the count of wrong codes starts again. At most 4 sends in any 24 hours, the first one included: further resends are answered 429 with the `PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED` code and a `Retry-After` header.\n\nAn unknown user is answered 404, and a user without a pending invitation 409 with the `PLATFORM_ADMIN_NOT_INVITED` code. If the server cannot send emails right now, it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded. Only a platform admin may resend.\n",
+        "description" : "Emails the person a new invitation link, at the address the invitation was sent to, and generates a new confirmation code, returned only in this response. The previous link and the previous code stop working, and the count of wrong codes starts again. At most 4 sends in any 24 hours, the first one included: further resends are answered 429 with the `PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED` code and a `Retry-After` header.\n\nAn unknown user is answered 404, and a user without a pending invitation 409 with the `PLATFORM_ADMIN_NOT_INVITED` code. If the server cannot send emails right now, it responds 503 with the `PLATFORM_ADMIN_INVITATION_UNAVAILABLE` code before anything is recorded. Only a platform admin may resend.\n",
         "operationId" : "resendPlatformAdminInvitation",
         "parameters" : [
           {
@@ -16847,7 +16867,7 @@
                 }
               }
             },
-            "description" : "The server cannot send invitations right now (`MEMBERSHIP_INVITATION_UNAVAILABLE`). Nothing was recorded."
+            "description" : "The server cannot send invitations right now (`PLATFORM_ADMIN_INVITATION_UNAVAILABLE`). Nothing was recorded."
           }
         },
         "security" : [
@@ -19995,11 +20015,11 @@
                       "errors" : [
                         {
                           "code" : "MEMBERSHIP_INVITATION_TOKEN_INVALID",
-                          "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                          "message" : "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                           "params" : null
                         }
                       ],
-                      "message" : "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                      "message" : "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                       "status" : 400,
                       "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"

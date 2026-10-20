@@ -70,7 +70,9 @@ public class AcceptInvitationController {
                 client address and against the invitation, and the link can be used again. The fifth missing or
                 wrong code on one invitation revokes its link and is answered 400 with the
                 `PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED` code: the invitation must be sent again. The
-                code is checked after the checks above, which neither count nor use it. A platform-admin
+                code is checked after the checks above, which neither count nor use it; for a platform-admin
+                invitation, an account that already has a password is answered 409 with the
+                `PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED` code instead. A platform-admin
                 invitation whose account is disabled is accepted too: the role is granted, and the account still
                 cannot log in.
 
@@ -139,11 +141,11 @@ public class AcceptInvitationController {
                                                     {
                                                        "timestamp": "2026-10-15T10:10:25.534035352+02:00",
                                                        "status": 400,
-                                                       "message": "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                                                       "message": "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                                                        "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
                                                        "errors": [
                                                          {
-                                                           "message": "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                                                           "message": "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                                                            "code": "MEMBERSHIP_INVITATION_TOKEN_INVALID",
                                                            "params": null
                                                          }
@@ -178,7 +180,9 @@ public class AcceptInvitationController {
                     responseCode = "409",
                     description = """
                             The account already has a password: log in and accept with \
-                            `acceptInvitationAsCurrentUser`. Nothing changed and the token is still usable.""",
+                            `acceptInvitationAsCurrentUser`. Nothing changed and the token is still usable. \
+                            `MEMBERSHIP_INVITATION_LOGIN_REQUIRED` for a community invitation, \
+                            `PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED` for a platform-admin invitation.""",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class),
@@ -195,6 +199,24 @@ public class AcceptInvitationController {
                                                          {
                                                            "message": "This invitation is for an account that already has a password. Log in to accept it.",
                                                            "code": "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
+                                                           "params": null
+                                                         }
+                                                       ]
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Login required, platform-admin invitation",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2026-10-20T10:10:25.534035352+02:00",
+                                                       "status": 409,
+                                                       "message": "This invitation is for an account that already has a password. Log in to accept it.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                                       "errors": [
+                                                         {
+                                                           "message": "This invitation is for an account that already has a password. Log in to accept it.",
+                                                           "code": "PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED",
                                                            "params": null
                                                          }
                                                        ]

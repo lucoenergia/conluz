@@ -9,7 +9,11 @@ import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.admin.user.token.RawOneTimeToken;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.email.EmailSender;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.invitation.PlatformAdminInvitationUnavailableException;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.InvitationLink;
+import org.lucoenergia.conluz.infrastructure.shared.email.EmailProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,12 +29,15 @@ import java.util.UUID;
 @Transactional(propagation = Propagation.MANDATORY)
 public class PlatformAdminInvitationSending {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(PlatformAdminInvitationSending.class);
+
     private final CreateOneTimeTokenService createOneTimeTokenService;
     private final UpdatePlatformAdminInvitationRepository updateInvitationRepository;
     private final GetPlatformAdminInvitationRepository getInvitationRepository;
     private final EmailSender emailSender;
     private final PlatformAdminInvitationEmailFactory emailFactory;
     private final InvitationLink link;
+    private final EmailProperties emailProperties;
     private final Clock clock;
 
     public PlatformAdminInvitationSending(CreateOneTimeTokenService createOneTimeTokenService,
@@ -39,6 +46,7 @@ public class PlatformAdminInvitationSending {
                                           EmailSender emailSender,
                                           PlatformAdminInvitationEmailFactory emailFactory,
                                           InvitationLink link,
+                                          EmailProperties emailProperties,
                                           Clock clock) {
         this.createOneTimeTokenService = createOneTimeTokenService;
         this.updateInvitationRepository = updateInvitationRepository;
@@ -46,7 +54,27 @@ public class PlatformAdminInvitationSending {
         this.emailSender = emailSender;
         this.emailFactory = emailFactory;
         this.link = link;
+        this.emailProperties = emailProperties;
         this.clock = clock;
+    }
+
+    /**
+     * Refuses when the server cannot send the invitation: the public web URL is not configured, or email sending is
+     * disabled. Called before anything is looked up or written: an invitation recorded but never sent would show the
+     * person as invited with nothing in their inbox. Logs one warning naming only the email category.
+     *
+     * @throws PlatformAdminInvitationUnavailableException if the server cannot send
+     */
+    public void requireAvailable() {
+        if (!link.isConfigured()) {
+            LOGGER.warn("Email {} not sent: the public web URL is not configured",
+                    PlatformAdminInvitationEmailFactory.CATEGORY);
+            throw new PlatformAdminInvitationUnavailableException();
+        }
+        if (!emailProperties.isEnabled()) {
+            LOGGER.warn("Email {} not sent: sending is disabled", PlatformAdminInvitationEmailFactory.CATEGORY);
+            throw new PlatformAdminInvitationUnavailableException();
+        }
     }
 
     /**

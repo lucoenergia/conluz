@@ -58,7 +58,7 @@ public class ResendPlatformAdminInvitationController {
 
                     An unknown user is answered 404, and a user without a pending invitation 409 with the \
                     `PLATFORM_ADMIN_NOT_INVITED` code. If the server cannot send emails right now, it responds \
-                    503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded. Only a \
+                    503 with the `PLATFORM_ADMIN_INVITATION_UNAVAILABLE` code before anything is recorded. Only a \
                     platform admin may resend.
                     """,
             tags = ApiTag.USERS,
@@ -147,7 +147,7 @@ public class ResendPlatformAdminInvitationController {
             ),
             @ApiResponse(
                     responseCode = "503",
-                    description = "The server cannot send invitations right now (`MEMBERSHIP_INVITATION_UNAVAILABLE`). Nothing was recorded.",
+                    description = "The server cannot send invitations right now (`PLATFORM_ADMIN_INVITATION_UNAVAILABLE`). Nothing was recorded.",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class)

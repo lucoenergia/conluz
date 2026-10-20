@@ -113,7 +113,7 @@ class PlatformAdminInvitationAcceptanceTest extends BasePlatformAdminInvitationT
 
         acceptPlatform(invitation.token(), newPassword(), invitation.code(), "192.0.2.164")
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_LOGIN_REQUIRED"));
+                .andExpect(jsonPath("$.errors[0].code").value("PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED"));
 
         assertThat(isPlatformAdmin(existing.getId())).isFalse();
         assertThat(platformLinkWorks(invitation.token())).isTrue();

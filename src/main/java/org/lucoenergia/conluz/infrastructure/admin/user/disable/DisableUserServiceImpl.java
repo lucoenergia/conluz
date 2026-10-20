@@ -1,10 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.disable;
 
-import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.disable.DisableUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.disable.DisableUserService;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminRule;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
@@ -33,11 +33,10 @@ public class DisableUserServiceImpl implements DisableUserService {
 
     public void disable(UserId id) {
         getUserRepository.findById(id)
-                .filter(User::isPlatformAdmin)
+                .filter(user -> LastPlatformAdminRule.blocksRevocation(user,
+                        platformAdminRepository::countPlatformAdmins))
                 .ifPresent(user -> {
-                    if (platformAdminRepository.countPlatformAdmins() <= 1) {
-                        throw new LastPlatformAdminException();
-                    }
+                    throw new LastPlatformAdminException();
                 });
         repository.disable(id, clock.instant());
     }

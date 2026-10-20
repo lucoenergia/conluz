@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.user.delete;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembershipRepository;
@@ -58,7 +59,7 @@ class DeleteUserServiceTest {
     @Test
     void delete_withPlatformAdminAndAnotherAdminExists_delegatesToRepository() {
         UserId id = UserId.of(UUID.randomUUID());
-        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).build();
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).enabled(true).build();
         when(lockUserRepository.lock(id)).thenReturn(true);
         when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
         when(platformAdminRepository.countPlatformAdmins()).thenReturn(2L);
@@ -71,7 +72,7 @@ class DeleteUserServiceTest {
     @Test
     void delete_withLastPlatformAdmin_throwsAndDoesNotDelete() {
         UserId id = UserId.of(UUID.randomUUID());
-        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).build();
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).enabled(true).build();
         when(lockUserRepository.lock(id)).thenReturn(true);
         when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
         when(platformAdminRepository.countPlatformAdmins()).thenReturn(1L);
@@ -118,5 +119,32 @@ class DeleteUserServiceTest {
         assertThrows(UserOwnsSuppliesException.class, () -> service().delete(id));
 
         verifyNoInteractions(deleteUserRepository, deleteMembershipRepository);
+    }
+
+    @Test
+    @DisplayName("ACC-009 ACC-013 a disabled platform admin is deleted while only one platform admin is enabled, without counting")
+    void delete_withDisabledPlatformAdmin_isAllowedWhateverTheCount() {
+        UserId id = UserId.of(UUID.randomUUID());
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).enabled(false).build();
+        when(lockUserRepository.lock(id)).thenReturn(true);
+        when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
+
+        service().delete(id);
+
+        verify(deleteUserRepository).delete(id);
+        verify(platformAdminRepository, never()).countPlatformAdmins();
+    }
+
+    @Test
+    @DisplayName("ACC-009 ACC-013 a user without the role is deleted without counting the platform admins")
+    void delete_withNonPlatformAdmin_doesNotCountThePlatformAdmins() {
+        UserId id = UserId.of(UUID.randomUUID());
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(false).enabled(true).build();
+        when(lockUserRepository.lock(id)).thenReturn(true);
+        when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
+
+        service().delete(id);
+
+        verify(platformAdminRepository, never()).countPlatformAdmins();
     }
 }

@@ -82,11 +82,11 @@ public class InspectInvitationController {
                                                     {
                                                        "timestamp": "2026-10-15T10:10:25.534035352+02:00",
                                                        "status": 400,
-                                                       "message": "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                                                       "message": "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                                                        "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
                                                        "errors": [
                                                          {
-                                                           "message": "The invitation link is invalid or has expired. Please ask your community for a new one.",
+                                                           "message": "The invitation link is invalid or has expired. Ask whoever invited you for a new one.",
                                                            "code": "MEMBERSHIP_INVITATION_TOKEN_INVALID",
                                                            "params": null
                                                          }
