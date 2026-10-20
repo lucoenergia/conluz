@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 
 import java.util.Collection;
@@ -164,5 +165,10 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     @Override
     public boolean existsBySupply(SupplyId supplyId) {
         return jpaRepository.existsBySupplyId(supplyId.getId());
+    }
+
+    @Override
+    public boolean existsByPlant(PlantId plantId) {
+        return jpaRepository.existsByPlantId(plantId.getId());
     }
 }

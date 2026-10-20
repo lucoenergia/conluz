@@ -34,4 +34,8 @@ public interface HuaweiConfigRepository extends JpaRepository<HuaweiConfigEntity
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update huawei_config c set c.enabled = :enabled where c.plant.id = :plantId")
     int updateEnabledByPlantId(@Param("plantId") UUID plantId, @Param("enabled") boolean enabled);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from huawei_config c where c.plant.id = :plantId")
+    void deleteByPlantId(@Param("plantId") UUID plantId);
 }

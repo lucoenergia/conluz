@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.GetSharingAgreementFileSummaryRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementFileSummary;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
@@ -82,5 +83,10 @@ public class GetSharingAgreementRepositoryDatabase implements GetSharingAgreemen
     public boolean existsLaterNonDraftAgreement(UUID plantId, UUID excludeSharingAgreementId, Instant afterCreatedAt) {
         return sharingAgreementRepository.existsLaterNonDraftAgreement(
                 plantId, SharingAgreementStatus.DRAFT, afterCreatedAt, excludeSharingAgreementId);
+    }
+
+    @Override
+    public boolean existsByPlant(PlantId plantId) {
+        return sharingAgreementRepository.existsByPlantId(plantId.getId());
     }
 }
