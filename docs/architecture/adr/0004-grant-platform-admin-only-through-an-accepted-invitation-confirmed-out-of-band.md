@@ -25,6 +25,7 @@ ADR-0003 accepts one risk: whoever first accepts an invitation for an account wi
 2. **Keep the pending state in a platform-admin invitation record.** The record holds:
     - the account;
     - the destination email;
+    - the full name typed by the inviter, which the pending row of the list shows, since an existing account is never written;
     - who invited, and when;
     - when it was accepted;
     - the hash of the confirmation code;
@@ -85,6 +86,7 @@ ADR-0003 accepts one risk: whoever first accepts an invitation for an account wi
 **Negative**
 - Accepting needs a second channel: the inviter must deliver the code, and a lost code means a resend.
 - The inspection response gains a kind, and its community becomes nullable for platform invitations. The web client must handle both.
+- **Transitional exception:** `POST /api/v1/users/{userId}/grant-platform-admin` still grants the role directly, because the web client in production uses it and its replacement ships after this backend. It remains until the web client stops using it, and is then removed with the legacy endpoints (#329). Until then it bypasses acceptance, and a pending invitation for the same account stays in place, hidden from the list.
 - **Obligation:** any future invitation to a role with platform-wide reach must require an out-of-band confirmation as well, or record why not in an ADR.
 - **Obligation:** the confirmation code must never be logged, emailed, returned by any read endpoint, or stored in clear. It appears only in the response that generated it.
 - **Obligation:** a pending invitation must never count as a platform admin, in the last-platform-admin rule or anywhere else.
@@ -97,6 +99,7 @@ ADR-0003 accepts one risk: whoever first accepts an invitation for an account wi
 
 - Two-factor authentication is introduced for platform admins: the confirmation code could then be replaced by enrolment during acceptance.
 - The platform gains a verified second channel (for example SMS), which could deliver the code automatically.
+- The web client no longer calls `POST /api/v1/users/{userId}/grant-platform-admin`: the transitional exception can then be removed.
 - Platform-admin invitations become frequent enough that the manual delivery of codes is a real burden (for example, more than a few per month).
 
 ## References
