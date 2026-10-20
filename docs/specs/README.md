@@ -75,3 +75,4 @@ are always called **tests**, never specs.
 | `ACC` | Accounts | [`accounts.md`](accounts.md) |
 | `OTT` | One-time tokens | [`one-time-tokens.md`](one-time-tokens.md) |
 | `SUP` | Supplies | [`supplies.md`](supplies.md) |
+| `PLT` | Plants | [`plants.md`](plants.md) |
