@@ -62,6 +62,18 @@ public class AcceptInvitationController {
                 has already been accepted, or whose account has been disabled, is answered 400 with the
                 `MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.
 
+                A platform-admin invitation, `PLATFORM` in `inspectInvitation`, also requires `confirmationCode`:
+                the code whoever invited gives the person by another channel. A community invitation ignores it.
+                On success the platform-admin role is granted as well, and, when the account had no email, the
+                invitation's destination email becomes its email. A missing or wrong code is answered 400 with the
+                `PLATFORM_ADMIN_INVITATION_CODE_INVALID` code: nothing is granted, the attempt counts against the
+                client address and against the invitation, and the link can be used again. The fifth missing or
+                wrong code on one invitation revokes its link and is answered 400 with the
+                `PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED` code: the invitation must be sent again. The
+                code is checked after the checks above, which neither count nor use it. A platform-admin
+                invitation whose account is disabled is accepted too: the role is granted, and the account still
+                cannot log in.
+
                 Every unusable token counts against the client address, together with failed logins, password
                 changes and password resets: after 20 within 15 minutes, further requests are answered 429 with a
                 Retry-After header until the 15 minutes that started with the first failure have passed.""",
@@ -77,12 +89,50 @@ public class AcceptInvitationController {
                     responseCode = "400",
                     description = """
                             The body is invalid, the token cannot be used (`MEMBERSHIP_INVITATION_TOKEN_INVALID`), \
-                            or the new password breaks the password policy (`USER_PASSWORD_POLICY_VIOLATION`, \
-                            with the failed rule in `params.rule`).""",
+                            the new password breaks the password policy (`USER_PASSWORD_POLICY_VIOLATION`, \
+                            with the failed rule in `params.rule`), or the confirmation code of a platform-admin \
+                            invitation is missing or wrong (`PLATFORM_ADMIN_INVITATION_CODE_INVALID`), for the fifth \
+                            time (`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED`).""",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class),
                             examples = {
+                                    @ExampleObject(
+                                            name = "Wrong confirmation code",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2026-10-20T10:10:25.534035352+02:00",
+                                                       "status": 400,
+                                                       "message": "The confirmation code is missing or wrong. Ask whoever invited you for it.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                                       "errors": [
+                                                         {
+                                                           "message": "The confirmation code is missing or wrong. Ask whoever invited you for it.",
+                                                           "code": "PLATFORM_ADMIN_INVITATION_CODE_INVALID",
+                                                           "params": null
+                                                         }
+                                                       ]
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Too many wrong confirmation codes",
+                                            value = """
+                                                    {
+                                                       "timestamp": "2026-10-20T10:10:25.534035352+02:00",
+                                                       "status": 400,
+                                                       "message": "Too many wrong confirmation codes: the invitation link no longer works. Ask whoever invited you to send the invitation again.",
+                                                       "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                                       "errors": [
+                                                         {
+                                                           "message": "Too many wrong confirmation codes: the invitation link no longer works. Ask whoever invited you to send the invitation again.",
+                                                           "code": "PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED",
+                                                           "params": null
+                                                         }
+                                                       ]
+                                                    }
+                                                    """
+                                    ),
                                     @ExampleObject(
                                             name = "Invalid token",
                                             value = """
@@ -159,7 +209,8 @@ public class AcceptInvitationController {
     @InternalServerErrorResponse
     public ResponseEntity<Void> acceptInvitation(@Valid @RequestBody AcceptInvitationBody body,
                                                  HttpServletRequest request) {
-        service.acceptWithNewPassword(body.getToken(), body.getNewPassword(), request.getRemoteAddr());
+        service.acceptWithNewPassword(body.getToken(), body.getNewPassword(), body.getConfirmationCode(),
+                request.getRemoteAddr());
         return ResponseEntity.noContent().build();
     }
 }

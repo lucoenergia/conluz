@@ -329,6 +329,12 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
                     () -> guard.canRevokePlatformAdmin(otherAdminId));
             assertSame("canRevoke on themselves", platformAdminAssembler.assemble(caller, selfId).isCanRevoke(),
                     () -> guard.canRevokePlatformAdmin(selfId));
+            assertSame("canResendInvitation",
+                    platformAdminAssembler.assemble(caller, otherAdminId).isCanResendInvitation(),
+                    () -> guard.canManagePlatformAdminInvitations());
+            assertSame("canRevokeInvitation",
+                    platformAdminAssembler.assemble(caller, otherAdminId).isCanRevokeInvitation(),
+                    () -> guard.canManagePlatformAdminInvitations());
         });
     }
 
@@ -417,6 +423,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
                     () -> guard.canCreateUserIn(null));
             assertSame("canListPlatformAdmins", capabilities.isCanListPlatformAdmins(),
                     () -> guard.canListPlatformAdmins());
+            assertSame("canInvitePlatformAdmins", capabilities.isCanInvitePlatformAdmins(),
+                    () -> guard.canManagePlatformAdminInvitations());
             // canAdministerPlatform is deliberately absent: it has no guard to be equal to -- it
             // gates a surface rather than an endpoint -- exactly as community.canCreatePlants is
             // absent from theCommunityCapabilitiesEqualTheirGuards. Its anchor is

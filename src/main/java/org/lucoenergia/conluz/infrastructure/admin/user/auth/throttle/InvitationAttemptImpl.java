@@ -27,6 +27,12 @@ final class InvitationAttemptImpl implements InvitationAttempt {
     }
 
     @Override
+    public void failedConfirmationCode() {
+        LOGGER.warn("Refused invitation token: ip={}, reason=WRONG_CONFIRMATION_CODE", clientIp);
+        slot.failed();
+    }
+
+    @Override
     public void succeeded(User user) {
         // The slot was reserved before the token told whose account this is, so the account is reset here rather
         // than through the slot

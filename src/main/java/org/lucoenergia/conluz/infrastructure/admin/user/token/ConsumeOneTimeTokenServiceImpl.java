@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.user.token;
 import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.ConsumeOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenMembership;
+import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPlatformAdminInvitation;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
@@ -39,5 +40,15 @@ public class ConsumeOneTimeTokenServiceImpl implements ConsumeOneTimeTokenServic
             return Optional.empty();
         }
         return repository.consumeForMembership(OneTimeTokenHash.of(rawToken), purpose, clock.instant());
+    }
+
+    @Override
+    public Optional<OneTimeTokenPlatformAdminInvitation> consumeForPlatformAdminInvitation(
+            String rawToken, OneTimeTokenPurpose purpose) {
+        purpose.requireBoundToPlatformAdminInvitation();
+        if (rawToken == null || rawToken.isBlank()) {
+            return Optional.empty();
+        }
+        return repository.consumeForPlatformAdminInvitation(OneTimeTokenHash.of(rawToken), purpose, clock.instant());
     }
 }

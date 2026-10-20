@@ -1,8 +1,34 @@
 {
   "components" : {
     "schemas" : {
+      "AcceptInvitationAsCurrentUserBody" : {
+        "properties" : {
+          "confirmationCode" : {
+            "description" : "The confirmation code of a platform-admin invitation, as whoever invited gave it: 8 characters, in any case, with or without spaces and hyphens. Required when `inspectInvitation` answers `confirmationCodeRequired`; ignored for a community invitation.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "token" : {
+            "description" : "The token from the invitation link: everything after the `#` of `<web client>/accept-invitation#<token>`, exactly as it appears there.",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "token"
+        ],
+        "type" : "object"
+      },
       "AcceptInvitationBody" : {
         "properties" : {
+          "confirmationCode" : {
+            "description" : "The confirmation code of a platform-admin invitation, as whoever invited gave it: 8 characters, in any case, with or without spaces and hyphens. Required when `inspectInvitation` answers `confirmationCodeRequired`; ignored for a community invitation.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "newPassword" : {
             "description" : "The account's first password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed.",
             "minLength" : 15,
@@ -1095,6 +1121,12 @@
               "USER_PASSWORD_RESET_TOKEN_INVALID",
               "USER_OWNS_SUPPLIES",
               "USER_PERSONAL_ID_INVALID",
+              "USER_ALREADY_PLATFORM_ADMIN",
+              "PLATFORM_ADMIN_ALREADY_INVITED",
+              "PLATFORM_ADMIN_NOT_INVITED",
+              "PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED",
+              "PLATFORM_ADMIN_INVITATION_CODE_INVALID",
+              "PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED",
               "AUTH_TOO_MANY_FAILED_ATTEMPTS",
               "MEMBERSHIP_ALREADY_EXISTS",
               "MEMBERSHIP_ALREADY_INVITED",
@@ -1222,7 +1254,23 @@
         "properties" : {
           "community" : {
             "$ref" : "#/components/schemas/CommunityReferenceResponse",
-            "description" : "The community the invitation is for"
+            "description" : "The community the invitation is for. Null for a `PLATFORM` invitation.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "confirmationCodeRequired" : {
+            "description" : "Whether accepting requires the confirmation code that whoever invited gives the person by another channel: true for a `PLATFORM` invitation, false for a `COMMUNITY` one. The code is never sent by email, and no endpoint returns it to the person invited.",
+            "type" : "boolean"
+          },
+          "kind" : {
+            "description" : "What the invitation is for: `COMMUNITY`, a membership of the community in `community`; or `PLATFORM`, the platform-admin role.",
+            "enum" : [
+              "COMMUNITY",
+              "PLATFORM"
+            ],
+            "type" : "string"
           },
           "loginRequired" : {
             "description" : "Whether the person must log in to accept the invitation: true when the account already has a password, so the invitation is accepted through `acceptInvitationAsCurrentUser` after logging in; false when it has none, so it is accepted through `acceptInvitation`, choosing its first password.",
@@ -1231,6 +1279,8 @@
         },
         "required" : [
           "community",
+          "confirmationCodeRequired",
+          "kind",
           "loginRequired"
         ],
         "type" : "object"
@@ -1276,6 +1326,50 @@
           "contactEmail",
           "fullName",
           "personalId"
+        ],
+        "type" : "object"
+      },
+      "InvitePlatformAdminBody" : {
+        "properties" : {
+          "email" : {
+            "description" : "The email address the invitation is sent to. An existing account keeps its own email; one without an email gets this one when the invitation is accepted.",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "fullName" : {
+            "description" : "The person's full name, as the invitation shows it until it is accepted. An existing account keeps its own name.",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "personalId" : {
+            "description" : "The person's DNI/NIE/NIF. It is normalised before it is stored or compared: whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so 12.345.678-a and 12345678A are the same person. A value made only of those removed characters is refused.",
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "email",
+          "fullName",
+          "personalId"
+        ],
+        "type" : "object"
+      },
+      "InvitedPlatformAdminResponse" : {
+        "description" : "A platform-admin invitation just sent, with the confirmation code generated for it.",
+        "properties" : {
+          "confirmationCode" : {
+            "description" : "The confirmation code the person will need to accept: 8 characters from 0-9 and A-Z without I, L, O and U. Shown only in this response, never again by any endpoint, and never sent by email: give it to the person by another channel, such as by phone or in person.",
+            "example" : "7K3MQ9XD",
+            "type" : "string"
+          },
+          "platformAdmin" : {
+            "$ref" : "#/components/schemas/PlatformAdminResponse",
+            "description" : "The invitation's row, as the list of platform admins shows it."
+          }
+        },
+        "required" : [
+          "confirmationCode",
+          "platformAdmin"
         ],
         "type" : "object"
       },
@@ -2261,45 +2355,94 @@
       "PlatformAdminCapabilitiesResponse" : {
         "description" : "What the caller may do with this platform admin.",
         "properties" : {
+          "canResendInvitation" : {
+            "description" : "Whether the caller may resend this row's pending invitation (POST /api/v1/platform-admins/{userId}/invitation/resend). Authorization only: true on every row for a platform admin, including rows without an invitation, where the resend is refused. Whether the row has a pending invitation is its invitation field.",
+            "type" : "boolean"
+          },
           "canRevoke" : {
             "description" : "Whether the caller may revoke this user's platform-admin flag (POST /api/v1/users/{userId}/revoke-platform-admin). Always false when the user is the caller: an admin may not strip their own flag. Whether the revoke would be accepted right now is the platform admin's revocable field.",
+            "type" : "boolean"
+          },
+          "canRevokeInvitation" : {
+            "description" : "Whether the caller may revoke this row's pending invitation link (POST /api/v1/platform-admins/{userId}/invitation/revoke). Authorization only: true on every row for a platform admin, including rows without an invitation, where the revoke is refused. Whether the row has a pending invitation is its invitation field.",
             "type" : "boolean"
           }
         },
         "required" : [
-          "canRevoke"
+          "canResendInvitation",
+          "canRevoke",
+          "canRevokeInvitation"
+        ],
+        "type" : "object"
+      },
+      "PlatformAdminInvitationResponse" : {
+        "description" : "A pending invitation to the platform-admin role.",
+        "properties" : {
+          "expiresAt" : {
+            "description" : "When the invitation's current link expires. Null when it has no link that can still be used: it expired, or it was revoked, by hand or after 5 wrong confirmation codes. Resending issues a new one.",
+            "example" : "2026-01-08T00:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "invitedAt" : {
+            "description" : "When the person was invited.",
+            "example" : "2026-01-01T00:00:00Z",
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "expiresAt",
+          "invitedAt"
         ],
         "type" : "object"
       },
       "PlatformAdminResponse" : {
-        "description" : "A platform admin, identified by their own account.",
+        "description" : "A platform admin, identified by their own account, or a pending invitation to the role.",
         "properties" : {
           "capabilities" : {
             "$ref" : "#/components/schemas/PlatformAdminCapabilitiesResponse",
             "description" : "What the caller may do with this platform admin."
           },
           "email" : {
-            "description" : "The email address of the platform admin's account. Null if there is none.",
+            "description" : "The email address of the platform admin's account. Null if there is none. For a pending invitation, the address the invitation was sent to.",
             "type" : [
               "string",
               "null"
             ]
           },
           "enabled" : {
-            "description" : "Whether the account is enabled. A disabled platform admin keeps the role but cannot log in.",
-            "type" : "boolean"
+            "description" : "Whether the account is enabled. A disabled platform admin keeps the role but cannot log in. Null for a pending invitation, which tells nothing about the account.",
+            "type" : [
+              "boolean",
+              "null"
+            ]
           },
           "fullName" : {
-            "description" : "The platform admin's full name, as their account records it.",
+            "description" : "The platform admin's full name, as their account records it. For a pending invitation, the full name the inviter typed.",
             "type" : "string"
           },
+          "invitation" : {
+            "$ref" : "#/components/schemas/PlatformAdminInvitationResponse",
+            "description" : "The pending invitation to the role. Null for a user holding the role. A pending invitation never counts as a platform admin.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
           "revocable" : {
-            "description" : "Whether revoking this user's platform-admin flag would be accepted right now. False only for the last enabled platform admin, whose revoke is refused with USER_LAST_PLATFORM_ADMIN; a disabled platform admin is always revocable. Independent of capabilities.canRevoke, which says whether the caller may ask for it.",
-            "type" : "boolean"
+            "description" : "Whether revoking this user's platform-admin flag would be accepted right now. False only for the last enabled platform admin, whose revoke is refused with USER_LAST_PLATFORM_ADMIN; a disabled platform admin is always revocable. Independent of capabilities.canRevoke, which says whether the caller may ask for it. Null for a pending invitation, which holds no role to revoke.",
+            "type" : [
+              "boolean",
+              "null"
+            ]
           },
           "user" : {
             "$ref" : "#/components/schemas/UserReferenceResponse",
-            "description" : "The platform admin's account, by id only: the {userId} the platform-admin endpoints take."
+            "description" : "The account, by id only: the {userId} the platform-admin endpoints take."
           }
         },
         "required" : [
@@ -2307,6 +2450,7 @@
           "email",
           "enabled",
           "fullName",
+          "invitation",
           "revocable",
           "user"
         ],
@@ -2327,6 +2471,10 @@
             "description" : "Whether the caller may create a user attached to no community (POST /api/v1/users with no communityId). CommunityCapabilitiesResponse.canCreateUsers answers the same question for one community.",
             "type" : "boolean"
           },
+          "canInvitePlatformAdmins" : {
+            "description" : "Whether the caller may invite a person to the platform-admin role (POST /api/v1/platform-admins/invite).",
+            "type" : "boolean"
+          },
           "canListPlatformAdmins" : {
             "description" : "Whether the caller may list the platform admins (GET /api/v1/platform-admins).",
             "type" : "boolean"
@@ -2340,6 +2488,7 @@
           "canAdministerPlatform",
           "canCreateCommunity",
           "canCreateUsers",
+          "canInvitePlatformAdmins",
           "canListPlatformAdmins",
           "canListUsers"
         ],
@@ -2542,6 +2691,12 @@
               "USER_PASSWORD_RESET_TOKEN_INVALID",
               "USER_OWNS_SUPPLIES",
               "USER_PERSONAL_ID_INVALID",
+              "USER_ALREADY_PLATFORM_ADMIN",
+              "PLATFORM_ADMIN_ALREADY_INVITED",
+              "PLATFORM_ADMIN_NOT_INVITED",
+              "PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED",
+              "PLATFORM_ADMIN_INVITATION_CODE_INVALID",
+              "PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED",
               "AUTH_TOO_MANY_FAILED_ATTEMPTS",
               "MEMBERSHIP_ALREADY_EXISTS",
               "MEMBERSHIP_ALREADY_INVITED",
@@ -12322,7 +12477,7 @@
     },
     "/api/v1/invitations/accept" : {
       "post" : {
-        "description" : "This endpoint accepts the invitation of an account that has no password yet, with the token from\nthe emailed link `<web client>/accept-invitation#<token>` and the account's first password. It\nrequires no authentication, and any token presented with it is ignored.\n\nThe password must meet the same policy as a password change: between 15 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded.\n\nOn success the server answers 204 with no body: the token is used up, the password is set, the\nmembership is accepted, and, when the account had no email, the member record's contact email\nbecomes its email. The person is not logged in; the client must log in with the new password. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nAn account that already has a password is answered 409 with the\n`MEMBERSHIP_INVITATION_LOGIN_REQUIRED` code: the person must log in and accept with\n`acceptInvitationAsCurrentUser`. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter. In both cases nothing changes and\nthe token can be used again.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
+        "description" : "This endpoint accepts the invitation of an account that has no password yet, with the token from\nthe emailed link `<web client>/accept-invitation#<token>` and the account's first password. It\nrequires no authentication, and any token presented with it is ignored.\n\nThe password must meet the same policy as a password change: between 15 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded.\n\nOn success the server answers 204 with no body: the token is used up, the password is set, the\nmembership is accepted, and, when the account had no email, the member record's contact email\nbecomes its email. The person is not logged in; the client must log in with the new password. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nAn account that already has a password is answered 409 with the\n`MEMBERSHIP_INVITATION_LOGIN_REQUIRED` code: the person must log in and accept with\n`acceptInvitationAsCurrentUser`. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter. In both cases nothing changes and\nthe token can be used again.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nA platform-admin invitation, `PLATFORM` in `inspectInvitation`, also requires `confirmationCode`:\nthe code whoever invited gives the person by another channel. A community invitation ignores it.\nOn success the platform-admin role is granted as well, and, when the account had no email, the\ninvitation's destination email becomes its email. A missing or wrong code is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_INVALID` code: nothing is granted, the attempt counts against the\nclient address and against the invitation, and the link can be used again. The fifth missing or\nwrong code on one invitation revokes its link and is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED` code: the invitation must be sent again. The\ncode is checked after the checks above, which neither count nor use it. A platform-admin\ninvitation whose account is disabled is accepted too: the role is granted, and the account still\ncannot log in.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
         "operationId" : "acceptInvitation",
         "requestBody" : {
           "content" : {
@@ -12375,6 +12530,38 @@
                       "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
                     }
+                  },
+                  "Too many wrong confirmation codes" : {
+                    "description" : "Too many wrong confirmation codes",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED",
+                          "message" : "Too many wrong confirmation codes: the invitation link no longer works. Ask whoever invited you to send the invitation again.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "Too many wrong confirmation codes: the invitation link no longer works. Ask whoever invited you to send the invitation again.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Wrong confirmation code" : {
+                    "description" : "Wrong confirmation code",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLATFORM_ADMIN_INVITATION_CODE_INVALID",
+                          "message" : "The confirmation code is missing or wrong. Ask whoever invited you for it.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "The confirmation code is missing or wrong. Ask whoever invited you for it.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
                   }
                 },
                 "schema" : {
@@ -12382,7 +12569,7 @@
                 }
               }
             },
-            "description" : "The body is invalid, the token cannot be used (`MEMBERSHIP_INVITATION_TOKEN_INVALID`), or the new password breaks the password policy (`USER_PASSWORD_POLICY_VIOLATION`, with the failed rule in `params.rule`)."
+            "description" : "The body is invalid, the token cannot be used (`MEMBERSHIP_INVITATION_TOKEN_INVALID`), the new password breaks the password policy (`USER_PASSWORD_POLICY_VIOLATION`, with the failed rule in `params.rule`), or the confirmation code of a platform-admin invitation is missing or wrong (`PLATFORM_ADMIN_INVITATION_CODE_INVALID`), for the fifth time (`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED`)."
           },
           "409" : {
             "content" : {
@@ -12470,7 +12657,7 @@
     },
     "/api/v1/invitations/inspect" : {
       "post" : {
-        "description" : "This endpoint tells the holder of an invitation link, `<web client>/accept-invitation#<token>`,\nwhich community the invitation is for and how to accept it. It requires no authentication, and\nany token presented with it is ignored. It uses up nothing and changes nothing: the link stays\nusable.\n\nWhen `loginRequired` is false, the account has no password: the client asks for a first password\nand accepts with `acceptInvitation`. When it is true, the account already has a password: the\nclient asks the person to log in and accepts with `acceptInvitationAsCurrentUser`.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
+        "description" : "This endpoint tells the holder of an invitation link, `<web client>/accept-invitation#<token>`,\nwhich community the invitation is for and how to accept it. It requires no authentication, and\nany token presented with it is ignored. It uses up nothing and changes nothing: the link stays\nusable.\n\nWhen `loginRequired` is false, the account has no password: the client asks for a first password\nand accepts with `acceptInvitation`. When it is true, the account already has a password: the\nclient asks the person to log in and accepts with `acceptInvitationAsCurrentUser`.\n\n`kind` tells what the invitation is for: `COMMUNITY`, a membership of the community in\n`community`; or `PLATFORM`, the platform-admin role, with `community` null. When\n`confirmationCodeRequired` is true, as it is for every `PLATFORM` invitation, the client also asks\nfor the confirmation code that whoever invited gives the person by another channel, and sends it\nas `confirmationCode` when accepting. A platform-admin invitation whose account is disabled can be\ninspected and accepted too.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
         "operationId" : "inspectInvitation",
         "requestBody" : {
           "content" : {
@@ -16214,7 +16401,7 @@
     },
     "/api/v1/platform-admins" : {
       "get" : {
-        "description" : "Every user with the platform-admin role, enabled or not, by full name and then id: the user id, and the full name, email and state of their own account. No personal id, no member record and no memberships. Each one says whether revoking the role would be accepted right now, and whether the caller may revoke it. Only a platform admin may list them.\n",
+        "description" : "Every user with the platform-admin role, enabled or not, by full name and then id: the user id, and the full name, email and state of their own account. No personal id, no member record and no memberships. Each one says whether revoking the role would be accepted right now, and whether the caller may revoke it. Only a platform admin may list them.\n\nThey are followed by the pending invitations to the role, by the full name typed by the inviter and then id: the user id, the full name and email typed by the inviter, nothing from the account, and `invitation` with when it was sent and when its link expires, null once it has expired or been revoked. `enabled` and `revocable` are null on those rows, and `invitation` is null on the others. A pending invitation never counts as a platform admin, for `revocable` or anything else, and the list never shows a confirmation code.\n",
         "operationId" : "getPlatformAdmins",
         "responses" : {
           "200" : {
@@ -16300,6 +16487,529 @@
           }
         ],
         "summary" : "Lists the platform admins.",
+        "tags" : [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/platform-admins/invite" : {
+      "post" : {
+        "description" : "Invites a person with their DNI/NIE/NIF, full name and email, and emails them a link to accept, valid for 7 days. Inviting grants nothing: the role is granted only when the person accepts with the link and the confirmation code in this response, which the inviter gives them by another channel, such as by phone or in person. The code is shown only in this response: no endpoint returns it again, and the email never contains it. Until the person accepts, the invitation is listed by `getPlatformAdmins` as pending, and never counts as a platform admin.\n\nThe account is found with the DNI/NIE/NIF, or created without a password. An existing account is never written, and the response is the same whether or not it existed: the row carries the name and email typed here, nothing from the account. Only a platform admin may invite.\n\nThe DNI/NIE/NIF may be typed in any case, with spaces, dots and hyphens. Once those are removed it must be a valid DNI, NIE or NIF; otherwise it responds 400 with the `USER_PERSONAL_ID_INVALID` code, and nothing is created or sent. A person who already holds the role is answered 409 with the `USER_ALREADY_PLATFORM_ADMIN` code, and one with a pending invitation 409 with the `PLATFORM_ADMIN_ALREADY_INVITED` code: resend that one instead.\n\nIf the server cannot send emails right now (no public web URL configured, or email sending disabled), it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is looked up or created.\n",
+        "operationId" : "invitePlatformAdmin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InvitePlatformAdminBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InvitedPlatformAdminResponse"
+                }
+              }
+            },
+            "description" : "Person invited: the invitation's row and its confirmation code"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The request is not valid. A body that breaks a validation rule is answered without a code. A `personalId` that is not a valid DNI, NIE or NIF once normalised is answered with the `USER_PERSONAL_ID_INVALID` code, and nothing is created or sent."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "alreadyInvited" : {
+                    "description" : "alreadyInvited",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLATFORM_ADMIN_ALREADY_INVITED",
+                          "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' already has a pending platform-admin invitation.",
+                          "params" : {
+                            "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                          }
+                        }
+                      ],
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' already has a pending platform-admin invitation.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "alreadyPlatformAdmin" : {
+                    "description" : "alreadyPlatformAdmin",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_ALREADY_PLATFORM_ADMIN",
+                          "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is already a platform admin.",
+                          "params" : {
+                            "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                          }
+                        }
+                      ],
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is already a platform admin.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The person already holds the role (`USER_ALREADY_PLATFORM_ADMIN`), or already has a pending invitation (`PLATFORM_ADMIN_ALREADY_INVITED`). Nothing is created or sent."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The server cannot send invitations right now (`MEMBERSHIP_INVITATION_UNAVAILABLE`). Nothing was recorded."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Invites a person to the platform-admin role.",
+        "tags" : [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/platform-admins/{userId}/invitation/resend" : {
+      "post" : {
+        "description" : "Emails the person a new invitation link, at the address the invitation was sent to, and generates a new confirmation code, returned only in this response. The previous link and the previous code stop working, and the count of wrong codes starts again. At most 4 sends in any 24 hours, the first one included: further resends are answered 429 with the `PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED` code and a `Retry-After` header.\n\nAn unknown user is answered 404, and a user without a pending invitation 409 with the `PLATFORM_ADMIN_NOT_INVITED` code. If the server cannot send emails right now, it responds 503 with the `MEMBERSHIP_INVITATION_UNAVAILABLE` code before anything is recorded. Only a platform admin may resend.\n",
+        "operationId" : "resendPlatformAdminInvitation",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InvitedPlatformAdminResponse"
+                }
+              }
+            },
+            "description" : "Invitation sent again: its row and its new confirmation code"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The user does not exist."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "notInvited" : {
+                    "description" : "notInvited",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLATFORM_ADMIN_NOT_INVITED",
+                          "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has no pending platform-admin invitation.",
+                          "params" : {
+                            "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                          }
+                        }
+                      ],
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has no pending platform-admin invitation.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The user has no pending invitation (`PLATFORM_ADMIN_NOT_INVITED`)."
+          },
+          "429" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED",
+                      "message" : "The platform-admin invitation of user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has been sent as many times as allowed in the last 24 hours. Try again in 3600 seconds.",
+                      "params" : {
+                        "retryAfterSeconds" : "3600",
+                        "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                      }
+                    }
+                  ],
+                  "message" : "The platform-admin invitation of user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has been sent as many times as allowed in the last 24 hours. Try again in 3600 seconds.",
+                  "status" : 429,
+                  "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The invitation has been sent 4 times in the last 24 hours (`PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED`). Nothing was recorded.",
+            "headers" : {
+              "Retry-After" : {
+                "description" : "Whole seconds until a resend will be accepted again.",
+                "required" : true,
+                "schema" : {
+                  "format" : "int64",
+                  "type" : "integer"
+                },
+                "style" : "simple"
+              }
+            }
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The server cannot send invitations right now (`MEMBERSHIP_INVITATION_UNAVAILABLE`). Nothing was recorded."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Sends a platform-admin invitation again, with a new link and a new confirmation code.",
+        "tags" : [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/platform-admins/{userId}/invitation/revoke" : {
+      "post" : {
+        "description" : "Revokes the invitation's current link, whether or not it had expired. The invitation stays pending, listed with no valid link, and can be sent again with `resendPlatformAdminInvitation`. Works when the server cannot send emails.\n\nAn unknown user is answered 404, and a user without a pending invitation 409 with the `PLATFORM_ADMIN_NOT_INVITED` code. Only a platform admin may revoke.\n",
+        "operationId" : "revokePlatformAdminInvitation",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlatformAdminResponse"
+                }
+              }
+            },
+            "description" : "Link revoked: the invitation's row, still pending"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The user does not exist."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "notInvited" : {
+                    "description" : "notInvited",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLATFORM_ADMIN_NOT_INVITED",
+                          "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has no pending platform-admin invitation.",
+                          "params" : {
+                            "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                          }
+                        }
+                      ],
+                      "message" : "User with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' has no pending platform-admin invitation.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The user has no pending invitation (`PLATFORM_ADMIN_NOT_INVITED`)."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Stops a platform-admin invitation's link from working.",
         "tags" : [
           "Users"
         ]
@@ -19259,13 +19969,13 @@
     },
     "/api/v1/users/current/invitations/accept" : {
       "post" : {
-        "description" : "This endpoint accepts an invitation of one of the caller's own memberships, with the token from\nthe emailed link `<web client>/accept-invitation#<token>`. It is the way to accept for an account\nthat already has a password; the password is neither read nor changed.\n\nOn success the server answers 204 with no body: the token is used up and the membership is\naccepted. The client should then read the current user again to see the new membership. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nA token of another account's membership is answered like any unusable token.\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nA caller who must change their password is answered 403 with the `USER_PASSWORD_CHANGE_REQUIRED`\ncode before the token is looked at; the link stays usable once the password has been changed.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.\n\n**Required: any authenticated user (accepts their own membership).**",
+        "description" : "This endpoint accepts an invitation of one of the caller's own memberships, with the token from\nthe emailed link `<web client>/accept-invitation#<token>`. It is the way to accept for an account\nthat already has a password; the password is neither read nor changed.\n\nOn success the server answers 204 with no body: the token is used up and the membership is\naccepted. The client should then read the current user again to see the new membership. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nA token of another account's membership is answered like any unusable token.\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nA caller who must change their password is answered 403 with the `USER_PASSWORD_CHANGE_REQUIRED`\ncode before the token is looked at; the link stays usable once the password has been changed.\n\nA platform-admin invitation, `PLATFORM` in `inspectInvitation`, also requires `confirmationCode`:\nthe code whoever invited gives the person by another channel. A community invitation ignores it.\nOn success the platform-admin role is granted, and, when the account had no email, the\ninvitation's destination email becomes its email. A missing or wrong code is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_INVALID` code: nothing is granted, the attempt counts against the\nclient address and against the invitation, and the link can be used again. The fifth missing or\nwrong code on one invitation revokes its link and is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED` code: the invitation must be sent again.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.\n\n**Required: any authenticated user (accepts their own membership).**",
         "operationId" : "acceptInvitationAsCurrentUser",
         "requestBody" : {
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/InvitationTokenBody"
+                "$ref" : "#/components/schemas/AcceptInvitationAsCurrentUserBody"
               }
             }
           },
@@ -19294,6 +20004,38 @@
                       "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
                     }
+                  },
+                  "Too many wrong confirmation codes" : {
+                    "description" : "Too many wrong confirmation codes",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED",
+                          "message" : "Too many wrong confirmation codes: the invitation link no longer works. Ask whoever invited you to send the invitation again.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "Too many wrong confirmation codes: the invitation link no longer works. Ask whoever invited you to send the invitation again.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Wrong confirmation code" : {
+                    "description" : "Wrong confirmation code",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLATFORM_ADMIN_INVITATION_CODE_INVALID",
+                          "message" : "The confirmation code is missing or wrong. Ask whoever invited you for it.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "The confirmation code is missing or wrong. Ask whoever invited you for it.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-20T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
                   }
                 },
                 "schema" : {
@@ -19301,7 +20043,7 @@
                 }
               }
             },
-            "description" : "The body is invalid, or the token cannot be used by the caller (`MEMBERSHIP_INVITATION_TOKEN_INVALID`)."
+            "description" : "The body is invalid, the token cannot be used by the caller (`MEMBERSHIP_INVITATION_TOKEN_INVALID`), or the confirmation code of a platform-admin invitation is missing or wrong (`PLATFORM_ADMIN_INVITATION_CODE_INVALID`), for the fifth time (`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED`)."
           },
           "401" : {
             "content" : {

@@ -24,4 +24,13 @@ public interface RevokeOneTimeTokenService {
      * @throws IllegalArgumentException    if the purpose is bound only to a user
      */
     boolean revokeForMembership(UserId userId, UUID communityId, OneTimeTokenPurpose purpose);
+
+    /**
+     * Revokes the active token of the purpose issued for the invitation, locking the user row, then the invitation
+     * row, first.
+     *
+     * @return whether a token was revoked
+     * @throws IllegalArgumentException if the purpose is not bound to a platform-admin invitation
+     */
+    boolean revokeForPlatformAdminInvitation(UserId userId, UUID invitationId, OneTimeTokenPurpose purpose);
 }

@@ -31,7 +31,7 @@ class CapabilitySerializationTest {
     void everyCapabilityIsSerialisedUnderItsCanSomethingName() throws Exception {
         assertKeys(PlatformCapabilitiesResponse.builder().build(),
                 Set.of("canCreateCommunity", "canListUsers", "canAdministerPlatform", "canCreateUsers",
-                        "canListPlatformAdmins"));
+                        "canListPlatformAdmins", "canInvitePlatformAdmins"));
 
         assertKeys(CommunityCapabilitiesResponse.builder().build(),
                 Set.of("canRead", "canUpdate", "canEnable", "canDisable", "canManageAdmins", "canManage",
@@ -61,7 +61,7 @@ class CapabilitySerializationTest {
                 Set.of("canReadSharingAgreement"));
 
         assertKeys(PlatformAdminCapabilitiesResponse.builder().build(),
-                Set.of("canRevoke"));
+                Set.of("canRevoke", "canResendInvitation", "canRevokeInvitation"));
     }
 
     /**

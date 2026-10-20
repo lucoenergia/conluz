@@ -48,6 +48,13 @@ public class InspectInvitationController {
                 and accepts with `acceptInvitation`. When it is true, the account already has a password: the
                 client asks the person to log in and accepts with `acceptInvitationAsCurrentUser`.
 
+                `kind` tells what the invitation is for: `COMMUNITY`, a membership of the community in
+                `community`; or `PLATFORM`, the platform-admin role, with `community` null. When
+                `confirmationCodeRequired` is true, as it is for every `PLATFORM` invitation, the client also asks
+                for the confirmation code that whoever invited gives the person by another channel, and sends it
+                as `confirmationCode` when accepting. A platform-admin invitation whose account is disabled can be
+                inspected and accepted too.
+
                 A token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership
                 has already been accepted, or whose account has been disabled, is answered 400 with the
                 `MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.

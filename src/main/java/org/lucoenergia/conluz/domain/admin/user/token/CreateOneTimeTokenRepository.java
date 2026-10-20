@@ -32,4 +32,10 @@ public interface CreateOneTimeTokenRepository {
      */
     void replaceActiveForMembership(UserId userId, UUID communityId, OneTimeTokenPurpose purpose, String tokenHash,
                                     Instant createdAt, Instant expiresAt);
+
+    /**
+     * Locks the user row, then the invitation row, revokes the invitation's active token and stores a new one.
+     */
+    void replaceActiveForPlatformAdminInvitation(UserId userId, UUID invitationId, OneTimeTokenPurpose purpose,
+                                                 String tokenHash, Instant createdAt, Instant expiresAt);
 }

@@ -17,6 +17,12 @@ public interface InvitationAttempt extends AutoCloseable {
     void failed();
 
     /**
+     * Counts a missing or wrong confirmation code of a platform-admin invitation against the client address, and
+     * logs it. The code is never logged.
+     */
+    void failedConfirmationCode();
+
+    /**
      * Resets the counter of the user's account, so that failed logins counted against the account while it had no
      * password do not keep the person from logging in with the password just set. The client address's counter is
      * never reset.

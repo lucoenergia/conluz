@@ -81,4 +81,29 @@ public interface GetOneTimeTokenService {
      * @throws IllegalArgumentException if the purpose is bound only to a user
      */
     Map<UUID, Instant> findValidExpiriesInCommunity(UUID communityId, OneTimeTokenPurpose purpose);
+
+    /**
+     * The platform-admin invitation of a valid token, without consuming or locking anything.
+     *
+     * @return empty if the token is null, blank, unknown, of another purpose, used, revoked or expired
+     * @throws IllegalArgumentException if the purpose is not bound to a platform-admin invitation
+     */
+    Optional<OneTimeTokenPlatformAdminInvitation> findPlatformAdminInvitation(String rawToken,
+                                                                              OneTimeTokenPurpose purpose);
+
+    /**
+     * How many tokens of the purpose were issued for the invitation since an instant, whatever their state.
+     *
+     * @throws IllegalArgumentException if the purpose is not bound to a platform-admin invitation, or the instant
+     *         is before the retention period
+     */
+    long countIssuedForPlatformAdminInvitationSince(UUID invitationId, OneTimeTokenPurpose purpose, Instant since);
+
+    /**
+     * When the earliest of the tokens counted by {@link #countIssuedForPlatformAdminInvitationSince} was issued.
+     *
+     * @throws IllegalArgumentException as {@link #countIssuedForPlatformAdminInvitationSince}
+     */
+    Optional<Instant> findEarliestIssuedForPlatformAdminInvitationSince(UUID invitationId,
+                                                                        OneTimeTokenPurpose purpose, Instant since);
 }

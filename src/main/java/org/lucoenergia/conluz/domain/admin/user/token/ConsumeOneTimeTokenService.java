@@ -51,4 +51,14 @@ public interface ConsumeOneTimeTokenService {
      * @throws IllegalArgumentException if the purpose is bound only to a user
      */
     Optional<OneTimeTokenMembership> consumeForMembership(String rawToken, OneTimeTokenPurpose purpose);
+
+    /**
+     * Consumes a valid token issued for a platform-admin invitation. Callers lock the user row, then the invitation
+     * row, before calling it, and check that the invitation returned is the one they locked.
+     *
+     * @return the invitation, or empty if the token is not valid; nothing is consumed then
+     * @throws IllegalArgumentException if the purpose is not bound to a platform-admin invitation
+     */
+    Optional<OneTimeTokenPlatformAdminInvitation> consumeForPlatformAdminInvitation(String rawToken,
+                                                                                    OneTimeTokenPurpose purpose);
 }

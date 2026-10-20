@@ -12,7 +12,8 @@ import java.time.Duration;
 public enum OneTimeTokenPurpose {
 
     PASSWORD_RESET(Duration.ofDays(1), OneTimeTokenScope.USER),
-    INVITATION(Duration.ofDays(7), OneTimeTokenScope.MEMBERSHIP);
+    INVITATION(Duration.ofDays(7), OneTimeTokenScope.MEMBERSHIP),
+    PLATFORM_ADMIN_INVITATION(Duration.ofDays(7), OneTimeTokenScope.PLATFORM_ADMIN_INVITATION);
 
     private final Duration lifetime;
     private final OneTimeTokenScope scope;
@@ -48,6 +49,13 @@ public enum OneTimeTokenPurpose {
      */
     public void requireBoundToMembership() {
         requireScope(OneTimeTokenScope.MEMBERSHIP);
+    }
+
+    /**
+     * @throws IllegalArgumentException if this purpose is not bound to a platform-admin invitation
+     */
+    public void requireBoundToPlatformAdminInvitation() {
+        requireScope(OneTimeTokenScope.PLATFORM_ADMIN_INVITATION);
     }
 
     private void requireScope(OneTimeTokenScope expected) {

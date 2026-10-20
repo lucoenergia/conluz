@@ -14,5 +14,10 @@ public enum OneTimeTokenScope {
     /**
      * Bound to a membership of the user: at most one active token per membership, whatever its purpose.
      */
-    MEMBERSHIP
+    MEMBERSHIP,
+
+    /**
+     * Bound to a platform-admin invitation of the user: at most one active token per invitation.
+     */
+    PLATFORM_ADMIN_INVITATION
 }

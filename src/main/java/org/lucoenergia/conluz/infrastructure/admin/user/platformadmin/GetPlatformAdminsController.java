@@ -5,7 +5,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.GetPlatformAdminsService;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.GetPlatformAdminListService;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.PendingPlatformAdmin;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.PlatformAdmin;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.PlatformAdminListEntry;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PlatformAdminCapabilitiesAssembler;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -27,10 +30,10 @@ import java.util.List;
 )
 public class GetPlatformAdminsController {
 
-    private final GetPlatformAdminsService service;
+    private final GetPlatformAdminListService service;
     private final PlatformAdminCapabilitiesAssembler capabilitiesAssembler;
 
-    public GetPlatformAdminsController(GetPlatformAdminsService service,
+    public GetPlatformAdminsController(GetPlatformAdminListService service,
                                        PlatformAdminCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
@@ -44,6 +47,13 @@ public class GetPlatformAdminsController {
                     and the full name, email and state of their own account. No personal id, no member record and \
                     no memberships. Each one says whether revoking the role would be accepted right now, and \
                     whether the caller may revoke it. Only a platform admin may list them.
+
+                    They are followed by the pending invitations to the role, by the full name typed by the \
+                    inviter and then id: the user id, the full name and email typed by the inviter, nothing from \
+                    the account, and `invitation` with when it was sent and when its link expires, null once \
+                    it has expired or been revoked. `enabled` and `revocable` are null on those rows, and \
+                    `invitation` is null on the others. A pending invitation never counts as a platform admin, \
+                    for `revocable` or anything else, and the list never shows a confirmation code.
                     """,
             tags = ApiTag.USERS,
             operationId = "getPlatformAdmins",
@@ -62,8 +72,15 @@ public class GetPlatformAdminsController {
     @PreAuthorize("@communityAccessGuard.canListPlatformAdmins()")
     public List<PlatformAdminResponse> getPlatformAdmins(@AuthenticationPrincipal User currentUser) {
         return service.findAll().stream()
-                .map(admin -> new PlatformAdminResponse(admin,
-                        capabilitiesAssembler.assemble(currentUser, admin.user().getId())))
+                .map(entry -> toResponse(entry, currentUser))
                 .toList();
+    }
+
+    private PlatformAdminResponse toResponse(PlatformAdminListEntry entry, User currentUser) {
+        if (entry instanceof PlatformAdmin admin) {
+            return new PlatformAdminResponse(admin, capabilitiesAssembler.assemble(currentUser, admin.user().getId()));
+        }
+        PendingPlatformAdmin pending = (PendingPlatformAdmin) entry;
+        return new PlatformAdminResponse(pending, capabilitiesAssembler.assemble(currentUser, pending.userId()));
     }
 }

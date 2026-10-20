@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Platform-admin invitation tokens are bound to the invitation (#452, ADR-0004 §3), as community
+         invitation tokens are bound to the membership.
+
+         platform_admin_invitation_id NULL means the token is not bound to a platform-admin invitation.
+         Every existing row keeps NULL: none of them is a platform-admin invitation token, so there is no
+         backfill.
+
+         Deleting an invitation deletes its tokens (ON DELETE CASCADE): a token issued for an invitation
+         that no longer exists must not stay usable.
+
+         one_time_token_single_binding_check allows a token to be bound to at most one of a membership and
+         a platform-admin invitation.
+
+         one_time_token_platform_admin_invitation_created_at_idx serves counting the tokens issued for an
+         invitation since an instant. bind_one_time_token_active_index_to_platform_admin_invitation then
+         adds the active-token invariant for invitation-bound tokens. -->
+    <changeSet id="add_platform_admin_invitation_id_to_one_time_token" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add platform_admin_invitation_id to one_time_token: platform_admin_invitation or one_time_token does not exist, or the column already exists.">
+            <tableExists tableName="one_time_token"/>
+            <tableExists tableName="platform_admin_invitation"/>
+            <not>
+                <columnExists tableName="one_time_token" columnName="platform_admin_invitation_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="one_time_token">
+            <column name="platform_admin_invitation_id" type="UUID"
+                    remarks="The platform-admin invitation the token was issued for. NULL means the token is not bound to one.">
+                <constraints nullable="true"
+                             foreignKeyName="one_time_token_platform_admin_invitation_id_fk"
+                             referencedTableName="platform_admin_invitation" referencedColumnNames="id"
+                             deleteCascade="true"/>
+            </column>
+        </addColumn>
+        <createIndex tableName="one_time_token" indexName="one_time_token_platform_admin_invitation_created_at_idx">
+            <column name="platform_admin_invitation_id"/>
+            <column name="created_at"/>
+        </createIndex>
+        <sql>
+            ALTER TABLE one_time_token ADD CONSTRAINT one_time_token_single_binding_check
+            CHECK (num_nonnulls(membership_id, platform_admin_invitation_id) &lt;= 1)
+        </sql>
+        <rollback>
+            <sql>
+                ALTER TABLE one_time_token DROP CONSTRAINT one_time_token_single_binding_check
+            </sql>
+            <dropIndex tableName="one_time_token" indexName="one_time_token_platform_admin_invitation_created_at_idx"/>
+            <dropColumn tableName="one_time_token" columnName="platform_admin_invitation_id"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

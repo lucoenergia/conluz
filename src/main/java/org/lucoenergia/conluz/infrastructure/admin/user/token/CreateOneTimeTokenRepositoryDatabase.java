@@ -47,4 +47,19 @@ public class CreateOneTimeTokenRepositoryDatabase implements CreateOneTimeTokenR
         jpaRepository.saveAndFlush(new OneTimeTokenEntity(UUID.randomUUID(), userId.getId(), membershipId, purpose,
                 tokenHash, createdAt, expiresAt));
     }
+
+    @Override
+    public void replaceActiveForPlatformAdminInvitation(UserId userId, UUID invitationId, OneTimeTokenPurpose purpose,
+                                                        String tokenHash, Instant createdAt, Instant expiresAt) {
+        // The user row, then the invitation row, then the token rows, as for a membership
+        if (jpaRepository.lockUser(userId.getId()).isEmpty()) {
+            throw new UserNotFoundException(userId);
+        }
+        if (jpaRepository.lockPlatformAdminInvitation(invitationId).isEmpty()) {
+            throw new IllegalStateException("The platform-admin invitation " + invitationId + " does not exist");
+        }
+        jpaRepository.revokeActiveOfPlatformAdminInvitation(invitationId, createdAt);
+        jpaRepository.saveAndFlush(OneTimeTokenEntity.forPlatformAdminInvitation(UUID.randomUUID(), userId.getId(),
+                invitationId, purpose, tokenHash, createdAt, expiresAt));
+    }
 }

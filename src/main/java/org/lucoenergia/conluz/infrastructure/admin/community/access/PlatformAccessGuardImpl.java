@@ -65,6 +65,11 @@ class PlatformAccessGuardImpl implements PlatformAccessGuard {
         return policy.canAdministerOtherUser(user, userId).isAllowed();
     }
 
+    @Override
+    public boolean canManagePlatformAdminInvitations() {
+        return administersPlatform();
+    }
+
     private boolean administersPlatform() {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {

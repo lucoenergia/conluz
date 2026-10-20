@@ -36,4 +36,12 @@ public interface CreateOneTimeTokenService {
      * @throws IllegalArgumentException    if the purpose is bound only to a user
      */
     RawOneTimeToken issueForMembership(UserId userId, UUID communityId, OneTimeTokenPurpose purpose);
+
+    /**
+     * Issues a token for a platform-admin invitation of the user, revoking the invitation's active one. Locks the
+     * user row, then the invitation row, before the token rows.
+     *
+     * @throws IllegalArgumentException if the purpose is not bound to a platform-admin invitation
+     */
+    RawOneTimeToken issueForPlatformAdminInvitation(UserId userId, UUID invitationId, OneTimeTokenPurpose purpose);
 }

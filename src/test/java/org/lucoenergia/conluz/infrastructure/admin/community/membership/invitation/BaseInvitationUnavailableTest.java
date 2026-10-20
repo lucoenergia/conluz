@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.UpdateMembershipInvitationRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
@@ -13,6 +14,7 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseRegisterMemberTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -174,6 +176,32 @@ abstract class BaseInvitationUnavailableTest extends BaseRegisterMemberTest {
         assertThat(tokenCount(existing.getPersonalId())).isZero();
         verify(emailSender, never()).send(any());
         assertTheOneWarning();
+    }
+
+    @Test
+    @DisplayName("ACC-018 inviting a platform admin is refused with 503 before anything is looked up or created, and "
+            + "one warning names only the email category")
+    void aPlatformAdminInvitation_isRefusedBeforeAnythingIsLookedUp() throws Exception {
+        String bearer = loginAsPlatformAdmin();
+        String personalId = UserMother.randomPersonalId();
+        remember(personalId);
+        deleteAfterwards(personalId);
+        logs.clear();
+
+        String response = mockMvc.perform(post("/api/v1/platform-admins/invite")
+                        .header(HttpHeaders.AUTHORIZATION, bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("personalId", personalId,
+                                "fullName", "Irene Operadora Plataforma", "email", newEmail()))))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_UNAVAILABLE"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertNotLookedUp(personalId);
+        assertThat(accountCount(personalId)).isZero();
+        verify(emailSender, never()).send(any());
+        assertTheOneWarning();
+        assertNoSecretIn(response);
     }
 
     protected void assertTheOneWarning() {

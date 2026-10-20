@@ -27,4 +27,10 @@ public class RevokeOneTimeTokenServiceImpl implements RevokeOneTimeTokenService 
         purpose.requireBoundToMembership();
         return repository.revokeActiveForMembership(userId, communityId, purpose, clock.instant());
     }
+
+    @Override
+    public boolean revokeForPlatformAdminInvitation(UserId userId, UUID invitationId, OneTimeTokenPurpose purpose) {
+        purpose.requireBoundToPlatformAdminInvitation();
+        return repository.revokeActiveForPlatformAdminInvitation(userId, invitationId, purpose, clock.instant());
+    }
 }
