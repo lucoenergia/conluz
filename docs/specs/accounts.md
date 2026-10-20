@@ -120,15 +120,19 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   (`enableUser`), disable (`disableUser`) or delete (`deleteUser`) the account of another user they can see,
   whatever their role in that user's communities, and nothing MUST be written. A user they cannot see MUST keep
   being answered 404. A community admin MAY still edit their own account through `updateUser`, and MUST still be
-  refused enabling, disabling or deleting it. The platform admin's access to the four operations, and the refusal
-  to disable or delete the last enabled platform admin, MUST NOT change. A member's data in a community is
+  refused enabling, disabling or deleting it. The platform admin's access to the four operations MUST NOT change.
+  Disabling a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN` exactly when ACC-013's
+  last-platform-admin rule would refuse revoking their role: only an **enabled** platform admin while no more than
+  one platform admin is enabled. A disabled platform admin MAY be disabled again whatever the number of enabled
+  platform admins. A member's data in a community is
   changed on their member record (#416); a member is suspended in a community by disabling their membership
   (MEM-027).
 - **Rationale:** An account belongs to the person, and the same account can belong to several communities
   (ADR-0003 §1). Its email receives the password recovery link, so a community admin who could change it could
   take the account over, together with its access to every other community. Disabling or deleting it would
   remove the person from every community, not only the admin's.
-- **Source:** #415, ADR-0003 §1
+- **Source:** #415, ADR-0003 §1. #452 applied ACC-013's last-platform-admin rule, which until then refused any
+  platform admin while at most one was enabled, whoever the target was.
 
 ### ACC-009 — Deleting an account deletes its memberships, and is refused for a supply owner
 
@@ -136,8 +140,10 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 - **Rule:** Deleting a user (`deleteUser`) MUST, in one transaction, delete every membership of the user, in every
   community, with its member record and its tokens, and then the account with its remaining tokens (OTT-005). A
   user who owns a supply in any community, enabled or not, MUST be refused with 409 `USER_OWNS_SUPPLIES`, and
-  nothing MUST be deleted. The refusal to delete the last enabled platform admin (409 `USER_LAST_PLATFORM_ADMIN`)
-  and who may delete a user (ACC-008) MUST NOT change. Memberships the user invited MUST be kept, with no inviter
+  nothing MUST be deleted. Deleting a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN`, and nothing
+  deleted, exactly when ACC-013's last-platform-admin rule would refuse revoking their role: only an **enabled**
+  platform admin while no more than one platform admin is enabled; a disabled platform admin MAY be deleted. Who may
+  delete a user (ACC-008) MUST NOT change. Memberships the user invited MUST be kept, with no inviter
   (MEM-003); sharing agreements and distributor files the user created, edited or uploaded MUST be kept, with no
   creator, editor or uploader. The deletion MUST lock the user row before checking for supplies; supply creation
   locks the same row (SUP-002), so a supply created at the same time either refuses the deletion or finds the user
@@ -148,7 +154,8 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   deleting its owner; a supply owner's access is withdrawn by disabling the account (`disableUser`). Who invited a
   member, or created, edited or uploaded an agreement's records, is a historical detail; the records themselves
   belong to the community and must outlive the person.
-- **Source:** #412, ADR-0003 §1
+- **Source:** #412, ADR-0003 §1. #452 applied ACC-013's last-platform-admin rule, which until then refused any
+  platform admin while at most one was enabled, whoever the target was.
 
 ### ACC-010 — Member registration, admin invitations and the member import accept only a valid DNI, NIE or NIF
 
@@ -309,7 +316,7 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 - **Rule:** Inviting a platform admin (`invitePlatformAdmin`) MUST be allowed only to a platform admin; any other
   caller MUST be refused with 403, and an anonymous one with 401. The personal ID, the full name and the email are
   required. The checks MUST run in this order:
-  1. a server that cannot send invitations MUST answer 503 `MEMBERSHIP_INVITATION_UNAVAILABLE` before anything is
+  1. a server that cannot send invitations MUST answer 503 `PLATFORM_ADMIN_INVITATION_UNAVAILABLE` before anything is
      looked up or written;
   2. an invalid personal ID MUST be refused as ACC-010 says;
   3. the account is found or created (ACC-017) and locked;
@@ -332,7 +339,7 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   platform-admin invitation MUST be allowed only to a platform admin; any other caller MUST be refused with 403, and
   an anonymous one with 401. An unknown user MUST be answered 404, and a user without a pending invitation 409
   `PLATFORM_ADMIN_NOT_INVITED`. Both lock the user row, then the invitation row, then the token rows.
-  - Resending MUST answer 503 `MEMBERSHIP_INVITATION_UNAVAILABLE` when the server cannot send, before anything is
+  - Resending MUST answer 503 `PLATFORM_ADMIN_INVITATION_UNAVAILABLE` when the server cannot send, before anything is
     written; MUST allow at most 4 sends per invitation in any 24 hours, the first one included, and answer 429
     `PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED` with `Retry-After` beyond them, as MEM-010 does; and otherwise
     MUST revoke the previous link, issue a new one and a new code, reset the count of failed code attempts, answer

@@ -257,7 +257,8 @@ lazily, as issues touch it.
   usable invitation token — unknown, malformed, expired, used or revoked; of a membership or a platform-admin
   invitation that is no longer pending; of a community invitation's disabled account; or, on
   `acceptInvitationAsCurrentUser`, of another account's membership or invitation — MUST be
-  answered 400 `MEMBERSHIP_INVITATION_TOKEN_INVALID`, identically in every case, and MUST change nothing. Each such
+  answered 400 `MEMBERSHIP_INVITATION_TOKEN_INVALID`, identically in every case and whatever the kind of
+  invitation, with a message that names no community, and MUST change nothing. Each such
   answer MUST count as one failure against the client address (#332) and MUST be logged as one warning with the
   client address only. Over the address's limit, the three endpoints MUST answer 429 with `Retry-After` before the
   token is looked at.
@@ -281,9 +282,9 @@ lazily, as issues touch it.
      record's contact email when the account has no email and the record has one, mark the membership accepted,
      and answer 204 with no body and no session. Neither refusal counts against the client address.
 
-  For a platform-admin invitation, the code is checked after the first two steps (ACC-016), the invitation's
-  destination email takes the place of the contact email, and accepting grants the role (ACC-014). A community
-  invitation ignores the code.
+  For a platform-admin invitation, the first refusal is answered 409 `PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED`
+  instead, the code is checked after the first two steps (ACC-016), the invitation's destination email takes the
+  place of the contact email, and accepting grants the role (ACC-014). A community invitation ignores the code.
 - **Rationale:** An account without a password proves the person by choosing its first password through the link
   sent to the member record's contact email (ADR-0003 §6, §7). An account with a password proves the person by
   logging in, and the link never sets or changes an existing password. The policy is checked before the token is
