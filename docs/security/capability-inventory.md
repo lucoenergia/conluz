@@ -70,6 +70,7 @@ must not read another person's record and conclude something about its own permi
 | `canAdministerPlatform` | *(no guard — see below)* | — |
 | `canCreateUsers` | `canCreateUserIn(null)` | `POST /users` with no `communityId` |
 | `canListPlatformAdmins` | `canListPlatformAdmins` | `GET /platform-admins` |
+| `canInvitePlatformAdmins` | `canManagePlatformAdminInvitations` | `POST /platform-admins/invite` |
 
 Both of the last two sit on the **platform** scope because neither names a resource.
 `canAdministerPlatform` gates a *surface* — the communities administration page, the platform
@@ -82,14 +83,14 @@ authenticated caller may call it, scoped to the communities they can see — so 
 communities **administration page** is not a fact about that listing. It is a decision about
 administering the platform, and this is the capability that says so.
 
-Four of the five coincide today, and the doc says so rather than leaving a reader to discover it:
-`canCreateCommunity`, `canAdministerPlatform` and `canListPlatformAdmins` are the *same expression*,
-all reading `PlatformAccessPolicy.canAdministerPlatform` — there is no `canCreateCommunity` or
-`canListPlatformAdmins` policy method — and
+Five of the six coincide today, and the doc says so rather than leaving a reader to discover it:
+`canCreateCommunity`, `canAdministerPlatform`, `canListPlatformAdmins` and `canInvitePlatformAdmins`
+are the *same expression*, all reading `PlatformAccessPolicy.canAdministerPlatform` — there is no
+`canCreateCommunity`, `canListPlatformAdmins` or `canInvitePlatformAdmins` policy method — and
 `UserAccessPolicy.canCreateIn(caller, null)` reduces to the same predicate a third time, since its
 platform-admin branch runs before the community is considered. They answer different questions —
 "may I open the administration surface", "may I create a community", "may I create a user belonging
-to no community", "may I see who the platform admins are" — and are kept apart so any one can diverge without a call site changing, the same
+to no community", "may I see who the platform admins are", "may I invite a platform admin" — and are kept apart so any one can diverge without a call site changing, the same
 argument made below for the sharing-agreement pair.
 
 The cost of that, stated plainly: while they coincide **no test can tell them apart**, so swapping
@@ -242,8 +243,10 @@ Each row of `GET /api/v1/platform-admins`.
 | Capability | Guard |
 |---|---|
 | `canRevoke` | `canRevokePlatformAdmin` |
+| `canResendInvitation` | `canManagePlatformAdminInvitations` |
+| `canRevokeInvitation` | `canManagePlatformAdminInvitations` |
 
-It reads the same policy as `UserResponse.capabilities.canRevokePlatformAdmin`, and like it is always
+`canRevoke` reads the same policy as `UserResponse.capabilities.canRevokePlatformAdmin`, and like it is always
 `false` on the caller's own row. It is decided from the caller and the row's id alone, so the list
 costs no query per row.
 
@@ -251,6 +254,14 @@ The last-platform-admin rule is **not** part of it (rule 1): revoking the last e
 is refused with 409 `USER_LAST_PLATFORM_ADMIN`, and that is state. The row reports it separately as
 `revocable`, computed per row from the loaded list by the same `LastPlatformAdminRule` the revoke
 applies: false only for the last enabled platform admin, true for a disabled one. A client offers the revoke when both are `true`.
+
+The list also holds the pending invitations to the role (ADR-0004 §7). `canResendInvitation` and
+`canRevokeInvitation` read the same policy as the guard of `POST /platform-admins/invite`, `…/{userId}/invitation/resend`
+and `…/{userId}/invitation/revoke`, and are `true` on **every** row for a platform admin, including
+rows without an invitation: whether a row is a pending invitation is state, reported as the row's
+`invitation` (rule 1). A client offers the role's revoke only on rows without an invitation, and the
+invitation's resend and revoke only on rows with one. On a pending row `revocable` and `enabled` are
+`null`, since the row holds no role and tells nothing about the account.
 
 ### Membership — `MembershipResponse.capabilities`
 

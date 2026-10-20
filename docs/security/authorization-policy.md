@@ -25,6 +25,12 @@ objects the API returns, which report one endpoint's decision each and are liste
   - List, view, create, edit and remove users globally.
   - List, view, create, edit and remove communities.
   - Add and remove admins to/from communities.
+  - Invite a person to the platform-admin role, and resend or revoke a pending invitation
+    (`POST /api/v1/platform-admins/invite`, `…/{userId}/invitation/resend|revoke`). Inviting grants
+    nothing: the role is granted only when the person accepts with the link and the confirmation code
+    the inviter gives them out of band (ADR-0004, ACC-014). Granting by id
+    (`POST /api/v1/users/{userId}/grant-platform-admin`) remains as a transitional exception until the
+    web client stops using it (ADR-0004, #329).
 - Community admins (scoped to the community they administer) can:
   - Enable and disable the memberships of their members (`POST /api/v1/communities/{communityId}/memberships/{userId}/enable|disable`),
     which only an active admin of the community may do: no platform-admin bypass, and an admin's

@@ -92,15 +92,43 @@ Table "one_time_token" {
   "used_at" timestamp [note: 'When the token was used. NULL if it has not been used.']
   "revoked_at" timestamp [note: 'When the token was revoked. NULL if it has not been revoked.']
   "membership_id" uuid [note: 'The membership the token was issued for. NULL means the token is bound only to its user.']
+  "platform_admin_invitation_id" uuid [note: 'The platform-admin invitation the token was issued for. NULL means the token is not bound to one.']
+
+  Checks {
+    `(num_nonnulls(membership_id, platform_admin_invitation_id) <= 1)` [name: 'one_time_token_single_binding_check']
+  }
 
   Indexes {
     `LEAST(expires_at,used_at,revoked_at)` [type: btree, name: "one_time_token_finished_at_idx"]
     (membership_id, created_at) [type: btree, name: "one_time_token_membership_created_at_idx"]
     membership_id [type: btree, unique, name: "one_time_token_membership_one_active_uq", note: 'WHERE membership_id IS NOT NULL AND used_at IS NULL AND revoked_at IS NULL']
-    (user_id, purpose) [type: btree, unique, name: "one_time_token_one_active_uq", note: 'WHERE membership_id IS NULL AND used_at IS NULL AND revoked_at IS NULL']
+    (user_id, purpose) [type: btree, unique, name: "one_time_token_one_active_uq", note: 'WHERE membership_id IS NULL AND platform_admin_invitation_id IS NULL AND used_at IS NULL AND revoked_at IS NULL']
+    (platform_admin_invitation_id, created_at) [type: btree, name: "one_time_token_platform_admin_invitation_created_at_idx"]
+    platform_admin_invitation_id [type: btree, unique, name: "one_time_token_platform_admin_invitation_one_active_uq", note: 'WHERE platform_admin_invitation_id IS NOT NULL AND used_at IS NULL AND revoked_at IS NULL']
     (user_id, purpose, created_at) [type: btree, name: "one_time_token_user_purpose_created_at_idx"]
   }
   Note: 'One-time tokens issued to a user for one purpose. Only the hash of each token is stored.'
+}
+
+Table "platform_admin_invitation" {
+  "id" uuid [pk, not null]
+  "user_id" uuid [not null, note: 'The account invited to become a platform admin.']
+  "email" "character varying(250)" [not null, note: 'The email address the invitation is sent to.']
+  "full_name" "character varying(250)" [not null, note: 'The full name as typed by the inviter.']
+  "invited_by" uuid [note: 'The platform admin who invited. NULL if that account has been deleted.']
+  "invited_at" timestamp [not null, note: 'When the invitation was created.']
+  "accepted_at" timestamp [note: 'When the invitation was accepted. NULL while it is pending.']
+  "confirmation_code_hash" "character varying(64)" [not null, note: 'Lowercase hex SHA-256 hash of the current confirmation code.']
+  "failed_code_attempts" integer [not null, default: 0, note: 'How many wrong or missing confirmation codes have been tried since the current code was generated.']
+
+  Checks {
+    `(failed_code_attempts >= 0)` [name: 'platform_admin_invitation_failed_code_attempts_check']
+  }
+
+  Indexes {
+    user_id [type: btree, unique, name: "platform_admin_invitation_user_id_pending_uq", note: 'WHERE accepted_at IS NULL']
+  }
+  Note: 'Invitations to become a platform admin. Only the hash of each confirmation code is stored.'
 }
 
 Table "plants" {
@@ -223,6 +251,12 @@ Ref "datadis_config_community_id_fk":"communities"."id" <? "datadis_config"."com
 Ref "huawei_config_plant_id_fk":"plants"."id" ?<? "huawei_config"."plant_id"
 
 Ref "one_time_token_membership_id_fk":"community_memberships"."id" ?<? "one_time_token"."membership_id" [delete: cascade]
+
+Ref "one_time_token_platform_admin_invitation_id_fk":"platform_admin_invitation"."id" ?<? "one_time_token"."platform_admin_invitation_id" [delete: cascade]
+
+Ref "platform_admin_invitation_invited_by_fk":"users"."id" ?<? "platform_admin_invitation"."invited_by" [delete: set null]
+
+Ref "platform_admin_invitation_user_id_fk":"users"."id" <? "platform_admin_invitation"."user_id" [delete: cascade]
 
 Ref "one_time_token_user_id_fk":"users"."id" <? "one_time_token"."user_id" [delete: cascade]
 
