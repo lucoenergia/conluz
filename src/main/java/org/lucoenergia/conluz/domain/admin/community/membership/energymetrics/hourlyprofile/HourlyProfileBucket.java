@@ -12,16 +12,16 @@ package org.lucoenergia.conluz.domain.admin.community.membership.energymetrics.h
 public class HourlyProfileBucket {
 
     private final int hour;
-    private final Double averageConsumptionKWh;
-    private final long consumptionSampleCount;
+    private final Double averageTotalConsumptionKWh;
+    private final long totalConsumptionSampleCount;
     private final Double averageAssignedProductionKWh;
     private final long assignedProductionSampleCount;
 
-    public HourlyProfileBucket(int hour, Double averageConsumptionKWh, long consumptionSampleCount,
+    public HourlyProfileBucket(int hour, Double averageTotalConsumptionKWh, long totalConsumptionSampleCount,
                                Double averageAssignedProductionKWh, long assignedProductionSampleCount) {
         this.hour = hour;
-        this.averageConsumptionKWh = averageConsumptionKWh;
-        this.consumptionSampleCount = consumptionSampleCount;
+        this.averageTotalConsumptionKWh = averageTotalConsumptionKWh;
+        this.totalConsumptionSampleCount = totalConsumptionSampleCount;
         this.averageAssignedProductionKWh = averageAssignedProductionKWh;
         this.assignedProductionSampleCount = assignedProductionSampleCount;
     }
@@ -43,12 +43,12 @@ public class HourlyProfileBucket {
     /**
      * The average consumption of the samples found for this hour, or null when there is none.
      */
-    public Double getAverageConsumptionKWh() {
-        return averageConsumptionKWh;
+    public Double getAverageTotalConsumptionKWh() {
+        return averageTotalConsumptionKWh;
     }
 
-    public long getConsumptionSampleCount() {
-        return consumptionSampleCount;
+    public long getTotalConsumptionSampleCount() {
+        return totalConsumptionSampleCount;
     }
 
     /**

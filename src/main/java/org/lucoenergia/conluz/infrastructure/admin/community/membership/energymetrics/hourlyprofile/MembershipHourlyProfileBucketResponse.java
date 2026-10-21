@@ -39,8 +39,8 @@ public class MembershipHourlyProfileBucketResponse {
 
     public MembershipHourlyProfileBucketResponse(HourlyProfileBucket bucket) {
         this.hour = bucket.getHour();
-        this.averageTotalConsumptionKWh = bucket.getAverageConsumptionKWh();
-        this.totalConsumptionSampleCount = bucket.getConsumptionSampleCount();
+        this.averageTotalConsumptionKWh = bucket.getAverageTotalConsumptionKWh();
+        this.totalConsumptionSampleCount = bucket.getTotalConsumptionSampleCount();
         this.averageAssignedProductionKWh = bucket.getAverageAssignedProductionKWh();
         this.assignedProductionSampleCount = bucket.getAssignedProductionSampleCount();
     }
