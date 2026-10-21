@@ -105,7 +105,7 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("EVL-002 AC7 the membership monthly series states it rounds the unrounded per-supply sum once")
+    @DisplayName("EVL-002 the membership monthly series states it rounds the unrounded per-supply sum once")
     void theMembershipMonthlySeriesStatesItRoundsOnce() throws Exception {
         String description = operationDescription(MEMBERSHIP_MONTHLY_PATH);
 
