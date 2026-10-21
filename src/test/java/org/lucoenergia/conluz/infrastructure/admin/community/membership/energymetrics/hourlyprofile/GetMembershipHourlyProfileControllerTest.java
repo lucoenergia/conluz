@@ -137,8 +137,8 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         assertEquals(aggregated.path("period"), profile.path("period"));
         assertEquals("2026-07-01T00:00:00+02:00", profile.path("period").path("startDate").asText());
         JsonNode noon = profile.path("buckets").path(12);
-        assertEquals(7d, noon.path("averageConsumptionKWh").asDouble(), TOLERANCE);
-        assertEquals(1L, noon.path("consumptionSampleCount").asLong());
+        assertEquals(7d, noon.path("averageTotalConsumptionKWh").asDouble(), TOLERANCE);
+        assertEquals(1L, noon.path("totalConsumptionSampleCount").asLong());
     }
 
     /**
@@ -194,9 +194,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
 
         request(community, member, loginUser(member))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.buckets[10].averageConsumptionKWh").value(closeTo(8.0, TOLERANCE)))
-                .andExpect(jsonPath("$.buckets[10].averageConsumptionKWh").value(not(closeTo(6.0, 1e-3))))
-                .andExpect(jsonPath("$.buckets[10].consumptionSampleCount").value(4))
+                .andExpect(jsonPath("$.buckets[10].averageTotalConsumptionKWh").value(closeTo(8.0, TOLERANCE)))
+                .andExpect(jsonPath("$.buckets[10].averageTotalConsumptionKWh").value(not(closeTo(6.0, 1e-3))))
+                .andExpect(jsonPath("$.buckets[10].totalConsumptionSampleCount").value(4))
                 .andExpect(jsonPath("$.buckets[10].averageAssignedProductionKWh").value(closeTo(5.0, TOLERANCE)))
                 .andExpect(jsonPath("$.buckets[10].averageAssignedProductionKWh").value(not(closeTo(4.0, 1e-3))))
                 .andExpect(jsonPath("$.buckets[10].assignedProductionSampleCount").value(4));
@@ -218,9 +218,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
 
         request(community, member, loginUser(member))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.buckets[3]").value(hasEntry(is("averageConsumptionKWh"), nullValue())))
+                .andExpect(jsonPath("$.buckets[3]").value(hasEntry(is("averageTotalConsumptionKWh"), nullValue())))
                 .andExpect(jsonPath("$.buckets[3]").value(hasEntry(is("averageAssignedProductionKWh"), nullValue())))
-                .andExpect(jsonPath("$.buckets[3].consumptionSampleCount").value(0))
+                .andExpect(jsonPath("$.buckets[3].totalConsumptionSampleCount").value(0))
                 .andExpect(jsonPath("$.buckets[3].assignedProductionSampleCount").value(0));
     }
 
@@ -243,7 +243,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.buckets[2].averageAssignedProductionKWh").value(0.0))
                 .andExpect(jsonPath("$.buckets[2].assignedProductionSampleCount").value(2))
-                .andExpect(jsonPath("$.buckets[2].averageConsumptionKWh").value(closeTo(0.4, 1e-6)))
+                .andExpect(jsonPath("$.buckets[2].averageTotalConsumptionKWh").value(closeTo(0.4, 1e-6)))
                 .andExpect(jsonPath("$.buckets[3]").value(hasEntry(is("averageAssignedProductionKWh"), nullValue())))
                 .andExpect(jsonPath("$.buckets[3].assignedProductionSampleCount").value(0));
     }
@@ -262,8 +262,8 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
 
         request(community, member, loginUser(member))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.buckets[20].averageConsumptionKWh").value(closeTo(3.0, 1e-6)))
-                .andExpect(jsonPath("$.buckets[20].consumptionSampleCount").value(2))
+                .andExpect(jsonPath("$.buckets[20].averageTotalConsumptionKWh").value(closeTo(3.0, 1e-6)))
+                .andExpect(jsonPath("$.buckets[20].totalConsumptionSampleCount").value(2))
                 .andExpect(jsonPath("$.buckets[20]").value(hasEntry(is("averageAssignedProductionKWh"), nullValue())))
                 .andExpect(jsonPath("$.buckets[20].assignedProductionSampleCount").value(0));
     }
@@ -284,9 +284,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
 
         request(community, member, loginUser(member))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.buckets[12].averageConsumptionKWh").value(closeTo(6.0, 1e-6)))
-                .andExpect(jsonPath("$.buckets[12].consumptionSampleCount").value(1))
-                .andExpect(jsonPath("$.buckets[10].consumptionSampleCount").value(0));
+                .andExpect(jsonPath("$.buckets[12].averageTotalConsumptionKWh").value(closeTo(6.0, 1e-6)))
+                .andExpect(jsonPath("$.buckets[12].totalConsumptionSampleCount").value(1))
+                .andExpect(jsonPath("$.buckets[10].totalConsumptionSampleCount").value(0));
     }
 
     // --- AC8: daylight saving transitions ---
@@ -321,11 +321,11 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.period.endDate").value("2026-10-31T23:00:00+01:00"))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(745))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(745))
-                .andExpect(jsonPath("$.buckets[2].consumptionSampleCount").value(32))
-                .andExpect(jsonPath("$.buckets[2].averageConsumptionKWh").value(closeTo(63.0 / 32, 1e-6)));
+                .andExpect(jsonPath("$.buckets[2].totalConsumptionSampleCount").value(32))
+                .andExpect(jsonPath("$.buckets[2].averageTotalConsumptionKWh").value(closeTo(63.0 / 32, 1e-6)));
         for (int hour : List.of(0, 1, 3, 4, 12, 23)) {
-            response.andExpect(jsonPath("$.buckets[" + hour + "].consumptionSampleCount").value(31))
-                    .andExpect(jsonPath("$.buckets[" + hour + "].averageConsumptionKWh").value(closeTo(1.0, 1e-6)));
+            response.andExpect(jsonPath("$.buckets[" + hour + "].totalConsumptionSampleCount").value(31))
+                    .andExpect(jsonPath("$.buckets[" + hour + "].averageTotalConsumptionKWh").value(closeTo(1.0, 1e-6)));
         }
     }
 
@@ -355,12 +355,12 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.coverage.expectedHours").value(743))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(743))
                 .andExpect(jsonPath("$.buckets.length()").value(24))
-                .andExpect(jsonPath("$.buckets[2].consumptionSampleCount").value(30))
-                .andExpect(jsonPath("$.buckets[2].averageConsumptionKWh").value(closeTo(1.0, 1e-6)))
-                .andExpect(jsonPath("$.buckets[3].consumptionSampleCount").value(31))
-                .andExpect(jsonPath("$.buckets[3].averageConsumptionKWh").value(closeTo(2.0, 1e-6)));
+                .andExpect(jsonPath("$.buckets[2].totalConsumptionSampleCount").value(30))
+                .andExpect(jsonPath("$.buckets[2].averageTotalConsumptionKWh").value(closeTo(1.0, 1e-6)))
+                .andExpect(jsonPath("$.buckets[3].totalConsumptionSampleCount").value(31))
+                .andExpect(jsonPath("$.buckets[3].averageTotalConsumptionKWh").value(closeTo(2.0, 1e-6)));
         for (int hour : List.of(0, 1, 4, 12, 23)) {
-            response.andExpect(jsonPath("$.buckets[" + hour + "].consumptionSampleCount").value(31));
+            response.andExpect(jsonPath("$.buckets[" + hour + "].totalConsumptionSampleCount").value(31));
         }
     }
 
@@ -503,9 +503,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         for (int hour = 0; hour < 24; hour++) {
             String bucket = "$.buckets[" + hour + "]";
             response.andExpect(jsonPath(bucket + ".hour").value(hour))
-                    .andExpect(jsonPath(bucket).value(hasEntry(is("averageConsumptionKWh"), nullValue())))
+                    .andExpect(jsonPath(bucket).value(hasEntry(is("averageTotalConsumptionKWh"), nullValue())))
                     .andExpect(jsonPath(bucket).value(hasEntry(is("averageAssignedProductionKWh"), nullValue())))
-                    .andExpect(jsonPath(bucket + ".consumptionSampleCount").value(0))
+                    .andExpect(jsonPath(bucket + ".totalConsumptionSampleCount").value(0))
                     .andExpect(jsonPath(bucket + ".assignedProductionSampleCount").value(0));
         }
     }
