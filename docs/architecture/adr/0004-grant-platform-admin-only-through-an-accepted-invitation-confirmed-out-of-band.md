@@ -7,7 +7,7 @@
 
 ## Context
 
-The platform-admin role is granted with `POST /api/v1/users/{userId}/grant-platform-admin`, which takes a user id. Today the platform admin finds that id on the users page, through `GET /api/v1/users`. #329 removes that page and closes the platform admin's access to users and to community rosters. Afterwards, the only user ids a platform admin sees are those of community admins (`GET /api/v1/communities/{communityId}/admins`, #395) and of other platform admins (`GET /api/v1/platform-admins`, #451). `/init` creates the first platform admin and works only once. A platform operator who administers no community therefore cannot be appointed from the app.
+The platform-admin role is granted with `POST /api/v1/users/{userId}/grant-platform-admin`, which takes a user id (removed in #447; see the transitional exception under "Consequences"). Today the platform admin finds that id on the users page, through `GET /api/v1/users`. #329 removes that page and closes the platform admin's access to users and to community rosters. Afterwards, the only user ids a platform admin sees are those of community admins (`GET /api/v1/communities/{communityId}/admins`, #395) and of other platform admins (`GET /api/v1/platform-admins`, #451). `/init` creates the first platform admin and works only once. A platform operator who administers no community therefore cannot be appointed from the app.
 
 Community admins and members are never appointed directly. Under ADR-0003:
 - the account is found or created silently by its personal ID;
@@ -87,6 +87,7 @@ ADR-0003 accepts one risk: whoever first accepts an invitation for an account wi
 - Accepting needs a second channel: the inviter must deliver the code, and a lost code means a resend.
 - The inspection response gains a kind, and its community becomes nullable for platform invitations. The web client must handle both.
 - **Transitional exception:** `POST /api/v1/users/{userId}/grant-platform-admin` still grants the role directly, because the web client in production uses it and its replacement ships after this backend. It remains until the web client stops using it, and is then removed with the legacy endpoints (#329). Until then it bypasses acceptance, and a pending invitation for the same account stays in place, hidden from the list.
+  **Closed on 2026-10-21 by #447:** the web client no longer calls it (conluz-web#285, conluz-web#288), and the endpoint is removed, with its guard and the `canGrantPlatformAdmin` capability. The role is now held only by the first admin created by `/init` and by people who accepted a platform-admin invitation with its confirmation code, so AC15 of #329 holds.
 - **Obligation:** any future invitation to a role with platform-wide reach must require an out-of-band confirmation as well, or record why not in an ADR.
 - **Obligation:** the confirmation code must never be logged, emailed, returned by any read endpoint, or stored in clear. It appears only in the response that generated it.
 - **Obligation:** a pending invitation must never count as a platform admin, in the last-platform-admin rule or anywhere else.
@@ -99,12 +100,12 @@ ADR-0003 accepts one risk: whoever first accepts an invitation for an account wi
 
 - Two-factor authentication is introduced for platform admins: the confirmation code could then be replaced by enrolment during acceptance.
 - The platform gains a verified second channel (for example SMS), which could deliver the code automatically.
-- The web client no longer calls `POST /api/v1/users/{userId}/grant-platform-admin`: the transitional exception can then be removed.
+- ~~The web client no longer calls `POST /api/v1/users/{userId}/grant-platform-admin`: the transitional exception can then be removed.~~ Done in #447, on 2026-10-21.
 - Platform-admin invitations become frequent enough that the manual delivery of codes is a real burden (for example, more than a few per month).
 
 ## References
 
 - ADR-0002 (one-time tokens), ADR-0003 (accounts, member records and invitations)
-- #391 (tokens bound to memberships), #394 (acceptance), #395 (community admin management), #451 (list of platform admins), #452 (this decision's implementation)
-- conluz-web#274 (acceptance screen)
+- #391 (tokens bound to memberships), #394 (acceptance), #395 (community admin management), #451 (list of platform admins), #452 (this decision's implementation), #447 (removal of the transitional exception)
+- conluz-web#274 (acceptance screen), conluz-web#285 and conluz-web#288 (the web client stops granting by id)
 - `docs/specs/accounts.md`, `docs/specs/one-time-tokens.md`

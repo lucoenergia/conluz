@@ -94,7 +94,7 @@ The goal is that the platform admin never sees members' personal data, and that 
 ### 9. Transition
 
 The change is introduced additively. The remaining steps are tracked in #329:
-- **Existing endpoints stay as they are.** `POST /api/v1/users` and the current CSV import keep creating active memberships until they are retired, and the new flows live on new endpoints.
+- **Existing endpoints stay as they are.** `POST /api/v1/users` and the current CSV import keep creating active memberships until they are retired, and the new flows live on new endpoints. They were retired in #447, together with `PUT /api/v1/users/{userId}` and `POST /api/v1/communities/{communityId}/memberships`.
 - **The embedded user carries the member record's data** in responses scoped to a community, and in user responses read by a community admin, until the web client reads member records (#396). Its shape is unchanged, so the client keeps working.
 - **The embedded user is then removed** from community-admin responses, together with the platform admin's access to users and memberships.
 
@@ -170,6 +170,6 @@ The change is introduced additively. The remaining steps are tracked in #329:
   - `users`, `community_memberships` and `one_time_token`, with their changesets.
   - `CallerMemberships`, `UserAccessPolicy`, `UserScope`, `UserRepository.findAllVisible`, `CommunityContextFilter`, `MembershipAccessPolicy`, `CommunityAccessGuardHelper`.
   - `MembershipResponse`, `UserResponse`, `CurrentUserResponse`, `CommunityResponse`.
-  - `CreateUserServiceImpl`, `CreateMembershipService`, `CreateOneTimeTokenService`, `GetOneTimeTokenService`, `ConsumeOneTimeTokenService`, `LockUserRepository`.
+  - `CreateUserServiceImpl`, `CreateMembershipService` (removed in #447), `CreateOneTimeTokenService`, `GetOneTimeTokenService`, `ConsumeOneTimeTokenService`, `LockUserRepository`.
   - `docs/security/authorization-policy.md`, `docs/security/authentication-throttling.md`.
 - `lucoenergia/conluz-web`: the screens that move to member records and the invitation acceptance screen (`/accept-invitation`), tracked in #329.

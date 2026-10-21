@@ -68,35 +68,33 @@ must not read another person's record and conclude something about its own permi
 | `canCreateCommunity` | `canCreateCommunity` | `POST /communities` |
 | `canListUsers` | `canListUsers` | `GET /users` |
 | `canAdministerPlatform` | *(no guard — see below)* | — |
-| `canCreateUsers` | `canCreateUserIn(null)` | `POST /users` with no `communityId` |
 | `canListPlatformAdmins` | `canListPlatformAdmins` | `GET /platform-admins` |
 | `canInvitePlatformAdmins` | `canManagePlatformAdminInvitations` | `POST /platform-admins/invite` |
 
 Both of the last two sit on the **platform** scope because neither names a resource.
 `canAdministerPlatform` gates a *surface* — the communities administration page, the platform
-overview, the landing route. `canCreateUsers` is the no-community case of creating a user;
-`CommunityResponse.capabilities.canCreateUsers` answers the same question for one community, which is
-what a community admin gets.
+overview, the landing route.
 
-`canListUsers` and `canCreateUsers` stay in the contract, but neither is a platform admin's any more
-(#446, ACC-020). `canListUsers` is `true` only for an active community admin of at least one
-community, a platform admin included only when it is one. `canCreateUsers` is `false` for **every**
-caller: nobody may create a user attached to no community.
+`canListUsers` stays in the contract, but is not a platform admin's any more (#446, ACC-020): it is
+`true` only for an active community admin of at least one community, a platform admin included only
+when it is one. `canCreateUsers`, which reported creating a user with no community, was removed with
+that endpoint (#447).
 
 Note what `canAdministerPlatform` is *not*. `GET /api/v1/communities` is deliberately ungated — any
 authenticated caller may call it, scoped to the communities they can see — so who reaches the
 communities **administration page** is not a fact about that listing. It is a decision about
 administering the platform, and this is the capability that says so.
 
-Four of the six coincide today, and the doc says so rather than leaving a reader to discover it:
+Four of the five coincide today, and the doc says so rather than leaving a reader to discover it:
 `canCreateCommunity`, `canAdministerPlatform`, `canListPlatformAdmins` and `canInvitePlatformAdmins`
 are the *same expression*, all reading `PlatformAccessPolicy.canAdministerPlatform` — there is no
 `canCreateCommunity`, `canListPlatformAdmins` or `canInvitePlatformAdmins` policy method. They answer
 different questions — "may I open the administration surface", "may I create a community", "may I see
 who the platform admins are", "may I invite a platform admin" — and are kept apart so any one can
 diverge without a call site changing, the same argument made below for the sharing-agreement pair.
-`canCreateUsers` used to be a fifth, through the platform-admin branch of
-`UserAccessPolicy.canCreateIn`; it diverged in #446, which is the reason for keeping them apart.
+`canCreateUsers` used to be another, through the platform-admin branch of
+`UserAccessPolicy.canCreateIn`; it diverged in #446, which is the reason for keeping them apart, and was
+removed with the endpoint it reported in #447.
 
 The cost of that, stated plainly: while they coincide **no test can tell them apart**, so swapping
 one for another would be caught only once the rules diverge. The guard against it is a comment on
@@ -119,15 +117,15 @@ with no guard".
 | `canManageMembershipInvestment` | `canManageMembershipInvestment` |
 | `canListPlants` | `canListPlants` |
 | `canCreatePlants` | *(no guard — see below)* |
-| `canCreateUsers` | `canCreateUserIn` |
 | `canReadProduction` | `canReadCommunityProduction` |
 | `canListSupplies` | `canListSupplies` |
 
 `canUpdate`, `canEnable`, `canDisable` and `canManageAdmins` are platform-wide decisions: administering
 a community does not confer them. `canReadProduction` and `canListSupplies` are the opposite — membership, not
-administration, so a platform admin who is not a member gets neither. Nor does it get `canManageMemberships`
-or `canCreateUsers`: the roster and the creation of users belong to the community's own admins (#446,
-MEM-031, ACC-020).
+administration, so a platform admin who is not a member gets neither. Nor does it get `canManageMemberships`:
+the roster belongs to the community's own admins (#446, MEM-031, ACC-020). `canManageMemberships` reports the
+roster, the role change and the deletion; the membership creation it also covered, and `canCreateUsers`, were
+removed with their endpoints in #447.
 
 ### Supply — `SupplyResponse.capabilities`
 
@@ -200,20 +198,19 @@ web gate the link on both capabilities.
 | Capability | Guard |
 |---|---|
 | `canRead` | `canReadUser` |
-| `canEdit` | `canEditUser` |
 | `canDelete` | `canDeleteUser` |
 | `canEnable` | `canEnableUser` |
 | `canDisable` | `canDisableUser` |
-| `canGrantPlatformAdmin` | `canGrantPlatformAdmin` |
 | `canRevokePlatformAdmin` | `canRevokePlatformAdmin` |
 | `canListSupplies` | `canListSuppliesOfUser` |
 
-`canEdit`, `canDelete`, `canEnable` and `canDisable` are `false` for every caller on any other user:
-a community admin may not change another user's account, whatever their role in that user's
-communities (#415, ACC-008), and neither may a platform admin (#446, ACC-020). A community admin on
-their own record still gets `canEdit`. A platform admin receives another user's `UserResponse` only
-through a community it administers, and then gets what a community admin gets, plus
-`canGrantPlatformAdmin` and `canRevokePlatformAdmin`, which stay for the role management.
+`canDelete`, `canEnable` and `canDisable` are `false` for every caller on any other user: a community
+admin may not change another user's account, whatever their role in that user's communities (#415,
+ACC-008), and neither may a platform admin (#446, ACC-020). A platform admin receives another user's
+`UserResponse` only through a community it administers, and then gets what a community admin gets,
+plus `canRevokePlatformAdmin`, which stays for the role management. `canEdit` and
+`canGrantPlatformAdmin` were removed in #447 with the endpoints they reported: an account is no longer
+edited by id, and the role is granted only by accepting an invitation (ACC-014).
 
 `canListSupplies` predicts whether `GET /users/{userId}/supplies` is **allowed**, and it predicts
 that exactly: the guard behind it is unchanged by what the listing returns. What the listing is
@@ -241,9 +238,8 @@ any of them.
 `GET /users/{userId}` narrows its `memberships` by the same scope, so asking for the user directly
 does not reveal what the listing withholds.
 
-`canEdit` is `false` for an ordinary member reading their own record, on purpose: name, DNI and
-member number are an administrative change, and contact details go through `PUT /users/profile`.
-`canDelete`, `canEnable`, `canDisable` and `canRevokePlatformAdmin` are always `false` when the user
+Contact details go through `PUT /users/profile`, which any authenticated caller may use and so needs
+no capability. `canDelete`, `canEnable`, `canDisable` and `canRevokePlatformAdmin` are always `false` when the user
 is the caller — nobody may act on themselves that way, admins included.
 
 ### Platform admin — `PlatformAdminResponse.capabilities`
