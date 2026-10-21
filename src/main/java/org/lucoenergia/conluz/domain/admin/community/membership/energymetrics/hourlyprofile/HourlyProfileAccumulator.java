@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.community.membership.energymetrics.hourlyprofile;
 
+import org.lucoenergia.conluz.domain.consumption.EnergyBalance;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.HourlyEnergyRecord;
 
 import java.time.ZoneId;
@@ -55,7 +56,7 @@ public class HourlyProfileAccumulator {
             consumptionSampleCounts[hour]++;
         }
         if (selfConsumption != null || surplus != null) {
-            assignedProductionSums[hour] += orZero(selfConsumption) + orZero(surplus);
+            assignedProductionSums[hour] += EnergyBalance.assignedProductionKWh(orZero(selfConsumption), orZero(surplus));
             assignedProductionSampleCounts[hour]++;
         }
     }

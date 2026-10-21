@@ -30,9 +30,21 @@ public class EnergyBalance {
         this.selfConsumptionKWh = selfConsumptionKWh;
         this.surplusKWh = surplusKWh;
         this.totalConsumptionKWh = gridImportKWh + selfConsumptionKWh;
-        this.assignedProductionKWh = selfConsumptionKWh + surplusKWh;
+        this.assignedProductionKWh = assignedProductionKWh(selfConsumptionKWh, surplusKWh);
         this.selfSufficiencyRatio = ratio(selfConsumptionKWh, this.totalConsumptionKWh);
         this.selfConsumptionRatio = ratio(selfConsumptionKWh, this.assignedProductionKWh);
+    }
+
+    /**
+     * The energy assigned to a supply or a membership: what it self-consumed plus what it fed back
+     * to the grid. Every operation that reports assigned production derives it here, from
+     * unrounded values, and never from the distributor's generation figure (#460).
+     *
+     * @param selfConsumptionKWh the unrounded self-consumed energy
+     * @param surplusKWh         the unrounded surplus energy
+     */
+    public static double assignedProductionKWh(double selfConsumptionKWh, double surplusKWh) {
+        return selfConsumptionKWh + surplusKWh;
     }
 
     /**
