@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFix
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MvcResult;
@@ -28,6 +29,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset;
 
 import static org.hamcrest.Matchers.closeTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,6 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.lucoenergia.conluz.infrastructure.shared.web.KWhJson.assertKWh;
 
 /**
  * Tests written from the endpoint's acceptance criteria. Each test owns its dataset under a unique
@@ -58,6 +63,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture fixture;
+    @Autowired
+    @Qualifier("getDatadisConsumptionRepositoryInflux")
+    private GetDatadisConsumptionRepository getDatadisConsumptionRepository;
 
     private final List<String> createdCupsCodes = new ArrayList<>();
 
@@ -755,5 +763,57 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
 
     private void writeRecords(DatadisConsumption... records) {
         fixture.write(List.of(records));
+    }
+
+    @Test
+    @DisplayName("EVL-001 AC1 AC2 AC5 the energy metrics round every energy figure to 3 decimals and store nothing rounded")
+    void testEnergyMetricsRoundEveryEnergyFigure() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+        writeRecords(RoundingNoiseDataset.firstRecord(supply.getCode()),
+                RoundingNoiseDataset.secondRecord(supply.getCode()));
+
+        String body = mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", RoundingNoiseDataset.DAY_START)
+                        .queryParam("endDate", RoundingNoiseDataset.DAY_END))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertKWh(body, "/energy/gridImportKWh", RoundingNoiseDataset.GRID_IMPORT);
+        assertKWh(body, "/energy/selfConsumptionKWh", RoundingNoiseDataset.SELF_CONSUMPTION);
+        assertKWh(body, "/energy/surplusKWh", RoundingNoiseDataset.SURPLUS);
+        assertKWh(body, "/energy/totalConsumptionKWh", RoundingNoiseDataset.TOTAL_CONSUMPTION);
+        assertKWh(body, "/energy/assignedProductionKWh", RoundingNoiseDataset.ASSIGNED_PRODUCTION);
+        RoundingNoiseDataset.assertHourlyRecordsUnchanged(getDatadisConsumptionRepository, supply);
+    }
+
+    /**
+     * From the rounded figures the ratios would be 0.033 / 0.379 and 0.033 / 0.366, and the savings
+     * 0.033 kWh x 0.15 = 0.00495, presented as 0.00. Constant price: the test profile prices every
+     * hour at the 0.15 EUR/kWh estimate, so the expected amount is the unrounded self-consumption
+     * times 0.15, rounded to cents.
+     */
+    @Test
+    @DisplayName("EVL-002 the energy metrics derive the ratios and the savings from the unrounded totals")
+    void testEnergyMetricsDeriveRatiosAndSavingsFromTheUnroundedTotals() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
+        writeRecords(RoundingNoiseDataset.firstRecord(supply.getCode()),
+                RoundingNoiseDataset.secondRecord(supply.getCode()));
+        double selfConsumption = RoundingNoiseDataset.selfConsumptionSum();
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", RoundingNoiseDataset.DAY_START)
+                        .queryParam("endDate", RoundingNoiseDataset.DAY_END))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfSufficiencyRatio").value(
+                        closeTo(selfConsumption / (RoundingNoiseDataset.gridImportSum() + selfConsumption), 1e-12), Double.class))
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(
+                        closeTo(selfConsumption / (selfConsumption + RoundingNoiseDataset.surplusSum()), 1e-12), Double.class))
+                .andExpect(jsonPath("$.selfSufficiencyRatio").value(not(closeTo(0.033 / 0.379, 1e-6)), Double.class))
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(not(closeTo(0.033 / 0.366, 1e-6)), Double.class))
+                .andExpect(jsonPath("$.savings.amountEur").value(RoundingNoiseDataset.SAVINGS_EUR));
     }
 }
