@@ -5,7 +5,6 @@ import org.lucoenergia.conluz.domain.admin.supply.delete.DeleteSupplyRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,17 +19,13 @@ public class DeleteSupplyRepositoryDatabase implements DeleteSupplyRepository {
     }
 
     /**
-     * The contract, distributor and Shelly rows go with the supply (JPA cascade). The supply is detached from
-     * its owner first: the owner's supply collection cascades, and would otherwise keep the supply alive if loaded.
+     * The contract, distributor and Shelly rows go with the supply (JPA cascade). Nothing else does: a plant still
+     * attached to the supply makes the deletion fail on its foreign key.
      */
     @Override
     public void delete(SupplyId id) {
         SupplyEntity supply = supplyRepository.findById(id.getId())
                 .orElseThrow(() -> new SupplyNotFoundException(id));
-        UserEntity owner = supply.getUser();
-        if (owner != null) {
-            owner.removeSupply(supply);
-        }
         supplyRepository.delete(supply);
     }
 }

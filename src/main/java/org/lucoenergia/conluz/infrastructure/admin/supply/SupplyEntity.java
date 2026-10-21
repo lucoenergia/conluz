@@ -6,10 +6,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContrac
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
-import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "supplies")
@@ -38,14 +35,6 @@ public class SupplyEntity {
 
     @OneToOne(mappedBy = "supply", cascade = CascadeType.ALL, orphanRemoval = true)
     private SupplyContractEntity contract;
-
-    @OneToMany(
-            mappedBy = "supply",
-            fetch = FetchType.LAZY,
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<PlantEntity> plants = new ArrayList<>();
 
     public SupplyEntity() {
         enabled = true;
@@ -253,19 +242,4 @@ public class SupplyEntity {
             contract.setSupply(this);
         }
     }
-
-    public List<PlantEntity> getPlants() {
-        return plants;
-    }
-
-    public void addPlant(PlantEntity plant) {
-        plants.add(plant);
-        plant.setSupply(this);
-    }
-
-    public void removePlant(PlantEntity plant) {
-        plants.remove(plant);
-        plant.setSupply(null);
-    }
-
 }

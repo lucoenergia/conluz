@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
+import jakarta.persistence.EntityManager;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -16,9 +17,12 @@ import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Date;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,6 +34,45 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private CreateUserRepository createUserRepository;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private EntityManager entityManager;
+
+    @Test
+    void shouldStoreTheSupplyWithItsOwnerCommunityAndDetails() {
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = SupplyMother.random(user).build();
+
+        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        entityManager.flush();
+        entityManager.clear();
+
+        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM supplies WHERE id = ?", result.getId());
+        assertEquals(supply.getCode(), row.get("code"));
+        assertEquals(supply.getName(), row.get("name"));
+        assertEquals(supply.getAddress(), row.get("address"));
+        assertEquals(supply.getAddressRef(), row.get("address_ref"));
+        assertEquals(supply.getEnabled(), row.get("enabled"));
+        assertEquals(user.getId(), row.get("user_id"));
+        assertEquals(CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID, row.get("community_id"));
+
+        Map<String, Object> shelly = jdbcTemplate.queryForMap("SELECT * FROM supplies_shelly WHERE supply_id = ?",
+                result.getId());
+        assertEquals(supply.getShelly().getId(), shelly.get("id"));
+        assertEquals(supply.getShelly().getMacAddress(), shelly.get("mac_address"));
+        assertEquals(supply.getShelly().getMqttPrefix(), shelly.get("mqtt_prefix"));
+        Map<String, Object> distributor = jdbcTemplate.queryForMap(
+                "SELECT * FROM supplies_distributor WHERE supply_id = ?", result.getId());
+        assertEquals(supply.getDistributor().getName(), distributor.get("name"));
+        assertEquals(supply.getDistributor().getCode(), distributor.get("code"));
+        assertEquals(supply.getDistributor().getPointType(), distributor.get("point_type"));
+        Map<String, Object> contract = jdbcTemplate.queryForMap("SELECT * FROM supplies_contract WHERE supply_id = ?",
+                result.getId());
+        assertEquals(Date.valueOf(supply.getContract().getValidDateFrom()), contract.get("valid_date_from"));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM supplies WHERE user_id = ?", Integer.class,
+                user.getId()));
+    }
 
 
     @Test
