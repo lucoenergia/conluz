@@ -37,20 +37,22 @@ public class MembershipMonthlyConsumptionBucketResponse {
             "midnight.",
             example = "00:00")
     private final String time;
-    @Schema(description = "Energy consumed from the grid over the month by every supply of the " +
-            "membership, in kWh. 0 when no supply stored a record.",
+    @Schema(description = "Energy taken from the grid by every supply of the membership over the " +
+            "month. Does not include self-consumed energy. In kWh, rounded to 3 decimals. 0 when no " +
+            "supply stored a record.",
             example = "107.75")
     private final BigDecimal consumptionKWh;
-    @Schema(description = "Energy exported to the grid over the month by every supply of the " +
-            "membership, in kWh.",
+    @Schema(description = "Energy assigned to every supply of the membership and fed back to the " +
+            "grid over the month. In kWh, rounded to 3 decimals.",
             example = "21.75")
     private final BigDecimal surplusEnergyKWh;
     @Schema(description = "Energy generated and assigned to every supply of the membership over the " +
-            "month, in kWh.",
+            "month, in kWh, rounded to 3 decimals.",
             example = "63")
     private final BigDecimal generationEnergyKWh;
-    @Schema(description = "Energy generated and consumed on site over the month by every supply of " +
-            "the membership, in kWh.",
+    @Schema(description = "Energy produced by the community and consumed by every supply of the " +
+            "membership over the month, as reported by the distributor. In kWh, rounded to 3 " +
+            "decimals.",
             example = "42.5")
     private final BigDecimal selfConsumptionEnergyKWh;
     @Schema(description = "Estimated amount the month's self-consumed energy saved across every " +

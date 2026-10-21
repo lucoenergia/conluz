@@ -1589,31 +1589,31 @@
       "MembershipEnergyMetricsEnergyResponse" : {
         "properties" : {
           "assignedProductionKWh" : {
-            "description" : "Energy assigned to the membership's supplies: selfConsumptionKWh plus surplusKWh",
+            "description" : "Energy assigned to every supply of the membership: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
             "example" : 724.0,
             "format" : "double",
             "type" : "number"
           },
           "gridImportKWh" : {
-            "description" : "Energy taken from the grid. Does not include self-consumed energy.",
+            "description" : "Energy taken from the grid by every supply of the membership over the period. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
             "example" : 670.0,
             "format" : "double",
             "type" : "number"
           },
           "selfConsumptionKWh" : {
-            "description" : "Energy produced by the community and consumed by the membership's supplies, as reported by the distributor",
+            "description" : "Energy produced by the community and consumed by every supply of the membership over the period, as reported by the distributor. In kWh, rounded to 3 decimals.",
             "example" : 485.0,
             "format" : "double",
             "type" : "number"
           },
           "surplusKWh" : {
-            "description" : "Energy assigned to the membership's supplies and fed back to the grid",
+            "description" : "Energy assigned to every supply of the membership and fed back to the grid over the period. In kWh, rounded to 3 decimals.",
             "example" : 239.0,
             "format" : "double",
             "type" : "number"
           },
           "totalConsumptionKWh" : {
-            "description" : "Energy consumed, whatever its origin: gridImportKWh plus selfConsumptionKWh",
+            "description" : "Energy consumed, whatever its origin: gridImportKWh plus selfConsumptionKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
             "example" : 1155.0,
             "format" : "double",
             "type" : "number"
@@ -1786,7 +1786,7 @@
       "MembershipMonthlyConsumptionBucketResponse" : {
         "properties" : {
           "consumptionKWh" : {
-            "description" : "Energy consumed from the grid over the month by every supply of the membership, in kWh. 0 when no supply stored a record.",
+            "description" : "Energy taken from the grid by every supply of the membership over the month. Does not include self-consumed energy. In kWh, rounded to 3 decimals. 0 when no supply stored a record.",
             "example" : 107.75,
             "type" : "number"
           },
@@ -1796,7 +1796,7 @@
             "type" : "string"
           },
           "generationEnergyKWh" : {
-            "description" : "Energy generated and assigned to every supply of the membership over the month, in kWh.",
+            "description" : "Energy generated and assigned to every supply of the membership over the month, in kWh, rounded to 3 decimals.",
             "example" : 63,
             "type" : "number"
           },
@@ -1809,7 +1809,7 @@
             ]
           },
           "selfConsumptionEnergyKWh" : {
-            "description" : "Energy generated and consumed on site over the month by every supply of the membership, in kWh.",
+            "description" : "Energy produced by the community and consumed by every supply of the membership over the month, as reported by the distributor. In kWh, rounded to 3 decimals.",
             "example" : 42.5,
             "type" : "number"
           },
@@ -1826,7 +1826,7 @@
             "type" : "integer"
           },
           "surplusEnergyKWh" : {
-            "description" : "Energy exported to the grid over the month by every supply of the membership, in kWh.",
+            "description" : "Energy assigned to every supply of the membership and fed back to the grid over the month. In kWh, rounded to 3 decimals.",
             "example" : 21.75,
             "type" : "number"
           },
@@ -3122,7 +3122,7 @@
       "SupplyConsumptionBucketResponse" : {
         "properties" : {
           "consumptionKWh" : {
-            "description" : "Energy consumed from the grid over the bucket, in kWh.",
+            "description" : "Energy taken from the grid by this supply over the bucket. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
             "example" : 12.5,
             "format" : "float",
             "type" : "number"
@@ -3138,7 +3138,7 @@
             "type" : "string"
           },
           "generationEnergyKWh" : {
-            "description" : "Energy generated and assigned to the supply over the bucket, in kWh.",
+            "description" : "Energy generated and assigned to the supply over the bucket, in kWh, rounded to 3 decimals.",
             "example" : 8.75,
             "format" : "float",
             "type" : "number"
@@ -3157,13 +3157,13 @@
             "type" : "number"
           },
           "selfConsumptionEnergyKWh" : {
-            "description" : "Energy generated and consumed on site over the bucket, in kWh.",
+            "description" : "Energy produced by the community and consumed by this supply over the bucket, as reported by the distributor. In kWh, rounded to 3 decimals.",
             "example" : 5.5,
             "format" : "float",
             "type" : "number"
           },
           "surplusEnergyKWh" : {
-            "description" : "Energy exported to the grid over the bucket, in kWh.",
+            "description" : "Energy assigned to this supply and fed back to the grid over the bucket. In kWh, rounded to 3 decimals.",
             "example" : 3.25,
             "format" : "float",
             "type" : "number"
@@ -3272,31 +3272,31 @@
       "SupplyEnergyMetricsEnergyResponse" : {
         "properties" : {
           "assignedProductionKWh" : {
-            "description" : "Energy assigned to this supply: selfConsumptionKWh plus surplusKWh",
+            "description" : "Energy assigned to this supply: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
             "example" : 724.0,
             "format" : "double",
             "type" : "number"
           },
           "gridImportKWh" : {
-            "description" : "Energy taken from the grid. Does not include self-consumed energy.",
+            "description" : "Energy taken from the grid by this supply over the period. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
             "example" : 670.0,
             "format" : "double",
             "type" : "number"
           },
           "selfConsumptionKWh" : {
-            "description" : "Energy produced by the community and consumed by this supply, as reported by the distributor",
+            "description" : "Energy produced by the community and consumed by this supply over the period, as reported by the distributor. In kWh, rounded to 3 decimals.",
             "example" : 485.0,
             "format" : "double",
             "type" : "number"
           },
           "surplusKWh" : {
-            "description" : "Energy assigned to this supply and fed back to the grid",
+            "description" : "Energy assigned to this supply and fed back to the grid over the period. In kWh, rounded to 3 decimals.",
             "example" : 239.0,
             "format" : "double",
             "type" : "number"
           },
           "totalConsumptionKWh" : {
-            "description" : "Energy consumed, whatever its origin: gridImportKWh plus selfConsumptionKWh",
+            "description" : "Energy consumed, whatever its origin: gridImportKWh plus selfConsumptionKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
             "example" : 1155.0,
             "format" : "double",
             "type" : "number"
@@ -8233,7 +8233,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/consumption/monthly" : {
       "get" : {
-        "description" : "For each month of the requested period, the energy and the estimated savings of\n**every** supply the member owns in this community, added up: each figure is the\nsum of what the per-supply monthly series reports for that supply and month.\nSupplies in the member's other communities are not counted.\n\n**Every month is emitted:**\nA bucket is returned for every month in range, in chronological order, whether or\nnot any supply stored a record in it, so the series has a regular time axis. This\ndiffers from the per-supply monthly series, which omits months without a stored\nrecord.\n\n**Time zone and month selection:**\nMonths are local calendar months of the community's time zone, not UTC ones.\n`startDate` and `endDate` are both required and both inclusive, and a month is in\nrange if and only if its local midnight on day 1 falls inside them -- the rule the\nper-supply monthly series selects its pre-aggregated points by. Once in range a\nmonth always carries its whole energy and its whole savings: bounds falling\nmid-month never trim it. Pass the bounds with the zone's offset: a bound expressed\nin UTC can select one month too few or too many.\n\n**Completeness:**\n`supplyCount` is the number of supplies the member **currently** owns in the\ncommunity, and `suppliesWithData` how many of them stored a monthly record that\nmonth. A month with `suppliesWithData` below `supplyCount` is incomplete. The\nmodel records no date a supply joined its community, so the count is the same\nfor every month, and the months before a supply started reporting show as\nincomplete. `suppliesWithData` is measured from stored monthly records, month by\nmonth; the aggregated energy metrics measure theirs from hourly records over the\nwhole period, so the two are not comparable.\n\n**Savings:**\n`savingsEur` is an **estimate** of what the month's self-consumed energy was\nworth, pricing the **energy term before taxes** only, exactly as the per-supply\nseries does. It is `null` when no supply stored a record that month, and only\nthen: a month with nothing stored is a different statement from a month that\nsaved nothing, which reports `0.00` -- as does a month whose stored records carry\nno self-consumption, a measured zero. This differs from the per-supply series,\nwhich reports `0.00` for every bucket it emits. `tariffSource` says where the\nprices came from -- `ESTIMATE` or `REAL_TARIFF` -- and a single estimated supply\nmakes the whole month an estimate; it is `null` exactly when `savingsEur` is.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404: every month in range, with zero totals, null savings and a\n`supplyCount` of 0.\n",
+        "description" : "For each month of the requested period, the energy and the estimated savings of\n**every** supply the member owns in this community, added up. Each energy figure\nsums the unrounded per-supply monthly totals and is rounded once, to 3 decimals,\non the result; the savings are likewise summed unrounded and rounded once, to\ncents. A figure can therefore differ from adding up the rounded figures of the\nper-supply monthly series. Supplies in the member's other communities are not\ncounted.\n\n**Source and freshness:**\nEach supply's month is read from a monthly total pre-aggregated from its hourly\nrecords. That total is rewritten once a day for every month in the Datadis sync\nwindow (by default, the current month and the 12 before it), and on demand through\n`POST /api/v1/communities/{communityId}/consumption/datadis/sync/monthly`. Nothing\nelse refreshes it: in particular, synchronising the hourly records does not. Until\nthe next refresh, a month can therefore lag the energy metrics, which sum the\nhourly records when they are read.\n\n**Every month is emitted:**\nA bucket is returned for every month in range, in chronological order, whether or\nnot any supply stored a record in it, so the series has a regular time axis. This\ndiffers from the per-supply monthly series, which omits months without a stored\nrecord.\n\n**Time zone and month selection:**\nMonths are local calendar months of the community's time zone, not UTC ones.\n`startDate` and `endDate` are both required and both inclusive, and a month is in\nrange if and only if its local midnight on day 1 falls inside them -- the rule the\nper-supply monthly series selects its pre-aggregated points by. Once in range a\nmonth always carries its whole energy and its whole savings: bounds falling\nmid-month never trim it. Pass the bounds with the zone's offset: a bound expressed\nin UTC can select one month too few or too many.\n\n**Completeness:**\n`supplyCount` is the number of supplies the member **currently** owns in the\ncommunity, and `suppliesWithData` how many of them stored a monthly record that\nmonth. A month with `suppliesWithData` below `supplyCount` is incomplete. The\nmodel records no date a supply joined its community, so the count is the same\nfor every month, and the months before a supply started reporting show as\nincomplete. `suppliesWithData` is measured from stored monthly records, month by\nmonth; the aggregated energy metrics measure theirs from hourly records over the\nwhole period, so the two are not comparable.\n\n**Savings:**\n`savingsEur` is an **estimate** of what the month's self-consumed energy was\nworth, pricing the **energy term before taxes** only, exactly as the per-supply\nseries does. It is `null` when no supply stored a record that month, and only\nthen: a month with nothing stored is a different statement from a month that\nsaved nothing, which reports `0.00` -- as does a month whose stored records carry\nno self-consumption, a measured zero. This differs from the per-supply series,\nwhich reports `0.00` for every bucket it emits. `tariffSource` says where the\nprices came from -- `ESTIMATE` or `REAL_TARIFF` -- and a single estimated supply\nmakes the whole month an estimate; it is `null` exactly when `savingsEur` is.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404: every month in range, with zero totals, null savings and a\n`supplyCount` of 0.\n",
         "operationId" : "getMembershipMonthlyConsumption",
         "parameters" : [
           {
@@ -17888,7 +17888,7 @@
     },
     "/api/v1/supplies/{supplyId}/consumption/daily" : {
       "get" : {
-        "description" : "This endpoint retrieves daily consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Total consumption in kWh\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by day within the specified date range.\n\n**Time zone:** days follow the local calendar of the time zone the application is\nconfigured with, not UTC. A day therefore lasts 23 hours on the spring daylight\nsaving transition and 25 hours on the autumn one.\n\n**Range bounds:** `startDate` and `endDate` are both inclusive and are taken as\ngiven, without being rounded to a day boundary. Bounds that fall in the middle of\na local day produce a partial first and last bucket, so a caller wanting whole\nlocal days must pass them at local midnight and at 23:59:59 local time, offset\nincluded -- for example `2023-04-01T00:00:00+02:00` to\n`2023-04-30T23:59:59+02:00` for April 2023 in Europe/Madrid. A day with no stored\nrecord is returned with zero energy rather than omitted.\n\nEach day is priced over its own local day, clipped to the requested bounds, so a\npartial edge bucket's savings cover exactly the hours its energy fields cover.\n\n**Savings:** `savingsEur` is an **estimate** of what the bucket's self-consumed\nenergy was worth. It prices the **energy term before taxes** only: the power\nterm, access tolls, charges and electricity tax are all excluded, and VAT is\napplied only where the resolved tariff carries a rate. `tariffSource` says where\nthe prices came from -- `ESTIMATE` for a computed approximation, `REAL_TARIFF`\nfor the supply's contracted tariff -- and a single estimated stretch of the\nbucket makes the whole amount an estimate. A bucket with no self-consumption,\nand a bucket with no stored record at all, reports `0.00`.\n\nDatadis publishes a month's self-consumption around the 10th of the following\nmonth, so the current month has no self-consumption data yet and its savings\ncome back as zero.\n",
+        "description" : "This endpoint retrieves daily consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy fed back to the grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by day, from the hourly records, within the specified date\nrange. Every energy figure is in kWh, rounded to 3 decimals.\n\n**Time zone:** days follow the local calendar of the time zone the application is\nconfigured with, not UTC. A day therefore lasts 23 hours on the spring daylight\nsaving transition and 25 hours on the autumn one.\n\n**Range bounds:** `startDate` and `endDate` are both inclusive and are taken as\ngiven, without being rounded to a day boundary. Bounds that fall in the middle of\na local day produce a partial first and last bucket, so a caller wanting whole\nlocal days must pass them at local midnight and at 23:59:59 local time, offset\nincluded -- for example `2023-04-01T00:00:00+02:00` to\n`2023-04-30T23:59:59+02:00` for April 2023 in Europe/Madrid. A day with no stored\nrecord is returned with zero energy rather than omitted.\n\nEach day is priced over its own local day, clipped to the requested bounds, so a\npartial edge bucket's savings cover exactly the hours its energy fields cover.\n\n**Savings:** `savingsEur` is an **estimate** of what the bucket's self-consumed\nenergy was worth. It prices the **energy term before taxes** only: the power\nterm, access tolls, charges and electricity tax are all excluded, and VAT is\napplied only where the resolved tariff carries a rate. `tariffSource` says where\nthe prices came from -- `ESTIMATE` for a computed approximation, `REAL_TARIFF`\nfor the supply's contracted tariff -- and a single estimated stretch of the\nbucket makes the whole amount an estimate. A bucket with no self-consumption,\nand a bucket with no stored record at all, reports `0.00`.\n\nDatadis publishes a month's self-consumption around the 10th of the following\nmonth, so the current month has no self-consumption data yet and its savings\ncome back as zero.\n",
         "operationId" : "getSupplyDailyConsumption",
         "parameters" : [
           {
@@ -18184,7 +18184,7 @@
     },
     "/api/v1/supplies/{supplyId}/consumption/monthly" : {
       "get" : {
-        "description" : "This endpoint retrieves monthly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Total consumption in kWh\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by month within the specified date range.\n\n**Time zone:** each month covers the local calendar month of the time zone the\napplication is configured with, not the UTC one, so its total includes the first\nand last local hours of the month and nothing from its neighbours.\n\n**Range bounds:** `startDate` and `endDate` are both inclusive, and they select\npre-aggregated points by the instant each one is stamped at, which is local\nmidnight on the first day of its month. Pass them with the zone's offset to\nselect the months intended: local `2023-01-01T00:00:00+01:00` is\n`2022-12-31T23:00:00Z`, so a bound expressed in UTC can select one month too few\nor too many.\n\n**Whole months only.** A month is included if and only if its day-1 timestamp\nfalls inside the inclusive bounds, and once included it always carries the whole\nmonth's energy and the whole month's savings -- bounds falling mid-month never\ntrim it. A request ending on the 15th therefore still returns that month in\nfull.\n\n**Savings:** `savingsEur` is an **estimate** of what the bucket's self-consumed\nenergy was worth. It prices the **energy term before taxes** only: the power\nterm, access tolls, charges and electricity tax are all excluded, and VAT is\napplied only where the resolved tariff carries a rate. `tariffSource` says where\nthe prices came from -- `ESTIMATE` for a computed approximation, `REAL_TARIFF`\nfor the supply's contracted tariff -- and a single estimated stretch of the\nbucket makes the whole amount an estimate. A bucket with no self-consumption,\nand a bucket with no stored record at all, reports `0.00`.\n\nDatadis publishes a month's self-consumption around the 10th of the following\nmonth, so the current month has no self-consumption data yet and its savings\ncome back as zero.\n",
+        "description" : "This endpoint retrieves monthly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy fed back to the grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by month within the specified date range. Every energy figure\nis in kWh, rounded to 3 decimals.\n\n**Source and freshness:** each month is read from a monthly total pre-aggregated\nfrom the supply's hourly records. That total is rewritten once a day for every\nmonth in the Datadis sync window (by default, the current month and the 12 before\nit), and on demand through\n`POST /api/v1/communities/{communityId}/consumption/datadis/sync/monthly`. Nothing\nelse refreshes it: in particular, synchronising the hourly records does not. Until\nthe next refresh, a month can therefore lag the energy metrics, which sum the\nhourly records when they are read.\n\n**Time zone:** each month covers the local calendar month of the time zone the\napplication is configured with, not the UTC one, so its total includes the first\nand last local hours of the month and nothing from its neighbours.\n\n**Range bounds:** `startDate` and `endDate` are both inclusive, and they select\npre-aggregated points by the instant each one is stamped at, which is local\nmidnight on the first day of its month. Pass them with the zone's offset to\nselect the months intended: local `2023-01-01T00:00:00+01:00` is\n`2022-12-31T23:00:00Z`, so a bound expressed in UTC can select one month too few\nor too many.\n\n**Whole months only.** A month is included if and only if its day-1 timestamp\nfalls inside the inclusive bounds, and once included it always carries the whole\nmonth's energy and the whole month's savings -- bounds falling mid-month never\ntrim it. A request ending on the 15th therefore still returns that month in\nfull.\n\n**Savings:** `savingsEur` is an **estimate** of what the bucket's self-consumed\nenergy was worth. It prices the **energy term before taxes** only: the power\nterm, access tolls, charges and electricity tax are all excluded, and VAT is\napplied only where the resolved tariff carries a rate. `tariffSource` says where\nthe prices came from -- `ESTIMATE` for a computed approximation, `REAL_TARIFF`\nfor the supply's contracted tariff -- and a single estimated stretch of the\nbucket makes the whole amount an estimate. A bucket with no self-consumption,\nand a bucket with no stored record at all, reports `0.00`.\n\nDatadis publishes a month's self-consumption around the 10th of the following\nmonth, so the current month has no self-consumption data yet and its savings\ncome back as zero.\n",
         "operationId" : "getSupplyMonthlyConsumption",
         "parameters" : [
           {

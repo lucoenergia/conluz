@@ -47,18 +47,24 @@ public class SupplyConsumptionBucketResponse {
             "configured with.",
             example = "00:00")
     private final String time;
-    @Schema(description = "Energy consumed from the grid over the bucket, in kWh.", example = "12.5")
+    @Schema(description = "Energy taken from the grid by this supply over the bucket. Does not " +
+            "include self-consumed energy. In kWh, rounded to 3 decimals.",
+            example = "12.5")
     private final Float consumptionKWh;
     @Schema(description = "How the underlying records were obtained, as reported by Datadis. Null " +
             "on a bucket with no stored record.",
             example = "Real", types = {"string", "null"})
     private final String obtainMethod;
-    @Schema(description = "Energy exported to the grid over the bucket, in kWh.", example = "3.25")
+    @Schema(description = "Energy assigned to this supply and fed back to the grid over the bucket. " +
+            "In kWh, rounded to 3 decimals.",
+            example = "3.25")
     private final Float surplusEnergyKWh;
-    @Schema(description = "Energy generated and assigned to the supply over the bucket, in kWh.",
+    @Schema(description = "Energy generated and assigned to the supply over the bucket, in kWh, " +
+            "rounded to 3 decimals.",
             example = "8.75")
     private final Float generationEnergyKWh;
-    @Schema(description = "Energy generated and consumed on site over the bucket, in kWh.",
+    @Schema(description = "Energy produced by the community and consumed by this supply over the " +
+            "bucket, as reported by the distributor. In kWh, rounded to 3 decimals.",
             example = "5.5")
     private final Float selfConsumptionEnergyKWh;
     @Schema(description = "Estimated amount the bucket's self-consumed energy saved, in euros, " +
