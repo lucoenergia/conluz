@@ -43,9 +43,21 @@ public class GetMembershipMonthlyConsumptionController {
             summary = "Retrieves the monthly consumption of every supply of a membership, added up per month.",
             description = """
                     For each month of the requested period, the energy and the estimated savings of
-                    **every** supply the member owns in this community, added up: each figure is the
-                    sum of what the per-supply monthly series reports for that supply and month.
-                    Supplies in the member's other communities are not counted.
+                    **every** supply the member owns in this community, added up. Each energy figure
+                    sums the unrounded per-supply monthly totals and is rounded once, to 3 decimals,
+                    on the result; the savings are likewise summed unrounded and rounded once, to
+                    cents. A figure can therefore differ from adding up the rounded figures of the
+                    per-supply monthly series. Supplies in the member's other communities are not
+                    counted.
+
+                    **Source and freshness:**
+                    Each supply's month is read from a monthly total pre-aggregated from its hourly
+                    records. That total is rewritten once a day for every month in the Datadis sync
+                    window (by default, the current month and the 12 before it), and on demand through
+                    `POST /api/v1/communities/{communityId}/consumption/datadis/sync/monthly`. Nothing
+                    else refreshes it: in particular, synchronising the hourly records does not. Until
+                    the next refresh, a month can therefore lag the energy metrics, which sum the
+                    hourly records when they are read.
 
                     **Every month is emitted:**
                     A bucket is returned for every month in range, in chronological order, whether or

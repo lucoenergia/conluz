@@ -15,12 +15,19 @@ import org.lucoenergia.conluz.infrastructure.datadis.SupplyConsumptionSavingsInf
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.DisplayName;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
+import java.util.List;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset;
 
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsString;
@@ -32,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.lucoenergia.conluz.infrastructure.shared.web.KWhJson.assertKWh;
 
 @Transactional
 class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
@@ -52,6 +60,11 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
     private DatadisConsumptionInfluxLoader datadisConsumptionInfluxLoader;
     @Autowired
     private SupplyConsumptionSavingsInfluxLoader supplyConsumptionSavingsInfluxLoader;
+    @Autowired
+    private DatadisConsumptionInfluxFixture influxFixture;
+    @Autowired
+    @Qualifier("getDatadisConsumptionRepositoryInflux")
+    private GetDatadisConsumptionRepository getDatadisConsumptionRepository;
 
     @BeforeEach
     void beforeEach() {
@@ -438,5 +451,34 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
                 // The 13th has no record at all, so it stays at zero like its other energy fields.
                 .andExpect(jsonPath("$[3].generationEnergyKWh").value(closeTo(0.00, TOLERANCE)))
                 .andExpect(jsonPath("$[4].generationEnergyKWh").value(closeTo(4.00, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("EVL-001 AC1 AC2 AC5 the daily series rounds every energy figure to 3 decimals and stores nothing rounded")
+    void testDailySeriesRoundsEveryEnergyFigure() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(
+                SupplyMother.random(user).withCode("ES" + RandomStringUtils.random(20, false, true)).build(),
+                UserId.of(user.getId()));
+        influxFixture.write(List.of(RoundingNoiseDataset.firstRecord(supply.getCode()),
+                RoundingNoiseDataset.secondRecord(supply.getCode())));
+        try {
+            String body = mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
+                            .header(HttpHeaders.AUTHORIZATION, authHeader)
+                            .queryParam("startDate", RoundingNoiseDataset.DAY_START)
+                            .queryParam("endDate", RoundingNoiseDataset.DAY_END))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andReturn().getResponse().getContentAsString();
+
+            assertKWh(body, "/0/consumptionKWh", RoundingNoiseDataset.GRID_IMPORT);
+            assertKWh(body, "/0/selfConsumptionEnergyKWh", RoundingNoiseDataset.SELF_CONSUMPTION);
+            assertKWh(body, "/0/surplusEnergyKWh", RoundingNoiseDataset.SURPLUS);
+            assertKWh(body, "/0/generationEnergyKWh", RoundingNoiseDataset.GENERATION);
+            RoundingNoiseDataset.assertHourlyRecordsUnchanged(getDatadisConsumptionRepository, supply);
+        } finally {
+            influxFixture.clear(supply.getCode());
+        }
     }
 }

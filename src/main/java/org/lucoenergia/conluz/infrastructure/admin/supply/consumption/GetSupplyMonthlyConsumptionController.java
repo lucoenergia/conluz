@@ -48,12 +48,22 @@ public class GetSupplyMonthlyConsumptionController {
                     - Supply owners can only retrieve consumption data for their own supplies
 
                     The consumption data includes:
-                    - Total consumption in kWh
-                    - Surplus energy (energy sent to grid)
+                    - Energy taken from the grid
+                    - Surplus energy (energy fed back to the grid)
                     - Self-consumption energy
                     - Obtain method (Real/Estimated)
 
-                    Data is aggregated by month within the specified date range.
+                    Data is aggregated by month within the specified date range. Every energy figure
+                    is in kWh, rounded to 3 decimals.
+
+                    **Source and freshness:** each month is read from a monthly total pre-aggregated
+                    from the supply's hourly records. That total is rewritten once a day for every
+                    month in the Datadis sync window (by default, the current month and the 12 before
+                    it), and on demand through
+                    `POST /api/v1/communities/{communityId}/consumption/datadis/sync/monthly`. Nothing
+                    else refreshes it: in particular, synchronising the hourly records does not. Until
+                    the next refresh, a month can therefore lag the energy metrics, which sum the
+                    hourly records when they are read.
 
                     **Time zone:** each month covers the local calendar month of the time zone the
                     application is configured with, not the UTC one, so its total includes the first

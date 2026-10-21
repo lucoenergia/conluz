@@ -15,12 +15,21 @@ import org.lucoenergia.conluz.infrastructure.datadis.SupplyConsumptionSavingsInf
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.DisplayName;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
+import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
+import java.time.Month;
+import java.util.List;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset;
 
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsString;
@@ -32,6 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.lucoenergia.conluz.infrastructure.shared.web.KWhJson.assertKWh;
 
 @Transactional
 class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
@@ -52,6 +62,13 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
     private DatadisConsumptionInfluxLoader datadisConsumptionInfluxLoader;
     @Autowired
     private SupplyConsumptionSavingsInfluxLoader supplyConsumptionSavingsInfluxLoader;
+    @Autowired
+    private DatadisConsumptionInfluxFixture influxFixture;
+    @Autowired
+    @Qualifier("getDatadisConsumptionRepositoryInflux")
+    private GetDatadisConsumptionRepository getDatadisConsumptionRepository;
+    @Autowired
+    private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
 
     @BeforeEach
     void beforeEach() {
@@ -374,5 +391,41 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
                 // 20.00 kWh worth 3.00.
                 .andExpect(jsonPath("$[0].savingsEur").value(closeTo(3.00, TOLERANCE)))
                 .andExpect(content().string(containsString("\"savingsEur\":3.00")));
+    }
+
+    @Test
+    @DisplayName("EVL-001 AC1 AC2 AC5 the monthly series rounds every energy figure to 3 decimals and stores nothing rounded")
+    void testMonthlySeriesRoundsEveryEnergyFigure() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(
+                SupplyMother.random(user).withCode("ES" + RandomStringUtils.random(20, false, true)).build(),
+                UserId.of(user.getId()));
+        influxFixture.write(List.of(RoundingNoiseDataset.firstRecord(supply.getCode()),
+                RoundingNoiseDataset.secondRecord(supply.getCode())));
+        monthlyAggregationRepository.aggregateMonthlyConsumption(supply, Month.FEBRUARY, 2024);
+        try {
+            String body = mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/monthly")
+                            .header(HttpHeaders.AUTHORIZATION, authHeader)
+                            .queryParam("startDate", RoundingNoiseDataset.MONTH_START)
+                            .queryParam("endDate", RoundingNoiseDataset.MONTH_END))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andReturn().getResponse().getContentAsString();
+
+            assertKWh(body, "/0/consumptionKWh", RoundingNoiseDataset.GRID_IMPORT);
+            assertKWh(body, "/0/selfConsumptionEnergyKWh", RoundingNoiseDataset.SELF_CONSUMPTION);
+            assertKWh(body, "/0/surplusEnergyKWh", RoundingNoiseDataset.SURPLUS);
+            assertKWh(body, "/0/generationEnergyKWh", RoundingNoiseDataset.GENERATION);
+            RoundingNoiseDataset.assertHourlyRecordsUnchanged(getDatadisConsumptionRepository, supply);
+            // The pre-aggregate keeps the unrounded float sums: 0.3456, not the 0.346 reported.
+            RoundingNoiseDataset.assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, supply,
+                    (float) RoundingNoiseDataset.gridImportSum(), (float) RoundingNoiseDataset.selfConsumptionSum(),
+                    (float) RoundingNoiseDataset.surplusSum(),
+                    (float) ((double) RoundingNoiseDataset.FIRST_GENERATION + RoundingNoiseDataset.SECOND_GENERATION));
+        } finally {
+            influxFixture.clear(supply.getCode());
+            influxFixture.clearMonthlyAggregates(supply.getCode());
+        }
     }
 }

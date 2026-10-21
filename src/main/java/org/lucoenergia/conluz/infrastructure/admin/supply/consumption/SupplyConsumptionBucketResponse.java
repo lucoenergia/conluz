@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
+import org.lucoenergia.conluz.infrastructure.shared.web.KWhRounding;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -20,6 +22,9 @@ import java.math.RoundingMode;
  * yearly endpoints. Detaching them drops {@code empty} -- a boolean that never existed as data and
  * only appeared in the JSON because {@code isEmpty()} is a getter -- and makes room for the savings
  * Datadis knows nothing about.
+ *
+ * <p>The energy figures are rounded here to 3 decimals, and only here: what is stored, and every
+ * sum built from it, keeps full precision.
  *
  * <p>This is also where the amount is rounded, once, for presentation: the calculation itself keeps
  * full precision, so a bucket cut across two tariff segments is rounded as a whole rather than once
@@ -42,18 +47,24 @@ public class SupplyConsumptionBucketResponse {
             "configured with.",
             example = "00:00")
     private final String time;
-    @Schema(description = "Energy consumed from the grid over the bucket, in kWh.", example = "12.5")
+    @Schema(description = "Energy taken from the grid by this supply over the bucket. Does not " +
+            "include self-consumed energy. In kWh, rounded to 3 decimals.",
+            example = "12.5")
     private final Float consumptionKWh;
     @Schema(description = "How the underlying records were obtained, as reported by Datadis. Null " +
             "on a bucket with no stored record.",
             example = "Real", types = {"string", "null"})
     private final String obtainMethod;
-    @Schema(description = "Energy exported to the grid over the bucket, in kWh.", example = "3.25")
+    @Schema(description = "Energy assigned to this supply and fed back to the grid over the bucket. " +
+            "In kWh, rounded to 3 decimals.",
+            example = "3.25")
     private final Float surplusEnergyKWh;
-    @Schema(description = "Energy generated and assigned to the supply over the bucket, in kWh.",
+    @Schema(description = "Energy generated and assigned to the supply over the bucket, in kWh, " +
+            "rounded to 3 decimals.",
             example = "8.75")
     private final Float generationEnergyKWh;
-    @Schema(description = "Energy generated and consumed on site over the bucket, in kWh.",
+    @Schema(description = "Energy produced by the community and consumed by this supply over the " +
+            "bucket, as reported by the distributor. In kWh, rounded to 3 decimals.",
             example = "5.5")
     private final Float selfConsumptionEnergyKWh;
     @Schema(description = "Estimated amount the bucket's self-consumed energy saved, in euros, " +
@@ -78,11 +89,19 @@ public class SupplyConsumptionBucketResponse {
         this.cups = consumption.getCups();
         this.date = consumption.getDate();
         this.time = consumption.getTime();
-        this.consumptionKWh = consumption.getConsumptionKWh();
+        this.consumptionKWh = rounded(consumption.getConsumptionKWh());
         this.obtainMethod = consumption.getObtainMethod();
-        this.surplusEnergyKWh = consumption.getSurplusEnergyKWh();
-        this.generationEnergyKWh = consumption.getGenerationEnergyKWh();
-        this.selfConsumptionEnergyKWh = consumption.getSelfConsumptionEnergyKWh();
+        this.surplusEnergyKWh = rounded(consumption.getSurplusEnergyKWh());
+        this.generationEnergyKWh = rounded(consumption.getGenerationEnergyKWh());
+        this.selfConsumptionEnergyKWh = rounded(consumption.getSelfConsumptionEnergyKWh());
+    }
+
+    /**
+     * Rounds the figure as reported -- read through the float's shortest decimal representation --
+     * rather than its widened binary value, which can sit just below a tie.
+     */
+    private static Float rounded(Float kWh) {
+        return (float) KWhRounding.round(DatadisEnergyValues.exactlyAsReported(kWh).doubleValue());
     }
 
     public String getCups() {

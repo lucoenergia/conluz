@@ -76,3 +76,4 @@ are always called **tests**, never specs.
 | `OTT` | One-time tokens | [`one-time-tokens.md`](one-time-tokens.md) |
 | `SUP` | Supplies | [`supplies.md`](supplies.md) |
 | `PLT` | Plants | [`plants.md`](plants.md) |
+| `EVL` | Energy values in consumption and energy metrics responses | [`energy-values.md`](energy-values.md) |

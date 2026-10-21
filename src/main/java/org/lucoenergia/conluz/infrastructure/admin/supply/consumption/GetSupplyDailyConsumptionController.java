@@ -48,12 +48,13 @@ public class GetSupplyDailyConsumptionController {
                     - Supply owners can only retrieve consumption data for their own supplies
 
                     The consumption data includes:
-                    - Total consumption in kWh
-                    - Surplus energy (energy sent to grid)
+                    - Energy taken from the grid
+                    - Surplus energy (energy fed back to the grid)
                     - Self-consumption energy
                     - Obtain method (Real/Estimated)
 
-                    Data is aggregated by day within the specified date range.
+                    Data is aggregated by day, from the hourly records, within the specified date
+                    range. Every energy figure is in kWh, rounded to 3 decimals.
 
                     **Time zone:** days follow the local calendar of the time zone the application is
                     configured with, not UTC. A day therefore lasts 23 hours on the spring daylight
