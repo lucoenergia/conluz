@@ -32,7 +32,7 @@ public class CommunityCapabilitiesResponse {
     @Schema(description = "Whether the caller administers this community: creating and importing its supplies, reading and writing its Datadis and Shelly configuration, and triggering its synchronisation endpoints.")
     private final boolean canManage;
 
-    @Schema(description = "Whether the caller may administer this community's roster: listing, creating, deleting and re-roling its memberships. Only an active community admin of it: there is no platform-admin bypass.")
+    @Schema(description = "Whether the caller may administer this community's roster: listing, deleting and re-roling its memberships. Only an active community admin of it: there is no platform-admin bypass.")
     private final boolean canManageMemberships;
 
     @Schema(description = "Whether the caller may register a member in this community (POST /api/v1/communities/{communityId}/memberships/register). Only an active community admin of it: there is no platform-admin bypass.")

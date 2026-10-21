@@ -53,7 +53,7 @@ class CreateMembershipRepositoryTest extends BaseIntegrationTest {
     private MutableClock clock;
 
     @Test
-    @DisplayName("MEM-001 MEM-002 the membership holds a copy of the user's record and is accepted at the creation instant")
+    @DisplayName("the membership holds a copy of the user's record and is accepted at the creation instant")
     void create_copiesTheUsersRecord_andAcceptsTheMembership() {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         User user = createUser("member@example.org");
@@ -83,7 +83,7 @@ class CreateMembershipRepositoryTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("MEM-002 a user's empty or blank email is recorded as no contact email")
+    @DisplayName("a user's empty or blank email is recorded as no contact email")
     void create_recordsNoContactEmail_whenTheUsersEmailIsEmptyOrBlank() {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         User withEmptyEmail = createUser("");

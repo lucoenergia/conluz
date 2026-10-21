@@ -87,24 +87,6 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
-    @DisplayName("MEM-026 Adding a user to a community answers the record that copy created")
-    void addingAMembershipShowsTheStoredRecord() throws Exception {
-        User added = newUser();
-
-        JsonNode created = json(perform(adminOfA, post("/api/v1/communities/{communityId}/memberships",
-                communityA.getId()), Map.of("userId", added.getId(), "role", "COMMUNITY_MEMBER")));
-
-        Map<String, Object> row = membershipRow(added.getPersonalId(), communityA.getId());
-        Map<String, Object> stored = new LinkedHashMap<>();
-        stored.put("fullName", row.get("full_name"));
-        stored.put("memberNumber", row.get("member_number"));
-        stored.put("contactEmail", row.get("contact_email"));
-        stored.put("address", row.get("address"));
-        stored.put("phoneNumber", row.get("phone_number"));
-        assertShowsRecord(created.get("user"), stored);
-    }
-
-    @Test
     @DisplayName("MEM-026 A supply shows its owner's record in the supply's community")
     void aSupplyShowsTheOwnersRecordInItsCommunity() throws Exception {
         assertShowsRecord(json(perform(adminOfA, get("/api/v1/supplies/{supplyId}", supplyInA.getId()))).get("user"),

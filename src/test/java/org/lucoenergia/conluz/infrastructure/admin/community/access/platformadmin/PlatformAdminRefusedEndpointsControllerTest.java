@@ -137,7 +137,6 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
         String memberships = "/api/v1/communities/{c}/memberships";
         assertEveryCallIsRefused(List.of(
                 call(403, HttpMethod.GET, memberships),
-                call(403, HttpMethod.POST, memberships).body(Map.of("userId", member.getId(), "role", "COMMUNITY_ADMIN")),
                 call(403, HttpMethod.POST, memberships + "/import").file(membersCsv()),
                 call(403, HttpMethod.POST, memberships + "/invite"),
                 call(403, HttpMethod.POST, memberships + "/register").body(Map.of(
