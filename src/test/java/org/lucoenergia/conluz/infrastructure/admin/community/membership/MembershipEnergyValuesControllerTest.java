@@ -202,7 +202,7 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
      * carrying four decimals, aggregated after the last of them and read through both operations over the month's local bounds.
      */
     @Test
-    @DisplayName("EVL-001 EVL-002 AC4 the membership monthly series and energy metrics report the same figures for a month")
+    @DisplayName("EVL-001 EVL-002 EVL-004 AC4 the membership monthly series and energy metrics report the same figures for a month")
     void theMonthlySeriesAndTheEnergyMetricsAgreeOnAMonth() throws Exception {
         TwoSupplyMembership membership = twoSupplyMembership();
         // Every hour of the month published as zero first, so the records below land in a complete
@@ -233,6 +233,9 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
         assertEquals(0, kWhAt(monthly, "/0/selfConsumptionKWh")
                         .compareTo(kWhAt(metrics, "/energy/selfConsumptionKWh")),
                 () -> "self-consumption differs: " + monthly + " vs " + metrics);
+        assertEquals(0, kWhAt(monthly, "/0/assignedProductionKWh")
+                        .compareTo(kWhAt(metrics, "/energy/assignedProductionKWh")),
+                () -> "assigned production differs: " + monthly + " vs " + metrics);
     }
 
     // --- fixtures ---

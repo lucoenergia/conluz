@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,6 +27,7 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
     private static final String MEMBERSHIP_BUCKET = "MembershipMonthlyConsumptionBucketResponse";
     private static final String SUPPLY_ENERGY = "SupplyEnergyMetricsEnergyResponse";
     private static final String MEMBERSHIP_ENERGY = "MembershipEnergyMetricsEnergyResponse";
+    private static final String HOURLY_PROFILE_BUCKET = "MembershipHourlyProfileBucketResponse";
 
     private static final String SUPPLY_MONTHLY_PATH = "/api/v1/supplies/{supplyId}/consumption/monthly";
     private static final String MEMBERSHIP_MONTHLY_PATH =
@@ -113,6 +115,63 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
                 () -> "does not state the figures are rounded once: " + description);
         assertFalse(description.contains("the sum of what the per-supply monthly series reports"),
                 () -> "still says it sums the per-supply series: " + description);
+    }
+
+    /**
+     * One entry per quantity of the glossary: its field name, the schemas reporting it as a total,
+     * whether the hourly profile reports it as an average, and the wording every description of it
+     * shares, read case-insensitively. The wording is the one the energy metrics use, adapted only
+     * to subject, period and averaging, so each pattern holds in all three operations.
+     */
+    private record Quantity(String field, List<String> totalSchemas, boolean averagedHourly,
+                            List<Pattern> wording) {
+    }
+
+    private static final List<String> SERIES_AND_METRICS =
+            List.of(SUPPLY_BUCKET, MEMBERSHIP_BUCKET, SUPPLY_ENERGY, MEMBERSHIP_ENERGY);
+
+    private static final List<Quantity> GLOSSARY = List.of(
+            new Quantity("gridImportKWh", SERIES_AND_METRICS, false, List.of(
+                    Pattern.compile("^energy taken from the grid by "),
+                    Pattern.compile("does not include self-consumed energy\\."))),
+            new Quantity("totalConsumptionKWh", List.of(SUPPLY_ENERGY, MEMBERSHIP_ENERGY), true, List.of(
+                    Pattern.compile("energy consumed"),
+                    Pattern.compile("whatever its origin: grid ?import(kwh)? plus self-?consum"))),
+            new Quantity("selfConsumptionKWh", SERIES_AND_METRICS, false, List.of(
+                    Pattern.compile("^energy produced by the community and consumed by "),
+                    Pattern.compile("as reported by the distributor"))),
+            new Quantity("surplusKWh", SERIES_AND_METRICS, false, List.of(
+                    Pattern.compile("^energy assigned to .* and fed back to the grid over "))),
+            new Quantity("assignedProductionKWh", SERIES_AND_METRICS, true, List.of(
+                    Pattern.compile("energy assigned to [^:]*: self-?consum(ed|ptionkwh) plus surplus"))));
+
+    @Test
+    @DisplayName("EVL-003 AC7 every quantity has one field name and one wording across the series, the energy metrics and the hourly profile")
+    void everyQuantityHasOneNameAndOneWordingAcrossOperations() throws Exception {
+        JsonNode schemas = document().path("components").path("schemas");
+
+        for (Quantity quantity : GLOSSARY) {
+            List<String> descriptions = new ArrayList<>();
+            for (String schemaName : quantity.totalSchemas()) {
+                descriptions.add(description(schemas.path(schemaName).path("properties"), quantity.field()));
+            }
+            if (quantity.averagedHourly()) {
+                JsonNode hourly = schemas.path(HOURLY_PROFILE_BUCKET).path("properties");
+                String name = quantity.field().substring(0, 1).toUpperCase() + quantity.field().substring(1);
+                String sampleCount = quantity.field().replace("KWh", "SampleCount");
+                descriptions.add(description(hourly, "average" + name));
+                assertFalse(hourly.path(sampleCount).isMissingNode(),
+                        () -> HOURLY_PROFILE_BUCKET + " has no " + sampleCount);
+            }
+
+            for (String description : descriptions) {
+                String wording = description.toLowerCase();
+                for (Pattern pattern : quantity.wording()) {
+                    assertTrue(pattern.matcher(wording).find(),
+                            () -> quantity.field() + " does not say \"" + pattern + "\": " + description);
+                }
+            }
+        }
     }
 
     private static String description(JsonNode properties, String field) {

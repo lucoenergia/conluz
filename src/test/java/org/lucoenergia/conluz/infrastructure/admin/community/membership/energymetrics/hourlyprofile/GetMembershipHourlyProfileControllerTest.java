@@ -40,6 +40,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture.hourlyRecord;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -492,6 +493,49 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
     }
 
     // --- fixtures ---
+
+    // --- #460: averages and sample counts carry the name of their quantity ---
+
+    /**
+     * Local 12:00 holds three records of two supplies: total consumption (1 + 2) + (2 + 1) + (3 + 3)
+     * = 12 over 3 samples, 4.0; assigned production (2 + 1) + (1 + 0.5) + (3 + 1.5) = 9 over 3
+     * samples, 3.0. Local 03:00 holds none. Both buckets carry the total consumption names and none
+     * of the old ones, whatever their values.
+     */
+    @Test
+    @DisplayName("EVL-003 AC2 the hourly profile names its average and sample count after total consumption, values unchanged")
+    void theHourlyProfileNamesItsAverageAndSampleCountAfterTotalConsumption() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        SupplyEntity first = persistSupply(member, community);
+        SupplyEntity second = persistSupply(member, community);
+        writePublishedZeros(first, YearMonth.of(2026, 8), 3, 12);
+        writePublishedZeros(second, YearMonth.of(2026, 8), 3, 12);
+        write(first, "2026/08/10", "12:00", 1f, 2f, 1f);
+        write(first, "2026/08/11", "12:00", 2f, 1f, 0.5f);
+        write(second, "2026/08/10", "12:00", 3f, 3f, 1.5f);
+
+        JsonNode buckets = json(request(community, member, loginUser(member)).andExpect(status().isOk()))
+                .path("buckets");
+
+        for (int hour : List.of(3, 12)) {
+            JsonNode bucket = buckets.path(hour);
+            for (String field : List.of("averageTotalConsumptionKWh", "totalConsumptionSampleCount")) {
+                assertTrue(bucket.has(field), () -> "hour " + hour + " lacks " + field + ": " + bucket);
+            }
+            for (String field : List.of("averageConsumptionKWh", "consumptionSampleCount")) {
+                assertFalse(bucket.has(field), () -> "hour " + hour + " still carries " + field + ": " + bucket);
+            }
+        }
+        JsonNode noon = buckets.path(12);
+        assertEquals(4.0, noon.path("averageTotalConsumptionKWh").asDouble(), TOLERANCE);
+        assertEquals(3L, noon.path("totalConsumptionSampleCount").asLong());
+        assertEquals(3.0, noon.path("averageAssignedProductionKWh").asDouble(), TOLERANCE);
+        assertEquals(3L, noon.path("assignedProductionSampleCount").asLong());
+        JsonNode night = buckets.path(3);
+        assertTrue(night.path("averageTotalConsumptionKWh").isNull(), () -> "hour 3: " + night);
+        assertEquals(0L, night.path("totalConsumptionSampleCount").asLong());
+    }
 
     private void assertEmptyProfile(ResultActions response, int supplyCount) throws Exception {
         response.andExpect(status().isOk())
