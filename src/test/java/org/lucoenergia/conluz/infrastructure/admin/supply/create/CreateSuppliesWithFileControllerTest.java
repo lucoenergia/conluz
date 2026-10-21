@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
+import jakarta.persistence.EntityManager;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -26,12 +27,14 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -59,6 +62,10 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
     private CreateMembershipService createMembershipService;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private EntityManager entityManager;
 
     private static final String URL = "/api/v1/supplies/import";
     public static final String SUPPLIES_CSV = "fixtures/supplies/supplies.csv";
@@ -93,6 +100,40 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
 
         UUID storedOwnerId = supplyRepository.findByCode("ES0033333333333333FF0F").orElseThrow().getUser().getId();
         Assertions.assertEquals(owner.getId(), storedOwnerId);
+    }
+
+    @Test
+    void testImportStoresEachSupplyWithItsOwnerAndCommunity() throws Exception {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User owner = UserMother.randomUser();
+        createUserRepository.create(owner);
+        createMembershipService.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        String csv = "code,addressRef,address,partitionCoefficient,personalId,name\n"
+                + "ES0033333333333333PP0P,A9384752345OA127,Main St 1,0.078632," + owner.getPersonalId() + ",First\n"
+                + "ES0033333333333333QQ0Q,A9384752345OA128,Main St 2,0.078632," + owner.getPersonalId() + ",Second\n";
+        MockMultipartFile file = new MockMultipartFile(
+                MULTIPART_FILE_NAME, "supplies.csv", TEXT_CSV_MEDIA_TYPE, csv.getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .param("communityId", community.getId().toString())
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created", hasSize(2)))
+                .andExpect(jsonPath("$.errors", hasSize(0)));
+        entityManager.flush();
+        entityManager.clear();
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT code, name, address, address_ref, enabled, "
+                + "user_id, community_id FROM supplies WHERE user_id = ? ORDER BY code", owner.getId());
+        Assertions.assertEquals(List.of(
+                Map.of("code", "ES0033333333333333PP0P", "name", "First", "address", "Main St 1",
+                        "address_ref", "A9384752345OA127", "enabled", true, "user_id", owner.getId(),
+                        "community_id", community.getId()),
+                Map.of("code", "ES0033333333333333QQ0Q", "name", "Second", "address", "Main St 2",
+                        "address_ref", "A9384752345OA128", "enabled", true, "user_id", owner.getId(),
+                        "community_id", community.getId())), rows);
     }
 
     /**
