@@ -49,7 +49,7 @@ objects the API returns, which report one endpoint's decision each and are liste
     nobody's, because the account is shared by every community the person belongs to and its email
     receives password recovery (#415, ACC-008, ACC-020). Until account deletion has an owner (#325), a
     request to erase a person's account is handled by an operator, following
-    [`docs/operations/account-erasure.md`](../operations/account-erasure.md). A member's data in a community is
+    [`docs/ops/account-erasure.md`](../ops/account-erasure.md). A member's data in a community is
     edited on their member record (MEM-028); a member is suspended in one community by disabling their
     membership (MEM-027).
   - Import, create, edit, view, list and remove supplies of those members.
