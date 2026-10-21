@@ -36,26 +36,6 @@ public class UserAccessPolicy {
     }
 
     /**
-     * Editing is narrower than reading: seeing a user through the self branch does not by itself
-     * confer the right to change them, so an ordinary member editing their own record is forbidden
-     * rather than allowed.
-     *
-     * <p>Nobody may edit another user. A community admin may not, whatever their role in the user's
-     * communities (#415), and neither may a platform admin (#446): the account is the person's, shared
-     * by every community they belong to, and its email receives the password recovery link. A
-     * community admin keeps editing their own account, as they did before.</p>
-     */
-    public AccessDecision canEdit(User caller, UUID userId,
-                                  Supplier<List<CommunityMembership>> targetMemberships) {
-        if (!canSee(caller, userId, targetMemberships)) {
-            return AccessDecision.NOT_VISIBLE;
-        }
-        return CallerMemberships.isCurrentUser(caller, userId) && administersACommunityOf(caller, targetMemberships)
-                ? AccessDecision.ALLOWED
-                : AccessDecision.FORBIDDEN;
-    }
-
-    /**
      * Acting on the account of someone <em>other</em> than oneself. Backs deleting, enabling and
      * disabling a user, all three of which must be refused for everyone acting on their own account,
      * admins included.
@@ -98,23 +78,6 @@ public class UserAccessPolicy {
             return AccessDecision.ALLOWED;
         }
         return administersACommunityOf(caller, targetMemberships)
-                ? AccessDecision.ALLOWED
-                : AccessDecision.FORBIDDEN;
-    }
-
-    /**
-     * Creating a user in a community: an active community admin of that community. Without a
-     * community nobody may create a user (#446), since the account would belong to no community that
-     * could administer it.
-     */
-    public AccessDecision canCreateIn(User caller, UUID communityId) {
-        if (communityId == null) {
-            return AccessDecision.FORBIDDEN;
-        }
-        if (!CallerMemberships.canSeeCommunity(caller, communityId)) {
-            return AccessDecision.NOT_VISIBLE;
-        }
-        return CallerMemberships.hasCommunityAdminRoleIn(caller, communityId)
                 ? AccessDecision.ALLOWED
                 : AccessDecision.FORBIDDEN;
     }

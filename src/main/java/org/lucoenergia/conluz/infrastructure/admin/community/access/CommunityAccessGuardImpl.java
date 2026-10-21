@@ -150,11 +150,6 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
-    public boolean canEditUser(UUID userId) {
-        return userAccessGuard.canEditUser(userId);
-    }
-
-    @Override
     public boolean canListSuppliesOfUser(UUID userId) {
         return userAccessGuard.canListSuppliesOfUser(userId);
     }
@@ -172,11 +167,6 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     @Override
     public boolean canDisableUser(UUID userId) {
         return userAccessGuard.canDisableUser(userId);
-    }
-
-    @Override
-    public boolean canCreateUserIn(UUID communityId) {
-        return userAccessGuard.canCreateUserIn(communityId);
     }
 
     @Override

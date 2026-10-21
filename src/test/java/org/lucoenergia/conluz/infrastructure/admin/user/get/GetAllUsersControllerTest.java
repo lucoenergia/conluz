@@ -434,7 +434,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         assertTrue(row.get("capabilities").get("canRead").asBoolean());
         assertTrue(row.get("capabilities").get("canListSupplies").asBoolean());
         // Administering one of them is never enough to change the account (#415).
-        assertFalse(row.get("capabilities").get("canEdit").asBoolean());
+        assertFalse(row.get("capabilities").get("canDelete").asBoolean());
     }
 
     private record TwoCommunities(Community communityA, Community communityB, User adminOfAMemberOfB,

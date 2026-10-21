@@ -26,11 +26,10 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.U
 /**
  * Lets a user change their own contact details.
  *
- * <p>Separate from {@code PUT /users/{userId}} on purpose. That endpoint is an administrative one —
- * it replaces the identifying fields too — and widening its guard to admit self-edits would have
- * handed every member the ability to rewrite their own DNI and member number. This endpoint has no
- * user id to point anywhere: it acts on the caller, which is why {@code isAuthenticated()} is the
- * whole rule and no object-scoped guard method exists for it.</p>
+ * <p>It writes the contact details only, never the fields that identify the member, so no member
+ * can rewrite their own DNI or member number. This endpoint has no user id to point anywhere: it acts
+ * on the caller, which is why {@code isAuthenticated()} is the whole rule and no object-scoped guard
+ * method exists for it.</p>
  */
 @RestController
 @RequestMapping("/api/v1")
@@ -55,8 +54,8 @@ public class UpdateProfileController {
                 user identifier to supply — so it cannot be used to edit anybody else.
                 
                 Name, DNI and member number are not editable here: they identify the member to the
-                community and to the distributor, so changing them is an administrative operation
-                performed through `PUT /api/v1/users/{userId}`.
+                community and to the distributor. A community keeps its own name and member number for
+                the member on the membership's member record.
                 
                 Omitting `email`, `address` or `phoneNumber` clears the stored value. An empty or blank
                 `email` also clears it; any other value must be a valid email address.

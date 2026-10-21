@@ -34,10 +34,6 @@ public class PlatformCapabilitiesAssembler {
                 .withCanCreateCommunity(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .withCanListUsers(policies.user().canList(caller).isAllowed())
                 .withCanAdministerPlatform(policies.platform().canAdministerPlatform(caller).isAllowed())
-                // The null is the rule's own no-community case, not a missing argument: it is what
-                // POST /api/v1/users does without a communityId, which nobody may call (#446), so
-                // this is false for every caller. It stays in the contract, and stays tied to the rule.
-                .withCanCreateUsers(policies.user().canCreateIn(caller, null).isAllowed())
                 .withCanListPlatformAdmins(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .withCanInvitePlatformAdmins(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .build();

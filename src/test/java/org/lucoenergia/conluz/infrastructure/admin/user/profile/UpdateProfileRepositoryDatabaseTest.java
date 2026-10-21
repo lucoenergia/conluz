@@ -41,9 +41,8 @@ import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSu
  * The narrow write behind {@code PUT /users/profile}.
  *
  * <p>The endpoint is safe because this repository can only touch three columns. That is a property
- * of the mapping, not of the guard, so it is pinned here rather than at the controller: reusing
- * {@code UpdateUserRepositoryDatabase}, or adding a line to the mapping below, must fail a test
- * even though every controller test would still pass.</p>
+ * of the mapping, not of the guard, so it is pinned here rather than at the controller: adding a
+ * line to the mapping below must fail a test even though every controller test would still pass.</p>
  */
 @Transactional
 class UpdateProfileRepositoryDatabaseTest extends BaseIntegrationTest {

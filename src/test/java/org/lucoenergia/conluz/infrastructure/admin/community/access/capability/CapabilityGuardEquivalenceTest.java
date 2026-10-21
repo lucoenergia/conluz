@@ -178,7 +178,6 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canManageMembershipInvestment", capabilities.isCanManageMembershipInvestment(),
                     () -> guard.canManageMembershipInvestment(id));
             assertSame("canListPlants", capabilities.isCanListPlants(), () -> guard.canListPlants(id));
-            assertSame("canCreateUsers", capabilities.isCanCreateUsers(), () -> guard.canCreateUserIn(id));
             assertSame("canReadProduction", capabilities.isCanReadProduction(),
                     () -> guard.canReadCommunityProduction(id));
             assertSame("canListSupplies", capabilities.isCanListSupplies(), () -> guard.canListSupplies(id));
@@ -284,9 +283,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         UUID targetId = owner.getId();
         forEachCaller(caller -> {
             UserCapabilitiesResponse capabilities =
-                    userAssembler.assembleFetchingMemberships(caller, targetId);
+                    userAssembler.assembleFetchingMemberships(caller, owner);
             assertSame("canRead", capabilities.isCanRead(), () -> guard.canReadUser(targetId));
-            assertSame("canEdit", capabilities.isCanEdit(), () -> guard.canEditUser(targetId));
             assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canDeleteUser(targetId));
             assertSame("canEnable", capabilities.isCanEnable(), () -> guard.canEnableUser(targetId));
             assertSame("canDisable", capabilities.isCanDisable(), () -> guard.canDisableUser(targetId));
@@ -305,12 +303,12 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
      */
     @Test
     void theUserCapabilitiesEqualTheirGuardsForAUserOutsideTheCallersCommunity() {
-        UUID targetId = callers.get("member of B").getId();
+        User target = callers.get("member of B");
+        UUID targetId = target.getId();
         forEachCaller(caller -> {
             UserCapabilitiesResponse capabilities =
-                    userAssembler.assembleFetchingMemberships(caller, targetId);
+                    userAssembler.assembleFetchingMemberships(caller, target);
             assertSame("canRead", capabilities.isCanRead(), () -> guard.canReadUser(targetId));
-            assertSame("canEdit", capabilities.isCanEdit(), () -> guard.canEditUser(targetId));
             assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canDeleteUser(targetId));
             assertSame("canEnable", capabilities.isCanEnable(), () -> guard.canEnableUser(targetId));
             assertSame("canDisable", capabilities.isCanDisable(), () -> guard.canDisableUser(targetId));
@@ -333,9 +331,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         forEachCaller(caller -> {
             UUID selfId = caller.getId();
             UserCapabilitiesResponse capabilities =
-                    userAssembler.assembleFetchingMemberships(caller, selfId);
+                    userAssembler.assembleFetchingMemberships(caller, caller);
             assertSame("canRead", capabilities.isCanRead(), () -> guard.canReadUser(selfId));
-            assertSame("canEdit", capabilities.isCanEdit(), () -> guard.canEditUser(selfId));
             assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canDeleteUser(selfId));
             assertSame("canRevokePlatformAdmin", capabilities.isCanRevokePlatformAdmin(),
                     () -> guard.canRevokePlatformAdmin(selfId));
@@ -443,10 +440,6 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canCreateCommunity", capabilities.isCanCreateCommunity(),
                     () -> guard.canCreateCommunity());
             assertSame("canListUsers", capabilities.isCanListUsers(), () -> guard.canListUsers());
-            // The null is the decision itself: POST /api/v1/users carries an optional communityId,
-            // so this is the guard call the endpoint makes when none is given.
-            assertSame("canCreateUsers", capabilities.isCanCreateUsers(),
-                    () -> guard.canCreateUserIn(null));
             assertSame("canListPlatformAdmins", capabilities.isCanListPlatformAdmins(),
                     () -> guard.canListPlatformAdmins());
             assertSame("canInvitePlatformAdmins", capabilities.isCanInvitePlatformAdmins(),

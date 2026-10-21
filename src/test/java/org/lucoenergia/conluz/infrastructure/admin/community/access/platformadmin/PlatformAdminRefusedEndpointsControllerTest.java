@@ -126,12 +126,6 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
                 call(403, HttpMethod.GET, "/api/v1/users"),
                 call(404, HttpMethod.GET, "/api/v1/users/{u}"),
                 call(404, HttpMethod.GET, "/api/v1/users/{u}/supplies"),
-                call(403, HttpMethod.POST, "/api/v1/users").body(newUserBody(true)),
-                call(403, HttpMethod.POST, "/api/v1/users").body(newUserBody(false)),
-                call(403, HttpMethod.POST, "/api/v1/users/import").file(usersCsv()).param("communityId", "{c}"),
-                call(403, HttpMethod.POST, "/api/v1/users/import").file(usersCsv()),
-                call(404, HttpMethod.PUT, "/api/v1/users/{u}").body(Map.of("personalId", member.getPersonalId(),
-                        "fullName", "Taken Over", "number", 1, "email", "taken.over@example.org")),
                 call(404, HttpMethod.DELETE, "/api/v1/users/{u}"),
                 call(404, HttpMethod.POST, "/api/v1/users/{u}/enable"),
                 call(404, HttpMethod.POST, "/api/v1/users/{u}/disable")));
@@ -370,26 +364,6 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
         user.enable();
         createUserRepository.create(user);
         return user;
-    }
-
-    private Map<String, Object> newUserBody(boolean inTheCommunity) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("personalId", UserMother.randomPersonalId());
-        body.put("fullName", "Created By Nobody");
-        body.put("number", 7);
-        body.put("email", "created-" + UUID.randomUUID() + "@example.org");
-        body.put("password", "a secure password1!");
-        if (inTheCommunity) {
-            body.put("communityId", community.getId());
-            body.put("communityRole", "COMMUNITY_ADMIN");
-        }
-        return body;
-    }
-
-    private static MockMultipartFile usersCsv() {
-        return csv("number,fullName,personalId,address,email,phoneNumber,role,password,communityId,communityRole\n"
-                + "1,Imported By Nobody," + UserMother.randomPersonalId() + ",1 Test St,imported@example.org,"
-                + "600000001,partner,a secure password1!,,COMMUNITY_ADMIN\n");
     }
 
     private static MockMultipartFile membersCsv() {

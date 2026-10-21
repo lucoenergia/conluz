@@ -143,20 +143,6 @@ class CommunityAccessGuardImplDelegationTest {
     }
 
     @Test
-    void canEditUser_isDelegatedToTheUserGuard() {
-        UUID targetUserId = givenTargetUserWithoutCommunities();
-
-        assertThrows(UserNotFoundException.class, () -> guard().canEditUser(targetUserId));
-    }
-
-    @Test
-    void canCreateUserIn_isDelegatedToTheUserGuard() {
-        authenticated(UserMother.randomUser());
-
-        assertThrows(CommunityNotFoundException.class, () -> guard().canCreateUserIn(UUID.randomUUID()));
-    }
-
-    @Test
     void canListUsers_isDelegatedToTheUserGuard() {
         authenticated(userWithMembership(CommunityMother.random().build(), CommunityRole.COMMUNITY_ADMIN));
 

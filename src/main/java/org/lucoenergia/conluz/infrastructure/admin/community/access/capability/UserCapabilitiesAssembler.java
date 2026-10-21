@@ -84,17 +84,6 @@ public class UserCapabilitiesAssembler {
     }
 
     /**
-     * The same decision addressed by id, for a caller that has the target's id but not the target —
-     * notably a write endpoint that wants to settle the capabilities <em>before</em> it writes.
-     */
-    public UserCapabilitiesResponse assembleFetchingMemberships(User caller, UUID targetUserId) {
-        return assemble(caller, targetUserId, memoize(() -> targetUserId == null
-                ? List.<CommunityMembership>of()
-                : getMembershipsRepository.findByUserIds(Set.of(targetUserId))
-                        .getOrDefault(targetUserId, List.of())));
-    }
-
-    /**
      * For a page of users that carry no memberships, keyed by user id. Issues <strong>one</strong>
      * query for the whole page, and none at all if no rule ends up asking.
      */
@@ -125,7 +114,6 @@ public class UserCapabilitiesAssembler {
                                               Supplier<List<CommunityMembership>> targetMemberships) {
         return UserCapabilitiesResponse.builder()
                 .withCanRead(policies.user().canRead(caller, userId, targetMemberships).isAllowed())
-                .withCanEdit(policies.user().canEdit(caller, userId, targetMemberships).isAllowed())
                 .withCanDelete(policies.user().canEditOther(caller, userId, targetMemberships).isAllowed())
                 .withCanEnable(policies.user().canEditOther(caller, userId, targetMemberships).isAllowed())
                 .withCanDisable(policies.user().canEditOther(caller, userId, targetMemberships).isAllowed())

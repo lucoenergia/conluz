@@ -160,7 +160,7 @@ class GetUserByIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
                 .andExpect(jsonPath("$.capabilities.canListSupplies").value(true))
                 // Administering one of them is never enough to change the account (#415).
-                .andExpect(jsonPath("$.capabilities.canEdit").value(false));
+                .andExpect(jsonPath("$.capabilities.canDelete").value(false));
     }
 
     @Test

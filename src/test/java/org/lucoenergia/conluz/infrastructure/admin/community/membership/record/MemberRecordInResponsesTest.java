@@ -215,28 +215,6 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
-    @DisplayName("ACC-008 A community admin updating the user is refused, so the response carries neither the record nor "
-            + "the account")
-    void aCommunityAdminUpdatingTheUserIsRefused() throws Exception {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("number", person.getNumber());
-        body.put("personalId", person.getPersonalId());
-        body.put("fullName", person.getFullName());
-        body.put("email", person.getEmail());
-        body.put("address", person.getAddress());
-        body.put("phoneNumber", person.getPhoneNumber());
-
-        String response = mockMvc.perform(put("/api/v1/users/{userId}", person.getId())
-                        .header(HttpHeaders.AUTHORIZATION, adminOfA)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isForbidden())
-                .andReturn().getResponse().getContentAsString();
-
-        assertThat(response).doesNotContain(person.getFullName(), (String) recordA.get("fullName"));
-    }
-
-    @Test
     @DisplayName("MEM-026 An admin of both communities sees the record of the one with the lowest id, every time")
     void anAdminOfBothCommunitiesSeesTheRecordOfTheLowestCommunityId() throws Exception {
         String adminOfBoth = loginAsAdminOfBoth();
