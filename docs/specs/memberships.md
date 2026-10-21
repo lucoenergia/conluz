@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById`, `setMembershipInvestment`, `clearMembershipInvestment`, `getMembershipPayback`, `getMembershipMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #397 |
+| **Last reviewed against code** | #446 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how the existing creation paths and member registration fill the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, which memberships grant access, and where responses read member data from; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, which memberships grant access, what the `X-Community-Id` header must name, what a platform admin reaches of a community's memberships, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -421,8 +421,8 @@ lazily, as issues touch it.
   names (`getAllCommunities`, `getCommunityById`) MUST be the full names of the admins' member records in that
   community. When a supply's owner has no membership in the supply's community, those five fields MUST be blank
   (an empty full name, the other four null), never the account's. A user read through `getAllUsers`,
-  `getUserById` or returned by `updateUser` MUST show the account's data to the user themselves and to the
-  platform admin; to any other caller, the five fields MUST come from the user's member record in a community
+  `getUserById` or returned by `updateUser` MUST show the account's data to the user themselves only; to any other
+  caller, a platform admin included, the five fields MUST come from the user's member record in a community
   the caller administers through an active admin membership and, when there are several, in the one whose id is
   the lowest in the canonical text form of the id (the order PostgreSQL gives `uuid`). Every other field MUST
   keep coming from the account.
@@ -434,7 +434,8 @@ lazily, as issues touch it.
   left its community has no record to show, and falling back to the account would leak it. Records of accounts
   with a single membership are copied again from the account once, so that edits made to the account since the
   copy of #388 still show.
-- **Source:** #396, ADR-0003 §1
+- **Source:** #396, ADR-0003 §1. #446 withdrew the account view from the platform admin, which until then saw
+  the account of any user it read.
 
 ### MEM-027 — A community admin enables and disables the memberships of their community's members
 
@@ -565,6 +566,36 @@ lazily, as issues touch it.
   caller, who typed them, but never logged.
 - **Source:** #397, ADR-0003 §3 and §5; reading Windows-1252 and the structured, localised row errors were
   decided by the maintainer in the review of #397; the identifier check, #398.
+
+### MEM-031 — A platform admin reaches a community's memberships only through a membership of its own
+
+- **Status:** Active
+- **Rule:** Being a platform admin MUST NOT, by itself, let a caller reach a community's memberships or member
+  records. A platform admin who is not an active community admin of the community MUST be refused with 403 the
+  roster (`getMemberships`), creating (`createMembership`), re-roling (`updateMembershipRole`) and deleting
+  (`deleteMembership`) its memberships, as registering, importing, inviting, enabling, disabling and editing
+  records already are (MEM-007, MEM-009, MEM-027, MEM-028, MEM-030); it MUST be answered 404 on a membership's
+  investment, payback, monthly consumption, energy metrics and hourly profile, as anyone who is not one of the
+  community's admins or the member themselves is. Every membership capability it receives in that community MUST be
+  `false`, and the community's `canManageMemberships` and `canCreateUsers` too. The community itself, with its
+  aggregated data (name, member count, supply count, admin names, MEM-006), MUST stay visible to it, and a
+  community's admins MUST stay reachable through `…/admins` (MEM-021), the only place a platform admin without
+  memberships reads someone else's personal data. A platform admin who is a member or admin of a community MUST get
+  exactly what that membership gives, in that community only.
+- **Rationale:** The roster carries every member's record and personal ID, which only the community's own
+  administration reads (ADR-0003 §1 and §3). The platform admin needs to identify and contact a community's admins,
+  and nothing more; letting it create a membership would also let it make itself an admin of any community.
+- **Source:** #446, ADR-0003 §3, #329
+
+### MEM-032 — The X-Community-Id header names a community the caller is a member of
+
+- **Status:** Active
+- **Rule:** A request carrying `X-Community-Id` MUST be refused with 403 unless the caller holds an active
+  membership (MEM-004) in the community it names, whoever the caller is, a platform admin included. A value that is
+  not a UUID MUST be refused with 400. A request without the header is not affected.
+- **Rationale:** The header selects the community a request acts in; naming a community one does not belong to is
+  never legitimate, and a platform admin needs none of it: the web client never sends the header.
+- **Source:** #446, #329
 
 ## Impossible states
 
