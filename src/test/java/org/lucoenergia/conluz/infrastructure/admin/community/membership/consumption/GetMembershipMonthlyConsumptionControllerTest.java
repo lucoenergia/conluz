@@ -4,7 +4,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -65,7 +65,7 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -411,7 +411,7 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
 
     private User persistMember(UUID communityId) {
         User member = persistUser();
-        createMembershipService.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
         return member;
     }
 

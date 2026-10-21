@@ -6,7 +6,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -36,7 +36,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private ManagePlatformAdminRepository managePlatformAdminRepository;
     @Autowired
@@ -138,7 +138,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
         User platformAdmin = UserMother.randomUser();
         platformAdmin.enable();
         createUserRepository.create(platformAdmin);
-        createMembershipService.create(community.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(community.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
         managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
 
         mockMvc.perform(get("/api/v1/users/{userId}", member.getId())
@@ -209,7 +209,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.enable();
         createUserRepository.create(user);
-        createMembershipService.create(communityId, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityId, user.getId(), CommunityRole.COMMUNITY_MEMBER);
         return user;
     }
 }

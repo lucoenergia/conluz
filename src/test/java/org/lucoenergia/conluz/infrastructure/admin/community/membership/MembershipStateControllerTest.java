@@ -32,7 +32,7 @@ class MembershipStateControllerTest extends BaseRegisterMemberTest {
         Community first = newCommunity();
         Community second = newCommunity();
         User member = memberOf(first, CommunityRole.COMMUNITY_MEMBER);
-        createMembershipService.create(second.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(second.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         String bearer = loginUser(member);
         String admin = loginAsAdminOf(first);
         Map<String, Object> accountBefore = accountRow(member.getPersonalId());

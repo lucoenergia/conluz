@@ -9,7 +9,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -60,7 +60,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private GetSupplyRepository getSupplyRepository;
     @Autowired
@@ -75,7 +75,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.setPersonalId(userPersonalId);
         createUserRepository.create(user);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         String body = String.format("""
                 {
@@ -124,7 +124,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.setPersonalId(userPersonalId);
         createUserRepository.create(user);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         String body = String.format("""
                 {
@@ -154,7 +154,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
         User user = UserMother.randomUser();
         createUserRepository.create(user);
-        createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         String body = String.format("""
                 {
@@ -184,7 +184,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
         User owner = UserMother.randomUserWithPersonalId("12345678A");
         createUserRepository.create(owner);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         String body = objectMapper.writeValueAsString(Map.of(
                 "code", "ES0033333333333333EE0E",
@@ -214,7 +214,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.setPersonalId(userPersonalId);
         createUserRepository.create(user);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         String body = String.format("""
                 {
@@ -258,7 +258,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
         User user = UserMother.randomUser();
         createUserRepository.create(user);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = SupplyMother.random().build();
         createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), DEFAULT_COMMUNITY_ID);
 
@@ -384,7 +384,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
         User memberOfB = UserMother.randomUser();
         createUserRepository.create(memberOfB);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, memberOfB.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, memberOfB.getId(), CommunityRole.COMMUNITY_MEMBER);
         String unknownPersonalId = UserMother.randomUser().getPersonalId();
 
         ObjectNode memberOfBResponse = postSupplyExpectingNotFound(authHeader, communityA.getId(), "ES0033333333333333GG0G",
@@ -412,8 +412,8 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
         User owner = UserMother.randomUser();
         createUserRepository.create(owner);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
-        createMembershipService.create(communityA.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityA.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -440,7 +440,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
         User owner = UserMother.randomUser();
         createUserRepository.create(owner);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         // No endpoint disables a membership yet, so the state is set directly.
         CommunityMembershipEntity membership = communityMembershipJpaRepository
                 .findByUserIdAndCommunityId(owner.getId(), DEFAULT_COMMUNITY_ID).orElseThrow();
@@ -467,7 +467,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
 
         User owner = UserMother.randomUser();
         createUserRepository.create(owner);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         MembershipStateTestSupport.markPending(communityMembershipJpaRepository, owner.getId(), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(URL)

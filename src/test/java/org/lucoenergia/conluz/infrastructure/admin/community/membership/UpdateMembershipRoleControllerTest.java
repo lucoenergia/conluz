@@ -5,7 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisterMemberService;
@@ -48,7 +48,7 @@ class UpdateMembershipRoleControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private RegisterMemberService registerMemberService;
     @Autowired
@@ -81,7 +81,7 @@ class UpdateMembershipRoleControllerTest extends BaseControllerTest {
     void patchingAnExistingMembershipUpdatesItsRole() throws Exception {
         CommunityEntity community = persistCommunity();
         User member = persistUser();
-        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         String adminToken = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(patch("/api/v1/communities/{communityId}/memberships/{userId}",

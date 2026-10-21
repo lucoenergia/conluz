@@ -6,7 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -55,7 +55,7 @@ class UpdateProfileRepositoryDatabaseTest extends BaseIntegrationTest {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private GetMembershipsRepository getMembershipsRepository;
 
@@ -119,7 +119,7 @@ class UpdateProfileRepositoryDatabaseTest extends BaseIntegrationTest {
     void theMembershipsSurvive() {
         // Memberships carry every community-scoped permission the user has.
         UserEntity seeded = seedUserWithDistinctValuesEverywhere();
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, seeded.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, seeded.getId(), CommunityRole.COMMUNITY_ADMIN);
 
         repository.updateContactDetails(UserId.of(seeded.getId()),
                 new ContactDetails("nuevo@email.com", null, null));

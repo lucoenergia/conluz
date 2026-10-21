@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -43,7 +43,7 @@ class UpdateProfileControllerTest extends BaseControllerTest {
     @Autowired
     private GetUserRepository getUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
 
     @Test
     void aPlainMemberUpdatesTheirOwnContactDetails() throws Exception {
@@ -89,7 +89,7 @@ class UpdateProfileControllerTest extends BaseControllerTest {
         User admin = UserMother.randomUser();
         admin.enable();
         createUserRepository.create(admin);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
 
         mockMvc.perform(put(URL)
                         .header(HttpHeaders.AUTHORIZATION, loginUser(admin))
@@ -270,7 +270,7 @@ class UpdateProfileControllerTest extends BaseControllerTest {
         User member = UserMother.randomUser();
         member.enable();
         createUserRepository.create(member);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, member.getId(), CommunityRole.COMMUNITY_MEMBER);
         return member;
     }
 

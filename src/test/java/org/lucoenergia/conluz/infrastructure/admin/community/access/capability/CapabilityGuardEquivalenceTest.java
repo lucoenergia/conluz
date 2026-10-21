@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -90,7 +90,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     @Autowired
     private CreatePlantRepository createPlantRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CommunityMembershipJpaRepository membershipJpaRepository;
     @Autowired
@@ -137,7 +137,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         communityB = createCommunityRepository.create(CommunityMother.random().build());
 
         owner = persistUser();
-        createMembershipService.create(communityA.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityA.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()),
                 communityA.getId());
         plant = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
@@ -400,7 +400,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     @DisplayName("MEM-028 editing an admin's member record is reported as its guard decides it")
     void theRecordCapabilityEqualsItsGuardOnAnAdminsMembership() {
         User admin = persistUser();
-        createMembershipService.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         CommunityMembership membership = getMembershipsRepository
                 .findByUserIdAndCommunityId(admin.getId(), communityA.getId()).orElseThrow();
         UUID communityId = communityA.getId();
@@ -421,7 +421,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     @DisplayName("MEM-027 enabling and disabling an admin's membership is reported as its guard decides it")
     void theMembershipStateCapabilitiesEqualTheirGuardOnAnAdminsMembership() {
         User admin = persistUser();
-        createMembershipService.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         CommunityMembership membership = getMembershipsRepository
                 .findByUserIdAndCommunityId(admin.getId(), communityA.getId()).orElseThrow();
         UUID communityId = communityA.getId();
@@ -550,7 +550,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
 
     private User memberOf(Community community, CommunityRole role) {
         User user = persistUser();
-        createMembershipService.create(community.getId(), user.getId(), role);
+        createMembershipRepository.create(community.getId(), user.getId(), role);
         return user;
     }
 

@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -46,7 +46,7 @@ class SetMembershipInvestmentControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
 
     // --- AC1: a community admin records an investment, and it is persisted ---
 
@@ -184,7 +184,7 @@ class SetMembershipInvestmentControllerTest extends BaseControllerTest {
         String platformAdminToken = loginAsDefaultPlatformAdmin();
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
-        createMembershipService.create(community.getId(), platformAdminId(platformAdminToken),
+        createMembershipRepository.create(community.getId(), platformAdminId(platformAdminToken),
                 CommunityRole.COMMUNITY_ADMIN);
         // Re-login so the principal carries the membership just granted.
         String refreshedToken = loginAsDefaultPlatformAdmin();
@@ -302,7 +302,7 @@ class SetMembershipInvestmentControllerTest extends BaseControllerTest {
 
     private User persistMember(UUID communityId) {
         User member = persistUser();
-        createMembershipService.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
         return member;
     }
 

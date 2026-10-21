@@ -309,7 +309,7 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
 
     private String loginAsAdminOfBoth() throws Exception {
         User admin = memberOf(communityA, CommunityRole.COMMUNITY_ADMIN);
-        createMembershipService.create(communityB.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityB.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         return loginUser(admin);
     }
 

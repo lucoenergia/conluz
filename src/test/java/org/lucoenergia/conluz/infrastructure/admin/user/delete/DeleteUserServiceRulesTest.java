@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisterMemberService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -63,7 +63,7 @@ class DeleteUserServiceRulesTest extends BaseIntegrationTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private ManagePlatformAdminRepository managePlatformAdminRepository;
     @Autowired
@@ -130,13 +130,13 @@ class DeleteUserServiceRulesTest extends BaseIntegrationTest {
         createOneTimeTokenService.issueForMembership(memberId, first.getId(), OneTimeTokenPurpose.INVITATION);
         createOneTimeTokenService.issueForMembership(memberId, second.getId(), OneTimeTokenPurpose.INVITATION);
         // An accepted membership, and a token bound only to the user
-        createMembershipService.create(third.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(third.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         createOneTimeTokenService.issue(memberId, OneTimeTokenPurpose.PASSWORD_RESET);
         // Another user in the same communities, with their own token
         User other = UserMother.randomUser();
         createUserRepository.create(other);
         register(first, admin, other);
-        createMembershipService.create(third.getId(), other.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(third.getId(), other.getId(), CommunityRole.COMMUNITY_MEMBER);
         createOneTimeTokenService.issueForMembership(UserId.of(other.getId()), first.getId(),
                 OneTimeTokenPurpose.INVITATION);
         Assertions.assertEquals(3, count("SELECT count(*) FROM community_memberships WHERE user_id = ?", member.getId()));
@@ -161,7 +161,7 @@ class DeleteUserServiceRulesTest extends BaseIntegrationTest {
         User owner = UserMother.randomUser();
         owner.setEnabled(true);
         createUserRepository.create(owner);
-        createMembershipService.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         register(other, admin, owner);
         createOneTimeTokenService.issueForMembership(UserId.of(owner.getId()), other.getId(),
                 OneTimeTokenPurpose.INVITATION);
@@ -210,7 +210,7 @@ class DeleteUserServiceRulesTest extends BaseIntegrationTest {
         Community community = newCommunity();
         User owner = UserMother.randomUser();
         createUserRepository.create(owner);
-        createMembershipService.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyService.create(SupplyMother.random(owner).build(),
                 UserPersonalId.of(owner.getPersonalId()), community.getId());
         Plant plant = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));

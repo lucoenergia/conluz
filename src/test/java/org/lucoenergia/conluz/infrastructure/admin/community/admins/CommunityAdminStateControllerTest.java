@@ -33,7 +33,7 @@ class CommunityAdminStateControllerTest extends BaseCommunityAdminTest {
         Community first = newCommunity();
         Community second = newCommunity();
         User admin = memberOf(first, CommunityRole.COMMUNITY_ADMIN);
-        createMembershipService.create(second.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(second.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         String bearer = loginUser(admin);
         String platformAdmin = loginAsPlatformAdmin();
         Map<String, Object> accountBefore = accountRow(admin.getPersonalId());

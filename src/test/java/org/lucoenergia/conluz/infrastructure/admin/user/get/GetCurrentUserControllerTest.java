@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -35,7 +35,7 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CommunityMembershipJpaRepository communityMembershipJpaRepository;
 
@@ -84,7 +84,7 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
         User communityAdmin = UserMother.randomUser();
         communityAdmin.enable();
         createUserRepository.create(communityAdmin);
-        createMembershipService.create(community.getId(), communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(community.getId(), communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
 
         String authHeader = loginUser(communityAdmin);
 
@@ -106,9 +106,9 @@ class GetCurrentUserControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.enable();
         createUserRepository.create(user);
-        createMembershipService.create(active.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
-        createMembershipService.create(pending.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
-        createMembershipService.create(disabled.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(active.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(pending.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(disabled.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
         MembershipStateTestSupport.markPending(communityMembershipJpaRepository, user.getId(), pending.getId());
         MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, user.getId(), disabled.getId());
 

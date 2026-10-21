@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.enable.EnableUserService;
@@ -40,7 +40,7 @@ class EnableUserControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private EnableUserService enableUserService;
 
@@ -51,7 +51,7 @@ class EnableUserControllerTest extends BaseControllerTest {
         User member = UserMother.randomUser();
         member.setEnabled(false);
         createUserRepository.create(member);
-        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(post(String.format("/api/v1/users/%s/enable", member.getId()))
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId()))
@@ -68,7 +68,7 @@ class EnableUserControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.setEnabled(false);
         createUserRepository.create(user);
-        createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(post(String.format("/api/v1/users/%s/enable", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin())

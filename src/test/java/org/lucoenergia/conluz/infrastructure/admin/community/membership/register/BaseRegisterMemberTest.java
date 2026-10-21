@@ -13,7 +13,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -93,7 +93,7 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     @Autowired
     protected CreateCommunityRepository createCommunityRepository;
     @Autowired
-    protected CreateMembershipService createMembershipService;
+    protected CreateMembershipRepository createMembershipRepository;
     @Autowired
     protected ManagePlatformAdminRepository managePlatformAdminRepository;
     @Autowired
@@ -165,7 +165,7 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
 
     protected User memberOf(Community community, CommunityRole role) {
         User user = newUser();
-        createMembershipService.create(community.getId(), user.getId(), role);
+        createMembershipRepository.create(community.getId(), user.getId(), role);
         return user;
     }
 

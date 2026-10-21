@@ -8,7 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -73,7 +73,7 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
@@ -98,9 +98,9 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
     void createACommunityWithAMemberTheirSupplyAndAPlant() throws Exception {
         community = createCommunityRepository.create(CommunityMother.random().build());
         User admin = enabledUser();
-        createMembershipService.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         member = enabledUser();
-        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         supply = createSupplyRepository.create(SupplyMother.random(member).build(), UserId.of(member.getId()),
                 community.getId());
         plant = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));

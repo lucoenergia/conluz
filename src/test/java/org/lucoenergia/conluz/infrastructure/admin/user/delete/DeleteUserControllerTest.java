@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -40,7 +40,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private ManagePlatformAdminRepository managePlatformAdminRepository;
 
@@ -50,7 +50,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         User user = UserMother.randomUser();
         createUserRepository.create(user);
-        createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(delete(String.format("/api/v1/users/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin())
@@ -65,11 +65,11 @@ class DeleteUserControllerTest extends BaseControllerTest {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         User user = UserMother.randomUser();
         createUserRepository.create(user);
-        createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
         User platformAdmin = UserMother.randomUser();
         platformAdmin.setEnabled(true);
         createUserRepository.create(platformAdmin);
-        createMembershipService.create(community.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(community.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
         managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
 
         mockMvc.perform(delete(String.format("/api/v1/users/%s", user.getId()))
@@ -148,7 +148,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
         User member = UserMother.randomUser();
         member.setEnabled(true);
         createUserRepository.create(member);
-        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(delete(String.format("/api/v1/users/%s", member.getId()))
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId()))
@@ -169,7 +169,7 @@ class DeleteUserControllerTest extends BaseControllerTest {
         // Create a community and add the default platform admin as a member.
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         User defaultAdmin = getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).get();
-        createMembershipService.create(community.getId(), defaultAdmin.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), defaultAdmin.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         // Create a community admin of that community (not a platform admin) and log in.
         String authHeader = loginAsCommunityAdmin(community.getId());

@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccessService;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -46,9 +46,9 @@ class GetPlatformAdminsControllerTest extends BaseControllerTest {
     @Autowired
     private GetUserRepository getUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
-    private ManagePlatformAdminAccessService managePlatformAdminAccessService;
+    private ManagePlatformAdminRepository managePlatformAdminRepository;
 
     @Test
     @DisplayName("ACC-011 lists exactly the platform admins, enabled or not, by full name")
@@ -59,9 +59,9 @@ class GetPlatformAdminsControllerTest extends BaseControllerTest {
         User disabledAdmin = platformAdmin("Aaron Disabled Admin", false, null);
         // Users who are not platform admins, of every kind
         persistUser("Abel Plain User", true);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, persistUser("Abigail Member", true).getId(),
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, persistUser("Abigail Member", true).getId(),
                 CommunityRole.COMMUNITY_MEMBER);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, persistUser("Adam Community Admin", true).getId(),
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, persistUser("Adam Community Admin", true).getId(),
                 CommunityRole.COMMUNITY_ADMIN);
 
         mockMvc.perform(get(URL).header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -99,7 +99,7 @@ class GetPlatformAdminsControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultPlatformAdmin();
         User admin = platformAdmin("Aaron Member Admin", true, "aaron@example.com");
         // Member data and a membership the response must not leak
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
 
         JsonNode rows = list(authHeader);
 
@@ -244,7 +244,7 @@ class GetPlatformAdminsControllerTest extends BaseControllerTest {
         user.setEnabled(enabled);
         user.setEmail(email);
         createUserRepository.create(user);
-        managePlatformAdminAccessService.grant(UserId.of(user.getId()));
+        managePlatformAdminRepository.grant(UserId.of(user.getId()));
         return user;
     }
 

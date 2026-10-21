@@ -211,7 +211,7 @@ class PlatformAdminPersonalDataSweepTest extends BaseRegisterMemberTest {
         createUserRepository.create(user);
         deleteAfterwards(user.getPersonalId());
         remember(rawPassword);
-        createMembershipService.create(community.getId(), user.getId(), role);
+        createMembershipRepository.create(community.getId(), user.getId(), role);
         return user;
     }
 

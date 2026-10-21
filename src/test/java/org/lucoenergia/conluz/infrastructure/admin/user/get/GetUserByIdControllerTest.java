@@ -7,7 +7,6 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -34,8 +33,6 @@ class GetUserByIdControllerTest extends BaseControllerTest {
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
-    @Autowired
-    private CreateMembershipService createMembershipService;
 
     @Test
     void testGetUserById_shouldReturnMemberships() throws Exception {
@@ -65,7 +62,7 @@ class GetUserByIdControllerTest extends BaseControllerTest {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         User user = UserMother.randomUser();
         createUserRepository.create(user);
-        createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         String authHeader = loginAsCommunityAdmin(community.getId());
 
@@ -195,8 +192,8 @@ class GetUserByIdControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.enable();
         createUserRepository.create(user);
-        createMembershipService.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
-        createMembershipService.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
         return new TwoCommunityMember(user, communityA, communityB);
     }
 

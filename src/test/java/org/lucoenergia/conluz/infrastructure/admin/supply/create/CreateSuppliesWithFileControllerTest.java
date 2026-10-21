@@ -11,7 +11,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -61,7 +61,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private JdbcTemplate jdbcTemplate;
     @Autowired
@@ -81,7 +81,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
 
         User owner = UserMother.randomUserWithPersonalId("12345678A");
         createUserRepository.create(owner);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         String csv = "code,addressRef,address,partitionCoefficient,personalId\n"
                 + "ES0033333333333333FF0F,A9384752345OA124,Main St,0.078632," + variant + "\n";
         MockMultipartFile file = new MockMultipartFile(
@@ -108,7 +108,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         User owner = UserMother.randomUser();
         createUserRepository.create(owner);
-        createMembershipService.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         String csv = "code,addressRef,address,partitionCoefficient,personalId,name\n"
                 + "ES0033333333333333PP0P,A9384752345OA127,Main St 1,0.078632," + owner.getPersonalId() + ",First\n"
                 + "ES0033333333333333QQ0Q,A9384752345OA128,Main St 2,0.078632," + owner.getPersonalId() + ",Second\n";
@@ -147,10 +147,10 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
 
         User memberOfB = UserMother.randomUser();
         createUserRepository.create(memberOfB);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, memberOfB.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, memberOfB.getId(), CommunityRole.COMMUNITY_MEMBER);
         User memberOfA = UserMother.randomUser();
         createUserRepository.create(memberOfA);
-        createMembershipService.create(communityA.getId(), memberOfA.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityA.getId(), memberOfA.getId(), CommunityRole.COMMUNITY_MEMBER);
         String unknownPersonalId = UserMother.randomUser().getPersonalId();
 
         String csv = "code,addressRef,address,partitionCoefficient,personalId\n"
@@ -202,7 +202,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
         User user = UserMother.randomUserWithId(UUID.fromString("e7ab39cd-9250-40a9-b829-f11f65aae27d"));
         user.setPersonalId(userPersonalId);
         createUserRepository.create(user);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         String supplyCode = "ES002100823465";
         Supply supply = new Supply.Builder()
