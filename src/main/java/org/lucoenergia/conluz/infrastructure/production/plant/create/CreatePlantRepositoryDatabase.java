@@ -57,11 +57,10 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
                 .withInverterProvider(plant.getInverterProvider())
                 .withTotalPower(plant.getTotalPower())
                 .withConnectionDate(plant.getConnectionDate())
+                .withSupply(supplyEntity)
                 .build();
 
-        supplyEntity.addPlant(plantEntity);
-
-        supplyRepository.save(supplyEntity);
+        plantRepository.save(plantEntity);
 
         Optional<PlantEntity> newPlantEntity = plantRepository.findByProviderCode(plant.getProviderCode());
         if (newPlantEntity.isEmpty()) {

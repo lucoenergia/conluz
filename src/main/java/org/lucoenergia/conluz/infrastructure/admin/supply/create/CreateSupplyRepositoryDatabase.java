@@ -99,15 +99,14 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                 .withAddress(supply.getAddress())
                 .withAddressRef(supply.getAddressRef())
                 .withEnabled(supply.getEnabled())
+                .withUser(userEntity)
                 .withCommunity(communityEntity)
                 .withShelly(shellyEntity)
                 .withDistributor(distributorEntity)
                 .withContract(contractEntity)
                 .build();
 
-        userEntity.addSupply(supplyEntity);
-
-        userRepository.save(userEntity);
+        supplyRepository.save(supplyEntity);
 
         Optional<SupplyEntity> newSupplyEntity = supplyRepository.findByCode(supply.getCode());
         if (newSupplyEntity.isEmpty()) {

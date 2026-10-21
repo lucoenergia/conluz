@@ -2,11 +2,8 @@ package org.lucoenergia.conluz.infrastructure.admin.user;
 
 import jakarta.persistence.*;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "users")
@@ -31,13 +28,6 @@ public class UserEntity {
     private Instant passwordChangedAt;
     @Column(name = "disabled_at")
     private Instant disabledAt;
-    @OneToMany(
-            mappedBy = "user",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<SupplyEntity> supplies = new ArrayList<>();
-
 
     public UUID getId() {
         return id;
@@ -141,20 +131,6 @@ public class UserEntity {
 
     public void setDisabledAt(Instant disabledAt) {
         this.disabledAt = disabledAt;
-    }
-
-    public List<SupplyEntity> getSupplies() {
-        return supplies;
-    }
-
-    public void addSupply(SupplyEntity supply) {
-        supplies.add(supply);
-        supply.setUser(this);
-    }
-
-    public void removeSupply(SupplyEntity supply) {
-        supplies.remove(supply);
-        supply.setUser(null);
     }
 
     public static UserEntity createNewUser(User user, String encodedPassword) {
