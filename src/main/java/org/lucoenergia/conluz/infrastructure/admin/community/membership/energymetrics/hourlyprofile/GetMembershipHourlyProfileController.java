@@ -38,12 +38,12 @@ public class GetMembershipHourlyProfileController {
     @Operation(
             summary = "Retrieves the average day of every supply of a membership over its latest published month.",
             description = """
-                    For each hour of the local day, the average energy consumed and the average
+                    For each hour of the local day, the average total consumption and the average
                     energy assigned by **every** supply the member owns in this community, so the
                     member can see at which hours assigned energy goes to waste. Supplies in the
                     member's other communities are not counted.
 
-                    - `averageConsumptionKWh`: grid import plus self-consumed energy.
+                    - `averageTotalConsumptionKWh`: grid import plus self-consumed energy.
                     - `averageAssignedProductionKWh`: self-consumed plus surplus energy.
 
                     **Period:**
@@ -70,7 +70,7 @@ public class GetMembershipHourlyProfileController {
                     Every record of every supply and every day of the month counts as one sample of
                     its hour, and each average **divides by the records found**: never by the days of
                     the month, and never by averaging per-supply averages. Each series has its own
-                    sample count, `consumptionSampleCount` and `assignedProductionSampleCount`, and the
+                    sample count, `totalConsumptionSampleCount` and `assignedProductionSampleCount`, and the
                     two can differ, since a record can carry consumption without carrying assigned
                     production. An average is `null` when its hour has no sample of that series, which
                     is never the same as `0`: an hour whose samples are all zero, such as a night hour
