@@ -107,8 +107,8 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canEnable").value(false))
                 .andExpect(jsonPath("$.capabilities.canDisable").value(false))
                 .andExpect(jsonPath("$.capabilities.canListSupplies").value(true))
-                // Granting platform admin is not a community admin's to give.
-                .andExpect(jsonPath("$.capabilities.canGrantPlatformAdmin").value(false));
+                // Managing the platform-admin role is not a community admin's to do.
+                .andExpect(jsonPath("$.capabilities.canRevokePlatformAdmin").value(false));
     }
 
     @Test
@@ -141,7 +141,6 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
                 .andExpect(jsonPath("$.capabilities.canEnable").value(false))
                 .andExpect(jsonPath("$.capabilities.canDisable").value(false))
-                .andExpect(jsonPath("$.capabilities.canGrantPlatformAdmin").value(true))
                 .andExpect(jsonPath("$.capabilities.canRevokePlatformAdmin").value(true));
     }
 

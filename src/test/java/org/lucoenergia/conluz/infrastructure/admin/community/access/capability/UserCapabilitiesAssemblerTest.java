@@ -41,7 +41,7 @@ class UserCapabilitiesAssemblerTest {
     // --- the capabilities themselves ---
 
     @Test
-    @DisplayName("ACC-020 a platform admin may only grant and revoke the role on somebody else's account")
+    @DisplayName("ACC-020 a platform admin may only revoke the role on somebody else's account")
     void aPlatformAdminMayOnlyManageTheRoleOfSomebodyElse() {
         User target = CapabilityFixtures.memberOf(CapabilityFixtures.community());
 
@@ -53,7 +53,6 @@ class UserCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanEnable());
         assertFalse(capabilities.isCanDisable());
         assertFalse(capabilities.isCanListSupplies());
-        assertTrue(capabilities.isCanGrantPlatformAdmin());
         assertTrue(capabilities.isCanRevokePlatformAdmin());
     }
 
@@ -90,7 +89,6 @@ class UserCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanEnable());
         assertFalse(capabilities.isCanDisable());
         assertTrue(capabilities.isCanListSupplies());
-        assertFalse(capabilities.isCanGrantPlatformAdmin());
         assertFalse(capabilities.isCanRevokePlatformAdmin());
     }
 
@@ -143,7 +141,6 @@ class UserCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanEnable());
         assertFalse(capabilities.isCanDisable());
-        assertFalse(capabilities.isCanGrantPlatformAdmin());
         assertFalse(capabilities.isCanRevokePlatformAdmin());
         assertFalse(capabilities.isCanListSupplies());
     }
@@ -298,6 +295,6 @@ class UserCapabilitiesAssemblerTest {
 
     private static List<Boolean> flags(UserCapabilitiesResponse c) {
         return List.of(c.isCanRead(), c.isCanDelete(), c.isCanEnable(), c.isCanDisable(),
-                c.isCanGrantPlatformAdmin(), c.isCanRevokePlatformAdmin(), c.isCanListSupplies());
+                c.isCanRevokePlatformAdmin(), c.isCanListSupplies());
     }
 }

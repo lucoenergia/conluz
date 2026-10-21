@@ -117,7 +117,6 @@ public class UserCapabilitiesAssembler {
                 .withCanDelete(policies.user().canEditOther(caller, userId, targetMemberships).isAllowed())
                 .withCanEnable(policies.user().canEditOther(caller, userId, targetMemberships).isAllowed())
                 .withCanDisable(policies.user().canEditOther(caller, userId, targetMemberships).isAllowed())
-                .withCanGrantPlatformAdmin(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .withCanRevokePlatformAdmin(policies.platform().canAdministerOtherUser(caller, userId).isAllowed())
                 .withCanListSupplies(policies.user().canListSuppliesOf(caller, userId, targetMemberships).isAllowed())
                 .build();

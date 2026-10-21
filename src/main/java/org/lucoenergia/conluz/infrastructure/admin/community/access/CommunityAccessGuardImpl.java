@@ -263,11 +263,6 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
-    public boolean canGrantPlatformAdmin(UUID userId) {
-        return platformAccessGuard.canGrantPlatformAdmin(userId);
-    }
-
-    @Override
     public boolean canListPlatformAdmins() {
         return platformAccessGuard.canListPlatformAdmins();
     }

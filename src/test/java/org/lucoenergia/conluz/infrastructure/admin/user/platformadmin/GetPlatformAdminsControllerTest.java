@@ -144,15 +144,14 @@ class GetPlatformAdminsControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("ACC-011 granting the role adds the user to the list, and revoking it removes them")
-    void theListFollowsGrantAndRevoke() throws Exception {
+    @DisplayName("ACC-011 holding the role puts the user in the list, and revoking it removes them")
+    void theListFollowsTheRoleAndItsRevocation() throws Exception {
         String authHeader = loginAsDefaultPlatformAdmin();
         User user = persistUser("Aaron Future Admin", true);
         assertFalse(listedIds(authHeader).contains(user.getId().toString()));
 
-        mockMvc.perform(post("/api/v1/users/" + user.getId() + "/grant-platform-admin")
-                        .header(HttpHeaders.AUTHORIZATION, authHeader))
-                .andExpect(status().isOk());
+        // The role is granted by accepting an invitation, covered by PlatformAdminInvitationAcceptanceTest
+        managePlatformAdminRepository.grant(UserId.of(user.getId()));
         assertTrue(listedIds(authHeader).contains(user.getId().toString()));
 
         mockMvc.perform(post("/api/v1/users/" + user.getId() + "/revoke-platform-admin")

@@ -121,7 +121,6 @@ final class CapabilityInventory {
         report("canDeleteUser", capability(USER, "canDelete"));
         report("canEnableUser", capability(USER, "canEnable"));
         report("canDisableUser", capability(USER, "canDisable"));
-        report("canGrantPlatformAdmin", capability(USER, "canGrantPlatformAdmin"));
         report("canRevokePlatformAdmin",
                 capability(USER, "canRevokePlatformAdmin"),
                 capability(PLATFORM_ADMIN, "canRevoke"));

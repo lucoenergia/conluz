@@ -288,8 +288,6 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canDeleteUser(targetId));
             assertSame("canEnable", capabilities.isCanEnable(), () -> guard.canEnableUser(targetId));
             assertSame("canDisable", capabilities.isCanDisable(), () -> guard.canDisableUser(targetId));
-            assertSame("canGrantPlatformAdmin", capabilities.isCanGrantPlatformAdmin(),
-                    () -> guard.canGrantPlatformAdmin(targetId));
             assertSame("canRevokePlatformAdmin", capabilities.isCanRevokePlatformAdmin(),
                     () -> guard.canRevokePlatformAdmin(targetId));
             assertSame("canListSupplies", capabilities.isCanListSupplies(),
@@ -312,8 +310,6 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canDeleteUser(targetId));
             assertSame("canEnable", capabilities.isCanEnable(), () -> guard.canEnableUser(targetId));
             assertSame("canDisable", capabilities.isCanDisable(), () -> guard.canDisableUser(targetId));
-            assertSame("canGrantPlatformAdmin", capabilities.isCanGrantPlatformAdmin(),
-                    () -> guard.canGrantPlatformAdmin(targetId));
             assertSame("canRevokePlatformAdmin", capabilities.isCanRevokePlatformAdmin(),
                     () -> guard.canRevokePlatformAdmin(targetId));
             assertSame("canListSupplies", capabilities.isCanListSupplies(),

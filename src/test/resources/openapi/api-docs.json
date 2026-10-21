@@ -3874,10 +3874,6 @@
             "description" : "Whether the caller may enable this user. Always false when the user is the caller. False on any other user, for every caller: nobody may enable another user's account.",
             "type" : "boolean"
           },
-          "canGrantPlatformAdmin" : {
-            "description" : "Whether the caller may grant this user the platform-admin flag.",
-            "type" : "boolean"
-          },
           "canListSupplies" : {
             "description" : "Whether the caller may list this user's supplies (GET /api/v1/users/{userId}/supplies). Deliberately narrower than canRead: reading a user is not reading their supply data, so a community admin may list only the supplies in the communities they administer. Predicts whether the call is allowed, not what it returns: the listing carries only the supplies the caller may read one by one — all of them for the user themselves, otherwise those in communities the caller administers.",
             "type" : "boolean"
@@ -3895,7 +3891,6 @@
           "canDelete",
           "canDisable",
           "canEnable",
-          "canGrantPlatformAdmin",
           "canListSupplies",
           "canRead",
           "canRevokePlatformAdmin"
@@ -20757,126 +20752,6 @@
           }
         ],
         "summary" : "Enables a user by ID",
-        "tags" : [
-          "Users"
-        ]
-      }
-    },
-    "/api/v1/users/{userId}/grant-platform-admin" : {
-      "post" : {
-        "description" : "This endpoint promotes the user identified in the endpoint path to platform administrator.\n\nProper authentication, through an authentication token, is required for secure access.\n**Required: Platform Admin.**\n\nThe operation is idempotent: granting the flag to a user who is already a platform admin has no effect.\n\nUpon a successful request, the server responds with an HTTP status code of 200, indicating that the user is now a platform administrator.\n\nIn situations where the operation encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to assist clients in diagnosing and resolving the issue.",
-        "operationId" : "grantPlatformAdmin",
-        "parameters" : [
-          {
-            "in" : "path",
-            "name" : "userId",
-            "required" : true,
-            "schema" : {
-              "format" : "uuid",
-              "type" : "string"
-            }
-          }
-        ],
-        "responses" : {
-          "200" : {
-            "description" : "Platform-admin privileges granted successfully"
-          },
-          "400" : {
-            "content" : {
-              "application/json" : {
-                "example" : {
-                  "message" : "The request contains invalid data.",
-                  "status" : 400,
-                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                }
-              }
-            },
-            "description" : "The request contains invalid data."
-          },
-          "401" : {
-            "content" : {
-              "application/json" : {
-                "example" : {
-                  "message" : "You are not authorized to make this request.",
-                  "status" : 401,
-                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                }
-              }
-            },
-            "description" : "You are not authorized to make this request."
-          },
-          "403" : {
-            "content" : {
-              "application/json" : {
-                "examples" : {
-                  "Not authorized" : {
-                    "description" : "Not authorized",
-                    "value" : {
-                      "message" : "You are not authorized to make this request.",
-                      "status" : 403,
-                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                    }
-                  },
-                  "Password change required" : {
-                    "description" : "Password change required",
-                    "value" : {
-                      "errors" : [
-                        {
-                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
-                          "message" : "You must change your password before you can continue.",
-                          "params" : null
-                        }
-                      ],
-                      "message" : "You must change your password before you can continue.",
-                      "status" : 403,
-                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
-                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                    }
-                  }
-                },
-                "schema" : {
-                  "$ref" : "#/components/schemas/RestError"
-                }
-              }
-            },
-            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
-          },
-          "404" : {
-            "content" : {
-              "application/json" : {
-                "example" : {
-                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
-                  "status" : 404,
-                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                }
-              }
-            },
-            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
-          },
-          "500" : {
-            "content" : {
-              "application/json" : {
-                "example" : {
-                  "message" : "There was a problem processing your request.",
-                  "status" : 500,
-                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                }
-              }
-            },
-            "description" : "There was a problem processing your request."
-          }
-        },
-        "security" : [
-          {
-            "bearerToken" : [ ]
-          }
-        ],
-        "summary" : "Grants platform-admin privileges to a user by ID",
         "tags" : [
           "Users"
         ]

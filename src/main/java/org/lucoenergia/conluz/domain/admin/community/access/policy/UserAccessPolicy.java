@@ -19,8 +19,8 @@ import java.util.function.Supplier;
  * either.</p>
  *
  * <p>Being a platform admin opens nothing here (#446): the platform admin reaches another user only
- * through a community it administers, like anyone else. Granting and revoking the platform-admin role
- * are {@link PlatformAccessPolicy}'s rules, not these.</p>
+ * through a community it administers, like anyone else. Revoking the platform-admin role is
+ * {@link PlatformAccessPolicy}'s rule, not these.</p>
  */
 public class UserAccessPolicy {
 
