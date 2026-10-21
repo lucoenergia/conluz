@@ -223,11 +223,11 @@ For one supply and one month, the daily totals must add up to the monthly total:
 ```bash
 curl -sS -H "Authorization: Bearer $TOKEN" \
   "$CONLUZ_URL/api/v1/supplies/$SUPPLY_ID/consumption/daily?startDate=2023-01-01T00:00:00%2B01:00&endDate=2023-01-31T23:59:59%2B01:00" \
-  | jq '[.[].consumptionKWh] | add'
+  | jq '[.[].gridImportKWh] | add'
 
 curl -sS -H "Authorization: Bearer $TOKEN" \
   "$CONLUZ_URL/api/v1/supplies/$SUPPLY_ID/consumption/monthly?startDate=2023-01-01T00:00:00%2B01:00&endDate=2023-01-31T23:59:59%2B01:00" \
-  | jq '.[].consumptionKWh'
+  | jq '.[].gridImportKWh'
 ```
 
 Pass both bounds **with the zone's offset** (`%2B` is the URL-encoded `+`). Bounds expressed in UTC
