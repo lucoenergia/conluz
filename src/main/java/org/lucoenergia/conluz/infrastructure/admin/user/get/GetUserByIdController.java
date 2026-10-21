@@ -54,10 +54,9 @@ public class GetUserByIdController {
             description = """
                     This endpoint retrieves detailed information about a specific user by their unique identifier.
 
-                    **Required: Platform Admin, Community Admin, or the user themselves**
+                    **Required: the user themselves, or a Community Admin of one of the user's communities.** Being a Platform Admin is not enough (#446): any other caller is answered 404.
 
-                    **What `memberships` contains:** platform admins see every membership, and a user reading
-                    themselves sees all of their own; otherwise only the memberships in communities the
+                    **What `memberships` contains:** a user reading themselves sees all of their own; otherwise only the memberships in communities the
                     caller administers.
 
                     Authentication is required using a Bearer token.

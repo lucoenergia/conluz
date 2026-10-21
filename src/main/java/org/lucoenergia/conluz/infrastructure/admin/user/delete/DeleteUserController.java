@@ -38,9 +38,9 @@ public class DeleteUserController {
                     This endpoint enables the removal of a user from the system by specifying the user's unique identifier within the endpoint path.
 
                     To utilize this endpoint, clients send a DELETE request with the targeted user's ID, requiring authentication for secure access.
-                    **Required: Platform Admin. You cannot delete your own account.**
+                    **Required: nobody may use it on another user's account, and you cannot delete your own account.** Nobody may delete another user's account: neither a Community Admin, whatever their role in the user's communities (#415), nor a Platform Admin (#446). A caller who cannot see the user is answered 404; one who can is answered 403.
                     
-                    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To remove a member from one community, delete their membership instead (`DELETE /api/v1/communities/{communityId}/memberships/{userId}`); to suspend them, disable it (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`).
+                    The account is shared by every community the person belongs to (#415). To remove a member from one community, delete their membership instead (`DELETE /api/v1/communities/{communityId}/memberships/{userId}`); to suspend them, disable it (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`).
 
                     Deleting the account also deletes every membership of the user, in every community, with its member record, and every token of the user. Memberships the user invited are kept, with no inviter, and sharing agreements and distributor files the user created, edited or uploaded are kept, with no creator, editor or uploader.
 

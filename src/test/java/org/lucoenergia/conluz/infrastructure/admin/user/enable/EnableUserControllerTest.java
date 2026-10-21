@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepos
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.enable.EnableUserService;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -40,6 +41,8 @@ class EnableUserControllerTest extends BaseControllerTest {
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
     private CreateMembershipService createMembershipService;
+    @Autowired
+    private EnableUserService enableUserService;
 
     @Test
     @DisplayName("ACC-008 a community admin enabling a member of their community is refused, and the account is unchanged")
@@ -59,20 +62,32 @@ class EnableUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testEnableUser() throws Exception {
-
-        // Create a user
+    @DisplayName("ACC-020 a platform admin enabling a user is told the user is missing, and the account stays disabled")
+    void aPlatformAdminEnablingAUserIsToldTheUserIsMissing() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
         User user = UserMother.randomUser();
         user.setEnabled(false);
         createUserRepository.create(user);
-        Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
-
-        String authHeader = loginAsDefaultPlatformAdmin();
+        createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(post(String.format("/api/v1/users/%s/enable", user.getId()))
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
+        Assertions.assertFalse(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).get().isEnabled());
+    }
+
+    /**
+     * No caller may enable another user over HTTP (ACC-020), so what enabling does is pinned on the service.
+     */
+    @Test
+    void enablingAUserThroughTheServiceEnablesTheAccount() {
+        User user = UserMother.randomUser();
+        user.setEnabled(false);
+        createUserRepository.create(user);
+
+        enableUserService.enable(UserId.of(user.getId()));
+
         Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).get().isEnabled());
     }
 

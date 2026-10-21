@@ -124,14 +124,15 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
     }
 
     @Test
-    void aPlatformAdminGetsEveryPlatformCapability() {
+    @DisplayName("ACC-020 a platform admin gets the platform capabilities, but may neither list nor create users")
+    void aPlatformAdminGetsEveryPlatformCapabilityButTheUserOnes() {
         PlatformCapabilitiesResponse capabilities =
                 platformAssembler.assemble(CapabilityFixtures.platformAdmin());
 
         assertTrue(capabilities.isCanCreateCommunity());
-        assertTrue(capabilities.isCanListUsers());
+        assertFalse(capabilities.isCanListUsers());
         assertTrue(capabilities.isCanAdministerPlatform());
-        assertTrue(capabilities.isCanCreateUsers());
+        assertFalse(capabilities.isCanCreateUsers());
     }
 
     /**
@@ -145,9 +146,9 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
                 CapabilityFixtures.platformAdminMemberOf(CapabilityFixtures.community()));
 
         assertTrue(capabilities.isCanCreateCommunity());
-        assertTrue(capabilities.isCanListUsers());
+        assertFalse(capabilities.isCanListUsers());
         assertTrue(capabilities.isCanAdministerPlatform());
-        assertTrue(capabilities.isCanCreateUsers());
+        assertFalse(capabilities.isCanCreateUsers());
     }
 
     /**

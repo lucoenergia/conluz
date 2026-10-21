@@ -146,6 +146,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         callers = new LinkedHashMap<>();
         callers.put("platform admin, member of A", platformAdminMemberOf(communityA));
         callers.put("platform admin, not a member", platformAdmin());
+        callers.put("platform admin, community admin of A",
+                grantPlatformAdmin(memberOf(communityA, CommunityRole.COMMUNITY_ADMIN)));
         callers.put("community admin of A", memberOf(communityA, CommunityRole.COMMUNITY_ADMIN));
         callers.put("plain member of A", memberOf(communityA, CommunityRole.COMMUNITY_MEMBER));
         callers.put("owner of the supply", owner);
@@ -280,6 +282,30 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     @Test
     void theUserCapabilitiesEqualTheirGuards() {
         UUID targetId = owner.getId();
+        forEachCaller(caller -> {
+            UserCapabilitiesResponse capabilities =
+                    userAssembler.assembleFetchingMemberships(caller, targetId);
+            assertSame("canRead", capabilities.isCanRead(), () -> guard.canReadUser(targetId));
+            assertSame("canEdit", capabilities.isCanEdit(), () -> guard.canEditUser(targetId));
+            assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canDeleteUser(targetId));
+            assertSame("canEnable", capabilities.isCanEnable(), () -> guard.canEnableUser(targetId));
+            assertSame("canDisable", capabilities.isCanDisable(), () -> guard.canDisableUser(targetId));
+            assertSame("canGrantPlatformAdmin", capabilities.isCanGrantPlatformAdmin(),
+                    () -> guard.canGrantPlatformAdmin(targetId));
+            assertSame("canRevokePlatformAdmin", capabilities.isCanRevokePlatformAdmin(),
+                    () -> guard.canRevokePlatformAdmin(targetId));
+            assertSame("canListSupplies", capabilities.isCanListSupplies(),
+                    () -> guard.canListSuppliesOfUser(targetId));
+        });
+    }
+
+    /**
+     * The same rules about a user outside community A, so that a caller who administers A is compared on someone it
+     * administers nothing of -- the case a platform admin who is also a community admin turns on.
+     */
+    @Test
+    void theUserCapabilitiesEqualTheirGuardsForAUserOutsideTheCallersCommunity() {
+        UUID targetId = callers.get("member of B").getId();
         forEachCaller(caller -> {
             UserCapabilitiesResponse capabilities =
                     userAssembler.assembleFetchingMemberships(caller, targetId);

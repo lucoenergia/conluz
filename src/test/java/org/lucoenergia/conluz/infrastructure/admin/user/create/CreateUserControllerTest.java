@@ -8,7 +8,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
@@ -24,6 +26,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -52,11 +57,15 @@ class CreateUserControllerTest extends BaseControllerTest {
     private UserRepository userRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private CreateMembershipService createMembershipService;
+
+    private Community community;
 
     @Test
     void testFullBody() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         String body = """
                         {
@@ -82,7 +91,7 @@ class CreateUserControllerTest extends BaseControllerTest {
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content(inTheCommunity(body)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
@@ -101,7 +110,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("ACC-010 the legacy user creation still accepts identifiers that member registration refuses")
     void anIdentifierRegistrationRefuses_isStillAccepted() throws Exception {
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         for (String personalId : UserMother.invalidPersonalIds()) {
             Map<String, Object> body = Map.of(
@@ -114,7 +123,7 @@ class CreateUserControllerTest extends BaseControllerTest {
             mockMvc.perform(post(URL)
                             .header(HttpHeaders.AUTHORIZATION, authHeader)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(body)))
+                            .content(inTheCommunity(objectMapper.writeValueAsString(body))))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.personalId").value(personalId));
 
@@ -125,7 +134,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testMinimumBody() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         String body = """
                         {
@@ -147,7 +156,7 @@ class CreateUserControllerTest extends BaseControllerTest {
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content(inTheCommunity(body)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
@@ -166,7 +175,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithDuplicatedUser() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         String body = String.format("""
                         {
@@ -181,7 +190,7 @@ class CreateUserControllerTest extends BaseControllerTest {
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content(inTheCommunity(body)))
                 .andDo(print())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
@@ -198,12 +207,12 @@ class CreateUserControllerTest extends BaseControllerTest {
     void testWithTypingVariantOfAnExistingPersonalIdIsAConflict(String variant) throws Exception {
 
         createUserRepository.create(UserMother.randomUserWithPersonalId("12345678A"));
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(bodyWithPersonalId(variant)))
+                        .content(inTheCommunity(bodyWithPersonalId(variant))))
                 .andDo(print())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errors[0].code").value("USER_ALREADY_EXISTS"))
@@ -217,12 +226,12 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void testPersonalIdIsStoredNormalised() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(bodyWithPersonalId("x1234567-l")))
+                        .content(inTheCommunity(bodyWithPersonalId("x1234567-l"))))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.personalId").value("X1234567L"));
@@ -261,7 +270,7 @@ class CreateUserControllerTest extends BaseControllerTest {
 
     @Test
     void passwordOf14CodePoints_isRefused() throws Exception {
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         createUser(authHeader, bodyWithPassword("33300001A", "a".repeat(14)))
                 .andExpect(status().isBadRequest())
@@ -288,7 +297,7 @@ class CreateUserControllerTest extends BaseControllerTest {
 
     @Test
     void passwordOf15CodePoints_isAccepted() throws Exception {
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         createUser(authHeader, bodyWithPassword("33300002B", "a".repeat(15))).andExpect(status().isOk());
 
@@ -300,7 +309,7 @@ class CreateUserControllerTest extends BaseControllerTest {
         String password = " contrase\u00F1a: el \u00F1and\u00FA corre por la pampa, sin prisa y sin pausa ";
         Assertions.assertEquals(64, password.codePointCount(0, password.length()));
         Assertions.assertTrue(password.getBytes(StandardCharsets.UTF_8).length <= 72);
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         createUser(authHeader, bodyWithPassword("33300003C", password)).andExpect(status().isOk());
 
@@ -312,7 +321,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     void passwordOverSeventyTwoBytes_isRefusedWithTheBytesRule_neverTruncatedNorA500() throws Exception {
         // 37 code points, 74 bytes: within the length rule, over BCrypt's input limit
         String password = "\u00F1".repeat(37);
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         createUser(authHeader, bodyWithPassword("33300004D", password))
                 .andExpect(status().isBadRequest())
@@ -324,7 +333,7 @@ class CreateUserControllerTest extends BaseControllerTest {
 
     @Test
     void longLowercaseOnlyPassword_isAccepted() throws Exception {
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheCommunityAdmin();
 
         createUser(authHeader, bodyWithPassword("33300005E", "correcthorsebatterystaple"))
                 .andExpect(status().isOk());
@@ -335,7 +344,7 @@ class CreateUserControllerTest extends BaseControllerTest {
     @Test
     void createdUser_isFlaggedAsHavingToChangeThePassword_andIsRefusedUntilTheyChangeIt() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
         String body = objectMapper.writeValueAsString(Map.of(
                 "personalId", "33300006F",
                 "fullName", "John Doe",
@@ -373,8 +382,35 @@ class CreateUserControllerTest extends BaseControllerTest {
         return mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content(inTheCommunity(body)))
                 .andDo(print());
+    }
+
+    /**
+     * Creating a user needs a community admin and a community to create them in, so the tests that are
+     * not about who may call log in as the admin of a fresh community, carrying the default admin's
+     * personal ID, and create the user there.
+     */
+    private String loginAsTheCommunityAdmin() throws Exception {
+        community = createCommunityRepository.create(CommunityMother.random().build());
+        User admin = UserMother.randomUserWithPersonalId(DefaultUserAdminMother.PERSONAL_ID);
+        admin.enable();
+        createUserRepository.create(admin);
+        createMembershipService.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        return loginUser(admin);
+    }
+
+    /**
+     * The body with the community of {@link #loginAsTheCommunityAdmin()} added, unless it names one already or no
+     * such community was created.
+     */
+    private String inTheCommunity(String body) throws Exception {
+        JsonNode json = objectMapper.readTree(body);
+        if (community == null || json.has("communityId")) {
+            return body;
+        }
+        ((ObjectNode) json).put("communityId", community.getId().toString());
+        return objectMapper.writeValueAsString(json);
     }
 
     private ResultActions loginWith(String personalId, String password)

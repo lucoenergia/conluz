@@ -134,23 +134,19 @@ class UpdateUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("ACC-008 the platform admin still edits the account of a community member")
-    void thePlatformAdminEditingACommunityMemberIsAllowed() throws Exception {
+    @DisplayName("ACC-020 the platform admin editing a community member is told the user is missing, and the account is unchanged")
+    void thePlatformAdminEditingACommunityMemberIsToldTheUserIsMissing() throws Exception {
         Community community = newCommunity();
         User member = persistMemberOf(community);
-        UpdateUserBody body = takeoverBody();
+        List<Object> before = accountOf(member);
 
         mockMvc.perform(put(URL + "/{userId}", member.getId())
                         .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isOk());
+                        .content(objectMapper.writeValueAsString(takeoverBody())))
+                .andExpect(status().isNotFound());
 
-        User stored = getUserRepository.findById(UserId.of(member.getId())).orElseThrow();
-        assertEquals(List.of(body.getNumber(), body.getPersonalId(), body.getFullName(), body.getAddress(),
-                        body.getEmail(), body.getPhoneNumber()),
-                Arrays.asList(stored.getNumber(), stored.getPersonalId(), stored.getFullName(), stored.getAddress(),
-                        stored.getEmail(), stored.getPhoneNumber()));
+        assertEquals(before, accountOf(member));
     }
 
     private Community newCommunity() {
@@ -194,9 +190,9 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @ValueSource(strings = {"12345678a", " 12345678 A ", "12345678-A", "12.345.678-A"})
     void testChangingThePersonalIdToAVariantOfAnotherUsersIsAConflict(String variant) throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
         User other = persistUser("12345678A");
-        User user = persistUser("87654321B");
+        User user = persistAdminOfACommunity("87654321B");
+        String authHeader = loginUser(user);
 
         mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -214,8 +210,8 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testUpdatingWithAVariantOfTheUsersOwnPersonalIdStoresItNormalised() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
-        User user = persistUser("12345678A");
+        User user = persistAdminOfACommunity("12345678A");
+        String authHeader = loginUser(user);
 
         mockMvc.perform(put(String.format(URL + "/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -240,9 +236,7 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testUpdateUser() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
-
-        // Creates a user
+        // Creates a community admin, who edits their own account
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setPersonalId("12345678Z");
@@ -254,6 +248,8 @@ class UpdateUserControllerTest extends BaseControllerTest {
         user.setPassword(UserMother.randomPassword());
         user.setEnabled(true);
         createUserRepository.create(user);
+        createMembershipService.create(newCommunity().getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        String authHeader = loginUser(user);
 
         // Modify data of the user
         UpdateUserBody userModified = new UpdateUserBody();
@@ -290,9 +286,8 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithMissingNotRequiredFields() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
-
-        User user = persistUser("12345678Z");
+        User user = persistAdminOfACommunity("12345678Z");
+        String authHeader = loginUser(user);
 
         // Modify data of the user
         UpdateUserBody userModified = new UpdateUserBody();
@@ -356,9 +351,8 @@ class UpdateUserControllerTest extends BaseControllerTest {
     @Test
     void testWithoutEmailLeavesTheStoredEmailIntact() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
-
-        User user = persistUser("12345680T");
+        User user = persistAdminOfACommunity("12345680T");
+        String authHeader = loginUser(user);
 
         UpdateUserBody userModified = new UpdateUserBody();
         userModified.setNumber(2);
@@ -399,6 +393,16 @@ class UpdateUserControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest());
+    }
+
+    /**
+     * Editing an account through this endpoint is open only to a community admin on their own account, so the tests
+     * of what an edit does run as one: {@link #persistUser} plus an admin membership of a fresh community.
+     */
+    private User persistAdminOfACommunity(String personalId) {
+        User user = persistUser(personalId);
+        createMembershipService.create(newCommunity().getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        return user;
     }
 
     private User persistUser(String personalId) {

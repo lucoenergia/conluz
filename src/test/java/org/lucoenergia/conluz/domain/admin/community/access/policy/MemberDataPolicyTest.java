@@ -52,15 +52,27 @@ class MemberDataPolicyTest {
     }
 
     @Test
-    @DisplayName("MEM-026 The platform admin sees the account, without loading memberships")
-    void forUser_isTheAccount_forThePlatformAdmin() {
+    @DisplayName("MEM-026 A platform admin who administers no community sees no member data, without loading memberships")
+    void forUser_isAbsent_forAPlatformAdminWhoAdministersNoCommunity() {
         Community community = PolicyFixtures.community();
         User target = UserMother.randomUser();
         AtomicInteger loads = new AtomicInteger();
 
-        assertEquals(MemberDataView.ofAccount(target), policy.forUser(PolicyFixtures.platformAdmin(), target,
+        assertEquals(MemberDataView.absent(), policy.forUser(PolicyFixtures.platformAdmin(), target,
                 counting(loads, List.of(record(community, "Name in A")))));
         assertEquals(0, loads.get());
+    }
+
+    @Test
+    @DisplayName("MEM-026 A platform admin who administers the community sees the record, not the account")
+    void forUser_isTheRecord_forAPlatformAdminWhoAdministersTheCommunity() {
+        Community administered = PolicyFixtures.community();
+        CommunityMembership recordInAdministered = record(administered, "Name in A");
+        User caller = PolicyFixtures.adminOf(administered);
+        caller.setPlatformAdmin(true);
+
+        assertEquals(MemberDataView.ofRecord(recordInAdministered),
+                policy.forUser(caller, UserMother.randomUser(), () -> List.of(recordInAdministered)));
     }
 
     @Test

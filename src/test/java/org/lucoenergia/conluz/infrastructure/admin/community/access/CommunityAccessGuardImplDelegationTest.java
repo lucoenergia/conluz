@@ -158,9 +158,7 @@ class CommunityAccessGuardImplDelegationTest {
 
     @Test
     void canListUsers_isDelegatedToTheUserGuard() {
-        User admin = UserMother.randomUser();
-        admin.setPlatformAdmin(true);
-        authenticated(admin);
+        authenticated(userWithMembership(CommunityMother.random().build(), CommunityRole.COMMUNITY_ADMIN));
 
         assertTrue(guard().canListUsers());
     }

@@ -34,9 +34,9 @@ import static org.mockito.Mockito.when;
  * {@link GetMembershipsRepository} mocked.
  *
  * <p>Mirrors {@code UserAccessGuardImplTest} one to one, plus the disabled-membership and
- * self-edit cases it never reached. Note that the platform-admin and self branches deliberately
- * do not stub {@code findByUserId}: today they short-circuit before the repository is consulted,
- * and pinning that here keeps a future refactor from quietly adding a query per call.</p>
+ * self-edit cases it never reached. Note that the self branches deliberately do not stub
+ * {@code findByUserId}: they short-circuit before the repository is consulted, and pinning that here
+ * keeps a future refactor from quietly adding a query per call.</p>
  */
 @ExtendWith(MockitoExtension.class)
 class UserAccessGuardImplBehaviourTest {
@@ -56,12 +56,13 @@ class UserAccessGuardImplBehaviourTest {
     // --- canReadUser ---
 
     @Test
-    void canReadUser_returnsTrue_whenUserIsPlatformAdmin() {
+    @DisplayName("ACC-020 a platform admin who administers none of the user's communities is told the user does not exist")
+    void canReadUser_throwsNotFound_whenUserIsPlatformAdmin() {
         User caller = UserMother.randomUser();
         caller.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
 
-        assertTrue(guard().canReadUser(UUID.randomUUID()));
+        assertThrows(UserNotFoundException.class, () -> guard().canReadUser(UUID.randomUUID()));
     }
 
     @Test
@@ -150,12 +151,13 @@ class UserAccessGuardImplBehaviourTest {
     // --- canEditUser ---
 
     @Test
-    void canEditUser_returnsTrue_whenUserIsPlatformAdmin() {
+    @DisplayName("ACC-020 a platform admin may not edit a user it cannot see")
+    void canEditUser_throwsNotFound_whenUserIsPlatformAdmin() {
         User caller = UserMother.randomUser();
         caller.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
 
-        assertTrue(guard().canEditUser(UUID.randomUUID()));
+        assertThrows(UserNotFoundException.class, () -> guard().canEditUser(UUID.randomUUID()));
     }
 
     @Test
@@ -223,12 +225,14 @@ class UserAccessGuardImplBehaviourTest {
     // --- canCreateUserIn ---
 
     @Test
-    void canCreateUserIn_returnsTrue_whenUserIsPlatformAdmin() {
+    @DisplayName("ACC-020 a platform admin may not create a user in a community it does not administer")
+    void canCreateUserIn_returnsFalse_whenUserIsPlatformAdmin() {
+        // The community stays visible to a platform admin: 403, not 404.
         User caller = UserMother.randomUser();
         caller.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(caller));
 
-        assertTrue(guard().canCreateUserIn(UUID.randomUUID()));
+        assertFalse(guard().canCreateUserIn(UUID.randomUUID()));
     }
 
     @Test
@@ -271,13 +275,13 @@ class UserAccessGuardImplBehaviourTest {
     }
 
     @Test
-    void canCreateUserIn_returnsTrue_whenPlatformAdminAndCommunityIdIsNull() {
-        // The platform-admin bypass precedes the null check, so a null community id is granted.
+    @DisplayName("ACC-020 a platform admin may not create a user attached to no community")
+    void canCreateUserIn_returnsFalse_whenPlatformAdminAndCommunityIdIsNull() {
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
 
-        assertTrue(guard().canCreateUserIn(null));
+        assertFalse(guard().canCreateUserIn(null));
     }
 
     @Test
@@ -299,12 +303,13 @@ class UserAccessGuardImplBehaviourTest {
     // --- canListUsers ---
 
     @Test
-    void canListUsers_returnsTrue_whenUserIsPlatformAdmin() {
+    @DisplayName("ACC-020 a platform admin who administers no community may not list users")
+    void canListUsers_returnsFalse_whenUserIsPlatformAdmin() {
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
 
-        assertTrue(guard().canListUsers());
+        assertFalse(guard().canListUsers());
     }
 
     @Test

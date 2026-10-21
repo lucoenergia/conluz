@@ -69,7 +69,7 @@ class MembershipMemberRecordOnCreationTest extends BaseControllerTest {
     @DisplayName("MEM-001 MEM-002 a user created into a community gets a membership holding their record, accepted on creation")
     void creatingAUserInACommunity() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
         Instant now = clock.instant();
         String body = objectMapper.writeValueAsString(Map.of(
                 "personalId", "38800001A",
@@ -101,7 +101,7 @@ class MembershipMemberRecordOnCreationTest extends BaseControllerTest {
     @DisplayName("MEM-001 MEM-002 imported users get memberships holding their record, with no contact email when the email is empty or blank")
     void importingUsersFromACsvFile() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
         Instant now = clock.instant();
         String csv = "number,fullName,personalId,address,email,phoneNumber,role,password,communityId,communityRole\n"
                 + "21,With Email,38800021A,Calle Mayor 21,with.email@example.org,600000021,partner,a secure password1!,"

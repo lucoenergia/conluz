@@ -96,8 +96,7 @@ public class UserCapabilitiesAssembler {
 
     /**
      * For a page of users that carry no memberships, keyed by user id. Issues <strong>one</strong>
-     * query for the whole page, and none at all if no rule ends up asking — a platform admin reading
-     * their own record never does.
+     * query for the whole page, and none at all if no rule ends up asking.
      */
     public Map<UUID, UserCapabilitiesResponse> assembleAllFetchingMemberships(User caller, List<User> targets) {
         Set<UUID> userIds = targets.stream()

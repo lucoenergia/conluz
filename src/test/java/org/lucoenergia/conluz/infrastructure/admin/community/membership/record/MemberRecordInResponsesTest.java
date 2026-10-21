@@ -257,12 +257,14 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
-    @DisplayName("MEM-026 The platform admin reading the user sees the account")
-    void thePlatformAdminSeesTheAccount() throws Exception {
+    @DisplayName("MEM-026 ACC-020 The platform admin can read neither the user nor the listing, so neither the account nor a record")
+    void thePlatformAdminSeesNeitherTheAccountNorARecord() throws Exception {
         String platformAdmin = loginAsPlatformAdmin();
 
-        assertShowsAccount(json(perform(platformAdmin, get("/api/v1/users/{userId}", person.getId()))));
-        assertShowsAccount(userIn(json(perform(platformAdmin, get("/api/v1/users?size=2000"))).get("items")));
+        mockMvc.perform(get("/api/v1/users/{userId}", person.getId()).header(HttpHeaders.AUTHORIZATION, platformAdmin))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/users?size=2000").header(HttpHeaders.AUTHORIZATION, platformAdmin))
+                .andExpect(status().isForbidden());
     }
 
     @Test

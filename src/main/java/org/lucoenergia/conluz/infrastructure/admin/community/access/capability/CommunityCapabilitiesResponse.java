@@ -50,7 +50,7 @@ public class CommunityCapabilitiesResponse {
     @Schema(description = "Whether the caller may create plants in this community. Creating one also requires a supply the caller can see, so a true here is necessary but not sufficient for any particular supply -- SupplyCapabilitiesResponse.canCreatePlant answers that.")
     private final boolean canCreatePlants;
 
-    @Schema(description = "Whether the caller may create users in this community (POST /api/v1/users, POST /api/v1/users/import).")
+    @Schema(description = "Whether the caller may create users in this community (POST /api/v1/users, POST /api/v1/users/import). Only an active community admin of it: there is no platform-admin bypass.")
     private final boolean canCreateUsers;
 
     @Schema(description = "Whether the caller may read this community's communal production data. Membership, not administration: a platform admin who is not a member may not.")

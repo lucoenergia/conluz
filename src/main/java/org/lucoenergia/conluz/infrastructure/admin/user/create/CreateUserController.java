@@ -57,11 +57,9 @@ public class CreateUserController {
                 
                 This endpoint requires clients to send a request containing essential user details, including username, password, and any additional relevant information.
                 
-                Optionally, a communityId and communityRole can be specified to automatically create a membership
-                for the new user in the given community. If communityId is not provided and the caller is a
-                COMMUNITY_ADMIN, the community is derived from the caller's active context. If the caller is a
-                PLATFORM_ADMIN and communityId is not provided, a user with no memberships is created
-                (they can be attached later).
+                The communityId, with an optional communityRole, creates a membership for the new user in the
+                given community. It is required: without one the request is refused with 403, whoever the
+                caller is.
                 
                 The `personalId` is normalised before it is stored or compared: surrounding and inner whitespace
                 (including the no-break space), dots and hyphens are removed and letters are upper-cased, so
@@ -78,7 +76,7 @@ public class CreateUserController {
                 user is flagged as having to change it (`mustChangePassword` on `GET /api/v1/users/current`).
                 
                 Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                **Required: Platform Admin, or Community Admin of the target community**
+                **Required: Community Admin of the target community.** Being a Platform Admin is not enough (#446): a Platform Admin who is not an admin of the community is answered 403.
                 
                 Upon successful user creation, the server responds with an HTTP status code of 200, along with comprehensive details about the newly created user, such as a unique identifier and username.
                 
