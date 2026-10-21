@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
+import org.lucoenergia.conluz.infrastructure.shared.web.KWhRounding;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -20,6 +22,9 @@ import java.math.RoundingMode;
  * yearly endpoints. Detaching them drops {@code empty} -- a boolean that never existed as data and
  * only appeared in the JSON because {@code isEmpty()} is a getter -- and makes room for the savings
  * Datadis knows nothing about.
+ *
+ * <p>The energy figures are rounded here to 3 decimals, and only here: what is stored, and every
+ * sum built from it, keeps full precision.
  *
  * <p>This is also where the amount is rounded, once, for presentation: the calculation itself keeps
  * full precision, so a bucket cut across two tariff segments is rounded as a whole rather than once
@@ -78,11 +83,19 @@ public class SupplyConsumptionBucketResponse {
         this.cups = consumption.getCups();
         this.date = consumption.getDate();
         this.time = consumption.getTime();
-        this.consumptionKWh = consumption.getConsumptionKWh();
+        this.consumptionKWh = rounded(consumption.getConsumptionKWh());
         this.obtainMethod = consumption.getObtainMethod();
-        this.surplusEnergyKWh = consumption.getSurplusEnergyKWh();
-        this.generationEnergyKWh = consumption.getGenerationEnergyKWh();
-        this.selfConsumptionEnergyKWh = consumption.getSelfConsumptionEnergyKWh();
+        this.surplusEnergyKWh = rounded(consumption.getSurplusEnergyKWh());
+        this.generationEnergyKWh = rounded(consumption.getGenerationEnergyKWh());
+        this.selfConsumptionEnergyKWh = rounded(consumption.getSelfConsumptionEnergyKWh());
+    }
+
+    /**
+     * Rounds the figure as reported -- read through the float's shortest decimal representation --
+     * rather than its widened binary value, which can sit just below a tie.
+     */
+    private static Float rounded(Float kWh) {
+        return (float) KWhRounding.round(DatadisEnergyValues.exactlyAsReported(kWh).doubleValue());
     }
 
     public String getCups() {

@@ -2,11 +2,16 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.energym
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.consumption.EnergyBalance;
+import org.lucoenergia.conluz.infrastructure.shared.web.KWhRounding;
 
 /**
  * The energy totals of every supply of the membership over the period, in kWh. gridImportKWh,
  * selfConsumptionKWh and surplusKWh are the stored values summed; totalConsumptionKWh and
  * assignedProductionKWh are derived from them.
+ *
+ * <p>Every figure is rounded here to 3 decimals, once, from its unrounded value: a derived total is
+ * rounded after summing, not summed from the rounded figures, and the ratios are computed from the
+ * unrounded figures too.
  */
 @Schema(requiredProperties = {"totalConsumptionKWh", "gridImportKWh", "selfConsumptionKWh",
         "surplusKWh", "assignedProductionKWh"})
@@ -29,11 +34,11 @@ public class MembershipEnergyMetricsEnergyResponse {
     private final double assignedProductionKWh;
 
     public MembershipEnergyMetricsEnergyResponse(EnergyBalance energyBalance) {
-        this.totalConsumptionKWh = energyBalance.getTotalConsumptionKWh();
-        this.gridImportKWh = energyBalance.getGridImportKWh();
-        this.selfConsumptionKWh = energyBalance.getSelfConsumptionKWh();
-        this.surplusKWh = energyBalance.getSurplusKWh();
-        this.assignedProductionKWh = energyBalance.getAssignedProductionKWh();
+        this.totalConsumptionKWh = KWhRounding.round(energyBalance.getTotalConsumptionKWh());
+        this.gridImportKWh = KWhRounding.round(energyBalance.getGridImportKWh());
+        this.selfConsumptionKWh = KWhRounding.round(energyBalance.getSelfConsumptionKWh());
+        this.surplusKWh = KWhRounding.round(energyBalance.getSurplusKWh());
+        this.assignedProductionKWh = KWhRounding.round(energyBalance.getAssignedProductionKWh());
     }
 
     public double getTotalConsumptionKWh() {
