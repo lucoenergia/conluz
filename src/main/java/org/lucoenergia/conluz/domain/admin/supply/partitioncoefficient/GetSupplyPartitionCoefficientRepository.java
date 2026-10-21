@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient;
 
 import java.time.Instant;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 
 import java.util.Collection;
@@ -198,4 +199,9 @@ public interface GetSupplyPartitionCoefficientRepository {
      * Whether any sharing agreement, in any status, holds a partition coefficient for the given supply.
      */
     boolean existsBySupply(SupplyId supplyId);
+
+    /**
+     * Whether any partition coefficient, in any sharing agreement, references the given plant.
+     */
+    boolean existsByPlant(PlantId plantId);
 }

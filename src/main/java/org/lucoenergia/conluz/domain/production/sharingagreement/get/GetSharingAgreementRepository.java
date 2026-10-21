@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 
 public interface GetSharingAgreementRepository {
 
@@ -39,4 +40,9 @@ public interface GetSharingAgreementRepository {
      * coefficients are displayed.
      */
     boolean existsLaterNonDraftAgreement(UUID plantId, UUID excludeSharingAgreementId, Instant afterCreatedAt);
+
+    /**
+     * Whether any sharing agreement, in any status, references the given plant.
+     */
+    boolean existsByPlant(PlantId plantId);
 }

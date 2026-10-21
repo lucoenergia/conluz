@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.production.plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
 import org.lucoenergia.conluz.domain.production.plant.PlantMissingRegulatoryCodeException;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.delete.PlantHasPartitionCoefficientsException;
+import org.lucoenergia.conluz.domain.production.plant.delete.PlantHasSharingAgreementsException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Collections;
+import java.util.Map;
 
 @RestControllerAdvice
 public class PlantExceptionHandler {
@@ -61,5 +64,33 @@ public class PlantExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.PLANT_MISSING_REGULATORY_CODE, null, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(PlantHasSharingAgreementsException.class)
+    public ResponseEntity<RestError> handleException(PlantHasSharingAgreementsException e) {
+
+        String plantId = e.getPlantId().getId().toString();
+
+        String message = messageSource.getMessage(
+                "error.plant.has.sharing.agreements",
+                Collections.singletonList(plantId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.PLANT_HAS_SHARING_AGREEMENTS, Map.of("plantId", plantId),
+                HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(PlantHasPartitionCoefficientsException.class)
+    public ResponseEntity<RestError> handleException(PlantHasPartitionCoefficientsException e) {
+
+        String plantId = e.getPlantId().getId().toString();
+
+        String message = messageSource.getMessage(
+                "error.plant.has.partition.coefficients",
+                Collections.singletonList(plantId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.PLANT_HAS_PARTITION_COEFFICIENTS, Map.of("plantId", plantId),
+                HttpStatus.CONFLICT);
     }
 }

@@ -40,6 +40,9 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
 
     boolean existsBySupplyId(UUID supplyId);
 
+    @Query(value = "SELECT id FROM plants WHERE id = :plantId FOR UPDATE", nativeQuery = true)
+    Optional<UUID> lockById(@Param("plantId") UUID plantId);
+
     @EntityGraph(attributePaths = {"supply", "supply.user", "supply.community", "supply.contract",
             "supply.distributor", "supply.shelly"})
     Optional<PlantEntity> findByProviderCode(String providerCode);

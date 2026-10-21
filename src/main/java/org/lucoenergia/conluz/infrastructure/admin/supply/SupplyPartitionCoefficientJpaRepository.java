@@ -68,6 +68,8 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
 
     boolean existsBySupplyId(UUID supplyId);
 
+    boolean existsByPlantId(UUID plantId);
+
     /**
      * Read-only existence check used by the sharing-agreement revert-to-draft precondition: an
      * agreement can only go back to DRAFT while none of its coefficients have been applied by the

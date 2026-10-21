@@ -1180,6 +1180,8 @@
               "DISTRIBUTOR_FILE_LINE_MALFORMED",
               "SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID",
               "PLANT_MISSING_REGULATORY_CODE",
+              "PLANT_HAS_SHARING_AGREEMENTS",
+              "PLANT_HAS_PARTITION_COEFFICIENTS",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -2752,6 +2754,8 @@
               "DISTRIBUTOR_FILE_LINE_MALFORMED",
               "SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID",
               "PLANT_MISSING_REGULATORY_CODE",
+              "PLANT_HAS_SHARING_AGREEMENTS",
+              "PLANT_HAS_PARTITION_COEFFICIENTS",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -13034,7 +13038,7 @@
     },
     "/api/v1/plants/{plantId}" : {
       "delete" : {
-        "description" : "    This endpoint enables the removal of a plant from the system by specifying the plant's unique\n    identifier within the endpoint path.\n\n    To utilize this endpoint, clients send a DELETE request with the targeted plant's ID, requiring\n    authentication for secure access.\n    **Required: Community Admin**\n\n    Upon successful deletion, the server responds with an HTTP status code of 200, indicating that the\n    plant has been successfully removed.\n\n    In cases where the deletion process encounters errors, the server returns an appropriate error\n    status code, along with a descriptive error message to guide clients in diagnosing and addressing\n    the issue.\n",
+        "description" : "Deletes the plant with its Huawei configuration.\n**Required: Community Admin of the plant's community.**\n\nA plant that a sharing agreement, in any status, or a partition coefficient references is not deleted: the request is answered 409 with `PLANT_HAS_SHARING_AGREEMENTS` or `PLANT_HAS_PARTITION_COEFFICIENTS`, and nothing is deleted. Such a plant holds the community's sharing history and must be kept; a plant cannot be disabled.\n\nThe plant's production series are not deleted.\n",
         "operationId" : "deletePlant",
         "parameters" : [
           {
@@ -13126,6 +13130,54 @@
               }
             },
             "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Has partition coefficients" : {
+                    "description" : "Has partition coefficients",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLANT_HAS_PARTITION_COEFFICIENTS",
+                          "message" : "The plant with ID '3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b' has partition coefficients, so it cannot be deleted. It holds the community's sharing history and must be kept.",
+                          "params" : {
+                            "plantId" : "3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b"
+                          }
+                        }
+                      ],
+                      "message" : "The plant with ID '3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b' has partition coefficients, so it cannot be deleted. It holds the community's sharing history and must be kept.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Has sharing agreements" : {
+                    "description" : "Has sharing agreements",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLANT_HAS_SHARING_AGREEMENTS",
+                          "message" : "The plant with ID '3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b' has sharing agreements, so it cannot be deleted. It holds the community's sharing history and must be kept.",
+                          "params" : {
+                            "plantId" : "3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b"
+                          }
+                        }
+                      ],
+                      "message" : "The plant with ID '3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b' has sharing agreements, so it cannot be deleted. It holds the community's sharing history and must be kept.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "A sharing agreement, in any status, or a partition coefficient references the plant. Nothing is deleted. The plant holds the community's sharing history and must be kept."
           },
           "500" : {
             "content" : {

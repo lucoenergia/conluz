@@ -19,6 +19,8 @@ public interface SharingAgreementRepository extends JpaRepository<SharingAgreeme
 
     List<SharingAgreementEntity> findByPlantIdOrderByCreatedAtDesc(UUID plantId);
 
+    boolean existsByPlantId(UUID plantId);
+
     List<SharingAgreementEntity> findAllByIdIn(Collection<UUID> ids);
 
     List<SharingAgreementEntity> findByPlantIdAndStatusOrderByCreatedAtDesc(UUID plantId, SharingAgreementStatus status);
