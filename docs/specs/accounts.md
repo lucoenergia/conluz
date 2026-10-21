@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser`, `getPlatformAdmins`, `grantPlatformAdmin`, `revokePlatformAdmin`, `invitePlatformAdmin`, `resendPlatformAdminInvitation`, `revokePlatformAdminInvitation`, `inspectInvitation`, `acceptInvitationAsCurrentUser` |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser`, `getAllUsers`, `getUserById`, `getSuppliesByUserId`, `changePassword`, `getPlatformAdmins`, `grantPlatformAdmin`, `revokePlatformAdmin`, `invitePlatformAdmin`, `resendPlatformAdminInvitation`, `revokePlatformAdminInvitation`, `inspectInvitation`, `acceptInvitationAsCurrentUser` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`), ADR-0004 (`docs/architecture/adr/0004-grant-platform-admin-only-through-an-accepted-invitation-confirmed-out-of-band.md`) |
-| **Last reviewed against code** | #452 |
+| **Last reviewed against code** | #446 |
 
 ## Purpose
 
@@ -113,15 +113,15 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   over, an accepted risk recorded in ADR-0003.
 - **Source:** #394, ADR-0003 §6 and §7. #452 added platform-admin invitations, ADR-0004 §6.
 
-### ACC-008 — A community admin cannot change another user's account
+### ACC-008 — Nobody can change another user's account
 
 - **Status:** Active
-- **Rule:** A caller who is not a platform admin MUST be refused with 403 when they edit (`updateUser`), enable
+- **Rule:** Every caller, a platform admin included, MUST be refused with 403 when they edit (`updateUser`), enable
   (`enableUser`), disable (`disableUser`) or delete (`deleteUser`) the account of another user they can see,
   whatever their role in that user's communities, and nothing MUST be written. A user they cannot see MUST keep
   being answered 404. A community admin MAY still edit their own account through `updateUser`, and MUST still be
-  refused enabling, disabling or deleting it. The platform admin's access to the four operations MUST NOT change.
-  Disabling a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN` exactly when ACC-013's
+  refused enabling, disabling or deleting it. The four operations on another user's account have no caller left
+  (ACC-020). Disabling a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN` exactly when ACC-013's
   last-platform-admin rule would refuse revoking their role: only an **enabled** platform admin while no more than
   one platform admin is enabled. A disabled platform admin MAY be disabled again whatever the number of enabled
   platform admins. A member's data in a community is
@@ -132,7 +132,8 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   take the account over, together with its access to every other community. Disabling or deleting it would
   remove the person from every community, not only the admin's.
 - **Source:** #415, ADR-0003 §1. #452 applied ACC-013's last-platform-admin rule, which until then refused any
-  platform admin while at most one was enabled, whoever the target was.
+  platform admin while at most one was enabled, whoever the target was. #446 withdrew the platform admin's access to
+  the four operations (ACC-020); until then it was the only caller allowed them.
 
 ### ACC-009 — Deleting an account deletes its memberships, and is refused for a supply owner
 
@@ -143,7 +144,8 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   nothing MUST be deleted. Deleting a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN`, and nothing
   deleted, exactly when ACC-013's last-platform-admin rule would refuse revoking their role: only an **enabled**
   platform admin while no more than one platform admin is enabled; a disabled platform admin MAY be deleted. Who may
-  delete a user (ACC-008) MUST NOT change. Memberships the user invited MUST be kept, with no inviter
+  delete a user is ACC-008's: since #446, nobody over the API, so these rules apply to the deletion itself, wherever
+  it is started from. Memberships the user invited MUST be kept, with no inviter
   (MEM-003); sharing agreements and distributor files the user created, edited or uploaded MUST be kept, with no
   creator, editor or uploader. The deletion MUST lock the user row before checking for supplies; supply creation
   locks the same row (SUP-002), so a supply created at the same time either refuses the deletion or finds the user
@@ -349,6 +351,29 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 - **Rationale:** The person may lose the email or the code, or the link may have been revoked after five wrong
   codes; the same limits as for community invitations keep the inbox from being flooded (ADR-0003 §5, ADR-0004 §4).
 - **Source:** #452, ADR-0003 §5, ADR-0004 §2 and §4
+
+### ACC-020 — A platform admin does not reach another user's account, except to manage the role
+
+- **Status:** Active
+- **Rule:** Being a platform admin MUST NOT, by itself, let a caller read, list, create or change another user's
+  account. A platform admin who is not an active community admin of any of the target's communities MUST be
+  answered as anyone who cannot see the target: 404 on reading the user (`getUserById`), listing their supplies
+  (`getSuppliesByUserId`), editing (`updateUser`), enabling (`enableUser`), disabling (`disableUser`) and deleting
+  (`deleteUser`) them. Listing users (`getAllUsers`) MUST be refused with 403 to a caller who administers no
+  community, a platform admin included, and its rows MUST be only the caller and the users with an active membership
+  in a community the caller administers. Creating (`createUser`) and importing users (`createUsersWithFile`) MUST be
+  refused with 403 to a caller who is not an active community admin of the named community, a platform admin
+  included, and to every caller when no community is named. A platform admin who is a community admin MUST get
+  exactly what a community admin gets. The platform capabilities `canListUsers` and `canCreateUsers` MUST follow
+  these rules, and a user's `canRead`, `canEdit`, `canDelete`, `canEnable`, `canDisable` and `canListSupplies`
+  likewise. Granting the role by id (`grantPlatformAdmin`, ACC-012) and revoking it (`revokePlatformAdmin`, ACC-013)
+  keep their own rules, and the platform admin's own account keeps every self-service operation
+  (`getCurrentUser`, `updateProfile`, `changePassword`).
+- **Rationale:** The platform admin administers the platform, not the people in it: the account is the person's,
+  shared by every community they belong to, and the member data a community holds is that community's (ADR-0003 §1
+  and §3). The web client no longer reaches users as a platform admin (conluz-web#285); the backend must not keep
+  serving them to any client that asks.
+- **Source:** #446, ADR-0003 §3, #329
 
 ## Impossible states
 

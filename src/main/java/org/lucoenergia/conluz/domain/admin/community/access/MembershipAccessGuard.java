@@ -4,11 +4,23 @@ import java.util.UUID;
 
 public interface MembershipAccessGuard {
 
+    /**
+     * Whether the current user may administer the roster of this community: list, create, delete and re-role its
+     * memberships. Only an active {@code COMMUNITY_ADMIN} of {@code communityId} qualifies; a platform admin is not
+     * let through (#446).
+     *
+     * <ul>
+     *     <li>anonymous → {@code false} (→ 401),</li>
+     *     <li>a caller who cannot see the community → throws {@code CommunityNotFoundException} (→ 404),</li>
+     *     <li>a caller who can see it but is not one of its active community admins, a platform admin
+     *         included → {@code false} (→ 403).</li>
+     * </ul>
+     */
     boolean canManageMemberships(UUID communityId);
 
     /**
      * Whether the current user may register a member in this community. Only an active
-     * {@code COMMUNITY_ADMIN} of {@code communityId} qualifies; unlike {@link #canManageMemberships(UUID)},
+     * {@code COMMUNITY_ADMIN} of {@code communityId} qualifies, as for {@link #canManageMemberships(UUID)};
      * a platform admin is not let through.
      *
      * <ul>
@@ -53,8 +65,7 @@ public interface MembershipAccessGuard {
 
     /**
      * Whether the current user may set or clear the investment recorded on a membership of this
-     * community. Stricter than {@link #canManageMemberships(UUID)}, which lets any platform admin
-     * through: an investment is the member's own money, and administering the platform is not the
+     * community. An investment is the member's own money, and administering the platform is not the
      * same as administering this community's finances. Only an enabled {@code COMMUNITY_ADMIN} of
      * {@code communityId} qualifies.
      *

@@ -137,13 +137,13 @@ class MemberDataAssemblerTest {
     }
 
     @Test
-    @DisplayName("MEM-026 The platform admin sees the account, and no memberships are fetched")
-    void forUserFetchingMemberships_isTheAccount_withoutAQuery_forThePlatformAdmin() {
+    @DisplayName("MEM-026 A platform admin who administers no community sees no member data, and no memberships are fetched")
+    void forUserFetchingMemberships_isAbsent_withoutAQuery_forAPlatformAdminWhoAdministersNoCommunity() {
         User platformAdmin = UserMother.randomUser();
         platformAdmin.setPlatformAdmin(true);
         User target = UserMother.randomUser();
 
-        assertEquals(MemberDataView.ofAccount(target), assembler().forUserFetchingMemberships(platformAdmin, target));
+        assertEquals(MemberDataView.absent(), assembler().forUserFetchingMemberships(platformAdmin, target));
         verifyNoInteractions(getMembershipsRepository);
     }
 

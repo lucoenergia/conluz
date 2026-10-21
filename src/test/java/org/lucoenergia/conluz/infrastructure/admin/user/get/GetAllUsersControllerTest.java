@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -9,8 +10,10 @@ import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembership
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,19 +53,23 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
     private CreateMembershipService createMembershipService;
+    @Autowired
+    private ManagePlatformAdminRepository managePlatformAdminRepository;
+
+    private Community listingCommunity;
 
     @Test
     void testMembershipsArePopulatedForMembers() throws Exception {
 
-        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        Community community = listingCommunity();
 
         User member = UserMother.randomUser();
         createUserRepository.create(member);
         createMembership(member, community, CommunityRole.COMMUNITY_MEMBER);
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
-        // Default sort is by number ASC: the default admin (number 0) is items[0],
+        // Default sort is by number ASC: the listing admin (number 0) is items[0],
         // the newly created member is items[1].
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -72,7 +79,8 @@ class GetAllUsersControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[1].memberships['" + community.getId() + "']")
                         .value(CommunityRole.COMMUNITY_MEMBER.name()))
                 .andExpect(jsonPath("$.items[0].memberships").isMap())
-                .andExpect(jsonPath("$.items[0].memberships.length()").value(0));
+                .andExpect(jsonPath("$.items[0].memberships['" + community.getId() + "']")
+                        .value(CommunityRole.COMMUNITY_ADMIN.name()));
     }
 
     @Test
@@ -80,9 +88,9 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         // Create a user
         User userOne = UserMother.randomUser();
-        createUserRepository.create(userOne);
+        createMember(userOne);
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -109,13 +117,13 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
         // Create a user
         User userOne = UserMother.randomUser();
-        createUserRepository.create(userOne);
+        createMember(userOne);
         User userTwo = UserMother.randomUser();
-        createUserRepository.create(userTwo);
+        createMember(userTwo);
         User userThree = UserMother.randomUser();
-        createUserRepository.create(userThree);
+        createMember(userThree);
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -133,7 +141,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithUnknownParameter() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -151,7 +159,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithWrongContentType() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -167,7 +175,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownField() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -183,7 +191,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     @Test
     void testWithCustomSortingByUnknownDirection() throws Exception {
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -202,15 +210,15 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         // Create a user
         User userOne = UserMother.randomUser();
         userOne.setFullName("Bod Dylan");
-        createUserRepository.create(userOne);
+        createMember(userOne);
         User userTwo = UserMother.randomUser();
         userTwo.setFullName("Bruce Dickinson");
-        createUserRepository.create(userTwo);
+        createMember(userTwo);
         User userThree = UserMother.randomUser();
         userThree.setFullName("Rob Halford");
-        createUserRepository.create(userThree);
+        createMember(userThree);
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -235,19 +243,19 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         User userOne = UserMother.randomUser();
         userOne.setFullName("Bod Dylan");
         userOne.setPersonalId("aaa");
-        createUserRepository.create(userOne);
+        createMember(userOne);
         User userOneB = UserMother.randomUser();
         userOneB.setFullName("Bod Dylan");
         userOneB.setPersonalId("bbb");
-        createUserRepository.create(userOneB);
+        createMember(userOneB);
         User userTwo = UserMother.randomUser();
         userTwo.setFullName("Bruce Dickinson");
-        createUserRepository.create(userTwo);
+        createMember(userTwo);
         User userThree = UserMother.randomUser();
         userThree.setFullName("Rob Halford");
-        createUserRepository.create(userThree);
+        createMember(userThree);
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -273,15 +281,15 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         // Create a user
         User userOne = UserMother.randomUser();
         userOne.setFullName("Bod Dylan");
-        createUserRepository.create(userOne);
+        createMember(userOne);
         User userTwo = UserMother.randomUser();
         userTwo.setFullName("Bruce Dickinson");
-        createUserRepository.create(userTwo);
+        createMember(userTwo);
         User userThree = UserMother.randomUser();
         userThree.setFullName("Rob Halford");
-        createUserRepository.create(userThree);
+        createMember(userThree);
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsTheListingAdmin();
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -380,17 +388,30 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void aPlatformAdminStillReceivesEveryUserWithEveryMembership() throws Exception {
-        TwoCommunities world = twoCommunities();
+    @DisplayName("ACC-020 a platform admin who administers no community is refused the listing")
+    void aPlatformAdminWhoAdministersNoCommunityIsRefusedTheListing() throws Exception {
+        twoCommunities();
         String platformAdminToken = loginAsDefaultPlatformAdmin();
 
-        Set<String> listed = listedUserIds(platformAdminToken);
+        mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, platformAdminToken))
+                .andExpect(status().isForbidden());
+    }
 
-        for (User user : world.all()) {
-            assertTrue(listed.contains(user.getId().toString()), user.getFullName() + " missing");
-        }
-        assertEquals(Set.of(world.communityA.getId().toString(), world.communityB.getId().toString()),
-                membershipsOf(world.inAAndB, platformAdminToken).keySet());
+    @Test
+    @DisplayName("ACC-020 a platform admin who administers a community lists only that community's users")
+    void aPlatformAdminWhoAdministersACommunityListsOnlyItsUsers() throws Exception {
+        TwoCommunities world = twoCommunities();
+        User platformAdmin = enabledUser();
+        createMembershipService.create(world.communityA.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
+        String platformAdminToken = loginUser(platformAdmin);
+
+        assertEquals(Set.of(platformAdmin.getId().toString(), world.adminOfAMemberOfB.getId().toString(),
+                        world.onlyInA.getId().toString(), world.inAAndB.getId().toString()),
+                listedUserIds(platformAdminToken));
+        assertEquals(Map.of(world.communityA.getId().toString(), CommunityRole.COMMUNITY_MEMBER.name()),
+                membershipsOf(world.inAAndB, platformAdminToken));
     }
 
     @Test
@@ -493,5 +514,36 @@ class GetAllUsersControllerTest extends BaseControllerTest {
 
     private void createMembership(User user, Community community, CommunityRole role) {
         createMembershipRepository.create(community.getId(), user.getId(), role);
+    }
+
+    /**
+     * The community the pagination and sorting tests list. Listing users needs a community admin, so
+     * every user those tests create is a member of it, and the caller is its admin.
+     */
+    private Community listingCommunity() {
+        if (listingCommunity == null) {
+            listingCommunity = createCommunityRepository.create(CommunityMother.random().build());
+        }
+        return listingCommunity;
+    }
+
+    private void createMember(User user) {
+        createUserRepository.create(user);
+        createMembership(user, listingCommunity(), CommunityRole.COMMUNITY_MEMBER);
+    }
+
+    /**
+     * Logs in as the admin of {@link #listingCommunity()}, carrying the default admin's personal ID, full
+     * name and number 0, so it sorts where the default admin used to.
+     */
+    private String loginAsTheListingAdmin() throws Exception {
+        User admin = UserMother.randomUser();
+        admin.setPersonalId(DefaultUserAdminMother.PERSONAL_ID);
+        admin.setFullName(DefaultUserAdminMother.FULL_NAME);
+        admin.setNumber(0);
+        admin.enable();
+        createUserRepository.create(admin);
+        createMembership(admin, listingCommunity(), CommunityRole.COMMUNITY_ADMIN);
+        return loginUser(admin);
     }
 }

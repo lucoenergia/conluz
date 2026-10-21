@@ -122,7 +122,7 @@ class UserAccessGuardImpl implements UserAccessGuard {
 
     /**
      * The target user's memberships, fetched at most once and only if a branch asks for them —
-     * a platform admin and a self-read never do.
+     * a self-read never does.
      */
     private Supplier<List<CommunityMembership>> membershipsOf(UUID userId) {
         return new Supplier<>() {

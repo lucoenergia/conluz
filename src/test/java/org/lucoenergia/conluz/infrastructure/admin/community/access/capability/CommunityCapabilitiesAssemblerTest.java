@@ -101,8 +101,8 @@ class CommunityCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanUpdate());
         assertTrue(capabilities.isCanEnable());
         assertTrue(capabilities.isCanDisable());
-        assertTrue(capabilities.isCanManageMemberships());
-        assertTrue(capabilities.isCanCreateUsers());
+        assertFalse(capabilities.isCanManageMemberships());
+        assertFalse(capabilities.isCanCreateUsers());
         assertFalse(capabilities.isCanReadProduction());
         assertFalse(capabilities.isCanListSupplies());
         assertFalse(capabilities.isCanListPlants());

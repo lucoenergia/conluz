@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -238,11 +239,12 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
     @Test
-    void testGetSuppliesByUserId_shouldForbidAPlatformAdminWhoAdministersNoneOfTheUserCommunities()
+    @DisplayName("ACC-020 a platform admin who administers none of the user's communities is answered 404")
+    void testGetSuppliesByUserId_shouldHideTheUserFromAPlatformAdminWhoAdministersNoneOfTheUserCommunities()
             throws Exception {
         // The supply route and the user route must agree. A platform admin gets 404 asking for any
         // one of these supplies directly, so listing them through their owner cannot be a way round
-        // it. They can see the user, so the denial is a 403 and leaks nothing.
+        // it. Nor can it see the user, so the denial is a 404 as well.
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
@@ -263,7 +265,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
 
         // ... and the same caller is told the supply itself does not exist.
         mockMvc.perform(get(String.format("/api/v1/supplies/%s", supply.getId()))

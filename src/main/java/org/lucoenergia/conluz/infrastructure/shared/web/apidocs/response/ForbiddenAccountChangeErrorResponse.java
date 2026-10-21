@@ -23,9 +23,9 @@ import java.lang.annotation.Target;
         responseCode = "403",
         description = """
                 You are not authorized to make this request, or your password must be changed first \
-                (`USER_PASSWORD_CHANGE_REQUIRED`). Only a platform admin may change another user's account: anyone \
-                else is refused, whatever their role in that user's communities, because the account is shared by \
-                every community the person belongs to. While `mustChangePassword` is true on \
+                (`USER_PASSWORD_CHANGE_REQUIRED`). Nobody may change another user's account: a caller who can see the \
+                user is refused, whatever their role in that user's communities and whether or not they are a \
+                platform admin, because the account is shared by every community the person belongs to. While `mustChangePassword` is true on \
                 `GET /api/v1/users/current`, every request other than reading the current user, changing the \
                 password and logging out is refused.""",
         content = @Content(

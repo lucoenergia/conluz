@@ -90,7 +90,7 @@ public class CreateUsersWithFileController {
                     The `password` of every row must satisfy the password policy: between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters, and there are no composition rules. A row whose password breaks the policy is not created and is reported in `errors` with a message naming the rule that failed; the other rows are still processed. Every user created by an import is flagged as having to change their password.
                                     
                     Authentication is mandated, utilizing an authentication token, to ensure secure access.
-                    **Required: Platform Admin or Community Admin**
+                    **Required: Community Admin of the target community.** Being a Platform Admin is not enough (#446): a Platform Admin who is not an admin of the community is answered 403, and a request without a communityId is answered 403 for every caller.
                                     
                     Upon successful file processing, the server responds with an HTTP status code of 200, along with comprehensive details about the result of the bulk operation, including what users have been created or any potential error.
                                     
@@ -117,7 +117,7 @@ public class CreateUsersWithFileController {
     public ResponseEntity createUsersWithFile(
             @Parameter(description="CSV file format: number(Integer), fullName(String), personalId(String; normalised: whitespace, dots and hyphens removed, letters upper-cased), address(String), email(String), phoneNumber(String), role(String), password(String; 15 to 64 characters counted as Unicode code points and at most 72 bytes in UTF-8, any character accepted, no composition rules; a row that breaks this is rejected and reported in errors), communityId(UUID, optional; if present it must equal the communityId query parameter, otherwise the row is rejected), communityRole(COMMUNITY_MEMBER|COMMUNITY_ADMIN, optional).")
             @RequestParam("file") MultipartFile file,
-            @Parameter(description = "Target community UUID. Required for community admins; optional for platform admins.")
+            @Parameter(description = "Target community UUID. Required: without it the request is refused with 403.")
             @RequestParam(value = "communityId", required = false) UUID communityId) {
 
         Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);

@@ -64,15 +64,8 @@ public class CommunityContextFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Platform admin can use any community without membership check
-            if (Boolean.TRUE.equals(user.isPlatformAdmin())) {
-                communityContext.setActiveCommunityId(communityId);
-                filterChain.doFilter(request, response);
-                return;
-            }
-
             // Check membership: only an active one counts, so a pending or disabled membership is
-            // refused exactly like no membership at all
+            // refused exactly like no membership at all. A platform admin is no exception (#446)
             boolean isMember = user.getMemberships() != null && user.getMemberships().stream()
                     .anyMatch(m -> communityId.equals(m.getCommunity().getId()) && m.isActive());
 

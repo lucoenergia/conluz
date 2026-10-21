@@ -101,11 +101,12 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
     }
 
     /**
-     * Administering the platform is not administering a community's finances, and it is not
-     * membership either: the platform admin gets the roster and nothing else.
+     * Administering the platform is not administering a community: the platform admin gets neither
+     * the roster, nor the finances, nor the members' state (#446).
      */
     @Test
-    void aNonMemberPlatformAdminMayManageTheRosterButNotInvestmentOrPayback() {
+    @DisplayName("MEM-031 a platform admin who is not a member is offered nothing on a membership")
+    void aNonMemberPlatformAdminIsOfferedNothingOnAMembership() {
         Community community = CapabilityFixtures.community();
         CommunityMembership membership = CapabilityFixtures.membershipOf(
                 CapabilityFixtures.stranger(), community, CommunityRole.COMMUNITY_MEMBER, true);
@@ -113,8 +114,8 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         MembershipCapabilitiesResponse capabilities =
                 membershipAssembler.assemble(CapabilityFixtures.platformAdmin(), membership);
 
-        assertTrue(capabilities.isCanUpdateRole());
-        assertTrue(capabilities.isCanDelete());
+        assertFalse(capabilities.isCanUpdateRole());
+        assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanManageInvestment());
         assertFalse(capabilities.isCanReadPayback());
         assertFalse(capabilities.isCanInvite());
@@ -124,14 +125,15 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
     }
 
     @Test
-    void aPlatformAdminGetsEveryPlatformCapability() {
+    @DisplayName("ACC-020 a platform admin gets the platform capabilities, but may neither list nor create users")
+    void aPlatformAdminGetsEveryPlatformCapabilityButTheUserOnes() {
         PlatformCapabilitiesResponse capabilities =
                 platformAssembler.assemble(CapabilityFixtures.platformAdmin());
 
         assertTrue(capabilities.isCanCreateCommunity());
-        assertTrue(capabilities.isCanListUsers());
+        assertFalse(capabilities.isCanListUsers());
         assertTrue(capabilities.isCanAdministerPlatform());
-        assertTrue(capabilities.isCanCreateUsers());
+        assertFalse(capabilities.isCanCreateUsers());
     }
 
     /**
@@ -145,9 +147,9 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
                 CapabilityFixtures.platformAdminMemberOf(CapabilityFixtures.community()));
 
         assertTrue(capabilities.isCanCreateCommunity());
-        assertTrue(capabilities.isCanListUsers());
+        assertFalse(capabilities.isCanListUsers());
         assertTrue(capabilities.isCanAdministerPlatform());
-        assertTrue(capabilities.isCanCreateUsers());
+        assertFalse(capabilities.isCanCreateUsers());
     }
 
     /**

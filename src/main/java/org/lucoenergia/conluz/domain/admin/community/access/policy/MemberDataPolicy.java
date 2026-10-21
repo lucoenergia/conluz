@@ -36,12 +36,12 @@ public class MemberDataPolicy {
     }
 
     /**
-     * A user read outside any community shows their account to themselves and to the platform admin. Any other
-     * caller sees the user's member record in a community the caller administers, the one with the lowest id when
-     * there are several, and no member data when there is none.
+     * A user read outside any community shows their account to themselves only. Any other caller, a platform admin
+     * included (#446), sees the user's member record in a community the caller administers, the one with the lowest
+     * id when there are several, and no member data when there is none.
      */
     public MemberDataView forUser(User caller, User target, Supplier<List<CommunityMembership>> targetMemberships) {
-        if (CallerMemberships.isCurrentUser(caller, target.getId()) || CallerMemberships.isPlatformAdmin(caller)) {
+        if (CallerMemberships.isCurrentUser(caller, target.getId())) {
             return MemberDataView.ofAccount(target);
         }
         Set<UUID> administered = CallerMemberships.adminCommunityIds(caller);

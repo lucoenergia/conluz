@@ -70,10 +70,12 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", community.getId().toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -119,10 +121,12 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "application/octet-stream",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", community.getId().toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -143,10 +147,12 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", community.getId().toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -167,10 +173,12 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", community.getId().toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -191,10 +199,12 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 Files.readAllBytes(resource.getFile().toPath()));
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(multipart(URL)
                         .file(file)
+                        .param("communityId", community.getId().toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -266,7 +276,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
                 "text/csv",
                 csvContent.getBytes());
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(multipart(URL)
                         .file(file)
@@ -422,27 +432,28 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testPlatformAdminCannotImportRowIntoAnotherCommunity() throws Exception {
+    @DisplayName("ACC-020 a platform admin who is not an admin of the community is refused the import, and nothing is created")
+    void testPlatformAdminCannotImportIntoACommunityItDoesNotAdminister() throws Exception {
         Community communityA = createCommunityRepository.create(CommunityMother.random().build());
-        Community communityB = createCommunityRepository.create(CommunityMother.random().build());
         String authHeader = loginAsDefaultPlatformAdmin();
 
         String csvContent = HEADER +
-                row(1, "334000010A", communityB.getId().toString(), "COMMUNITY_MEMBER");
+                row(1, "334000010A", communityA.getId().toString(), "COMMUNITY_MEMBER");
 
         mockMvc.perform(multipart(URL)
                         .file(csv(csvContent))
                         .param("communityId", communityA.getId().toString())
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.created").isEmpty())
-                .andExpect(jsonPath("$.errors.length()").value(1))
-                .andExpect(jsonPath("$.errors[0].personalId").value("334000010A"))
-                .andExpect(jsonPath("$.errors[0].errorMessage").value(communityMismatchMessage()));
+                .andExpect(status().isForbidden());
+        mockMvc.perform(multipart(URL)
+                        .file(csv(csvContent))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andDo(print())
+                .andExpect(status().isForbidden());
 
         assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of("334000010A")).isEmpty());
-        assertTrue(getMembershipsRepository.findByCommunityId(communityB.getId()).isEmpty());
+        assertTrue(getMembershipsRepository.findByCommunityId(communityA.getId()).isEmpty());
     }
 
     @Test
@@ -500,7 +511,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
             throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         createUserRepository.create(UserMother.randomUserWithPersonalId("331000001A"));
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         String csvContent = HEADER +
                 row(1, variant, "", "") +
@@ -523,7 +534,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
     @Test
     void rowWithAPasswordOf14CodePoints_isRejectedNamingTheRule_whileTheOtherRowsAreCreated() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         String csvContent = HEADER
                 + rowWithPassword(1, "335000001A", "a".repeat(14))
@@ -551,7 +562,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
     @DisplayName("ACC-004 a row without a password is refused by the password policy, while the other rows are created")
     void rowWithoutAPassword_isRefusedByThePasswordPolicy_whileTheOtherRowsAreCreated() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         String csvContent = HEADER
                 + rowWithPassword(1, "337000001A", "")
@@ -574,7 +585,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
     @Test
     void importedUsers_areFlaggedAsHavingToChangeThePassword() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(multipart(URL)
                         .file(csv(HEADER + rowWithPassword(1, "335000003C", "a secure password1!")))
@@ -592,7 +603,7 @@ class CreateUsersWithFileControllerTest extends BaseControllerTest {
     @DisplayName("ACC-003 a row with an empty or blank email creates a user with no email")
     void rowsWithAnEmptyOrBlankEmail_createUsersWithNoEmail() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         String csvContent = HEADER
                 + rowWithEmail(1, "336000001A", "")

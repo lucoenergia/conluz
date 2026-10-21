@@ -73,7 +73,7 @@ public class MemberDataAssembler {
 
     /**
      * What the caller sees about a user whose memberships are not loaded. Queries them only when the caller is
-     * neither the user nor the platform admin.
+     * not the user.
      */
     public MemberDataView forUserFetchingMemberships(User caller, User target) {
         return policies.memberData().forUser(caller, target,

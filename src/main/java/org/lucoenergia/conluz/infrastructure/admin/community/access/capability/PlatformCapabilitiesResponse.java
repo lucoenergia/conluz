@@ -20,13 +20,13 @@ public class PlatformCapabilitiesResponse {
     @Schema(description = "Whether the caller may create a community (POST /api/v1/communities).")
     private final boolean canCreateCommunity;
 
-    @Schema(description = "Whether the caller may list users (GET /api/v1/users).")
+    @Schema(description = "Whether the caller may list users (GET /api/v1/users): an active community admin of at least one community. False for a platform admin who administers no community.")
     private final boolean canListUsers;
 
     @Schema(description = "Whether the caller may use the platform administration surfaces -- the communities administration page, the platform overview and the landing route. No single endpoint asks this question: it gates a surface, and the endpoints behind that surface report their own capabilities.")
     private final boolean canAdministerPlatform;
 
-    @Schema(description = "Whether the caller may create a user attached to no community (POST /api/v1/users with no communityId). CommunityCapabilitiesResponse.canCreateUsers answers the same question for one community.")
+    @Schema(description = "Whether the caller may create a user attached to no community (POST /api/v1/users with no communityId). Always false: nobody may, a platform admin included. CommunityCapabilitiesResponse.canCreateUsers answers the same question for one community.")
     private final boolean canCreateUsers;
 
     @Schema(description = "Whether the caller may list the platform admins (GET /api/v1/platform-admins).")

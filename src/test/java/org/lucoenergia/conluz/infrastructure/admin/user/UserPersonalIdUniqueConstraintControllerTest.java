@@ -5,7 +5,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -63,19 +65,29 @@ class UserPersonalIdUniqueConstraintControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
+    private CreateMembershipService createMembershipService;
+    @Autowired
     private JdbcTemplate jdbcTemplate;
     @Autowired
     private MessageSource messageSource;
 
     private final List<UUID> communityIds = new ArrayList<>();
+    private Community community;
+    private User admin;
     private String authHeader;
 
+    /**
+     * The caller is a community admin: creating and importing users needs one, in the community the users go to, and
+     * editing an account is open to them on their own.
+     */
     @BeforeEach
-    void createPlatformAdminAndCompetingUser() throws Exception {
-        User admin = UserMother.randomUserWithPersonalId("33160000P");
+    void createCommunityAdminAndCompetingUser() throws Exception {
+        community = createCommunityRepository.create(CommunityMother.random().build());
+        communityIds.add(community.getId());
+        admin = UserMother.randomUserWithPersonalId("33160000P");
         admin.enable();
-        admin.setPlatformAdmin(true);
         createUserRepository.create(admin);
+        createMembershipService.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         authHeader = loginUser(admin);
 
         createUserRepository.create(UserMother.randomUserWithPersonalId(EXISTING_PERSONAL_ID));
@@ -99,7 +111,8 @@ class UserPersonalIdUniqueConstraintControllerTest extends BaseControllerTest {
                 "fullName", "John Doe",
                 "number", 1,
                 "email", "johndoe@email.com",
-                "password", "a secure password1!"));
+                "password", "a secure password1!",
+                "communityId", community.getId().toString()));
 
         mockMvc.perform(post("/api/v1/users")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -115,8 +128,7 @@ class UserPersonalIdUniqueConstraintControllerTest extends BaseControllerTest {
 
     @Test
     void updateThatLosesTheRaceIsAConflictAndLeavesTheUserUnchanged() throws Exception {
-        User user = UserMother.randomUserWithPersonalId("33160002B");
-        createUserRepository.create(user);
+        User user = admin;
 
         UpdateUserBody body = new UpdateUserBody();
         body.setNumber(2);
@@ -133,7 +145,7 @@ class UserPersonalIdUniqueConstraintControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.errors[0].code").value("USER_ALREADY_EXISTS"));
 
         assertEquals(1, countUsersWithPersonalId(EXISTING_PERSONAL_ID));
-        assertEquals(1, countUsersWithPersonalId("33160002B"));
+        assertEquals(1, countUsersWithPersonalId("33160000P"));
     }
 
     /**
@@ -143,9 +155,6 @@ class UserPersonalIdUniqueConstraintControllerTest extends BaseControllerTest {
      */
     @Test
     void importRowThatLosesTheRaceIsReportedAndTheNextRowIsStillCreated() throws Exception {
-        Community community = createCommunityRepository.create(CommunityMother.random().build());
-        communityIds.add(community.getId());
-
         String csv = "number,fullName,personalId,address,email,phoneNumber,role,password,communityId,communityRole\n"
                 + "1,Test User 1,33160001-a,1 Test St,user1@example.com,600000001,partner,a secure password1!,,\n"
                 + "2,Test User 2,33160003C,1 Test St,user2@example.com,600000002,partner,a secure password2!,,\n";
@@ -167,8 +176,8 @@ class UserPersonalIdUniqueConstraintControllerTest extends BaseControllerTest {
         assertEquals(1, countUsersWithPersonalId(EXISTING_PERSONAL_ID));
         assertEquals(1, countUsersWithPersonalId("33160003C"));
         assertEquals(1, jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM community_memberships WHERE community_id = ?", Integer.class,
-                community.getId()));
+                "SELECT count(*) FROM community_memberships WHERE community_id = ? AND user_id <> ?", Integer.class,
+                community.getId(), admin.getId()));
     }
 
     private int countUsersWithPersonalId(String personalId) {
