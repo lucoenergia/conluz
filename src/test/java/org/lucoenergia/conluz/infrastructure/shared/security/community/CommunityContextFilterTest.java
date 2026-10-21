@@ -69,6 +69,27 @@ class CommunityContextFilterTest {
     }
 
     @Test
+    @DisplayName("MEM-032 a platform admin without a membership is refused in X-Community-Id, as anyone else")
+    void aPlatformAdminWithoutAMembershipIsRefusedInTheHeader() throws Exception {
+        User platformAdmin = callerWith();
+        platformAdmin.setPlatformAdmin(true);
+        assertRefusedLikeANonMember(platformAdmin);
+    }
+
+    @Test
+    @DisplayName("MEM-032 a platform admin with an active membership is accepted in X-Community-Id")
+    void aPlatformAdminWithAnActiveMembershipIsAcceptedInTheHeader() throws Exception {
+        User platformAdmin = callerWith(active(community));
+        platformAdmin.setPlatformAdmin(true);
+        MockFilterChain chain = new MockFilterChain();
+
+        MockHttpServletResponse response = filter(platformAdmin, community.getId(), chain);
+
+        assertEquals(HttpStatus.OK.value(), response.getStatus());
+        assertEquals(Optional.of(community.getId()), communityContext.getActiveCommunityId());
+    }
+
+    @Test
     void aSingleActiveMembershipIsSelectedWithoutAHeader() throws Exception {
         filter(callerWith(active(community)), null, new MockFilterChain());
 
