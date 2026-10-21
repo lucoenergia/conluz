@@ -114,8 +114,8 @@ class UpdateMembershipRoleControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("MEM-024 the platform admin is refused the same promotion without a contact email")
-    void promotingAMembershipWithoutAContactEmail_isRefusedToThePlatformAdmin() throws Exception {
+    @DisplayName("MEM-031 the platform admin who is not an admin of the community is refused changing a role")
+    void promotingAMembership_isRefusedToThePlatformAdmin() throws Exception {
         CommunityEntity community = persistCommunity();
         UUID memberId = registeredMember(community.getId(), null);
         String platformAdminToken = loginAsDefaultPlatformAdmin();
@@ -125,8 +125,7 @@ class UpdateMembershipRoleControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, platformAdminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"role\": \"COMMUNITY_ADMIN\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_WITHOUT_CONTACT_EMAIL"));
+                .andExpect(status().isForbidden());
 
         assertEquals(CommunityRole.COMMUNITY_MEMBER, getMembershipsRepository
                 .findByUserIdAndCommunityId(memberId, community.getId()).orElseThrow().getRole());

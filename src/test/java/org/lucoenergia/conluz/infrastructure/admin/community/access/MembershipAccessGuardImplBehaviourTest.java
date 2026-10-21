@@ -59,12 +59,14 @@ class MembershipAccessGuardImplBehaviourTest {
     // --- canManageMemberships ---
 
     @Test
-    void canManageMemberships_returnsTrue_whenUserIsPlatformAdmin() {
+    @DisplayName("MEM-031 a platform admin who is not an admin of the community is refused its roster")
+    void canManageMemberships_returnsFalse_whenUserIsPlatformAdmin() {
+        // The community stays visible to a platform admin: 403, not 404.
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
 
-        assertTrue(guard().canManageMemberships(UUID.randomUUID()));
+        assertFalse(guard().canManageMemberships(UUID.randomUUID()));
     }
 
     @Test
@@ -113,15 +115,13 @@ class MembershipAccessGuardImplBehaviourTest {
     }
 
     @Test
-    void canManageMemberships_returnsTrue_whenPlatformAdminAndCommunityIdIsNull() {
-        // Characterizes today's behaviour, surprising as it is: this is the only membership method
-        // without a null guard, and the platform-admin bypass sits after the visibility gate (which
-        // a platform admin always passes), so a null community id is granted rather than rejected.
+    void canManageMemberships_returnsFalse_whenPlatformAdminAndCommunityIdIsNull() {
+        // A platform admin passes the visibility gate, but no community admin role matches a null id.
         User admin = UserMother.randomUser();
         admin.setPlatformAdmin(true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
 
-        assertTrue(guard().canManageMemberships(null));
+        assertFalse(guard().canManageMemberships(null));
     }
 
     @Test

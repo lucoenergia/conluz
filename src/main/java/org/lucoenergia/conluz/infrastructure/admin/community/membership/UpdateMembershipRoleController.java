@@ -52,7 +52,7 @@ public class UpdateMembershipRoleController {
     @Operation(
             summary = "Updates the role of a membership.",
             description = """
-                    Changes the role of a user within a community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.
+                    Changes the role of a user within a community. Requires COMMUNITY_ADMIN of the community. Being a PLATFORM_ADMIN is not enough (#446): a platform admin who is not an admin of the community is answered 403.
 
                     Giving a membership the `COMMUNITY_ADMIN` role requires a contact email on its member record: \
                     without one it responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and the role is \

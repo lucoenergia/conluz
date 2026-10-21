@@ -32,7 +32,7 @@ public class CommunityCapabilitiesResponse {
     @Schema(description = "Whether the caller administers this community: creating and importing its supplies, reading and writing its Datadis and Shelly configuration, and triggering its synchronisation endpoints.")
     private final boolean canManage;
 
-    @Schema(description = "Whether the caller may administer this community's roster: creating, deleting and re-roling its memberships.")
+    @Schema(description = "Whether the caller may administer this community's roster: listing, creating, deleting and re-roling its memberships. Only an active community admin of it: there is no platform-admin bypass.")
     private final boolean canManageMemberships;
 
     @Schema(description = "Whether the caller may register a member in this community (POST /api/v1/communities/{communityId}/memberships/register). Only an active community admin of it: there is no platform-admin bypass.")
@@ -41,7 +41,7 @@ public class CommunityCapabilitiesResponse {
     @Schema(description = "Whether the caller may send the first invitation to this community's members in bulk (POST /api/v1/communities/{communityId}/memberships/invite). Only an active community admin of it: there is no platform-admin bypass. Whether any member is due one depends on the members' state.")
     private final boolean canInviteMembers;
 
-    @Schema(description = "Whether the caller may set or clear the investment recorded on this community's memberships. Stricter than canManageMemberships: an investment is the member's own money, so there is no platform-admin bypass.")
+    @Schema(description = "Whether the caller may set or clear the investment recorded on this community's memberships. Only an active community admin of it: an investment is the member's own money, so there is no platform-admin bypass.")
     private final boolean canManageMembershipInvestment;
 
     @Schema(description = "Whether the caller may list this community's plants (GET /api/v1/communities/{communityId}/plants).")

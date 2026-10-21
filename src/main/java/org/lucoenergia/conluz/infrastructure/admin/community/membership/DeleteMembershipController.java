@@ -41,7 +41,7 @@ public class DeleteMembershipController {
     @Operation(
             summary = "Removes a user from a community.",
             description = """
-                    Deletes the membership of the specified user in the community, with its member record and its invitation tokens. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.
+                    Deletes the membership of the specified user in the community, with its member record and its invitation tokens. Requires COMMUNITY_ADMIN of the community. Being a PLATFORM_ADMIN is not enough (#446): a platform admin who is not an admin of the community is answered 403.
 
                     The membership of a user who owns supplies in the community is not deleted: the request is answered 409 with `MEMBERSHIP_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`); to delete it, delete their supplies in the community first (`DELETE /api/v1/supplies/{supplyId}`). Supplies the user owns in other communities do not prevent it.
                     """,

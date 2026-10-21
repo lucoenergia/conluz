@@ -52,7 +52,7 @@ public class GetMembershipsController {
     @GetMapping
     @Operation(
             summary = "Lists all memberships of a community.",
-            description = "Returns the list of memberships for the specified community. Requires COMMUNITY_ADMIN or PLATFORM_ADMIN.",
+            description = "Returns the list of memberships for the specified community. Requires COMMUNITY_ADMIN of the community. Being a PLATFORM_ADMIN is not enough (#446): a platform admin who is not an admin of the community is answered 403.",
             tags = ApiTag.MEMBERSHIPS,
             operationId = "getMemberships",
             security = @SecurityRequirement(name = "bearerToken")

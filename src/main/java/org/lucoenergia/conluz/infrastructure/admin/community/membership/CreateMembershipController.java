@@ -56,7 +56,7 @@ public class CreateMembershipController {
             summary = "Creates a new membership in a community.",
             description = """
                     Adds a user as a member of the specified community with the given role.
-                    Requires COMMUNITY_ADMIN role in the community or PLATFORM_ADMIN.
+                    Requires COMMUNITY_ADMIN role in the community. Being a PLATFORM_ADMIN is not enough (#446): a platform admin who is not an admin of the community is answered 403.
 
                     A user can hold at most one membership per community, so adding one who is
                     already a member responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code. Use

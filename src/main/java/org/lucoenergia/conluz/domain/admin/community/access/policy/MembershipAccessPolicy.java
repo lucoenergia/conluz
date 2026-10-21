@@ -14,15 +14,14 @@ import java.util.function.Supplier;
 public class MembershipAccessPolicy {
 
     /**
-     * Administering the roster of a community: its active community admins, plus any platform
-     * admin. A member can see the community, so they are forbidden rather than not-found.
+     * Administering the roster of a community: only its active community admins. There is no platform-admin bypass
+     * (#446): the roster carries the members' records and personal IDs, which only the community's own administration
+     * reads; the platform admin reaches a community's admins through {@code …/admins}. A member, or a platform admin
+     * who is not an admin of the community, can see the community, so they are forbidden rather than not-found.
      */
     public AccessDecision canManageMemberships(User caller, UUID communityId) {
         if (!CallerMemberships.canSeeCommunity(caller, communityId)) {
             return AccessDecision.NOT_VISIBLE;
-        }
-        if (CallerMemberships.isPlatformAdmin(caller)) {
-            return AccessDecision.ALLOWED;
         }
         return CallerMemberships.hasCommunityAdminRoleIn(caller, communityId)
                 ? AccessDecision.ALLOWED
@@ -107,10 +106,9 @@ public class MembershipAccessPolicy {
     }
 
     /**
-     * Setting or clearing the investment recorded on a membership. Stricter than
-     * {@link #canManageMemberships}: an investment is the member's own money, and administering the
-     * platform is not the same as administering this community's finances, so there is no
-     * platform-admin bypass.
+     * Setting or clearing the investment recorded on a membership: only the community's active admins.
+     * An investment is the member's own money, and administering the platform is not the same as
+     * administering this community's finances, so there is no platform-admin bypass.
      *
      * <p>There is deliberately no {@link AccessDecision#FORBIDDEN} outcome for a caller who merely
      * lacks the role: a 403 would tell them an investment exists here to be written. The only
