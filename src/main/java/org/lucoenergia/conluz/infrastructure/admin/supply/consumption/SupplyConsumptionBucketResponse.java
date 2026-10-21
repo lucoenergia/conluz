@@ -23,6 +23,10 @@ import java.math.RoundingMode;
  * only appeared in the JSON because {@code isEmpty()} is a getter -- and makes room for the savings
  * Datadis knows nothing about.
  *
+ * <p>The energy figures carry the names the energy metrics give the same quantities (#460).
+ * assignedProductionKWh is derived from the unrounded self-consumed and surplus energy; the
+ * distributor's generation figure is not exposed.
+ *
  * <p>The energy figures are rounded here to 3 decimals, and only here: what is stored, and every
  * sum built from it, keeps full precision.
  *
@@ -31,9 +35,8 @@ import java.math.RoundingMode;
  * per segment. Rounding per bucket does mean the rounded buckets of a period need not add up to the
  * cent to the single rounded total the energy metrics endpoint reports for that same period.
  */
-@Schema(requiredProperties = {"cups", "date", "time", "consumptionKWh", "obtainMethod",
-        "surplusEnergyKWh", "generationEnergyKWh", "selfConsumptionEnergyKWh", "savingsEur",
-        "tariffSource"})
+@Schema(requiredProperties = {"cups", "date", "time", "gridImportKWh", "obtainMethod",
+        "surplusKWh", "selfConsumptionKWh", "assignedProductionKWh", "savingsEur", "tariffSource"})
 public class SupplyConsumptionBucketResponse {
 
     @Schema(description = "CUPS code of the supply the bucket belongs to.",
@@ -50,7 +53,7 @@ public class SupplyConsumptionBucketResponse {
     @Schema(description = "Energy taken from the grid by this supply over the bucket. Does not " +
             "include self-consumed energy. In kWh, rounded to 3 decimals.",
             example = "12.5")
-    private final Float consumptionKWh;
+    private final Float gridImportKWh;
     @Schema(description = "How the underlying records were obtained, as reported by Datadis. Null " +
             "on a bucket with no stored record.",
             example = "Real", types = {"string", "null"})
@@ -58,15 +61,16 @@ public class SupplyConsumptionBucketResponse {
     @Schema(description = "Energy assigned to this supply and fed back to the grid over the bucket. " +
             "In kWh, rounded to 3 decimals.",
             example = "3.25")
-    private final Float surplusEnergyKWh;
-    @Schema(description = "Energy generated and assigned to the supply over the bucket, in kWh, " +
-            "rounded to 3 decimals.",
-            example = "8.75")
-    private final Float generationEnergyKWh;
+    private final Float surplusKWh;
     @Schema(description = "Energy produced by the community and consumed by this supply over the " +
             "bucket, as reported by the distributor. In kWh, rounded to 3 decimals.",
             example = "5.5")
-    private final Float selfConsumptionEnergyKWh;
+    private final Float selfConsumptionKWh;
+    @Schema(description = "Energy assigned to this supply over the bucket: selfConsumptionKWh plus " +
+            "surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from " +
+            "the sum of the rounded figures.",
+            example = "8.75")
+    private final Float assignedProductionKWh;
     @Schema(description = "Estimated amount the bucket's self-consumed energy saved, in euros, " +
             "rounded to cents. A bucket with no self-consumption -- and a bucket with no stored " +
             "record at all -- reports 0.00.",
@@ -89,11 +93,11 @@ public class SupplyConsumptionBucketResponse {
         this.cups = consumption.getCups();
         this.date = consumption.getDate();
         this.time = consumption.getTime();
-        this.consumptionKWh = rounded(consumption.getConsumptionKWh());
+        this.gridImportKWh = rounded(consumption.getConsumptionKWh());
         this.obtainMethod = consumption.getObtainMethod();
-        this.surplusEnergyKWh = rounded(consumption.getSurplusEnergyKWh());
-        this.generationEnergyKWh = rounded(consumption.getGenerationEnergyKWh());
-        this.selfConsumptionEnergyKWh = rounded(consumption.getSelfConsumptionEnergyKWh());
+        this.surplusKWh = rounded(consumption.getSurplusEnergyKWh());
+        this.selfConsumptionKWh = rounded(consumption.getSelfConsumptionEnergyKWh());
+        this.assignedProductionKWh = (float) KWhRounding.round(bucket.getAssignedProductionKWh());
     }
 
     /**
@@ -116,24 +120,24 @@ public class SupplyConsumptionBucketResponse {
         return time;
     }
 
-    public Float getConsumptionKWh() {
-        return consumptionKWh;
+    public Float getGridImportKWh() {
+        return gridImportKWh;
     }
 
     public String getObtainMethod() {
         return obtainMethod;
     }
 
-    public Float getSurplusEnergyKWh() {
-        return surplusEnergyKWh;
+    public Float getSurplusKWh() {
+        return surplusKWh;
     }
 
-    public Float getGenerationEnergyKWh() {
-        return generationEnergyKWh;
+    public Float getSelfConsumptionKWh() {
+        return selfConsumptionKWh;
     }
 
-    public Float getSelfConsumptionEnergyKWh() {
-        return selfConsumptionEnergyKWh;
+    public Float getAssignedProductionKWh() {
+        return assignedProductionKWh;
     }
 
     public BigDecimal getSavingsEur() {

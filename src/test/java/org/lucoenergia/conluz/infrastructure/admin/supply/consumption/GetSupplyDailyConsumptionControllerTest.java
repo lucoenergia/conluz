@@ -92,7 +92,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("consumptionKWh")))
+                .andExpect(content().string(containsString("gridImportKWh")))
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].cups").value(CUPS_CODE));
     }
@@ -117,7 +117,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("consumptionKWh")))
+                .andExpect(content().string(containsString("gridImportKWh")))
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].cups").value(CUPS_CODE));
     }
@@ -270,11 +270,11 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].cups").isString())
                 .andExpect(jsonPath("$[0].date").isString())
                 .andExpect(jsonPath("$[0].time").isString())
-                .andExpect(jsonPath("$[0].consumptionKWh").isNumber())
+                .andExpect(jsonPath("$[0].gridImportKWh").isNumber())
                 .andExpect(jsonPath("$[0].obtainMethod").isString())
-                .andExpect(jsonPath("$[0].surplusEnergyKWh").isNumber())
-                .andExpect(jsonPath("$[0].generationEnergyKWh").isNumber())
-                .andExpect(jsonPath("$[0].selfConsumptionEnergyKWh").isNumber());
+                .andExpect(jsonPath("$[0].surplusKWh").isNumber())
+                .andExpect(jsonPath("$[0].assignedProductionKWh").isNumber())
+                .andExpect(jsonPath("$[0].selfConsumptionKWh").isNumber());
     }
 
     /**
@@ -324,17 +324,17 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(5))
                 .andExpect(jsonPath("$[0].date").value("2023/04/10"))
-                .andExpect(jsonPath("$[0].selfConsumptionEnergyKWh").value(closeTo(2.00, TOLERANCE)))
+                .andExpect(jsonPath("$[0].selfConsumptionKWh").value(closeTo(2.00, TOLERANCE)))
                 .andExpect(jsonPath("$[0].savingsEur").value(closeTo(0.30, TOLERANCE)))
                 .andExpect(jsonPath("$[1].date").value("2023/04/11"))
-                .andExpect(jsonPath("$[1].selfConsumptionEnergyKWh").value(closeTo(0.50, TOLERANCE)))
+                .andExpect(jsonPath("$[1].selfConsumptionKWh").value(closeTo(0.50, TOLERANCE)))
                 .andExpect(jsonPath("$[1].savingsEur").value(closeTo(0.08, TOLERANCE)))
                 .andExpect(jsonPath("$[2].date").value("2023/04/12"))
                 .andExpect(jsonPath("$[2].savingsEur").value(closeTo(0.00, TOLERANCE)))
                 .andExpect(jsonPath("$[3].date").value("2023/04/13"))
                 .andExpect(jsonPath("$[3].savingsEur").value(closeTo(0.00, TOLERANCE)))
                 .andExpect(jsonPath("$[4].date").value("2023/04/14"))
-                .andExpect(jsonPath("$[4].selfConsumptionEnergyKWh").value(closeTo(1.50, TOLERANCE)))
+                .andExpect(jsonPath("$[4].selfConsumptionKWh").value(closeTo(1.50, TOLERANCE)))
                 .andExpect(jsonPath("$[4].savingsEur").value(closeTo(0.23, TOLERANCE)))
                 .andExpect(jsonPath("$[0].tariffSource").value("ESTIMATE"))
                 .andExpect(jsonPath("$[4].tariffSource").value("ESTIMATE"))
@@ -391,10 +391,10 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("endDate", "2023-04-14T10:30:00+02:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].date").value("2023/04/10"))
-                .andExpect(jsonPath("$[0].selfConsumptionEnergyKWh").value(closeTo(1.75, TOLERANCE)))
+                .andExpect(jsonPath("$[0].selfConsumptionKWh").value(closeTo(1.75, TOLERANCE)))
                 .andExpect(jsonPath("$[0].savingsEur").value(closeTo(0.26, TOLERANCE)))
                 .andExpect(jsonPath("$[4].date").value("2023/04/14"))
-                .andExpect(jsonPath("$[4].selfConsumptionEnergyKWh").value(closeTo(1.25, TOLERANCE)))
+                .andExpect(jsonPath("$[4].selfConsumptionKWh").value(closeTo(1.25, TOLERANCE)))
                 .andExpect(jsonPath("$[4].savingsEur").value(closeTo(0.19, TOLERANCE)));
     }
 
@@ -424,14 +424,12 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
     }
 
     /**
-     * Generated energy used to come back as a constant 0.0 on this series: the grouped query summed
-     * every energy field except `generation_energy_kwh`, so the mapper only ever saw a null. The
-     * daily totals here -- 12.00, 2.00, 0.50, nothing and 4.00 kWh -- differ from the
-     * self-consumption totals of the same days on purpose, so this cannot pass by reading the wrong
-     * column.
+     * The assigned production of a day is its self-consumed plus its surplus energy. The stored
+     * generation of the same days -- 12.00, 2.00, 0.50, nothing and 4.00 kWh -- differs from it on
+     * purpose, so this cannot pass by reading the distributor's generation figure.
      */
     @Test
-    void testDailyConsumptionSumsGeneratedEnergy() throws Exception {
+    void testDailyConsumptionDerivesAssignedProduction() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
@@ -444,13 +442,14 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", SAVINGS_START_DATE)
                         .queryParam("endDate", SAVINGS_END_DATE))
                 .andExpect(status().isOk())
-                // 2.00 + 4.00 + 6.00 on the 10th.
-                .andExpect(jsonPath("$[0].generationEnergyKWh").value(closeTo(12.00, TOLERANCE)))
-                .andExpect(jsonPath("$[1].generationEnergyKWh").value(closeTo(2.00, TOLERANCE)))
-                .andExpect(jsonPath("$[2].generationEnergyKWh").value(closeTo(0.50, TOLERANCE)))
+                // 2.00 self-consumed + 0.75 surplus on the 10th.
+                .andExpect(jsonPath("$[0].assignedProductionKWh").value(closeTo(2.75, TOLERANCE)))
+                .andExpect(jsonPath("$[1].assignedProductionKWh").value(closeTo(0.50, TOLERANCE)))
+                // Records with neither self-consumption nor surplus on the 12th.
+                .andExpect(jsonPath("$[2].assignedProductionKWh").value(closeTo(0.00, TOLERANCE)))
                 // The 13th has no record at all, so it stays at zero like its other energy fields.
-                .andExpect(jsonPath("$[3].generationEnergyKWh").value(closeTo(0.00, TOLERANCE)))
-                .andExpect(jsonPath("$[4].generationEnergyKWh").value(closeTo(4.00, TOLERANCE)));
+                .andExpect(jsonPath("$[3].assignedProductionKWh").value(closeTo(0.00, TOLERANCE)))
+                .andExpect(jsonPath("$[4].assignedProductionKWh").value(closeTo(1.50, TOLERANCE)));
     }
 
     @Test
@@ -472,10 +471,10 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
                     .andExpect(jsonPath("$.length()").value(1))
                     .andReturn().getResponse().getContentAsString();
 
-            assertKWh(body, "/0/consumptionKWh", RoundingNoiseDataset.GRID_IMPORT);
-            assertKWh(body, "/0/selfConsumptionEnergyKWh", RoundingNoiseDataset.SELF_CONSUMPTION);
-            assertKWh(body, "/0/surplusEnergyKWh", RoundingNoiseDataset.SURPLUS);
-            assertKWh(body, "/0/generationEnergyKWh", RoundingNoiseDataset.GENERATION);
+            assertKWh(body, "/0/gridImportKWh", RoundingNoiseDataset.GRID_IMPORT);
+            assertKWh(body, "/0/selfConsumptionKWh", RoundingNoiseDataset.SELF_CONSUMPTION);
+            assertKWh(body, "/0/surplusKWh", RoundingNoiseDataset.SURPLUS);
+            assertKWh(body, "/0/assignedProductionKWh", RoundingNoiseDataset.ASSIGNED_PRODUCTION);
             RoundingNoiseDataset.assertHourlyRecordsUnchanged(getDatadisConsumptionRepository, supply);
         } finally {
             influxFixture.clear(supply.getCode());

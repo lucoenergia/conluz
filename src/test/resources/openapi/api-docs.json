@@ -1785,9 +1785,9 @@
       },
       "MembershipMonthlyConsumptionBucketResponse" : {
         "properties" : {
-          "consumptionKWh" : {
-            "description" : "Energy taken from the grid by every supply of the membership over the month. Does not include self-consumed energy. In kWh, rounded to 3 decimals. 0 when no supply stored a record.",
-            "example" : 107.75,
+          "assignedProductionKWh" : {
+            "description" : "Energy assigned to every supply of the membership over the month: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
+            "example" : 64.25,
             "type" : "number"
           },
           "date" : {
@@ -1795,9 +1795,9 @@
             "example" : "2024/01/01",
             "type" : "string"
           },
-          "generationEnergyKWh" : {
-            "description" : "Energy generated and assigned to every supply of the membership over the month, in kWh, rounded to 3 decimals.",
-            "example" : 63,
+          "gridImportKWh" : {
+            "description" : "Energy taken from the grid by every supply of the membership over the month. Does not include self-consumed energy. In kWh, rounded to 3 decimals. 0 when no supply stored a record.",
+            "example" : 107.75,
             "type" : "number"
           },
           "savingsEur" : {
@@ -1808,7 +1808,7 @@
               "null"
             ]
           },
-          "selfConsumptionEnergyKWh" : {
+          "selfConsumptionKWh" : {
             "description" : "Energy produced by the community and consumed by every supply of the membership over the month, as reported by the distributor. In kWh, rounded to 3 decimals.",
             "example" : 42.5,
             "type" : "number"
@@ -1825,7 +1825,7 @@
             "format" : "int32",
             "type" : "integer"
           },
-          "surplusEnergyKWh" : {
+          "surplusKWh" : {
             "description" : "Energy assigned to every supply of the membership and fed back to the grid over the month. In kWh, rounded to 3 decimals.",
             "example" : 21.75,
             "type" : "number"
@@ -1849,14 +1849,14 @@
           }
         },
         "required" : [
-          "consumptionKWh",
+          "assignedProductionKWh",
           "date",
-          "generationEnergyKWh",
+          "gridImportKWh",
           "savingsEur",
-          "selfConsumptionEnergyKWh",
+          "selfConsumptionKWh",
           "suppliesWithData",
           "supplyCount",
-          "surplusEnergyKWh",
+          "surplusKWh",
           "tariffSource",
           "time"
         ],
@@ -3121,9 +3121,9 @@
       },
       "SupplyConsumptionBucketResponse" : {
         "properties" : {
-          "consumptionKWh" : {
-            "description" : "Energy taken from the grid by this supply over the bucket. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
-            "example" : 12.5,
+          "assignedProductionKWh" : {
+            "description" : "Energy assigned to this supply over the bucket: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
+            "example" : 8.75,
             "format" : "float",
             "type" : "number"
           },
@@ -3137,9 +3137,9 @@
             "example" : "2023/04/10",
             "type" : "string"
           },
-          "generationEnergyKWh" : {
-            "description" : "Energy generated and assigned to the supply over the bucket, in kWh, rounded to 3 decimals.",
-            "example" : 8.75,
+          "gridImportKWh" : {
+            "description" : "Energy taken from the grid by this supply over the bucket. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
+            "example" : 12.5,
             "format" : "float",
             "type" : "number"
           },
@@ -3156,13 +3156,13 @@
             "example" : 0.83,
             "type" : "number"
           },
-          "selfConsumptionEnergyKWh" : {
+          "selfConsumptionKWh" : {
             "description" : "Energy produced by the community and consumed by this supply over the bucket, as reported by the distributor. In kWh, rounded to 3 decimals.",
             "example" : 5.5,
             "format" : "float",
             "type" : "number"
           },
-          "surplusEnergyKWh" : {
+          "surplusKWh" : {
             "description" : "Energy assigned to this supply and fed back to the grid over the bucket. In kWh, rounded to 3 decimals.",
             "example" : 3.25,
             "format" : "float",
@@ -3184,14 +3184,14 @@
           }
         },
         "required" : [
-          "consumptionKWh",
+          "assignedProductionKWh",
           "cups",
           "date",
-          "generationEnergyKWh",
+          "gridImportKWh",
           "obtainMethod",
           "savingsEur",
-          "selfConsumptionEnergyKWh",
-          "surplusEnergyKWh",
+          "selfConsumptionKWh",
+          "surplusKWh",
           "tariffSource",
           "time"
         ],

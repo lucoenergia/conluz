@@ -31,10 +31,10 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
     private static final String MEMBERSHIP_MONTHLY_PATH =
             "/api/v1/communities/{communityId}/memberships/{userId}/consumption/monthly";
 
-    /** Grid import, self-consumption and surplus, by schema: the series and the metrics name them differently. */
+    /** Grid import, self-consumption and surplus, by schema. */
     private static final Map<String, List<String>> QUANTITIES = Map.of(
-            SUPPLY_BUCKET, List.of("consumptionKWh", "selfConsumptionEnergyKWh", "surplusEnergyKWh"),
-            MEMBERSHIP_BUCKET, List.of("consumptionKWh", "selfConsumptionEnergyKWh", "surplusEnergyKWh"),
+            SUPPLY_BUCKET, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"),
+            MEMBERSHIP_BUCKET, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"),
             SUPPLY_ENERGY, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"),
             MEMBERSHIP_ENERGY, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"));
 

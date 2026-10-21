@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.community.membership.consumption;
 
+import org.lucoenergia.conluz.domain.consumption.EnergyBalance;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
@@ -19,7 +20,10 @@ import java.util.function.Function;
  *
  * <p>The energy figures are the sums of the supplies' own monthly figures, and the savings the
  * supplies' own monthly savings folded by {@link SupplySavings#total(List)}, so a month's figures are
- * exactly what the per-supply series reports for it, added up.
+ * exactly what the per-supply series reports for it, added up. The assigned production is derived
+ * from the unrounded sums of self-consumed and surplus energy, by
+ * {@link EnergyBalance#assignedProductionKWh(double, double)}, never from the distributor's
+ * generation figure (#460).
  *
  * <p>A month in which no supply stored a record has no savings at all rather than savings of zero:
  * a savings point at zero and a month with nothing stored are different statements. A supply that
@@ -31,21 +35,22 @@ public class MembershipMonthlyConsumptionBucket {
     private final YearMonth month;
     private final BigDecimal consumptionKWh;
     private final BigDecimal surplusEnergyKWh;
-    private final BigDecimal generationEnergyKWh;
     private final BigDecimal selfConsumptionEnergyKWh;
+    private final double assignedProductionKWh;
     private final SupplySavings savings;
     private final int supplyCount;
     private final int suppliesWithData;
 
     private MembershipMonthlyConsumptionBucket(YearMonth month, BigDecimal consumptionKWh,
-                                               BigDecimal surplusEnergyKWh, BigDecimal generationEnergyKWh,
-                                               BigDecimal selfConsumptionEnergyKWh, SupplySavings savings,
+                                               BigDecimal surplusEnergyKWh, BigDecimal selfConsumptionEnergyKWh,
+                                               SupplySavings savings,
                                                int supplyCount, int suppliesWithData) {
         this.month = month;
         this.consumptionKWh = consumptionKWh;
         this.surplusEnergyKWh = surplusEnergyKWh;
-        this.generationEnergyKWh = generationEnergyKWh;
         this.selfConsumptionEnergyKWh = selfConsumptionEnergyKWh;
+        this.assignedProductionKWh = EnergyBalance.assignedProductionKWh(selfConsumptionEnergyKWh.doubleValue(),
+                surplusEnergyKWh.doubleValue());
         this.savings = savings;
         this.supplyCount = supplyCount;
         this.suppliesWithData = suppliesWithData;
@@ -70,7 +75,6 @@ public class MembershipMonthlyConsumptionBucket {
         return new MembershipMonthlyConsumptionBucket(month,
                 sum(contributions, DatadisConsumption::getConsumptionKWh),
                 sum(contributions, DatadisConsumption::getSurplusEnergyKWh),
-                sum(contributions, DatadisConsumption::getGenerationEnergyKWh),
                 sum(contributions, DatadisConsumption::getSelfConsumptionEnergyKWh),
                 savings,
                 supplyCount,
@@ -96,12 +100,16 @@ public class MembershipMonthlyConsumptionBucket {
         return surplusEnergyKWh;
     }
 
-    public BigDecimal getGenerationEnergyKWh() {
-        return generationEnergyKWh;
-    }
-
     public BigDecimal getSelfConsumptionEnergyKWh() {
         return selfConsumptionEnergyKWh;
+    }
+
+    /**
+     * Self-consumed plus surplus energy over every supply of the month, derived from the unrounded
+     * sums.
+     */
+    public double getAssignedProductionKWh() {
+        return assignedProductionKWh;
     }
 
     /**
