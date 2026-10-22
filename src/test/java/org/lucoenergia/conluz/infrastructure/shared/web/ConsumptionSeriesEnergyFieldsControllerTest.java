@@ -8,7 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -29,9 +29,7 @@ import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture.hourlyRecord;
 import static org.lucoenergia.conluz.infrastructure.shared.web.KWhJson.assertKWh;
 import static org.lucoenergia.conluz.infrastructure.shared.web.KWhJson.kWhAt;
@@ -82,7 +80,7 @@ class ConsumptionSeriesEnergyFieldsControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
@@ -179,7 +177,7 @@ class ConsumptionSeriesEnergyFieldsControllerTest extends BaseControllerTest {
         User member = UserMother.randomUser();
         member.enable();
         createUserRepository.create(member);
-        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply first = createSupply(member, community);
         Supply second = createSupply(member, community);
         write(first, record(first, "10:00", 0.1000f, 0.1111f), record(first, "11:00", 0.0234f, 0.1111f));
