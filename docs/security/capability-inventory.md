@@ -360,7 +360,7 @@ started returning.
    be equal to, so it is omitted there — say so in a comment, and give it an anchor in its assembler
    test that does not merely re-run the assembler's own line.
 7. **Refresh the OpenAPI snapshot** (`cp build/openapi/api-docs.actual.json
-   src/test/resources/openapi/api-docs.json`) in the same commit, and note the change for
+   src/main/resources/api/docs/api-docs.json`) in the same commit, and note the change for
    `conluz-web` — a new required field is a breaking change for a generated client.
 8. **Update this document.**
 
