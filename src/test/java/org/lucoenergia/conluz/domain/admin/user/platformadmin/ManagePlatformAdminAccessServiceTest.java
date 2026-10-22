@@ -30,15 +30,6 @@ class ManagePlatformAdminAccessServiceTest {
     }
 
     @Test
-    void grant_delegatesToRepository() {
-        UserId id = UserId.of(UserMother.randomUser().getId());
-
-        service().grant(id);
-
-        verify(repository).grant(id);
-    }
-
-    @Test
     @DisplayName("ACC-013 an enabled platform admin is revoked while another one is enabled")
     void revoke_enabledAdminWithMoreThanOneEnabledAdmin_delegatesToRepository() {
         UserId id = existing(true, true);

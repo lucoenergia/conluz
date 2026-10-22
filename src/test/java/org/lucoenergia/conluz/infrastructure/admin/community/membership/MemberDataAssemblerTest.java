@@ -113,40 +113,6 @@ class MemberDataAssemblerTest {
         verifyNoInteractions(getMembershipsRepository);
     }
 
-    @Test
-    @DisplayName("MEM-026 A community admin sees the record of a user whose memberships are fetched once")
-    void forUserFetchingMemberships_queriesTheMembershipsOnce_forACommunityAdmin() {
-        Community a = community();
-        Community b = community();
-        User target = UserMother.randomUser();
-        CommunityMembership targetInA = record(target, a, "Target in A");
-        when(getMembershipsRepository.findByUserId(target.getId()))
-                .thenReturn(List.of(record(target, b, "Target in B"), targetInA));
-
-        assertEquals(MemberDataView.ofRecord(targetInA), assembler().forUserFetchingMemberships(adminOf(a), target));
-        verify(getMembershipsRepository, times(1)).findByUserId(target.getId());
-    }
-
-    @Test
-    @DisplayName("MEM-026 A user reading themselves sees their account, and no memberships are fetched")
-    void forUserFetchingMemberships_isTheAccount_withoutAQuery_forTheUserThemselves() {
-        User user = UserMother.randomUser();
-
-        assertEquals(MemberDataView.ofAccount(user), assembler().forUserFetchingMemberships(user, user));
-        verifyNoInteractions(getMembershipsRepository);
-    }
-
-    @Test
-    @DisplayName("MEM-026 A platform admin who administers no community sees no member data, and no memberships are fetched")
-    void forUserFetchingMemberships_isAbsent_withoutAQuery_forAPlatformAdminWhoAdministersNoCommunity() {
-        User platformAdmin = UserMother.randomUser();
-        platformAdmin.setPlatformAdmin(true);
-        User target = UserMother.randomUser();
-
-        assertEquals(MemberDataView.absent(), assembler().forUserFetchingMemberships(platformAdmin, target));
-        verifyNoInteractions(getMembershipsRepository);
-    }
-
     // --- Fixtures ---
 
     private static Community community() {

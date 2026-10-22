@@ -7,7 +7,6 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -51,8 +50,6 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
-    @Autowired
-    private CreateMembershipService createMembershipService;
     @Autowired
     private ManagePlatformAdminRepository managePlatformAdminRepository;
 
@@ -403,7 +400,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
     void aPlatformAdminWhoAdministersACommunityListsOnlyItsUsers() throws Exception {
         TwoCommunities world = twoCommunities();
         User platformAdmin = enabledUser();
-        createMembershipService.create(world.communityA.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(world.communityA.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
         managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
         String platformAdminToken = loginUser(platformAdmin);
 
@@ -437,7 +434,7 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         assertTrue(row.get("capabilities").get("canRead").asBoolean());
         assertTrue(row.get("capabilities").get("canListSupplies").asBoolean());
         // Administering one of them is never enough to change the account (#415).
-        assertFalse(row.get("capabilities").get("canEdit").asBoolean());
+        assertFalse(row.get("capabilities").get("canDelete").asBoolean());
     }
 
     private record TwoCommunities(Community communityA, Community communityB, User adminOfAMemberOfB,
@@ -451,15 +448,15 @@ class GetAllUsersControllerTest extends BaseControllerTest {
         Community communityA = createCommunityRepository.create(CommunityMother.random().build());
         Community communityB = createCommunityRepository.create(CommunityMother.random().build());
         User adminOfAMemberOfB = enabledUser();
-        createMembershipService.create(communityA.getId(), adminOfAMemberOfB.getId(), CommunityRole.COMMUNITY_ADMIN);
-        createMembershipService.create(communityB.getId(), adminOfAMemberOfB.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityA.getId(), adminOfAMemberOfB.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityB.getId(), adminOfAMemberOfB.getId(), CommunityRole.COMMUNITY_MEMBER);
         User onlyInA = enabledUser();
-        createMembershipService.create(communityA.getId(), onlyInA.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityA.getId(), onlyInA.getId(), CommunityRole.COMMUNITY_MEMBER);
         User onlyInB = enabledUser();
-        createMembershipService.create(communityB.getId(), onlyInB.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityB.getId(), onlyInB.getId(), CommunityRole.COMMUNITY_MEMBER);
         User inAAndB = enabledUser();
-        createMembershipService.create(communityA.getId(), inAAndB.getId(), CommunityRole.COMMUNITY_MEMBER);
-        createMembershipService.create(communityB.getId(), inAAndB.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityA.getId(), inAAndB.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityB.getId(), inAAndB.getId(), CommunityRole.COMMUNITY_ADMIN);
         return new TwoCommunities(communityA, communityB, adminOfAMemberOfB, loginUser(adminOfAMemberOfB),
                 onlyInA, onlyInB, inAAndB);
     }

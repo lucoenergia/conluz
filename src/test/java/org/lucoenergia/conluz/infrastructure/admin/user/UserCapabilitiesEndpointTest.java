@@ -6,7 +6,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -36,7 +36,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private ManagePlatformAdminRepository managePlatformAdminRepository;
     @Autowired
@@ -48,10 +48,9 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(true))
-                // ACC-020: a platform admin who administers no community may neither list nor create users.
+                // ACC-020: a platform admin who administers no community may not list users.
                 .andExpect(jsonPath("$.platformCapabilities.canListUsers").value(false))
                 .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(true))
-                .andExpect(jsonPath("$.platformCapabilities.canCreateUsers").value(false))
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
                 // Nobody may delete, disable or de-admin themselves, platform admins included.
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
@@ -72,15 +71,11 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.platformCapabilities.canListUsers").value(true))
                 .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(false))
-                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false))
-                // Creating users in their own community is a community capability; creating one
-                // belonging to no community is not theirs to offer.
-                .andExpect(jsonPath("$.platformCapabilities.canCreateUsers").value(false));
+                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false));
     }
 
     /**
-     * A member reading their own record is offered neither. canEdit is false on purpose: name, DNI
-     * and member number are an administrative change, and contact details go through
+     * A member reading their own record is offered no change to it: contact details go through
      * PUT /users/profile, which needs no capability because any authenticated caller may use it.
      */
     @Test
@@ -92,12 +87,10 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
                 .andExpect(jsonPath("$.capabilities.canListSupplies").value(true))
-                .andExpect(jsonPath("$.capabilities.canEdit").value(false))
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
                 .andExpect(jsonPath("$.platformCapabilities.canListUsers").value(false))
                 .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(false))
-                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false))
-                .andExpect(jsonPath("$.platformCapabilities.canCreateUsers").value(false));
+                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false));
     }
 
     @Test
@@ -110,13 +103,12 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
-                .andExpect(jsonPath("$.capabilities.canEdit").value(false))
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
                 .andExpect(jsonPath("$.capabilities.canEnable").value(false))
                 .andExpect(jsonPath("$.capabilities.canDisable").value(false))
                 .andExpect(jsonPath("$.capabilities.canListSupplies").value(true))
-                // Granting platform admin is not a community admin's to give.
-                .andExpect(jsonPath("$.capabilities.canGrantPlatformAdmin").value(false));
+                // Managing the platform-admin role is not a community admin's to do.
+                .andExpect(jsonPath("$.capabilities.canRevokePlatformAdmin").value(false));
     }
 
     @Test
@@ -138,7 +130,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
         User platformAdmin = UserMother.randomUser();
         platformAdmin.enable();
         createUserRepository.create(platformAdmin);
-        createMembershipService.create(community.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(community.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
         managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
 
         mockMvc.perform(get("/api/v1/users/{userId}", member.getId())
@@ -146,23 +138,20 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
                 .andExpect(jsonPath("$.capabilities.canListSupplies").value(true))
-                .andExpect(jsonPath("$.capabilities.canEdit").value(false))
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
                 .andExpect(jsonPath("$.capabilities.canEnable").value(false))
                 .andExpect(jsonPath("$.capabilities.canDisable").value(false))
-                .andExpect(jsonPath("$.capabilities.canGrantPlatformAdmin").value(true))
                 .andExpect(jsonPath("$.capabilities.canRevokePlatformAdmin").value(true));
     }
 
     @Test
-    @DisplayName("ACC-008 a community admin is still offered editing their own account, and nothing else on it")
-    void aCommunityAdminIsOfferedEditingTheirOwnAccount() throws Exception {
+    @DisplayName("ACC-008 a community admin is offered no change to their own account")
+    void aCommunityAdminIsOfferedNoChangeToTheirOwnAccount() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
 
         mockMvc.perform(get("/api/v1/users/current")
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.capabilities.canEdit").value(true))
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
                 .andExpect(jsonPath("$.capabilities.canEnable").value(false))
                 .andExpect(jsonPath("$.capabilities.canDisable").value(false));
@@ -197,7 +186,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.capabilities.canRead").value(true))
                 // A community admin may not change the owner's account (#415).
-                .andExpect(jsonPath("$.user.capabilities.canEdit").value(false))
+                .andExpect(jsonPath("$.user.capabilities.canDelete").value(false))
                 .andExpect(jsonPath("$.user.memberships").isEmpty());
     }
 
@@ -209,7 +198,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.enable();
         createUserRepository.create(user);
-        createMembershipService.create(communityId, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityId, user.getId(), CommunityRole.COMMUNITY_MEMBER);
         return user;
     }
 }

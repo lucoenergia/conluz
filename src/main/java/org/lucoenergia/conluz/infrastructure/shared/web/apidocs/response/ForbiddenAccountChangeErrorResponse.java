@@ -13,8 +13,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * The 403 of an endpoint that changes a user's account ({@code updateUser}, {@code enableUser},
- * {@code disableUser}, {@code deleteUser}): {@link ForbiddenErrorResponse}, saying in addition who is refused on
+ * The 403 of an endpoint that changes a user's account ({@code enableUser}, {@code disableUser},
+ * {@code deleteUser}): {@link ForbiddenErrorResponse}, saying in addition who is refused on
  * another user's account. Declared instead of it, never together: two 403s on one operation leave only one.
  */
 @Target({ElementType.METHOD, ElementType.TYPE, ElementType.ANNOTATION_TYPE})

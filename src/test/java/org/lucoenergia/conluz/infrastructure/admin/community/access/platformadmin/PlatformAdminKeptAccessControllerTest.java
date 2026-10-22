@@ -107,7 +107,7 @@ class PlatformAdminKeptAccessControllerTest extends BasePlatformAdminInvitationT
     }
 
     @Test
-    @DisplayName("ACC-020 a platform admin without memberships still lists platform admins, invites, resends and revokes, and revokes and grants the role")
+    @DisplayName("ACC-020 a platform admin without memberships still lists platform admins, invites, resends and revokes, and revokes the role")
     void thePlatformAdminRoleManagementStaysTheirs() throws Exception {
         String platformAdmin = loginAsPlatformAdmin();
         User other = newPlatformAdmin();
@@ -123,10 +123,6 @@ class PlatformAdminKeptAccessControllerTest extends BasePlatformAdminInvitationT
         perform(platformAdmin, post("/api/v1/users/{userId}/revoke-platform-admin", other.getId()))
                 .andExpect(status().isOk());
         assertThat(isPlatformAdmin(other.getId())).isFalse();
-        // Grant by id remains, as ADR-0004's transitional exception
-        perform(platformAdmin, post("/api/v1/users/{userId}/grant-platform-admin", other.getId()))
-                .andExpect(status().isOk());
-        assertThat(isPlatformAdmin(other.getId())).isTrue();
     }
 
     @Test

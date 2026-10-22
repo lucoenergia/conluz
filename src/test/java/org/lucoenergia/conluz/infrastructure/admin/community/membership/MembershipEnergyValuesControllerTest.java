@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -91,7 +91,7 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
@@ -247,7 +247,7 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
         User member = UserMother.randomUser();
         member.enable();
         createUserRepository.create(member);
-        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         return new TwoSupplyMembership(community, member, createSupply(member, community), createSupply(member, community));
     }
 

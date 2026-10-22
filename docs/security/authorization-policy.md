@@ -34,9 +34,8 @@ objects the API returns, which report one endpoint's decision each and are liste
   - Invite a person to the platform-admin role, and resend or revoke a pending invitation
     (`POST /api/v1/platform-admins/invite`, `…/{userId}/invitation/resend|revoke`). Inviting grants
     nothing: the role is granted only when the person accepts with the link and the confirmation code
-    the inviter gives them out of band (ADR-0004, ACC-014). Granting by id
-    (`POST /api/v1/users/{userId}/grant-platform-admin`) remains as a transitional exception until the
-    web client stops using it (ADR-0004, #329).
+    the inviter gives them out of band (ADR-0004, ACC-014). Apart from the first admin, created by
+    `/init`, that is the only way to hold it: granting by id was removed in #447.
 - Community admins (scoped to the community they administer) can:
   - Enable and disable the memberships of their members (`POST /api/v1/communities/{communityId}/memberships/{userId}/enable|disable`),
     which only an active admin of the community may do: no platform-admin bypass, and an admin's
@@ -44,9 +43,8 @@ objects the API returns, which report one endpoint's decision each and are liste
   - Edit the member record of any membership of their community, theirs included, whatever its role
     and state (`PUT /api/v1/communities/{communityId}/memberships/{userId}/record`): only an active
     admin of the community, with no platform-admin bypass. The account is never written (MEM-028).
-  - Import, create, view, list and remove members. They do **not** change a member's account: editing
-    (`PUT /api/v1/users/{userId}`), enabling, disabling and deleting another user's account are
-    nobody's, because the account is shared by every community the person belongs to and its email
+  - Register, import, invite, view, list and remove members. They do **not** change a member's
+    account: enabling, disabling and deleting another user's account are nobody's, because the account is shared by every community the person belongs to and its email
     receives password recovery (#415, ACC-008, ACC-020). Until account deletion has an owner (#325), a
     request to erase a person's account is handled by an operator, following
     [`docs/ops/account-erasure.md`](../ops/account-erasure.md). A member's data in a community is
@@ -62,22 +60,21 @@ objects the API returns, which report one endpoint's decision each and are liste
   - See production data of their community/communities.
 - Any authenticated user can get prices.
 - Any user can modify their **own contact details** — email, address and phone number — through
-  `PUT /api/v1/users/profile`. Name, DNI (`personalId`) and member number are an administrative
-  change: they go through `PUT /api/v1/users/{userId}`, which is a Community Admin's on their own
-  account only (#415, #446). Nobody may enable, disable or delete themselves.
+  `PUT /api/v1/users/profile`. An account's name, DNI (`personalId`) and number are not changed by
+  any endpoint once it is created (#447, ACC-008); a community keeps its own name and member number
+  for each member on the member record (MEM-028). Nobody may enable, disable or delete themselves.
 
 ### What a platform admin does **not** get
 
 Being a platform admin is scoped to the bullets above — communities, their admins, and the
 platform-admin role. It confers **no access to another person's account or to a community's
-memberships** (#446, ACC-020, MEM-031): `GET /users`, `GET /users/{userId}`, creating or importing
-users, and editing, enabling, disabling or deleting another user's account are refused, and so is
+memberships** (#446, ACC-020, MEM-031): `GET /users`, `GET /users/{userId}`, and enabling,
+disabling or deleting another user's account are refused, and so is
 every endpoint under `…/memberships` (the roster, member records, invitations, member state, role,
 deletion, investment and payback). A platform admin who is also a member or admin of a community
 keeps exactly what that membership gives, in that community only. The only personal data a platform
 admin without memberships can obtain about someone else is a community admin's, through `…/admins`
-(MEM-021). Granting the role by id (`POST /api/v1/users/{userId}/grant-platform-admin`) remains as
-ADR-0004's transitional exception.
+(MEM-021).
 
 Nor does it confer **any access to a supply, plant or sharing agreement**: on those, a platform
 admin who neither administers the owning community nor owns the supply is answered exactly like any
@@ -89,18 +86,18 @@ oversight.
 
 The consequence is an asymmetry that is intended, not a bug: on **community-scoped** endpoints a
 non-member platform admin gets **403** (`isMemberOfCommunity`, `canReadCommunityProduction`,
-`canListSupplies`, `canListPlants`, `canManageMemberships`, `canCreateUserIn`), because they *can* see the
+`canListSupplies`, `canListPlants`, `canManageMemberships`), because they *can* see the
 community and the denial leaks nothing; on a **single object** they get **404** (`canReadSupply`,
-`canReadPlant`, `canReadSharingAgreement`, `canReadUser`, `canEditUser`, and the member's private
+`canReadPlant`, `canReadSharingAgreement`, `canReadUser`, and the member's private
 figures), because they cannot see that object and a 403 would confirm it exists. `GET /users` has no
 object, so a platform admin who administers no community is answered **403**.
 
 ## Enforcement rules for developers and AI agents
 - **Every `@PreAuthorize` is either `isAuthenticated()` or exactly one `@communityAccessGuard.<method>(...)` call.** Composite expressions (`and`, `or`, `!`) and `hasRole(...)` are not permitted: an endpoint's decision must have a single name, so it can be reported to a client as a capability (see
 [`capability-inventory.md`](capability-inventory.md)) and evaluated outside a request. Enforced by `PreAuthorizeShapeArchTest`; `PreAuthorizePresenceArchTest` additionally requires every handler method to carry one (the `permitAll()` endpoints are an explicit allowlist).
-- Platform-wide actions: use the platform guard methods — `canCreateCommunity()`, `canUpdateCommunity(#communityId)`, `canEnableCommunity(#communityId)`, `canDisableCommunity(#communityId)`, `canGrantPlatformAdmin(#userId)`, `canRevokePlatformAdmin(#userId)` — never `hasRole('PLATFORM_ADMIN')` in SpEL. These are role checks: they take the object id only so the decision has a subject to be named against, they never inspect it, and they never throw. A denial is always **403**, never 404, exactly as `hasRole` behaved.
+- Platform-wide actions: use the platform guard methods — `canCreateCommunity()`, `canUpdateCommunity(#communityId)`, `canEnableCommunity(#communityId)`, `canDisableCommunity(#communityId)`, `canRevokePlatformAdmin(#userId)` — never `hasRole('PLATFORM_ADMIN')` in SpEL. These are role checks: they take the object id only so the decision has a subject to be named against, they never inspect it, and they never throw. A denial is always **403**, never 404, exactly as `hasRole` behaved.
 - Self-service writes get their own endpoint with `isAuthenticated()` and `@AuthenticationPrincipal`, acting on the caller with no id in the path (`PUT /api/v1/users/profile`, `PUT /api/v1/users/current/password`). Prefer that over widening an object-scoped guard: the administrative endpoint keeps its narrow rule, and an endpoint with no id cannot be pointed at somebody else.
-- Community-scoped actions: `@PreAuthorize("@communityAccessGuard.<method>(...)")` using the matching guard method (`canManageCommunity`, `canManageMemberships`, `canManagePlant`, `canCreatePlant`, `canManageSharingAgreement`, `canEditSupply`, `canCreateUserIn`, `canReadUser`, `canEditUser`, `canListUsers`, `canChangeMemberState`, `canEditMemberRecord`).
+- Community-scoped actions: `@PreAuthorize("@communityAccessGuard.<method>(...)")` using the matching guard method (`canManageCommunity`, `canManageMemberships`, `canManagePlant`, `canCreatePlant`, `canManageSharingAgreement`, `canEditSupply`, `canReadUser`, `canListUsers`, `canChangeMemberState`, `canEditMemberRecord`).
 - Sharing agreements are admin-only for both reads and writes: use `canReadSharingAgreement` (single-agreement reads), `canListSharingAgreements(#plantId)` (the list endpoint) or `canManageSharingAgreement(#plantId)` (creation) — never `canReadPlant` — to guard sharing-agreement endpoints, so a future endpoint does not silently reopen member-level read access.
 - Partition-coefficient reads scoped to a single supply use `canReadSupplyPartitionCoefficients(#supplyId)` — all three of them, history included. It is the same decision as `canReadSupply` (community admin **or** the supply owner) and is kept as its own method so a coefficient read and a plain supply read can diverge without touching call sites. Coefficients describe the owner's own share of a plant's production, so they are not admin-only; what the owner must not see is *pending* periods, and that is enforced by the read (history passes `includePending = isCommunityAdminOfSupply`; the active and at-timestamp reads exclude pending for everyone), never by refusing the request.
 - Reaching an object **through another aggregate does not relax its rule**. `GET /users/{userId}/supplies` is guarded by `canListSuppliesOfUser`, not `canReadUser`, because the payload is supply data: a caller who may read the *user* through one community still may not read supplies they neither administer nor own, exactly as `GET /supplies/{supplyId}` tells them. When a listing returns objects of another aggregate, guard it with that aggregate's rule, not the parent's.
@@ -109,7 +106,7 @@ object, so a platform admin who administers no community is answered **403**.
 - A listing resolved by a **target id** (`/users/{userId}/supplies`, …) is scoped to what the **caller** may see, not to the target. The guard decides whether the caller may ask; it does not widen what comes back. Derive the scope from the listed aggregate's own policy — the set form of its single-object read rule — so that no row is returned that the object's own `GET` would answer 404 on for the same caller. A guard that admits a caller through *any one* community says nothing about the target's other communities: `GET /users/{userId}/supplies` uses `visibleSuppliesOfUser` (`SupplyAccessPolicy.visibleSuppliesOwnedBy`, the set form of `isVisible`) for exactly this reason (#326). The same holds for a listing with no target: `GET /users` is admitted by `canListUsers` but scoped by `visibleUsers` (`UserAccessPolicy.visibleUsers`, the set form of `canSee`), not by `visibleCommunityIds()` (#336). Pin the equivalence with a policy test over a matrix of callers and rows.
 - `isAuthenticated()` alone is acceptable ONLY for endpoints any authenticated user may call without object scope (e.g. `GET /prices`). Otherwise use a `@communityAccessGuard` method.
 - Self-service: enabling, disabling or deleting one's own account MUST be rejected for everyone, including admins. That rule lives inside `canDeleteUser`, `canEnableUser` and `canDisableUser` rather than in SpEL; each settles visibility first and only then refuses a caller acting on themselves, so a caller who cannot see the target still gets a 404 and a caller who can gets a 403. On anyone else, the three allow nobody: a caller who can see the user, a community admin or a platform admin who is one, gets a 403 (#415, #446), and any other caller a 404.
-- Self-service edits go through their **own endpoint**, not through a widened guard: `PUT /api/v1/users/profile` is `isAuthenticated()` and acts on the caller, so it needs no object-scoped rule and cannot be pointed at anyone else. `canEditUser` therefore stays an administrative decision — a plain member editing themselves via `PUT /users/{userId}` is a **403**, on purpose, and so is a community admin editing anyone but themselves (#415). Add a self-service endpoint rather than a self branch when a user needs to change their own data.
+- Self-service edits go through their **own endpoint**, not through a widened guard: `PUT /api/v1/users/profile` is `isAuthenticated()` and acts on the caller, so it needs no object-scoped rule and cannot be pointed at anyone else. Add a self-service endpoint rather than a self branch when a user needs to change their own data.
 - New endpoints without an authorization clause are NOT permitted. Add a controller test for every endpoint asserting **401** (no token); **404** when an authenticated caller cannot see the targeted object (object-scoped denial); and **403** when the caller can see the object but lacks permission for the action (role/scope denials and self-service).
 
 ## Error responses for denied access (401 / 403 / 404)

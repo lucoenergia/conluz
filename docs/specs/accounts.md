@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `ACC` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `createUser`, `createUsersWithFile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `updateUser`, `enableUser`, `disableUser`, `deleteUser`, `getAllUsers`, `getUserById`, `getSuppliesByUserId`, `changePassword`, `getPlatformAdmins`, `grantPlatformAdmin`, `revokePlatformAdmin`, `invitePlatformAdmin`, `resendPlatformAdminInvitation`, `revokePlatformAdminInvitation`, `inspectInvitation`, `acceptInvitationAsCurrentUser` |
+| **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `enableUser`, `disableUser`, `deleteUser`, `getAllUsers`, `getUserById`, `getSuppliesByUserId`, `changePassword`, `getPlatformAdmins`, `revokePlatformAdmin`, `invitePlatformAdmin`, `resendPlatformAdminInvitation`, `revokePlatformAdminInvitation`, `inspectInvitation`, `acceptInvitationAsCurrentUser` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`), ADR-0004 (`docs/architecture/adr/0004-grant-platform-admin-only-through-an-accepted-invitation-confirmed-out-of-band.md`) |
-| **Last reviewed against code** | #446 |
+| **Last reviewed against code** | #447 |
 
 ## Purpose
 
@@ -21,7 +21,7 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 | Passwordless account | An account with no password: registered by a community and never accepted (ADR-0003 §7). |
 | No email | An account without an email address, recorded as NULL. |
 | Blank | Made only of space, tab, line feed, carriage return, form feed and vertical tab. |
-| Existing creation path | Creating a user (`createUser`), importing users (`createUsersWithFile`) and creating the default admin (`init`). Each of them takes a password. |
+| Existing creation path | Creating the default admin (`init`), the one creation path that takes a password. Creating a user (`createUser`) and importing users (`createUsersWithFile`) took one too, until #447 removed them. |
 | Member registration | A community admin registering a member by personal ID and member record (`registerMember`), which finds the account with that personal ID or creates one (ADR-0003 §3). |
 | Platform-admin invitation | An invitation to the platform-admin role (ADR-0004 §2): the account, the destination email and the full name the inviter typed, who invited and when, when it was accepted, the hash of its confirmation code and its count of failed code attempts. Pending until accepted. |
 | Confirmation code | The 8-character code a platform-admin invitation requires on acceptance, which the inviter gives the person by another channel (ADR-0004 §4). |
@@ -55,22 +55,28 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 - **Status:** Active
 - **Rule:** An account without an email address MUST hold NULL, never an empty or blank string, and MUST be
   returned with a null email. The profile edit (`updateProfile`) MUST accept a missing, empty or blank email and
-  record it as no email; any other value MUST be a valid email address. The existing creation paths MUST record an
-  empty or blank email as no email, without changing which of them require one.
+  record it as no email; any other value MUST be a valid email address. The existing creation path (`init`) MUST
+  record an empty or blank email as no email.
 - **Rationale:** Email is optional for members (ADR-0003 §8). One spelling of "no email" spares every reader from
   checking two.
-- **Source:** #389, ADR-0003 §8
+- **Source:** #389, ADR-0003 §8. #447 removed the other existing creation paths, `createUser` and
+  `createUsersWithFile`.
 
-### ACC-004 — Every account created through a creation path that takes a password has one
+### ACC-004 — Only the default admin is created with a password, and a password is then set only by its owner
 
 - **Status:** Active
-- **Rule:** Creating a user (`createUser`), importing users (`createUsersWithFile`) and creating the default admin
-  (`init`) MUST check the password of every account they create against the password policy, MUST refuse to create
-  an account without a password or without a number, and MUST then store nothing.
-- **Rationale:** These paths have always required a password and a number, and keep requiring them now that the
-  database accepts accounts without either. Passwordless accounts without a number are created only by member
-  registration (ACC-006), which takes no password at all.
-- **Source:** #389, #392, ADR-0003 §7
+- **Rule:** Creating the default admin (`init`) MUST check the password of the account it creates against the
+  password policy, MUST refuse to create an account without a password or without a number, and MUST then store
+  nothing. It MUST be the only path that creates an account with a password. Afterwards, an account's password MUST be
+  written only by changing it (`changePassword`), by resetting it (`resetPassword`), or by accepting an invitation
+  (ACC-007); no path MUST set a password chosen by someone else.
+- **Rationale:** The default admin types their own password into `init`; everyone else is registered or invited
+  without one and chooses it on acceptance (ACC-006, ACC-007). A password chosen by whoever created the account is
+  known to two people, which is what creating and importing users with a password did. `init` has always required a
+  password and a number, and keeps requiring them now that the database accepts accounts without either.
+- **Source:** #389, #392, ADR-0003 §7. #447 removed creating a user (`createUser`) and importing users
+  (`createUsersWithFile`), the two paths that set a password chosen by someone else, and left `init` as the only
+  creation path with a password.
 
 ### ACC-005 — Password reset refuses a passwordless account
 
@@ -116,12 +122,13 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 ### ACC-008 — Nobody can change another user's account
 
 - **Status:** Active
-- **Rule:** Every caller, a platform admin included, MUST be refused with 403 when they edit (`updateUser`), enable
-  (`enableUser`), disable (`disableUser`) or delete (`deleteUser`) the account of another user they can see,
-  whatever their role in that user's communities, and nothing MUST be written. A user they cannot see MUST keep
-  being answered 404. A community admin MAY still edit their own account through `updateUser`, and MUST still be
-  refused enabling, disabling or deleting it. The four operations on another user's account have no caller left
-  (ACC-020). Disabling a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN` exactly when ACC-013's
+- **Rule:** Every caller, a platform admin included, MUST be refused with 403 when they enable (`enableUser`),
+  disable (`disableUser`) or delete (`deleteUser`) the account of another user they can see, whatever their role in
+  that user's communities, and nothing MUST be written. A user they cannot see MUST keep being answered 404. A caller
+  MUST also be refused enabling, disabling or deleting their own account. The three operations on another user's
+  account have no caller left (ACC-020). No operation MUST change an account's name, personal ID or number once it is
+  created: a person changes only their own contact details (`updateProfile`), and a community changes its member
+  record (#416). Disabling a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN` exactly when ACC-013's
   last-platform-admin rule would refuse revoking their role: only an **enabled** platform admin while no more than
   one platform admin is enabled. A disabled platform admin MAY be disabled again whatever the number of enabled
   platform admins. A member's data in a community is
@@ -133,7 +140,9 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   remove the person from every community, not only the admin's.
 - **Source:** #415, ADR-0003 §1. #452 applied ACC-013's last-platform-admin rule, which until then refused any
   platform admin while at most one was enabled, whoever the target was. #446 withdrew the platform admin's access to
-  the four operations (ACC-020); until then it was the only caller allowed them.
+  the four operations (ACC-020); until then it was the only caller allowed them. #447 removed editing a user
+  (`updateUser`), which replaced the name, personal ID and number, and which a community admin could still use on
+  their own account.
 
 ### ACC-009 — Deleting an account deletes its memberships, and is refused for a supply owner
 
@@ -180,18 +189,18 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   of the column `personalId` (MEM-030), and the other rows MUST be processed. The refusal MUST be the same whether
   or not an account holds that value, MUST NOT tell which rule the value breaks, and neither the answer nor any log
   line MUST hold the value unmasked. A personal ID made only of whitespace, dots and hyphens keeps its own refusal
-  (MEM-007). The existing creation paths (`createUser`, `createUsersWithFile`, `init`) MUST NOT apply this check,
-  and the personal IDs already stored MUST NOT be checked or changed.
+  (MEM-007). The existing creation path (`init`) MUST NOT apply this check, and the personal IDs already stored MUST
+  NOT be checked or changed.
 - **Rationale:** Since #392, #395 and #397, community admins and the platform admin type other people's
   identifiers. A mistyped one creates a second account, which later duplicates the person when the right one is
   registered, and breaks Datadis, which needs the holder's correct NIF; the control character catches almost every
   single typing error. Checking only the normalised value keeps spaces, dots, hyphens and lower case harmless.
   Refusing before any lookup, with one answer for every rule, keeps the refusal from revealing whether an account
-  exists. The existing creation paths are left as they are because they are being replaced, and checking stored
+  exists. `init` was left as it was while the other existing creation paths were being replaced, and checking stored
   identifiers would lock out accounts that already work.
 - **Source:** #398. Accepting the NIF of a natural person with `K`, `L` or `M`, and the CIF letters that require a
   digit, require a letter or accept either, were decided by the maintainer in the plan of #398. #452 added
-  `invitePlatformAdmin`.
+  `invitePlatformAdmin`. #447 removed the existing creation paths `createUser` and `createUsersWithFile`.
 
 ### ACC-011 — Only a platform admin may list the platform admins and the pending invitations to the role
 
@@ -228,13 +237,14 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 
 ### ACC-012 — Only a platform admin may grant the platform-admin role
 
-- **Status:** Active
+- **Status:** Removed in #447
 - **Rule:** Granting the platform-admin role (`grantPlatformAdmin`) MUST be allowed only to a platform admin; any
   other caller MUST be refused with 403, and an anonymous one with 401. An unknown user MUST be answered 404. Granting
   the role to a user who already holds it MUST succeed and change nothing.
-- **Rationale:** The role gives access to the whole platform, so only someone who already holds it may hand it on.
-  Making the grant idempotent lets a client retry it without first reading the user's state.
-- **Source:** #456, specifying the behaviour in place since the grant was introduced.
+- **Rationale:** Granting the role by identifier was ADR-0004's transitional exception, kept only while the web
+  client still used it. The web client no longer calls it (conluz-web#285, conluz-web#288), so the operation is
+  removed and the role is granted only by accepting a platform-admin invitation (ACC-014).
+- **Source:** #447, ADR-0004
 
 ### ACC-013 — Revoking the platform-admin role checks the target and keeps an enabled platform admin
 
@@ -266,13 +276,15 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   instant, grant the role, set the account's email to the invitation's destination email when the account has none,
   and, on `acceptInvitation`, set the first password as MEM-016 does. A disabled account MUST be able to accept: it
   is granted the role and still cannot log in. A pending invitation MUST NOT count as a platform admin: not in
-  `revocable`, not in the last-platform-admin rule (ACC-013), nor anywhere else; every count reads only the role.
-  `grantPlatformAdmin` (ACC-012) is the one exception, transitional, recorded in ADR-0004.
+  `revocable`, not in the last-platform-admin rule (ACC-013), nor anywhere else; every count reads only the role. The
+  role MUST be held only by the default admin created by `init` and by people who accepted a platform-admin
+  invitation with its confirmation code: no operation grants it by identifier.
 - **Rationale:** Granting by typing an identifier would hand platform-wide access to whatever account it names,
   including a mistyped one; acceptance proves the person, and the code proves more than control of the mailbox
   (ADR-0004 §1, §4). Refusing a disabled account would reveal that it exists and is disabled. A role not yet
   accepted must not keep the platform administrable on paper only.
-- **Source:** #452, ADR-0004 §1, §4, §5 and "What the observable events now mean"
+- **Source:** #452, ADR-0004 §1, §4, §5 and "What the observable events now mean". #447 removed granting the role
+  by identifier (ACC-012), ADR-0004's transitional exception, so that AC15 of #329 holds.
 
 ### ACC-015 — The confirmation code is shown only in the response that generated it
 
@@ -355,25 +367,24 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 ### ACC-020 — A platform admin does not reach another user's account, except to manage the role
 
 - **Status:** Active
-- **Rule:** Being a platform admin MUST NOT, by itself, let a caller read, list, create or change another user's
-  account. A platform admin who is not an active community admin of any of the target's communities MUST be
-  answered as anyone who cannot see the target: 404 on reading the user (`getUserById`), listing their supplies
-  (`getSuppliesByUserId`), editing (`updateUser`), enabling (`enableUser`), disabling (`disableUser`) and deleting
-  (`deleteUser`) them. Listing users (`getAllUsers`) MUST be refused with 403 to a caller who administers no
-  community, a platform admin included, and its rows MUST be only the caller and the users with an active membership
-  in a community the caller administers. Creating (`createUser`) and importing users (`createUsersWithFile`) MUST be
-  refused with 403 to a caller who is not an active community admin of the named community, a platform admin
-  included, and to every caller when no community is named. A platform admin who is a community admin MUST get
-  exactly what a community admin gets. The platform capabilities `canListUsers` and `canCreateUsers` MUST follow
-  these rules, and a user's `canRead`, `canEdit`, `canDelete`, `canEnable`, `canDisable` and `canListSupplies`
-  likewise. Granting the role by id (`grantPlatformAdmin`, ACC-012) and revoking it (`revokePlatformAdmin`, ACC-013)
-  keep their own rules, and the platform admin's own account keeps every self-service operation
-  (`getCurrentUser`, `updateProfile`, `changePassword`).
+- **Rule:** Being a platform admin MUST NOT, by itself, let a caller read, list or change another user's account. A
+  platform admin who is not an active community admin of any of the target's communities MUST be answered as anyone
+  who cannot see the target: 404 on reading the user (`getUserById`), listing their supplies
+  (`getSuppliesByUserId`), enabling (`enableUser`), disabling (`disableUser`) and deleting (`deleteUser`) them.
+  Listing users (`getAllUsers`) MUST be refused with 403 to a caller who administers no community, a platform admin
+  included, and its rows MUST be only the caller and the users with an active membership in a community the caller
+  administers. A platform admin who is a community admin MUST get exactly what a community admin gets. The platform
+  capability `canListUsers` MUST follow these rules, and a user's `canRead`, `canDelete`, `canEnable`, `canDisable`
+  and `canListSupplies` likewise. Revoking the role (`revokePlatformAdmin`, ACC-013) keeps its own rules, and the
+  platform admin's own account keeps every self-service operation (`getCurrentUser`, `updateProfile`,
+  `changePassword`).
 - **Rationale:** The platform admin administers the platform, not the people in it: the account is the person's,
   shared by every community they belong to, and the member data a community holds is that community's (ADR-0003 §1
   and §3). The web client no longer reaches users as a platform admin (conluz-web#285); the backend must not keep
   serving them to any client that asks.
-- **Source:** #446, ADR-0003 §3, #329
+- **Source:** #446, ADR-0003 §3, #329. #447 removed creating, importing and editing users and granting the role by
+  identifier, with the platform and community capability `canCreateUsers` and the user capabilities `canEdit` and
+  `canGrantPlatformAdmin`.
 
 ## Impossible states
 

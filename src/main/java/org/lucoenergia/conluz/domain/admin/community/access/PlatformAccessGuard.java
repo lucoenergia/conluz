@@ -28,8 +28,6 @@ public interface PlatformAccessGuard {
      */
     boolean canManageCommunityAdmins(UUID communityId);
 
-    boolean canGrantPlatformAdmin(UUID userId);
-
     /**
      * Listing the platform admins. Only a platform admin may see who else holds the role.
      */

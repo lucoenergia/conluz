@@ -5,7 +5,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
@@ -40,7 +40,7 @@ public abstract class BaseSupplyCreationRaceTest extends BaseIntegrationTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private PlatformTransactionManager transactionManager;
 
@@ -71,7 +71,7 @@ public abstract class BaseSupplyCreationRaceTest extends BaseIntegrationTest {
         createUserRepository.create(user);
         users.add(user.getId());
         for (Community community : communities) {
-            createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+            createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
         }
         return user;
     }

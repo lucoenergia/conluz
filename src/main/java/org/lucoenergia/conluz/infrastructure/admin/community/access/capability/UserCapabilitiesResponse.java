@@ -11,14 +11,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * the agreement's {@code status} that says the action would be rejected right now. Clients read
  * both.</p>
  */
-@Schema(description = "What the caller may do with this user.", requiredProperties = {"canRead", "canEdit", "canDelete", "canEnable", "canDisable", "canGrantPlatformAdmin", "canRevokePlatformAdmin", "canListSupplies"})
+@Schema(description = "What the caller may do with this user.", requiredProperties = {"canRead", "canDelete", "canEnable", "canDisable", "canRevokePlatformAdmin", "canListSupplies"})
 public class UserCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may read this user (GET /api/v1/users/{userId}): the user themselves, or an active community admin of one of their communities. A platform admin is no exception.")
     private final boolean canRead;
-
-    @Schema(description = "Whether the caller may edit this user administratively (PUT /api/v1/users/{userId}). This is false for an ordinary member looking at their own record: changing one's own contact details goes through PUT /api/v1/users/profile, which any authenticated caller may use. False on any other user, for every caller: nobody may change another user's account, a community admin or a platform admin.")
-    private final boolean canEdit;
 
     @Schema(description = "Whether the caller may delete this user. Always false when the user is the caller: nobody may delete themselves, admins included. False on any other user, for every caller: nobody may delete another user's account.")
     private final boolean canDelete;
@@ -29,9 +26,6 @@ public class UserCapabilitiesResponse {
     @Schema(description = "Whether the caller may disable this user. Always false when the user is the caller. False on any other user, for every caller: nobody may disable another user's account; a community admin disables the membership instead.")
     private final boolean canDisable;
 
-    @Schema(description = "Whether the caller may grant this user the platform-admin flag.")
-    private final boolean canGrantPlatformAdmin;
-
     @Schema(description = "Whether the caller may revoke this user's platform-admin flag. Always false when the user is the caller: an admin may not strip their own flag.")
     private final boolean canRevokePlatformAdmin;
 
@@ -40,21 +34,15 @@ public class UserCapabilitiesResponse {
 
     private UserCapabilitiesResponse(Builder builder) {
         this.canRead = builder.canRead;
-        this.canEdit = builder.canEdit;
         this.canDelete = builder.canDelete;
         this.canEnable = builder.canEnable;
         this.canDisable = builder.canDisable;
-        this.canGrantPlatformAdmin = builder.canGrantPlatformAdmin;
         this.canRevokePlatformAdmin = builder.canRevokePlatformAdmin;
         this.canListSupplies = builder.canListSupplies;
     }
 
     public boolean isCanRead() {
         return canRead;
-    }
-
-    public boolean isCanEdit() {
-        return canEdit;
     }
 
     public boolean isCanDelete() {
@@ -67,10 +55,6 @@ public class UserCapabilitiesResponse {
 
     public boolean isCanDisable() {
         return canDisable;
-    }
-
-    public boolean isCanGrantPlatformAdmin() {
-        return canGrantPlatformAdmin;
     }
 
     public boolean isCanRevokePlatformAdmin() {
@@ -92,21 +76,14 @@ public class UserCapabilitiesResponse {
     public static final class Builder {
 
         private boolean canRead;
-        private boolean canEdit;
         private boolean canDelete;
         private boolean canEnable;
         private boolean canDisable;
-        private boolean canGrantPlatformAdmin;
         private boolean canRevokePlatformAdmin;
         private boolean canListSupplies;
 
         public Builder withCanRead(boolean canRead) {
             this.canRead = canRead;
-            return this;
-        }
-
-        public Builder withCanEdit(boolean canEdit) {
-            this.canEdit = canEdit;
             return this;
         }
 
@@ -122,11 +99,6 @@ public class UserCapabilitiesResponse {
 
         public Builder withCanDisable(boolean canDisable) {
             this.canDisable = canDisable;
-            return this;
-        }
-
-        public Builder withCanGrantPlatformAdmin(boolean canGrantPlatformAdmin) {
-            this.canGrantPlatformAdmin = canGrantPlatformAdmin;
             return this;
         }
 

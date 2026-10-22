@@ -43,7 +43,6 @@ public class CommunityCapabilitiesAssembler {
                         policies.membership().canManageInvestment(caller, communityId).isAllowed())
                 .withCanListPlants(policies.plant().canList(caller, communityId).isAllowed())
                 .withCanCreatePlants(policies.plant().canCreateIn(caller, communityId).isAllowed())
-                .withCanCreateUsers(policies.user().canCreateIn(caller, communityId).isAllowed())
                 .withCanReadProduction(isMember)
                 .withCanListSupplies(isMember)
                 .build();

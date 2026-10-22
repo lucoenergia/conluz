@@ -41,7 +41,7 @@ class UserCapabilitiesAssemblerTest {
     // --- the capabilities themselves ---
 
     @Test
-    @DisplayName("ACC-020 a platform admin may only grant and revoke the role on somebody else's account")
+    @DisplayName("ACC-020 a platform admin may only revoke the role on somebody else's account")
     void aPlatformAdminMayOnlyManageTheRoleOfSomebodyElse() {
         User target = CapabilityFixtures.memberOf(CapabilityFixtures.community());
 
@@ -49,12 +49,10 @@ class UserCapabilitiesAssemblerTest {
                 assembler().assembleWithLoadedMemberships(CapabilityFixtures.platformAdmin(), target);
 
         assertFalse(capabilities.isCanRead());
-        assertFalse(capabilities.isCanEdit());
         assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanEnable());
         assertFalse(capabilities.isCanDisable());
         assertFalse(capabilities.isCanListSupplies());
-        assertTrue(capabilities.isCanGrantPlatformAdmin());
         assertTrue(capabilities.isCanRevokePlatformAdmin());
     }
 
@@ -71,7 +69,6 @@ class UserCapabilitiesAssemblerTest {
         UserCapabilitiesResponse capabilities = assembler().assembleWithLoadedMemberships(caller, caller);
 
         assertTrue(capabilities.isCanRead());
-        assertFalse(capabilities.isCanEdit());
         assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanEnable());
         assertFalse(capabilities.isCanDisable());
@@ -88,12 +85,10 @@ class UserCapabilitiesAssemblerTest {
                 assembler().assembleWithLoadedMemberships(CapabilityFixtures.adminOf(community), target);
 
         assertTrue(capabilities.isCanRead());
-        assertFalse(capabilities.isCanEdit());
         assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanEnable());
         assertFalse(capabilities.isCanDisable());
         assertTrue(capabilities.isCanListSupplies());
-        assertFalse(capabilities.isCanGrantPlatformAdmin());
         assertFalse(capabilities.isCanRevokePlatformAdmin());
     }
 
@@ -111,7 +106,6 @@ class UserCapabilitiesAssemblerTest {
 
         assertTrue(capabilities.isCanRead());
         assertTrue(capabilities.isCanListSupplies());
-        assertFalse(capabilities.isCanEdit());
         assertFalse(capabilities.isCanDelete());
     }
 
@@ -132,7 +126,6 @@ class UserCapabilitiesAssemblerTest {
 
         assertTrue(capabilities.isCanRead());
         assertTrue(capabilities.isCanListSupplies());
-        assertFalse(capabilities.isCanEdit());
         assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanEnable());
         assertFalse(capabilities.isCanDisable());
@@ -145,11 +138,9 @@ class UserCapabilitiesAssemblerTest {
                         CapabilityFixtures.userWithNoMemberships());
 
         assertFalse(capabilities.isCanRead());
-        assertFalse(capabilities.isCanEdit());
         assertFalse(capabilities.isCanDelete());
         assertFalse(capabilities.isCanEnable());
         assertFalse(capabilities.isCanDisable());
-        assertFalse(capabilities.isCanGrantPlatformAdmin());
         assertFalse(capabilities.isCanRevokePlatformAdmin());
         assertFalse(capabilities.isCanListSupplies());
     }
@@ -214,17 +205,18 @@ class UserCapabilitiesAssemblerTest {
     }
 
     /**
-     * A platform admin looking at their own record is no longer settled from the caller alone: editing
-     * oneself asks whether one administers a community, which needs the record's memberships. They are
-     * still loaded once, in one batch.
+     * A platform admin looking at their own record is settled from the caller alone: no rule about
+     * oneself asks whether one administers a community of the record, so its memberships are never
+     * loaded.
      */
     @Test
-    void aPlatformAdminReadingTheirOwnRecordLoadsTheBatchOnce() {
+    void aPlatformAdminReadingTheirOwnRecordLoadsNoMemberships() {
         User caller = CapabilityFixtures.platformAdmin();
 
         assembler().assembleAllFetchingMemberships(caller, List.of(caller));
 
-        verify(getMembershipsRepository, times(1)).findByUserIds(anyCollection());
+        verify(getMembershipsRepository, never()).findByUserIds(anyCollection());
+        verify(getMembershipsRepository, never()).findByUserId(any());
     }
 
     /**
@@ -302,7 +294,7 @@ class UserCapabilitiesAssemblerTest {
     }
 
     private static List<Boolean> flags(UserCapabilitiesResponse c) {
-        return List.of(c.isCanRead(), c.isCanEdit(), c.isCanDelete(), c.isCanEnable(), c.isCanDisable(),
-                c.isCanGrantPlatformAdmin(), c.isCanRevokePlatformAdmin(), c.isCanListSupplies());
+        return List.of(c.isCanRead(), c.isCanDelete(), c.isCanEnable(), c.isCanDisable(),
+                c.isCanRevokePlatformAdmin(), c.isCanListSupplies());
     }
 }

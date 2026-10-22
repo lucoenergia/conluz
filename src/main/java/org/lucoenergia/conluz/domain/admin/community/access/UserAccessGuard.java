@@ -8,8 +8,6 @@ public interface UserAccessGuard {
 
     boolean canReadUser(UUID userId);
 
-    boolean canEditUser(UUID userId);
-
     /**
      * Whether the current user may delete the given user: they may edit them, and the target is not
      * themselves. Absorbs the {@code and !isCurrentUser(#userId)} that used to sit in the SpEL, and
@@ -39,8 +37,6 @@ public interface UserAccessGuard {
      * supplies one by one, so they must not be able to read them all at once through the user.</p>
      */
     boolean canListSuppliesOfUser(UUID userId);
-
-    boolean canCreateUserIn(UUID communityId);
 
     boolean canListUsers();
 

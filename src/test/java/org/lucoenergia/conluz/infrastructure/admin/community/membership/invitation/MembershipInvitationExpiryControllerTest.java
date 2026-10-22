@@ -178,27 +178,6 @@ class MembershipInvitationExpiryControllerTest extends BaseInvitationTest {
         assertThat(expiryIn(roster, invited.userId())).isEqualTo(resentAt.plus(LINK_LIFETIME).toString());
     }
 
-    /**
-     * A membership is created accepted (MEM-001) and never invited, so its {@code invitedAt} is always null here.
-     */
-    @Test
-    @DisplayName("MEM-013 creating a membership shows that it was never invited")
-    void creatingAMembership_showsNoInvitation() throws Exception {
-        Community community = newCommunity();
-        String bearer = loginAsAdminOf(community);
-        User user = newUser();
-
-        JsonNode created = objectMapper.readTree(mockMvc.perform(
-                        post("/api/v1/communities/{communityId}/memberships", community.getId())
-                                .header(HttpHeaders.AUTHORIZATION, bearer)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"userId\":\"" + user.getId() + "\",\"role\":\"COMMUNITY_MEMBER\"}"))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString());
-        assertThat(created.has("invitedAt")).isTrue();
-        assertThat(created.get("invitedAt").isNull()).isTrue();
-    }
-
     @Test
     @DisplayName("MEM-013 changing a pending membership's role shows when it was invited")
     void updatingTheRole_showsWhenItWasInvited() throws Exception {

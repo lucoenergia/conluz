@@ -8,7 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -63,7 +63,7 @@ class InactiveMembershipAccessIntegrationTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
@@ -162,7 +162,6 @@ class InactiveMembershipAccessIntegrationTest extends BaseControllerTest {
     private Map<String, BooleanSupplier> adminActions() {
         Map<String, BooleanSupplier> actions = new LinkedHashMap<>();
         actions.put("memberships: manage the community's memberships", () -> guard.canManageMemberships(community.getId()));
-        actions.put("users: create a user in the community", () -> guard.canCreateUserIn(community.getId()));
         actions.put("memberships: enable or disable a member's membership",
                 () -> guard.canChangeMemberState(community.getId(), owner.getId()));
         actions.put("users: list users", () -> guard.canListUsers());
@@ -234,7 +233,7 @@ class InactiveMembershipAccessIntegrationTest extends BaseControllerTest {
 
     private User memberOf(Community target, CommunityRole role) {
         User user = persistUser();
-        createMembershipService.create(target.getId(), user.getId(), role);
+        createMembershipRepository.create(target.getId(), user.getId(), role);
         return user;
     }
 }

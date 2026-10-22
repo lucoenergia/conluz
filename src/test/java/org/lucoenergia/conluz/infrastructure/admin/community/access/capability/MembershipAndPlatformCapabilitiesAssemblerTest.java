@@ -125,7 +125,7 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
     }
 
     @Test
-    @DisplayName("ACC-020 a platform admin gets the platform capabilities, but may neither list nor create users")
+    @DisplayName("ACC-020 a platform admin gets the platform capabilities, but may not list users")
     void aPlatformAdminGetsEveryPlatformCapabilityButTheUserOnes() {
         PlatformCapabilitiesResponse capabilities =
                 platformAssembler.assemble(CapabilityFixtures.platformAdmin());
@@ -133,7 +133,6 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanCreateCommunity());
         assertFalse(capabilities.isCanListUsers());
         assertTrue(capabilities.isCanAdministerPlatform());
-        assertFalse(capabilities.isCanCreateUsers());
     }
 
     /**
@@ -149,14 +148,11 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanCreateCommunity());
         assertFalse(capabilities.isCanListUsers());
         assertTrue(capabilities.isCanAdministerPlatform());
-        assertFalse(capabilities.isCanCreateUsers());
     }
 
     /**
      * Listing users is open to anyone who administers any community -- scoping the listing is the
-     * endpoint's job -- while the other three are platform-wide. Creating users is the sharpest of
-     * them: a community admin may create users <em>in their own community</em>
-     * (CommunityCapabilitiesResponse.canCreateUsers), but not a user belonging to none.
+     * endpoint's job -- while the others are platform-wide.
      */
     @Test
     void aCommunityAdminMayOnlyListUsers() {
@@ -166,7 +162,6 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanListUsers());
         assertFalse(capabilities.isCanCreateCommunity());
         assertFalse(capabilities.isCanAdministerPlatform());
-        assertFalse(capabilities.isCanCreateUsers());
     }
 
     @Test
@@ -177,7 +172,6 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanCreateCommunity());
         assertFalse(capabilities.isCanListUsers());
         assertFalse(capabilities.isCanAdministerPlatform());
-        assertFalse(capabilities.isCanCreateUsers());
     }
 
     /**

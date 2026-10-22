@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * the agreement's {@code status} that says the action would be rejected right now. Clients read
  * both.</p>
  */
-@Schema(description = "What the caller may do with this community.", requiredProperties = {"canRead", "canUpdate", "canEnable", "canDisable", "canManageAdmins", "canManage", "canManageMemberships", "canRegisterMembers", "canInviteMembers", "canManageMembershipInvestment", "canListPlants", "canCreatePlants", "canCreateUsers", "canReadProduction", "canListSupplies"})
+@Schema(description = "What the caller may do with this community.", requiredProperties = {"canRead", "canUpdate", "canEnable", "canDisable", "canManageAdmins", "canManage", "canManageMemberships", "canRegisterMembers", "canInviteMembers", "canManageMembershipInvestment", "canListPlants", "canCreatePlants", "canReadProduction", "canListSupplies"})
 public class CommunityCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may read this community (GET /api/v1/communities/{communityId}).")
@@ -32,7 +32,7 @@ public class CommunityCapabilitiesResponse {
     @Schema(description = "Whether the caller administers this community: creating and importing its supplies, reading and writing its Datadis and Shelly configuration, and triggering its synchronisation endpoints.")
     private final boolean canManage;
 
-    @Schema(description = "Whether the caller may administer this community's roster: listing, creating, deleting and re-roling its memberships. Only an active community admin of it: there is no platform-admin bypass.")
+    @Schema(description = "Whether the caller may administer this community's roster: listing, deleting and re-roling its memberships. Only an active community admin of it: there is no platform-admin bypass.")
     private final boolean canManageMemberships;
 
     @Schema(description = "Whether the caller may register a member in this community (POST /api/v1/communities/{communityId}/memberships/register). Only an active community admin of it: there is no platform-admin bypass.")
@@ -49,9 +49,6 @@ public class CommunityCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may create plants in this community. Creating one also requires a supply the caller can see, so a true here is necessary but not sufficient for any particular supply -- SupplyCapabilitiesResponse.canCreatePlant answers that.")
     private final boolean canCreatePlants;
-
-    @Schema(description = "Whether the caller may create users in this community (POST /api/v1/users, POST /api/v1/users/import). Only an active community admin of it: there is no platform-admin bypass.")
-    private final boolean canCreateUsers;
 
     @Schema(description = "Whether the caller may read this community's communal production data. Membership, not administration: a platform admin who is not a member may not.")
     private final boolean canReadProduction;
@@ -72,7 +69,6 @@ public class CommunityCapabilitiesResponse {
         this.canManageMembershipInvestment = builder.canManageMembershipInvestment;
         this.canListPlants = builder.canListPlants;
         this.canCreatePlants = builder.canCreatePlants;
-        this.canCreateUsers = builder.canCreateUsers;
         this.canReadProduction = builder.canReadProduction;
         this.canListSupplies = builder.canListSupplies;
     }
@@ -125,10 +121,6 @@ public class CommunityCapabilitiesResponse {
         return canCreatePlants;
     }
 
-    public boolean isCanCreateUsers() {
-        return canCreateUsers;
-    }
-
     public boolean isCanReadProduction() {
         return canReadProduction;
     }
@@ -159,7 +151,6 @@ public class CommunityCapabilitiesResponse {
         private boolean canManageMembershipInvestment;
         private boolean canListPlants;
         private boolean canCreatePlants;
-        private boolean canCreateUsers;
         private boolean canReadProduction;
         private boolean canListSupplies;
 
@@ -220,11 +211,6 @@ public class CommunityCapabilitiesResponse {
 
         public Builder withCanCreatePlants(boolean canCreatePlants) {
             this.canCreatePlants = canCreatePlants;
-            return this;
-        }
-
-        public Builder withCanCreateUsers(boolean canCreateUsers) {
-            this.canCreateUsers = canCreateUsers;
             return this;
         }
 

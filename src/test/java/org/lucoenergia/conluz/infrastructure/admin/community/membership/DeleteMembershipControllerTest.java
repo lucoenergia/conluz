@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisterMemberService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -60,7 +60,7 @@ class DeleteMembershipControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
@@ -199,7 +199,7 @@ class DeleteMembershipControllerTest extends BaseControllerTest {
         UUID community = newCommunity();
         UUID otherCommunity = newCommunity();
         User member = registerInvitedMember(community);
-        createMembershipService.create(otherCommunity, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(otherCommunity, member.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupply(member, otherCommunity);
         String adminToken = loginAsCommunityAdmin(community);
 
@@ -299,7 +299,7 @@ class DeleteMembershipControllerTest extends BaseControllerTest {
 
     private User persistMember(UUID communityId) {
         User member = persistUser();
-        createMembershipService.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
         return member;
     }
 }

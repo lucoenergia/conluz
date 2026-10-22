@@ -9,7 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -76,7 +76,7 @@ class DatadisMonthlyAggregationMembershipConsistencyTest extends BaseControllerT
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -114,7 +114,7 @@ class DatadisMonthlyAggregationMembershipConsistencyTest extends BaseControllerT
         setDatadisConfigurationRepository.setDatadisConfiguration(community.getId(), new DatadisConfig.Builder()
                 .setUsername("user").setPassword("password").setEnabled(true).build());
         User member = persistUser();
-        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         SupplyEntity first = persistSupply(member, community);
         SupplyEntity second = persistSupply(member, community);
 

@@ -47,8 +47,6 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     boolean existsByPersonalId(String personalId);
 
-    boolean existsByPersonalIdAndIdNot(String personalId, UUID id);
-
     long countByIsPlatformAdminTrueAndEnabledTrue();
 
     List<UserEntity> findAllByIsPlatformAdminTrueOrderByFullNameAscIdAsc();

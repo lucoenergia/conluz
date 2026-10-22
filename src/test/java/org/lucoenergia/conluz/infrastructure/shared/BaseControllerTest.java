@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.shared;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
@@ -38,7 +38,7 @@ public class BaseControllerTest extends BaseIntegrationTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     protected MutableClock clock;
     @Autowired
@@ -136,7 +136,7 @@ public class BaseControllerTest extends BaseIntegrationTest {
         User communityAdmin = UserMother.randomUser();
         communityAdmin.enable();
         createUserRepository.create(communityAdmin);
-        createMembershipService.create(communityId, communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityId, communityAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
         return loginUser(communityAdmin);
     }
 
@@ -149,7 +149,7 @@ public class BaseControllerTest extends BaseIntegrationTest {
         User communityMember = UserMother.randomUser();
         communityMember.enable();
         createUserRepository.create(communityMember);
-        createMembershipService.create(communityId, communityMember.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityId, communityMember.getId(), CommunityRole.COMMUNITY_MEMBER);
         return loginUser(communityMember);
     }
 
@@ -185,7 +185,7 @@ public class BaseControllerTest extends BaseIntegrationTest {
         user.enable();
         user.requirePasswordChange();
         createUserRepository.create(user);
-        createMembershipService.create(communityId, user.getId(), role);
+        createMembershipRepository.create(communityId, user.getId(), role);
         return user;
     }
 
