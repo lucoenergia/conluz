@@ -84,4 +84,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/create_platform_admin_invitation_table.xml" relativeToChangelogFile="true" />
     <include file="changelogs/add_platform_admin_invitation_id_to_one_time_token.xml" relativeToChangelogFile="true" />
     <include file="changelogs/bind_one_time_token_active_index_to_platform_admin_invitation.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/create_community_contact_channels_table.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

@@ -63,6 +63,79 @@ CREATE TABLE public.communities (
 
 
 --
+-- Name: community_contact_channels; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.community_contact_channels (
+                                             id uuid NOT NULL,
+                                             community_id uuid NOT NULL,
+                                             type character varying(20) NOT NULL,
+                                             label character varying(60) NOT NULL,
+                                             value character varying(200) NOT NULL,
+                                             schedule character varying(200),
+                                             notes character varying(500),
+                                             "position" integer NOT NULL,
+                                             CONSTRAINT community_contact_channels_type_check CHECK (((type)::text = ANY ((ARRAY['PHONE'::character varying, 'EMAIL'::character varying, 'ADDRESS'::character varying])::text[])))
+);
+
+
+--
+-- Name: TABLE community_contact_channels; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.community_contact_channels IS 'The channels members can use to contact their community, in display order.';
+
+
+--
+-- Name: COLUMN community_contact_channels.community_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.community_contact_channels.community_id IS 'The community the channel belongs to.';
+
+
+--
+-- Name: COLUMN community_contact_channels.type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.community_contact_channels.type IS 'The kind of channel: PHONE, EMAIL or ADDRESS.';
+
+
+--
+-- Name: COLUMN community_contact_channels.label; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.community_contact_channels.label IS 'The name shown for the channel.';
+
+
+--
+-- Name: COLUMN community_contact_channels.value; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.community_contact_channels.value IS 'The phone number, email address or postal address.';
+
+
+--
+-- Name: COLUMN community_contact_channels.schedule; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.community_contact_channels.schedule IS 'Free text saying when the channel is attended. NULL if it has none.';
+
+
+--
+-- Name: COLUMN community_contact_channels.notes; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.community_contact_channels.notes IS 'Free text about the channel. NULL if it has none.';
+
+
+--
+-- Name: COLUMN community_contact_channels."position"; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.community_contact_channels."position" IS 'Display order of the channel within its community, starting at 0.';
+
+
+--
 -- Name: community_memberships; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -726,6 +799,22 @@ ALTER TABLE ONLY public.communities
 
 
 --
+-- Name: community_contact_channels community_contact_channels_community_id_position_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.community_contact_channels
+    ADD CONSTRAINT community_contact_channels_community_id_position_uq UNIQUE (community_id, "position");
+
+
+--
+-- Name: community_contact_channels community_contact_channels_id_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.community_contact_channels
+    ADD CONSTRAINT community_contact_channels_id_pk PRIMARY KEY (id);
+
+
+--
 -- Name: community_memberships community_memberships_id_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -978,6 +1067,14 @@ CREATE INDEX one_time_token_user_purpose_created_at_idx ON public.one_time_token
 --
 
 CREATE UNIQUE INDEX platform_admin_invitation_user_id_pending_uq ON public.platform_admin_invitation USING btree (user_id) WHERE (accepted_at IS NULL);
+
+
+--
+-- Name: community_contact_channels community_contact_channels_community_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.community_contact_channels
+    ADD CONSTRAINT community_contact_channels_community_id_fk FOREIGN KEY (community_id) REFERENCES public.communities(id);
 
 
 --

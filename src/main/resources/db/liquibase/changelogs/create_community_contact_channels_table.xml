@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Contact channels of a community (#462): how its members can reach it, one row per channel, in the order
+         the community admins listed them.
+
+         The foreign key to communities keeps the default delete rule: a community with channels cannot be deleted
+         until its channels are, as with every other row that belongs to a community.
+
+         schedule NULL means the channel has no schedule. notes NULL means it has no notes.
+
+         community_contact_channels_community_id_position_uq keeps one channel per position in a community. The
+         list is always replaced whole, deleting the old rows before inserting the new ones, so the constraint
+         never fires on that path; it guards the order for any other writer.
+
+         No backfill: existing communities start with no channels. -->
+    <changeSet id="create_community_contact_channels_table" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot create community_contact_channels: the table already exists.">
+            <not>
+                <tableExists tableName="community_contact_channels"/>
+            </not>
+        </preConditions>
+        <createTable tableName="community_contact_channels"
+                     remarks="The channels members can use to contact their community, in display order.">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="community_contact_channels_id_pk"/>
+            </column>
+            <column name="community_id" type="UUID" remarks="The community the channel belongs to.">
+                <constraints nullable="false"
+                             foreignKeyName="community_contact_channels_community_id_fk"
+                             referencedTableName="communities" referencedColumnNames="id"/>
+            </column>
+            <column name="type" type="VARCHAR(20)" remarks="The kind of channel: PHONE, EMAIL or ADDRESS.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="label" type="VARCHAR(60)" remarks="The name shown for the channel.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value" type="VARCHAR(200)" remarks="The phone number, email address or postal address.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="schedule" type="VARCHAR(200)"
+                    remarks="Free text saying when the channel is attended. NULL if it has none.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="notes" type="VARCHAR(500)"
+                    remarks="Free text about the channel. NULL if it has none.">
+                <constraints nullable="true"/>
+            </column>
+            <column name="position" type="INTEGER"
+                    remarks="Display order of the channel within its community, starting at 0.">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="community_contact_channels" columnNames="community_id, position"
+                             constraintName="community_contact_channels_community_id_position_uq"/>
+        <sql>
+            ALTER TABLE community_contact_channels ADD CONSTRAINT community_contact_channels_type_check
+            CHECK (type IN ('PHONE', 'EMAIL', 'ADDRESS'))
+        </sql>
+        <rollback>
+            <dropTable tableName="community_contact_channels"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
