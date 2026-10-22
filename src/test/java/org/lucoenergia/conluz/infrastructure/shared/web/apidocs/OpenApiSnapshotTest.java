@@ -33,8 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class OpenApiSnapshotTest extends BaseControllerTest {
 
-    private static final String SNAPSHOT_RESOURCE = "openapi/api-docs.json";
-    private static final Path SNAPSHOT_SOURCE = Path.of("src", "test", "resources", SNAPSHOT_RESOURCE);
+    private static final String SNAPSHOT_RESOURCE = "api/docs/api-docs.json";
+    private static final Path SNAPSHOT_SOURCE = Path.of("src", "main", "resources", SNAPSHOT_RESOURCE);
     private static final Path ACTUAL_OUTPUT = Path.of("build", "openapi", "api-docs.actual.json");
 
     @Test

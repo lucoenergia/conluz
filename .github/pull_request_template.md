@@ -71,7 +71,7 @@ Closes #000
 ## Contract impact
 
 <!-- Contract impact: new or changed endpoints, schemas, status codes and error codes, and whether
-     `src/test/resources/openapi/api-docs.json` was updated in the same commit. Say whether the
+     `src/main/resources/api/docs/api-docs.json` was updated in the same commit. Say whether the
      change is breaking for the generated client (a new required field, a removed field, a
      flat-to-nested change). Write "none — snapshot unchanged" if there is none. -->
 

@@ -8,7 +8,7 @@ Issues describe a change (the delta); specs describe the consolidated state afte
 
 ## What a spec is not
 
-- **Not the API contract.** The OpenAPI snapshot (`src/test/resources/openapi/api-docs.json`, see
+- **Not the API contract.** The OpenAPI snapshot (`src/main/resources/api/docs/api-docs.json`, see
   `AGENTS.md` → "The OpenAPI snapshot") is authoritative for fields, types and status codes.
   Specs reference operations by `operationId`; they never restate schemas.
 - **Not an ADR.** ADRs (`docs/architecture/adr/`) record architectural decisions. A rule may link to the ADR that motivates it.
