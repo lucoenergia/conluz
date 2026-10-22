@@ -28,7 +28,8 @@ class MembershipMonthlyConsumptionBucketTest {
 
     /**
      * AC1. Two supplies of very different magnitudes: 100.5 + 7.25 kWh consumed, 20.25 + 1.5
-     * exported, 60 + 3 generated, 40 + 2.5 self-consumed, and savings of 6.00 + 0.375.
+     * exported, 40 + 2.5 self-consumed, and savings of 6.00 + 0.375. The 60 + 3 kWh generated play
+     * no part: the assigned production is the self-consumed plus the exported energy, 64.25 kWh.
      */
     @Test
     void eachTotalIsTheSumOfThePerSupplyTotals() {
@@ -38,7 +39,7 @@ class MembershipMonthlyConsumptionBucketTest {
 
         assertDecimal("107.75", bucket.getConsumptionKWh());
         assertDecimal("21.75", bucket.getSurplusEnergyKWh());
-        assertDecimal("63", bucket.getGenerationEnergyKWh());
+        assertEquals(64.25, bucket.getAssignedProductionKWh());
         assertDecimal("42.5", bucket.getSelfConsumptionEnergyKWh());
         assertDecimal("6.375", bucket.getSavings().orElseThrow().getAmountEur());
         assertEquals(JANUARY, bucket.getMonth());
@@ -82,7 +83,7 @@ class MembershipMonthlyConsumptionBucketTest {
 
         assertDecimal("0", bucket.getConsumptionKWh());
         assertDecimal("0", bucket.getSurplusEnergyKWh());
-        assertDecimal("0", bucket.getGenerationEnergyKWh());
+        assertEquals(0d, bucket.getAssignedProductionKWh());
         assertDecimal("0", bucket.getSelfConsumptionEnergyKWh());
         assertTrue(bucket.getSavings().isEmpty());
         assertEquals(3, bucket.getSupplyCount());

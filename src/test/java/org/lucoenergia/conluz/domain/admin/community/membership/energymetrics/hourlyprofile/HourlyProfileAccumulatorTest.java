@@ -35,8 +35,8 @@ class HourlyProfileAccumulatorTest {
 
         HourlyProfileBucket empty = accumulator.getBuckets().get(11);
 
-        assertNull(empty.getAverageConsumptionKWh());
-        assertEquals(0L, empty.getConsumptionSampleCount());
+        assertNull(empty.getAverageTotalConsumptionKWh());
+        assertEquals(0L, empty.getTotalConsumptionSampleCount());
         assertNull(empty.getAverageAssignedProductionKWh());
         assertEquals(0L, empty.getAssignedProductionSampleCount());
     }
@@ -53,8 +53,8 @@ class HourlyProfileAccumulatorTest {
 
         HourlyProfileBucket ten = accumulator.getBuckets().get(10);
 
-        assertEquals(12.5d / 3, ten.getAverageConsumptionKWh(), 1e-9);
-        assertEquals(3L, ten.getConsumptionSampleCount());
+        assertEquals(12.5d / 3, ten.getAverageTotalConsumptionKWh(), 1e-9);
+        assertEquals(3L, ten.getTotalConsumptionSampleCount());
         assertEquals(11d / 3, ten.getAverageAssignedProductionKWh(), 1e-9);
         assertEquals(3L, ten.getAssignedProductionSampleCount());
     }
@@ -77,8 +77,8 @@ class HourlyProfileAccumulatorTest {
 
         HourlyProfileBucket ten = accumulator.getBuckets().get(10);
 
-        assertEquals(3d, ten.getAverageConsumptionKWh(), 1e-9);
-        assertEquals(2L, ten.getConsumptionSampleCount());
+        assertEquals(3d, ten.getAverageTotalConsumptionKWh(), 1e-9);
+        assertEquals(2L, ten.getTotalConsumptionSampleCount());
         assertNull(ten.getAverageAssignedProductionKWh());
         assertEquals(0L, ten.getAssignedProductionSampleCount());
     }
@@ -96,7 +96,7 @@ class HourlyProfileAccumulatorTest {
 
         assertEquals(4d, ten.getAverageAssignedProductionKWh(), 1e-9);
         assertEquals(2L, ten.getAssignedProductionSampleCount());
-        assertEquals(2.5d, ten.getAverageConsumptionKWh(), 1e-9);
+        assertEquals(2.5d, ten.getAverageTotalConsumptionKWh(), 1e-9);
     }
 
     @Test
@@ -106,9 +106,9 @@ class HourlyProfileAccumulatorTest {
 
         List<HourlyProfileBucket> buckets = accumulator.getBuckets();
 
-        assertEquals(0L, buckets.get(10).getConsumptionSampleCount());
-        assertEquals(8d, buckets.get(12).getAverageConsumptionKWh(), 1e-9);
-        assertEquals(10d, buckets.get(11).getAverageConsumptionKWh(), 1e-9);
+        assertEquals(0L, buckets.get(10).getTotalConsumptionSampleCount());
+        assertEquals(8d, buckets.get(12).getAverageTotalConsumptionKWh(), 1e-9);
+        assertEquals(10d, buckets.get(11).getAverageTotalConsumptionKWh(), 1e-9);
     }
 
     /**
@@ -122,10 +122,10 @@ class HourlyProfileAccumulatorTest {
 
         List<HourlyProfileBucket> buckets = accumulator.getBuckets();
 
-        assertEquals(2L, buckets.get(2).getConsumptionSampleCount());
-        assertEquals(2d, buckets.get(2).getAverageConsumptionKWh(), 1e-9);
-        assertEquals(1L, buckets.get(3).getConsumptionSampleCount());
-        assertEquals(5d, buckets.get(3).getAverageConsumptionKWh(), 1e-9);
+        assertEquals(2L, buckets.get(2).getTotalConsumptionSampleCount());
+        assertEquals(2d, buckets.get(2).getAverageTotalConsumptionKWh(), 1e-9);
+        assertEquals(1L, buckets.get(3).getTotalConsumptionSampleCount());
+        assertEquals(5d, buckets.get(3).getAverageTotalConsumptionKWh(), 1e-9);
     }
 
     /**
@@ -140,11 +140,11 @@ class HourlyProfileAccumulatorTest {
 
         List<HourlyProfileBucket> buckets = accumulator.getBuckets();
 
-        assertEquals(1d, buckets.get(1).getAverageConsumptionKWh(), 1e-9);
-        assertEquals(0L, buckets.get(2).getConsumptionSampleCount());
-        assertNull(buckets.get(2).getAverageConsumptionKWh());
-        assertEquals(3d, buckets.get(3).getAverageConsumptionKWh(), 1e-9);
-        assertEquals(5d, buckets.get(4).getAverageConsumptionKWh(), 1e-9);
+        assertEquals(1d, buckets.get(1).getAverageTotalConsumptionKWh(), 1e-9);
+        assertEquals(0L, buckets.get(2).getTotalConsumptionSampleCount());
+        assertNull(buckets.get(2).getAverageTotalConsumptionKWh());
+        assertEquals(3d, buckets.get(3).getAverageTotalConsumptionKWh(), 1e-9);
+        assertEquals(5d, buckets.get(4).getAverageTotalConsumptionKWh(), 1e-9);
     }
 
     private void add(String time, Double gridImportKWh, Double selfConsumptionKWh, Double surplusKWh) {

@@ -85,7 +85,7 @@ class GetMembershipHourlyProfileServiceTest {
         assertNull(profile.getEndDate());
         assertEquals(24, profile.getBuckets().size());
         profile.getBuckets().forEach(bucket -> {
-            assertNull(bucket.getAverageConsumptionKWh());
+            assertNull(bucket.getAverageTotalConsumptionKWh());
             assertNull(bucket.getAverageAssignedProductionKWh());
         });
         assertEquals(2, profile.getCoverage().getSupplyCount());
@@ -112,8 +112,8 @@ class GetMembershipHourlyProfileServiceTest {
         assertEquals(JULY_START, profile.getStartDate());
         assertEquals(JULY_END, profile.getEndDate());
         HourlyProfileBucket ten = profile.getBuckets().get(10);
-        assertEquals(22d / 3, ten.getAverageConsumptionKWh(), 1e-9);
-        assertEquals(3L, ten.getConsumptionSampleCount());
+        assertEquals(22d / 3, ten.getAverageTotalConsumptionKWh(), 1e-9);
+        assertEquals(3L, ten.getTotalConsumptionSampleCount());
         assertEquals(14d / 3, ten.getAverageAssignedProductionKWh(), 1e-9);
     }
 

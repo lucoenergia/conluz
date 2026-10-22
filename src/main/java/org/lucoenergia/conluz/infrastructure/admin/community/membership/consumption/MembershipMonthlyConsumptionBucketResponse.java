@@ -22,11 +22,15 @@ import java.util.Optional;
  * describe one supply and have no single subject once several are folded, so they are dropped; the
  * two counters carry the month's completeness instead.
  *
+ * <p>The energy figures carry the names the energy metrics give the same quantities (#460).
+ * assignedProductionKWh is derived from the unrounded membership sums of self-consumed and surplus
+ * energy; the distributor's generation figure is not exposed.
+ *
  * <p>The energy figures and the savings are rounded here, once, for presentation, as in the
  * per-supply bucket: each figure is the unrounded sum of the supplies' figures, rounded as a whole.
  */
-@Schema(requiredProperties = {"date", "time", "consumptionKWh", "surplusEnergyKWh", "generationEnergyKWh",
-        "selfConsumptionEnergyKWh", "savingsEur", "tariffSource", "supplyCount", "suppliesWithData"})
+@Schema(requiredProperties = {"date", "time", "gridImportKWh", "surplusKWh", "selfConsumptionKWh",
+        "assignedProductionKWh", "savingsEur", "tariffSource", "supplyCount", "suppliesWithData"})
 public class MembershipMonthlyConsumptionBucketResponse {
 
     @Schema(description = "First day of the month, a local calendar date in the community's " +
@@ -41,20 +45,21 @@ public class MembershipMonthlyConsumptionBucketResponse {
             "month. Does not include self-consumed energy. In kWh, rounded to 3 decimals. 0 when no " +
             "supply stored a record.",
             example = "107.75")
-    private final BigDecimal consumptionKWh;
+    private final BigDecimal gridImportKWh;
     @Schema(description = "Energy assigned to every supply of the membership and fed back to the " +
             "grid over the month. In kWh, rounded to 3 decimals.",
             example = "21.75")
-    private final BigDecimal surplusEnergyKWh;
-    @Schema(description = "Energy generated and assigned to every supply of the membership over the " +
-            "month, in kWh, rounded to 3 decimals.",
-            example = "63")
-    private final BigDecimal generationEnergyKWh;
+    private final BigDecimal surplusKWh;
     @Schema(description = "Energy produced by the community and consumed by every supply of the " +
             "membership over the month, as reported by the distributor. In kWh, rounded to 3 " +
             "decimals.",
             example = "42.5")
-    private final BigDecimal selfConsumptionEnergyKWh;
+    private final BigDecimal selfConsumptionKWh;
+    @Schema(description = "Energy assigned to every supply of the membership over the month: " +
+            "selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it " +
+            "can differ by 0.001 from the sum of the rounded figures.",
+            example = "64.25")
+    private final BigDecimal assignedProductionKWh;
     @Schema(description = "Estimated amount the month's self-consumed energy saved across every " +
             "supply that stored a record, in euros, rounded to cents. Null when no supply stored a " +
             "record that month: a month with nothing stored is not a month that saved nothing. Unlike " +
@@ -85,10 +90,10 @@ public class MembershipMonthlyConsumptionBucketResponse {
     public MembershipMonthlyConsumptionBucketResponse(MembershipMonthlyConsumptionBucket bucket) {
         this.date = bucket.getMonth().atDay(1).format(DateTimeFormatter.ofPattern(DateConverter.DATE_FORMAT));
         this.time = LocalTime.MIDNIGHT.format(DateTimeFormatter.ofPattern(DateConverter.TIME_FORMAT));
-        this.consumptionKWh = rounded(bucket.getConsumptionKWh());
-        this.surplusEnergyKWh = rounded(bucket.getSurplusEnergyKWh());
-        this.generationEnergyKWh = rounded(bucket.getGenerationEnergyKWh());
-        this.selfConsumptionEnergyKWh = rounded(bucket.getSelfConsumptionEnergyKWh());
+        this.gridImportKWh = rounded(bucket.getConsumptionKWh().doubleValue());
+        this.surplusKWh = rounded(bucket.getSurplusEnergyKWh().doubleValue());
+        this.selfConsumptionKWh = rounded(bucket.getSelfConsumptionEnergyKWh().doubleValue());
+        this.assignedProductionKWh = rounded(bucket.getAssignedProductionKWh());
         Optional<SupplySavings> savings = bucket.getSavings();
         // Scale is declared inline rather than as a constant: ResponseSchemaNullabilityArchTest
         // inspects every field of a *Response class, static ones included.
@@ -99,8 +104,8 @@ public class MembershipMonthlyConsumptionBucketResponse {
         this.suppliesWithData = bucket.getSuppliesWithData();
     }
 
-    private static BigDecimal rounded(BigDecimal kWh) {
-        return BigDecimal.valueOf(KWhRounding.round(kWh.doubleValue()));
+    private static BigDecimal rounded(double kWh) {
+        return BigDecimal.valueOf(KWhRounding.round(kWh));
     }
 
     public String getDate() {
@@ -111,20 +116,20 @@ public class MembershipMonthlyConsumptionBucketResponse {
         return time;
     }
 
-    public BigDecimal getConsumptionKWh() {
-        return consumptionKWh;
+    public BigDecimal getGridImportKWh() {
+        return gridImportKWh;
     }
 
-    public BigDecimal getSurplusEnergyKWh() {
-        return surplusEnergyKWh;
+    public BigDecimal getSurplusKWh() {
+        return surplusKWh;
     }
 
-    public BigDecimal getGenerationEnergyKWh() {
-        return generationEnergyKWh;
+    public BigDecimal getSelfConsumptionKWh() {
+        return selfConsumptionKWh;
     }
 
-    public BigDecimal getSelfConsumptionEnergyKWh() {
-        return selfConsumptionEnergyKWh;
+    public BigDecimal getAssignedProductionKWh() {
+        return assignedProductionKWh;
     }
 
     public BigDecimal getSavingsEur() {

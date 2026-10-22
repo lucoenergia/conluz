@@ -127,7 +127,7 @@ class DatadisMonthlyAggregationMembershipConsistencyTest extends BaseControllerT
         String token = loginUser(member);
         // The symptom: before the run, the series still holds the preliminary self-consumption.
         assertNotEquals(metrics(community, member, token).path("energy").path("selfConsumptionKWh").asDouble(),
-                monthly(community, member, token).path("selfConsumptionEnergyKWh").asDouble());
+                monthly(community, member, token).path("selfConsumptionKWh").asDouble());
 
         new DatadisMonthlyAggregationJob(monthlyAggregationService, CLOCK, getDatadisConfigurationService,
                 syncWindow, zoneResolver).run();
@@ -135,16 +135,16 @@ class DatadisMonthlyAggregationMembershipConsistencyTest extends BaseControllerT
         JsonNode month = monthly(community, member, token);
         JsonNode metrics = metrics(community, member, token);
         assertEquals(metrics.path("energy").path("selfConsumptionKWh").asDouble(),
-                month.path("selfConsumptionEnergyKWh").asDouble(), 1e-9, "self-consumption");
+                month.path("selfConsumptionKWh").asDouble(), 1e-9, "self-consumption");
         assertEquals(metrics.path("energy").path("surplusKWh").asDouble(),
-                month.path("surplusEnergyKWh").asDouble(), 1e-9, "surplus");
+                month.path("surplusKWh").asDouble(), 1e-9, "surplus");
         assertEquals(metrics.path("energy").path("gridImportKWh").asDouble(),
-                month.path("consumptionKWh").asDouble(), 1e-9, "grid import");
+                month.path("gridImportKWh").asDouble(), 1e-9, "grid import");
         assertEquals(metrics.path("savings").path("amountEur").asDouble(),
                 month.path("savingsEur").asDouble(), 1e-9, "savings");
         // And both are the sum of the revised hourly records.
-        assertEquals(12.75, month.path("selfConsumptionEnergyKWh").asDouble(), 1e-9);
-        assertEquals(31.75, month.path("consumptionKWh").asDouble(), 1e-9);
+        assertEquals(12.75, month.path("selfConsumptionKWh").asDouble(), 1e-9);
+        assertEquals(31.75, month.path("gridImportKWh").asDouble(), 1e-9);
     }
 
     private JsonNode monthly(CommunityEntity community, User member, String token) throws Exception {

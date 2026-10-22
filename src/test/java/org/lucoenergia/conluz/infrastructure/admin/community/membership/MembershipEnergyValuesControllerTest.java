@@ -43,7 +43,6 @@ import static org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset
 import static org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset.FIRST_GRID_IMPORT;
 import static org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset.FIRST_SELF_CONSUMPTION;
 import static org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset.FIRST_SURPLUS;
-import static org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset.GENERATION;
 import static org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset.GRID_IMPORT;
 import static org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset.MONTH_END;
 import static org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset.MONTH_START;
@@ -125,10 +124,10 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andReturn().getResponse().getContentAsString();
 
-        assertKWh(body, "/0/consumptionKWh", GRID_IMPORT);
-        assertKWh(body, "/0/selfConsumptionEnergyKWh", SELF_CONSUMPTION);
-        assertKWh(body, "/0/surplusEnergyKWh", SURPLUS);
-        assertKWh(body, "/0/generationEnergyKWh", GENERATION);
+        assertKWh(body, "/0/gridImportKWh", GRID_IMPORT);
+        assertKWh(body, "/0/selfConsumptionKWh", SELF_CONSUMPTION);
+        assertKWh(body, "/0/surplusKWh", SURPLUS);
+        assertKWh(body, "/0/assignedProductionKWh", ASSIGNED_PRODUCTION);
         assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, membership.first(),
                 FIRST_GRID_IMPORT, FIRST_SELF_CONSUMPTION, FIRST_SURPLUS, FIRST_GENERATION);
         assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, membership.second(),
@@ -136,8 +135,8 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
     }
 
     /**
-     * Rounded supply by supply, grid import would add up to 0.123 + 0.222 = 0.345 and generation to
-     * 0.056 + 0.056 = 0.112; the savings would be 0.00 + 0.00. Constant price: the expected amount
+     * Rounded supply by supply, grid import would add up to 0.123 + 0.222 = 0.345; the savings would
+     * be 0.00 + 0.00. Constant price: the expected amount
      * is the unrounded self-consumption, 0.0334 kWh, times 0.15 EUR/kWh, rounded to cents.
      */
     @Test
@@ -153,8 +152,7 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].savingsEur").value(SAVINGS_EUR))
                 .andReturn().getResponse().getContentAsString();
 
-        assertKWh(body, "/0/consumptionKWh", GRID_IMPORT);
-        assertKWh(body, "/0/generationEnergyKWh", GENERATION);
+        assertKWh(body, "/0/gridImportKWh", GRID_IMPORT);
     }
 
     @Test
@@ -204,7 +202,7 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
      * carrying four decimals, aggregated after the last of them and read through both operations over the month's local bounds.
      */
     @Test
-    @DisplayName("EVL-001 EVL-002 AC4 the membership monthly series and energy metrics report the same figures for a month")
+    @DisplayName("EVL-001 EVL-002 EVL-004 AC4 the membership monthly series and energy metrics report the same figures for a month")
     void theMonthlySeriesAndTheEnergyMetricsAgreeOnAMonth() throws Exception {
         TwoSupplyMembership membership = twoSupplyMembership();
         // Every hour of the month published as zero first, so the records below land in a complete
@@ -228,13 +226,16 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        assertEquals(0, kWhAt(monthly, "/0/consumptionKWh").compareTo(kWhAt(metrics, "/energy/gridImportKWh")),
+        assertEquals(0, kWhAt(monthly, "/0/gridImportKWh").compareTo(kWhAt(metrics, "/energy/gridImportKWh")),
                 () -> "grid import differs: " + monthly + " vs " + metrics);
-        assertEquals(0, kWhAt(monthly, "/0/surplusEnergyKWh").compareTo(kWhAt(metrics, "/energy/surplusKWh")),
+        assertEquals(0, kWhAt(monthly, "/0/surplusKWh").compareTo(kWhAt(metrics, "/energy/surplusKWh")),
                 () -> "surplus differs: " + monthly + " vs " + metrics);
-        assertEquals(0, kWhAt(monthly, "/0/selfConsumptionEnergyKWh")
+        assertEquals(0, kWhAt(monthly, "/0/selfConsumptionKWh")
                         .compareTo(kWhAt(metrics, "/energy/selfConsumptionKWh")),
                 () -> "self-consumption differs: " + monthly + " vs " + metrics);
+        assertEquals(0, kWhAt(monthly, "/0/assignedProductionKWh")
+                        .compareTo(kWhAt(metrics, "/energy/assignedProductionKWh")),
+                () -> "assigned production differs: " + monthly + " vs " + metrics);
     }
 
     // --- fixtures ---

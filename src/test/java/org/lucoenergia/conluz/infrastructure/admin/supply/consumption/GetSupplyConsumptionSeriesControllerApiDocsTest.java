@@ -30,9 +30,9 @@ class GetSupplyConsumptionSeriesControllerApiDocsTest extends BaseControllerTest
     void documentsEveryPropertyOfTheBucketAsRequired() throws Exception {
         List<String> required = textValues(schema(BUCKET_SCHEMA).path("required"));
 
-        assertTrue(required.containsAll(List.of("cups", "date", "time", "consumptionKWh",
-                        "obtainMethod", "surplusEnergyKWh", "generationEnergyKWh",
-                        "selfConsumptionEnergyKWh", "savingsEur", "tariffSource")),
+        assertTrue(required.containsAll(List.of("cups", "date", "time", "gridImportKWh",
+                        "obtainMethod", "surplusKWh", "selfConsumptionKWh", "assignedProductionKWh",
+                        "savingsEur", "tariffSource")),
                 () -> BUCKET_SCHEMA + ".required was " + required);
     }
 
@@ -51,8 +51,8 @@ class GetSupplyConsumptionSeriesControllerApiDocsTest extends BaseControllerTest
         assertTrue(obtainMethodTypes.contains("string"),
                 () -> "obtainMethod.type lost its base type: " + properties.path("obtainMethod"));
 
-        for (String neverNull : List.of("cups", "date", "time", "consumptionKWh", "surplusEnergyKWh",
-                "generationEnergyKWh", "selfConsumptionEnergyKWh", "savingsEur", "tariffSource")) {
+        for (String neverNull : List.of("cups", "date", "time", "gridImportKWh", "surplusKWh",
+                "selfConsumptionKWh", "assignedProductionKWh", "savingsEur", "tariffSource")) {
             assertTrue(!textValues(properties.path(neverNull).path("type")).contains("null"),
                     () -> neverNull + " must not be nullable: " + properties.path(neverNull));
         }

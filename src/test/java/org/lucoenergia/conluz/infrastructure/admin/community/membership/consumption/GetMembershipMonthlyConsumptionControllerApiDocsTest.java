@@ -27,8 +27,8 @@ class GetMembershipMonthlyConsumptionControllerApiDocsTest extends BaseControlle
     private static final String PATH = "/api/v1/communities/{communityId}/memberships/{userId}/consumption/monthly";
     private static final String BUCKET = "MembershipMonthlyConsumptionBucketResponse";
 
-    private static final List<String> FIELDS = List.of("date", "time", "consumptionKWh", "surplusEnergyKWh",
-            "generationEnergyKWh", "selfConsumptionEnergyKWh", "savingsEur", "tariffSource", "supplyCount",
+    private static final List<String> FIELDS = List.of("date", "time", "gridImportKWh", "surplusKWh",
+            "selfConsumptionKWh", "assignedProductionKWh", "savingsEur", "tariffSource", "supplyCount",
             "suppliesWithData");
 
     @Test

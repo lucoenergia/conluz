@@ -1,7 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -20,10 +22,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -251,6 +256,36 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("\"empty\"")));
+    }
+
+    /**
+     * The hourly series is a Datadis pass-through and keeps the Datadis names, generation included,
+     * unlike the daily and monthly series (#460).
+     */
+    @Test
+    @DisplayName("EVL-003 AC6 the hourly series keeps the Datadis field names")
+    void testHourlyConsumptionKeepsTheDatadisFieldNames() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(
+                SupplyMother.random(user).withCode(SupplyConsumptionSavingsInfluxLoader.CUPS_WITH_SAVINGS).build(),
+                UserId.of(user.getId()));
+
+        String body = mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/hourly")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2023-04-10T09:00:00+02:00")
+                        .queryParam("endDate", "2023-04-10T18:00:00+02:00"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode record = objectMapper.readTree(body).path(0);
+        for (String field : List.of("consumptionKWh", "surplusEnergyKWh", "selfConsumptionEnergyKWh",
+                "generationEnergyKWh")) {
+            assertTrue(record.has(field), () -> "missing " + field + ": " + record);
+        }
+        for (String field : List.of("gridImportKWh", "surplusKWh", "selfConsumptionKWh", "assignedProductionKWh")) {
+            assertFalse(record.has(field), () -> "carries the series name " + field + ": " + record);
+        }
     }
 
     /**

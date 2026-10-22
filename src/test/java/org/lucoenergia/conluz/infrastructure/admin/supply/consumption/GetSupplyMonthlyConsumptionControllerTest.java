@@ -96,7 +96,7 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("consumptionKWh")))
+                .andExpect(content().string(containsString("gridImportKWh")))
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].cups").value(CUPS_CODE));
     }
@@ -121,7 +121,7 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("consumptionKWh")))
+                .andExpect(content().string(containsString("gridImportKWh")))
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].cups").value(CUPS_CODE));
     }
@@ -274,11 +274,11 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].cups").isString())
                 .andExpect(jsonPath("$[0].date").isString())
                 .andExpect(jsonPath("$[0].time").isString())
-                .andExpect(jsonPath("$[0].consumptionKWh").isNumber())
+                .andExpect(jsonPath("$[0].gridImportKWh").isNumber())
                 .andExpect(jsonPath("$[0].obtainMethod").isString())
-                .andExpect(jsonPath("$[0].surplusEnergyKWh").isNumber())
-                .andExpect(jsonPath("$[0].generationEnergyKWh").isNumber())
-                .andExpect(jsonPath("$[0].selfConsumptionEnergyKWh").isNumber());
+                .andExpect(jsonPath("$[0].surplusKWh").isNumber())
+                .andExpect(jsonPath("$[0].assignedProductionKWh").isNumber())
+                .andExpect(jsonPath("$[0].selfConsumptionKWh").isNumber());
     }
 
     /**
@@ -326,7 +326,7 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(4))
                 .andExpect(jsonPath("$[0].date").value("2024/01/01"))
-                .andExpect(jsonPath("$[0].selfConsumptionEnergyKWh").value(closeTo(100.00, TOLERANCE)))
+                .andExpect(jsonPath("$[0].selfConsumptionKWh").value(closeTo(100.00, TOLERANCE)))
                 .andExpect(jsonPath("$[0].savingsEur").value(closeTo(15.00, TOLERANCE)))
                 .andExpect(jsonPath("$[1].date").value("2024/02/01"))
                 .andExpect(jsonPath("$[1].savingsEur").value(closeTo(0.08, TOLERANCE)))
@@ -363,7 +363,7 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[1].date").value("2024/02/01"))
-                .andExpect(jsonPath("$[1].selfConsumptionEnergyKWh").value(closeTo(0.50, TOLERANCE)))
+                .andExpect(jsonPath("$[1].selfConsumptionKWh").value(closeTo(0.50, TOLERANCE)))
                 .andExpect(jsonPath("$[1].savingsEur").value(closeTo(0.08, TOLERANCE)))
                 .andExpect(content().string(containsString("\"savingsEur\":0.08")));
     }
@@ -413,10 +413,10 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
                     .andExpect(jsonPath("$.length()").value(1))
                     .andReturn().getResponse().getContentAsString();
 
-            assertKWh(body, "/0/consumptionKWh", RoundingNoiseDataset.GRID_IMPORT);
-            assertKWh(body, "/0/selfConsumptionEnergyKWh", RoundingNoiseDataset.SELF_CONSUMPTION);
-            assertKWh(body, "/0/surplusEnergyKWh", RoundingNoiseDataset.SURPLUS);
-            assertKWh(body, "/0/generationEnergyKWh", RoundingNoiseDataset.GENERATION);
+            assertKWh(body, "/0/gridImportKWh", RoundingNoiseDataset.GRID_IMPORT);
+            assertKWh(body, "/0/selfConsumptionKWh", RoundingNoiseDataset.SELF_CONSUMPTION);
+            assertKWh(body, "/0/surplusKWh", RoundingNoiseDataset.SURPLUS);
+            assertKWh(body, "/0/assignedProductionKWh", RoundingNoiseDataset.ASSIGNED_PRODUCTION);
             RoundingNoiseDataset.assertHourlyRecordsUnchanged(getDatadisConsumptionRepository, supply);
             // The pre-aggregate keeps the unrounded float sums: 0.3456, not the 0.346 reported.
             RoundingNoiseDataset.assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, supply,

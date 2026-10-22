@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.community.membership.energymetrics.hourlyprofile;
 
+import org.lucoenergia.conluz.domain.consumption.EnergyBalance;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.HourlyEnergyRecord;
 
 import java.time.ZoneId;
@@ -32,8 +33,8 @@ public class HourlyProfileAccumulator {
     public static final int HOURS_OF_DAY = 24;
 
     private final ZoneId zone;
-    private final double[] consumptionSums = new double[HOURS_OF_DAY];
-    private final long[] consumptionSampleCounts = new long[HOURS_OF_DAY];
+    private final double[] totalConsumptionSums = new double[HOURS_OF_DAY];
+    private final long[] totalConsumptionSampleCounts = new long[HOURS_OF_DAY];
     private final double[] assignedProductionSums = new double[HOURS_OF_DAY];
     private final long[] assignedProductionSampleCounts = new long[HOURS_OF_DAY];
 
@@ -51,11 +52,11 @@ public class HourlyProfileAccumulator {
         Double surplus = record.getSurplusKWh();
 
         if (gridImport != null) {
-            consumptionSums[hour] += gridImport + orZero(selfConsumption);
-            consumptionSampleCounts[hour]++;
+            totalConsumptionSums[hour] += gridImport + orZero(selfConsumption);
+            totalConsumptionSampleCounts[hour]++;
         }
         if (selfConsumption != null || surplus != null) {
-            assignedProductionSums[hour] += orZero(selfConsumption) + orZero(surplus);
+            assignedProductionSums[hour] += EnergyBalance.assignedProductionKWh(orZero(selfConsumption), orZero(surplus));
             assignedProductionSampleCounts[hour]++;
         }
     }
@@ -67,8 +68,8 @@ public class HourlyProfileAccumulator {
         return IntStream.range(0, HOURS_OF_DAY)
                 .mapToObj(hour -> new HourlyProfileBucket(
                         hour,
-                        average(consumptionSums[hour], consumptionSampleCounts[hour]),
-                        consumptionSampleCounts[hour],
+                        average(totalConsumptionSums[hour], totalConsumptionSampleCounts[hour]),
+                        totalConsumptionSampleCounts[hour],
                         average(assignedProductionSums[hour], assignedProductionSampleCounts[hour]),
                         assignedProductionSampleCounts[hour]))
                 .toList();

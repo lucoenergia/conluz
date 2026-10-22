@@ -39,7 +39,7 @@ class GetMembershipHourlyProfileControllerApiDocsTest extends BaseControllerTest
     void documentsEveryFieldOfEverySchemaAsRequired() throws Exception {
         Map<String, List<String>> expected = Map.of(
                 RESPONSE, List.of("period", "coverage", "buckets"),
-                BUCKET, List.of("hour", "averageConsumptionKWh", "consumptionSampleCount",
+                BUCKET, List.of("hour", "averageTotalConsumptionKWh", "totalConsumptionSampleCount",
                         "averageAssignedProductionKWh", "assignedProductionSampleCount"),
                 COVERAGE, List.of("hoursWithData", "expectedHours", "supplyCount", "suppliesWithData"),
                 PERIOD, List.of("startDate", "endDate"));
@@ -58,7 +58,7 @@ class GetMembershipHourlyProfileControllerApiDocsTest extends BaseControllerTest
 
     @Test
     void documentsTheAveragesAndTheBoundsAsNullableWithTheirBaseType() throws Exception {
-        assertNullableWithBaseType(BUCKET, "averageConsumptionKWh", "number");
+        assertNullableWithBaseType(BUCKET, "averageTotalConsumptionKWh", "number");
         assertNullableWithBaseType(BUCKET, "averageAssignedProductionKWh", "number");
         assertNullableWithBaseType(PERIOD, "startDate", "string");
         assertNullableWithBaseType(PERIOD, "endDate", "string");
@@ -66,7 +66,7 @@ class GetMembershipHourlyProfileControllerApiDocsTest extends BaseControllerTest
 
     @Test
     void documentsTheHourAndTheSampleCountsAsNotNullable() throws Exception {
-        for (String field : List.of("hour", "consumptionSampleCount", "assignedProductionSampleCount")) {
+        for (String field : List.of("hour", "totalConsumptionSampleCount", "assignedProductionSampleCount")) {
             assertNotNullable(BUCKET, field);
         }
         for (String field : List.of("period", "coverage", "buckets")) {

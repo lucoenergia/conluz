@@ -1597,13 +1597,13 @@
       "MembershipHourlyProfileBucketResponse" : {
         "properties" : {
           "assignedProductionSampleCount" : {
-            "description" : "Number of hourly records carrying assigned production found for this hour across every supply and every day of the month. A sample count, not a day count, and independent of consumptionSampleCount, since a record can carry consumption alone.",
+            "description" : "Number of hourly records carrying assigned production found for this hour across every supply and every day of the month. A sample count, not a day count, and independent of totalConsumptionSampleCount, since a record can carry consumption alone.",
             "example" : 62,
             "format" : "int64",
             "type" : "integer"
           },
           "averageAssignedProductionKWh" : {
-            "description" : "Average energy assigned to the membership's supplies in this hour (self-consumed plus surplus energy), over the assigned production samples found. Null when there is no sample; 0 when there are samples and all of them are zero.",
+            "description" : "Average energy assigned to every supply of the membership in this hour: self-consumed plus surplus energy. Averaged over the assigned production samples found. Null when there is no sample; 0 when there are samples and all of them are zero.",
             "example" : 1.18,
             "format" : "double",
             "type" : [
@@ -1611,8 +1611,8 @@
               "null"
             ]
           },
-          "averageConsumptionKWh" : {
-            "description" : "Average energy consumed in this hour, whatever its origin (grid import plus self-consumed energy), over the consumption samples found. Null when there is no sample, never 0.",
+          "averageTotalConsumptionKWh" : {
+            "description" : "Average energy consumed by every supply of the membership in this hour, whatever its origin: grid import plus self-consumed energy. Averaged over the total consumption samples found. Null when there is no sample, never 0.",
             "example" : 0.42,
             "format" : "double",
             "type" : [
@@ -1620,25 +1620,25 @@
               "null"
             ]
           },
-          "consumptionSampleCount" : {
-            "description" : "Number of hourly records carrying consumption found for this hour across every supply and every day of the month. A sample count, not a day count: on a daylight saving day one local hour holds two samples and another none.",
-            "example" : 62,
-            "format" : "int64",
-            "type" : "integer"
-          },
           "hour" : {
             "description" : "Hour of the local day in the community's time zone, from 0 to 23",
             "example" : 13,
             "format" : "int32",
+            "type" : "integer"
+          },
+          "totalConsumptionSampleCount" : {
+            "description" : "Number of hourly records carrying total consumption found for this hour across every supply and every day of the month. A sample count, not a day count: on a daylight saving day one local hour holds two samples and another none.",
+            "example" : 62,
+            "format" : "int64",
             "type" : "integer"
           }
         },
         "required" : [
           "assignedProductionSampleCount",
           "averageAssignedProductionKWh",
-          "averageConsumptionKWh",
-          "consumptionSampleCount",
-          "hour"
+          "averageTotalConsumptionKWh",
+          "hour",
+          "totalConsumptionSampleCount"
         ],
         "type" : "object"
       },
@@ -1669,9 +1669,9 @@
       },
       "MembershipMonthlyConsumptionBucketResponse" : {
         "properties" : {
-          "consumptionKWh" : {
-            "description" : "Energy taken from the grid by every supply of the membership over the month. Does not include self-consumed energy. In kWh, rounded to 3 decimals. 0 when no supply stored a record.",
-            "example" : 107.75,
+          "assignedProductionKWh" : {
+            "description" : "Energy assigned to every supply of the membership over the month: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
+            "example" : 64.25,
             "type" : "number"
           },
           "date" : {
@@ -1679,9 +1679,9 @@
             "example" : "2024/01/01",
             "type" : "string"
           },
-          "generationEnergyKWh" : {
-            "description" : "Energy generated and assigned to every supply of the membership over the month, in kWh, rounded to 3 decimals.",
-            "example" : 63,
+          "gridImportKWh" : {
+            "description" : "Energy taken from the grid by every supply of the membership over the month. Does not include self-consumed energy. In kWh, rounded to 3 decimals. 0 when no supply stored a record.",
+            "example" : 107.75,
             "type" : "number"
           },
           "savingsEur" : {
@@ -1692,7 +1692,7 @@
               "null"
             ]
           },
-          "selfConsumptionEnergyKWh" : {
+          "selfConsumptionKWh" : {
             "description" : "Energy produced by the community and consumed by every supply of the membership over the month, as reported by the distributor. In kWh, rounded to 3 decimals.",
             "example" : 42.5,
             "type" : "number"
@@ -1709,7 +1709,7 @@
             "format" : "int32",
             "type" : "integer"
           },
-          "surplusEnergyKWh" : {
+          "surplusKWh" : {
             "description" : "Energy assigned to every supply of the membership and fed back to the grid over the month. In kWh, rounded to 3 decimals.",
             "example" : 21.75,
             "type" : "number"
@@ -1733,14 +1733,14 @@
           }
         },
         "required" : [
-          "consumptionKWh",
+          "assignedProductionKWh",
           "date",
-          "generationEnergyKWh",
+          "gridImportKWh",
           "savingsEur",
-          "selfConsumptionEnergyKWh",
+          "selfConsumptionKWh",
           "suppliesWithData",
           "supplyCount",
-          "surplusEnergyKWh",
+          "surplusKWh",
           "tariffSource",
           "time"
         ],
@@ -3000,9 +3000,9 @@
       },
       "SupplyConsumptionBucketResponse" : {
         "properties" : {
-          "consumptionKWh" : {
-            "description" : "Energy taken from the grid by this supply over the bucket. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
-            "example" : 12.5,
+          "assignedProductionKWh" : {
+            "description" : "Energy assigned to this supply over the bucket: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
+            "example" : 8.75,
             "format" : "float",
             "type" : "number"
           },
@@ -3016,9 +3016,9 @@
             "example" : "2023/04/10",
             "type" : "string"
           },
-          "generationEnergyKWh" : {
-            "description" : "Energy generated and assigned to the supply over the bucket, in kWh, rounded to 3 decimals.",
-            "example" : 8.75,
+          "gridImportKWh" : {
+            "description" : "Energy taken from the grid by this supply over the bucket. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
+            "example" : 12.5,
             "format" : "float",
             "type" : "number"
           },
@@ -3035,13 +3035,13 @@
             "example" : 0.83,
             "type" : "number"
           },
-          "selfConsumptionEnergyKWh" : {
+          "selfConsumptionKWh" : {
             "description" : "Energy produced by the community and consumed by this supply over the bucket, as reported by the distributor. In kWh, rounded to 3 decimals.",
             "example" : 5.5,
             "format" : "float",
             "type" : "number"
           },
-          "surplusEnergyKWh" : {
+          "surplusKWh" : {
             "description" : "Energy assigned to this supply and fed back to the grid over the bucket. In kWh, rounded to 3 decimals.",
             "example" : 3.25,
             "format" : "float",
@@ -3063,14 +3063,14 @@
           }
         },
         "required" : [
-          "consumptionKWh",
+          "assignedProductionKWh",
           "cups",
           "date",
-          "generationEnergyKWh",
+          "gridImportKWh",
           "obtainMethod",
           "savingsEur",
-          "selfConsumptionEnergyKWh",
-          "surplusEnergyKWh",
+          "selfConsumptionKWh",
+          "surplusKWh",
           "tariffSource",
           "time"
         ],
@@ -6169,7 +6169,7 @@
     },
     "/api/v1/communities/{communityId}/consumption/datadis/report/hourly/csv" : {
       "get" : {
-        "description" : "Retrieves hourly consumption data for the supplies of the community identified by the path\n`communityId` within the specified date range and returns the result as a downloadable CSV file.\n\n**Authorization Rules:**\n- Only a Community Admin of the community can access this endpoint.\n- Returns 404 if the community does not exist or the caller is not a member of it,\n  or 403 if the caller is a member of the community but not one of its admins.\n\nThe CSV includes:\n- cups: Supply point identifier\n- date: Date of the consumption record\n- time: Time of the consumption record\n- consumptionKWh: Total consumption in kWh\n- obtainMethod: Real or Estimated\n- surplusEnergyKWh: Energy sent to the grid in kWh\n- generationEnergyKWh: Generated energy in kWh\n- selfConsumptionEnergyKWh: Self-consumed energy in kWh\n",
+        "description" : "Retrieves hourly consumption data for the supplies of the community identified by the path\n`communityId` within the specified date range and returns the result as a downloadable CSV file.\n\n**Authorization Rules:**\n- Only a Community Admin of the community can access this endpoint.\n- Returns 404 if the community does not exist or the caller is not a member of it,\n  or 403 if the caller is a member of the community but not one of its admins.\n\nThe CSV includes:\n- cups: Supply point identifier\n- date: Date of the consumption record\n- time: Time of the consumption record\n- consumptionKWh: Energy taken from the grid\n- obtainMethod: Real or Estimated\n- surplusEnergyKWh: Energy sent to the grid in kWh\n- generationEnergyKWh: Generated energy in kWh\n- selfConsumptionEnergyKWh: Self-consumed energy in kWh\n",
         "operationId" : "getDatadisConsumptionHourlyCsvReport",
         "parameters" : [
           {
@@ -8491,7 +8491,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics/hourly-profile" : {
       "get" : {
-        "description" : "For each hour of the local day, the average energy consumed and the average\nenergy assigned by **every** supply the member owns in this community, so the\nmember can see at which hours assigned energy goes to waste. Supplies in the\nmember's other communities are not counted.\n\n- `averageConsumptionKWh`: grid import plus self-consumed energy.\n- `averageAssignedProductionKWh`: self-consumed plus surplus energy.\n\n**Period:**\nAlways the latest published month, resolved exactly as the aggregated energy\nmetrics resolve `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar\nmonth, in the community's time zone, that the distributor has published for any\nof the member's supplies. An hourly record is published when it carries\nself-consumed energy, zero included; surplus alone does not count, since the\ndistributor sends the measured surplus before it publishes the month. A month is\npublished for a supply when at least 90% of the hours it could have published\ncarry it, counted from the later of the month's first hour and the supply's first\npublished record. It **cannot be chosen**: only inside a published month is a\nstored zero a measured zero rather than a value not published yet. The resolved\nbounds are reported in `period`. When no month can be resolved -- no published\nmonth in the search window, or no supplies to search -- the response is still\nsuccessful, with null period bounds and 24 buckets without any sample.\n\n**Buckets:**\nAlways 24, ordered from hour 0 to hour 23. The hour is **local to the community**,\nnot UTC: each record falls in the bucket of its hour of the day in the community's\ntime zone.\n\n**Averages:**\nEvery record of every supply and every day of the month counts as one sample of\nits hour, and each average **divides by the records found**: never by the days of\nthe month, and never by averaging per-supply averages. Each series has its own\nsample count, `consumptionSampleCount` and `assignedProductionSampleCount`, and the\ntwo can differ, since a record can carry consumption without carrying assigned\nproduction. An average is `null` when its hour has no sample of that series, which\nis never the same as `0`: an hour whose samples are all zero, such as a night hour\nof assigned production, averages `0`.\n\n**Daylight saving:**\nThe counts are sample counts, not day counts, and no hour is corrected. On the\nOctober transition day the repeated local hour holds two samples of that day; on\nthe March transition day the skipped local hour holds none. No bucket is ever\nshifted.\n\n**Coverage:**\n`coverage` is counted exactly as in the aggregated energy metrics:\n`coverage.expectedHours` is the number of hours the month spans **times the number\nof supplies of the membership**, so missing records -- including days of a month\npublished piecemeal -- show up as `hoursWithData` below `expectedHours`.\n`supplyCount` and `suppliesWithData` tell one silent supply apart from gaps spread\nacross all of them.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404.\n",
+        "description" : "For each hour of the local day, the average total consumption and the average\nenergy assigned by **every** supply the member owns in this community, so the\nmember can see at which hours assigned energy goes to waste. Supplies in the\nmember's other communities are not counted.\n\n- `averageTotalConsumptionKWh`: grid import plus self-consumed energy.\n- `averageAssignedProductionKWh`: self-consumed plus surplus energy.\n\n**Period:**\nAlways the latest published month, resolved exactly as the aggregated energy\nmetrics resolve `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar\nmonth, in the community's time zone, that the distributor has published for any\nof the member's supplies. An hourly record is published when it carries\nself-consumed energy, zero included; surplus alone does not count, since the\ndistributor sends the measured surplus before it publishes the month. A month is\npublished for a supply when at least 90% of the hours it could have published\ncarry it, counted from the later of the month's first hour and the supply's first\npublished record. It **cannot be chosen**: only inside a published month is a\nstored zero a measured zero rather than a value not published yet. The resolved\nbounds are reported in `period`. When no month can be resolved -- no published\nmonth in the search window, or no supplies to search -- the response is still\nsuccessful, with null period bounds and 24 buckets without any sample.\n\n**Buckets:**\nAlways 24, ordered from hour 0 to hour 23. The hour is **local to the community**,\nnot UTC: each record falls in the bucket of its hour of the day in the community's\ntime zone.\n\n**Averages:**\nEvery record of every supply and every day of the month counts as one sample of\nits hour, and each average **divides by the records found**: never by the days of\nthe month, and never by averaging per-supply averages. Each series has its own\nsample count, `totalConsumptionSampleCount` and `assignedProductionSampleCount`, and the\ntwo can differ, since a record can carry consumption without carrying assigned\nproduction. An average is `null` when its hour has no sample of that series, which\nis never the same as `0`: an hour whose samples are all zero, such as a night hour\nof assigned production, averages `0`.\n\n**Daylight saving:**\nThe counts are sample counts, not day counts, and no hour is corrected. On the\nOctober transition day the repeated local hour holds two samples of that day; on\nthe March transition day the skipped local hour holds none. No bucket is ever\nshifted.\n\n**Coverage:**\n`coverage` is counted exactly as in the aggregated energy metrics:\n`coverage.expectedHours` is the number of hours the month spans **times the number\nof supplies of the membership**, so missing records -- including days of a month\npublished piecemeal -- show up as `hoursWithData` below `expectedHours`.\n`supplyCount` and `suppliesWithData` tell one silent supply apart from gaps spread\nacross all of them.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404.\n",
         "operationId" : "getMembershipHourlyProfile",
         "parameters" : [
           {
@@ -17709,7 +17709,7 @@
     },
     "/api/v1/supplies/{supplyId}/consumption/hourly" : {
       "get" : {
-        "description" : "This endpoint retrieves hourly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Total consumption in kWh\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by hour within the specified date range.\n",
+        "description" : "This endpoint retrieves hourly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by hour within the specified date range.\n",
         "operationId" : "getSupplyHourlyConsumption",
         "parameters" : [
           {
@@ -18005,7 +18005,7 @@
     },
     "/api/v1/supplies/{supplyId}/consumption/yearly" : {
       "get" : {
-        "description" : "This endpoint retrieves yearly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Total consumption in kWh\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by year within the specified date range.\n\n**Time zone:** each year covers the local calendar year of the time zone the\napplication is configured with, not the UTC one, so its total includes the first\nand last local hours of the year and nothing from its neighbours.\n\n**Range bounds:** `startDate` and `endDate` are both inclusive, and they select\npre-aggregated points by the instant each one is stamped at, which is local\nmidnight on the first day of its year. Pass them with the zone's offset to\nselect the years intended: local `2023-01-01T00:00:00+01:00` is\n`2022-12-31T23:00:00Z`, so a bound expressed in UTC can select one year too few\nor too many.\n",
+        "description" : "This endpoint retrieves yearly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by year within the specified date range.\n\n**Time zone:** each year covers the local calendar year of the time zone the\napplication is configured with, not the UTC one, so its total includes the first\nand last local hours of the year and nothing from its neighbours.\n\n**Range bounds:** `startDate` and `endDate` are both inclusive, and they select\npre-aggregated points by the instant each one is stamped at, which is local\nmidnight on the first day of its year. Pass them with the zone's offset to\nselect the years intended: local `2023-01-01T00:00:00+01:00` is\n`2022-12-31T23:00:00Z`, so a bound expressed in UTC can select one year too few\nor too many.\n",
         "operationId" : "getSupplyYearlyConsumption",
         "parameters" : [
           {

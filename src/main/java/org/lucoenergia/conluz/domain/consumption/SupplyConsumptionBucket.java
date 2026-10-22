@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.consumption;
 
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
 
 import java.util.Objects;
 
@@ -34,6 +35,17 @@ public class SupplyConsumptionBucket {
 
     public SupplySavings getSavings() {
         return savings;
+    }
+
+    /**
+     * The energy assigned to the supply over the bucket, derived from the bucket's self-consumed
+     * and surplus energy as reported, unrounded. The distributor's generation figure plays no part
+     * in it (#460).
+     */
+    public double getAssignedProductionKWh() {
+        return EnergyBalance.assignedProductionKWh(
+                DatadisEnergyValues.exactlyAsReported(consumption.getSelfConsumptionEnergyKWh()).doubleValue(),
+                DatadisEnergyValues.exactlyAsReported(consumption.getSurplusEnergyKWh()).doubleValue());
     }
 
     @Override

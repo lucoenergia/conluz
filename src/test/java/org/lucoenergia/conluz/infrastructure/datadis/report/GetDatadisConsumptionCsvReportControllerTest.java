@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.datadis.report;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -79,6 +81,31 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(content().string(containsString("\"cups\",\"date\",\"time\",\"consumptionKWh\",\"obtainMethod\",\"surplusEnergyKWh\",\"generationEnergyKWh\",\"selfConsumptionEnergyKWh\"")));
+    }
+
+    /**
+     * The CSV is a Datadis pass-through and keeps the Datadis names, unlike the consumption series
+     * (#460): its first line is exactly the header it always had.
+     */
+    @Test
+    @DisplayName("EVL-003 AC6 the CSV report keeps the Datadis header")
+    void testGetCsvReportKeepsTheDatadisHeader() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User user = createUserRepository.create(UserMother.randomUser());
+        createSupplyRepository.create(
+                SupplyMother.random(user).withCode(CUPS_CODE).build(),
+                UserId.of(user.getId()));
+
+        String csv = mockMvc.perform(get(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertEquals("\"cups\",\"date\",\"time\",\"consumptionKWh\",\"obtainMethod\",\"surplusEnergyKWh\","
+                        + "\"generationEnergyKWh\",\"selfConsumptionEnergyKWh\"",
+                csv.lines().findFirst().orElseThrow());
     }
 
     @Test
