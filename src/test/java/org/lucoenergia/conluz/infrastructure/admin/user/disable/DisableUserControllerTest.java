@@ -7,10 +7,12 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.disable.DisableUserService;
+import org.lucoenergia.conluz.domain.admin.user.enable.EnableUserService;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -48,32 +50,52 @@ class DisableUserControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
     private ManagePlatformAdminRepository managePlatformAdminRepository;
+    @Autowired
+    private DisableUserService disableUserService;
+    @Autowired
+    private EnableUserService enableUserService;
 
     private static final String CURRENT_USER_URL = "/api/v1/users/current";
     private static final String NEW_PASSWORD = "a brand new password for this user";
 
     @Test
-    void testDisableUser() throws Exception {
-
-        // Create a user enabled
+    @DisplayName("ACC-020 a platform admin disabling a user is told the user is missing, and the account stays enabled")
+    void aPlatformAdminDisablingAUserIsToldTheUserIsMissing() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
         User user = UserMother.randomUser();
         user.setEnabled(true);
         createUserRepository.create(user);
-        Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
-
-        // Login as default admin user
-        String authHeader = loginAsDefaultPlatformAdmin();
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(post(String.format("/api/v1/users/%s/disable", user.getId()))
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-        Assertions.assertFalse(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).get().isEnabled());
+                .andExpect(status().isNotFound());
+        Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).get().isEnabled());
+    }
+
+    @Test
+    @DisplayName("ACC-020 a platform admin who administers the user's community disabling them is refused, and the account stays enabled")
+    void aPlatformAdminWhoAdministersTheUsersCommunityDisablingThemIsForbidden() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User user = UserMother.randomUser();
+        user.setEnabled(true);
+        createUserRepository.create(user);
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        User platformAdmin = createEnabledUser();
+        createMembershipRepository.create(community.getId(), platformAdmin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
+
+        mockMvc.perform(post(String.format("/api/v1/users/%s/disable", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(platformAdmin))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+        Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).get().isEnabled());
     }
 
     @Test
@@ -132,7 +154,7 @@ class DisableUserControllerTest extends BaseControllerTest {
         User member = UserMother.randomUser();
         member.setEnabled(true);
         createUserRepository.create(member);
-        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(post(String.format("/api/v1/users/%s/disable", member.getId()))
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId()))
@@ -154,7 +176,7 @@ class DisableUserControllerTest extends BaseControllerTest {
         // Create a community and add the default platform admin as a member.
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         User defaultAdmin = getUserRepository.findByPersonalId(UserPersonalId.of(PERSONAL_ID)).get();
-        createMembershipService.create(community.getId(), defaultAdmin.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), defaultAdmin.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         // Create a community admin of that community (not a platform admin) and log in.
         String authHeader = loginAsCommunityAdmin(community.getId());
@@ -174,26 +196,22 @@ class DisableUserControllerTest extends BaseControllerTest {
     }
 
     /**
-     * Only a platform admin may disable another user, and they count as an enabled platform admin themselves, so the
-     * last-platform-admin rule can refuse a disable only when it runs at the same time as another one: the rule is
-     * covered by DisableUserServiceTest. A disabled platform admin does not count, so disabling one again is allowed.
+     * No caller may disable another user over HTTP (ACC-020), so the disable runs through the service. The
+     * last-platform-admin refusal is covered by DisableUserServiceTest; a disabled platform admin does not count, so
+     * disabling one again is allowed.
      */
     @Test
     @DisplayName("ACC-008 disabling a disabled platform admin while only one platform admin is enabled is allowed")
     void testDisableDisabledPlatformAdminWithOneEnabledAdmin() throws Exception {
 
         // The default platform admin is the only enabled one; the target is a disabled platform admin.
-        String authHeader = loginAsDefaultPlatformAdmin();
+        init();
         User disabledAdmin = UserMother.randomUser();
         disabledAdmin.setEnabled(false);
         createUserRepository.create(disabledAdmin);
         managePlatformAdminRepository.grant(UserId.of(disabledAdmin.getId()));
 
-        mockMvc.perform(post(String.format("/api/v1/users/%s/disable", disabledAdmin.getId()))
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isOk());
+        disable(disabledAdmin);
 
         // The target stays disabled, now with its disable recorded, and the one enabled platform admin is untouched.
         User target = getUserRepository.findById(UserId.of(disabledAdmin.getId())).orElseThrow();
@@ -223,7 +241,6 @@ class DisableUserControllerTest extends BaseControllerTest {
 
     @Test
     void aDisabledUser_isRejectedOnTheNextRequestWithTheirExistingToken() throws Exception {
-        String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         // Start at the beginning of a second, so the login and the disable most likely share it: the token is then
         // not older than the recorded disable, and only the enabled flag can reject it
@@ -231,7 +248,7 @@ class DisableUserControllerTest extends BaseControllerTest {
         String token = loginUser(user);
         getCurrentUser(token).andExpect(status().isOk());
 
-        disable(adminToken, user).andExpect(status().isOk());
+        disable(user);
 
         getCurrentUser(token)
                 .andExpect(status().isUnauthorized())
@@ -256,13 +273,12 @@ class DisableUserControllerTest extends BaseControllerTest {
 
     @Test
     void aReEnabledUser_isRejectedWithATokenIssuedBeforeTheDisable_andAcceptedAfterLoggingInAgain() throws Exception {
-        String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         String tokenBeforeTheDisable = loginUser(user);
         clock.advance(Duration.ofSeconds(1));
 
-        disable(adminToken, user).andExpect(status().isOk());
-        enable(adminToken, user).andExpect(status().isOk());
+        disable(user);
+        enable(user);
 
         getCurrentUser(tokenBeforeTheDisable).andExpect(status().isUnauthorized());
         String tokenAfterTheEnable = loginUser(user);
@@ -271,13 +287,12 @@ class DisableUserControllerTest extends BaseControllerTest {
 
     @Test
     void aUserNeverDisabled_keepsTheirTokens_andHasNoDisableRecorded() throws Exception {
-        String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         User someoneElse = createEnabledUser();
         String token = loginUser(user);
         clock.advance(Duration.ofSeconds(1));
 
-        disable(adminToken, someoneElse).andExpect(status().isOk());
+        disable(someoneElse);
 
         getCurrentUser(token).andExpect(status().isOk());
         getCurrentUser(token).andExpect(status().isOk());
@@ -286,7 +301,6 @@ class DisableUserControllerTest extends BaseControllerTest {
 
     @Test
     void passwordChangedThenDisabledAndReEnabled_onlyATokenIssuedAfterBothIsAccepted() throws Exception {
-        String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         String tokenBeforeThePasswordChange = loginUser(user);
         clock.advance(Duration.ofSeconds(1));
@@ -296,8 +310,8 @@ class DisableUserControllerTest extends BaseControllerTest {
         String tokenBeforeTheDisable = loginUser(user);
         clock.advance(Duration.ofSeconds(1));
 
-        disable(adminToken, user).andExpect(status().isOk());
-        enable(adminToken, user).andExpect(status().isOk());
+        disable(user);
+        enable(user);
 
         getCurrentUser(tokenBeforeThePasswordChange).andExpect(status().isUnauthorized());
         getCurrentUser(tokenBeforeTheDisable).andExpect(status().isUnauthorized());
@@ -306,12 +320,11 @@ class DisableUserControllerTest extends BaseControllerTest {
 
     @Test
     void disabledAndReEnabledThenPasswordChanged_onlyATokenIssuedAfterBothIsAccepted() throws Exception {
-        String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         String tokenBeforeTheDisable = loginUser(user);
         clock.advance(Duration.ofSeconds(1));
-        disable(adminToken, user).andExpect(status().isOk());
-        enable(adminToken, user).andExpect(status().isOk());
+        disable(user);
+        enable(user);
         String tokenBeforeThePasswordChange = loginUser(user);
         String tokenUsedForThePasswordChange = loginUser(user);
         clock.advance(Duration.ofSeconds(1));
@@ -327,20 +340,19 @@ class DisableUserControllerTest extends BaseControllerTest {
 
     @Test
     void aUserDisabledTwice_theLatestDisableIsTheOneThatCounts() throws Exception {
-        String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         String tokenBeforeTheFirstDisable = loginUser(user);
         clock.advance(Duration.ofSeconds(1));
-        disable(adminToken, user).andExpect(status().isOk());
+        disable(user);
         Instant firstDisable = reload(user).getDisabledAt();
-        enable(adminToken, user).andExpect(status().isOk());
+        enable(user);
         String tokenBetweenTheDisables = loginUser(user);
         getCurrentUser(tokenBetweenTheDisables).andExpect(status().isOk());
         clock.advance(Duration.ofSeconds(1));
 
-        disable(adminToken, user).andExpect(status().isOk());
+        disable(user);
         Instant secondDisable = reload(user).getDisabledAt();
-        enable(adminToken, user).andExpect(status().isOk());
+        enable(user);
 
         Assertions.assertTrue(secondDisable.isAfter(firstDisable));
         getCurrentUser(tokenBeforeTheFirstDisable).andExpect(status().isUnauthorized());
@@ -350,11 +362,10 @@ class DisableUserControllerTest extends BaseControllerTest {
 
     @Test
     void theDisableIsRecordedWithTheApplicationClock_theOneTokensAreIssuedWith() throws Exception {
-        String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
 
-        disable(adminToken, user).andExpect(status().isOk());
-        enable(adminToken, user).andExpect(status().isOk());
+        disable(user);
+        enable(user);
 
         Assertions.assertEquals(clock.instant(), reload(user).getDisabledAt());
         getCurrentUser(loginUser(user)).andExpect(status().isOk());
@@ -362,15 +373,14 @@ class DisableUserControllerTest extends BaseControllerTest {
 
     @Test
     void aDisable_endsTheSessionsOfEarlierSecondsOnly_onceTheUserIsEnabledAgain() throws Exception {
-        String adminToken = loginAsDefaultPlatformAdmin();
         User user = createEnabledUser();
         Instant second = aComingSecond();
         advanceTo(second.minusMillis(100));
         String earlierSecond = loginUser(user);
 
         advanceTo(second.plusMillis(400));
-        disable(adminToken, user).andExpect(status().isOk());
-        enable(adminToken, user).andExpect(status().isOk());
+        disable(user);
+        enable(user);
         advanceTo(second.plusMillis(700));
         String sameSecond = loginUser(user);
 
@@ -390,16 +400,16 @@ class DisableUserControllerTest extends BaseControllerTest {
         return getUserRepository.findById(UserId.of(user.getId())).orElseThrow();
     }
 
-    private ResultActions disable(String adminToken, User user) throws Exception {
-        return mockMvc.perform(post(String.format("/api/v1/users/%s/disable", user.getId()))
-                .header(HttpHeaders.AUTHORIZATION, adminToken)
-                .contentType(MediaType.APPLICATION_JSON));
+    /**
+     * Disables the account through the service. No caller may disable another user's account over HTTP (ACC-008,
+     * ACC-020), so what a disable does to the sessions is driven from the service and observed over HTTP.
+     */
+    private void disable(User user) {
+        disableUserService.disable(UserId.of(user.getId()));
     }
 
-    private ResultActions enable(String adminToken, User user) throws Exception {
-        return mockMvc.perform(post(String.format("/api/v1/users/%s/enable", user.getId()))
-                .header(HttpHeaders.AUTHORIZATION, adminToken)
-                .contentType(MediaType.APPLICATION_JSON));
+    private void enable(User user) {
+        enableUserService.enable(UserId.of(user.getId()));
     }
 
     private ResultActions getCurrentUser(String token) throws Exception {

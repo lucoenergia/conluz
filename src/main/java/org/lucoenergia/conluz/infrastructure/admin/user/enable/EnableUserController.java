@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenAccountChangeErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,9 +37,9 @@ public class EnableUserController {
                     This endpoint serves the purpose of enabling a previously disabled user within the system, with the user's unique identifier specified in the endpoint path.
                     
                     Proper authentication, through an authentication token, is required for secure access.
-                    **Required: Platform Admin. You cannot enable your own account.**
+                    **Required: nobody may use it on another user's account, and you cannot enable your own account.** Nobody may enable another user's account: neither a Community Admin, whatever their role in the user's communities (#415), nor a Platform Admin (#446). A caller who cannot see the user is answered 404; one who can is answered 403.
                     
-                    Community admins cannot change another user's account: the account is shared by every community the person belongs to (#415). To suspend a member in one community, enable or disable their membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/enable` or `/disable`).
+                    The account is shared by every community the person belongs to (#415). To suspend a member in one community, enable or disable their membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/enable` or `/disable`).
                     
                     Upon a successful request, the server responds with an HTTP status code of 200, indicating that the user has been successfully enabled.
                     
@@ -59,6 +60,7 @@ public class EnableUserController {
     @UnauthorizedErrorResponse
     @BadRequestErrorResponse
     @InternalServerErrorResponse
+    @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canEnableUser(#userId)")
     public void enableUser(@PathVariable("userId") UUID userId) {
         service.enable(UserId.of(userId));

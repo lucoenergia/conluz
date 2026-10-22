@@ -84,20 +84,8 @@ public class UserCapabilitiesAssembler {
     }
 
     /**
-     * The same decision addressed by id, for a caller that has the target's id but not the target —
-     * notably a write endpoint that wants to settle the capabilities <em>before</em> it writes.
-     */
-    public UserCapabilitiesResponse assembleFetchingMemberships(User caller, UUID targetUserId) {
-        return assemble(caller, targetUserId, memoize(() -> targetUserId == null
-                ? List.<CommunityMembership>of()
-                : getMembershipsRepository.findByUserIds(Set.of(targetUserId))
-                        .getOrDefault(targetUserId, List.of())));
-    }
-
-    /**
      * For a page of users that carry no memberships, keyed by user id. Issues <strong>one</strong>
-     * query for the whole page, and none at all if no rule ends up asking — a platform admin reading
-     * their own record never does.
+     * query for the whole page, and none at all if no rule ends up asking.
      */
     public Map<UUID, UserCapabilitiesResponse> assembleAllFetchingMemberships(User caller, List<User> targets) {
         Set<UUID> userIds = targets.stream()
@@ -126,11 +114,9 @@ public class UserCapabilitiesAssembler {
                                               Supplier<List<CommunityMembership>> targetMemberships) {
         return UserCapabilitiesResponse.builder()
                 .withCanRead(policies.user().canRead(caller, userId, targetMemberships).isAllowed())
-                .withCanEdit(policies.user().canEdit(caller, userId, targetMemberships).isAllowed())
                 .withCanDelete(policies.user().canEditOther(caller, userId, targetMemberships).isAllowed())
                 .withCanEnable(policies.user().canEditOther(caller, userId, targetMemberships).isAllowed())
                 .withCanDisable(policies.user().canEditOther(caller, userId, targetMemberships).isAllowed())
-                .withCanGrantPlatformAdmin(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .withCanRevokePlatformAdmin(policies.platform().canAdministerOtherUser(caller, userId).isAllowed())
                 .withCanListSupplies(policies.user().canListSuppliesOf(caller, userId, targetMemberships).isAllowed())
                 .build();

@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
@@ -79,9 +80,9 @@ class PasswordChangeRequiredControllerTest extends BaseControllerTest {
     @Test
     void aCommunityScopedAction_isRefused_toACommunityAdmin_andChangesNothing() throws Exception {
         String token = loginUser(createCommunityAdminWhoMustChangePassword(community.getId()));
-        String personalId = "34400001A";
+        String personalId = UserMother.randomPersonalId();
 
-        expectPasswordChangeRequired(createUserInTheCommunity(token, personalId));
+        expectPasswordChangeRequired(registerAMemberInTheCommunity(token, personalId));
 
         Assertions.assertFalse(userRepository.existsByPersonalId(personalId));
     }
@@ -185,7 +186,7 @@ class PasswordChangeRequiredControllerTest extends BaseControllerTest {
         changePassword(loginUser(user), user.getPassword()).andExpect(status().isNoContent());
         String token = login(user.getPersonalId(), NEW_PASSWORD);
 
-        createUserInTheCommunity(token, "34400002B").andExpect(status().isOk());
+        registerAMemberInTheCommunity(token, UserMother.randomPersonalId()).andExpect(status().isOk());
     }
 
     @Test
@@ -281,18 +282,13 @@ class PasswordChangeRequiredControllerTest extends BaseControllerTest {
                 .content(objectMapper.writeValueAsString(Map.of("email", NEW_EMAIL))));
     }
 
-    private ResultActions createUserInTheCommunity(String token, String personalId) throws Exception {
-        return mockMvc.perform(post("/api/v1/users")
+    private ResultActions registerAMemberInTheCommunity(String token, String personalId) throws Exception {
+        return mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/register", community.getId())
                 .header(HttpHeaders.AUTHORIZATION, token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of(
                         "personalId", personalId,
-                        "fullName", "John Doe",
-                        "number", 1,
-                        "email", personalId.toLowerCase() + "@example.org",
-                        "password", "a secure password1!",
-                        "communityId", community.getId().toString(),
-                        "communityRole", "COMMUNITY_MEMBER"))));
+                        "fullName", "John Doe"))));
     }
 
     private ResultActions createCommunity(String token, String code) throws Exception {

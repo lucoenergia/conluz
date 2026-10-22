@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -90,7 +90,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     @Autowired
     private CreatePlantRepository createPlantRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CommunityMembershipJpaRepository membershipJpaRepository;
     @Autowired
@@ -137,7 +137,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         communityB = createCommunityRepository.create(CommunityMother.random().build());
 
         owner = persistUser();
-        createMembershipService.create(communityA.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityA.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()),
                 communityA.getId());
         plant = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
@@ -146,6 +146,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         callers = new LinkedHashMap<>();
         callers.put("platform admin, member of A", platformAdminMemberOf(communityA));
         callers.put("platform admin, not a member", platformAdmin());
+        callers.put("platform admin, community admin of A",
+                grantPlatformAdmin(memberOf(communityA, CommunityRole.COMMUNITY_ADMIN)));
         callers.put("community admin of A", memberOf(communityA, CommunityRole.COMMUNITY_ADMIN));
         callers.put("plain member of A", memberOf(communityA, CommunityRole.COMMUNITY_MEMBER));
         callers.put("owner of the supply", owner);
@@ -176,7 +178,6 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canManageMembershipInvestment", capabilities.isCanManageMembershipInvestment(),
                     () -> guard.canManageMembershipInvestment(id));
             assertSame("canListPlants", capabilities.isCanListPlants(), () -> guard.canListPlants(id));
-            assertSame("canCreateUsers", capabilities.isCanCreateUsers(), () -> guard.canCreateUserIn(id));
             assertSame("canReadProduction", capabilities.isCanReadProduction(),
                     () -> guard.canReadCommunityProduction(id));
             assertSame("canListSupplies", capabilities.isCanListSupplies(), () -> guard.canListSupplies(id));
@@ -282,14 +283,33 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         UUID targetId = owner.getId();
         forEachCaller(caller -> {
             UserCapabilitiesResponse capabilities =
-                    userAssembler.assembleFetchingMemberships(caller, targetId);
+                    userAssembler.assembleFetchingMemberships(caller, owner);
             assertSame("canRead", capabilities.isCanRead(), () -> guard.canReadUser(targetId));
-            assertSame("canEdit", capabilities.isCanEdit(), () -> guard.canEditUser(targetId));
             assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canDeleteUser(targetId));
             assertSame("canEnable", capabilities.isCanEnable(), () -> guard.canEnableUser(targetId));
             assertSame("canDisable", capabilities.isCanDisable(), () -> guard.canDisableUser(targetId));
-            assertSame("canGrantPlatformAdmin", capabilities.isCanGrantPlatformAdmin(),
-                    () -> guard.canGrantPlatformAdmin(targetId));
+            assertSame("canRevokePlatformAdmin", capabilities.isCanRevokePlatformAdmin(),
+                    () -> guard.canRevokePlatformAdmin(targetId));
+            assertSame("canListSupplies", capabilities.isCanListSupplies(),
+                    () -> guard.canListSuppliesOfUser(targetId));
+        });
+    }
+
+    /**
+     * The same rules about a user outside community A, so that a caller who administers A is compared on someone it
+     * administers nothing of -- the case a platform admin who is also a community admin turns on.
+     */
+    @Test
+    void theUserCapabilitiesEqualTheirGuardsForAUserOutsideTheCallersCommunity() {
+        User target = callers.get("member of B");
+        UUID targetId = target.getId();
+        forEachCaller(caller -> {
+            UserCapabilitiesResponse capabilities =
+                    userAssembler.assembleFetchingMemberships(caller, target);
+            assertSame("canRead", capabilities.isCanRead(), () -> guard.canReadUser(targetId));
+            assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canDeleteUser(targetId));
+            assertSame("canEnable", capabilities.isCanEnable(), () -> guard.canEnableUser(targetId));
+            assertSame("canDisable", capabilities.isCanDisable(), () -> guard.canDisableUser(targetId));
             assertSame("canRevokePlatformAdmin", capabilities.isCanRevokePlatformAdmin(),
                     () -> guard.canRevokePlatformAdmin(targetId));
             assertSame("canListSupplies", capabilities.isCanListSupplies(),
@@ -307,9 +327,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
         forEachCaller(caller -> {
             UUID selfId = caller.getId();
             UserCapabilitiesResponse capabilities =
-                    userAssembler.assembleFetchingMemberships(caller, selfId);
+                    userAssembler.assembleFetchingMemberships(caller, caller);
             assertSame("canRead", capabilities.isCanRead(), () -> guard.canReadUser(selfId));
-            assertSame("canEdit", capabilities.isCanEdit(), () -> guard.canEditUser(selfId));
             assertSame("canDelete", capabilities.isCanDelete(), () -> guard.canDeleteUser(selfId));
             assertSame("canRevokePlatformAdmin", capabilities.isCanRevokePlatformAdmin(),
                     () -> guard.canRevokePlatformAdmin(selfId));
@@ -374,7 +393,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     @DisplayName("MEM-028 editing an admin's member record is reported as its guard decides it")
     void theRecordCapabilityEqualsItsGuardOnAnAdminsMembership() {
         User admin = persistUser();
-        createMembershipService.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         CommunityMembership membership = getMembershipsRepository
                 .findByUserIdAndCommunityId(admin.getId(), communityA.getId()).orElseThrow();
         UUID communityId = communityA.getId();
@@ -395,7 +414,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     @DisplayName("MEM-027 enabling and disabling an admin's membership is reported as its guard decides it")
     void theMembershipStateCapabilitiesEqualTheirGuardOnAnAdminsMembership() {
         User admin = persistUser();
-        createMembershipService.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         CommunityMembership membership = getMembershipsRepository
                 .findByUserIdAndCommunityId(admin.getId(), communityA.getId()).orElseThrow();
         UUID communityId = communityA.getId();
@@ -417,10 +436,6 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
             assertSame("canCreateCommunity", capabilities.isCanCreateCommunity(),
                     () -> guard.canCreateCommunity());
             assertSame("canListUsers", capabilities.isCanListUsers(), () -> guard.canListUsers());
-            // The null is the decision itself: POST /api/v1/users carries an optional communityId,
-            // so this is the guard call the endpoint makes when none is given.
-            assertSame("canCreateUsers", capabilities.isCanCreateUsers(),
-                    () -> guard.canCreateUserIn(null));
             assertSame("canListPlatformAdmins", capabilities.isCanListPlatformAdmins(),
                     () -> guard.canListPlatformAdmins());
             assertSame("canInvitePlatformAdmins", capabilities.isCanInvitePlatformAdmins(),
@@ -524,7 +539,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
 
     private User memberOf(Community community, CommunityRole role) {
         User user = persistUser();
-        createMembershipService.create(community.getId(), user.getId(), role);
+        createMembershipRepository.create(community.getId(), user.getId(), role);
         return user;
     }
 

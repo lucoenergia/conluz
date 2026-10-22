@@ -27,9 +27,34 @@ class UserAccessPolicyTest {
     // --- canRead ---
 
     @Test
-    void canRead_allows_aPlatformAdminToReadAnyone() {
-        assertEquals(AccessDecision.ALLOWED,
-                policy.canRead(PolicyFixtures.platformAdmin(), UUID.randomUUID(), noMemberships()));
+    @DisplayName("ACC-020 a platform admin may not read a user it does not administer")
+    void canRead_isNotVisible_forAPlatformAdminWhoAdministersNoneOfTheTargetCommunities() {
+        Community shared = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canRead(PolicyFixtures.platformAdmin(), UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    @DisplayName("ACC-020 a platform admin who is a member, not an admin, of the target community may not read them")
+    void canRead_isNotVisible_forAPlatformAdminWhoIsAPlainMemberOfTheTargetCommunity() {
+        Community shared = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canRead(PolicyFixtures.platformAdminMemberOf(shared), UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    @DisplayName("ACC-020 a platform admin who administers the target community reads them as its community admin")
+    void canRead_allows_aPlatformAdminWhoAdministersTheTargetCommunity() {
+        Community shared = PolicyFixtures.community();
+        User caller = PolicyFixtures.adminOf(shared);
+        caller.setPlatformAdmin(true);
+        assertEquals(AccessDecision.ALLOWED, policy.canRead(caller, UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    void canRead_allows_aPlatformAdminToReadThemselves() {
+        User caller = PolicyFixtures.platformAdmin();
+        assertEquals(AccessDecision.ALLOWED, policy.canRead(caller, caller.getId(), noMemberships()));
     }
 
     @Test
@@ -73,76 +98,15 @@ class UserAccessPolicyTest {
                 UUID.randomUUID(), memberOf(shared)));
     }
 
-    // --- canEdit ---
-
-    @Test
-    void canEdit_allows_aPlatformAdmin() {
-        assertEquals(AccessDecision.ALLOWED,
-                policy.canEdit(PolicyFixtures.platformAdmin(), UUID.randomUUID(), noMemberships()));
-    }
-
-    @Test
-    @DisplayName("ACC-008 a community admin may not edit a member of their community")
-    void canEdit_forbids_aCommunityAdminOfTheTargetCommunity() {
-        Community shared = PolicyFixtures.community();
-        assertEquals(AccessDecision.FORBIDDEN, policy.canEdit(PolicyFixtures.adminOf(shared),
-                UUID.randomUUID(), memberOf(shared)));
-    }
-
-    @Test
-    @DisplayName("ACC-008 a community admin may not edit a member they share with another community")
-    void canEdit_forbids_aCommunityAdminOfOneOfTheTargetCommunities() {
-        Community administered = PolicyFixtures.community();
-        Community other = PolicyFixtures.community();
-        assertEquals(AccessDecision.FORBIDDEN, policy.canEdit(PolicyFixtures.adminOf(administered),
-                UUID.randomUUID(), () -> List.of(
-                        PolicyFixtures.membershipIn(administered, CommunityRole.COMMUNITY_MEMBER, true),
-                        PolicyFixtures.membershipIn(other, CommunityRole.COMMUNITY_MEMBER, true))));
-    }
-
-    @Test
-    @DisplayName("ACC-008 a community admin may not edit another admin of their community")
-    void canEdit_forbids_aCommunityAdminEditingAnotherAdminOfTheirCommunity() {
-        Community shared = PolicyFixtures.community();
-        assertEquals(AccessDecision.FORBIDDEN, policy.canEdit(PolicyFixtures.adminOf(shared),
-                UUID.randomUUID(), () -> List.of(
-                        PolicyFixtures.membershipIn(shared, CommunityRole.COMMUNITY_ADMIN, true))));
-    }
-
-    @Test
-    void canEdit_isNotVisible_whenTheTargetIsOutOfReach() {
-        assertEquals(AccessDecision.NOT_VISIBLE,
-                policy.canEdit(PolicyFixtures.stranger(), UUID.randomUUID(), noMemberships()));
-    }
-
-    @Test
-    void canEdit_forbids_aPlainMemberEditingThemselves() {
-        // The self branch gets them past visibility, but editing oneself needs a community they
-        // administer, so an ordinary member is forbidden.
-        Community own = PolicyFixtures.community();
-        User caller = PolicyFixtures.memberOf(own);
-
-        assertEquals(AccessDecision.FORBIDDEN, policy.canEdit(caller, caller.getId(), memberOf(own)));
-    }
-
-    @Test
-    @DisplayName("ACC-008 a community admin keeps editing their own account")
-    void canEdit_allows_aCommunityAdminEditingThemselves() {
-        Community own = PolicyFixtures.community();
-        User caller = PolicyFixtures.adminOf(own);
-
-        assertEquals(AccessDecision.ALLOWED, policy.canEdit(caller, caller.getId(),
-                () -> List.of(PolicyFixtures.membershipIn(own, CommunityRole.COMMUNITY_ADMIN, true))));
-    }
-
     // --- the target's memberships are only fetched when a branch actually needs them ---
 
     @Test
-    void canRead_doesNotResolveTheTargetMemberships_forAPlatformAdmin() {
+    void canRead_resolvesTheTargetMembershipsOnce_forAPlatformAdmin() {
+        // No longer exempt: a platform admin is decided by the target's communities like anyone else.
         AtomicInteger calls = new AtomicInteger();
         policy.canRead(PolicyFixtures.platformAdmin(), UUID.randomUUID(), counting(calls));
 
-        assertEquals(0, calls.get());
+        assertEquals(1, calls.get());
     }
 
     @Test
@@ -181,11 +145,10 @@ class UserAccessPolicyTest {
     }
 
     @Test
-    void canListSuppliesOf_forbids_aPlatformAdminWhoAdministersNoneOfTheTargetCommunities() {
-        // They can see the user, so this is a 403 rather than a 404 -- but it is a denial, unlike
-        // canRead, which would have allowed it.
+    @DisplayName("ACC-020 a platform admin who administers none of the target communities cannot see them")
+    void canListSuppliesOf_isNotVisible_forAPlatformAdminWhoAdministersNoneOfTheTargetCommunities() {
         Community shared = PolicyFixtures.community();
-        assertEquals(AccessDecision.FORBIDDEN, policy.canListSuppliesOf(PolicyFixtures.platformAdmin(),
+        assertEquals(AccessDecision.NOT_VISIBLE, policy.canListSuppliesOf(PolicyFixtures.platformAdmin(),
                 UUID.randomUUID(), memberOf(shared)));
     }
 
@@ -206,13 +169,13 @@ class UserAccessPolicyTest {
     }
 
     @Test
-    void canListSuppliesOf_forbids_whenTheCallerAdminMembershipIsDisabled() {
-        // The disabled admin is a platform admin too, so they still see the user -> 403, not 404.
+    void canListSuppliesOf_isNotVisible_whenTheCallerAdminMembershipIsDisabled() {
+        // Being a platform admin as well does not make the user visible.
         Community shared = PolicyFixtures.community();
         User caller = PolicyFixtures.disabledAdminOf(shared);
         caller.setPlatformAdmin(true);
 
-        assertEquals(AccessDecision.FORBIDDEN,
+        assertEquals(AccessDecision.NOT_VISIBLE,
                 policy.canListSuppliesOf(caller, UUID.randomUUID(), memberOf(shared)));
     }
 
@@ -223,58 +186,14 @@ class UserAccessPolicyTest {
                 UUID.randomUUID(), memberOf(shared)));
     }
 
-    // --- canCreateIn ---
-
-    @Test
-    void canCreateIn_allows_aPlatformAdmin() {
-        assertEquals(AccessDecision.ALLOWED,
-                policy.canCreateIn(PolicyFixtures.platformAdmin(), UUID.randomUUID()));
-    }
-
-    @Test
-    void canCreateIn_allows_aPlatformAdminEvenWithoutACommunityId() {
-        // The bypass runs before the community is considered at all.
-        assertEquals(AccessDecision.ALLOWED, policy.canCreateIn(PolicyFixtures.platformAdmin(), null));
-    }
-
-    @Test
-    void canCreateIn_allows_anEnabledCommunityAdmin() {
-        Community community = PolicyFixtures.community();
-        assertEquals(AccessDecision.ALLOWED,
-                policy.canCreateIn(PolicyFixtures.adminOf(community), community.getId()));
-    }
-
-    @Test
-    void canCreateIn_forbids_aPlainMember() {
-        Community community = PolicyFixtures.community();
-        assertEquals(AccessDecision.FORBIDDEN,
-                policy.canCreateIn(PolicyFixtures.memberOf(community), community.getId()));
-    }
-
-    @Test
-    void canCreateIn_forbids_whenTheCommunityIdIsMissingAndTheCallerIsNotAPlatformAdmin() {
-        assertEquals(AccessDecision.FORBIDDEN,
-                policy.canCreateIn(PolicyFixtures.adminOf(PolicyFixtures.community()), null));
-    }
-
-    @Test
-    void canCreateIn_isNotVisible_forANonMember() {
-        assertEquals(AccessDecision.NOT_VISIBLE,
-                policy.canCreateIn(PolicyFixtures.stranger(), UUID.randomUUID()));
-    }
-
-    @Test
-    void canCreateIn_isNotVisible_whenTheAdminMembershipIsDisabled() {
-        Community community = PolicyFixtures.community();
-        assertEquals(AccessDecision.NOT_VISIBLE,
-                policy.canCreateIn(PolicyFixtures.disabledAdminOf(community), community.getId()));
-    }
-
     // --- canList ---
 
     @Test
-    void canList_allows_aPlatformAdmin() {
-        assertEquals(AccessDecision.ALLOWED, policy.canList(PolicyFixtures.platformAdmin()));
+    @DisplayName("ACC-020 a platform admin who administers no community may not list users")
+    void canList_forbids_aPlatformAdminWhoAdministersNoCommunity() {
+        assertEquals(AccessDecision.FORBIDDEN, policy.canList(PolicyFixtures.platformAdmin()));
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canList(PolicyFixtures.platformAdminMemberOf(PolicyFixtures.community())));
     }
 
     @Test
@@ -301,13 +220,24 @@ class UserAccessPolicyTest {
     }
 
     // --- canEditOther ---
-    // Backs deleting, enabling and disabling. Visibility first, then "not yourself", then only a
-    // platform admin -- the order matters, and these tests pin it.
+    // Backs deleting, enabling and disabling. Visibility first, then a refusal for everyone -- the
+    // order matters, and these tests pin it.
 
     @Test
-    void canEditOther_allows_aPlatformAdminActingOnSomebodyElse() {
-        assertEquals(AccessDecision.ALLOWED,
-                policy.canEditOther(PolicyFixtures.platformAdmin(), UUID.randomUUID(), noMemberships()));
+    @DisplayName("ACC-020 a platform admin may not enable, disable or delete a user it cannot see")
+    void canEditOther_isNotVisible_forAPlatformAdminActingOnSomebodyElse() {
+        Community shared = PolicyFixtures.community();
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canEditOther(PolicyFixtures.platformAdmin(), UUID.randomUUID(), memberOf(shared)));
+    }
+
+    @Test
+    @DisplayName("ACC-020 a platform admin who administers the target community may not enable, disable or delete them")
+    void canEditOther_isForbidden_forAPlatformAdminWhoAdministersTheTargetCommunity() {
+        Community shared = PolicyFixtures.community();
+        User caller = PolicyFixtures.adminOf(shared);
+        caller.setPlatformAdmin(true);
+        assertEquals(AccessDecision.FORBIDDEN, policy.canEditOther(caller, UUID.randomUUID(), memberOf(shared)));
     }
 
     @Test
@@ -377,7 +307,7 @@ class UserAccessPolicyTest {
     @Test
     void canSee_isTheVisibilityHalfSharedByReadAndEdit() {
         Community shared = PolicyFixtures.community();
-        assertTrue(policy.canSee(PolicyFixtures.platformAdmin(), UUID.randomUUID(), noMemberships()));
+        assertFalse(policy.canSee(PolicyFixtures.platformAdmin(), UUID.randomUUID(), memberOf(shared)));
         assertTrue(policy.canSee(PolicyFixtures.adminOf(shared), UUID.randomUUID(), memberOf(shared)));
         assertFalse(policy.canSee(PolicyFixtures.stranger(), UUID.randomUUID(), noMemberships()));
     }
@@ -402,8 +332,10 @@ class UserAccessPolicyTest {
     // user, or a membership, the caller could not read directly" a property of the policy.
 
     @Test
-    void visibleUsers_isEveryone_forAPlatformAdmin() {
-        assertEquals(UserScope.all(), policy.visibleUsers(PolicyFixtures.platformAdmin()));
+    @DisplayName("ACC-020 a platform admin who administers no community sees only themselves")
+    void visibleUsers_isOnlyThemselves_forAPlatformAdmin() {
+        User caller = PolicyFixtures.platformAdmin();
+        assertEquals(UserScope.visibleTo(caller.getId(), Set.of()), policy.visibleUsers(caller));
     }
 
     @Test

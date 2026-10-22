@@ -71,15 +71,6 @@ public class MemberDataAssembler {
         return policies.memberData().forUser(caller, target, target::getMemberships);
     }
 
-    /**
-     * What the caller sees about a user whose memberships are not loaded. Queries them only when the caller is
-     * neither the user nor the platform admin.
-     */
-    public MemberDataView forUserFetchingMemberships(User caller, User target) {
-        return policies.memberData().forUser(caller, target,
-                () -> getMembershipsRepository.findByUserId(target.getId()));
-    }
-
     private record OwnerInCommunity(UUID userId, UUID communityId) {
     }
 }

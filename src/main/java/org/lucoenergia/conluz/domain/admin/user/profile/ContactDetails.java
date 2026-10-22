@@ -7,8 +7,7 @@ import java.util.Objects;
  * reaches them.
  *
  * <p>Name, DNI and member number are deliberately absent. They identify the member to the community
- * and to the distributor, so changing them is an administrative act performed through
- * {@code PUT /users/{userId}} — not something a member does to themselves.</p>
+ * and to the distributor, so they are not something a member changes on themselves.</p>
  */
 public class ContactDetails {
 

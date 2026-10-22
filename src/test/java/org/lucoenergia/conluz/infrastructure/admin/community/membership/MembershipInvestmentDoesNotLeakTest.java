@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
@@ -55,7 +55,7 @@ class MembershipInvestmentDoesNotLeakTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private AuthRepository authRepository;
     @Autowired
@@ -232,7 +232,7 @@ class MembershipInvestmentDoesNotLeakTest extends BaseControllerTest {
         User member = UserMother.randomUser();
         member.enable();
         createUserRepository.create(member);
-        createMembershipService.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         CommunityMembershipEntity membership = membershipJpaRepository
                 .findByUserIdAndCommunityId(member.getId(), communityId)

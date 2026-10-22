@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -29,9 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * {@code PUT /api/v1/users/profile} is the one write an ordinary member may perform on their own
- * record. It exists because the administrative endpoint, {@code PUT /users/{userId}}, replaces the
- * identifying fields as well — so the interesting assertions here are as much about what does
- * <em>not</em> change as about what does.
+ * record. It must never touch the identifying fields — so the interesting assertions here are as
+ * much about what does <em>not</em> change as about what does.
  */
 @Transactional
 class UpdateProfileControllerTest extends BaseControllerTest {
@@ -43,7 +42,7 @@ class UpdateProfileControllerTest extends BaseControllerTest {
     @Autowired
     private GetUserRepository getUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
 
     @Test
     void aPlainMemberUpdatesTheirOwnContactDetails() throws Exception {
@@ -89,7 +88,7 @@ class UpdateProfileControllerTest extends BaseControllerTest {
         User admin = UserMother.randomUser();
         admin.enable();
         createUserRepository.create(admin);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
 
         mockMvc.perform(put(URL)
                         .header(HttpHeaders.AUTHORIZATION, loginUser(admin))
@@ -105,7 +104,7 @@ class UpdateProfileControllerTest extends BaseControllerTest {
 
     @Test
     void theIdentifyingFieldsAreUntouched() throws Exception {
-        // The whole reason this endpoint exists rather than a self branch on canEditUser.
+        // The self-service write must never reach the fields that identify the member.
         User member = enabledMemberOfDefaultCommunity();
         String authHeader = loginUser(member);
 
@@ -251,7 +250,7 @@ class UpdateProfileControllerTest extends BaseControllerTest {
 
     @Test
     void thereIsNoPerUserVariantOfThisEndpoint() throws Exception {
-        // PUT /users/{userId} exists and is administrative; PUT /users/profile/{userId} must not.
+        // PUT /users/profile/{userId} must not exist.
         User caller = enabledMemberOfDefaultCommunity();
         User victim = enabledMemberOfDefaultCommunity();
         String authHeader = loginUser(caller);
@@ -270,7 +269,7 @@ class UpdateProfileControllerTest extends BaseControllerTest {
         User member = UserMother.randomUser();
         member.enable();
         createUserRepository.create(member);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, member.getId(), CommunityRole.COMMUNITY_MEMBER);
         return member;
     }
 

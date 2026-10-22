@@ -68,8 +68,8 @@ public class GetSuppliesByUserIdController {
                     **Authorization Rules:**
                     - Community Admins (of the target user's community) can retrieve supplies for that user
                     - A user can retrieve their own supplies
-                    - Being a Platform Admin is **not** sufficient: these are supplies, and a Platform Admin
-                      who administers none of the user's communities cannot read them one by one either
+                    - Being a Platform Admin is **not** sufficient (#446): a Platform Admin who administers none of
+                      the user's communities cannot see the user, and is answered 404
 
                     **What the listing contains:** only the supplies the caller may read one by one
                     (`GET /api/v1/supplies/{supplyId}`) — all of them for the user themselves, otherwise only

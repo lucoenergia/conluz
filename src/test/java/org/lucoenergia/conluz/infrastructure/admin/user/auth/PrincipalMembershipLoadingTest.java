@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -44,7 +44,7 @@ class PrincipalMembershipLoadingTest extends BaseIntegrationTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
 
     @Test
     void thePrincipalCarriesItsMembershipsWithTheirCommunityAndUserResolved() {
@@ -97,7 +97,7 @@ class PrincipalMembershipLoadingTest extends BaseIntegrationTest {
         createUserRepository.create(user);
         for (int i = 0; i < communities; i++) {
             Community community = createCommunityRepository.create(CommunityMother.random().build());
-            createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+            createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
         }
         return user;
     }

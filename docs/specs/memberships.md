@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `createMembership`, `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `createUser`, `getAllUsers`, `getUserById`, `updateUser`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `createUsersWithFile`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `getAllUsers`, `getUserById`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById`, `setMembershipInvestment`, `clearMembershipInvestment`, `getMembershipPayback`, `getMembershipMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #397 |
+| **Last reviewed against code** | #447 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
-when. This spec covers how the existing creation paths and member registration fill the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, which memberships grant access, and where responses read member data from; the rest of the capability is specified
+when. This spec covers how member registration fills the record and that state, how
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, which memberships grant access, what the `X-Community-Id` header must name, what a platform admin reaches of a community's memberships, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -25,8 +25,8 @@ lazily, as issues touch it.
 | Disabled membership | A membership whose `enabled` flag is false. Independent of acceptance. |
 | Active membership | A membership that is both accepted and enabled (ADR-0003 §2). |
 | Inviter | The user recorded as having invited a membership. |
-| Existing creation path | Adding a user to a community (`createMembership`), creating a user in a community (`createUser` with a community) and importing users into a community (`createUsersWithFile`). |
-| Member registration | A community admin registering a member by personal ID and member record (`registerMember`). It is not an existing creation path. |
+| Existing creation path | Adding a user to a community (`createMembership`), creating a user in a community (`createUser` with a community) and importing users into a community (`createUsersWithFile`). All three were removed in #447; the term is kept for MEM-001 and MEM-002. |
+| Member registration | A community admin registering a member by personal ID and member record (`registerMember`). |
 | Contact email | The email address in a member record. Distinct from the account's email. |
 | Usable invitation token | A valid `INVITATION` token (OTT-008) whose membership is still pending and whose account is enabled. Whether the membership is enabled does not matter (MEM-018). |
 | Awaiting acceptance | A membership that is pending and enabled: one a community still wants the member to accept. |
@@ -36,26 +36,24 @@ lazily, as issues touch it.
 
 ### MEM-001 — A membership created through an existing creation path is accepted on creation
 
-- **Status:** Active
+- **Status:** Removed in #447
 - **Rule:** A membership created through an existing creation path MUST be accepted at the instant it
   is created, and MUST record no inviter and no invitation instant.
-- **Rationale:** These paths create memberships that grant access straight away, so they must keep
-  doing so once access is based on acceptance (ADR-0003 §2). None of them is an invitation, so
-  nothing about one is recorded. Memberships that existed before #388 were accepted at the migration
-  instant, which keeps their behaviour unchanged.
-- **Source:** #388, ADR-0003 §2
+- **Rationale:** No existing creation path is left: adding a user to a community, and creating or importing users
+  into one, were removed. Every membership is now registered, imported or invited, created pending, and accepted by
+  the member (MEM-007, MEM-016). The memberships these paths created stay accepted.
+- **Source:** #447, #388, ADR-0003 §2
 
 ### MEM-002 — A membership created through an existing creation path holds a copy of the user's data
 
-- **Status:** Active
+- **Status:** Removed in #447
 - **Rule:** A membership created through an existing creation path MUST hold, as its member record,
   the full name, member number, address and phone the user has at creation time, and the user's
   email as its contact email. An empty or blank email MUST be recorded as no contact email.
-- **Rationale:** Until the flows of #329 let a community enter its own record, the only data a
-  community has about a member is the user's, so the record starts as a copy of it and behaviour is
-  unchanged (ADR-0003 §1). A user with no email holds NULL (ACC-003), and so does a member record
-  with no contact email (ADR-0003 §8).
-- **Source:** #388, #389, ADR-0003 §1 and §8
+- **Rationale:** No existing creation path is left (MEM-001). A community now enters its own record when it
+  registers, imports or invites a member (MEM-007), so no record starts as a copy of the account's data. The records
+  these paths copied stay as they are.
+- **Source:** #447, #388, #389, ADR-0003 §1 and §8
 
 ### MEM-003 — Deleting the inviter keeps the membership
 
@@ -414,15 +412,15 @@ lazily, as issues touch it.
 
 - **Status:** Active
 - **Rule:** A user embedded in a response scoped to one community — the user of a membership
-  (`getMemberships`, `createMembership`, `updateMembershipRole`) and the owner of a supply (`getSupply`,
+  (`getMemberships`, `updateMembershipRole`) and the owner of a supply (`getSupply`,
   `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`) — MUST
   show the full name, number, email, address and phone of their member record in that community: the path
   community for memberships, the supply's community for supplies, whoever the caller is. A community's admin
   names (`getAllCommunities`, `getCommunityById`) MUST be the full names of the admins' member records in that
   community. When a supply's owner has no membership in the supply's community, those five fields MUST be blank
-  (an empty full name, the other four null), never the account's. A user read through `getAllUsers`,
-  `getUserById` or returned by `updateUser` MUST show the account's data to the user themselves and to the
-  platform admin; to any other caller, the five fields MUST come from the user's member record in a community
+  (an empty full name, the other four null), never the account's. A user read through `getAllUsers` or
+  `getUserById` MUST show the account's data to the user themselves only; to any other
+  caller, a platform admin included, the five fields MUST come from the user's member record in a community
   the caller administers through an active admin membership and, when there are several, in the one whose id is
   the lowest in the canonical text form of the id (the order PostgreSQL gives `uuid`). Every other field MUST
   keep coming from the account.
@@ -434,7 +432,8 @@ lazily, as issues touch it.
   left its community has no record to show, and falling back to the account would leak it. Records of accounts
   with a single membership are copied again from the account once, so that edits made to the account since the
   copy of #388 still show.
-- **Source:** #396, ADR-0003 §1
+- **Source:** #396, ADR-0003 §1. #446 withdrew the account view from the platform admin, which until then saw
+  the account of any user it read. #447 removed `createMembership` and `updateUser`, which answered such a user too.
 
 ### MEM-027 — A community admin enables and disables the memberships of their community's members
 
@@ -565,6 +564,36 @@ lazily, as issues touch it.
   caller, who typed them, but never logged.
 - **Source:** #397, ADR-0003 §3 and §5; reading Windows-1252 and the structured, localised row errors were
   decided by the maintainer in the review of #397; the identifier check, #398.
+
+### MEM-031 — A platform admin reaches a community's memberships only through a membership of its own
+
+- **Status:** Active
+- **Rule:** Being a platform admin MUST NOT, by itself, let a caller reach a community's memberships or member
+  records. A platform admin who is not an active community admin of the community MUST be refused with 403 the
+  roster (`getMemberships`), re-roling (`updateMembershipRole`) and deleting (`deleteMembership`) its memberships, as registering, importing, inviting, enabling, disabling and editing
+  records already are (MEM-007, MEM-009, MEM-027, MEM-028, MEM-030); it MUST be answered 404 on a membership's
+  investment, payback, monthly consumption, energy metrics and hourly profile, as anyone who is not one of the
+  community's admins or the member themselves is. Every membership capability it receives in that community MUST be
+  `false`, and the community's `canManageMemberships` too. The community itself, with its
+  aggregated data (name, member count, supply count, admin names, MEM-006), MUST stay visible to it, and a
+  community's admins MUST stay reachable through `…/admins` (MEM-021), the only place a platform admin without
+  memberships reads someone else's personal data. A platform admin who is a member or admin of a community MUST get
+  exactly what that membership gives, in that community only.
+- **Rationale:** The roster carries every member's record and personal ID, which only the community's own
+  administration reads (ADR-0003 §1 and §3). The platform admin needs to identify and contact a community's admins,
+  and nothing more.
+- **Source:** #446, ADR-0003 §3, #329. #447 removed creating a membership (`createMembership`) and the community's
+  `canCreateUsers`, so no caller can add an existing user to a community by id any more.
+
+### MEM-032 — The X-Community-Id header names a community the caller is a member of
+
+- **Status:** Active
+- **Rule:** A request carrying `X-Community-Id` MUST be refused with 403 unless the caller holds an active
+  membership (MEM-004) in the community it names, whoever the caller is, a platform admin included. A value that is
+  not a UUID MUST be refused with 400. A request without the header is not affected.
+- **Rationale:** The header selects the community a request acts in; naming a community one does not belong to is
+  never legitimate, and a platform admin needs none of it: the web client never sends the header.
+- **Source:** #446, #329
 
 ## Impossible states
 

@@ -1,12 +1,13 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -44,7 +45,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
 
@@ -54,7 +55,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
         // Create a user with supplies, in the community the caller administers
         User user = UserMother.randomUser();
         createUserRepository.create(user);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         Supply supply1 = new Supply.Builder()
                 .withId(UUID.randomUUID())
@@ -238,14 +239,15 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
     @Test
-    void testGetSuppliesByUserId_shouldForbidAPlatformAdminWhoAdministersNoneOfTheUserCommunities()
+    @DisplayName("ACC-020 a platform admin who administers none of the user's communities is answered 404")
+    void testGetSuppliesByUserId_shouldHideTheUserFromAPlatformAdminWhoAdministersNoneOfTheUserCommunities()
             throws Exception {
         // The supply route and the user route must agree. A platform admin gets 404 asking for any
         // one of these supplies directly, so listing them through their owner cannot be a way round
-        // it. They can see the user, so the denial is a 403 and leaks nothing.
+        // it. Nor can it see the user, so the denial is a 404 as well.
         User user = UserMother.randomUser();
         createUserRepository.create(user);
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         Supply supply = new Supply.Builder()
                 .withId(UUID.randomUUID())
@@ -263,7 +265,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
 
         // ... and the same caller is told the supply itself does not exist.
         mockMvc.perform(get(String.format("/api/v1/supplies/%s", supply.getId()))
@@ -292,8 +294,8 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
         User admin = UserMother.randomUser();
         admin.enable();
         createUserRepository.create(admin);
-        createMembershipService.create(target.communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
-        createMembershipService.create(target.communityB.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(target.communityA.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(target.communityB.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
 
         assertEquals(Set.of(target.supplyInA.getId().toString(), target.supplyInB.getId().toString()),
                 listedSupplyIds(target.user, loginUser(admin)));
@@ -327,8 +329,8 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.enable();
         createUserRepository.create(user);
-        createMembershipService.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
-        createMembershipService.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supplyInA = createSupplyRepository.create(SupplyMother.random(user).build(),
                 UserId.of(user.getId()), communityA.getId());
         Supply supplyInB = createSupplyRepository.create(SupplyMother.random(user).build(),

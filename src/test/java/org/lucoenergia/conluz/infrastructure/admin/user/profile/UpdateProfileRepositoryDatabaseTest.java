@@ -6,7 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -41,9 +41,8 @@ import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSu
  * The narrow write behind {@code PUT /users/profile}.
  *
  * <p>The endpoint is safe because this repository can only touch three columns. That is a property
- * of the mapping, not of the guard, so it is pinned here rather than at the controller: reusing
- * {@code UpdateUserRepositoryDatabase}, or adding a line to the mapping below, must fail a test
- * even though every controller test would still pass.</p>
+ * of the mapping, not of the guard, so it is pinned here rather than at the controller: adding a
+ * line to the mapping below must fail a test even though every controller test would still pass.</p>
  */
 @Transactional
 class UpdateProfileRepositoryDatabaseTest extends BaseIntegrationTest {
@@ -55,7 +54,7 @@ class UpdateProfileRepositoryDatabaseTest extends BaseIntegrationTest {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private GetMembershipsRepository getMembershipsRepository;
 
@@ -119,7 +118,7 @@ class UpdateProfileRepositoryDatabaseTest extends BaseIntegrationTest {
     void theMembershipsSurvive() {
         // Memberships carry every community-scoped permission the user has.
         UserEntity seeded = seedUserWithDistinctValuesEverywhere();
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, seeded.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, seeded.getId(), CommunityRole.COMMUNITY_ADMIN);
 
         repository.updateContactDetails(UserId.of(seeded.getId()),
                 new ContactDetails("nuevo@email.com", null, null));

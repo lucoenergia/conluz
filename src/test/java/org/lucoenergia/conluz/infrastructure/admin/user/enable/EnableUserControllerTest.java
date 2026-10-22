@@ -7,9 +7,10 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.enable.EnableUserService;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -39,7 +40,9 @@ class EnableUserControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
+    @Autowired
+    private EnableUserService enableUserService;
 
     @Test
     @DisplayName("ACC-008 a community admin enabling a member of their community is refused, and the account is unchanged")
@@ -48,7 +51,7 @@ class EnableUserControllerTest extends BaseControllerTest {
         User member = UserMother.randomUser();
         member.setEnabled(false);
         createUserRepository.create(member);
-        createMembershipService.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(post(String.format("/api/v1/users/%s/enable", member.getId()))
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId()))
@@ -59,20 +62,32 @@ class EnableUserControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void testEnableUser() throws Exception {
-
-        // Create a user
+    @DisplayName("ACC-020 a platform admin enabling a user is told the user is missing, and the account stays disabled")
+    void aPlatformAdminEnablingAUserIsToldTheUserIsMissing() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
         User user = UserMother.randomUser();
         user.setEnabled(false);
         createUserRepository.create(user);
-        Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(user.getPersonalId())));
-
-        String authHeader = loginAsDefaultPlatformAdmin();
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         mockMvc.perform(post(String.format("/api/v1/users/%s/enable", user.getId()))
-                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin())
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
+        Assertions.assertFalse(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).get().isEnabled());
+    }
+
+    /**
+     * No caller may enable another user over HTTP (ACC-020), so what enabling does is pinned on the service.
+     */
+    @Test
+    void enablingAUserThroughTheServiceEnablesTheAccount() {
+        User user = UserMother.randomUser();
+        user.setEnabled(false);
+        createUserRepository.create(user);
+
+        enableUserService.enable(UserId.of(user.getId()));
+
         Assertions.assertTrue(getUserRepository.findByPersonalId(UserPersonalId.of(user.getPersonalId())).get().isEnabled());
     }
 

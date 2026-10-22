@@ -6,9 +6,9 @@ import org.lucoenergia.conluz.domain.admin.user.profile.ContactDetails;
 import org.lucoenergia.conluz.domain.shared.email.EmailAddresses;
 
 /**
- * The contact details a user may change on their own record. Deliberately narrower than
- * {@code UpdateUserBody}: there is no {@code personalId}, {@code fullName} or {@code number} here,
- * so the self-service path cannot rewrite the fields that identify the member.
+ * The contact details a user may change on their own record. There is deliberately no
+ * {@code personalId}, {@code fullName} or {@code number} here, so the self-service path cannot rewrite
+ * the fields that identify the member.
  */
 public class UpdateProfileBody {
 

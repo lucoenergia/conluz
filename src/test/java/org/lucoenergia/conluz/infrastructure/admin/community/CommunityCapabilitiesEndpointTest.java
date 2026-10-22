@@ -5,7 +5,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -33,7 +33,7 @@ class CommunityCapabilitiesEndpointTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
 
     @Test
     void theDetailEndpointReportsTheCallersCapabilities() throws Exception {
@@ -107,8 +107,8 @@ class CommunityCapabilitiesEndpointTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.enable();
         createUserRepository.create(user);
-        createMembershipService.create(administered.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
-        createMembershipService.create(merelyJoined.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(administered.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(merelyJoined.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
         return loginUser(user);
     }
 }

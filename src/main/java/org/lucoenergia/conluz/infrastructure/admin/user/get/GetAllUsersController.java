@@ -33,8 +33,7 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.U
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 /**
- * Get all users — platform admin sees all; anyone else sees themselves and the users of the
- * communities they administer.
+ * Get all users — the caller sees themselves and the users of the communities they administer.
  */
 @RestController
 @RequestMapping(value = "/api/v1/users")
@@ -64,15 +63,14 @@ public class GetAllUsersController {
                     This endpoint facilitates the retrieval of all users within the system, allowing clients to access a
                     comprehensive list of user details.
 
-                    **Required: Platform Admin or Community Admin**
+                    **Required: Community Admin of at least one community.** Being a Platform Admin is not enough (#446): any other caller is answered 403.
 
                     **What the listing contains:** only the users the caller may read one by one
-                    (`GET /api/v1/users/{userId}`). Platform admins see every user; anyone else sees themselves
+                    (`GET /api/v1/users/{userId}`). The caller sees themselves
                     and the users with an enabled membership in a community they administer — not those of
                     communities they merely belong to.
 
-                    **What each user's `memberships` contains:** platform admins see every membership, and
-                    every caller sees all of their own; otherwise only the memberships in communities the
+                    **What each user's `memberships` contains:** every caller sees all of their own; otherwise only the memberships in communities the
                     caller administers.
 
                     Features:

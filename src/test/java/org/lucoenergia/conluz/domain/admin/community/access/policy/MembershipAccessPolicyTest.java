@@ -20,9 +20,28 @@ class MembershipAccessPolicyTest {
     // --- canManageMemberships ---
 
     @Test
-    void canManageMemberships_allows_aPlatformAdmin() {
-        assertEquals(AccessDecision.ALLOWED,
+    @DisplayName("MEM-031 a platform admin who is not an admin of the community may not administer its roster")
+    void canManageMemberships_forbids_aPlatformAdminWhoIsNotACommunityAdminThere() {
+        // The community stays visible to a platform admin, so this is a 403, not a 404.
+        assertEquals(AccessDecision.FORBIDDEN,
                 policy.canManageMemberships(PolicyFixtures.platformAdmin(), UUID.randomUUID()));
+    }
+
+    @Test
+    @DisplayName("MEM-031 a platform admin who is a plain member of the community may not administer its roster")
+    void canManageMemberships_forbids_aPlatformAdminWhoIsAPlainMemberThere() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canManageMemberships(PolicyFixtures.platformAdminMemberOf(community), community.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-031 a platform admin who administers the community administers its roster as its community admin")
+    void canManageMemberships_allows_aPlatformAdminWhoAdministersTheCommunity() {
+        Community community = PolicyFixtures.community();
+        User caller = PolicyFixtures.adminOf(community);
+        caller.setPlatformAdmin(true);
+        assertEquals(AccessDecision.ALLOWED, policy.canManageMemberships(caller, community.getId()));
     }
 
     @Test
@@ -53,10 +72,10 @@ class MembershipAccessPolicyTest {
     }
 
     @Test
-    void canManageMemberships_allows_aPlatformAdminEvenWithoutACommunityId() {
-        // The platform-admin branch sits after a visibility gate a platform admin always passes,
-        // so a null community id is granted. Today's behaviour, reproduced deliberately.
-        assertEquals(AccessDecision.ALLOWED,
+    void canManageMemberships_forbids_aPlatformAdminWithoutACommunityId() {
+        // The visibility gate lets a platform admin through, but no community admin role matches a
+        // null community id.
+        assertEquals(AccessDecision.FORBIDDEN,
                 policy.canManageMemberships(PolicyFixtures.platformAdmin(), null));
     }
 

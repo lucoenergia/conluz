@@ -1,11 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -34,7 +35,7 @@ class MembershipCapabilitiesEndpointTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
 
     @Test
     void aCommunityAdminIsOfferedEverythingOnTheRoster() throws Exception {
@@ -52,24 +53,18 @@ class MembershipCapabilitiesEndpointTest extends BaseControllerTest {
     }
 
     /**
-     * The asymmetry worth reporting: a platform admin may administer this roster without being able
-     * to touch its members' money. No role name conveys that, and the rules behind the two are
-     * genuinely different -- canManageMemberships has a platform-admin branch, canManageInvestment
-     * and canReadPayback deliberately do not.
+     * The roster carries the members' records, so a platform admin who is not an admin of the community
+     * does not reach it, and so is offered no capability on any membership (#446).
      */
     @Test
-    void aNonMemberPlatformAdminMayAdministerTheRosterButNotTheMoney() throws Exception {
+    @DisplayName("MEM-031 a platform admin who is not an admin of the community is refused the roster")
+    void aNonMemberPlatformAdminIsRefusedTheRoster() throws Exception {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
         persistMemberOf(community);
 
         mockMvc.perform(get("/api/v1/communities/{communityId}/memberships", community.getId())
                         .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].capabilities.canUpdateRole").value(true))
-                .andExpect(jsonPath("$[0].capabilities.canDelete").value(true))
-                .andExpect(jsonPath("$[0].capabilities.canManageInvestment").value(false))
-                .andExpect(jsonPath("$[0].capabilities.canReadPayback").value(false))
-                .andExpect(jsonPath("$[0].capabilities.canInvite").value(false));
+                .andExpect(status().isForbidden());
     }
 
     /**
@@ -96,7 +91,7 @@ class MembershipCapabilitiesEndpointTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.enable();
         createUserRepository.create(user);
-        createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
         return user;
     }
 }

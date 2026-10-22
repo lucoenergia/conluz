@@ -1,12 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.get;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -33,8 +33,6 @@ class GetUserByIdControllerTest extends BaseControllerTest {
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
-    @Autowired
-    private CreateMembershipService createMembershipService;
 
     @Test
     void testGetUserById_shouldReturnMemberships() throws Exception {
@@ -45,7 +43,7 @@ class GetUserByIdControllerTest extends BaseControllerTest {
         createUserRepository.create(user);
         createMembership(user, community, CommunityRole.COMMUNITY_ADMIN);
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(get(String.format("/api/v1/users/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -60,12 +58,13 @@ class GetUserByIdControllerTest extends BaseControllerTest {
     @Test
     void testGetUserById_shouldReturnUser() throws Exception {
 
-        // Create a user
+        // Create a member of a community, read by its admin
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
         User user = UserMother.randomUser();
         createUserRepository.create(user);
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
-        // Login as default admin
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(get(String.format("/api/v1/users/%s", user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -161,19 +160,17 @@ class GetUserByIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
                 .andExpect(jsonPath("$.capabilities.canListSupplies").value(true))
                 // Administering one of them is never enough to change the account (#415).
-                .andExpect(jsonPath("$.capabilities.canEdit").value(false));
+                .andExpect(jsonPath("$.capabilities.canDelete").value(false));
     }
 
     @Test
-    void testGetUserById_aPlatformAdminSeesEveryMembership() throws Exception {
+    @DisplayName("ACC-020 a platform admin who administers none of the user's communities is answered 404")
+    void testGetUserById_aPlatformAdminIsToldTheUserDoesNotExist() throws Exception {
         TwoCommunityMember target = twoCommunityMember();
 
         mockMvc.perform(get(String.format("/api/v1/users/%s", target.user.getId()))
                         .header(HttpHeaders.AUTHORIZATION, loginAsDefaultPlatformAdmin()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.memberships.length()").value(2))
-                .andExpect(jsonPath("$.memberships['" + target.communityB.getId() + "']")
-                        .value(CommunityRole.COMMUNITY_ADMIN.name()));
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -195,8 +192,8 @@ class GetUserByIdControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.enable();
         createUserRepository.create(user);
-        createMembershipService.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
-        createMembershipService.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_ADMIN);
         return new TwoCommunityMember(user, communityA, communityB);
     }
 

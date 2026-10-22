@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -65,7 +65,7 @@ class EstimatedPriceConfigurationTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -166,7 +166,7 @@ class EstimatedPriceConfigurationTest extends BaseControllerTest {
 
     private User persistMember(UUID communityId) {
         User member = persistUser();
-        createMembershipService.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
         return member;
     }
 

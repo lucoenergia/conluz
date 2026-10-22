@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
@@ -41,6 +42,8 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private CommunityMembershipJpaRepository communityMembershipJpaRepository;
+    @Autowired
+    private ManagePlatformAdminRepository managePlatformAdminRepository;
 
     private Community communityA;
     private Community communityB;
@@ -102,6 +105,38 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
                         .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("MEM-032 X-Community-Id for a community the platform admin is not a member of is refused, even on an endpoint it may use")
+    void platformAdminWithTheHeaderOfACommunityItIsNotAMemberOfGetsForbidden() throws Exception {
+        String platformAdmin = loginAsDefaultPlatformAdmin();
+
+        // Without the header the platform admin reads the community...
+        mockMvc.perform(get("/api/v1/communities/" + communityA.getId())
+                        .header("Authorization", platformAdmin))
+                .andExpect(status().isOk());
+        // ...and with it, naming a community it has no membership in, the request is refused.
+        mockMvc.perform(get("/api/v1/communities/" + communityA.getId())
+                        .header("Authorization", platformAdmin)
+                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString()))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("MEM-032 X-Community-Id for a community the platform admin is a member of is accepted")
+    void platformAdminWithTheHeaderOfItsOwnCommunityIsAccepted() throws Exception {
+        User platformAdmin = UserMother.randomUser();
+        platformAdmin.enable();
+        createUserRepository.create(platformAdmin);
+        createMembership(platformAdmin, communityA, CommunityRole.COMMUNITY_MEMBER);
+        managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
+
+        mockMvc.perform(get("/api/v1/communities/" + communityA.getId())
+                        .header("Authorization", loginUser(platformAdmin))
+                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString()))
                 .andExpect(status().isOk());
     }
 

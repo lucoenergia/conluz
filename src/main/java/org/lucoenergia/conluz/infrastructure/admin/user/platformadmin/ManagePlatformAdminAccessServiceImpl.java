@@ -26,11 +26,6 @@ public class ManagePlatformAdminAccessServiceImpl implements ManagePlatformAdmin
     }
 
     @Override
-    public void grant(UserId id) {
-        repository.grant(id);
-    }
-
-    @Override
     public void revoke(UserId id) {
         // Accepted read-then-write TOCTOU: two simultaneous revokes could theoretically leave zero
         // admins. Not guarded with DB locking by design (single cooperative deployment, human-driven).

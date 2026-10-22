@@ -6,7 +6,7 @@ import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -15,7 +15,7 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPar
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccessService;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -76,7 +76,7 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     @Autowired
     private CreatePlantRepository createPlantRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
@@ -86,7 +86,7 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     @Autowired
     private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
     @Autowired
-    private ManagePlatformAdminAccessService managePlatformAdminAccessService;
+    private ManagePlatformAdminRepository managePlatformAdminRepository;
     @Autowired
     private CreatePlatformAdminInvitationRepository createPlatformAdminInvitationRepository;
     @Autowired
@@ -154,8 +154,8 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         createUserRepository.create(admin);
         User owner = persistUser();
         for (Community community : communities) {
-            createMembershipService.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
-            createMembershipService.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+            createMembershipRepository.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+            createMembershipRepository.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         }
         String adminToken = loginUser(admin);
         String url = "/api/v1/users/" + owner.getId() + "/supplies";
@@ -246,7 +246,7 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
 
         // Members of a community, so a row that loaded its memberships would show in the count
         for (int i = 0; i < 4; i++) {
-            managePlatformAdminAccessService.grant(UserId.of(persistMember().getId()));
+            managePlatformAdminRepository.grant(UserId.of(persistMember().getId()));
         }
         long forFive = statementsFor(url, adminToken);
 
@@ -265,8 +265,8 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         // Pending invitations and platform admins mixed, with and without a valid link
         persistPendingPlatformAdminInvitation();
         persistPendingPlatformAdminInvitation();
-        managePlatformAdminAccessService.grant(UserId.of(persistMember().getId()));
-        managePlatformAdminAccessService.grant(UserId.of(persistMember().getId()));
+        managePlatformAdminRepository.grant(UserId.of(persistMember().getId()));
+        managePlatformAdminRepository.grant(UserId.of(persistMember().getId()));
         long forFive = statementsFor(url, adminToken);
 
         assertEquals(forOne, forFive, "listing the platform admins must not issue a query per pending invitation");
@@ -284,7 +284,7 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         admin.enable();
         createUserRepository.create(admin);
         for (Community community : communities) {
-            createMembershipService.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+            createMembershipRepository.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         }
         String adminToken = loginUser(admin);
         String url = "/api/v1/users";
@@ -435,7 +435,7 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
 
     private User persistMember() {
         User user = persistUser();
-        createMembershipService.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
         return user;
     }
 
@@ -448,7 +448,7 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     private void persistMembersOf(Community community, int count) {
         for (int i = 0; i < count; i++) {
             User user = persistUser();
-            createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+            createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
         }
     }
 

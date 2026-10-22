@@ -47,7 +47,7 @@ class GetMembershipsControllerTest extends BaseControllerTest {
         createMembership(admin, community, CommunityRole.COMMUNITY_ADMIN);
         createMembership(member, community, CommunityRole.COMMUNITY_MEMBER);
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        String authHeader = loginUser(admin);
 
         mockMvc.perform(get("/api/v1/communities/{id}/memberships", community.getId())
                         .header("Authorization", authHeader)
@@ -72,20 +72,32 @@ class GetMembershipsControllerTest extends BaseControllerTest {
 
         createMembership(member, community, CommunityRole.COMMUNITY_MEMBER);
 
-        String authHeader = loginAsDefaultPlatformAdmin();
+        // Reading the roster needs a community admin, who is on it as well.
+        String authHeader = loginAsCommunityAdmin(community.getId());
 
         mockMvc.perform(get("/api/v1/communities/{id}/memberships", community.getId())
                         .header("Authorization", authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].user.fullName").value("Charlie"))
-                .andExpect(jsonPath("$[0].user.email").value("charlie@test.com"))
-                .andExpect(jsonPath("$[0].role").value("COMMUNITY_MEMBER"))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[?(@.user.fullName == 'Charlie')].user.email").value("charlie@test.com"))
+                .andExpect(jsonPath("$[?(@.user.fullName == 'Charlie')].role").value("COMMUNITY_MEMBER"))
                 .andExpect(jsonPath("$[0].user.id").isString())
                 .andExpect(jsonPath("$[0].communityId").value(community.getId().toString()))
                 .andExpect(jsonPath("$[0].enabled").isBoolean());
+    }
+
+    @Test
+    @DisplayName("MEM-031 a platform admin who is not an admin of the community is refused its roster")
+    void aPlatformAdminIsRefusedTheRoster() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        createMembership(createUser("Dana", "dana@test.com"), community, CommunityRole.COMMUNITY_MEMBER);
+
+        mockMvc.perform(get("/api/v1/communities/{id}/memberships", community.getId())
+                        .header("Authorization", loginAsDefaultPlatformAdmin())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -122,6 +134,7 @@ class GetMembershipsControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.setFullName(fullName);
         user.setEmail(email);
+        user.enable();
         createUserRepository.create(user);
         return user;
     }

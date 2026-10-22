@@ -6,7 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -71,7 +71,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -156,7 +156,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         CommunityEntity otherCommunity = persistCommunity();
         User member = persistMember(community.getId());
-        createMembershipService.create(otherCommunity.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(otherCommunity.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         write(persistSupply(member, community), "2026/05/10", "10:00", 1f, 2f, 0f);
         // Larger, so counting it would be unmistakable.
         write(persistSupply(member, otherCommunity), "2026/05/10", "10:00", 1f, 1000f, 0f);
@@ -565,7 +565,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
 
     private User persistMember(UUID communityId) {
         User member = persistUser();
-        createMembershipService.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
         return member;
     }
 

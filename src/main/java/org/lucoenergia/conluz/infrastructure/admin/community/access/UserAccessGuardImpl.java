@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.access.UserAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.AccessDecision;
 import org.lucoenergia.conluz.domain.admin.community.access.policy.UserAccessPolicy;
@@ -16,8 +15,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * Adapter over {@link UserAccessPolicy}: {@code NOT_VISIBLE} becomes {@link UserNotFoundException}
- * (or {@link CommunityNotFoundException} when the community is the resource at stake), and
+ * Adapter over {@link UserAccessPolicy}: {@code NOT_VISIBLE} becomes {@link UserNotFoundException}, and
  * {@code FORBIDDEN} becomes {@code false}.
  */
 class UserAccessGuardImpl implements UserAccessGuard {
@@ -44,15 +42,6 @@ class UserAccessGuardImpl implements UserAccessGuard {
     }
 
     @Override
-    public boolean canEditUser(UUID userId) {
-        User user = helper.getCurrentUser().orElse(null);
-        if (user == null) {
-            return false;
-        }
-        return resolveUser(policy.canEdit(user, userId, membershipsOf(userId)), userId);
-    }
-
-    @Override
     public boolean canListSuppliesOfUser(UUID userId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {
@@ -74,19 +63,6 @@ class UserAccessGuardImpl implements UserAccessGuard {
     @Override
     public boolean canDisableUser(UUID userId) {
         return canEditSomeoneElse(userId);
-    }
-
-    @Override
-    public boolean canCreateUserIn(UUID communityId) {
-        User user = helper.getCurrentUser().orElse(null);
-        if (user == null) {
-            return false;
-        }
-        AccessDecision decision = policy.canCreateIn(user, communityId);
-        if (decision == AccessDecision.NOT_VISIBLE) {
-            throw new CommunityNotFoundException(communityId);
-        }
-        return decision.isAllowed();
     }
 
     @Override
@@ -122,7 +98,7 @@ class UserAccessGuardImpl implements UserAccessGuard {
 
     /**
      * The target user's memberships, fetched at most once and only if a branch asks for them —
-     * a platform admin and a self-read never do.
+     * a self-read never does.
      */
     private Supplier<List<CommunityMembership>> membershipsOf(UUID userId) {
         return new Supplier<>() {

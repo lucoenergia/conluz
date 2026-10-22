@@ -29,7 +29,6 @@ class CommunityCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanManageMembershipInvestment());
         assertTrue(capabilities.isCanListPlants());
         assertTrue(capabilities.isCanCreatePlants());
-        assertTrue(capabilities.isCanCreateUsers());
         assertTrue(capabilities.isCanReadProduction());
         assertTrue(capabilities.isCanListSupplies());
     }
@@ -82,7 +81,6 @@ class CommunityCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanInviteMembers());
         assertFalse(capabilities.isCanManageMembershipInvestment());
         assertFalse(capabilities.isCanCreatePlants());
-        assertFalse(capabilities.isCanCreateUsers());
     }
 
     /**
@@ -101,8 +99,7 @@ class CommunityCapabilitiesAssemblerTest {
         assertTrue(capabilities.isCanUpdate());
         assertTrue(capabilities.isCanEnable());
         assertTrue(capabilities.isCanDisable());
-        assertTrue(capabilities.isCanManageMemberships());
-        assertTrue(capabilities.isCanCreateUsers());
+        assertFalse(capabilities.isCanManageMemberships());
         assertFalse(capabilities.isCanReadProduction());
         assertFalse(capabilities.isCanListSupplies());
         assertFalse(capabilities.isCanListPlants());
@@ -161,7 +158,6 @@ class CommunityCapabilitiesAssemblerTest {
         assertFalse(capabilities.isCanManageMembershipInvestment());
         assertFalse(capabilities.isCanListPlants());
         assertFalse(capabilities.isCanCreatePlants());
-        assertFalse(capabilities.isCanCreateUsers());
         assertFalse(capabilities.isCanReadProduction());
         assertFalse(capabilities.isCanListSupplies());
     }

@@ -14,15 +14,19 @@ import java.util.function.Supplier;
  *
  * <p>Deciding about a <em>target</em> user needs that user's memberships, which the caller does not
  * carry. They arrive as a {@link Supplier} rather than a resolved list so the branches that do not
- * need them — a platform admin, or a caller asking about themselves — never pay for the lookup, as
- * they do not today. A capability assembler working over already-loaded users passes
- * {@code () -> user.getMemberships()} and pays nothing either.</p>
+ * need them — a caller asking about themselves — never pay for the lookup. A capability assembler
+ * working over already-loaded users passes {@code () -> user.getMemberships()} and pays nothing
+ * either.</p>
+ *
+ * <p>Being a platform admin opens nothing here (#446): the platform admin reaches another user only
+ * through a community it administers, like anyone else. Revoking the platform-admin role is
+ * {@link PlatformAccessPolicy}'s rule, not these.</p>
  */
 public class UserAccessPolicy {
 
     /**
-     * Reading a user is open to anyone who can see them at all: platform admins see everyone, a user
-     * sees themselves, and a community admin sees the members of the communities they administer.
+     * Reading a user is open to anyone who can see them at all: a user sees themselves, and a
+     * community admin sees the members of the communities they administer.
      */
     public AccessDecision canRead(User caller, UUID userId,
                                   Supplier<List<CommunityMembership>> targetMemberships) {
@@ -32,63 +36,35 @@ public class UserAccessPolicy {
     }
 
     /**
-     * Editing is narrower than reading: seeing a user through the self branch does not by itself
-     * confer the right to change them, so an ordinary member editing their own record is forbidden
-     * rather than allowed.
-     *
-     * <p>Only a platform admin may edit another user. A community admin may not, whatever their role in
-     * the user's communities (#415): the account is the person's, shared by every community they belong
-     * to, and its email receives the password recovery link. A community admin keeps editing their own
-     * account, as they did before.</p>
-     */
-    public AccessDecision canEdit(User caller, UUID userId,
-                                  Supplier<List<CommunityMembership>> targetMemberships) {
-        if (!canSee(caller, userId, targetMemberships)) {
-            return AccessDecision.NOT_VISIBLE;
-        }
-        if (CallerMemberships.isPlatformAdmin(caller)) {
-            return AccessDecision.ALLOWED;
-        }
-        return CallerMemberships.isCurrentUser(caller, userId) && administersACommunityOf(caller, targetMemberships)
-                ? AccessDecision.ALLOWED
-                : AccessDecision.FORBIDDEN;
-    }
-
-    /**
      * Acting on the account of someone <em>other</em> than oneself. Backs deleting, enabling and
      * disabling a user, all three of which must be refused for everyone acting on their own account,
      * admins included.
      *
-     * <p>Only a platform admin may do it. A community admin may not (#415): the account is shared by
-     * every community the person belongs to, so disabling or deleting it would remove them from all of
-     * them; a community suspends a member by disabling their membership instead.</p>
+     * <p>Nobody may do it. A community admin may not (#415): the account is shared by every community
+     * the person belongs to, so disabling or deleting it would remove them from all of them; a
+     * community suspends a member by disabling their membership instead. A platform admin may not
+     * either (#446): it has no access to other people's accounts.</p>
      *
-     * <p>Visibility is settled first and the self check only then: a caller who cannot see the target
-     * still gets not-visible (→ 404), and a platform admin acting on themselves gets forbidden (→ 403)
-     * rather than being told they do not exist.</p>
+     * <p>Visibility is settled first and the refusal only then: a caller who cannot see the target
+     * still gets not-visible (→ 404), and a caller who can, themselves included, gets forbidden
+     * (→ 403) rather than being told the target does not exist.</p>
      */
     public AccessDecision canEditOther(User caller, UUID userId,
                                        Supplier<List<CommunityMembership>> targetMemberships) {
         if (!canSee(caller, userId, targetMemberships)) {
             return AccessDecision.NOT_VISIBLE;
         }
-        if (CallerMemberships.isCurrentUser(caller, userId)) {
-            return AccessDecision.FORBIDDEN;
-        }
-        return CallerMemberships.isPlatformAdmin(caller)
-                ? AccessDecision.ALLOWED
-                : AccessDecision.FORBIDDEN;
+        return AccessDecision.FORBIDDEN;
     }
 
     /**
      * Listing the supplies of a user: the user themselves, or an active community admin of one of
      * their communities.
      *
-     * <p>Deliberately <strong>not</strong> {@link #canRead}, which lets every platform admin through.
-     * Reading a user is one thing; reading their supplies is reading supply data, and a platform
-     * admin who administers none of the user's communities has no access to those supplies when
-     * asked for them one by one — {@link SupplyAccessPolicy} answers not-visible. Routing the same
-     * data through the user aggregate must not be a way around that.</p>
+     * <p>Deliberately <strong>not</strong> {@link #canRead}. Reading a user is one thing; reading their
+     * supplies is reading supply data, and a community admin who can see the user through one
+     * community must not reach supplies elsewhere through the user aggregate. What comes back is
+     * scoped by {@link SupplyAccessPolicy#visibleSuppliesOwnedBy}.</p>
      *
      * <p>A caller who can see the user but may not read their supplies is {@code FORBIDDEN}, not
      * not-found: they already know the user exists, so nothing leaks by saying no.</p>
@@ -107,46 +83,20 @@ public class UserAccessPolicy {
     }
 
     /**
-     * Creating a user in a community: any platform admin, or an active community admin of that
-     * community. The platform-admin branch runs before the community is even considered, so it does
-     * not matter whether one was named.
-     */
-    public AccessDecision canCreateIn(User caller, UUID communityId) {
-        if (CallerMemberships.isPlatformAdmin(caller)) {
-            return AccessDecision.ALLOWED;
-        }
-        if (communityId == null) {
-            return AccessDecision.FORBIDDEN;
-        }
-        if (!CallerMemberships.canSeeCommunity(caller, communityId)) {
-            return AccessDecision.NOT_VISIBLE;
-        }
-        return CallerMemberships.hasCommunityAdminRoleIn(caller, communityId)
-                ? AccessDecision.ALLOWED
-                : AccessDecision.FORBIDDEN;
-    }
-
-    /**
-     * Listing users: platform admins, and anyone who administers at least one community. Scoping the
-     * listing to what they may actually see is the list endpoint's job, not this rule's.
+     * Listing users: anyone who administers at least one community. Scoping the listing to what they
+     * may actually see is the list endpoint's job, not this rule's.
      */
     public AccessDecision canList(User caller) {
-        if (CallerMemberships.isPlatformAdmin(caller)) {
-            return AccessDecision.ALLOWED;
-        }
         return CallerMemberships.hasAnyActiveCommunityAdminRole(caller)
                 ? AccessDecision.ALLOWED
                 : AccessDecision.FORBIDDEN;
     }
 
     /**
-     * Whether the caller can <em>see</em> the target user exists. Used to decide between not-found
-     * and forbidden.
+     * Whether the caller can <em>see</em> the target user exists: they are the target, or they
+     * administer one of the target's communities. Used to decide between not-found and forbidden.
      */
     public boolean canSee(User caller, UUID userId, Supplier<List<CommunityMembership>> targetMemberships) {
-        if (CallerMemberships.isPlatformAdmin(caller)) {
-            return true;
-        }
         if (caller.getId().equals(userId)) {
             return true;
         }
@@ -155,16 +105,13 @@ public class UserAccessPolicy {
 
     /**
      * {@link #canSee} in set form: which users the caller may see, expressed so a listing can apply it
-     * in a single query instead of evaluating each row. A platform admin sees everyone; anyone else
-     * sees themselves and the users with an active membership in a community they administer — never
-     * more than they could read one by one. The same scope bounds which of a visible user's
-     * memberships a response may carry: those in the caller's administered communities, as
-     * {@code GET /communities/{communityId}/memberships} would show them, and all of the caller's own.
+     * in a single query instead of evaluating each row. Everyone sees themselves and the users with an
+     * active membership in a community they administer — never more than they could read one by one.
+     * The same scope bounds which of a visible user's memberships a response may carry: those in the
+     * caller's administered communities, as {@code GET /communities/{communityId}/memberships} would
+     * show them, and all of the caller's own.
      */
     public UserScope visibleUsers(User caller) {
-        if (CallerMemberships.isPlatformAdmin(caller)) {
-            return UserScope.all();
-        }
         return UserScope.visibleTo(caller != null ? caller.getId() : null,
                 CallerMemberships.adminCommunityIds(caller));
     }

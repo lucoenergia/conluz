@@ -87,24 +87,6 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
-    @DisplayName("MEM-026 Adding a user to a community answers the record that copy created")
-    void addingAMembershipShowsTheStoredRecord() throws Exception {
-        User added = newUser();
-
-        JsonNode created = json(perform(adminOfA, post("/api/v1/communities/{communityId}/memberships",
-                communityA.getId()), Map.of("userId", added.getId(), "role", "COMMUNITY_MEMBER")));
-
-        Map<String, Object> row = membershipRow(added.getPersonalId(), communityA.getId());
-        Map<String, Object> stored = new LinkedHashMap<>();
-        stored.put("fullName", row.get("full_name"));
-        stored.put("memberNumber", row.get("member_number"));
-        stored.put("contactEmail", row.get("contact_email"));
-        stored.put("address", row.get("address"));
-        stored.put("phoneNumber", row.get("phone_number"));
-        assertShowsRecord(created.get("user"), stored);
-    }
-
-    @Test
     @DisplayName("MEM-026 A supply shows its owner's record in the supply's community")
     void aSupplyShowsTheOwnersRecordInItsCommunity() throws Exception {
         assertShowsRecord(json(perform(adminOfA, get("/api/v1/supplies/{supplyId}", supplyInA.getId()))).get("user"),
@@ -215,28 +197,6 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
-    @DisplayName("ACC-008 A community admin updating the user is refused, so the response carries neither the record nor "
-            + "the account")
-    void aCommunityAdminUpdatingTheUserIsRefused() throws Exception {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("number", person.getNumber());
-        body.put("personalId", person.getPersonalId());
-        body.put("fullName", person.getFullName());
-        body.put("email", person.getEmail());
-        body.put("address", person.getAddress());
-        body.put("phoneNumber", person.getPhoneNumber());
-
-        String response = mockMvc.perform(put("/api/v1/users/{userId}", person.getId())
-                        .header(HttpHeaders.AUTHORIZATION, adminOfA)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isForbidden())
-                .andReturn().getResponse().getContentAsString();
-
-        assertThat(response).doesNotContain(person.getFullName(), (String) recordA.get("fullName"));
-    }
-
-    @Test
     @DisplayName("MEM-026 An admin of both communities sees the record of the one with the lowest id, every time")
     void anAdminOfBothCommunitiesSeesTheRecordOfTheLowestCommunityId() throws Exception {
         String adminOfBoth = loginAsAdminOfBoth();
@@ -257,12 +217,14 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
-    @DisplayName("MEM-026 The platform admin reading the user sees the account")
-    void thePlatformAdminSeesTheAccount() throws Exception {
+    @DisplayName("MEM-026 ACC-020 The platform admin can read neither the user nor the listing, so neither the account nor a record")
+    void thePlatformAdminSeesNeitherTheAccountNorARecord() throws Exception {
         String platformAdmin = loginAsPlatformAdmin();
 
-        assertShowsAccount(json(perform(platformAdmin, get("/api/v1/users/{userId}", person.getId()))));
-        assertShowsAccount(userIn(json(perform(platformAdmin, get("/api/v1/users?size=2000"))).get("items")));
+        mockMvc.perform(get("/api/v1/users/{userId}", person.getId()).header(HttpHeaders.AUTHORIZATION, platformAdmin))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/users?size=2000").header(HttpHeaders.AUTHORIZATION, platformAdmin))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -307,7 +269,7 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
 
     private String loginAsAdminOfBoth() throws Exception {
         User admin = memberOf(communityA, CommunityRole.COMMUNITY_ADMIN);
-        createMembershipService.create(communityB.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        createMembershipRepository.create(communityB.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
         return loginUser(admin);
     }
 

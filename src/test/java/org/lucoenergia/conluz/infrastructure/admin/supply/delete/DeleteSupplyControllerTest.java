@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
-import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipService;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
@@ -16,6 +16,8 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPar
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.delete.DeleteUserService;
+import org.lucoenergia.conluz.domain.admin.user.delete.UserOwnsSuppliesException;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
@@ -23,6 +25,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +38,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -50,7 +54,7 @@ class DeleteSupplyControllerTest extends BaseControllerTest {
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
-    private CreateMembershipService createMembershipService;
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateSupplyService createSupplyService;
     @Autowired
@@ -63,6 +67,8 @@ class DeleteSupplyControllerTest extends BaseControllerTest {
     private JdbcTemplate jdbcTemplate;
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+    private DeleteUserService deleteUserService;
 
     @Test
     @DisplayName("SUP-001 deleting a supply deletes it with its contract, distributor and Shelly details, and keeps its "
@@ -155,19 +161,14 @@ class DeleteSupplyControllerTest extends BaseControllerTest {
         Community community = newCommunity();
         User owner = newMemberOf(community);
         Supply supply = createSupply(owner, community);
-        String platformAdmin = loginAsDefaultPlatformAdmin();
-
-        mockMvc.perform(delete("/api/v1/users/{userId}", owner.getId())
-                        .header(HttpHeaders.AUTHORIZATION, platformAdmin))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.errors[0].code").value("USER_OWNS_SUPPLIES"));
+        // No caller may delete another user's account over HTTP (ACC-020), so the account is deleted through the
+        // service.
+        assertThrows(UserOwnsSuppliesException.class, () -> deleteUserService.delete(UserId.of(owner.getId())));
 
         mockMvc.perform(delete(PATH, supply.getId())
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
                 .andExpect(status().isOk());
-        mockMvc.perform(delete("/api/v1/users/{userId}", owner.getId())
-                        .header(HttpHeaders.AUTHORIZATION, platformAdmin))
-                .andExpect(status().isOk());
+        deleteUserService.delete(UserId.of(owner.getId()));
 
         assertEquals(0, count("SELECT count(*) FROM users WHERE id = ?", owner.getId()));
     }
@@ -241,7 +242,7 @@ class DeleteSupplyControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         user.enable();
         createUserRepository.create(user);
-        createMembershipService.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
         return user;
     }
 

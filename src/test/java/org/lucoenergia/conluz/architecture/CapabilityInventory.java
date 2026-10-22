@@ -69,12 +69,6 @@ final class CapabilityInventory {
         report("canReadCommunityProduction", capability(COMMUNITY, "canReadProduction"));
         report("canListSupplies", capability(COMMUNITY, "canListSupplies"));
         report("canListPlants", capability(COMMUNITY, "canListPlants"));
-        // One guard, two capabilities, as canReadSupply already is: the community reports whether
-        // the caller may create a user in that community, and the platform reports the no-community
-        // case the same guard answers when @PreAuthorize passes it a null communityId.
-        report("canCreateUserIn",
-                capability(COMMUNITY, "canCreateUsers"),
-                capability(PLATFORM, "canCreateUsers"));
 
         // Community-wide rules that a membership also reports, because they are what a client needs
         // to decide whether to offer the control on one row of the roster.
@@ -124,11 +118,9 @@ final class CapabilityInventory {
 
         // --- user ---
         report("canReadUser", capability(USER, "canRead"));
-        report("canEditUser", capability(USER, "canEdit"));
         report("canDeleteUser", capability(USER, "canDelete"));
         report("canEnableUser", capability(USER, "canEnable"));
         report("canDisableUser", capability(USER, "canDisable"));
-        report("canGrantPlatformAdmin", capability(USER, "canGrantPlatformAdmin"));
         report("canRevokePlatformAdmin",
                 capability(USER, "canRevokePlatformAdmin"),
                 capability(PLATFORM_ADMIN, "canRevoke"));
