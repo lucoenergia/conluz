@@ -45,6 +45,21 @@ public interface CommunityAccessGuard extends
 
     boolean canManageCommunity(UUID communityId);
 
+    /**
+     * Whether the current user may replace the community's contact channels: they are an active
+     * {@code COMMUNITY_ADMIN} of it (CTC-002). Maps denials by visibility:
+     * <ul>
+     *     <li>anonymous → {@code false} (→ 401),</li>
+     *     <li>not an active member of the community, a platform admin included → throws
+     *         {@code CommunityNotFoundException} (→ 404),</li>
+     *     <li>an active member who is not a community admin → {@code false} (→ 403).</li>
+     * </ul>
+     * Allows the same callers as {@link #canManageCommunity(UUID)}, so it is reported by the community's
+     * {@code canManage} capability; it differs only in answering 404 rather than 403 to a platform admin who is not a
+     * member.
+     */
+    boolean canManageCommunityContact(UUID communityId);
+
     Set<UUID> visibleCommunityIds();
 
     /**

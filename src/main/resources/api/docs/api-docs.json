@@ -322,6 +322,21 @@
         ],
         "type" : "object"
       },
+      "CommunityContactResponse" : {
+        "properties" : {
+          "channels" : {
+            "description" : "Every contact channel of the community, in the order they are shown. Empty if it has none.",
+            "items" : {
+              "$ref" : "#/components/schemas/ContactChannelResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [
+          "channels"
+        ],
+        "type" : "object"
+      },
       "CommunityReferenceResponse" : {
         "properties" : {
           "id" : {
@@ -455,6 +470,104 @@
         },
         "required" : [
           "enabled"
+        ],
+        "type" : "object"
+      },
+      "ContactChannelBody" : {
+        "properties" : {
+          "label" : {
+            "description" : "The name shown for the channel. Not blank, at most 60 characters.",
+            "example" : "Office",
+            "maxLength" : 60,
+            "type" : "string"
+          },
+          "notes" : {
+            "description" : "Free text about the channel, of at most 500 characters. Null, an empty or a blank string if it has none.",
+            "example" : "Ask for the treasurer.",
+            "maxLength" : 500,
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "schedule" : {
+            "description" : "When the channel is attended, as free text of at most 200 characters. Null, an empty or a blank string if it has none.",
+            "example" : "Monday to Friday, 9:00 to 14:00",
+            "maxLength" : 200,
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "type" : {
+            "description" : "The kind of channel. The value must be a phone number for PHONE, an email address for EMAIL, and a postal address for ADDRESS.",
+            "enum" : [
+              "PHONE",
+              "EMAIL",
+              "ADDRESS"
+            ],
+            "type" : "string"
+          },
+          "value" : {
+            "description" : "The phone number, email address or postal address. Not blank, at most 200 characters. A phone number may contain only digits, spaces and a leading +, and has at least 6 digits.",
+            "example" : "+34 600 000 000",
+            "maxLength" : 200,
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "label",
+          "notes",
+          "schedule",
+          "type",
+          "value"
+        ],
+        "type" : "object"
+      },
+      "ContactChannelResponse" : {
+        "properties" : {
+          "label" : {
+            "description" : "The name shown for the channel.",
+            "example" : "Office",
+            "type" : "string"
+          },
+          "notes" : {
+            "description" : "Free text about the channel. Null if it has none.",
+            "example" : "Ask for the treasurer.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "schedule" : {
+            "description" : "When the channel is attended. Null if it has no schedule.",
+            "example" : "Monday to Friday, 9:00 to 14:00",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "type" : {
+            "description" : "The kind of channel.",
+            "enum" : [
+              "PHONE",
+              "EMAIL",
+              "ADDRESS"
+            ],
+            "type" : "string"
+          },
+          "value" : {
+            "description" : "The phone number, email address or postal address.",
+            "example" : "+34 600 000 000",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "label",
+          "notes",
+          "schedule",
+          "type",
+          "value"
         ],
         "type" : "object"
       },
@@ -1073,7 +1186,19 @@
               "HUAWEI_CONFIG_NOT_FOUND",
               "HUAWEI_CONFIG_INCOMPLETE",
               "DATADIS_CONFIG_NOT_FOUND",
-              "DATADIS_CONFIG_INCOMPLETE"
+              "DATADIS_CONFIG_INCOMPLETE",
+              "CONTACT_CHANNELS_MISSING",
+              "CONTACT_CHANNELS_TOO_MANY",
+              "CONTACT_CHANNEL_TYPE_INVALID",
+              "CONTACT_CHANNEL_LABEL_BLANK",
+              "CONTACT_CHANNEL_LABEL_TOO_LONG",
+              "CONTACT_CHANNEL_VALUE_BLANK",
+              "CONTACT_CHANNEL_VALUE_TOO_LONG",
+              "CONTACT_CHANNEL_SCHEDULE_TOO_LONG",
+              "CONTACT_CHANNEL_NOTES_TOO_LONG",
+              "CONTACT_CHANNEL_EMAIL_INVALID",
+              "CONTACT_CHANNEL_PHONE_CHARACTERS_INVALID",
+              "CONTACT_CHANNEL_PHONE_TOO_FEW_DIGITS"
             ],
             "type" : [
               "string",
@@ -2642,7 +2767,19 @@
               "HUAWEI_CONFIG_NOT_FOUND",
               "HUAWEI_CONFIG_INCOMPLETE",
               "DATADIS_CONFIG_NOT_FOUND",
-              "DATADIS_CONFIG_INCOMPLETE"
+              "DATADIS_CONFIG_INCOMPLETE",
+              "CONTACT_CHANNELS_MISSING",
+              "CONTACT_CHANNELS_TOO_MANY",
+              "CONTACT_CHANNEL_TYPE_INVALID",
+              "CONTACT_CHANNEL_LABEL_BLANK",
+              "CONTACT_CHANNEL_LABEL_TOO_LONG",
+              "CONTACT_CHANNEL_VALUE_BLANK",
+              "CONTACT_CHANNEL_VALUE_TOO_LONG",
+              "CONTACT_CHANNEL_SCHEDULE_TOO_LONG",
+              "CONTACT_CHANNEL_NOTES_TOO_LONG",
+              "CONTACT_CHANNEL_EMAIL_INVALID",
+              "CONTACT_CHANNEL_PHONE_CHARACTERS_INVALID",
+              "CONTACT_CHANNEL_PHONE_TOO_FEW_DIGITS"
             ],
             "type" : [
               "string",
@@ -2688,6 +2825,21 @@
         "required" : [
           "remaining",
           "sent"
+        ],
+        "type" : "object"
+      },
+      "SetCommunityContactBody" : {
+        "properties" : {
+          "channels" : {
+            "description" : "Every contact channel of the community, in the order they are shown. Replaces the stored list as a whole; an empty list removes every channel. At most 10.",
+            "items" : {
+              "$ref" : "#/components/schemas/ContactChannelBody"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [
+          "channels"
         ],
         "type" : "object"
       },
@@ -6709,6 +6861,265 @@
         "summary" : "Sync monthly Datadis consumption data into yearly totals",
         "tags" : [
           "Consumption"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/contact" : {
+      "get" : {
+        "description" : "Returns how the members of the community can contact it: its phone numbers, email addresses and postal addresses, in the order the community admins listed them. The list is empty if the community has none.\n\nOnly the active members of the community and platform admins may read them; anyone else is answered 404, so the response does not reveal whether the community exists.\n",
+        "operationId" : "getCommunityContact",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommunityContactResponse"
+                }
+              }
+            },
+            "description" : "The community's contact channels, in their stored order."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "Your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is \\\ntrue on `GET /api/v1/users/current`, every request other than reading the current user, changing the \\\npassword and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Returns the contact channels of a community.",
+        "tags" : [
+          "Communities"
+        ]
+      },
+      "put" : {
+        "description" : "Replaces the whole list of the community's contact channels with the submitted one, kept in the submitted order, and returns it as stored. An empty list removes every channel. There are no partial updates: send every channel the community should keep. Concurrent replacements are applied one after another, and the last one wins.\n\nEvery text is trimmed before it is checked and stored, and a blank `schedule` or `notes` is stored as null. A list that breaks a rule is answered 400 with one error per broken rule, each with its own code and, for a rule about one channel, the channel's 0-based `index` in `params`; nothing is stored then.\n\nOnly an active community admin of the community may replace them. An active member who is not one is answered 403. Anyone else, a platform admin who is not a member of the community included, is answered 404.\n",
+        "operationId" : "setCommunityContact",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetCommunityContactBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommunityContactResponse"
+                }
+              }
+            },
+            "description" : "The contact channels now stored, in their stored order."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "phoneTooFewDigits" : {
+                    "description" : "phoneTooFewDigits",
+                    "summary" : "The phone number of the second channel has too few digits",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "CONTACT_CHANNEL_PHONE_TOO_FEW_DIGITS",
+                          "message" : "Channel 2: a phone number must have at least 6 digits.",
+                          "params" : {
+                            "index" : "1",
+                            "minDigits" : "6"
+                          }
+                        }
+                      ],
+                      "message" : "Channel 2: a phone number must have at least 6 digits.",
+                      "status" : 400,
+                      "timestamp" : "2026-10-22T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The list breaks a rule, and nothing is stored. Each broken rule is one error with its code: `CONTACT_CHANNELS_MISSING`, `CONTACT_CHANNELS_TOO_MANY`, `CONTACT_CHANNEL_TYPE_INVALID`, `CONTACT_CHANNEL_LABEL_BLANK`, `CONTACT_CHANNEL_LABEL_TOO_LONG`, `CONTACT_CHANNEL_VALUE_BLANK`, `CONTACT_CHANNEL_VALUE_TOO_LONG`, `CONTACT_CHANNEL_SCHEDULE_TOO_LONG`, `CONTACT_CHANNEL_NOTES_TOO_LONG`, `CONTACT_CHANNEL_EMAIL_INVALID`, `CONTACT_CHANNEL_PHONE_CHARACTERS_INVALID` or `CONTACT_CHANNEL_PHONE_TOO_FEW_DIGITS`. A body that is not JSON of the documented shape is answered without a code."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Replaces the contact channels of a community.",
+        "tags" : [
+          "Communities"
         ]
       }
     },
