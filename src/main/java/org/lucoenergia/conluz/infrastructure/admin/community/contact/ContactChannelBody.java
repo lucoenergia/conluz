@@ -6,10 +6,10 @@ import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannelType;
 import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannelsValidator;
 
 /**
- * Carries no validation constraint on purpose: every rule is checked by
- * {@link ContactChannelsValidator}, which answers each broken rule with
- * its own error code, where a constraint here would answer a 400 without one. For the same reason {@code type} is
- * read as text: an unknown type is a rule broken like any other, not a body that cannot be read.
+ * Carries no validation constraint on purpose: every rule is checked by {@link ContactChannelsValidator}, which
+ * answers each broken rule with its own error code, where a constraint here would answer a 400 without one. For the
+ * same reason {@code type} is read as text: an unknown type is a rule broken like any other, not a body that cannot
+ * be read.
  */
 @Schema(requiredProperties = {"type", "label", "value", "schedule", "notes"})
 public class ContactChannelBody {

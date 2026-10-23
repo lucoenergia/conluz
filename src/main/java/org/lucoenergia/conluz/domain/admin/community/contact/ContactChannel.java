@@ -3,9 +3,9 @@ package org.lucoenergia.conluz.domain.admin.community.contact;
 import java.util.Objects;
 
 /**
- * One way of contacting a community. Only {@link ContactChannelsValidator#validate} builds one from a request, so a channel
- * obtained there always satisfies CTC-003; a channel read back from storage was validated the same way when it was
- * written.
+ * One way of contacting a community. Only {@link ContactChannelsValidator#validate} builds one from a request, so a
+ * channel obtained there always satisfies CTC-003; a channel read back from storage was validated the same way when
+ * it was written.
  */
 public class ContactChannel {
 

@@ -20,6 +20,9 @@ public enum ContactChannelViolationCode {
     EMAIL_INVALID,
     /** The value of a {@link ContactChannelType#PHONE} channel has something other than digits, spaces and one leading {@code +}. */
     PHONE_CHARACTERS_INVALID,
-    /** The value of a {@link ContactChannelType#PHONE} channel has fewer than {@link ContactChannelsValidator#MIN_PHONE_DIGITS} digits. */
+    /**
+     * The value of a {@link ContactChannelType#PHONE} channel has fewer than
+     * {@link ContactChannelsValidator#MIN_PHONE_DIGITS} digits.
+     */
     PHONE_TOO_FEW_DIGITS
 }

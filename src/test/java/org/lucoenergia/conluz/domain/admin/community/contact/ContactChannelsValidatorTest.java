@@ -19,14 +19,15 @@ class ContactChannelsValidatorTest {
      * The email rule itself is the infrastructure's; here only its verdict matters, so one address is refused.
      */
     private static final ContactEmailValidity EMAIL_VALIDITY = email -> !email.equals("refused@example.org");
+    private static final ContactChannelsValidator VALIDATOR = new ContactChannelsValidator(EMAIL_VALIDITY);
 
     @Test
     @DisplayName("CTC-003 channels are returned in the submitted order")
     void channelsKeepTheSubmittedOrder() {
-        List<ContactChannel> channels = ContactChannelsValidator.validate(List.of(
+        List<ContactChannel> channels = VALIDATOR.validate(List.of(
                 draft("PHONE", "Zeta", "600 000 000"),
                 draft("ADDRESS", "Alpha", "Calle Mayor 1"),
-                draft("EMAIL", "Mid", "mid@example.org")), EMAIL_VALIDITY);
+                draft("EMAIL", "Mid", "mid@example.org")));
 
         assertThat(channels).extracting(ContactChannel::getLabel).containsExactly("Zeta", "Alpha", "Mid");
         assertThat(channels).extracting(ContactChannel::getType)
@@ -36,14 +37,13 @@ class ContactChannelsValidatorTest {
     @Test
     @DisplayName("CTC-003 an empty list is valid")
     void anEmptyListIsValid() {
-        assertThat(ContactChannelsValidator.validate(List.of(), EMAIL_VALIDITY)).isEmpty();
+        assertThat(VALIDATOR.validate(List.of())).isEmpty();
     }
 
     @Test
     @DisplayName("CTC-003 ten channels are valid and eleven are not")
     void tenChannelsAreValid_andElevenAreNot() {
-        assertThat(ContactChannelsValidator.validate(Collections.nCopies(10, draft("PHONE", "Phone", "600 000 000")),
-                EMAIL_VALIDITY)).hasSize(10);
+        assertThat(VALIDATOR.validate(Collections.nCopies(10, draft("PHONE", "Phone", "600 000 000")))).hasSize(10);
 
         assertThat(violations(Collections.nCopies(11, draft("PHONE", "Phone", "600 000 000"))))
                 .containsExactly(new ContactChannelViolation(ContactChannelViolationCode.CHANNELS_TOO_MANY, null,
@@ -67,7 +67,7 @@ class ContactChannelsValidatorTest {
     @Test
     @DisplayName("CTC-003 the type is trimmed like every other text")
     void theTypeIsTrimmed() {
-        assertThat(ContactChannelsValidator.validate(List.of(draft(" PHONE ", "Phone", "600 000 000")), EMAIL_VALIDITY))
+        assertThat(VALIDATOR.validate(List.of(draft(" PHONE ", "Phone", "600 000 000"))))
                 .extracting(ContactChannel::getType).containsExactly(ContactChannelType.PHONE);
     }
 
@@ -113,8 +113,8 @@ class ContactChannelsValidatorTest {
     @Test
     @DisplayName("CTC-003 each text is valid at its length limit, counted after trimming")
     void eachTextIsValidAtItsLimit() {
-        List<ContactChannel> channels = ContactChannelsValidator.validate(List.of(new ContactChannelDraft("ADDRESS",
-                " " + "a".repeat(60) + " ", "b".repeat(200), "c".repeat(200), "d".repeat(500))), EMAIL_VALIDITY);
+        List<ContactChannel> channels = VALIDATOR.validate(List.of(new ContactChannelDraft("ADDRESS",
+                " " + "a".repeat(60) + " ", "b".repeat(200), "c".repeat(200), "d".repeat(500))));
 
         assertThat(channels).containsExactly(new ContactChannel(ContactChannelType.ADDRESS, "a".repeat(60),
                 "b".repeat(200), "c".repeat(200), "d".repeat(500)));
@@ -135,10 +135,9 @@ class ContactChannelsValidatorTest {
     @Test
     @DisplayName("CTC-003 every text is trimmed, and a blank schedule or notes becomes null")
     void textsAreTrimmed_andBlankScheduleAndNotesBecomeNull() {
-        List<ContactChannel> channels = ContactChannelsValidator.validate(List.of(
+        List<ContactChannel> channels = VALIDATOR.validate(List.of(
                 new ContactChannelDraft("EMAIL", "  General ", " info@example.org  ", "  ", ""),
-                new ContactChannelDraft("PHONE", "Treasurer", "600 000 000", " Weekdays ", " Urgent only. ")),
-                EMAIL_VALIDITY);
+                new ContactChannelDraft("PHONE", "Treasurer", "600 000 000", " Weekdays ", " Urgent only. ")));
 
         assertThat(channels).containsExactly(
                 new ContactChannel(ContactChannelType.EMAIL, "General", "info@example.org", null, null),
@@ -219,7 +218,7 @@ class ContactChannelsValidatorTest {
 
     private static List<ContactChannelViolation> violations(List<ContactChannelDraft> drafts) {
         try {
-            ContactChannelsValidator.validate(drafts, EMAIL_VALIDITY);
+            VALIDATOR.validate(drafts);
             return List.of();
         } catch (ContactChannelsInvalidException e) {
             return e.getViolations();
@@ -229,7 +228,7 @@ class ContactChannelsValidatorTest {
     @Test
     void theExceptionCarriesTheViolations() {
         ContactChannelsInvalidException e = assertThrows(ContactChannelsInvalidException.class,
-                () -> ContactChannelsValidator.validate(List.of(draft("PHONE", "", "600 000 000")), EMAIL_VALIDITY));
+                () -> VALIDATOR.validate(List.of(draft("PHONE", "", "600 000 000"))));
 
         assertThat(e.getViolations()).containsExactly(
                 new ContactChannelViolation(ContactChannelViolationCode.LABEL_BLANK, 0, Map.of()));

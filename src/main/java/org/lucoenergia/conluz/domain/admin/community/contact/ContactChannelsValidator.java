@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 /**
  * The rules a community's list of contact channels follows (CTC-003), applied to what a community admin submits
- * before anything is stored.
+ * before anything is stored. It is the one place that knows them all, including which rule an email address follows.
  */
 public final class ContactChannelsValidator {
 
@@ -20,7 +20,10 @@ public final class ContactChannelsValidator {
 
     private static final Pattern PHONE_CHARACTERS = Pattern.compile("\\+?[0-9 ]*");
 
-    private ContactChannelsValidator() {
+    private final ContactEmailValidity emailValidity;
+
+    public ContactChannelsValidator(ContactEmailValidity emailValidity) {
+        this.emailValidity = emailValidity;
     }
 
     /**
@@ -30,7 +33,7 @@ public final class ContactChannelsValidator {
      * @return the channels in the submitted order
      * @throws ContactChannelsInvalidException with every violation found, if there is any
      */
-    public static List<ContactChannel> validate(List<ContactChannelDraft> drafts, ContactEmailValidity emailValidity) {
+    public List<ContactChannel> validate(List<ContactChannelDraft> drafts) {
         if (drafts == null) {
             throw new ContactChannelsInvalidException(
                     List.of(new ContactChannelViolation(ContactChannelViolationCode.CHANNELS_MISSING, null, Map.of())));
@@ -46,7 +49,7 @@ public final class ContactChannelsValidator {
             if (draft == null) {
                 draft = new ContactChannelDraft(null, null, null, null, null);
             }
-            channels.add(validate(draft, index, emailValidity, violations));
+            channels.add(validate(draft, index, violations));
         }
         if (!violations.isEmpty()) {
             throw new ContactChannelsInvalidException(violations);
@@ -54,8 +57,7 @@ public final class ContactChannelsValidator {
         return List.copyOf(channels);
     }
 
-    private static ContactChannel validate(ContactChannelDraft draft, int index, ContactEmailValidity emailValidity,
-                                           List<ContactChannelViolation> violations) {
+    private ContactChannel validate(ContactChannelDraft draft, int index, List<ContactChannelViolation> violations) {
         ContactChannelType type = typeOf(trim(draft.type()));
         String label = trim(draft.label());
         String value = trim(draft.value());
