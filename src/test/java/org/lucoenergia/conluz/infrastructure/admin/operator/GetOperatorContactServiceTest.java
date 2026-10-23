@@ -7,7 +7,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.lucoenergia.conluz.domain.admin.operator.GetOperatorContactService;
 import org.lucoenergia.conluz.domain.admin.operator.OperatorContact;
-import org.lucoenergia.conluz.infrastructure.shared.contact.ContactEmailValidityImpl;
+import org.lucoenergia.conluz.infrastructure.shared.contact.ContactEmailValidatorImpl;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
@@ -33,7 +33,7 @@ class GetOperatorContactServiceTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withInitializer(new ConfigDataApplicationContextInitializer())
             .withConfiguration(AutoConfigurations.of(ValidationAutoConfiguration.class))
-            .withUserConfiguration(GetOperatorContactServiceImpl.class, ContactEmailValidityImpl.class);
+            .withUserConfiguration(GetOperatorContactServiceImpl.class, ContactEmailValidatorImpl.class);
 
     @Test
     @DisplayName("CTC-005 with every variable blank the application starts with no operator contact")

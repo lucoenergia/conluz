@@ -1,8 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.operator;
 
 import org.lucoenergia.conluz.domain.admin.operator.OperatorContact;
-import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidity;
-import org.lucoenergia.conluz.domain.shared.contact.PhoneNumberFormat;
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidator;
+import org.lucoenergia.conluz.domain.shared.contact.PhoneNumberFormatChecker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,15 +18,15 @@ import static org.lucoenergia.conluz.infrastructure.admin.operator.OperatorConta
  *
  * <p>Every value is trimmed first, and one left blank counts as not set, so a variable declared empty in an
  * {@code .env} file is the same as one left out. Then either nothing is set, and there is no operator contact, or at
- * least the name and the email are, with an email address by the rule {@link ContactEmailValidity} applies and a
- * phone number, if any, by {@link PhoneNumberFormat}. Every problem is reported at once, by the environment variable
+ * least the name and the email are, with an email address by the rule {@link ContactEmailValidator} applies and a
+ * phone number, if any, by {@link PhoneNumberFormatChecker}. Every problem is reported at once, by the environment variable
  * that causes it; values are never repeated in the message.</p>
  */
 public class OperatorContactPropertiesValidator {
 
-    private final ContactEmailValidity emailValidity;
+    private final ContactEmailValidator emailValidity;
 
-    public OperatorContactPropertiesValidator(ContactEmailValidity emailValidity) {
+    public OperatorContactPropertiesValidator(ContactEmailValidator emailValidity) {
         this.emailValidity = emailValidity;
     }
 
@@ -54,9 +54,9 @@ public class OperatorContactPropertiesValidator {
             problems.add(EMAIL_VARIABLE + " is not an email address");
         }
         if (phone != null) {
-            PhoneNumberFormat.check(phone).ifPresent(violation -> problems.add(switch (violation) {
+            PhoneNumberFormatChecker.check(phone).ifPresent(violation -> problems.add(switch (violation) {
                 case CHARACTERS_INVALID -> PHONE_VARIABLE + " may only have digits, spaces and a leading +";
-                case TOO_FEW_DIGITS -> PHONE_VARIABLE + " must have at least " + PhoneNumberFormat.MIN_DIGITS
+                case TOO_FEW_DIGITS -> PHONE_VARIABLE + " must have at least " + PhoneNumberFormatChecker.MIN_DIGITS
                         + " digits";
             }));
         }

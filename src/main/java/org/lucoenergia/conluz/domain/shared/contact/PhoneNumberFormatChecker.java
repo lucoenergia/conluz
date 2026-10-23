@@ -8,13 +8,13 @@ import java.util.regex.Pattern;
  * {@link #MIN_DIGITS} digits. Declared once, so every contact that publishes a phone number is held to the same
  * definition of one.
  */
-public final class PhoneNumberFormat {
+public final class PhoneNumberFormatChecker {
 
     public static final int MIN_DIGITS = 6;
 
     private static final Pattern CHARACTERS = Pattern.compile("\\+?[0-9 ]*");
 
-    private PhoneNumberFormat() {
+    private PhoneNumberFormatChecker() {
     }
 
     /**

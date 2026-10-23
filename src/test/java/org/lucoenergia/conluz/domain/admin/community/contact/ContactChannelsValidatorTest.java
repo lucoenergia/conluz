@@ -4,7 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidity;
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidator;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,7 +19,7 @@ class ContactChannelsValidatorTest {
     /**
      * The email rule itself is the infrastructure's; here only its verdict matters, so one address is refused.
      */
-    private static final ContactEmailValidity EMAIL_VALIDITY = email -> !email.equals("refused@example.org");
+    private static final ContactEmailValidator EMAIL_VALIDITY = email -> !email.equals("refused@example.org");
     private static final ContactChannelsValidator VALIDATOR = new ContactChannelsValidator(EMAIL_VALIDITY);
 
     @Test

@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.contact;
 
-import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidity;
-import org.lucoenergia.conluz.domain.shared.contact.PhoneNumberFormat;
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidator;
+import org.lucoenergia.conluz.domain.shared.contact.PhoneNumberFormatChecker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,9 +19,9 @@ public final class ContactChannelsValidator {
     public static final int MAX_SCHEDULE_LENGTH = 200;
     public static final int MAX_NOTES_LENGTH = 500;
 
-    private final ContactEmailValidity emailValidity;
+    private final ContactEmailValidator emailValidity;
 
-    public ContactChannelsValidator(ContactEmailValidity emailValidity) {
+    public ContactChannelsValidator(ContactEmailValidator emailValidity) {
         this.emailValidity = emailValidity;
     }
 
@@ -106,10 +106,10 @@ public final class ContactChannelsValidator {
     }
 
     private static void checkPhone(String value, int index, List<ContactChannelViolation> violations) {
-        PhoneNumberFormat.check(value).ifPresent(violation -> violations.add(switch (violation) {
+        PhoneNumberFormatChecker.check(value).ifPresent(violation -> violations.add(switch (violation) {
             case CHARACTERS_INVALID -> violation(ContactChannelViolationCode.PHONE_CHARACTERS_INVALID, index);
             case TOO_FEW_DIGITS -> new ContactChannelViolation(ContactChannelViolationCode.PHONE_TOO_FEW_DIGITS, index,
-                    Map.of("minDigits", String.valueOf(PhoneNumberFormat.MIN_DIGITS)));
+                    Map.of("minDigits", String.valueOf(PhoneNumberFormatChecker.MIN_DIGITS)));
         }));
     }
 

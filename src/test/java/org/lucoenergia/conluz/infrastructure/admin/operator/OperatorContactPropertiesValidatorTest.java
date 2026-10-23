@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.operator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.operator.OperatorContact;
-import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidity;
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,7 +13,7 @@ class OperatorContactPropertiesValidatorTest {
     /**
      * The email rule itself is the infrastructure's; here only its verdict matters, so one address is refused.
      */
-    private static final ContactEmailValidity EMAIL_VALIDITY = email -> !email.equals("refused@example.org");
+    private static final ContactEmailValidator EMAIL_VALIDITY = email -> !email.equals("refused@example.org");
     private static final OperatorContactPropertiesValidator VALIDATOR =
             new OperatorContactPropertiesValidator(EMAIL_VALIDITY);
 

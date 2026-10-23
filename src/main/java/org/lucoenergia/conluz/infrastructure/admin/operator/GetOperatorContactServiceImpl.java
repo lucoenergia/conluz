@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.operator;
 
 import org.lucoenergia.conluz.domain.admin.operator.GetOperatorContactService;
 import org.lucoenergia.conluz.domain.admin.operator.OperatorContact;
-import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidity;
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidator;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +21,7 @@ public class GetOperatorContactServiceImpl implements GetOperatorContactService 
 
     private final Optional<OperatorContact> operatorContact;
 
-    public GetOperatorContactServiceImpl(OperatorContactProperties properties, ContactEmailValidity emailValidity) {
+    public GetOperatorContactServiceImpl(OperatorContactProperties properties, ContactEmailValidator emailValidity) {
         this.operatorContact = new OperatorContactPropertiesValidator(emailValidity).validate(properties);
     }
 

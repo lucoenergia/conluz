@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.shared.contact;
 
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.Email;
-import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidity;
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidator;
 import org.springframework.stereotype.Component;
 
 /**
@@ -10,11 +10,11 @@ import org.springframework.stereotype.Component;
  * by construction rather than a second definition of an email address.
  */
 @Component
-public class ContactEmailValidityImpl implements ContactEmailValidity {
+public class ContactEmailValidatorImpl implements ContactEmailValidator {
 
     private final Validator validator;
 
-    public ContactEmailValidityImpl(Validator validator) {
+    public ContactEmailValidatorImpl(Validator validator) {
         this.validator = validator;
     }
 
