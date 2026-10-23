@@ -60,4 +60,10 @@ public interface GetMembershipsRepository {
      * {@link #findFirstInvitationCandidates} selects them.
      */
     long countFirstInvitationCandidates(UUID communityId);
+
+    /**
+     * Counts the community's memberships that count towards the last-active-admin rail, as
+     * {@link LastActiveCommunityAdminRule#countsAsActiveAdmin} decides.
+     */
+    long countActiveAdmins(UUID communityId);
 }

@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,4 +31,14 @@ public interface CommunityJpaRepository extends JpaRepository<CommunityEntity, U
 
     @Query("SELECT c.id FROM communities c")
     List<UUID> findAllIds();
+
+    /**
+     * Locks the community row until the end of the caller's transaction. {@code FOR NO KEY UPDATE} rather than
+     * {@code FOR UPDATE}, so it does not conflict with the {@code KEY SHARE} lock that foreign key checks from other
+     * tables take. Lock it before the user and membership rows.
+     *
+     * @return the community's id, or empty if there is no such community
+     */
+    @Query(value = "SELECT id FROM communities WHERE id = :communityId FOR NO KEY UPDATE", nativeQuery = true)
+    Optional<UUID> lockById(@Param("communityId") UUID communityId);
 }

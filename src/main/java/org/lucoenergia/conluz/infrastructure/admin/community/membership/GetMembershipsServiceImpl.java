@@ -5,7 +5,8 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsService;
-import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
+import org.lucoenergia.conluz.domain.admin.community.membership.LastActiveCommunityAdminRule;
+import org.lucoenergia.conluz.domain.admin.community.membership.MembershipInRoster;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.springframework.stereotype.Service;
@@ -33,16 +34,18 @@ public class GetMembershipsServiceImpl implements GetMembershipsService {
     }
 
     @Override
-    public List<MembershipWithInvitation> findByCommunityId(UUID communityId) {
+    public List<MembershipInRoster> findByCommunityId(UUID communityId) {
         getCommunityRepository.findById(communityId)
                 .orElseThrow(() -> new CommunityNotFoundException(communityId));
 
         List<CommunityMembership> memberships = getMembershipsRepository.findByCommunityId(communityId);
         Map<UUID, Instant> invitationExpiries = getOneTimeTokenService.findValidExpiriesInCommunity(communityId,
                 OneTimeTokenPurpose.INVITATION);
+        long activeAdmins = LastActiveCommunityAdminRule.activeAdmins(memberships);
         return memberships.stream()
-                .map(membership -> new MembershipWithInvitation(membership,
-                        invitationExpiries.get(membership.getId())))
+                .map(membership -> new MembershipInRoster(membership,
+                        invitationExpiries.get(membership.getId()),
+                        LastActiveCommunityAdminRule.blocksRemoval(membership, () -> activeAdmins)))
                 .toList();
     }
 }

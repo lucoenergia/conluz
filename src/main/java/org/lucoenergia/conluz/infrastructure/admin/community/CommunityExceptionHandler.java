@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationResendL
 import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipDisabledException;
+import org.lucoenergia.conluz.domain.admin.community.MembershipLastActiveAdminException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipOwnsSuppliesException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotInvitedException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
@@ -216,6 +217,23 @@ public class CommunityExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_OWNS_SUPPLIES,
+                Map.of("userId", userId, "communityId", communityId), HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 409: the membership is the community's last active admin, so it is neither demoted nor deleted (MEM-033).
+     */
+    @ExceptionHandler(MembershipLastActiveAdminException.class)
+    public ResponseEntity<RestError> handleException(MembershipLastActiveAdminException e) {
+        String userId = e.getUserId().toString();
+        String communityId = e.getCommunityId().toString();
+
+        String message = messageSource.getMessage(
+                "error.membership.last.active.admin",
+                List.of(userId, communityId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.MEMBERSHIP_LAST_ACTIVE_ADMIN,
                 Map.of("userId", userId, "communityId", communityId), HttpStatus.CONFLICT);
     }
 

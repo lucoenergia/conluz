@@ -7,7 +7,8 @@ import java.util.UUID;
 public interface GetMembershipsService {
 
     /**
-     * The community's memberships, each with when its invitation link expires, read for all of them in one query.
+     * The community's memberships, each with when its invitation link expires, read for all of them in one query, and
+     * whether it is the community's last active admin, counted from the memberships read.
      */
-    List<MembershipWithInvitation> findByCommunityId(UUID communityId);
+    List<MembershipInRoster> findByCommunityId(UUID communityId);
 }

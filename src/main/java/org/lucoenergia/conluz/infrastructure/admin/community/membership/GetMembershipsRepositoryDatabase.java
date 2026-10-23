@@ -113,6 +113,11 @@ public class GetMembershipsRepositoryDatabase implements GetMembershipsRepositor
         return membershipJpaRepository.countFirstInvitationCandidates(communityId);
     }
 
+    @Override
+    public long countActiveAdmins(UUID communityId) {
+        return membershipJpaRepository.countActiveAdmins(communityId);
+    }
+
     private CommunityMembership toDomain(CommunityMembershipEntity entity, Community community) {
         return new CommunityMembership.Builder()
                 .withId(entity.getId())

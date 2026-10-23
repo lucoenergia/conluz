@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsService;
-import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
+import org.lucoenergia.conluz.domain.admin.community.membership.MembershipInRoster;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -67,16 +67,15 @@ public class GetMembershipsController {
     @PreAuthorize("@communityAccessGuard.canManageMemberships(#communityId)")
     public List<MembershipResponse> getMemberships(@AuthenticationPrincipal User currentUser,
                                                    @PathVariable("communityId") UUID communityId) {
-        List<MembershipWithInvitation> memberships = service.findByCommunityId(communityId);
+        List<MembershipInRoster> memberships = service.findByCommunityId(communityId);
         // One query for every member on this roster. The users join-fetched with the memberships
         // carry no memberships of their own, and canListSupplies needs those.
         Function<CommunityMembership, MembershipCapabilitiesResponse> capabilities =
                 capabilitiesAssembler.assembleAll(currentUser,
-                        memberships.stream().map(MembershipWithInvitation::membership).toList());
+                        memberships.stream().map(MembershipInRoster::membership).toList());
 
         return memberships.stream()
-                .map(member -> new MembershipResponse(member.membership(), member.invitationExpiresAt(),
-                        capabilities.apply(member.membership())))
+                .map(member -> new MembershipResponse(member, capabilities.apply(member.membership())))
                 .toList();
     }
 }
