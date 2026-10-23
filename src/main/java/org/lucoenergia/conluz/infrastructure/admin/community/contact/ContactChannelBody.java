@@ -3,10 +3,11 @@ package org.lucoenergia.conluz.infrastructure.admin.community.contact;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannelDraft;
 import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannelType;
+import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannelsValidator;
 
 /**
  * Carries no validation constraint on purpose: every rule is checked by
- * {@link org.lucoenergia.conluz.domain.admin.community.contact.ContactChannels}, which answers each broken rule with
+ * {@link ContactChannelsValidator}, which answers each broken rule with
  * its own error code, where a constraint here would answer a 400 without one. For the same reason {@code type} is
  * read as text: an unknown type is a rule broken like any other, not a body that cannot be read.
  */

@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
  * The rules a community's list of contact channels follows (CTC-003), applied to what a community admin submits
  * before anything is stored.
  */
-public final class ContactChannels {
+public final class ContactChannelsValidator {
 
     public static final int MAX_CHANNELS = 10;
     public static final int MAX_LABEL_LENGTH = 60;
@@ -20,7 +20,7 @@ public final class ContactChannels {
 
     private static final Pattern PHONE_CHARACTERS = Pattern.compile("\\+?[0-9 ]*");
 
-    private ContactChannels() {
+    private ContactChannelsValidator() {
     }
 
     /**

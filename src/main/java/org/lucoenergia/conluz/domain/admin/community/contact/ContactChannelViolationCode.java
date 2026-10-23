@@ -6,7 +6,7 @@ package org.lucoenergia.conluz.domain.admin.community.contact;
 public enum ContactChannelViolationCode {
     /** The list itself is missing. */
     CHANNELS_MISSING,
-    /** The list has more than {@link ContactChannels#MAX_CHANNELS} channels. */
+    /** The list has more than {@link ContactChannelsValidator#MAX_CHANNELS} channels. */
     CHANNELS_TOO_MANY,
     /** A channel is missing, or has no type or one that is not a {@link ContactChannelType}. */
     TYPE_INVALID,
@@ -20,6 +20,6 @@ public enum ContactChannelViolationCode {
     EMAIL_INVALID,
     /** The value of a {@link ContactChannelType#PHONE} channel has something other than digits, spaces and one leading {@code +}. */
     PHONE_CHARACTERS_INVALID,
-    /** The value of a {@link ContactChannelType#PHONE} channel has fewer than {@link ContactChannels#MIN_PHONE_DIGITS} digits. */
+    /** The value of a {@link ContactChannelType#PHONE} channel has fewer than {@link ContactChannelsValidator#MIN_PHONE_DIGITS} digits. */
     PHONE_TOO_FEW_DIGITS
 }

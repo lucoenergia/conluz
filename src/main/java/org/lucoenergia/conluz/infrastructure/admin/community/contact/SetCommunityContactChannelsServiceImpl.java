@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.contact;
 
 import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannel;
 import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannelDraft;
-import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannels;
+import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannelsValidator;
 import org.lucoenergia.conluz.domain.admin.community.contact.ContactEmailValidity;
 import org.lucoenergia.conluz.domain.admin.community.contact.LockCommunityContactChannelsRepository;
 import org.lucoenergia.conluz.domain.admin.community.contact.SetCommunityContactChannelsRepository;
@@ -36,7 +36,7 @@ public class SetCommunityContactChannelsServiceImpl implements SetCommunityConta
      */
     @Override
     public List<ContactChannel> replace(UUID communityId, List<ContactChannelDraft> drafts) {
-        List<ContactChannel> channels = ContactChannels.validate(drafts, contactEmailValidity);
+        List<ContactChannel> channels = ContactChannelsValidator.validate(drafts, contactEmailValidity);
         lockRepository.lock(communityId);
         return setRepository.replace(communityId, channels);
     }
