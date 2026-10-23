@@ -6,14 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `getAllUsers`, `getUserById`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById`, `setMembershipInvestment`, `clearMembershipInvestment`, `getMembershipPayback`, `getMembershipMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #447 |
+| **Last reviewed against code** | #449 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how member registration fills the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, which memberships grant access, what the `X-Community-Id` header must name, what a platform admin reaches of a community's memberships, and where responses read member data from; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, how a community's admins manage each other and keep at least one active admin, which memberships grant access, what the `X-Community-Id` header must name, what a platform admin reaches of a community's memberships, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -24,6 +24,7 @@ lazily, as issues touch it.
 | Accepted membership | A membership with an acceptance instant. A membership without one is pending (ADR-0003 §2). |
 | Disabled membership | A membership whose `enabled` flag is false. Independent of acceptance. |
 | Active membership | A membership that is both accepted and enabled (ADR-0003 §2). |
+| Active admin | A membership with the `COMMUNITY_ADMIN` role that is active and whose account is enabled: an admin who can act for the community (ADR-0003 §10). |
 | Inviter | The user recorded as having invited a membership. |
 | Existing creation path | Adding a user to a community (`createMembership`), creating a user in a community (`createUser` with a community) and importing users into a community (`createUsersWithFile`). All three were removed in #447; the term is kept for MEM-001 and MEM-002. |
 | Member registration | A community admin registering a member by personal ID and member record (`registerMember`). |
@@ -484,15 +485,16 @@ lazily, as issues touch it.
 - **Rule:** Deleting a membership (`deleteMembership`) whose user owns a supply in that community, enabled or not,
   MUST be refused with 409 `MEMBERSHIP_OWNS_SUPPLIES`, and nothing MUST be deleted. Supplies the user owns in other
   communities MUST NOT prevent it. Otherwise the membership MUST be deleted with its member record and its tokens
-  (OTT-005), and the account kept. The deletion MUST lock the user, then the membership, before checking for
-  supplies; supply creation locks the user too (SUP-002), so a supply created at the same time either refuses the
-  deletion or finds the membership gone. Who may delete a membership MUST NOT change.
+  (OTT-005), and the account kept. The deletion MUST lock the community, then the user, then the membership
+  (MEM-033), before checking for supplies; supply creation locks the user too (SUP-002), so a supply created at the
+  same time either refuses the deletion or finds the membership gone. When the deletion also breaks MEM-033, it
+  MUST be refused with MEM-033's code instead. Who may delete a membership MUST NOT change.
 - **Rationale:** The owner of a supply belongs to the supply's community (#341, SUP-002). Since #415, deleting the
   membership is how a community admin removes someone from their community, and it used to leave supplies whose
   owner was no longer a member. Suspending the member, by disabling the membership (MEM-027), withdraws their
   access and keeps their supplies and records; deleting the membership is possible once their supplies in the
   community are deleted (SUP-001).
-- **Source:** #412, #341, #415
+- **Source:** #412, #341, #415. #449 added the community lock and MEM-033's precedence.
 
 ### MEM-030 — A community admin imports members from a CSV file through the registration, without sending
 
@@ -600,6 +602,43 @@ lazily, as issues touch it.
 - **Rationale:** The header selects the community a request acts in; naming a community one does not belong to is
   never legitimate, and a platform admin needs none of it: the web client never sends the header.
 - **Source:** #446, #329
+
+### MEM-033 — A community admin does not demote or remove the community's last active admin
+
+- **Status:** Active
+- **Rule:** A community admin MUST NOT demote, or delete the membership of, the community's last active admin,
+  themselves included. A role change to `COMMUNITY_MEMBER` (`updateMembershipRole`) or a deletion
+  (`deleteMembership`) whose target is an active admin MUST be refused with 409 `MEMBERSHIP_LAST_ACTIVE_ADMIN` when
+  no other active admin of the community would remain, and nothing MUST change. Only active admins count: a pending
+  admin, a suspended admin or an admin whose account is disabled MUST NOT be counted, and demoting or deleting one of
+  them MUST NOT be refused by this rule. When a deletion breaks both this rule and MEM-029, it MUST be refused with
+  `MEMBERSHIP_LAST_ACTIVE_ADMIN`. Both operations MUST lock the community row, then the user, then the membership,
+  before reading the target and counting, so that two of them in the same community run one after another and
+  never both succeed in leaving it without an active admin. The platform admin's suspension of an admin
+  (`disableCommunityAdmin`, MEM-023) MUST NOT be refused by this rule. Every membership in the roster
+  (`getMemberships`) and in the role change's response MUST carry `lastActiveAdmin`, true exactly when this rule
+  would refuse demoting or deleting it, computed by the same rule; the capabilities `canUpdateRole` and `canDelete`
+  MUST NOT reflect it.
+- **Rationale:** A community governs its own admins (MEM-034), so a mistake or a misuse could otherwise leave it
+  with no admin who can act for it, and only the operator could recover it by inviting a new one. An admin who
+  cannot log in, or whose access is suspended, cannot act, so they do not keep the community administered. The rule
+  is state, not authorization, so it is reported apart from the capabilities (capability inventory, rule 1).
+  Deleting the supplies would not make the deletion of the last active admin possible, so that refusal answers
+  first. The platform admin keeps suspension as a security tool, and can then invite another admin.
+- **Source:** #449, ADR-0003 §10
+
+### MEM-034 — A community's admins manage each other; the platform admin suspends them
+
+- **Status:** Active
+- **Rule:** An active community admin MAY promote a member to admin (MEM-024) and demote or remove any admin of
+  the community, themselves included, subject to MEM-033 and MEM-029. The platform admin MUST NOT demote or remove
+  a community's admins (MEM-031), and MAY invite them, resend and revoke their invitations, and suspend and
+  reactivate them, through `…/admins` (MEM-020, MEM-022, MEM-023). A community admin MUST NOT suspend
+  another admin (MEM-027, MEM-023).
+- **Rationale:** Admins of the same community are peers, and the community decides who administers it. The
+  platform admin appoints a community's first admins and keeps suspension as a security tool, for example for a
+  compromised account, but does not take part in the community's own governance.
+- **Source:** #449, #446, #415, #395, ADR-0003 §10
 
 ## Impossible states
 

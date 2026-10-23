@@ -193,7 +193,7 @@ the first.
 
 Established uses in this codebase:
 - **Integration disabled** — hitting a manual sync / config-dependent endpoint while the integration is turned off: `DatadisDisabledException`, `ShellyDisabledException`, `HuaweiDisabledException` (e.g. auto-sync is enabled, so the Huawei manual sync endpoints respond `409`).
-- **Invariant would be broken** — an action that would violate a domain invariant, e.g. revoking the last platform admin (`LastPlatformAdminException`).
+- **Invariant would be broken** — an action that would violate a domain invariant, e.g. revoking the last platform admin (`LastPlatformAdminException`), or demoting or removing a community's last active admin (`MembershipLastActiveAdminException`, MEM-033).
 
 Enforcement rules for developers and AI agents:
 - Model each conflict as a dedicated domain exception thrown by the **service** (not the controller), and map it to `HttpStatus.CONFLICT` in the module's `@RestControllerAdvice` `*ExceptionHandler` via `errorBuilder.build(message, HttpStatus.CONFLICT)`, with an i18n message key. Do not build the `ResponseEntity` in the controller.

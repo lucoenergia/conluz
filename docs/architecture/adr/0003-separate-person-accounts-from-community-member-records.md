@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-09
+- **Amended:** 2026-10-23 by #449: §10 (a community governs its own admins and keeps one who can act), §4 (lock order)
 - **Deciders:** Víctor Cañizares
 - **Applies to:** `lucoenergia/conluz`: users (`users`), memberships (`community_memberships`), access policies (`CallerMemberships` and every policy built on it), one-time tokens (`one_time_token`), member registration and invitation flows
 
@@ -64,7 +65,7 @@ The goal is that the platform admin never sees members' personal data, and that 
 - **The one-time token store gains a membership reference,** with a cascade on delete. Invitation tokens are unique per active membership, so inviting the same person to two communities revokes nothing.
 - **`PASSWORD_RESET` tokens keep their per-user invariant** unchanged.
 - **New purpose `INVITATION`,** valid for 7 days. Expiry removes only the token: the account and the pending membership remain, and can be invited again.
-- **Lock order:** user row, then membership row, then token rows, extending ADR-0002's rule.
+- **Lock order:** user row, then membership row, then token rows, extending ADR-0002's rule. A flow that changes a community's admins takes the community row before them (§10).
 
 ### 5. Sending is bounded per membership
 
@@ -98,6 +99,17 @@ The change is introduced additively. The remaining steps are tracked in #329:
 - **The embedded user carries the member record's data** in responses scoped to a community, and in user responses read by a community admin, until the web client reads member records (#396). Its shape is unchanged, so the client keeps working.
 - **The embedded user is then removed** from community-admin responses, together with the platform admin's access to users and memberships. It was removed from community responses in #448, which show the member record under its own names.
 
+### 10. A community governs its own admins, and keeps one who can act (#449)
+
+- **D1 — Admins of a community are peers.** Any active admin of the community may promote a member to admin, and demote or remove another admin, or themselves (`PATCH` and `DELETE /api/v1/communities/{communityId}/memberships/{userId}`).
+- **The platform admin does not demote or remove admins.** It invites them, resends and revokes their invitations, and suspends and reactivates them, through `/api/v1/communities/{communityId}/admins`: suspension is its security tool, for example for a compromised account. A community admin cannot suspend another admin (#415).
+- **D2 — A community keeps at least one active admin.** A community admin may not demote, or delete the membership of, the community's last active admin, themselves included: the request is answered 409 `MEMBERSHIP_LAST_ACTIVE_ADMIN`, and nothing changes.
+- **An active admin can act for the community:** the membership has the admin role and is active (§2: accepted and enabled), and the account is enabled. A pending invitation, a suspended admin and an admin whose account is disabled do not count, so demoting or removing one of them is never refused.
+- **When a deletion breaks both D2 and the supply-owner rule** (MEM-029), D2 answers: deleting the supplies would not make the deletion possible.
+- **The platform admin is exempt.** It may suspend the last active admin, and then invite another one.
+- **Lock order:** community row, then user row, then membership row, then token rows. The role change and the membership deletion lock the community row first, so two of them in the same community run one after another, and the second counts the active admins the first left. No flow takes the community row after a user or membership row.
+- **Clients learn it in advance:** each membership of the roster carries `lastActiveAdmin`, computed by the same rule. The capabilities `canUpdateRole` and `canDelete` stay authorization only.
+
 ## What states mean after this decision
 
 - **A pending membership** (`accepted_at` NULL): the community has registered the person. It may manage their supplies and data, but the person has no access to that community yet. Normal for any member who never opened an invitation.
@@ -122,7 +134,7 @@ The change is introduced additively. The remaining steps are tracked in #329:
 
 **A per-community daily cap on invitations.** It would limit a misused community admin account. It was rejected for now, because each community has a single trusted admin and the per-membership limit already applies.
 
-**A last-community-admin rule.** It would prevent a community from being left without an admin. It was rejected for now, because the platform admin can always invite another one.
+**A last-community-admin rule.** It would prevent a community from being left without an admin. It was rejected at first, because the platform admin can always invite another one. #449 adopted it (§10): with several peer admins, a community could be left without one by mistake or on purpose, and only the operator could then recover it.
 
 ## Consequences
 
@@ -143,7 +155,8 @@ The change is introduced additively. The remaining steps are tracked in #329:
 - **Accepted risk:** whoever first accepts an invitation for a passwordless account takes that account over. They choose its password, and when the account has no email, its email becomes the accepting record's contact email, where password recovery sends its link. For example, a person registered in community A who has not accepted yet can be registered by the admin of community B with a contact email that admin controls, by mistake or on purpose; accepting B's invitation gives them the person's identity on the platform. The person can then neither accept A's invitation, since the account has a password and must log in, nor recover the password. A's data stays out of reach, because A's link goes to A's contact email. Only accounts that have never accepted an invitation are exposed: the public acceptance refuses an account with a password. Acceptable while each community has a single trusted admin.
 - **Obligation:** every check of "is an active member" goes through the single predicate. No new code may test `enabled` or `accepted_at` inline.
 - **Obligation:** responses built for a community admin read member data from the member record, never from the account.
-- **Obligation:** every flow that touches an account, a membership and tokens takes the locks in the order user → membership → token.
+- **Obligation:** every flow that touches an account, a membership and tokens takes the locks in the order user → membership → token. A flow that also locks the community row takes it first: community → user → membership → token.
+- **Obligation:** demoting an admin or deleting a membership applies the last-active-admin rule (§10) under the community row lock. A new path that can remove a community's last active admin, such as a user deletion (#325), must apply it too, unless it is the platform admin's.
 - **Obligation:** giving a membership the admin role requires a contact email on its member record.
 - **Obligation:** the platform admin sees personal data only for memberships with the admin role: name, contact email and phone from that membership's member record, and the DNI from the account. Nothing from members, and nothing from any other membership of the same person.
 
@@ -158,7 +171,7 @@ The change is introduced additively. The remaining steps are tracked in #329:
 - Data must belong to the person across communities (for example, a person-level contact address). Reconsider which fields live on the account.
 - A member record needs to exist without a membership. Move member records into their own table.
 - Invitation sending is misused, or the shared email quota is reached because of invitations. Add a per-community daily cap.
-- A community is left without an admin and the platform admin cannot repair it quickly enough. Add a last-community-admin rule.
+- The platform admin needs to remove an admin's membership, rather than suspend it. Reconsider its exemption from the last-active-admin rule (§10).
 - A second backend instance is deployed: the email queue and throttling counters are per instance.
 - A passwordless account is taken over through another community's invitation.
 

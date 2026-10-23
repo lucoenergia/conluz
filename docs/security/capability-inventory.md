@@ -286,6 +286,14 @@ invitation's resend and revoke only on rows with one. On a pending row `revocabl
 None of these has a platform-admin branch (#446, MEM-031): a platform admin who is not an active
 admin of the community gets every one of them `false`, and is refused the roster that carries them.
 
+`canUpdateRole` and `canDelete` are decided on the community alone: any active admin of it may
+demote or remove any admin, themselves included (#449, MEM-034). The last-active-admin rule is
+**not** part of them (rule 1): demoting or deleting the community's last active admin is refused with
+409 `MEMBERSHIP_LAST_ACTIVE_ADMIN` (MEM-033), and that is state. The row reports it separately as
+`MembershipResponse.lastActiveAdmin`, computed per row from the loaded roster by the same
+`LastActiveCommunityAdminRule` the role change and the deletion apply, with no query. A client
+offers the demotion or the removal when the capability is `true` and `lastActiveAdmin` is `false`.
+
 `canEnable` and `canDisable` are the way a community admin suspends a member, since they may not
 disable the account (#415, MEM-027). They are decided on the membership in hand, role included: only
 an active admin of the community, and only on a `COMMUNITY_MEMBER` membership, so an admin's row
