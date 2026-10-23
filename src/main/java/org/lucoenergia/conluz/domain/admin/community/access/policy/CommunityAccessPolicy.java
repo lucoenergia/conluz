@@ -47,4 +47,19 @@ public class CommunityAccessPolicy {
                 ? AccessDecision.ALLOWED
                 : AccessDecision.FORBIDDEN;
     }
+
+    /**
+     * Writing a community's contact channels belongs to its active community admins (CTC-002). Unlike
+     * {@link #canManage}, a caller who is not a member of the community is not-found rather than forbidden, a platform
+     * admin included: contact details are the community's responsibility, not the platform's, so administering the
+     * platform gives no standing to publish them.
+     */
+    public AccessDecision canManageContact(User caller, UUID communityId) {
+        if (caller == null || !CallerMemberships.hasMembershipInCommunity(caller, communityId)) {
+            return AccessDecision.NOT_VISIBLE;
+        }
+        return CallerMemberships.hasCommunityAdminRoleIn(caller, communityId)
+                ? AccessDecision.ALLOWED
+                : AccessDecision.FORBIDDEN;
+    }
 }

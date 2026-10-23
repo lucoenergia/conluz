@@ -14,6 +14,26 @@ Table "communities" {
   "enabled" boolean [not null, default: true]
 }
 
+Table "community_contact_channels" {
+  "id" uuid [pk, not null]
+  "community_id" uuid [not null, note: 'The community the channel belongs to.']
+  "type" "character varying(20)" [not null, note: 'The kind of channel: PHONE, EMAIL or ADDRESS.']
+  "label" "character varying(60)" [not null, note: 'The name shown for the channel.']
+  "value" "character varying(200)" [not null, note: 'The phone number, email address or postal address.']
+  "schedule" "character varying(200)" [note: 'Free text saying when the channel is attended. NULL if it has none.']
+  "notes" "character varying(500)" [note: 'Free text about the channel. NULL if it has none.']
+  "position" integer [not null, note: 'Display order of the channel within its community, starting at 0.']
+
+  Checks {
+    `((type)::text = ANY ((ARRAY['PHONE'::character varying, 'EMAIL'::character varying, 'ADDRESS'::character varying])::text[]))` [name: 'community_contact_channels_type_check']
+  }
+
+  Indexes {
+    (community_id, position) [unique, name: "community_contact_channels_community_id_position_uq"]
+  }
+  Note: 'The channels members can use to contact their community, in display order.'
+}
+
 Table "community_memberships" {
   "id" uuid [pk, not null]
   "user_id" uuid [not null]
@@ -239,6 +259,8 @@ Table "users" {
   "password_changed_at" timestamp [note: 'When the user last changed their own password. Tokens issued before this instant are rejected. NULL means the password has never been changed, and places no restriction on issued tokens.']
   "disabled_at" timestamp [note: 'When the user was last disabled. Tokens issued before this instant are rejected, also after the user is enabled again. NULL means the user has not been disabled, and places no restriction on issued tokens.']
 }
+
+Ref "community_contact_channels_community_id_fk":"communities"."id" <? "community_contact_channels"."community_id"
 
 Ref "community_memberships_community_id_fk":"communities"."id" <? "community_memberships"."community_id"
 

@@ -27,6 +27,9 @@ objects the API returns, which report one endpoint's decision each and are liste
   - List, view, create and edit communities, and enable and disable them. A community's aggregated
     data (name, member count, supply count, admin names) is theirs; its members' data is not.
   - Invite, list, re-invite, enable and disable a community's admins (`…/communities/{communityId}/admins`, #395).
+  - Read any community's contact channels (`GET …/communities/{communityId}/contact`, CTC-001): as the
+    last-resort contact of users who cannot sign in, the operator needs them to route those users to
+    their community. Replacing them is the community admins' only (CTC-002).
   - List the platform admins (`GET /api/v1/platform-admins`), and revoke the role
     (`POST /api/v1/users/{userId}/revoke-platform-admin`).
   - Read and edit their own account, as any user does (`GET /api/v1/users/current`,
@@ -54,6 +57,8 @@ objects the API returns, which report one endpoint's decision each and are liste
   - Create, edit, view, list and remove plants.
   - Create, edit, view, list and remove sharing agreements.
   - Manage supply/plant config (Huawei, Datadis, Shelly).
+  - Replace the community's contact channels (`PUT …/communities/{communityId}/contact`, CTC-002), with
+    no platform-admin bypass: a platform admin who is not a member is answered 404.
   - Get consumption and production data of any supply or plant they administer.
 - Regular users (non-admins) can:
   - See data about supplies they own.
@@ -87,7 +92,9 @@ oversight.
 The consequence is an asymmetry that is intended, not a bug: on **community-scoped** endpoints a
 non-member platform admin gets **403** (`isMemberOfCommunity`, `canReadCommunityProduction`,
 `canListSupplies`, `canListPlants`, `canManageMemberships`), because they *can* see the
-community and the denial leaks nothing; on a **single object** they get **404** (`canReadSupply`,
+community and the denial leaks nothing. The one community-scoped exception is replacing the contact
+channels (`canManageCommunityContact`), which answers a non-member platform admin **404** as it does
+every non-member (CTC-002); on a **single object** they get **404** (`canReadSupply`,
 `canReadPlant`, `canReadSharingAgreement`, `canReadUser`, and the member's private
 figures), because they cannot see that object and a 403 would confirm it exists. `GET /users` has no
 object, so a platform admin who administers no community is answered **403**.

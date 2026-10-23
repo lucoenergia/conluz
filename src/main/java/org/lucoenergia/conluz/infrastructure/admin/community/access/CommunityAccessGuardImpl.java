@@ -110,6 +110,15 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canManageCommunityContact(UUID communityId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null) {
+            return false;
+        }
+        return resolveCommunity(communityAccessPolicy.canManageContact(user, communityId), communityId);
+    }
+
+    @Override
     public boolean canManageMemberships(UUID communityId) {
         return membershipAccessGuard.canManageMemberships(communityId);
     }

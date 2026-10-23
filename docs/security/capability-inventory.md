@@ -110,7 +110,7 @@ with no guard".
 | `canEnable` | `canEnableCommunity` |
 | `canDisable` | `canDisableCommunity` |
 | `canManageAdmins` | `canManageCommunityAdmins` (invite, list, resend and revoke the invitation of, enable and disable the community's admins) |
-| `canManage` | `canManageCommunity` |
+| `canManage` | `canManageCommunity`; `canManageCommunityContact` (replace the contact channels: the same callers allowed, but a non-member platform admin is answered 404 rather than 403) |
 | `canManageMemberships` | `canManageMemberships` |
 | `canRegisterMembers` | `canRegisterMembers` |
 | `canInviteMembers` | `canInviteMembers` (bulk send of first invitations) |

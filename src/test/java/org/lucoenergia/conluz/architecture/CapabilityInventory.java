@@ -66,6 +66,9 @@ final class CapabilityInventory {
         report("canDisableCommunity", capability(COMMUNITY, "canDisable"));
         report("canManageCommunityAdmins", capability(COMMUNITY, "canManageAdmins"));
         report("canManageCommunity", capability(COMMUNITY, "canManage"));
+        // The same callers as canManageCommunity, so the same capability; only the denial of a
+        // non-member platform admin differs (404 rather than 403), which a boolean does not report.
+        report("canManageCommunityContact", capability(COMMUNITY, "canManage"));
         report("canReadCommunityProduction", capability(COMMUNITY, "canReadProduction"));
         report("canListSupplies", capability(COMMUNITY, "canListSupplies"));
         report("canListPlants", capability(COMMUNITY, "canListPlants"));
