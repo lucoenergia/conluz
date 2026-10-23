@@ -1,9 +1,11 @@
 package org.lucoenergia.conluz.domain.admin.community.contact;
 
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidator;
+import org.lucoenergia.conluz.domain.shared.contact.PhoneNumberFormatChecker;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * The rules a community's list of contact channels follows (CTC-003), applied to what a community admin submits
@@ -16,13 +18,10 @@ public final class ContactChannelsValidator {
     public static final int MAX_VALUE_LENGTH = 200;
     public static final int MAX_SCHEDULE_LENGTH = 200;
     public static final int MAX_NOTES_LENGTH = 500;
-    public static final int MIN_PHONE_DIGITS = 6;
 
-    private static final Pattern PHONE_CHARACTERS = Pattern.compile("\\+?[0-9 ]*");
+    private final ContactEmailValidator emailValidity;
 
-    private final ContactEmailValidity emailValidity;
-
-    public ContactChannelsValidator(ContactEmailValidity emailValidity) {
+    public ContactChannelsValidator(ContactEmailValidator emailValidity) {
         this.emailValidity = emailValidity;
     }
 
@@ -107,15 +106,11 @@ public final class ContactChannelsValidator {
     }
 
     private static void checkPhone(String value, int index, List<ContactChannelViolation> violations) {
-        if (!PHONE_CHARACTERS.matcher(value).matches()) {
-            violations.add(violation(ContactChannelViolationCode.PHONE_CHARACTERS_INVALID, index));
-            return;
-        }
-        long digits = value.chars().filter(Character::isDigit).count();
-        if (digits < MIN_PHONE_DIGITS) {
-            violations.add(new ContactChannelViolation(ContactChannelViolationCode.PHONE_TOO_FEW_DIGITS, index,
-                    Map.of("minDigits", String.valueOf(MIN_PHONE_DIGITS))));
-        }
+        PhoneNumberFormatChecker.check(value).ifPresent(violation -> violations.add(switch (violation) {
+            case CHARACTERS_INVALID -> violation(ContactChannelViolationCode.PHONE_CHARACTERS_INVALID, index);
+            case TOO_FEW_DIGITS -> new ContactChannelViolation(ContactChannelViolationCode.PHONE_TOO_FEW_DIGITS, index,
+                    Map.of("minDigits", String.valueOf(PhoneNumberFormatChecker.MIN_DIGITS)));
+        }));
     }
 
     private static ContactChannelType typeOf(String type) {

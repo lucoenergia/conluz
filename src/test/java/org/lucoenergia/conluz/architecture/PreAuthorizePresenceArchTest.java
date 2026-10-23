@@ -39,13 +39,15 @@ public class PreAuthorizePresenceArchTest extends BaseArchTest {
 
     /**
      * The {@code permitAll()} endpoints in {@code WebSecurityConfig}: logging in and out, the
-     * first-run initialisation, the unauthenticated build-info endpoint, and password recovery (#362).
+     * first-run initialisation, the unauthenticated build-info and operator contact (#463) endpoints, and password
+     * recovery (#362).
      */
     private static final Set<String> PERMIT_ALL = Set.of(
             "LoginUserController#login",
             "LogoutUserController#logout",
             "InitController#init",
             "GetInfoController#getInfo",
+            "GetOperatorContactController#getOperatorContact",
             "RequestPasswordResetController#requestPasswordReset",
             "ResetPasswordController#resetPassword",
             "InspectInvitationController#inspectInvitation",

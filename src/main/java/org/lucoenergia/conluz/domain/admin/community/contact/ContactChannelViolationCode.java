@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.contact;
 
+import org.lucoenergia.conluz.domain.shared.contact.PhoneNumberFormatChecker;
+
 /**
  * Each way a submitted list of contact channels can break CTC-003.
  */
@@ -22,7 +24,7 @@ public enum ContactChannelViolationCode {
     PHONE_CHARACTERS_INVALID,
     /**
      * The value of a {@link ContactChannelType#PHONE} channel has fewer than
-     * {@link ContactChannelsValidator#MIN_PHONE_DIGITS} digits.
+     * {@link PhoneNumberFormatChecker#MIN_DIGITS} digits.
      */
     PHONE_TOO_FEW_DIGITS
 }

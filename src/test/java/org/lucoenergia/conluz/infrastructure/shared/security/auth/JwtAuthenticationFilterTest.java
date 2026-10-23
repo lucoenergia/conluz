@@ -145,6 +145,8 @@ class JwtAuthenticationFilterTest {
             "POST, /api/v1/login, true",
             "POST, /api/v1/init, true",
             "GET, /api/v1/info, true",
+            "GET, /api/v1/operator-contact, true",
+            "GET, /api/v1/operator-contact/extra, false",
             "GET, /api-docs, true",
             "GET, /api-docs/swagger-config, true",
             "GET, /actuator/health, true",

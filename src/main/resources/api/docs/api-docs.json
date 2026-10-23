@@ -1022,6 +1022,22 @@
         ],
         "type" : "object"
       },
+      "GetOperatorContactResponse" : {
+        "properties" : {
+          "contact" : {
+            "$ref" : "#/components/schemas/OperatorContactResponse",
+            "description" : "How to reach the organisation operating this instance. Null if this instance configures no operator contact.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "contact"
+        ],
+        "type" : "object"
+      },
       "GetShellyConfigResponse" : {
         "properties" : {
           "enabled" : {
@@ -2023,6 +2039,52 @@
           "invitedAt",
           "role",
           "user"
+        ],
+        "type" : "object"
+      },
+      "OperatorContactResponse" : {
+        "properties" : {
+          "email" : {
+            "description" : "The email address of the organisation operating this instance.",
+            "example" : "contact@example.org",
+            "type" : "string"
+          },
+          "name" : {
+            "description" : "The name of the organisation operating this instance.",
+            "example" : "Lucoenergia",
+            "type" : "string"
+          },
+          "notes" : {
+            "description" : "Free text about the channel. Null if it has none.",
+            "example" : "Write to us if you cannot sign in.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "phone" : {
+            "description" : "The phone number of the organisation operating this instance. Null if it has none.",
+            "example" : "+34 600 000 000",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "schedule" : {
+            "description" : "When the channel is attended. Null if it has no schedule.",
+            "example" : "Monday to Friday, 9:00 to 14:00",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "email",
+          "name",
+          "notes",
+          "phone",
+          "schedule"
         ],
         "type" : "object"
       },
@@ -13004,6 +13066,41 @@
         "summary" : "User de-authentication",
         "tags" : [
           "Authentication"
+        ]
+      }
+    },
+    "/api/v1/operator-contact" : {
+      "get" : {
+        "description" : "Returns how to reach the organisation operating this instance: the last-resort contact for someone who cannot sign in and so has no community to turn to. `contact` is null if this instance configures none.\n\nDoes not require authentication: any token sent is ignored.\n",
+        "operationId" : "getOperatorContact",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GetOperatorContactResponse"
+                }
+              }
+            },
+            "description" : "The operator contact, or a null contact if none is configured."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "summary" : "Returns the contact of the organisation operating this instance.",
+        "tags" : [
+          "Info"
         ]
       }
     },

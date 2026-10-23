@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.contact;
 
 import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannelsValidator;
-import org.lucoenergia.conluz.domain.admin.community.contact.ContactEmailValidity;
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class ContactChannelsConfiguration {
 
     @Bean
-    ContactChannelsValidator contactChannelsValidator(ContactEmailValidity contactEmailValidity) {
-        return new ContactChannelsValidator(contactEmailValidity);
+    ContactChannelsValidator contactChannelsValidator(ContactEmailValidator contactEmailValidator) {
+        return new ContactChannelsValidator(contactEmailValidator);
     }
 }
