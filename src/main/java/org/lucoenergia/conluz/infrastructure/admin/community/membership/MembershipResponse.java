@@ -3,23 +3,43 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesResponse;
-import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.reference.UserReferenceResponse;
 
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(requiredProperties = {"id", "user", "communityId", "role", "enabled", "acceptedAt", "invitedAt", "invitationExpiresAt",
+/**
+ * A membership as its community sees it: the membership, its state and the community's own member record (#448). It
+ * carries nothing from the member's account but its id and personal ID (ADR-0003 §1).
+ */
+@Schema(requiredProperties = {"id", "user", "communityId", "role", "personalId", "fullName", "memberNumber",
+        "contactEmail", "address", "phoneNumber", "enabled", "acceptedAt", "invitedAt", "invitationExpiresAt",
         "capabilities"})
 public class MembershipResponse {
 
     private final UUID id;
-    @Schema(description = "User associated with the membership", types = {"object", "null"})
-    private final UserResponse user;
+    @Schema(description = "The member's account, by id only: the {userId} the membership's endpoints take. Nothing "
+            + "else of the account is carried.")
+    private final UserReferenceResponse user;
     private final UUID communityId;
     private final CommunityRole role;
+    @Schema(description = "The member's DNI/NIE/NIF, normalised: the one the community registered them with.")
+    private final String personalId;
+    @Schema(description = "The member's full name, as this community records it.")
+    private final String fullName;
+    @Schema(description = "The member's number in this community. Null if the community records none.",
+            types = {"integer", "null"})
+    private final Integer memberNumber;
+    @Schema(description = "The email address this community contacts the member at. Null if there is none.",
+            types = {"string", "null"})
+    private final String contactEmail;
+    @Schema(description = "The member's address, as this community records it. Null if there is none.",
+            types = {"string", "null"})
+    private final String address;
+    @Schema(description = "The member's phone number, as this community records it. Null if there is none.",
+            types = {"string", "null"})
+    private final String phoneNumber;
     private final Boolean enabled;
     @Schema(description = "When the membership was accepted. Null while it is pending: a pending membership "
             + "grants no access until it is accepted. Independent of enabled.",
@@ -40,13 +60,17 @@ public class MembershipResponse {
      * @param invitationExpiresAt when the membership's invitation link expires, null when it has none
      */
     public MembershipResponse(CommunityMembership membership, Instant invitationExpiresAt,
-                              UserCapabilitiesResponse userCapabilities, MembershipCapabilitiesResponse capabilities) {
+                              MembershipCapabilitiesResponse capabilities) {
         this.id = membership.getId();
-        this.user = membership.getUser() != null
-                ? new UserResponse(membership.getUser(), MemberDataView.ofRecord(membership), userCapabilities)
-                : null;
+        this.user = new UserReferenceResponse(membership.getUser().getId());
         this.communityId = membership.getCommunity().getId();
         this.role = membership.getRole();
+        this.personalId = membership.getUser().getPersonalId();
+        this.fullName = membership.getFullName();
+        this.memberNumber = membership.getMemberNumber();
+        this.contactEmail = membership.getContactEmail();
+        this.address = membership.getAddress();
+        this.phoneNumber = membership.getPhoneNumber();
         this.enabled = membership.isEnabled();
         this.acceptedAt = membership.getAcceptedAt();
         this.invitedAt = membership.getInvitedAt();
@@ -58,7 +82,7 @@ public class MembershipResponse {
         return id;
     }
 
-    public UserResponse getUser() {
+    public UserReferenceResponse getUser() {
         return user;
     }
 
@@ -68,6 +92,30 @@ public class MembershipResponse {
 
     public CommunityRole getRole() {
         return role;
+    }
+
+    public String getPersonalId() {
+        return personalId;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public Integer getMemberNumber() {
+        return memberNumber;
+    }
+
+    public String getContactEmail() {
+        return contactEmail;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
 
     public Boolean getEnabled() {

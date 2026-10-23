@@ -202,8 +202,8 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     }
 
     /**
-     * The roster is where the user-capability batch has to hold: every member embedded in it carries
-     * no memberships of its own, so a naive implementation would look them up one at a time.
+     * The roster is where the canListSupplies batch has to hold: the members' users are join-fetched
+     * without their memberships, so a naive implementation would look them up one at a time.
      */
     @Test
     void listingACommunitysMembershipsCostsTheSameForOneAndForFive() throws Exception {

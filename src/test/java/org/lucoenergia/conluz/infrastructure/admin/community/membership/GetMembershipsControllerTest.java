@@ -55,10 +55,10 @@ class GetMembershipsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Alice Admin')].user.email").value("alice@test.com"))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Alice Admin')].role").value("COMMUNITY_ADMIN"))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Bob Member')].user.email").value("bob@test.com"))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Bob Member')].role").value("COMMUNITY_MEMBER"))
+                .andExpect(jsonPath("$[?(@.fullName == 'Alice Admin')].contactEmail").value("alice@test.com"))
+                .andExpect(jsonPath("$[?(@.fullName == 'Alice Admin')].role").value("COMMUNITY_ADMIN"))
+                .andExpect(jsonPath("$[?(@.fullName == 'Bob Member')].contactEmail").value("bob@test.com"))
+                .andExpect(jsonPath("$[?(@.fullName == 'Bob Member')].role").value("COMMUNITY_MEMBER"))
                 .andExpect(jsonPath("$[0].user.id").isString())
                 .andExpect(jsonPath("$[0].communityId").value(community.getId().toString()))
                 .andExpect(jsonPath("$[0].enabled").isBoolean());
@@ -81,8 +81,8 @@ class GetMembershipsControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Charlie')].user.email").value("charlie@test.com"))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Charlie')].role").value("COMMUNITY_MEMBER"))
+                .andExpect(jsonPath("$[?(@.fullName == 'Charlie')].contactEmail").value("charlie@test.com"))
+                .andExpect(jsonPath("$[?(@.fullName == 'Charlie')].role").value("COMMUNITY_MEMBER"))
                 .andExpect(jsonPath("$[0].user.id").isString())
                 .andExpect(jsonPath("$[0].communityId").value(community.getId().toString()))
                 .andExpect(jsonPath("$[0].enabled").isBoolean());
@@ -122,12 +122,12 @@ class GetMembershipsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 // the three members plus the calling admin
                 .andExpect(jsonPath("$.length()").value(4))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Active')].acceptedAt", contains(notNullValue())))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Active')].enabled", contains(true)))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Pending')].acceptedAt", contains(nullValue())))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Pending')].enabled", contains(true)))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Disabled')].acceptedAt", contains(notNullValue())))
-                .andExpect(jsonPath("$[?(@.user.fullName == 'Disabled')].enabled", contains(false)));
+                .andExpect(jsonPath("$[?(@.fullName == 'Active')].acceptedAt", contains(notNullValue())))
+                .andExpect(jsonPath("$[?(@.fullName == 'Active')].enabled", contains(true)))
+                .andExpect(jsonPath("$[?(@.fullName == 'Pending')].acceptedAt", contains(nullValue())))
+                .andExpect(jsonPath("$[?(@.fullName == 'Pending')].enabled", contains(true)))
+                .andExpect(jsonPath("$[?(@.fullName == 'Disabled')].acceptedAt", contains(notNullValue())))
+                .andExpect(jsonPath("$[?(@.fullName == 'Disabled')].enabled", contains(false)));
     }
 
     private User createUser(String fullName, String email) {
