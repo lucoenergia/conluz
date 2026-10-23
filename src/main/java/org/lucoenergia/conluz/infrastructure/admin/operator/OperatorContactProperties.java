@@ -5,10 +5,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Binds the operator contact settings, each one from the environment variable named by the constants below.
  *
- * <p>Deliberately not validated at binding time: {@link OperatorContactPropertiesValidator} checks the settings as a
- * whole when {@link GetOperatorContactServiceImpl} is built, so a partial or invalid configuration stops the
- * application from starting (CTC-005) with a message naming the environment variables to fix, which is what an
- * operator sets, rather than the property paths.</p>
+ * <p>Deliberately not validated at binding time: the domain's
+ * {@link org.lucoenergia.conluz.domain.admin.operator.OperatorContactValidator} checks the settings as a whole when
+ * {@link GetOperatorContactServiceImpl} is built, so a partial or invalid configuration stops the application from
+ * starting (CTC-005) with a message naming the environment variables to fix, which is what an operator sets, rather
+ * than the property paths.</p>
  *
  * @param name     the organisation's name; empty when not configured
  * @param email    the organisation's email address; empty when not configured

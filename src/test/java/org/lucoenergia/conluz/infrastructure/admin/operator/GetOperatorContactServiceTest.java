@@ -33,7 +33,8 @@ class GetOperatorContactServiceTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withInitializer(new ConfigDataApplicationContextInitializer())
             .withConfiguration(AutoConfigurations.of(ValidationAutoConfiguration.class))
-            .withUserConfiguration(GetOperatorContactServiceImpl.class, ContactEmailValidatorImpl.class);
+            .withUserConfiguration(GetOperatorContactServiceImpl.class, OperatorContactConfiguration.class,
+                    ContactEmailValidatorImpl.class);
 
     @Test
     @DisplayName("CTC-005 with every variable blank the application starts with no operator contact")
@@ -86,6 +87,39 @@ class GetOperatorContactServiceTest {
             assertThat(context).hasFailed();
             assertThat(failureMessages(context)).contains(expectedVariables);
         });
+    }
+
+    @Test
+    @DisplayName("CTC-005 every problem is reported in one startup failure, by variable")
+    void everyProblemIsReportedInOneStartupFailure() {
+        contextRunner.withPropertyValues(EMAIL + "=not an email", PHONE + "=600 CALL ME").run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(failureMessages(context)).contains(
+                    NAME + " is not set",
+                    EMAIL + " is not an email address",
+                    PHONE + " may only have digits, spaces and a leading +");
+        });
+    }
+
+    @Test
+    @DisplayName("CTC-005 a phone with too few digits is reported with the minimum")
+    void aPhoneWithTooFewDigitsIsReportedWithTheMinimum() {
+        contextRunner.withPropertyValues(NAME + "=Lucoenergia", EMAIL + "=contact@example.org", PHONE + "=12345")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(failureMessages(context)).contains(PHONE + " must have at least 6 digits");
+                });
+    }
+
+    @Test
+    @DisplayName("CTC-005 the startup failure does not repeat the configured values")
+    void theStartupFailureDoesNotRepeatTheValues() {
+        contextRunner.withPropertyValues(NAME + "=Secret Org", EMAIL + "=secret-at-example", PHONE + "=600 CALL ME")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(failureMessages(context))
+                            .doesNotContain("Secret Org", "secret-at-example", "600 CALL ME");
+                });
     }
 
     private static Stream<Arguments> rejectedConfigurations() {
