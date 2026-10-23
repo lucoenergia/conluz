@@ -383,6 +383,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
                     () -> guard.canChangeMemberState(communityId, userId));
             assertSame("canEditRecord", capabilities.isCanEditRecord(),
                     () -> guard.canEditMemberRecord(communityId));
+            assertSame("canListSupplies", capabilities.isCanListSupplies(),
+                    () -> guard.canListSuppliesOfUser(userId));
         });
     }
 

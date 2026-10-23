@@ -171,23 +171,21 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
     }
 
     /**
-     * The embedded owner gets capabilities like any other user — and its memberships map stays
-     * empty. The batch that decides those capabilities must not be written back onto the user:
-     * a caller who can see somebody only as a supply owner must not learn which communities they
-     * belong to.
+     * The owner of a supply is a reference by id (#448): it carries neither capabilities nor the
+     * memberships map, so a caller who can see somebody only as a supply owner learns nothing of
+     * their account or of which communities they belong to.
      */
     @Test
-    void theOwnerEmbeddedInASupplyCarriesCapabilitiesButStillNoMemberships() throws Exception {
+    void theOwnerOfASupplyIsAReferenceCarryingNeitherCapabilitiesNorMemberships() throws Exception {
         User owner = persistMemberOf(DEFAULT_COMMUNITY_ID);
         var supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()));
 
         mockMvc.perform(get("/api/v1/supplies/{supplyId}", supply.getId())
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.user.capabilities.canRead").value(true))
-                // A community admin may not change the owner's account (#415).
-                .andExpect(jsonPath("$.user.capabilities.canDelete").value(false))
-                .andExpect(jsonPath("$.user.memberships").isEmpty());
+                .andExpect(jsonPath("$.user.id").value(owner.getId().toString()))
+                .andExpect(jsonPath("$.user.capabilities").doesNotExist())
+                .andExpect(jsonPath("$.user.memberships").doesNotExist());
     }
 
     private User persistMemberOf(Community community) {

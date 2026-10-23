@@ -23,22 +23,6 @@ class MemberDataPolicyTest {
 
     private final MemberDataPolicy policy = new MemberDataPolicy();
 
-    // --- inCommunity ---
-
-    @Test
-    @DisplayName("MEM-026 Inside a community, the member data is the record")
-    void inCommunity_isTheRecord() {
-        CommunityMembership record = record(PolicyFixtures.community(), "Name in A");
-
-        assertEquals(MemberDataView.ofRecord(record), policy.inCommunity(record));
-    }
-
-    @Test
-    @DisplayName("MEM-026 Inside a community, a user without a record has no member data")
-    void inCommunity_isAbsent_withoutARecord() {
-        assertEquals(new MemberDataView("", null, null, null, null), policy.inCommunity(null));
-    }
-
     // --- forUser ---
 
     @Test

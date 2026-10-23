@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -27,11 +27,7 @@ import java.util.UUID;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesAssembler;
-import java.util.Objects;
 import java.util.function.Function;
-import java.util.Map;
-import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
-import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberDataAssembler;
 
 /**
@@ -44,18 +40,15 @@ public class GetSuppliesByUserIdController {
     private final GetSupplyService supplyService;
     private final CommunityAccessGuard communityAccessGuard;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
-    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
     private final MemberDataAssembler memberDataAssembler;
 
     public GetSuppliesByUserIdController(GetSupplyService supplyService,
                                          CommunityAccessGuard communityAccessGuard,
                                          SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                         UserCapabilitiesAssembler userCapabilitiesAssembler,
                                          MemberDataAssembler memberDataAssembler) {
         this.supplyService = supplyService;
         this.communityAccessGuard = communityAccessGuard;
         this.capabilitiesAssembler = capabilitiesAssembler;
-        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
         this.memberDataAssembler = memberDataAssembler;
     }
 
@@ -101,23 +94,12 @@ public class GetSuppliesByUserIdController {
         List<Supply> supplies = supplyService.getByUserId(UserId.of(userId),
                 communityAccessGuard.visibleSuppliesOfUser(userId));
 
-        // One query for every owner on this page, not one per supply: the owners embedded in a
-        // supply carry no memberships, and the rules deciding what may be done with them need those.
-        Map<UUID, UserCapabilitiesResponse> ownerCapabilities =
-                userCapabilitiesAssembler.assembleAllFetchingMemberships(currentUser,
-                        supplies.stream().map(Supply::getUser).filter(Objects::nonNull).toList());
-
-        // One query for the member records of every owner on this page as well.
-        Function<Supply, MemberDataView> ownerData = memberDataAssembler.ofSupplyOwners(supplies);
+        // One query for the member records of every owner on this page, not one per supply.
+        Function<Supply, CommunityMembership> ownerRecords = memberDataAssembler.recordsOfSupplyOwners(supplies);
 
         return supplies.stream()
                 .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
-                        ownerCapabilitiesOf(supply, ownerCapabilities), ownerData.apply(supply)))
+                        ownerRecords.apply(supply)))
                 .toList();
-    }
-
-    private UserCapabilitiesResponse ownerCapabilitiesOf(Supply supply,
-                                                         Map<UUID, UserCapabilitiesResponse> byUserId) {
-        return supply.getUser() == null ? null : byUserId.get(supply.getUser().getId());
     }
 }

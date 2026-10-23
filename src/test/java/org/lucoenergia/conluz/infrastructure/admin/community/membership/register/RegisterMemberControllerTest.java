@@ -638,7 +638,7 @@ class RegisterMemberControllerTest extends BaseSendingMemberTest {
         assertThat(fieldNames(json.get("community"))).isEqualTo(new TreeSet<>(Set.of("id", "name")));
         assertThat(fieldNames(json.get("capabilities"))).isEqualTo(new TreeSet<>(Set.of("canUpdateRole", "canDelete",
                 "canManageInvestment", "canReadPayback", "canInvite", "canEnable", "canDisable",
-                "canEditRecord")));
+                "canEditRecord", "canListSupplies")));
     }
 
     // --- Logging ---

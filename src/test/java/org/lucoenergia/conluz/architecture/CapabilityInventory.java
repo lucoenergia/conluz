@@ -127,7 +127,11 @@ final class CapabilityInventory {
         report("canRevokePlatformAdmin",
                 capability(USER, "canRevokePlatformAdmin"),
                 capability(PLATFORM_ADMIN, "canRevoke"));
-        report("canListSuppliesOfUser", capability(USER, "canListSupplies"));
+        // Also the membership's canListSupplies: the roster offers a member's supplies on their row, and
+        // MembershipResponse.user is a reference carrying no capabilities (#448).
+        report("canListSuppliesOfUser",
+                capability(USER, "canListSupplies"),
+                capability(MEMBERSHIP, "canListSupplies"));
 
         // --- reported to nobody ---
         serverOnly("isCommunityAdminOfSupply",

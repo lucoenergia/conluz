@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * the agreement's {@code status} that says the action would be rejected right now. Clients read
  * both.</p>
  */
-@Schema(description = "What the caller may do with this membership.", requiredProperties = {"canUpdateRole", "canDelete", "canManageInvestment", "canReadPayback", "canInvite", "canEnable", "canDisable", "canEditRecord"})
+@Schema(description = "What the caller may do with this membership.", requiredProperties = {"canUpdateRole", "canDelete", "canManageInvestment", "canReadPayback", "canInvite", "canEnable", "canDisable", "canEditRecord", "canListSupplies"})
 public class MembershipCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may change this membership's role.")
@@ -38,6 +38,9 @@ public class MembershipCapabilitiesResponse {
     @Schema(description = "Whether the caller may edit this membership's member record (PUT /api/v1/communities/{communityId}/memberships/{userId}/record). Only an active admin of the community, on any membership of it whatever its role and state. Whether a change is accepted right now depends on the record sent: a membership with the COMMUNITY_ADMIN role must keep a contact email.")
     private final boolean canEditRecord;
 
+    @Schema(description = "Whether the caller may list this member's supplies (GET /api/v1/users/{userId}/supplies). Deliberately narrower than being able to manage the membership: a community admin may list only the supplies in the communities they administer. Predicts whether the call is allowed, not what it returns: the listing carries only the supplies the caller may read one by one — all of them for the member themselves, otherwise those in communities the caller administers.")
+    private final boolean canListSupplies;
+
     private MembershipCapabilitiesResponse(Builder builder) {
         this.canUpdateRole = builder.canUpdateRole;
         this.canDelete = builder.canDelete;
@@ -47,6 +50,7 @@ public class MembershipCapabilitiesResponse {
         this.canEnable = builder.canEnable;
         this.canDisable = builder.canDisable;
         this.canEditRecord = builder.canEditRecord;
+        this.canListSupplies = builder.canListSupplies;
     }
 
     public boolean isCanUpdateRole() {
@@ -81,6 +85,10 @@ public class MembershipCapabilitiesResponse {
         return canEditRecord;
     }
 
+    public boolean isCanListSupplies() {
+        return canListSupplies;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -99,6 +107,7 @@ public class MembershipCapabilitiesResponse {
         private boolean canEnable;
         private boolean canDisable;
         private boolean canEditRecord;
+        private boolean canListSupplies;
 
         public Builder withCanUpdateRole(boolean canUpdateRole) {
             this.canUpdateRole = canUpdateRole;
@@ -137,6 +146,11 @@ public class MembershipCapabilitiesResponse {
 
         public Builder withCanEditRecord(boolean canEditRecord) {
             this.canEditRecord = canEditRecord;
+            return this;
+        }
+
+        public Builder withCanListSupplies(boolean canListSupplies) {
+            this.canListSupplies = canListSupplies;
             return this;
         }
 

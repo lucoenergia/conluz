@@ -411,29 +411,35 @@ lazily, as issues touch it.
 ### MEM-026 — Community responses, and user responses read by a community admin, show the member record
 
 - **Status:** Active
-- **Rule:** A user embedded in a response scoped to one community — the user of a membership
-  (`getMemberships`, `updateMembershipRole`) and the owner of a supply (`getSupply`,
-  `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`) — MUST
-  show the full name, number, email, address and phone of their member record in that community: the path
-  community for memberships, the supply's community for supplies, whoever the caller is. A community's admin
-  names (`getAllCommunities`, `getCommunityById`) MUST be the full names of the admins' member records in that
-  community. When a supply's owner has no membership in the supply's community, those five fields MUST be blank
-  (an empty full name, the other four null), never the account's. A user read through `getAllUsers` or
-  `getUserById` MUST show the account's data to the user themselves only; to any other
-  caller, a platform admin included, the five fields MUST come from the user's member record in a community
-  the caller administers through an active admin membership and, when there are several, in the one whose id is
-  the lowest in the canonical text form of the id (the order PostgreSQL gives `uuid`). Every other field MUST
-  keep coming from the account.
+- **Rule:** A membership in a response scoped to one community (`getMemberships`, `updateMembershipRole`) MUST
+  carry the full name, number, contact email, address and phone of the member record in the path community at
+  its top level, under the names `MemberResponse` gives them (`fullName`, `memberNumber`, `contactEmail`,
+  `address`, `phoneNumber`), together with the member's `personalId`; its `user` MUST carry the account's id and
+  nothing else. A supply (`getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`,
+  `enableSupply`, `disableSupply`) MUST carry its owner's member record in the supply's community as
+  `ownerRecord`, under the same names, whoever the caller is; its `user` MUST carry the owner's id and nothing
+  else, and be null when the supply has no owner. When the supply has no owner, or its owner has no membership
+  in the supply's community, `ownerRecord` MUST be null, never filled from the account. A community's admin names
+  (`getAllCommunities`, `getCommunityById`) MUST be the full names of the admins' member records in that
+  community. A user read through `getAllUsers` or `getUserById` MUST show the account's data to the user
+  themselves only; to any other caller, a platform admin included, the five fields MUST come from the user's
+  member record in a community the caller administers through an active admin membership and, when there are
+  several, in the one whose id is the lowest in the canonical text form of the id (the order PostgreSQL gives
+  `uuid`). Every other field of such a user MUST keep coming from the account.
 - **Rationale:** ADR-0003 §1 obliges every response built for a community admin to read member data from the
-  member record. Since member registration finds an existing account silently (MEM-008), the account may hold
-  what another community or the person entered: showing it would disclose that data and reveal that the person
-  already had an account. Choosing one record deterministically keeps repeated reads consistent; both
-  candidates belong to communities the caller administers, so the choice reveals nothing. A supply whose owner
-  left its community has no record to show, and falling back to the account would leak it. Records of accounts
-  with a single membership are copied again from the account once, so that edits made to the account since the
-  copy of #388 still show.
+  member record, and to carry no account fields beyond the identity of the link. Since member registration
+  finds an existing account silently (MEM-008), the account may hold what another community or the person
+  entered: showing it would disclose that data and reveal that the person already had an account. Naming the
+  record's fields as `MemberResponse` does keeps clients from mistaking them for the account's. Choosing one
+  record deterministically keeps repeated reads consistent; both candidates belong to communities the caller
+  administers, so the choice reveals nothing. A supply whose owner left its community has no record to show,
+  and falling back to the account would leak it. Records of accounts with a single membership are copied again
+  from the account once, so that edits made to the account since the copy of #388 still show.
 - **Source:** #396, ADR-0003 §1. #446 withdrew the account view from the platform admin, which until then saw
-  the account of any user it read. #447 removed `createMembership` and `updateUser`, which answered such a user too.
+  the account of any user it read. #447 removed `createMembership` and `updateUser`, which answered such a user
+  too. #448 moved the record of a membership to its top level and the record of a supply's owner to
+  `ownerRecord`, reduced their embedded user to its id, and replaced the blank fields of an owner without a
+  record with a null `ownerRecord`.
 
 ### MEM-027 — A community admin enables and disables the memberships of their community's members
 

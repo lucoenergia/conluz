@@ -32,9 +32,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Responses embedding a user read its member data from the member record (MEM-026, #396). One person holds an
- * account with data of its own and is registered, through member registration, in two communities with a different
- * record in each, then accepts both invitations.
+ * Responses scoped to a community show the member record under its own names, and user responses read by a community
+ * admin read their member data from it (MEM-026, #396, #448). One person holds an account with data of its own and is
+ * registered, through member registration, in two communities with a different record in each, then accepts both
+ * invitations.
  */
 class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
 
@@ -71,27 +72,46 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     // --- Community-scoped responses ---
 
     @Test
-    @DisplayName("MEM-026 The roster shows each community's record of the person")
+    @DisplayName("MEM-026 The roster shows each community's record of the person, and the account by id only")
     void theRosterShowsTheCommunitysRecord() throws Exception {
-        assertShowsRecord(rosterEntry(adminOfA, communityA), recordA);
-        assertShowsRecord(rosterEntry(adminOfB, communityB), recordB);
+        JsonNode inA = rosterEntry(adminOfA, communityA);
+        JsonNode inB = rosterEntry(adminOfB, communityB);
+
+        assertShowsRecord(inA, recordA);
+        assertShowsRecord(inB, recordB);
+        assertThat(inA.get("personalId").asText()).isEqualTo(person.getPersonalId());
+        assertIsReferenceToThePerson(inA.get("user"));
+        assertIsReferenceToThePerson(inB.get("user"));
     }
 
     @Test
-    @DisplayName("MEM-026 Changing the person's role answers the community's record")
+    @DisplayName("MEM-026 Changing the person's role answers the community's record, and the account by id only")
     void updatingTheRoleShowsTheCommunitysRecord() throws Exception {
         JsonNode updated = json(perform(adminOfA, patch("/api/v1/communities/{communityId}/memberships/{userId}",
                 communityA.getId(), person.getId()), Map.of("role", "COMMUNITY_ADMIN")));
 
-        assertShowsRecord(updated.get("user"), recordA);
+        assertShowsRecord(updated, recordA);
+        assertThat(updated.get("personalId").asText()).isEqualTo(person.getPersonalId());
+        assertIsReferenceToThePerson(updated.get("user"));
+    }
+
+    @Test
+    @DisplayName("MEM-026 The roster and the role change report whether the caller may list the member's supplies")
+    void theRosterAndTheRoleChangeReportWhetherTheMembersSuppliesMayBeListed() throws Exception {
+        assertThat(rosterEntry(adminOfA, communityA).get("capabilities").get("canListSupplies").asBoolean()).isTrue();
+
+        JsonNode updated = json(perform(adminOfA, patch("/api/v1/communities/{communityId}/memberships/{userId}",
+                communityA.getId(), person.getId()), Map.of("role", "COMMUNITY_ADMIN")));
+
+        assertThat(updated.get("capabilities").get("canListSupplies").asBoolean()).isTrue();
     }
 
     @Test
     @DisplayName("MEM-026 A supply shows its owner's record in the supply's community")
     void aSupplyShowsTheOwnersRecordInItsCommunity() throws Exception {
-        assertShowsRecord(json(perform(adminOfA, get("/api/v1/supplies/{supplyId}", supplyInA.getId()))).get("user"),
+        assertShowsOwnerRecord(json(perform(adminOfA, get("/api/v1/supplies/{supplyId}", supplyInA.getId()))),
                 recordA);
-        assertShowsRecord(json(perform(adminOfB, get("/api/v1/supplies/{supplyId}", supplyInB.getId()))).get("user"),
+        assertShowsOwnerRecord(json(perform(adminOfB, get("/api/v1/supplies/{supplyId}", supplyInB.getId()))),
                 recordB);
     }
 
@@ -99,12 +119,12 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     @DisplayName("MEM-026 Updating, enabling and disabling a supply answer the owner's record in its community")
     void writingASupplyShowsTheOwnersRecordInItsCommunity() throws Exception {
         Map<String, Object> body = Map.of("code", supplyInA.getCode(), "address", "Calle Suministro 9");
-        assertShowsRecord(json(perform(adminOfA, put("/api/v1/supplies/{supplyId}", supplyInA.getId()), body))
-                .get("user"), recordA);
-        assertShowsRecord(json(perform(adminOfA, post("/api/v1/supplies/{supplyId}/disable", supplyInA.getId())))
-                .get("user"), recordA);
-        assertShowsRecord(json(perform(adminOfA, post("/api/v1/supplies/{supplyId}/enable", supplyInA.getId())))
-                .get("user"), recordA);
+        assertShowsOwnerRecord(json(perform(adminOfA, put("/api/v1/supplies/{supplyId}", supplyInA.getId()), body)),
+                recordA);
+        assertShowsOwnerRecord(json(perform(adminOfA, post("/api/v1/supplies/{supplyId}/disable",
+                supplyInA.getId()))), recordA);
+        assertShowsOwnerRecord(json(perform(adminOfA, post("/api/v1/supplies/{supplyId}/enable",
+                supplyInA.getId()))), recordA);
     }
 
     @Test
@@ -113,7 +133,7 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
         Map<String, Object> body = Map.of("code", "ES" + UUID.randomUUID().toString().replace("-", "").substring(0, 18),
                 "personalId", person.getPersonalId(), "address", "Calle Nueva 3", "communityId", communityB.getId());
 
-        assertShowsRecord(json(perform(adminOfB, post("/api/v1/supplies"), body)).get("user"), recordB);
+        assertShowsOwnerRecord(json(perform(adminOfB, post("/api/v1/supplies"), body)), recordB);
     }
 
     @Test
@@ -122,8 +142,8 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
         JsonNode inA = json(perform(adminOfA, get("/api/v1/communities/{communityId}/supplies", communityA.getId())));
         JsonNode inB = json(perform(adminOfB, get("/api/v1/communities/{communityId}/supplies", communityB.getId())));
 
-        assertShowsRecord(supplyIn(inA.get("items"), supplyInA).get("user"), recordA);
-        assertShowsRecord(supplyIn(inB.get("items"), supplyInB).get("user"), recordB);
+        assertShowsOwnerRecord(supplyIn(inA.get("items"), supplyInA), recordA);
+        assertShowsOwnerRecord(supplyIn(inB.get("items"), supplyInB), recordB);
     }
 
     @Test
@@ -135,28 +155,39 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
         JsonNode forBoth = json(perform(adminOfBoth, get("/api/v1/users/{userId}/supplies", person.getId())));
 
         assertThat(forA).hasSize(1);
-        assertShowsRecord(supplyIn(forA, supplyInA).get("user"), recordA);
+        assertShowsOwnerRecord(supplyIn(forA, supplyInA), recordA);
         assertThat(forBoth).hasSize(2);
-        assertShowsRecord(supplyIn(forBoth, supplyInA).get("user"), recordA);
-        assertShowsRecord(supplyIn(forBoth, supplyInB).get("user"), recordB);
+        assertShowsOwnerRecord(supplyIn(forBoth, supplyInA), recordA);
+        assertShowsOwnerRecord(supplyIn(forBoth, supplyInB), recordB);
     }
 
     @Test
-    @DisplayName("MEM-026 A supply whose owner left its community shows no member data")
+    @DisplayName("MEM-026 The owner reading their own supplies sees their own record in each supply's community, and nothing of their account but its id")
+    void theOwnerReadingTheirOwnSuppliesSeesOnlyTheirOwnRecords() throws Exception {
+        String self = loginUser(person);
+
+        assertShowsOwnerRecord(json(perform(self, get("/api/v1/supplies/{supplyId}", supplyInA.getId()))), recordA);
+        assertShowsOwnerRecord(json(perform(self, get("/api/v1/supplies/{supplyId}", supplyInB.getId()))), recordB);
+        JsonNode own = json(perform(self, get("/api/v1/users/{userId}/supplies", person.getId())));
+        assertThat(own).hasSize(2);
+        assertShowsOwnerRecord(supplyIn(own, supplyInA), recordA);
+        assertShowsOwnerRecord(supplyIn(own, supplyInB), recordB);
+    }
+
+    @Test
+    @DisplayName("MEM-026 A supply whose owner left its community has no owner record, never the account")
     void aSupplyWhoseOwnerLeftItsCommunityShowsNoMemberData() throws Exception {
         // Written directly: deleting the membership of a supply owner is refused since #412 (MEM-029), but data
         // written before it can still hold a supply whose owner left its community
         jdbcTemplate.update("DELETE FROM community_memberships WHERE user_id = ? AND community_id = ?", person.getId(),
                 communityA.getId());
 
-        JsonNode owner = json(perform(adminOfA, get("/api/v1/supplies/{supplyId}", supplyInA.getId()))).get("user");
+        JsonNode supply = json(perform(adminOfA, get("/api/v1/supplies/{supplyId}", supplyInA.getId())));
 
-        assertThat(owner.get("id").asText()).isEqualTo(person.getId().toString());
-        assertThat(owner.get("fullName").asText()).isEmpty();
-        assertThat(owner.get("number").isNull()).isTrue();
-        assertThat(owner.get("email").isNull()).isTrue();
-        assertThat(owner.get("address").isNull()).isTrue();
-        assertThat(owner.get("phoneNumber").isNull()).isTrue();
+        assertIsReferenceToThePerson(supply.get("user"));
+        assertThat(supply.has("ownerRecord")).isTrue();
+        assertThat(supply.get("ownerRecord").isNull()).isTrue();
+        assertCarriesNoPersonalId(supply);
     }
 
     @Test
@@ -176,8 +207,9 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
         JsonNode supplies = json(perform(adminOfA, get("/api/v1/communities/{communityId}/supplies",
                 communityA.getId())));
 
-        assertThat(entryOf(roster, registeredId).get("user").get("number").asInt()).isEqualTo(42);
-        assertThat(supplyIn(supplies.get("items"), supply).get("user").get("number").asInt()).isEqualTo(42);
+        assertThat(entryOf(roster, registeredId).get("memberNumber").asInt()).isEqualTo(42);
+        assertThat(supplyIn(supplies.get("items"), supply).get("ownerRecord").get("memberNumber").asInt())
+                .isEqualTo(42);
     }
 
     // --- User responses ---
@@ -185,15 +217,15 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
     @Test
     @DisplayName("MEM-026 A community admin reading the user sees the record of their community")
     void aCommunityAdminReadingTheUserSeesTheirCommunitysRecord() throws Exception {
-        assertShowsRecord(json(perform(adminOfA, get("/api/v1/users/{userId}", person.getId()))), recordA);
-        assertShowsRecord(json(perform(adminOfB, get("/api/v1/users/{userId}", person.getId()))), recordB);
+        assertShowsUserRecord(json(perform(adminOfA, get("/api/v1/users/{userId}", person.getId()))), recordA);
+        assertShowsUserRecord(json(perform(adminOfB, get("/api/v1/users/{userId}", person.getId()))), recordB);
     }
 
     @Test
     @DisplayName("MEM-026 A community admin listing users sees the record of their community")
     void aCommunityAdminListingUsersSeesTheirCommunitysRecord() throws Exception {
-        assertShowsRecord(userIn(json(perform(adminOfA, get("/api/v1/users?size=2000"))).get("items")), recordA);
-        assertShowsRecord(userIn(json(perform(adminOfB, get("/api/v1/users?size=2000"))).get("items")), recordB);
+        assertShowsUserRecord(userIn(json(perform(adminOfA, get("/api/v1/users?size=2000"))).get("items")), recordA);
+        assertShowsUserRecord(userIn(json(perform(adminOfB, get("/api/v1/users?size=2000"))).get("items")), recordB);
     }
 
     @Test
@@ -203,9 +235,9 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
         Map<String, Object> lowest = communityA.getId().toString().compareTo(communityB.getId().toString()) < 0
                 ? recordA : recordB;
 
-        assertShowsRecord(json(perform(adminOfBoth, get("/api/v1/users/{userId}", person.getId()))), lowest);
-        assertShowsRecord(json(perform(adminOfBoth, get("/api/v1/users/{userId}", person.getId()))), lowest);
-        assertShowsRecord(userIn(json(perform(adminOfBoth, get("/api/v1/users?size=2000"))).get("items")), lowest);
+        assertShowsUserRecord(json(perform(adminOfBoth, get("/api/v1/users/{userId}", person.getId()))), lowest);
+        assertShowsUserRecord(json(perform(adminOfBoth, get("/api/v1/users/{userId}", person.getId()))), lowest);
+        assertShowsUserRecord(userIn(json(perform(adminOfBoth, get("/api/v1/users?size=2000"))).get("items")), lowest);
     }
 
     @Test
@@ -291,7 +323,7 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
 
     private JsonNode rosterEntry(String bearer, Community community) throws Exception {
         return entryOf(json(perform(bearer, get("/api/v1/communities/{communityId}/memberships",
-                community.getId()))), person.getId()).get("user");
+                community.getId()))), person.getId());
     }
 
     private static JsonNode entryOf(JsonNode roster, UUID userId) {
@@ -323,7 +355,45 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
 
     // --- Assertions ---
 
-    private void assertShowsRecord(JsonNode user, Map<String, Object> record) {
+    /**
+     * A community-scoped record: under {@code MemberResponse}'s names.
+     */
+    private void assertShowsRecord(JsonNode memberRecord, Map<String, Object> record) {
+        assertThat(List.of(text(memberRecord.get("fullName")), text(memberRecord.get("memberNumber")),
+                text(memberRecord.get("contactEmail")), text(memberRecord.get("address")),
+                text(memberRecord.get("phoneNumber")))).isEqualTo(expected(record));
+    }
+
+    private void assertShowsOwnerRecord(JsonNode supply, Map<String, Object> record) {
+        assertShowsRecord(supply.get("ownerRecord"), record);
+        assertIsReferenceToThePerson(supply.get("user"));
+        assertCarriesNoPersonalId(supply);
+    }
+
+    private void assertIsReferenceToThePerson(JsonNode user) {
+        List<String> fields = new ArrayList<>();
+        user.fieldNames().forEachRemaining(fields::add);
+        assertThat(fields).containsExactly("id");
+        assertThat(user.get("id").asText()).isEqualTo(person.getId().toString());
+    }
+
+    private static void assertCarriesNoPersonalId(JsonNode supply) {
+        assertThat(supply.findValues("personalId")).isEmpty();
+    }
+
+    private static List<String> expected(Map<String, Object> record) {
+        return List.of(
+                String.valueOf(record.get("fullName")),
+                String.valueOf(record.get("memberNumber")),
+                String.valueOf(record.get("contactEmail")),
+                String.valueOf(record.get("address")),
+                String.valueOf(record.get("phoneNumber")));
+    }
+
+    /**
+     * A user response: the member data under the user's names.
+     */
+    private void assertShowsUserRecord(JsonNode user, Map<String, Object> record) {
         assertThat(memberData(user)).isEqualTo(List.of(
                 String.valueOf(record.get("fullName")),
                 String.valueOf(record.get("memberNumber")),

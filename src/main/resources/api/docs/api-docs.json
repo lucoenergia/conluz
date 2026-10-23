@@ -1414,6 +1414,52 @@
         },
         "type" : "object"
       },
+      "MemberRecordResponse" : {
+        "description" : "A member's record in one community.",
+        "properties" : {
+          "address" : {
+            "description" : "The member's address, as this community records it. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "contactEmail" : {
+            "description" : "The email address this community contacts the member at. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "fullName" : {
+            "description" : "The member's full name, as this community records it.",
+            "type" : "string"
+          },
+          "memberNumber" : {
+            "description" : "The member's number in this community. Null if the community records none.",
+            "format" : "int32",
+            "type" : [
+              "integer",
+              "null"
+            ]
+          },
+          "phoneNumber" : {
+            "description" : "The member's phone number, as this community records it. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "address",
+          "contactEmail",
+          "fullName",
+          "memberNumber",
+          "phoneNumber"
+        ],
+        "type" : "object"
+      },
       "MemberResponse" : {
         "description" : "A member of a community: the membership, its state and the community's own member record.",
         "properties" : {
@@ -1551,6 +1597,10 @@
             "description" : "Whether the caller may invite this member to accept the membership, and resend or revoke its invitation. Whether one can be sent right now depends on the membership's state, its contact email and how many invitations it has been sent in the last 24 hours.",
             "type" : "boolean"
           },
+          "canListSupplies" : {
+            "description" : "Whether the caller may list this member's supplies (GET /api/v1/users/{userId}/supplies). Deliberately narrower than being able to manage the membership: a community admin may list only the supplies in the communities they administer. Predicts whether the call is allowed, not what it returns: the listing carries only the supplies the caller may read one by one — all of them for the member themselves, otherwise those in communities the caller administers.",
+            "type" : "boolean"
+          },
           "canManageInvestment" : {
             "description" : "Whether the caller may set or clear the investment recorded on this membership.",
             "type" : "boolean"
@@ -1570,6 +1620,7 @@
           "canEditRecord",
           "canEnable",
           "canInvite",
+          "canListSupplies",
           "canManageInvestment",
           "canReadPayback",
           "canUpdateRole"
@@ -1980,6 +2031,13 @@
               "null"
             ]
           },
+          "address" : {
+            "description" : "The member's address, as this community records it. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "capabilities" : {
             "$ref" : "#/components/schemas/MembershipCapabilitiesResponse",
             "description" : "What the caller may do with this membership."
@@ -1988,8 +2046,19 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "contactEmail" : {
+            "description" : "The email address this community contacts the member at. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "enabled" : {
             "type" : "boolean"
+          },
+          "fullName" : {
+            "description" : "The member's full name, as this community records it.",
+            "type" : "string"
           },
           "id" : {
             "format" : "uuid",
@@ -2013,6 +2082,25 @@
               "null"
             ]
           },
+          "memberNumber" : {
+            "description" : "The member's number in this community. Null if the community records none.",
+            "format" : "int32",
+            "type" : [
+              "integer",
+              "null"
+            ]
+          },
+          "personalId" : {
+            "description" : "The member's DNI/NIE/NIF, normalised: the one the community registered them with.",
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "description" : "The member's phone number, as this community records it. Null if there is none.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "role" : {
             "enum" : [
               "COMMUNITY_MEMBER",
@@ -2021,22 +2109,24 @@
             "type" : "string"
           },
           "user" : {
-            "$ref" : "#/components/schemas/UserResponse",
-            "description" : "User associated with the membership",
-            "type" : [
-              "object",
-              "null"
-            ]
+            "$ref" : "#/components/schemas/UserReferenceResponse",
+            "description" : "The member's account, by id only: the {userId} the membership's endpoints take. Nothing else of the account is carried."
           }
         },
         "required" : [
           "acceptedAt",
+          "address",
           "capabilities",
           "communityId",
+          "contactEmail",
           "enabled",
+          "fullName",
           "id",
           "invitationExpiresAt",
           "invitedAt",
+          "memberNumber",
+          "personalId",
+          "phoneNumber",
           "role",
           "user"
         ],
@@ -3639,6 +3729,14 @@
               "null"
             ]
           },
+          "ownerRecord" : {
+            "$ref" : "#/components/schemas/MemberRecordResponse",
+            "description" : "The owner's member record in the supply's community. Null when the supply has no owner, or its owner has no membership in that community.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
           "shelly" : {
             "$ref" : "#/components/schemas/SupplyShellyResponse",
             "description" : "Shelly device information of the supply",
@@ -3648,8 +3746,8 @@
             ]
           },
           "user" : {
-            "$ref" : "#/components/schemas/UserResponse",
-            "description" : "Owner of the supply",
+            "$ref" : "#/components/schemas/UserReferenceResponse",
+            "description" : "Owner of the supply, by id only. Null when the supply has no owner.",
             "type" : [
               "object",
               "null"
@@ -3667,6 +3765,7 @@
           "enabled",
           "id",
           "name",
+          "ownerRecord",
           "shelly",
           "user"
         ],
@@ -4128,7 +4227,7 @@
       "UserResponse" : {
         "properties" : {
           "address" : {
-            "description" : "Address. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
+            "description" : "Address. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "type" : [
               "string",
               "null"
@@ -4139,7 +4238,7 @@
             "description" : "What the caller may do with this user."
           },
           "email" : {
-            "description" : "Email. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
+            "description" : "Email. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "type" : [
               "string",
               "null"
@@ -4149,7 +4248,7 @@
             "type" : "boolean"
           },
           "fullName" : {
-            "description" : "Full name. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
+            "description" : "Full name. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "type" : "string"
           },
           "id" : {
@@ -4166,7 +4265,7 @@
             "type" : "object"
           },
           "number" : {
-            "description" : "Member number. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
+            "description" : "Member number. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "format" : "int32",
             "type" : [
               "integer",
@@ -4177,7 +4276,7 @@
             "type" : "string"
           },
           "phoneNumber" : {
-            "description" : "Phone number. Inside a response scoped to a community, read from the user's member record in that community. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
+            "description" : "Phone number. When a community admin reads or updates another user, read from that user's member record in the community they administer with the lowest id. Otherwise read from the account.",
             "type" : [
               "string",
               "null"

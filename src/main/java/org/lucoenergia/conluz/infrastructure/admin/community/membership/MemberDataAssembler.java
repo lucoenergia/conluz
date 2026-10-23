@@ -36,16 +36,18 @@ public class MemberDataAssembler {
     }
 
     /**
-     * The owner's member record in the supply's community.
+     * The owner's member record in the supply's community, or {@code null} when the supply has no owner or its owner
+     * has no membership in that community.
      */
-    public MemberDataView ofSupplyOwner(Supply supply) {
-        return ofSupplyOwners(List.of(supply)).apply(supply);
+    public CommunityMembership recordOfSupplyOwner(Supply supply) {
+        return recordsOfSupplyOwners(List.of(supply)).apply(supply);
     }
 
     /**
-     * Each owner's member record in their supply's community, read in one query for all the supplies.
+     * Each owner's member record in their supply's community, read in one query for all the supplies. The function
+     * answers {@code null} for a supply with no owner, or whose owner has no membership in its community.
      */
-    public Function<Supply, MemberDataView> ofSupplyOwners(Collection<Supply> supplies) {
+    public Function<Supply, CommunityMembership> recordsOfSupplyOwners(Collection<Supply> supplies) {
         Set<UUID> ownerIds = supplies.stream()
                 .map(Supply::getUser)
                 .filter(Objects::nonNull)
@@ -60,8 +62,8 @@ public class MemberDataAssembler {
                         .collect(Collectors.toMap(
                                 m -> new OwnerInCommunity(m.getUser().getId(), m.getCommunity().getId()),
                                 Function.identity()));
-        return supply -> policies.memberData().inCommunity(supply.getUser() == null ? null
-                : records.get(new OwnerInCommunity(supply.getUser().getId(), supply.getCommunity().getId())));
+        return supply -> supply.getUser() == null ? null
+                : records.get(new OwnerInCommunity(supply.getUser().getId(), supply.getCommunity().getId()));
     }
 
     /**

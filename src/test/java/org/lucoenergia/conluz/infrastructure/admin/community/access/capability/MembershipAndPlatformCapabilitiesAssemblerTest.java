@@ -5,20 +5,32 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.AccessPolicies;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class MembershipAndPlatformCapabilitiesAssemblerTest {
 
     private final AccessPolicies policies = new AccessPolicies();
+    private final GetMembershipsRepository getMembershipsRepository = mock(GetMembershipsRepository.class);
     private final MembershipCapabilitiesAssembler membershipAssembler =
-            new MembershipCapabilitiesAssembler(policies);
+            new MembershipCapabilitiesAssembler(policies, getMembershipsRepository);
     private final PlatformCapabilitiesAssembler platformAssembler =
             new PlatformCapabilitiesAssembler(policies);
 
@@ -125,6 +137,56 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
     }
 
     @Test
+    void aCommunityAdminMayListTheSuppliesOfAMemberOfTheirCommunity() {
+        Community community = CapabilityFixtures.community();
+        CommunityMembership membership = CapabilityFixtures.membershipOf(
+                CapabilityFixtures.stranger(), community, CommunityRole.COMMUNITY_MEMBER, true);
+        when(getMembershipsRepository.findByUserIds(Set.of(membership.getUser().getId())))
+                .thenReturn(Map.of(membership.getUser().getId(), List.of(membership)));
+
+        assertTrue(membershipAssembler.assemble(CapabilityFixtures.adminOf(community), membership)
+                .isCanListSupplies());
+    }
+
+    @Test
+    void aMemberMayListTheirOwnSuppliesWithoutAQuery() {
+        Community community = CapabilityFixtures.community();
+        User member = CapabilityFixtures.memberOf(community);
+        CommunityMembership ownMembership =
+                CapabilityFixtures.membershipOf(member, community, CommunityRole.COMMUNITY_MEMBER, true);
+
+        assertTrue(membershipAssembler.assemble(member, ownMembership).isCanListSupplies());
+        verifyNoInteractions(getMembershipsRepository);
+    }
+
+    @Test
+    void aPlainMemberMayNotListSomebodyElsesSupplies() {
+        Community community = CapabilityFixtures.community();
+        CommunityMembership somebodyElse = CapabilityFixtures.membershipOf(
+                CapabilityFixtures.stranger(), community, CommunityRole.COMMUNITY_MEMBER, true);
+        when(getMembershipsRepository.findByUserIds(Set.of(somebodyElse.getUser().getId())))
+                .thenReturn(Map.of(somebodyElse.getUser().getId(), List.of(somebodyElse)));
+
+        assertFalse(membershipAssembler.assemble(CapabilityFixtures.memberOf(community), somebodyElse)
+                .isCanListSupplies());
+    }
+
+    @Test
+    void aRosterReadsEveryMembersMembershipsInOneQuery() {
+        Community community = CapabilityFixtures.community();
+        List<CommunityMembership> roster = List.of(memberOf(community), memberOf(community), memberOf(community));
+        Map<UUID, List<CommunityMembership>> byUser = new HashMap<>();
+        roster.forEach(m -> byUser.put(m.getUser().getId(), List.of(m)));
+        when(getMembershipsRepository.findByUserIds(byUser.keySet())).thenReturn(byUser);
+
+        Function<CommunityMembership, MembershipCapabilitiesResponse> capabilities =
+                membershipAssembler.assembleAll(CapabilityFixtures.adminOf(community), roster);
+
+        roster.forEach(m -> assertTrue(capabilities.apply(m).isCanListSupplies()));
+        verify(getMembershipsRepository, times(1)).findByUserIds(byUser.keySet());
+    }
+
+    @Test
     @DisplayName("ACC-020 a platform admin gets the platform capabilities, but may not list users")
     void aPlatformAdminGetsEveryPlatformCapabilityButTheUserOnes() {
         PlatformCapabilitiesResponse capabilities =
@@ -199,5 +261,10 @@ class MembershipAndPlatformCapabilitiesAssemblerTest {
                     platformAssembler.assemble(caller).isCanAdministerPlatform(),
                     "canAdministerPlatform must be the isPlatformAdmin flag");
         }
+    }
+
+    private static CommunityMembership memberOf(Community community) {
+        return CapabilityFixtures.membershipOf(CapabilityFixtures.stranger(), community, CommunityRole.COMMUNITY_MEMBER,
+                true);
     }
 }

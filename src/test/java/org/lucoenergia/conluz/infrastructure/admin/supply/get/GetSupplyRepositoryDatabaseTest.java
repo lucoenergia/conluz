@@ -5,7 +5,6 @@ import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.admin.community.membership.MemberDataView;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
@@ -23,7 +22,6 @@ import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesResponse;
-import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -392,17 +390,15 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
 
         List<Supply> supplies = getSupplyRepositoryDatabase.findByUserId(UserId.of(user.getId()));
 
-        // Fixed capabilities and owner data: this asserts what the response constructor costs, not the
+        // Fixed capabilities and no owner record: this asserts what the response constructor costs, not the
         // assemblers, which ListEndpointQueryCountTest covers.
         SupplyCapabilitiesResponse capabilities = SupplyCapabilitiesResponse.builder().build();
-        UserCapabilitiesResponse ownerCapabilities = UserCapabilitiesResponse.builder().build();
-        MemberDataView ownerData = MemberDataView.absent();
 
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
         List<SupplyResponse> responses = supplies.stream()
-                .map(supply -> new SupplyResponse(supply, capabilities, ownerCapabilities, ownerData))
+                .map(supply -> new SupplyResponse(supply, capabilities, null))
                 .toList();
 
         Assertions.assertEquals(0, statistics.getPrepareStatementCount(),
