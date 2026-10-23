@@ -25,6 +25,7 @@ public final class PublicEndpoints {
                                     "/api/v1/login",
                                     "/api/v1/init",
                                     "/api/v1/info",
+                                    "/api/v1/operator-contact",
                                     "/actuator/**"
                             })
                             .map(path -> (RequestMatcher) PathPatternRequestMatcher.withDefaults().matcher(path)),

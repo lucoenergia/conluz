@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.BulkSendInvitationService;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.AcceptInvitationService;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportMembersService;
+import org.lucoenergia.conluz.domain.admin.operator.GetOperatorContactService;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
@@ -94,6 +95,8 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
         // PlatformAdminInvitationAcceptance), so that a wrong confirmation code is counted and committed before the
         // refusal is thrown
         addException(AcceptInvitationService.class.getSimpleName());
+        // Returns configuration validated at startup and never touches the database
+        addException(GetOperatorContactService.class.getSimpleName());
         // Add more exceptions as needed
     }
 
