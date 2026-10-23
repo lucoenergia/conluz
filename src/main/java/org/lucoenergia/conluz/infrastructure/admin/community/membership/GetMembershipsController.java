@@ -22,13 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.Objects;
-import java.util.Map;
+import java.util.function.Function;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesResponse;
-import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesAssembler;
+import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesResponse;
 
 @RestController
 @RequestMapping(
@@ -38,14 +36,11 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.M
 public class GetMembershipsController {
 
     private final GetMembershipsService service;
-    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
     private final MembershipCapabilitiesAssembler capabilitiesAssembler;
 
     public GetMembershipsController(GetMembershipsService service,
-                                    UserCapabilitiesAssembler userCapabilitiesAssembler,
                                     MembershipCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
-        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
         this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
@@ -74,21 +69,14 @@ public class GetMembershipsController {
                                                    @PathVariable("communityId") UUID communityId) {
         List<MembershipWithInvitation> memberships = service.findByCommunityId(communityId);
         // One query for every member on this roster. The users join-fetched with the memberships
-        // carry no memberships of their own, and the rules about them need those.
-        Map<UUID, UserCapabilitiesResponse> userCapabilities =
-                userCapabilitiesAssembler.assembleAllFetchingMemberships(currentUser,
-                        memberships.stream().map(member -> member.membership().getUser())
-                                .filter(Objects::nonNull).toList());
+        // carry no memberships of their own, and canListSupplies needs those.
+        Function<CommunityMembership, MembershipCapabilitiesResponse> capabilities =
+                capabilitiesAssembler.assembleAll(currentUser,
+                        memberships.stream().map(MembershipWithInvitation::membership).toList());
 
         return memberships.stream()
                 .map(member -> new MembershipResponse(member.membership(), member.invitationExpiresAt(),
-                        userCapabilitiesOf(member.membership(), userCapabilities),
-                        capabilitiesAssembler.assemble(currentUser, member.membership())))
+                        capabilities.apply(member.membership())))
                 .toList();
-    }
-
-    private UserCapabilitiesResponse userCapabilitiesOf(CommunityMembership membership,
-                                                        Map<UUID, UserCapabilitiesResponse> byUserId) {
-        return membership.getUser() == null ? null : byUserId.get(membership.getUser().getId());
     }
 }

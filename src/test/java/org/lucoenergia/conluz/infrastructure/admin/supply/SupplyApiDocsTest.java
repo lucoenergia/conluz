@@ -81,8 +81,10 @@ class SupplyApiDocsTest extends BaseControllerTest {
             assertTrue(textValues(supplyResponse.path("required")).contains(field),
                     field + " must still be required");
         }
-        assertEquals(12, supplyResponse.path("properties").size(),
-                "SupplyResponse gains community and nothing else: " + supplyResponse.path("properties"));
+        assertTrue(supplyResponse.path("properties").has("ownerRecord"), "ownerRecord arrived with #448");
+        assertTrue(textValues(supplyResponse.path("required")).contains("ownerRecord"), "ownerRecord is required");
+        assertEquals(13, supplyResponse.path("properties").size(),
+                "SupplyResponse gains community and ownerRecord and nothing else: " + supplyResponse.path("properties"));
     }
 
     /**

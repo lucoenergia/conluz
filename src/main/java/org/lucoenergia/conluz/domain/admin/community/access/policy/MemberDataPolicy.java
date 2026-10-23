@@ -26,16 +26,6 @@ public class MemberDataPolicy {
             Comparator.comparing(m -> m.getCommunity().getId().toString());
 
     /**
-     * A user embedded in a response scoped to one community shows their member record in that community, whoever
-     * the caller is.
-     *
-     * @param memberRecord the user's membership in that community, or {@code null} if they have none
-     */
-    public MemberDataView inCommunity(CommunityMembership memberRecord) {
-        return memberRecord != null ? MemberDataView.ofRecord(memberRecord) : MemberDataView.absent();
-    }
-
-    /**
      * A user read outside any community shows their account to themselves only. Any other caller, a platform admin
      * included (#446), sees the user's member record in a community the caller administers, the one with the lowest
      * id when there are several, and no member data when there is none.

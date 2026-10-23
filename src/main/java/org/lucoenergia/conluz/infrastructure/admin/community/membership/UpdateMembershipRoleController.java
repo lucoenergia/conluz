@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.UserCapabilitiesAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesAssembler;
 
 @RestController
@@ -37,14 +36,11 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.M
 public class UpdateMembershipRoleController {
 
     private final UpdateMembershipRoleService service;
-    private final UserCapabilitiesAssembler userCapabilitiesAssembler;
     private final MembershipCapabilitiesAssembler capabilitiesAssembler;
 
     public UpdateMembershipRoleController(UpdateMembershipRoleService service,
-                                    UserCapabilitiesAssembler userCapabilitiesAssembler,
                                     MembershipCapabilitiesAssembler capabilitiesAssembler) {
         this.service = service;
-        this.userCapabilitiesAssembler = userCapabilitiesAssembler;
         this.capabilitiesAssembler = capabilitiesAssembler;
     }
 
@@ -81,8 +77,7 @@ public class UpdateMembershipRoleController {
                                                     @Valid @RequestBody UpdateMembershipRoleBody body) {
         MembershipWithInvitation updated = service.updateRole(communityId, userId, body.getRole());
         CommunityMembership membership = updated.membership();
-        return new MembershipResponse(membership, updated.invitationExpiresAt(), membership.getUser() == null ? null
-                : userCapabilitiesAssembler.assembleFetchingMemberships(currentUser, membership.getUser()),
+        return new MembershipResponse(membership, updated.invitationExpiresAt(),
                 capabilitiesAssembler.assemble(currentUser, membership));
     }
 }

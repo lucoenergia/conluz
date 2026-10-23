@@ -281,6 +281,7 @@ invitation's resend and revoke only on rows with one. On a pending row `revocabl
 | `canEnable` | `canChangeMemberState(communityId, userId)` |
 | `canDisable` | `canChangeMemberState(communityId, userId)` |
 | `canEditRecord` | `canEditMemberRecord(communityId)` |
+| `canListSupplies` | `canListSuppliesOfUser(userId)` |
 
 None of these has a platform-admin branch (#446, MEM-031): a platform admin who is not an active
 admin of the community gets every one of them `false`, and is refused the roster that carries them.
@@ -300,6 +301,11 @@ it is decided on the community alone — only an active admin of it, with no pla
 and assembled with no query. It stays `true` whatever the record holds; that an admin's record must
 keep a contact email is answered by the request (400 `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`).
 
+`canListSupplies` is the user's `canListSupplies`, reported on the membership because
+`MembershipResponse.user` is a reference by id that carries no capabilities (#448): the roster offers
+a member's supplies on their row. It needs every membership of the member, so it is the one
+membership capability that may query — once for a single membership, once for a whole roster.
+
 ## What is not reported
 
 ### Guards reported to nobody
@@ -310,7 +316,7 @@ keep a contact email is answered by the request (400 `MEMBERSHIP_WITHOUT_CONTACT
 | `isMemberOfCommunity` | The rule behind `canReadCommunityProduction` and `canListSupplies`, which are what the endpoints use and what the community reports. Naming it again would report one decision twice. |
 | `visibleCommunityIds` | A scope for a query, not a decision about an object. The listing it scopes reports its own capabilities on each item. |
 | `adminCommunityIds` | As above. |
-| `visibleSuppliesOfUser` | As above: it bounds which of a user's supplies `GET /users/{userId}/supplies` returns, after `canListSuppliesOfUser` — reported as `user.canListSupplies` — has let the request through. |
+| `visibleSuppliesOfUser` | As above: it bounds which of a user's supplies `GET /users/{userId}/supplies` returns, after `canListSuppliesOfUser` — reported as `user.canListSupplies` and `membership.canListSupplies` — has let the request through. |
 | `visibleUsers` | As above: it bounds which users `GET /users` returns, and which of their memberships each row carries, after `canListUsers` — reported as `platform.canListUsers` — has let the request through. |
 | `isCurrentUser` | A fact the client already has. The rules that care about it fold it in and are reported themselves. |
 

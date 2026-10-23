@@ -23,6 +23,8 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -42,7 +44,7 @@ class MemberDataAssemblerTest {
 
     @Test
     @DisplayName("MEM-026 Each supply on a page shows its owner's record in that supply's community, from one query")
-    void ofSupplyOwners_readsEachOwnersRecordInTheSupplysCommunity_inOneQuery() {
+    void recordsOfSupplyOwners_readsEachOwnersRecordInTheSupplysCommunity_inOneQuery() {
         Community a = community();
         Community b = community();
         User p = UserMother.randomUser();
@@ -58,27 +60,27 @@ class MemberDataAssemblerTest {
                 Set.of(a.getId(), b.getId())))
                 .thenReturn(List.of(pInA, pInB, qInB));
 
-        Function<Supply, MemberDataView> ownerData =
-                assembler().ofSupplyOwners(List.of(pSupplyInA, pSupplyInB, qSupplyInA));
+        Function<Supply, CommunityMembership> ownerRecords =
+                assembler().recordsOfSupplyOwners(List.of(pSupplyInA, pSupplyInB, qSupplyInA));
 
-        assertEquals(MemberDataView.ofRecord(pInA), ownerData.apply(pSupplyInA));
-        assertEquals(MemberDataView.ofRecord(pInB), ownerData.apply(pSupplyInB));
-        assertEquals(MemberDataView.absent(), ownerData.apply(qSupplyInA));
+        assertSame(pInA, ownerRecords.apply(pSupplyInA));
+        assertSame(pInB, ownerRecords.apply(pSupplyInB));
+        assertNull(ownerRecords.apply(qSupplyInA));
         verify(getMembershipsRepository, times(1)).findByUserIdsAndCommunityIds(
                 Set.of(p.getId(), q.getId()), Set.of(a.getId(), b.getId()));
     }
 
     @Test
-    @DisplayName("MEM-026 A supply without an owner shows no member data")
-    void ofSupplyOwners_isAbsent_forASupplyWithoutAnOwner() {
+    @DisplayName("MEM-026 A supply without an owner has no owner record")
+    void recordsOfSupplyOwners_isNull_forASupplyWithoutAnOwner() {
         Supply ownerless = supplyIn(community(), null);
 
-        assertEquals(MemberDataView.absent(), assembler().ofSupplyOwners(List.of(ownerless)).apply(ownerless));
+        assertNull(assembler().recordsOfSupplyOwners(List.of(ownerless)).apply(ownerless));
     }
 
     @Test
     @DisplayName("MEM-026 One supply shows its owner's record in its community")
-    void ofSupplyOwner_readsTheOwnersRecordInTheSupplysCommunity() {
+    void recordOfSupplyOwner_readsTheOwnersRecordInTheSupplysCommunity() {
         Community a = community();
         User p = UserMother.randomUser();
         CommunityMembership pInA = record(p, a, "P in A");
@@ -86,15 +88,15 @@ class MemberDataAssemblerTest {
         when(getMembershipsRepository.findByUserIdsAndCommunityIds(Set.of(p.getId()), Set.of(a.getId())))
                 .thenReturn(List.of(pInA));
 
-        assertEquals(MemberDataView.ofRecord(pInA), assembler().ofSupplyOwner(supply));
+        assertSame(pInA, assembler().recordOfSupplyOwner(supply));
     }
 
     @Test
-    @DisplayName("MEM-026 A supply whose owner has no record in its community shows no member data, not the account")
-    void ofSupplyOwner_isAbsent_withoutARecordInTheSupplysCommunity() {
+    @DisplayName("MEM-026 A supply whose owner has no record in its community has no owner record, not the account")
+    void recordOfSupplyOwner_isNull_withoutARecordInTheSupplysCommunity() {
         Supply supply = supplyIn(community(), UserMother.randomUser());
 
-        assertEquals(MemberDataView.absent(), assembler().ofSupplyOwner(supply));
+        assertNull(assembler().recordOfSupplyOwner(supply));
     }
 
     // --- users ---

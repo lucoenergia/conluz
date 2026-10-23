@@ -85,7 +85,8 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.shelly.macAddress").value(supply.getShelly().getMacAddress()))
                 .andExpect(jsonPath("$.shelly.id").value(supply.getShelly().getId()))
                 .andExpect(jsonPath("$.shelly.mqttPrefix").value(supply.getShelly().getMqttPrefix()))
-                .andExpect(jsonPath("$.user.personalId").value(userOne.getPersonalId()));
+                .andExpect(jsonPath("$.user.id").value(userOne.getId().toString()))
+                .andExpect(jsonPath("$.user.personalId").doesNotExist());
     }
 
     /**

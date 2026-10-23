@@ -428,7 +428,7 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
                 community.getId()).header(HttpHeaders.AUTHORIZATION, bearer)));
         for (JsonNode entry : roster) {
             if (entry.get("user").get("id").asText().equals(userId.toString())) {
-                return entry.get("user");
+                return entry;
             }
         }
         throw new AssertionError("No roster entry for user " + userId);
@@ -436,7 +436,7 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
 
     private JsonNode supply(String bearer, Supply supply) throws Exception {
         return json(mockMvc.perform(get("/api/v1/supplies/{supplyId}", supply.getId())
-                .header(HttpHeaders.AUTHORIZATION, bearer))).get("user");
+                .header(HttpHeaders.AUTHORIZATION, bearer))).get("ownerRecord");
     }
 
     private JsonNode json(ResultActions result) throws Exception {
@@ -457,11 +457,10 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
     }
 
     /**
-     * The member data of a user embedded in a roster entry or a supply, as #396 shows it.
+     * The member record of a roster entry, or of a supply's owner, under its own names (#448).
      */
-    private static void assertShowsMemberData(JsonNode user, Map<String, Object> record) {
-        assertThat(List.of(text(user.get("fullName")), text(user.get("number")), text(user.get("email")),
-                text(user.get("address")), text(user.get("phoneNumber")))).isEqualTo(expected(record));
+    private static void assertShowsMemberData(JsonNode memberRecord, Map<String, Object> record) {
+        assertResponseShows(memberRecord, record);
     }
 
     private static void assertRowShows(Map<String, Object> row, Map<String, Object> record) {

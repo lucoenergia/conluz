@@ -100,13 +100,13 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.name").isEmpty())
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
-                .andExpect(jsonPath("$.user.personalId").value(user.getPersonalId()))
-                .andExpect(jsonPath("$.user.number").value(user.getNumber()))
-                .andExpect(jsonPath("$.user.fullName").value(user.getFullName()))
-                .andExpect(jsonPath("$.user.address").value(user.getAddress()))
-                .andExpect(jsonPath("$.user.email").value(user.getEmail()))
-                .andExpect(jsonPath("$.user.phoneNumber").value(user.getPhoneNumber()))
-                .andExpect(jsonPath("$.user.enabled").value(user.isEnabled()));
+                .andExpect(jsonPath("$.user.personalId").doesNotExist())
+                .andExpect(jsonPath("$.user.enabled").doesNotExist())
+                .andExpect(jsonPath("$.ownerRecord.memberNumber").value(user.getNumber()))
+                .andExpect(jsonPath("$.ownerRecord.fullName").value(user.getFullName()))
+                .andExpect(jsonPath("$.ownerRecord.address").value(user.getAddress()))
+                .andExpect(jsonPath("$.ownerRecord.contactEmail").value(user.getEmail()))
+                .andExpect(jsonPath("$.ownerRecord.phoneNumber").value(user.getPhoneNumber()));
 
         Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333AA0A"));
     }
@@ -199,7 +199,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.id").value(owner.getId().toString()))
-                .andExpect(jsonPath("$.user.personalId").value("12345678A"));
+                .andExpect(jsonPath("$.user.personalId").doesNotExist());
 
         UUID storedOwnerId = supplyRepository.findByCode("ES0033333333333333EE0E").orElseThrow().getUser().getId();
         Assertions.assertEquals(owner.getId(), storedOwnerId);
@@ -240,13 +240,13 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.name").value("Test Supply Name")) // Name is explicitly provided
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.user.id").value(user.getId().toString()))
-                .andExpect(jsonPath("$.user.personalId").value(user.getPersonalId()))
-                .andExpect(jsonPath("$.user.number").value(user.getNumber()))
-                .andExpect(jsonPath("$.user.fullName").value(user.getFullName()))
-                .andExpect(jsonPath("$.user.address").value(user.getAddress()))
-                .andExpect(jsonPath("$.user.email").value(user.getEmail()))
-                .andExpect(jsonPath("$.user.phoneNumber").value(user.getPhoneNumber()))
-                .andExpect(jsonPath("$.user.enabled").value(user.isEnabled()));
+                .andExpect(jsonPath("$.user.personalId").doesNotExist())
+                .andExpect(jsonPath("$.user.enabled").doesNotExist())
+                .andExpect(jsonPath("$.ownerRecord.memberNumber").value(user.getNumber()))
+                .andExpect(jsonPath("$.ownerRecord.fullName").value(user.getFullName()))
+                .andExpect(jsonPath("$.ownerRecord.address").value(user.getAddress()))
+                .andExpect(jsonPath("$.ownerRecord.contactEmail").value(user.getEmail()))
+                .andExpect(jsonPath("$.ownerRecord.phoneNumber").value(user.getPhoneNumber()));
 
         Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333BB0B"));
     }
