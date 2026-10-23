@@ -239,7 +239,8 @@ class DeleteMembershipControllerTest extends BaseControllerTest {
         mockMvc.perform(get("/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/v1/communities/{communityId}/memberships/{userId}'].delete"
-                        + ".responses['409'].content['application/json'].example.errors[0].code")
+                        + ".responses['409'].content['application/json'].examples.MEMBERSHIP_OWNS_SUPPLIES.value"
+                        + ".errors[0].code")
                         .value("MEMBERSHIP_OWNS_SUPPLIES"));
     }
 

@@ -141,6 +141,16 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
     long countFirstInvitationCandidates(@Param("communityId") UUID communityId);
 
     /**
+     * Counts the community's admins who can act for it, as
+     * {@link org.lucoenergia.conluz.domain.admin.community.membership.LastActiveCommunityAdminRule#countsAsActiveAdmin}
+     * decides: an active admin membership held by an enabled account.
+     */
+    @Query("SELECT COUNT(m) FROM community_memberships m WHERE m.community.id = :communityId "
+            + "AND m.role = 'COMMUNITY_ADMIN' AND " + ActiveMembershipJpql.ACTIVE_MEMBERSHIP
+            + " AND m.user.enabled = true")
+    long countActiveAdmins(@Param("communityId") UUID communityId);
+
+    /**
      * Deletes every membership of the user, in one statement. Their tokens go with them ({@code ON DELETE CASCADE}
      * on {@code one_time_token.membership_id}).
      */

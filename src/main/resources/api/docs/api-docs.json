@@ -1153,6 +1153,7 @@
               "MEMBERSHIP_INVITATION_TOKEN_INVALID",
               "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
               "MEMBERSHIP_OWNS_SUPPLIES",
+              "MEMBERSHIP_LAST_ACTIVE_ADMIN",
               "MEMBERSHIP_IMPORT_INVALID_ENCODING",
               "MEMBERSHIP_IMPORT_AMBIGUOUS_SEPARATOR",
               "MEMBERSHIP_IMPORT_MALFORMED_FILE",
@@ -2082,6 +2083,10 @@
               "null"
             ]
           },
+          "lastActiveAdmin" : {
+            "description" : "Whether demoting this membership to member, or deleting it, would be refused right now with MEMBERSHIP_LAST_ACTIVE_ADMIN: true only for the community's last active admin. A pending or suspended admin, or one whose account is disabled, is never the last one. Independent of capabilities.canUpdateRole and capabilities.canDelete, which say whether the caller may ask for it.",
+            "type" : "boolean"
+          },
           "memberNumber" : {
             "description" : "The member's number in this community. Null if the community records none.",
             "format" : "int32",
@@ -2124,6 +2129,7 @@
           "id",
           "invitationExpiresAt",
           "invitedAt",
+          "lastActiveAdmin",
           "memberNumber",
           "personalId",
           "phoneNumber",
@@ -2870,6 +2876,7 @@
               "MEMBERSHIP_INVITATION_TOKEN_INVALID",
               "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
               "MEMBERSHIP_OWNS_SUPPLIES",
+              "MEMBERSHIP_LAST_ACTIVE_ADMIN",
               "MEMBERSHIP_IMPORT_INVALID_ENCODING",
               "MEMBERSHIP_IMPORT_AMBIGUOUS_SEPARATOR",
               "MEMBERSHIP_IMPORT_MALFORMED_FILE",
@@ -8179,7 +8186,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}" : {
       "delete" : {
-        "description" : "Deletes the membership of the specified user in the community, with its member record and its invitation tokens. Requires COMMUNITY_ADMIN of the community. Being a PLATFORM_ADMIN is not enough (#446): a platform admin who is not an admin of the community is answered 403.\n\nThe membership of a user who owns supplies in the community is not deleted: the request is answered 409 with `MEMBERSHIP_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`); to delete it, delete their supplies in the community first (`DELETE /api/v1/supplies/{supplyId}`). Supplies the user owns in other communities do not prevent it.\n",
+        "description" : "Deletes the membership of the specified user in the community, with its member record and its invitation tokens. Requires COMMUNITY_ADMIN of the community. Being a PLATFORM_ADMIN is not enough (#446): a platform admin who is not an admin of the community is answered 403.\n\nThe membership of the community's last active admin is not deleted, even when it is the caller's own: the request is answered 409 with `MEMBERSHIP_LAST_ACTIVE_ADMIN`, and nothing is deleted. An active admin is one whose membership is accepted and enabled and whose account is enabled; a pending or suspended admin does not count. Promote another active member to admin first (`PATCH /api/v1/communities/{communityId}/memberships/{userId}`). `lastActiveAdmin` on the membership says in advance whether this applies.\n\nThe membership of a user who owns supplies in the community is not deleted: the request is answered 409 with `MEMBERSHIP_OWNS_SUPPLIES`, and nothing is deleted. To stop their access, disable the membership instead (`POST /api/v1/communities/{communityId}/memberships/{userId}/disable`); to delete it, delete their supplies in the community first (`DELETE /api/v1/supplies/{supplyId}`). Supplies the user owns in other communities do not prevent it.\n\nWhen both apply, the request is answered `MEMBERSHIP_LAST_ACTIVE_ADMIN`: deleting the supplies would not make the deletion possible.\n",
         "operationId" : "deleteMembership",
         "parameters" : [
           {
@@ -8284,28 +8291,52 @@
           "409" : {
             "content" : {
               "application/json" : {
-                "example" : {
-                  "errors" : [
-                    {
-                      "code" : "MEMBERSHIP_OWNS_SUPPLIES",
-                      "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies in the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so their membership cannot be deleted. To stop their access, disable the membership instead; to delete it, delete their supplies in the community first.",
-                      "params" : {
-                        "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
-                        "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
-                      }
+                "examples" : {
+                  "MEMBERSHIP_LAST_ACTIVE_ADMIN" : {
+                    "description" : "The membership is the community's last active admin.",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "MEMBERSHIP_LAST_ACTIVE_ADMIN",
+                          "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is the last active admin of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so they cannot be made a member or removed from it. Promote another active member to admin first.",
+                          "params" : {
+                            "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
+                            "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                          }
+                        }
+                      ],
+                      "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is the last active admin of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so they cannot be made a member or removed from it. Promote another active member to admin first.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-23T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
                     }
-                  ],
-                  "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies in the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so their membership cannot be deleted. To stop their access, disable the membership instead; to delete it, delete their supplies in the community first.",
-                  "status" : 409,
-                  "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                  },
+                  "MEMBERSHIP_OWNS_SUPPLIES" : {
+                    "description" : "The user owns supplies in the community.",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "MEMBERSHIP_OWNS_SUPPLIES",
+                          "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies in the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so their membership cannot be deleted. To stop their access, disable the membership instead; to delete it, delete their supplies in the community first.",
+                          "params" : {
+                            "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
+                            "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                          }
+                        }
+                      ],
+                      "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' owns supplies in the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so their membership cannot be deleted. To stop their access, disable the membership instead; to delete it, delete their supplies in the community first.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
                 },
                 "schema" : {
                   "$ref" : "#/components/schemas/RestError"
                 }
               }
             },
-            "description" : "The user owns supplies in the community, so the membership is not deleted, and nothing is. To stop their access, disable the membership instead; to delete it, delete their supplies in the community first."
+            "description" : "The membership is not deleted, and nothing is: either it is the community's last active admin (`MEMBERSHIP_LAST_ACTIVE_ADMIN`; promote another active member to admin first), or the user owns supplies in the community (`MEMBERSHIP_OWNS_SUPPLIES`; to stop their access, disable the membership instead; to delete it, delete their supplies in the community first). The last-active-admin refusal answers first."
           },
           "500" : {
             "content" : {
@@ -8332,7 +8363,7 @@
         ]
       },
       "patch" : {
-        "description" : "Changes the role of a user within a community. Requires COMMUNITY_ADMIN of the community. Being a PLATFORM_ADMIN is not enough (#446): a platform admin who is not an admin of the community is answered 403.\n\nGiving a membership the `COMMUNITY_ADMIN` role requires a contact email on its member record: without one it responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and the role is left as it was.\n",
+        "description" : "Changes the role of a user within a community. Requires COMMUNITY_ADMIN of the community. Being a PLATFORM_ADMIN is not enough (#446): a platform admin who is not an admin of the community is answered 403.\n\nGiving a membership the `COMMUNITY_ADMIN` role requires a contact email on its member record: without one it responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and the role is left as it was.\n\nDemoting the community's last active admin to `COMMUNITY_MEMBER`, even when it is the caller themselves, responds 409 with the `MEMBERSHIP_LAST_ACTIVE_ADMIN` code, and the role is left as it was. An active admin is one whose membership is accepted and enabled and whose account is enabled; a pending or suspended admin does not count. Promote another active member to admin first. `lastActiveAdmin` on the membership says in advance whether this applies.\n",
         "operationId" : "updateMembershipRole",
         "parameters" : [
           {
@@ -8450,6 +8481,32 @@
               }
             },
             "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "MEMBERSHIP_LAST_ACTIVE_ADMIN",
+                      "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is the last active admin of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so they cannot be made a member or removed from it. Promote another active member to admin first.",
+                      "params" : {
+                        "communityId" : "5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b",
+                        "userId" : "0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1"
+                      }
+                    }
+                  ],
+                  "message" : "The user with ID '0b8dc1a4-9e6b-4e4a-9a3e-2ab5a4a0f0a1' is the last active admin of the community with ID '5c2f8f0e-3f4a-4a2b-9a1e-8c7d6e5f4a3b', so they cannot be made a member or removed from it. Promote another active member to admin first.",
+                  "status" : 409,
+                  "timestamp" : "2026-10-23T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The membership is the community's last active admin, so it is not demoted, and nothing is changed. Promote another active member to admin first."
           },
           "500" : {
             "content" : {

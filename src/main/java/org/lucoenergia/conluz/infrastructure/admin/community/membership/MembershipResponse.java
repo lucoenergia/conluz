@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.membership.MembershipInRoster;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.MembershipCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.UserReferenceResponse;
 
@@ -15,7 +16,7 @@ import java.util.UUID;
  */
 @Schema(requiredProperties = {"id", "user", "communityId", "role", "personalId", "fullName", "memberNumber",
         "contactEmail", "address", "phoneNumber", "enabled", "acceptedAt", "invitedAt", "invitationExpiresAt",
-        "capabilities"})
+        "lastActiveAdmin", "capabilities"})
 public class MembershipResponse {
 
     private final UUID id;
@@ -52,15 +53,17 @@ public class MembershipResponse {
             + "be used: none was sent, it was revoked or used, or it has expired.",
             example = "2026-01-08T00:00:00Z", types = {"string", "null"})
     private final Instant invitationExpiresAt;
+    @Schema(description = "Whether demoting this membership to member, or deleting it, would be refused right now "
+            + "with MEMBERSHIP_LAST_ACTIVE_ADMIN: true only for the community's last active admin. A pending or "
+            + "suspended admin, or one whose account is disabled, is never the last one. Independent of "
+            + "capabilities.canUpdateRole and capabilities.canDelete, which say whether the caller may ask for it.")
+    private final boolean lastActiveAdmin;
 
     @Schema(description = "What the caller may do with this membership.")
     private final MembershipCapabilitiesResponse capabilities;
 
-    /**
-     * @param invitationExpiresAt when the membership's invitation link expires, null when it has none
-     */
-    public MembershipResponse(CommunityMembership membership, Instant invitationExpiresAt,
-                              MembershipCapabilitiesResponse capabilities) {
+    public MembershipResponse(MembershipInRoster member, MembershipCapabilitiesResponse capabilities) {
+        CommunityMembership membership = member.membership();
         this.id = membership.getId();
         this.user = new UserReferenceResponse(membership.getUser().getId());
         this.communityId = membership.getCommunity().getId();
@@ -74,7 +77,8 @@ public class MembershipResponse {
         this.enabled = membership.isEnabled();
         this.acceptedAt = membership.getAcceptedAt();
         this.invitedAt = membership.getInvitedAt();
-        this.invitationExpiresAt = invitationExpiresAt;
+        this.invitationExpiresAt = member.invitationExpiresAt();
+        this.lastActiveAdmin = member.lastActiveAdmin();
         this.capabilities = capabilities;
     }
 
@@ -132,6 +136,10 @@ public class MembershipResponse {
 
     public Instant getInvitationExpiresAt() {
         return invitationExpiresAt;
+    }
+
+    public boolean isLastActiveAdmin() {
+        return lastActiveAdmin;
     }
 
     public MembershipCapabilitiesResponse getCapabilities() {
