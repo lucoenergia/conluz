@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.admins.EnableCommunityAdminService;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -13,6 +14,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Interna
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,8 +55,9 @@ public class EnableCommunityAdminController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunityAdmins(#communityId)")
-    public void enableCommunityAdmin(@PathVariable("communityId") UUID communityId,
+    public void enableCommunityAdmin(@AuthenticationPrincipal User currentUser,
+                                    @PathVariable("communityId") UUID communityId,
                                     @PathVariable("userId") UUID userId) {
-        service.enable(communityId, UserId.of(userId));
+        service.enable(communityId, UserId.of(userId), UserId.of(currentUser.getId()));
     }
 }

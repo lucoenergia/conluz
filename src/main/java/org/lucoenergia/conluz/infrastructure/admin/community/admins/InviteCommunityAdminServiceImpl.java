@@ -4,6 +4,9 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.admins.CommunityAdmin;
 import org.lucoenergia.conluz.domain.admin.community.admins.InviteCommunityAdminService;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.AdminChangeActor;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChange;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisteredMember;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -25,10 +28,13 @@ public class InviteCommunityAdminServiceImpl implements InviteCommunityAdminServ
 
     private final MembershipRegistration registration;
     private final InvitationSending sending;
+    private final CommunityAdminChangeNotifier notifier;
 
-    public InviteCommunityAdminServiceImpl(MembershipRegistration registration, InvitationSending sending) {
+    public InviteCommunityAdminServiceImpl(MembershipRegistration registration, InvitationSending sending,
+                                           CommunityAdminChangeNotifier notifier) {
         this.registration = registration;
         this.sending = sending;
+        this.notifier = notifier;
     }
 
     @Override
@@ -44,6 +50,7 @@ public class InviteCommunityAdminServiceImpl implements InviteCommunityAdminServ
         // The registration holds the user row already; the membership row is locked next, as the first send does
         CommunityMembership membership = sending.lockAndRead(communityId, userId);
         CommunityMembership invited = sending.issueAndSend(membership);
+        notifier.notify(CommunityAdminChange.INVITED, null, invited, AdminChangeActor.platformOperator(invitedBy));
 
         LOGGER.info("Community admin invited: userId={}, communityId={}", userId.getId(), communityId);
         return new CommunityAdmin(registered.personalId(), invited,

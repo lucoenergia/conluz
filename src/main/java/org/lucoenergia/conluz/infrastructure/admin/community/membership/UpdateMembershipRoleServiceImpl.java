@@ -6,6 +6,9 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.MembershipLastActiveAdminException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.AdminChangeActor;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChange;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.lock.LockCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
@@ -34,6 +37,7 @@ public class UpdateMembershipRoleServiceImpl implements UpdateMembershipRoleServ
     private final LockCommunityRepository lockCommunityRepository;
     private final LockUserRepository lockUserRepository;
     private final LockMembershipRepository lockMembershipRepository;
+    private final CommunityAdminChangeNotifier notifier;
 
     public UpdateMembershipRoleServiceImpl(UpdateMembershipRoleRepository updateMembershipRoleRepository,
                                            GetCommunityRepository getCommunityRepository,
@@ -41,7 +45,8 @@ public class UpdateMembershipRoleServiceImpl implements UpdateMembershipRoleServ
                                            GetMembershipsRepository getMembershipsRepository,
                                            LockCommunityRepository lockCommunityRepository,
                                            LockUserRepository lockUserRepository,
-                                           LockMembershipRepository lockMembershipRepository) {
+                                           LockMembershipRepository lockMembershipRepository,
+                                           CommunityAdminChangeNotifier notifier) {
         this.updateMembershipRoleRepository = updateMembershipRoleRepository;
         this.getCommunityRepository = getCommunityRepository;
         this.getOneTimeTokenService = getOneTimeTokenService;
@@ -49,6 +54,7 @@ public class UpdateMembershipRoleServiceImpl implements UpdateMembershipRoleServ
         this.lockCommunityRepository = lockCommunityRepository;
         this.lockUserRepository = lockUserRepository;
         this.lockMembershipRepository = lockMembershipRepository;
+        this.notifier = notifier;
     }
 
     /**
@@ -57,7 +63,7 @@ public class UpdateMembershipRoleServiceImpl implements UpdateMembershipRoleServ
      * admins the first one left (MEM-033).
      */
     @Override
-    public MembershipInRoster updateRole(UUID communityId, UUID userId, CommunityRole role) {
+    public MembershipInRoster updateRole(UUID communityId, UUID userId, CommunityRole role, UserId updatedBy) {
         getCommunityRepository.findById(communityId)
                 .orElseThrow(() -> new CommunityNotFoundException(communityId));
         UserId user = UserId.of(userId);
@@ -75,6 +81,10 @@ public class UpdateMembershipRoleServiceImpl implements UpdateMembershipRoleServ
         }
 
         CommunityMembership membership = updateMembershipRoleRepository.updateRole(communityId, userId, role);
+        notifier.notify(role == CommunityRole.COMMUNITY_ADMIN
+                        ? CommunityAdminChange.PROMOTED
+                        : CommunityAdminChange.DEMOTED,
+                current, membership, AdminChangeActor.person(updatedBy));
         return new MembershipInRoster(membership,
                 getOneTimeTokenService
                         .findValidExpiryForMembership(user, communityId, OneTimeTokenPurpose.INVITATION)

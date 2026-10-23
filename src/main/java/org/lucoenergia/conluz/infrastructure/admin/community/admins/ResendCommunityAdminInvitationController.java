@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.admins.ResendCommunityAdminInvitationService;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -18,6 +19,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -102,8 +104,10 @@ public class ResendCommunityAdminInvitationController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageCommunityAdmins(#communityId)")
-    public CommunityAdminResponse resendCommunityAdminInvitation(@PathVariable("communityId") UUID communityId,
+    public CommunityAdminResponse resendCommunityAdminInvitation(@AuthenticationPrincipal User currentUser,
+                                                                 @PathVariable("communityId") UUID communityId,
                                                                  @PathVariable("userId") UUID userId) {
-        return new CommunityAdminResponse(service.resend(communityId, UserId.of(userId)));
+        return new CommunityAdminResponse(service.resend(communityId, UserId.of(userId),
+                UserId.of(currentUser.getId())));
     }
 }

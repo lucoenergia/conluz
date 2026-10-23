@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.admins.CommunityAdmin;
 import org.lucoenergia.conluz.domain.admin.community.admins.ResendCommunityAdminInvitationService;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -39,6 +40,7 @@ class ResendCommunityAdminInvitationServiceTest {
 
     private static final UUID COMMUNITY_ID = UUID.randomUUID();
     private static final UUID USER_ID = UUID.randomUUID();
+    private static final UserId PLATFORM_ADMIN = UserId.of(UUID.randomUUID());
 
     @Mock
     private GetCommunityRepository getCommunityRepository;
@@ -46,9 +48,12 @@ class ResendCommunityAdminInvitationServiceTest {
     private InvitationResending resending;
     @Mock
     private InvitationSending sending;
+    @Mock
+    private CommunityAdminChangeNotifier notifier;
 
     private ResendCommunityAdminInvitationService service() {
-        return new ResendCommunityAdminInvitationServiceImpl(getCommunityRepository, resending, sending);
+        return new ResendCommunityAdminInvitationServiceImpl(getCommunityRepository, resending, sending,
+                notifier);
     }
 
     @Test
@@ -64,7 +69,7 @@ class ResendCommunityAdminInvitationServiceTest {
         when(resending.resend(eq(COMMUNITY_ID), eq(UserId.of(USER_ID)), any())).thenReturn(invited);
         when(sending.withInvitation(invited)).thenReturn(new MembershipWithInvitation(invited, expiry));
 
-        CommunityAdmin admin = service().resend(COMMUNITY_ID, UserId.of(USER_ID));
+        CommunityAdmin admin = service().resend(COMMUNITY_ID, UserId.of(USER_ID), PLATFORM_ADMIN);
 
         assertEquals("12345678A", admin.personalId());
         assertEquals(expiry, admin.invitationExpiresAt());
@@ -79,7 +84,8 @@ class ResendCommunityAdminInvitationServiceTest {
     void anUnknownCommunity_isNotFound_andNothingIsResent() {
         when(getCommunityRepository.findById(COMMUNITY_ID)).thenReturn(Optional.empty());
 
-        assertThrows(CommunityNotFoundException.class, () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID)));
+        assertThrows(CommunityNotFoundException.class,
+                () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID), PLATFORM_ADMIN));
 
         verifyNoInteractions(resending, sending);
     }

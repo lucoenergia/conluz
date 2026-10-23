@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipOwnsSuppliesExcep
 import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.BaseSupplyCreationRaceTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -21,6 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class DeleteMembershipServiceIntegrationTest extends BaseSupplyCreationRaceTest {
 
+    /** The community admin deleting the membership: a member's, so it notifies nobody. */
+    private static final UserId DELETED_BY = UserId.of(UUID.randomUUID());
+
     @Autowired
     private DeleteMembershipService deleteMembershipService;
 
@@ -34,7 +38,7 @@ class DeleteMembershipServiceIntegrationTest extends BaseSupplyCreationRaceTest 
 
         Throwable deletion = runWhileHeld(
                 () -> createSupply(owner, community, code),
-                () -> deleteMembershipService.delete(community.getId(), owner.getId()));
+                () -> deleteMembershipService.delete(community.getId(), owner.getId(), DELETED_BY));
 
         assertThat(deletion).isInstanceOf(MembershipOwnsSuppliesException.class);
         assertThat(count("SELECT count(*) FROM community_memberships WHERE user_id = ? AND community_id = ?",
@@ -52,7 +56,7 @@ class DeleteMembershipServiceIntegrationTest extends BaseSupplyCreationRaceTest 
         String code = "ES" + UUID.randomUUID();
 
         Throwable creation = runWhileHeld(
-                () -> deleteMembershipService.delete(community.getId(), owner.getId()),
+                () -> deleteMembershipService.delete(community.getId(), owner.getId(), DELETED_BY),
                 () -> createSupply(owner, community, code));
 
         assertThat(creation).isInstanceOf(UserNotFoundException.class);

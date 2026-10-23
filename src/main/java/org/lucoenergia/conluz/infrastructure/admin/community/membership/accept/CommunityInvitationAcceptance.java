@@ -1,5 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.accept;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.AdminChangeActor;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChange;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
+import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.AcceptMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationLoginRequiredException;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -39,6 +45,8 @@ public class CommunityInvitationAcceptance {
     private final UpdateUserEmailRepository updateUserEmailRepository;
     private final AcceptMembershipRepository acceptMembershipRepository;
     private final UserPasswordEncoder userPasswordEncoder;
+    private final GetMembershipsRepository getMembershipsRepository;
+    private final CommunityAdminChangeNotifier notifier;
     private final Clock clock;
 
     public CommunityInvitationAcceptance(InvitationTokenResolver invitationTokenResolver,
@@ -47,6 +55,8 @@ public class CommunityInvitationAcceptance {
                                          UpdateUserEmailRepository updateUserEmailRepository,
                                          AcceptMembershipRepository acceptMembershipRepository,
                                          UserPasswordEncoder userPasswordEncoder,
+                                         GetMembershipsRepository getMembershipsRepository,
+                                         CommunityAdminChangeNotifier notifier,
                                          Clock clock) {
         this.invitationTokenResolver = invitationTokenResolver;
         this.consumeOneTimeTokenService = consumeOneTimeTokenService;
@@ -54,6 +64,8 @@ public class CommunityInvitationAcceptance {
         this.updateUserEmailRepository = updateUserEmailRepository;
         this.acceptMembershipRepository = acceptMembershipRepository;
         this.userPasswordEncoder = userPasswordEncoder;
+        this.getMembershipsRepository = getMembershipsRepository;
+        this.notifier = notifier;
         this.clock = clock;
     }
 
@@ -82,7 +94,7 @@ public class CommunityInvitationAcceptance {
             }
         }
 
-        accept(invitation.token(), "public");
+        accept(invitation, "public");
         attempt.succeeded(user);
     }
 
@@ -96,7 +108,7 @@ public class CommunityInvitationAcceptance {
 
         consume(rawToken, invitation.token(), attempt);
 
-        accept(invitation.token(), "authenticated");
+        accept(invitation, "authenticated");
     }
 
     /**
@@ -110,8 +122,16 @@ public class CommunityInvitationAcceptance {
         }
     }
 
-    private void accept(OneTimeTokenMembership membership, String endpoint) {
+    private void accept(InvitationTokenResolver.UsableInvitation invitation, String endpoint) {
+        OneTimeTokenMembership membership = invitation.token();
         acceptMembershipRepository.accept(membership.userId(), membership.communityId(), clock.instant());
+        CommunityMembership accepted = getMembershipsRepository
+                .findByUserIdAndCommunityId(membership.userId().getId(), membership.communityId())
+                .orElseThrow(() -> new MembershipNotFoundException(membership.communityId(),
+                        membership.userId().getId()));
+        // The person accepting is the one affected; a member's invitation is not a change to the admins
+        notifier.notify(CommunityAdminChange.ACCEPTED, invitation.membership(), accepted,
+                AdminChangeActor.person(membership.userId()));
         LOGGER.info("Invitation accepted: userId={}, communityId={}, endpoint={}", membership.userId().getId(),
                 membership.communityId(), endpoint);
     }

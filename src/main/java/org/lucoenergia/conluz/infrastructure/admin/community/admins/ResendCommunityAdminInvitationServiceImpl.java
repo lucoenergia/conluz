@@ -5,6 +5,9 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.admins.CommunityAdmin;
 import org.lucoenergia.conluz.domain.admin.community.admins.ResendCommunityAdminInvitationService;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.AdminChangeActor;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChange;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.InvitationResending;
@@ -25,22 +28,27 @@ public class ResendCommunityAdminInvitationServiceImpl implements ResendCommunit
     private final GetCommunityRepository getCommunityRepository;
     private final InvitationResending resending;
     private final InvitationSending sending;
+    private final CommunityAdminChangeNotifier notifier;
 
     public ResendCommunityAdminInvitationServiceImpl(GetCommunityRepository getCommunityRepository,
-                                                     InvitationResending resending, InvitationSending sending) {
+                                                     InvitationResending resending, InvitationSending sending,
+                                                     CommunityAdminChangeNotifier notifier) {
         this.getCommunityRepository = getCommunityRepository;
         this.resending = resending;
         this.sending = sending;
+        this.notifier = notifier;
     }
 
     @Override
-    public CommunityAdmin resend(UUID communityId, UserId userId) {
+    public CommunityAdmin resend(UUID communityId, UserId userId, UserId resentBy) {
         getCommunityRepository.findById(communityId)
                 .orElseThrow(() -> new CommunityNotFoundException(communityId));
 
         // A member's membership is answered as a missing one: these endpoints act on admin memberships only
         CommunityMembership invited = resending.resend(communityId, userId,
                 membership -> membership.getRole() == CommunityRole.COMMUNITY_ADMIN);
+        notifier.notify(CommunityAdminChange.INVITATION_RESENT, null, invited,
+                AdminChangeActor.platformOperator(resentBy));
 
         LOGGER.info("Community admin invitation resent: userId={}, communityId={}", userId.getId(), communityId);
         return new CommunityAdmin(invited.getUser().getPersonalId(), invited,

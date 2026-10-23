@@ -1,11 +1,15 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation;
 
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
+import org.lucoenergia.conluz.domain.shared.email.Email;
+import org.lucoenergia.conluz.infrastructure.admin.community.admins.notification.CommunityAdminChangeEmailFactory;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseSendingMemberTest;
+import org.mockito.invocation.Invocation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.ResultActions;
@@ -14,8 +18,10 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -27,6 +33,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mockingDetails;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,7 +51,9 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
     @Autowired
     protected GetOneTimeTokenService getOneTimeTokenService;
 
-    private int emailsSeen;
+    private final Set<String> emailsSeen = new HashSet<>();
+    private long sendsSeen;
+    private int notificationSendsRead;
 
     /**
      * A pending member of a community, registered and invited by one of its admins, and the link they were sent.
@@ -55,7 +64,9 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
 
     @BeforeEach
     void noEmailSeenYet() {
-        emailsSeen = 0;
+        emailsSeen.clear();
+        sendsSeen = 0;
+        notificationSendsRead = 0;
     }
 
     // --- Fixtures ---
@@ -104,13 +115,82 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
     // --- Emails and links ---
 
     /**
-     * Waits for the next {@code count} emails, and returns only them.
+     * Waits for the next {@code count} emails, and returns only them. The embedded server lists its emails by
+     * mailbox, not in the order they arrived, so the ones already returned are told apart by their message id.
      */
     protected MimeMessage[] awaitNextEmails(int count) {
-        MimeMessage[] all = awaitEmails(emailsSeen + count);
-        MimeMessage[] next = Arrays.copyOfRange(all, emailsSeen, all.length);
-        emailsSeen = all.length;
-        return next;
+        MimeMessage[] all = awaitEmails(emailsSeen.size() + count);
+        List<MimeMessage> next = new ArrayList<>();
+        for (MimeMessage email : all) {
+            if (emailsSeen.add(messageId(email))) {
+                next.add(email);
+            }
+        }
+        sendsSeen += count;
+        return next.toArray(MimeMessage[]::new);
+    }
+
+    /**
+     * Waits for every email handed to the sender since the emails last waited for, and returns only them: a request
+     * that changes a community's admins hands over the notifications of the change too (#466).
+     */
+    protected MimeMessage[] awaitNextEmailsHandedOver() {
+        long sends = mockingDetails(emailSender).getInvocations().stream()
+                .filter(invocation -> invocation.getMethod().getName().equals("send"))
+                .count();
+        return awaitNextEmails(Math.toIntExact(sends - sendsSeen));
+    }
+
+    /**
+     * The notifications of changes to a community's admins (#466) handed to the sender since the last call, each
+     * checked to contain no DNI, contact email or phone remembered by the test (MEM-036).
+     */
+    protected List<Email> nextAdminChangeNotifications() {
+        List<Invocation> sends = mockingDetails(emailSender).getInvocations().stream()
+                .filter(invocation -> invocation.getMethod().getName().equals("send"))
+                .toList();
+        List<Email> notifications = new ArrayList<>();
+        for (Invocation send : sends.subList(notificationSendsRead, sends.size())) {
+            Email email = send.getArgument(0);
+            if (CommunityAdminChangeEmailFactory.CATEGORY.equals(email.category())) {
+                assertNoSecretIn(email.subject() + "\n" + email.body());
+                notifications.add(email);
+            }
+        }
+        notificationSendsRead = sends.size();
+        return notifications;
+    }
+
+    protected static List<String> recipients(List<Email> emails) {
+        return emails.stream().map(Email::recipient).toList();
+    }
+
+    protected static String bodyTo(List<Email> emails, String recipient) {
+        List<Email> to = emails.stream().filter(email -> email.recipient().equals(recipient)).toList();
+        assertThat(to).as("notifications to the recipient").hasSize(1);
+        return to.get(0).body();
+    }
+
+    private static String messageId(MimeMessage email) {
+        try {
+            return email.getMessageID();
+        } catch (MessagingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * The one email among them sent to the address.
+     */
+    protected static MimeMessage emailTo(MimeMessage[] emails, String address) throws Exception {
+        List<MimeMessage> to = new ArrayList<>();
+        for (MimeMessage email : emails) {
+            if (Arrays.stream(email.getAllRecipients()).anyMatch(recipient -> recipient.toString().equals(address))) {
+                to.add(email);
+            }
+        }
+        assertThat(to).as("emails to the address").hasSize(1);
+        return to.get(0);
     }
 
     protected String tokenFrom(MimeMessage email) throws Exception {

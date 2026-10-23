@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.UpdateMembership
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.db.LockWaitTestSupport;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,9 +78,9 @@ class LastActiveCommunityAdminConcurrencyTest extends BaseIntegrationTest {
 
         Throwable secondOutcome = LockWaitTestSupport.runWhileHeld(transactionManager, jdbcTemplate,
                 () -> updateMembershipRoleService.updateRole(community.getId(), second.getId(),
-                        CommunityRole.COMMUNITY_MEMBER),
+                        CommunityRole.COMMUNITY_MEMBER, UserId.of(first.getId())),
                 () -> updateMembershipRoleService.updateRole(community.getId(), first.getId(),
-                        CommunityRole.COMMUNITY_MEMBER));
+                        CommunityRole.COMMUNITY_MEMBER, UserId.of(second.getId())));
 
         assertThat(secondOutcome).isInstanceOf(MembershipLastActiveAdminException.class);
         assertThat(activeAdmins(community)).isEqualTo(1);
@@ -99,8 +100,8 @@ class LastActiveCommunityAdminConcurrencyTest extends BaseIntegrationTest {
         User second = newAdminOf(community);
 
         Throwable secondOutcome = LockWaitTestSupport.runWhileHeld(transactionManager, jdbcTemplate,
-                () -> deleteMembershipService.delete(community.getId(), second.getId()),
-                () -> deleteMembershipService.delete(community.getId(), first.getId()));
+                () -> deleteMembershipService.delete(community.getId(), second.getId(), UserId.of(first.getId())),
+                () -> deleteMembershipService.delete(community.getId(), first.getId(), UserId.of(second.getId())));
 
         assertThat(secondOutcome).isInstanceOf(MembershipLastActiveAdminException.class);
         assertThat(activeAdmins(community)).isEqualTo(1);

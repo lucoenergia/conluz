@@ -267,7 +267,8 @@ class MemberRecordInResponsesTest extends BaseInvitationAcceptanceTest {
         adminRecord.put("personalId", admin.getPersonalId());
         adminRecord.put("fullName", "Admin Record Name " + UUID.randomUUID());
         inviteAdmin(loginAsPlatformAdmin(), communityA.getId(), adminRecord).andExpect(status().isOk());
-        acceptAsUser(loginUser(admin), tokenFrom(awaitNextEmails(1)[0]), CLIENT_IP)
+        acceptAsUser(loginUser(admin), tokenFrom(emailTo(awaitNextEmailsHandedOver(),
+                        (String) adminRecord.get("contactEmail"))), CLIENT_IP)
                 .andExpect(status().isNoContent());
 
         JsonNode adminNames = json(community(adminOfA, communityA.getId())).get("adminNames");

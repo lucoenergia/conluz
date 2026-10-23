@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.MembershipLastActiveAdminException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.lock.LockCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.lock.LockMembershipRepository;
@@ -35,6 +36,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UpdateMembershipRoleServiceTest {
 
+    private static final UserId ACTOR = UserId.of(UUID.randomUUID());
+
     @Mock
     private UpdateMembershipRoleRepository updateMembershipRoleRepository;
     @Mock
@@ -49,11 +52,13 @@ class UpdateMembershipRoleServiceTest {
     private LockUserRepository lockUserRepository;
     @Mock
     private LockMembershipRepository lockMembershipRepository;
+    @Mock
+    private CommunityAdminChangeNotifier notifier;
 
     private UpdateMembershipRoleService service() {
         return new UpdateMembershipRoleServiceImpl(updateMembershipRoleRepository, getCommunityRepository,
                 getOneTimeTokenService, getMembershipsRepository, lockCommunityRepository, lockUserRepository,
-                lockMembershipRepository);
+                lockMembershipRepository, notifier);
     }
 
     @Test
@@ -73,7 +78,7 @@ class UpdateMembershipRoleServiceTest {
                 OneTimeTokenPurpose.INVITATION)).thenReturn(Optional.of(expiry));
 
         MembershipInRoster result = service().updateRole(community.getId(), userId,
-                CommunityRole.COMMUNITY_ADMIN);
+                CommunityRole.COMMUNITY_ADMIN, ACTOR);
 
         assertSame(expected, result.membership());
         assertEquals(expiry, result.invitationExpiresAt());
@@ -86,7 +91,7 @@ class UpdateMembershipRoleServiceTest {
         when(getCommunityRepository.findById(communityId)).thenReturn(Optional.empty());
 
         assertThrows(CommunityNotFoundException.class,
-                () -> service().updateRole(communityId, UUID.randomUUID(), CommunityRole.COMMUNITY_ADMIN));
+                () -> service().updateRole(communityId, UUID.randomUUID(), CommunityRole.COMMUNITY_ADMIN, ACTOR));
 
         verifyNoInteractions(updateMembershipRoleRepository, getOneTimeTokenService);
     }
@@ -101,7 +106,7 @@ class UpdateMembershipRoleServiceTest {
                 .build());
 
         assertThrows(MembershipWithoutContactEmailException.class,
-                () -> service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN));
+                () -> service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN, ACTOR));
 
         verifyNoInteractions(updateMembershipRoleRepository, getOneTimeTokenService);
     }
@@ -118,7 +123,7 @@ class UpdateMembershipRoleServiceTest {
         when(updateMembershipRoleRepository.updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN))
                 .thenReturn(expected);
 
-        assertSame(expected, service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN)
+        assertSame(expected, service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN, ACTOR)
                 .membership());
     }
 
@@ -137,7 +142,7 @@ class UpdateMembershipRoleServiceTest {
         when(updateMembershipRoleRepository.updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER))
                 .thenReturn(expected);
 
-        assertSame(expected, service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER)
+        assertSame(expected, service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER, ACTOR)
                 .membership());
         verify(target, never()).getContactEmail();
     }
@@ -155,7 +160,7 @@ class UpdateMembershipRoleServiceTest {
         when(updateMembershipRoleRepository.updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER))
                 .thenReturn(demoted);
 
-        service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER);
+        service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER, ACTOR);
 
         InOrder order = inOrder(lockCommunityRepository, lockUserRepository, lockMembershipRepository,
                 getMembershipsRepository, updateMembershipRoleRepository);
@@ -178,7 +183,7 @@ class UpdateMembershipRoleServiceTest {
         when(getMembershipsRepository.countActiveAdmins(community.getId())).thenReturn(1L);
 
         assertThrows(MembershipLastActiveAdminException.class,
-                () -> service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER));
+                () -> service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER, ACTOR));
 
         verifyNoInteractions(updateMembershipRoleRepository, getOneTimeTokenService);
     }
@@ -195,7 +200,7 @@ class UpdateMembershipRoleServiceTest {
         when(updateMembershipRoleRepository.updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER))
                 .thenReturn(demoted);
 
-        service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER);
+        service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER, ACTOR);
 
         verify(getMembershipsRepository, never()).countActiveAdmins(any());
     }
@@ -212,7 +217,8 @@ class UpdateMembershipRoleServiceTest {
                 .thenReturn(onlyAdmin);
         when(getMembershipsRepository.countActiveAdmins(community.getId())).thenReturn(1L);
 
-        assertTrue(service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN).lastActiveAdmin());
+        assertTrue(service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_ADMIN, ACTOR)
+                .lastActiveAdmin());
     }
 
     @Test
@@ -225,7 +231,7 @@ class UpdateMembershipRoleServiceTest {
         when(lockMembershipRepository.lock(UserId.of(userId), community.getId())).thenReturn(false);
 
         assertThrows(MembershipNotFoundException.class,
-                () -> service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER));
+                () -> service().updateRole(community.getId(), userId, CommunityRole.COMMUNITY_MEMBER, ACTOR));
 
         verifyNoInteractions(getMembershipsRepository, updateMembershipRoleRepository);
     }
