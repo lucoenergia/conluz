@@ -1,7 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.contact;
 
 import org.lucoenergia.conluz.domain.admin.community.contact.ContactChannelsValidator;
-import org.lucoenergia.conluz.domain.admin.community.contact.ContactEmailValidity;
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidity;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

@@ -22,7 +22,7 @@ public enum ContactChannelViolationCode {
     PHONE_CHARACTERS_INVALID,
     /**
      * The value of a {@link ContactChannelType#PHONE} channel has fewer than
-     * {@link ContactChannelsValidator#MIN_PHONE_DIGITS} digits.
+     * {@link org.lucoenergia.conluz.domain.shared.contact.PhoneNumberFormat#MIN_DIGITS} digits.
      */
     PHONE_TOO_FEW_DIGITS
 }

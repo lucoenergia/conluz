@@ -1,8 +1,8 @@
-package org.lucoenergia.conluz.infrastructure.admin.community.contact;
+package org.lucoenergia.conluz.infrastructure.shared.contact;
 
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.Email;
-import org.lucoenergia.conluz.domain.admin.community.contact.ContactEmailValidity;
+import org.lucoenergia.conluz.domain.shared.contact.ContactEmailValidity;
 import org.springframework.stereotype.Component;
 
 /**
