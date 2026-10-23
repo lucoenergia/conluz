@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-09
-- **Amended:** 2026-10-23 by #449: §10 (a community governs its own admins and keeps one who can act), §4 (lock order)
+- **Amended:** 2026-10-23 by #449: §10 (a community governs its own admins and keeps one who can act), §4 (lock order); 2026-10-23 by #466: §10 (a community's admins are told about every change to its admins)
 - **Deciders:** Víctor Cañizares
 - **Applies to:** `lucoenergia/conluz`: users (`users`), memberships (`community_memberships`), access policies (`CallerMemberships` and every policy built on it), one-time tokens (`one_time_token`), member registration and invitation flows
 
@@ -109,6 +109,7 @@ The change is introduced additively. The remaining steps are tracked in #329:
 - **The platform admin is exempt.** It may suspend the last active admin, and then invite another one.
 - **Lock order:** community row, then user row, then membership row, then token rows. The role change and the membership deletion lock the community row first, so two of them in the same community run one after another, and the second counts the active admins the first left. No flow takes the community row after a user or membership row.
 - **Clients learn it in advance:** each membership of the roster carries `lastActiveAdmin`, computed by the same rule. The capabilities `canUpdateRole` and `canDelete` stay authorization only.
+- **A community's admins are told about every change to its admins (#466).** The community is the controller of its members' data, and a change to its admins gives or takes away access to all of it, so it must be able to notice a change it did not make, the platform admin's included. Every invitation, resend, acceptance, promotion, demotion, removal, suspension and reactivation of an admin is emailed after commit to the community's other active admins, by the same predicate as D2, and to the affected admin when they lose or regain access; never to the person who made it. The email names people from their member records, and never carries a DNI, a contact email or a phone (MEM-035, MEM-036).
 
 ## What states mean after this decision
 
@@ -158,6 +159,7 @@ The change is introduced additively. The remaining steps are tracked in #329:
 - **Obligation:** every flow that touches an account, a membership and tokens takes the locks in the order user → membership → token. A flow that also locks the community row takes it first: community → user → membership → token.
 - **Obligation:** demoting an admin or deleting a membership applies the last-active-admin rule (§10) under the community row lock. A new path that can remove a community's last active admin, such as a user deletion (#325), must apply it too, unless it is the platform admin's.
 - **Obligation:** giving a membership the admin role requires a contact email on its member record.
+- **Obligation:** every change to a community's admins is notified through `CommunityAdminChangeNotifier`, inside its transaction and after its checks and writes, and a failure to notify never changes the outcome of the change (MEM-035). A new path that writes a membership's role or state must call it, or be classified in `CommunityAdminChangeNotificationArchTest` with the reason it changes no admin. The notification never contains a DNI, a contact email or a phone (MEM-036).
 - **Obligation:** the platform admin sees personal data only for memberships with the admin role: name, contact email and phone from that membership's member record, and the DNI from the account. Nothing from members, and nothing from any other membership of the same person.
 
 **Operational**
