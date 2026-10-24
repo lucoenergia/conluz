@@ -4,6 +4,9 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.MembershipLastActiveAdminException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipOwnsSuppliesException;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.AdminChangeActor;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChange;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.lock.LockCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembershipService;
@@ -28,19 +31,22 @@ public class DeleteMembershipServiceImpl implements DeleteMembershipService {
     private final LockMembershipRepository lockMembershipRepository;
     private final GetMembershipsRepository getMembershipsRepository;
     private final GetSupplyRepository getSupplyRepository;
+    private final CommunityAdminChangeNotifier notifier;
 
     public DeleteMembershipServiceImpl(DeleteMembershipRepository deleteMembershipRepository,
                                        LockCommunityRepository lockCommunityRepository,
                                        LockUserRepository lockUserRepository,
                                        LockMembershipRepository lockMembershipRepository,
                                        GetMembershipsRepository getMembershipsRepository,
-                                       GetSupplyRepository getSupplyRepository) {
+                                       GetSupplyRepository getSupplyRepository,
+                                       CommunityAdminChangeNotifier notifier) {
         this.deleteMembershipRepository = deleteMembershipRepository;
         this.lockCommunityRepository = lockCommunityRepository;
         this.lockUserRepository = lockUserRepository;
         this.lockMembershipRepository = lockMembershipRepository;
         this.getMembershipsRepository = getMembershipsRepository;
         this.getSupplyRepository = getSupplyRepository;
+        this.notifier = notifier;
     }
 
     /**
@@ -53,7 +59,7 @@ public class DeleteMembershipServiceImpl implements DeleteMembershipService {
      * either seen here, and refuses the deletion, or finds the membership gone.
      */
     @Override
-    public void delete(UUID communityId, UUID userId) {
+    public void delete(UUID communityId, UUID userId, UserId deletedBy) {
         UserId user = UserId.of(userId);
         if (!lockCommunityRepository.lock(communityId) || !lockUserRepository.lock(user)
                 || !lockMembershipRepository.lock(user, communityId)) {
@@ -69,5 +75,7 @@ public class DeleteMembershipServiceImpl implements DeleteMembershipService {
             throw new MembershipOwnsSuppliesException(communityId, userId);
         }
         deleteMembershipRepository.delete(communityId, userId);
+        // The membership read under the locks, before the deletion, still names the person and how to reach them
+        notifier.notify(CommunityAdminChange.REMOVED, membership, null, AdminChangeActor.person(deletedBy));
     }
 }

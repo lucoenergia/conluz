@@ -47,7 +47,7 @@ abstract class BaseCommunityAdminTest extends BaseInvitationTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         UUID userId = UUID.fromString(objectMapper.readTree(response).get("user").get("id").asText());
-        String token = tokenFrom(awaitNextEmails(1)[0]);
+        String token = tokenFrom(emailTo(awaitNextEmailsHandedOver(), (String) body.get("contactEmail")));
         return new InvitedAdmin(community, platformAdmin, userId, (String) body.get("personalId"),
                 (String) body.get("contactEmail"), token);
     }

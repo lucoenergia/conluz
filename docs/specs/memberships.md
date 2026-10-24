@@ -6,14 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `getAllUsers`, `getUserById`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById`, `setMembershipInvestment`, `clearMembershipInvestment`, `getMembershipPayback`, `getMembershipMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #449 |
+| **Last reviewed against code** | #466 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how member registration fills the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, how a community's admins manage each other and keep at least one active admin, which memberships grant access, what the `X-Community-Id` header must name, what a platform admin reaches of a community's memberships, and where responses read member data from; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, how a community's admins manage each other and keep at least one active admin, how they are told about every change to the community's admins, which memberships grant access, what the `X-Community-Id` header must name, what a platform admin reaches of a community's memberships, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -639,6 +639,42 @@ lazily, as issues touch it.
   platform admin appoints a community's first admins and keeps suspension as a security tool, for example for a
   compromised account, but does not take part in the community's own governance.
 - **Source:** #449, #446, #415, #395, ADR-0003 §10
+
+### MEM-035 — Every change to a community's admins is told to its admins
+
+- **Status:** Active
+- **Rule:** Every change to a community's admins MUST be notified by email, after commit: an admin invitation sent
+  or resent by the platform admin (`inviteCommunityAdmin`, `resendCommunityAdminInvitation`), an admin invitation
+  accepted (`acceptInvitation`, `acceptInvitationAsCurrentUser`), a member promoted to admin or an admin demoted
+  (`updateMembershipRole`), an admin's membership deleted (`deleteMembership`), and an admin suspended or
+  reactivated (`disableCommunityAdmin`, `enableCommunityAdmin`). The email MUST go to every other active admin of
+  the community with a contact email, active as MEM-033 counts them, and to the affected admin when the change
+  makes them lose access (a demotion, deletion or suspension of an active admin) or regain it (the reactivation that
+  makes them active again). It MUST NOT go to the person who made the change, nor to a new admin about their own
+  invitation or acceptance, nor to anyone without a contact email. It MUST say who is affected and who made the
+  change, by the full names of their member records or as the platform operator, what happened and when, and how to
+  act if it was not expected: talk to the community's other admins, or contact the operator. A request refused by
+  its own rules, a request that changes nothing (giving a membership the role it has, enabling an enabled admin or
+  disabling a suspended one) and a change to a member's membership MUST NOT be notified. The notification MUST NOT
+  change the outcome of the request: a failure to build or hand over an email MUST be logged, without personal
+  data, and the request MUST succeed. One line MUST be logged at INFO per notified change, after commit, with the
+  community id, the affected user id, the change, the actor's user id and the number of emails.
+- **Rationale:** The community is the controller of its members' data, and a change to its admins gives or takes
+  away access to all of it. Its admins must be able to notice a change they did not make, including one made by
+  the platform admin, who can invite its own account (#466 D1). The affected admin is told only when their real
+  access changes: a pending admin never had it. An admin who cannot act is not told, as MEM-033 does not count them.
+- **Source:** #466, ADR-0003 §10
+
+### MEM-036 — A notification of a change to a community's admins carries no personal identifiers
+
+- **Status:** Active
+- **Rule:** An email notifying a change to a community's admins (MEM-035) MUST NOT contain a DNI, a contact email
+  or a phone, in its subject or its body. People MUST be named by the full names of their member records, and only
+  in the body. A log line about the notification MUST NOT contain a name, a DNI, a contact email or a phone.
+- **Rationale:** The email lands in several people's mailboxes, where the platform no longer controls it, and the
+  full name is enough for an admin to recognise the person. Identifiers and contact details are personal data the
+  recipients do not need.
+- **Source:** #466, ADR-0003, ADR-0002
 
 ## Impossible states
 

@@ -147,6 +147,14 @@ public class CommunityMembership {
         return acceptedAt == null && Boolean.TRUE.equals(enabled);
     }
 
+    /**
+     * Whether the membership is disabled, which the platform admin calls suspending a community admin. Independent of
+     * whether it is pending (ADR-0003 §2).
+     */
+    public boolean isDisabled() {
+        return !Boolean.TRUE.equals(enabled);
+    }
+
     public UUID getInvitedBy() {
         return invitedBy;
     }

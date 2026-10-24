@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.MembershipLastActiveAdminException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipOwnsSuppliesException;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.lock.LockCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.lock.LockMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -30,6 +31,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DeleteMembershipServiceTest {
 
+    private static final UserId ACTOR = UserId.of(UUID.randomUUID());
+
     @Mock
     private DeleteMembershipRepository deleteMembershipRepository;
     @Mock
@@ -42,10 +45,12 @@ class DeleteMembershipServiceTest {
     private GetMembershipsRepository getMembershipsRepository;
     @Mock
     private GetSupplyRepository getSupplyRepository;
+    @Mock
+    private CommunityAdminChangeNotifier notifier;
 
     private DeleteMembershipService service() {
         return new DeleteMembershipServiceImpl(deleteMembershipRepository, lockCommunityRepository,
-                lockUserRepository, lockMembershipRepository, getMembershipsRepository, getSupplyRepository);
+                lockUserRepository, lockMembershipRepository, getMembershipsRepository, getSupplyRepository, notifier);
     }
 
     @Test
@@ -54,7 +59,7 @@ class DeleteMembershipServiceTest {
         UUID userId = UUID.randomUUID();
         locked(communityId, userId, member());
 
-        service().delete(communityId, userId);
+        service().delete(communityId, userId, ACTOR);
 
         verify(deleteMembershipRepository).delete(communityId, userId);
     }
@@ -66,7 +71,7 @@ class DeleteMembershipServiceTest {
         UserId user = UserId.of(userId);
         locked(communityId, userId, member());
 
-        service().delete(communityId, userId);
+        service().delete(communityId, userId, ACTOR);
 
         InOrder order = inOrder(lockUserRepository, lockMembershipRepository, getSupplyRepository,
                 deleteMembershipRepository);
@@ -84,7 +89,7 @@ class DeleteMembershipServiceTest {
         locked(communityId, userId, member());
         when(getSupplyRepository.existsByOwnerAndCommunity(user, communityId)).thenReturn(true);
 
-        assertThrows(MembershipOwnsSuppliesException.class, () -> service().delete(communityId, userId));
+        assertThrows(MembershipOwnsSuppliesException.class, () -> service().delete(communityId, userId, ACTOR));
 
         verifyNoInteractions(deleteMembershipRepository);
     }
@@ -97,7 +102,7 @@ class DeleteMembershipServiceTest {
         when(lockUserRepository.lock(UserId.of(userId))).thenReturn(true);
         when(lockMembershipRepository.lock(UserId.of(userId), communityId)).thenReturn(false);
 
-        assertThrows(MembershipNotFoundException.class, () -> service().delete(communityId, userId));
+        assertThrows(MembershipNotFoundException.class, () -> service().delete(communityId, userId, ACTOR));
 
         verifyNoInteractions(getSupplyRepository, deleteMembershipRepository);
     }
@@ -109,7 +114,7 @@ class DeleteMembershipServiceTest {
         when(lockCommunityRepository.lock(communityId)).thenReturn(true);
         when(lockUserRepository.lock(UserId.of(userId))).thenReturn(false);
 
-        assertThrows(MembershipNotFoundException.class, () -> service().delete(communityId, userId));
+        assertThrows(MembershipNotFoundException.class, () -> service().delete(communityId, userId, ACTOR));
 
         verifyNoInteractions(lockMembershipRepository, getSupplyRepository, deleteMembershipRepository);
     }
@@ -123,7 +128,7 @@ class DeleteMembershipServiceTest {
         locked(communityId, userId, admin(true));
         when(getMembershipsRepository.countActiveAdmins(communityId)).thenReturn(2L);
 
-        service().delete(communityId, userId);
+        service().delete(communityId, userId, ACTOR);
 
         InOrder order = inOrder(lockCommunityRepository, lockUserRepository, lockMembershipRepository,
                 getMembershipsRepository, getSupplyRepository, deleteMembershipRepository);
@@ -144,7 +149,7 @@ class DeleteMembershipServiceTest {
         locked(communityId, userId, admin(true));
         when(getMembershipsRepository.countActiveAdmins(communityId)).thenReturn(1L);
 
-        assertThrows(MembershipLastActiveAdminException.class, () -> service().delete(communityId, userId));
+        assertThrows(MembershipLastActiveAdminException.class, () -> service().delete(communityId, userId, ACTOR));
 
         verifyNoInteractions(deleteMembershipRepository);
     }
@@ -158,7 +163,7 @@ class DeleteMembershipServiceTest {
         locked(communityId, userId, admin(true));
         when(getMembershipsRepository.countActiveAdmins(communityId)).thenReturn(1L);
 
-        assertThrows(MembershipLastActiveAdminException.class, () -> service().delete(communityId, userId));
+        assertThrows(MembershipLastActiveAdminException.class, () -> service().delete(communityId, userId, ACTOR));
 
         verifyNoInteractions(getSupplyRepository, deleteMembershipRepository);
     }
@@ -171,7 +176,7 @@ class DeleteMembershipServiceTest {
         UUID userId = UUID.randomUUID();
         locked(communityId, userId, admin(false));
 
-        service().delete(communityId, userId);
+        service().delete(communityId, userId, ACTOR);
 
         verify(getMembershipsRepository, never()).countActiveAdmins(any());
         verify(deleteMembershipRepository).delete(communityId, userId);

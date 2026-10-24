@@ -11,10 +11,11 @@ import java.util.UUID;
 public interface DisableCommunityAdminService {
 
     /**
+     * @param disabledBy the platform admin suspending it
      * @throws org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException if the community does not
      *         exist
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException if the user has no membership
      *         in the community with the community admin role
      */
-    void disable(UUID communityId, UserId userId);
+    void disable(UUID communityId, UserId userId, UserId disabledBy);
 }

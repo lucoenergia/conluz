@@ -4,11 +4,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.admins.EnableCommunityAdminService;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.SetMembershipEnabledRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.lock.LockMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
@@ -30,6 +33,7 @@ class EnableCommunityAdminServiceTest {
 
     private static final UUID COMMUNITY_ID = UUID.randomUUID();
     private static final UserId USER_ID = UserId.of(UUID.randomUUID());
+    private static final UserId PLATFORM_ADMIN = UserId.of(UUID.randomUUID());
 
     @Mock
     private GetCommunityRepository getCommunityRepository;
@@ -39,10 +43,15 @@ class EnableCommunityAdminServiceTest {
     private LockMembershipRepository lockMembershipRepository;
     @Mock
     private SetMembershipEnabledRepository setMembershipEnabledRepository;
+    @Mock
+    private GetMembershipsRepository getMembershipsRepository;
+    @Mock
+    private CommunityAdminChangeNotifier notifier;
 
     private EnableCommunityAdminService service() {
         return new EnableCommunityAdminServiceImpl(getCommunityRepository, lockUserRepository,
-                lockMembershipRepository, setMembershipEnabledRepository);
+                lockMembershipRepository, setMembershipEnabledRepository,
+                getMembershipsRepository, notifier);
     }
 
     @Test
@@ -51,10 +60,11 @@ class EnableCommunityAdminServiceTest {
         communityExists();
         when(lockUserRepository.lock(USER_ID)).thenReturn(true);
         when(lockMembershipRepository.lock(USER_ID, COMMUNITY_ID)).thenReturn(true);
+        membershipExists();
         when(setMembershipEnabledRepository.setEnabled(COMMUNITY_ID, USER_ID, CommunityRole.COMMUNITY_ADMIN, true))
                 .thenReturn(true);
 
-        service().enable(COMMUNITY_ID, USER_ID);
+        service().enable(COMMUNITY_ID, USER_ID, PLATFORM_ADMIN);
 
         InOrder order = inOrder(lockUserRepository, lockMembershipRepository, setMembershipEnabledRepository);
         order.verify(lockUserRepository).lock(USER_ID);
@@ -69,10 +79,11 @@ class EnableCommunityAdminServiceTest {
         communityExists();
         when(lockUserRepository.lock(USER_ID)).thenReturn(true);
         when(lockMembershipRepository.lock(USER_ID, COMMUNITY_ID)).thenReturn(true);
+        membershipExists();
         when(setMembershipEnabledRepository.setEnabled(COMMUNITY_ID, USER_ID, CommunityRole.COMMUNITY_ADMIN, true))
                 .thenReturn(false);
 
-        assertThrows(MembershipNotFoundException.class, () -> service().enable(COMMUNITY_ID, USER_ID));
+        assertThrows(MembershipNotFoundException.class, () -> service().enable(COMMUNITY_ID, USER_ID, PLATFORM_ADMIN));
     }
 
     @Test
@@ -81,7 +92,7 @@ class EnableCommunityAdminServiceTest {
         when(lockUserRepository.lock(USER_ID)).thenReturn(true);
         when(lockMembershipRepository.lock(USER_ID, COMMUNITY_ID)).thenReturn(false);
 
-        assertThrows(MembershipNotFoundException.class, () -> service().enable(COMMUNITY_ID, USER_ID));
+        assertThrows(MembershipNotFoundException.class, () -> service().enable(COMMUNITY_ID, USER_ID, PLATFORM_ADMIN));
 
         verifyNoInteractions(setMembershipEnabledRepository);
     }
@@ -90,9 +101,14 @@ class EnableCommunityAdminServiceTest {
     void anUnknownCommunity_isNotFound_andNothingIsLocked() {
         when(getCommunityRepository.findById(COMMUNITY_ID)).thenReturn(Optional.empty());
 
-        assertThrows(CommunityNotFoundException.class, () -> service().enable(COMMUNITY_ID, USER_ID));
+        assertThrows(CommunityNotFoundException.class, () -> service().enable(COMMUNITY_ID, USER_ID, PLATFORM_ADMIN));
 
         verifyNoInteractions(lockUserRepository, lockMembershipRepository, setMembershipEnabledRepository);
+    }
+
+    private void membershipExists() {
+        when(getMembershipsRepository.findByUserIdAndCommunityId(USER_ID.getId(), COMMUNITY_ID))
+                .thenReturn(Optional.of(new CommunityMembership.Builder().build()));
     }
 
     private void communityExists() {

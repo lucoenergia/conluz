@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.community.membership.MembershipInRoster;
 import org.lucoenergia.conluz.domain.admin.community.membership.UpdateMembershipRoleService;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -112,7 +113,8 @@ public class UpdateMembershipRoleController {
                                                    @PathVariable("communityId") UUID communityId,
                                                     @PathVariable("userId") UUID userId,
                                                     @Valid @RequestBody UpdateMembershipRoleBody body) {
-        MembershipInRoster updated = service.updateRole(communityId, userId, body.getRole());
+        MembershipInRoster updated = service.updateRole(communityId, userId, body.getRole(),
+                UserId.of(currentUser.getId()));
         return new MembershipResponse(updated, capabilitiesAssembler.assemble(currentUser, updated.membership()));
     }
 }

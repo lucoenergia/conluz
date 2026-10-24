@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembershipService;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -17,6 +19,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -120,8 +123,9 @@ public class DeleteMembershipController {
     @ForbiddenErrorResponse
     @NotFoundErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageMemberships(#communityId)")
-    public void deleteMembership(@PathVariable("communityId") UUID communityId,
+    public void deleteMembership(@AuthenticationPrincipal User currentUser,
+                                  @PathVariable("communityId") UUID communityId,
                                   @PathVariable("userId") UUID userId) {
-        service.delete(communityId, userId);
+        service.delete(communityId, userId, UserId.of(currentUser.getId()));
     }
 }

@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsExce
 import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.community.admins.CommunityAdmin;
 import org.lucoenergia.conluz.domain.admin.community.admins.InviteCommunityAdminService;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.RegisteredMember;
@@ -49,9 +50,11 @@ class InviteCommunityAdminServiceTest {
     private MembershipRegistration registration;
     @Mock
     private InvitationSending sending;
+    @Mock
+    private CommunityAdminChangeNotifier notifier;
 
     private InviteCommunityAdminService service() {
-        return new InviteCommunityAdminServiceImpl(registration, sending);
+        return new InviteCommunityAdminServiceImpl(registration, sending, notifier);
     }
 
     @Test

@@ -11,6 +11,7 @@ import java.util.UUID;
 public interface ResendCommunityAdminInvitationService {
 
     /**
+     * @param resentBy the platform admin resending it
      * @throws org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException if the community does not
      *         exist
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException if the user has no membership
@@ -18,5 +19,5 @@ public interface ResendCommunityAdminInvitationService {
      * @see org.lucoenergia.conluz.domain.admin.community.membership.invitation.ResendInvitationService for the other
      *         refusals
      */
-    CommunityAdmin resend(UUID communityId, UserId userId);
+    CommunityAdmin resend(UUID communityId, UserId userId, UserId resentBy);
 }
