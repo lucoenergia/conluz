@@ -8,6 +8,12 @@ import java.util.UUID;
 
 public interface CreateMembershipRepository {
 
+    /**
+     * Creates an accepted, enabled membership with no inviter and no invitation, its member record copied from
+     * the user. For test fixtures only: no production class may call it, as
+     * {@code AcceptedMembershipCreationArchTest} enforces, because every membership is accepted by its member
+     * after an invitation (#447).
+     */
     CommunityMembership create(UUID communityId, UUID userId, CommunityRole role);
 
     /**
