@@ -18,6 +18,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Builds the {@link RestError} body of every refused or failed request, and logs it at the level its status calls
+ * for: ERROR, with the stack trace, for a 5xx; WARN, one line, for a security refusal (401, 403, 429); and INFO, one
+ * line, for any other refusal of the request's data or of a business rule. Below 500 nothing that may carry a value
+ * from the request is logged with a stack trace.
+ */
 @Component
 public class ErrorBuilder {
 
@@ -35,7 +41,12 @@ public class ErrorBuilder {
 
         final String traceId = UUID.randomUUID().toString();
 
-        LOGGER.error("Error: {}. Trace ID: {}.", exception.getMessage(), traceId, exception);
+        if (status.is5xxServerError()) {
+            LOGGER.error("Error: {}. Trace ID: {}.", exception.getMessage(), traceId, exception);
+        } else {
+            // Only the type: below 500 the message may carry a value of the request, or part of a token
+            log(status, exception.getClass().getSimpleName(), traceId);
+        }
 
         final String message = messageSource.getMessage(
                 messageKey,
@@ -50,7 +61,7 @@ public class ErrorBuilder {
 
         final String traceId = UUID.randomUUID().toString();
 
-        LOGGER.error("Error message: {}. Trace ID: {}.", exceptionMessage, traceId);
+        log(status, exceptionMessage, traceId);
 
         final String message = messageSource.getMessage(
                 messageKey,
@@ -65,7 +76,7 @@ public class ErrorBuilder {
 
         final String traceId = UUID.randomUUID().toString();
 
-        LOGGER.error("Error message: {}. Trace ID: {}.", message, traceId);
+        log(status, message, traceId);
 
         return new ResponseEntity<>(new RestError(now(), status.value(), message, traceId), status);
     }
@@ -75,12 +86,33 @@ public class ErrorBuilder {
 
         final String traceId = UUID.randomUUID().toString();
 
-        LOGGER.error("Error message: {}. Trace ID: {}.", message, traceId);
+        log(status, message, traceId);
 
         final RestError restError = new RestError(now(), status.value(), message, traceId,
                 List.of(new RestErrorDetail(message, code, params)));
 
         return new ResponseEntity<>(restError, status);
+    }
+
+    /**
+     * Same body as {@link #build(Throwable, String, Object[], HttpStatus)}, but logged at ERROR with the stack trace
+     * whatever the status. For an exception that, in this application, means a broken invariant -- a programming
+     * error -- even though the request is answered with a 4xx, so that it stays visible among the real failures.
+     */
+    public ResponseEntity<RestError> buildForBrokenInvariant(Throwable exception, String messageKey, Object[] args,
+                                                             HttpStatus status) {
+
+        final String traceId = UUID.randomUUID().toString();
+
+        LOGGER.error("Error: {}. Trace ID: {}.", exception.getMessage(), traceId, exception);
+
+        final String message = messageSource.getMessage(
+                messageKey,
+                args,
+                LocaleContextHolder.getLocale()
+        );
+
+        return new ResponseEntity<>(new RestError(now(), status.value(), message, traceId), status);
     }
 
     /**
@@ -122,11 +154,29 @@ public class ErrorBuilder {
 
         final String traceId = UUID.randomUUID().toString();
 
-        LOGGER.error("Error message: {}. Trace ID: {}. {} error(s).", message, traceId, errors.size());
+        log(status, message + " (" + errors.size() + " error(s))", traceId);
 
         final RestError restError = new RestError(now(), status.value(), message, traceId, errors);
 
         return new ResponseEntity<>(restError, status);
+    }
+
+    /**
+     * One line, without a stack trace, at the level of the status: see the class comment.
+     */
+    private static void log(HttpStatus status, String message, String traceId) {
+        if (status.is5xxServerError()) {
+            LOGGER.error("Error message: {}. Trace ID: {}.", message, traceId);
+        } else if (isSecurityRefusal(status)) {
+            LOGGER.warn("Request refused: {}. Trace ID: {}.", message, traceId);
+        } else {
+            LOGGER.info("Request refused: {}. Trace ID: {}.", message, traceId);
+        }
+    }
+
+    private static boolean isSecurityRefusal(HttpStatus status) {
+        return status == HttpStatus.UNAUTHORIZED || status == HttpStatus.FORBIDDEN
+                || status == HttpStatus.TOO_MANY_REQUESTS;
     }
 
     /**

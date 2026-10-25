@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
@@ -21,6 +23,7 @@ import org.lucoenergia.conluz.domain.admin.user.auth.Token;
 import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
 import org.lucoenergia.conluz.domain.admin.user.auth.VerifiedToken;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.shared.security.JwtSecretKeyGenerator;
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.mockito.Mock;
@@ -491,6 +494,26 @@ class JwtAuthRepositoryTest {
     private static JsonNode claimsOf(Token token) throws Exception {
         String payload = token.getToken().split("\\.")[1];
         return new ObjectMapper().readTree(Base64.getUrlDecoder().decode(payload));
+    }
+
+    @Test
+    void aTokenWhoseJtiCannotBeExtracted_isOneWarningWithoutStackTraceOrToken() {
+        Mockito.when(jwtConfiguration.getSecretKey()).thenReturn(JwtSecretKeyGenerator.generate());
+        Base64.Encoder base64Url = Base64.getUrlEncoder().withoutPadding();
+        String token = String.join(".", base64Url.encodeToString("{\"alg\":\"HS256\"}".getBytes()),
+                base64Url.encodeToString("not-json".getBytes()), base64Url.encodeToString("signature".getBytes()));
+
+        try (LogCapture logs = LogCapture.of(JwtAuthRepository.class)) {
+            Assertions.assertEquals(Optional.empty(), repository.getJtiFromToken(Token.of(token)));
+
+            List<ILoggingEvent> events = logs.all();
+            Assertions.assertEquals(1, events.size());
+            Assertions.assertEquals(Level.WARN, events.get(0).getLevel());
+            Assertions.assertNull(events.get(0).getThrowableProxy());
+            for (String segment : token.split("\\.")) {
+                Assertions.assertFalse(events.get(0).getFormattedMessage().contains(segment));
+            }
+        }
     }
 
     private void mockJwtConfig() {

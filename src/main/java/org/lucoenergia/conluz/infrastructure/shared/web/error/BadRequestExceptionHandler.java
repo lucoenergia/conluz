@@ -204,8 +204,13 @@ public class BadRequestExceptionHandler {
         return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Logged at ERROR with the stack trace although it answers 400: in this application an
+     * {@link IllegalArgumentException} is thrown for a broken invariant, a programming error, not for a refusal of
+     * the request's data, which has its own exception (#479).
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<RestError> handleException(IllegalArgumentException e) {
-        return errorBuilder.build(e, "error.invalid.arguments", List.of().toArray(), HttpStatus.BAD_REQUEST);
+        return errorBuilder.buildForBrokenInvariant(e, "error.invalid.arguments", List.of().toArray(), HttpStatus.BAD_REQUEST);
     }
 }

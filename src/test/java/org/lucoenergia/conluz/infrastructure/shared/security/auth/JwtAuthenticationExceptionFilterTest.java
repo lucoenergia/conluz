@@ -72,7 +72,7 @@ class JwtAuthenticationExceptionFilterTest {
 
         // Assert
         verify(authenticationExceptionHandler).handleRejectedToken();
-        verify(authenticationExceptionHandler, never()).handleInvalidTokenException(any());
+        verify(authenticationExceptionHandler, never()).handleInvalidTokenException(any(), any());
         assertEquals(1, events.size());
         assertEquals(Level.WARN, events.get(0).getLevel());
         assertEquals("Token rejected: reason=USER_DISABLED, user=" + userId + ", ip=203.0.113.7, traceId="
