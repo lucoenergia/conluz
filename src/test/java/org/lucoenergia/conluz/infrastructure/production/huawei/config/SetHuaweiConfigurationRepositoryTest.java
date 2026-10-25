@@ -16,7 +16,9 @@ import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigura
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 @Transactional
@@ -43,6 +46,16 @@ class SetHuaweiConfigurationRepositoryTest extends BaseIntegrationTest {
     private CreatePlantRepository createPlantRepository;
     @Autowired
     private EntityManager entityManager;
+
+    @Test
+    void aConfigurationForAPlantThatDoesNotExist_isRefusedAsPlantNotFound() {
+        UUID plantId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> setHuaweiConfigurationRepository.setHuaweiConfiguration(plantId,
+                        new HuaweiConfig.Builder().setUsername("user").setPassword("password").build()))
+                .isInstanceOfSatisfying(PlantNotFoundException.class,
+                        e -> assertThat(e.getId()).isEqualTo(PlantId.of(plantId)));
+    }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})

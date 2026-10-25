@@ -45,7 +45,8 @@ public class PlantExceptionHandler {
     @ExceptionHandler(PlantNotFoundException.class)
     public ResponseEntity<RestError> handleException(PlantNotFoundException e) {
 
-        String plantIdentifier = e.getId() != null ? e.getId().toString() : e.getProviderCode();
+        // The bare UUID, as the caller sent it; String.valueOf keeps a PlantId without an id from failing here
+        String plantIdentifier = e.getId() != null ? String.valueOf(e.getId().getId()) : e.getProviderCode();
 
         String message = messageSource.getMessage(
                 "error.plant.not.found",
