@@ -4,10 +4,12 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseRegisterMemberTest;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.List;
@@ -16,6 +18,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -107,6 +110,24 @@ class RefusalLoggingControllerTest extends BaseRegisterMemberTest {
                 .andReturn().getResponse().getContentAsString();
 
         assertNoSecretIn(response);
+    }
+
+    @Test
+    void aLoginWithoutPassword_isAnInvalidBody_notAFailedLogin() throws Exception {
+        User user = newUser();
+        remember(user.getPersonalId());
+        String body = objectMapper.writeValueAsString(Map.of("username", user.getPersonalId()));
+
+        try (LogCapture login = LogCapture.ofRoot()) {
+            assertLoggedOnce(Level.INFO, () -> mockMvc.perform(post("/api/v1/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.status").value(400)));
+
+            assertThat(login.allOfThisThread())
+                    .noneMatch(event -> event.getFormattedMessage().startsWith("Failed login"));
+        }
     }
 
     /**

@@ -96,13 +96,14 @@ class LoginUserControllerTest extends BaseControllerTest {
 
         String loginBody = "{\"username\": \"" + PERSONAL_ID + "\"}";
 
+        // A body without a password is invalid, as any other invalid body (#479)
         mockMvc.perform(post(LOGIN_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginBody))
                 .andDo(print())
-                .andExpect(status().isUnauthorized())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.status").value("401"))
+                .andExpect(jsonPath("$.status").value("400"))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
