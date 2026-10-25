@@ -19,8 +19,8 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     /**
      * Locks the user row until the end of the transaction. {@code NO KEY UPDATE} conflicts with itself, so
      * concurrent callers for the same user run one after another, but not with the {@code KEY SHARE} lock that
-     * foreign key checks from other tables take. The same lock the one-time token store takes before it writes a
-     * user's tokens.
+     * foreign key checks from other tables take. The one-time token store takes it too, before it writes a user's
+     * tokens.
      *
      * @return the user's id, or empty if the user does not exist
      */

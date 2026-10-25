@@ -52,8 +52,8 @@ public interface CommunityMembershipJpaRepository extends JpaRepository<Communit
     /**
      * Locks the user's membership in the community until the end of the transaction. {@code NO KEY UPDATE}
      * conflicts with itself, so concurrent callers for the same membership run one after another, but not with the
-     * {@code KEY SHARE} lock that foreign key checks from other tables take. The same lock the one-time token store
-     * takes before it writes a membership's tokens. Lock the membership's user row first.
+     * {@code KEY SHARE} lock that foreign key checks from other tables take. The one-time token store takes it too,
+     * before it writes a membership's tokens. Lock the membership's user row first.
      *
      * @return the membership's id, or empty if the user has no membership in the community
      */

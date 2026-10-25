@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public interface CommunityContactChannelJpaRepository extends JpaRepository<CommunityContactChannelEntity, UUID> {
@@ -22,13 +21,4 @@ public interface CommunityContactChannelJpaRepository extends JpaRepository<Comm
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM community_contact_channels c WHERE c.community.id = :communityId")
     void deleteByCommunityId(@Param("communityId") UUID communityId);
-
-    /**
-     * {@code FOR NO KEY UPDATE} rather than {@code FOR UPDATE}: inserting a channel takes a key-share lock on its
-     * community, which a no-key-update lock does not block.
-     *
-     * @return the community's id, or empty if there is no such community
-     */
-    @Query(value = "SELECT id FROM communities WHERE id = :communityId FOR NO KEY UPDATE", nativeQuery = true)
-    Optional<UUID> lockCommunity(@Param("communityId") UUID communityId);
 }
