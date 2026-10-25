@@ -5,18 +5,22 @@
 # dependency review read that graph: without this workflow, neither of them sees any Java dependency.
 #
 # The graph is submitted on every push to main (the base that pull requests are compared against) and for
-# the head of every pull request. Both submissions come from the same job of the same workflow on purpose:
-# the snapshot's job correlator is derived from the workflow name and job id, and dependency review only
-# compares snapshots that share a correlator. Renaming this workflow or the submission job resets that.
+# the head of every pull request. Both submissions come from the same job of the same workflow on purpose.
+#
+# Do not rename this workflow's `name:` or the `dependency-submission` job id. Together they form the Gradle
+# dependency-graph job correlator, and the base (push to main) and head (pull request) snapshots must share
+# it. Renaming either makes dependency review treat the whole tree as added on every pull request until a
+# new base snapshot exists.
 #
 # Submitting needs `contents: write`, which GITHUB_TOKEN never gets on pull requests from forks, so the
 # submission job fails there. The check is therefore intentionally not required (#475).
 #
-# Dependency review waits for the head submission, so it never compares against a graph that is not there
-# yet; if the submission fails, the review is skipped rather than passed. It still retries while GitHub
-# reports snapshot warnings, but the action has no option to fail once the retry times out: if the base
-# commit has no snapshot (for example before the first submission on main), or processing outlasts the
-# timeout, the review proceeds and only shows the warning in the job summary (#475).
+# Dependency review waits for the head submission; if the submission fails, the review is skipped rather
+# than passed. It retries while GitHub reports snapshot warnings, but the action has no option to fail once
+# the retry times out. If the head snapshot is still not processed by then, the head appears to have no
+# Gradle dependencies, the diff holds only removals, and the review passes with just a warning in the job
+# summary (#475). A missing base snapshot is not a silent pass: the whole head tree counts as added and is
+# evaluated, so pre-existing advisories block.
 name: 'Dependency Review'
 on:
   push:
