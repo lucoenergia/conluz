@@ -84,10 +84,11 @@ public class BadRequestExceptionHandler {
     public ResponseEntity<RestError> handleException(MethodArgumentNotValidException e) {
 
         List<String> errorMessages = new ArrayList<>();
+        // The rejected value is never repeated: it may be a password, an email address or a personal ID (#479)
         for (FieldError error : e.getFieldErrors()) {
             errorMessages.add(messageSource.getMessage(
                     "error.property.invalid",
-                    Arrays.asList(error.getField(), error.getRejectedValue(), error.getDefaultMessage()).toArray(),
+                    Arrays.asList(error.getField(), error.getDefaultMessage()).toArray(),
                     LocaleContextHolder.getLocale()
             ));
         }
@@ -140,7 +141,8 @@ public class BadRequestExceptionHandler {
                 .stream()
                 .map(error -> messageSource.getMessage(
                         "error.property.invalid",
-                        List.of(error.getPropertyPath(), error.getInvalidValue(), error.getMessage()).toArray(),
+                        // Without the invalid value, as for a body above
+                        List.of(error.getPropertyPath(), error.getMessage()).toArray(),
                         LocaleContextHolder.getLocale()
                 ))
                 .reduce(messageSource.getMessage(

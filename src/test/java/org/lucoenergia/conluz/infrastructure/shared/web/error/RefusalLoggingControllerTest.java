@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -69,6 +70,43 @@ class RefusalLoggingControllerTest extends BaseRegisterMemberTest {
 
         assertLoggedOnce(Level.WARN, () -> register(bearer, community.getId(), record())
                 .andExpect(status().isForbidden()));
+    }
+
+    @Test
+    void anInvalidEmail_isRefusedNamingTheField_withoutRepeatingTheValue() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        Map<String, Object> body = record();
+        String invalidEmail = "lucia.perez.at.contact.test";
+        remember(invalidEmail);
+        body.put("contactEmail", invalidEmail);
+
+        String response = register(bearer, community.getId(), body)
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(response).contains("contactEmail");
+        assertNoSecretIn(response);
+    }
+
+    @Test
+    void anInvalidPersonalId_isRefused_withoutRepeatingTheValue() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        Map<String, Object> body = record();
+        String valid = (String) body.get("personalId");
+        char letter = valid.charAt(valid.length() - 1);
+        // Any other control letter makes the DNI invalid
+        String invalidPersonalId = valid.substring(0, valid.length() - 1) + (letter == 'A' ? 'B' : 'A');
+        remember(invalidPersonalId);
+        body.put("personalId", invalidPersonalId);
+
+        String response = register(bearer, community.getId(), body)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PERSONAL_ID_INVALID"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertNoSecretIn(response);
     }
 
     /**
