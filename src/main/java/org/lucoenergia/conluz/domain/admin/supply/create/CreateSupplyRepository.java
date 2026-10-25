@@ -7,7 +7,5 @@ import java.util.UUID;
 
 public interface CreateSupplyRepository {
 
-    Supply create(Supply supply, UserId id);
-
     Supply create(Supply supply, UserId id, UUID communityId);
 }

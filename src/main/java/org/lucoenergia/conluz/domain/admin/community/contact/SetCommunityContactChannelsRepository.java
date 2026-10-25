@@ -7,7 +7,8 @@ public interface SetCommunityContactChannelsRepository {
 
     /**
      * Replaces every contact channel of the community with {@code channels}, stored in the order given. Takes the
-     * caller's transaction, which must hold the lock of {@link LockCommunityContactChannelsRepository}.
+     * caller's transaction, which must hold the community's lock
+     * ({@link org.lucoenergia.conluz.domain.admin.community.lock.LockCommunityRepository}).
      *
      * @return the channels now stored, in their stored order
      */

@@ -26,6 +26,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 @Transactional
 class CreatePlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
@@ -101,6 +102,6 @@ class CreatePlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
     private Supply createSupply() {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = SupplyMother.random(user).build();
-        return createSupplyRepository.create(supply, UserId.of(user.getId()));
+        return createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
     }
 }

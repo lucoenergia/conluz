@@ -59,18 +59,6 @@ public final class UserScope {
     }
 
     /**
-     * Whether the scope admits this user, judged on their {@linkplain CommunityMembership#isActive() active}
-     * memberships.
-     */
-    public boolean includes(User user) {
-        if (isUnrestricted() || isSelf(user)) {
-            return true;
-        }
-        return user.getMemberships() != null && user.getMemberships().stream()
-                .anyMatch(m -> m.isActive() && inScopeCommunity(m));
-    }
-
-    /**
      * Whether the scope admits this membership of the given user: all of them for an unrestricted
      * scope and for the caller's own record, otherwise only those in the scope's communities.
      */

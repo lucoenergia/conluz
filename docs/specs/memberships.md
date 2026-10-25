@@ -13,7 +13,7 @@
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how member registration fills the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, how a community's admins manage each other and keep at least one active admin, how they are told about every change to the community's admins, which memberships grant access, what the `X-Community-Id` header must name, what a platform admin reaches of a community's memberships, and where responses read member data from; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, how a community's admins manage each other and keep at least one active admin, how they are told about every change to the community's admins, which memberships grant access, what a platform admin reaches of a community's memberships, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -69,10 +69,9 @@ lazily, as issues touch it.
 
 - **Status:** Active
 - **Rule:** A membership MUST grant its holder access to its community only while it is active.
-  Every access decision that depends on the caller's membership, including the `X-Community-Id`
-  header and the single-membership default, MUST answer the holder of a pending or disabled
-  membership exactly as it answers someone with no membership in that community. Being visible to a
-  community admin through the user endpoints follows the same rule. Whether a membership is active
+  Every access decision that depends on the caller's membership MUST answer the holder of a pending
+  or disabled membership exactly as it answers someone with no membership in that community. Being
+  visible to a community admin through the user endpoints follows the same rule. Whether a membership is active
   MUST be decided only by `CommunityMembership.isActive()`, and in queries by
   `ActiveMembershipJpql.ACTIVE_MEMBERSHIP`. Owning a supply is not access: any membership in the
   supply's community counts, pending or disabled included.
@@ -80,7 +79,7 @@ lazily, as issues touch it.
   accepting (ADR-0003 §2). One definition keeps every check in step; before #390, "is an active
   member" was written in ten places, each testing `enabled` alone. A community can operate a member
   who has not accepted yet, so supply ownership does not depend on the state (#341).
-- **Source:** #390, #341, ADR-0003 §2
+- **Source:** #390, #341, ADR-0003 §2, #478
 
 ### MEM-005 — Pending and disabled are independent, and the roster shows both
 
@@ -595,13 +594,15 @@ lazily, as issues touch it.
 
 ### MEM-032 — The X-Community-Id header names a community the caller is a member of
 
-- **Status:** Active
+- **Status:** Removed in #478
 - **Rule:** A request carrying `X-Community-Id` MUST be refused with 403 unless the caller holds an active
   membership (MEM-004) in the community it names, whoever the caller is, a platform admin included. A value that is
   not a UUID MUST be refused with 400. A request without the header is not affected.
-- **Rationale:** The header selects the community a request acts in; naming a community one does not belong to is
-  never legitimate, and a platform admin needs none of it: the web client never sends the header.
-- **Source:** #446, #329
+- **Rationale:** Nothing read the community the header selected: every community-scoped endpoint takes the community
+  in its path, or derives it from the resource, and the web client never sends the header. The header is no longer
+  read or validated, and a request carrying it is answered exactly as without it; the path is the only way to name a
+  community.
+- **Source:** #478, #446, #329
 
 ### MEM-033 — A community admin does not demote or remove the community's last active admin
 

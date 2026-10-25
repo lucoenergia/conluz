@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 @Transactional
 class SetHuaweiConfigurationRepositoryTest extends BaseIntegrationTest {
@@ -91,7 +92,7 @@ class SetHuaweiConfigurationRepositoryTest extends BaseIntegrationTest {
     private Plant createPlant() {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
-        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         return createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
     }
 

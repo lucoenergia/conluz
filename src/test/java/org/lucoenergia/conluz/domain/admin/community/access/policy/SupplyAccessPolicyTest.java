@@ -277,7 +277,7 @@ class SupplyAccessPolicyTest {
             SupplyOwnerScope scope = policy.visibleSuppliesOwnedBy(caller.getValue(), ownerId);
             for (Map.Entry<String, Supply> supply : supplies.entrySet()) {
                 boolean visible = policy.isVisible(caller.getValue(), supply.getValue());
-                assertEquals(visible, scope.includes(supply.getValue()),
+                assertEquals(visible, admits(scope, supply.getValue()),
                         caller.getKey() + ", supply " + supply.getKey() + ": scope " + scope
                                 + " disagrees with isVisible=" + visible);
                 if (visible) included++; else excluded++;
@@ -285,6 +285,18 @@ class SupplyAccessPolicyTest {
         }
         // Both outcomes must occur, or the agreement above proves nothing.
         assertTrue(included > 0 && excluded > 0, "included=" + included + ", excluded=" + excluded);
+    }
+
+    /**
+     * Whether the scope admits this supply: the in-memory reading of the community filter the listing query
+     * applies. Every supply when unrestricted; otherwise those in one of the scope's communities, so a supply with
+     * no community never.
+     */
+    private static boolean admits(SupplyOwnerScope scope, Supply supply) {
+        if (scope.isUnrestricted()) {
+            return true;
+        }
+        return supply.getCommunity() != null && scope.communityIds().contains(supply.getCommunity().getId());
     }
 
     private static User adminOfBoth(Community a, Community b) {

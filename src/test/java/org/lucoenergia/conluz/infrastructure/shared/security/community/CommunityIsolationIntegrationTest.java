@@ -1,7 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.security.community;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -14,15 +13,13 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
-import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -32,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class CommunityIsolationIntegrationTest extends BaseControllerTest {
 
+    private static final String COMMUNITY_ID_HEADER = "X-Community-Id";
+
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
@@ -40,10 +39,6 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
-    @Autowired
-    private CommunityMembershipJpaRepository communityMembershipJpaRepository;
-    @Autowired
-    private ManagePlatformAdminRepository managePlatformAdminRepository;
 
     private Community communityA;
     private Community communityB;
@@ -97,92 +92,6 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
     }
 
     @Test
-    void memberAWithCorrectCommunityHeaderCanAccessTheirSupply() throws Exception {
-        String tokenA = loginUser(memberA);
-
-        mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
-                        .header("Authorization", tokenA)
-                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("MEM-032 X-Community-Id for a community the platform admin is not a member of is refused, even on an endpoint it may use")
-    void platformAdminWithTheHeaderOfACommunityItIsNotAMemberOfGetsForbidden() throws Exception {
-        String platformAdmin = loginAsDefaultPlatformAdmin();
-
-        // Without the header the platform admin reads the community...
-        mockMvc.perform(get("/api/v1/communities/" + communityA.getId())
-                        .header("Authorization", platformAdmin))
-                .andExpect(status().isOk());
-        // ...and with it, naming a community it has no membership in, the request is refused.
-        mockMvc.perform(get("/api/v1/communities/" + communityA.getId())
-                        .header("Authorization", platformAdmin)
-                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString()))
-                .andDo(print())
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("MEM-032 X-Community-Id for a community the platform admin is a member of is accepted")
-    void platformAdminWithTheHeaderOfItsOwnCommunityIsAccepted() throws Exception {
-        User platformAdmin = UserMother.randomUser();
-        platformAdmin.enable();
-        createUserRepository.create(platformAdmin);
-        createMembership(platformAdmin, communityA, CommunityRole.COMMUNITY_MEMBER);
-        managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
-
-        mockMvc.perform(get("/api/v1/communities/" + communityA.getId())
-                        .header("Authorization", loginUser(platformAdmin))
-                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString()))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void memberAWithWrongCommunityHeaderGetsForbidden() throws Exception {
-        String tokenA = loginUser(memberA);
-
-        mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
-                        .header("Authorization", tokenA)
-                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityB.getId().toString())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("MEM-004 X-Community-Id for a pending membership is refused, as for a non-member")
-    void pendingMemberWithTheirCommunityHeaderGetsForbidden() throws Exception {
-        MembershipStateTestSupport.markPending(communityMembershipJpaRepository, memberA.getId(), communityA.getId());
-        String tokenA = loginUser(memberA);
-
-        mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
-                        .header("Authorization", tokenA)
-                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Access denied: user is not a member of the requested community"));
-    }
-
-    @Test
-    @DisplayName("MEM-004 X-Community-Id for a disabled membership is refused, as for a non-member")
-    void disabledMemberWithTheirCommunityHeaderGetsForbidden() throws Exception {
-        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, memberA.getId(), communityA.getId());
-        String tokenA = loginUser(memberA);
-
-        mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
-                        .header("Authorization", tokenA)
-                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, communityA.getId().toString())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Access denied: user is not a member of the requested community"));
-    }
-
-    @Test
     void memberACannotAccessCommunitiyBSupply() throws Exception {
         String tokenA = loginUser(memberA);
 
@@ -204,16 +113,63 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    // --- The X-Community-Id header is not read: a request is answered as without it (#478) ---
+
     @Test
-    void invalidCommunityIdHeaderReturnsBadRequest() throws Exception {
+    void aCommunityHeaderNamingACommunityTheCallerIsNotAMemberOf_isIgnoredOnARead() throws Exception {
         String tokenA = loginUser(memberA);
 
-        mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
+        String withoutHeader = mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
+                        .header("Authorization", tokenA))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String withHeader = mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
                         .header("Authorization", tokenA)
-                        .header(CommunityContextFilter.COMMUNITY_ID_HEADER, "not-a-uuid")
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header(COMMUNITY_ID_HEADER, communityB.getId().toString()))
                 .andDo(print())
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertEquals(withoutHeader, withHeader);
+    }
+
+    @Test
+    void aCommunityHeaderThatIsNotAUuid_isIgnored() throws Exception {
+        String tokenA = loginUser(memberA);
+
+        String withoutHeader = mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
+                        .header("Authorization", tokenA))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String withHeader = mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
+                        .header("Authorization", tokenA)
+                        .header(COMMUNITY_ID_HEADER, "not-a-uuid"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertEquals(withoutHeader, withHeader);
+    }
+
+    @Test
+    void aCommunityHeaderNamingACommunityTheCallerIsNotAMemberOf_isIgnoredOnAWrite() throws Exception {
+        User adminA = UserMother.randomUser();
+        adminA.enable();
+        createUserRepository.create(adminA);
+        createMembership(adminA, communityA, CommunityRole.COMMUNITY_ADMIN);
+        String tokenAdminA = loginUser(adminA);
+
+        mockMvc.perform(post("/api/v1/supplies/" + supplyA.getId() + "/disable")
+                        .header("Authorization", tokenAdminA)
+                        .header(COMMUNITY_ID_HEADER, communityB.getId().toString()))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
+
+        mockMvc.perform(get("/api/v1/supplies/" + supplyA.getId())
+                        .header("Authorization", tokenAdminA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
     }
 
     // --- Nested read endpoints scoped by community path ---

@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.domain.admin.user.get;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
@@ -24,8 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The scope only applies what the policy decided; which scope a caller gets is
- * {@code UserAccessPolicyTest}'s concern. These tests pin how a given scope judges users and
- * memberships.
+ * {@code UserAccessPolicyTest}'s concern. These tests pin how a given scope judges memberships.
  */
 class UserScopeTest {
 
@@ -68,77 +66,6 @@ class UserScopeTest {
     void visibleTo_rejectsANullSetOfCommunities() {
         // null is what "unrestricted" looks like inside; it must not be reachable from here.
         assertThrows(NullPointerException.class, () -> UserScope.visibleTo(callerId, null));
-    }
-
-    // --- includes ---
-
-    @Test
-    void includes_admitsAnEnabledMemberOfACommunityInScope() {
-        assertTrue(scope.includes(userWith(membership(inScope, true))));
-    }
-
-    @Test
-    void includes_admitsAUserWithAnyOneEnabledMembershipInScope() {
-        assertTrue(scope.includes(userWith(membership(outOfScope, true), membership(inScope, true))));
-    }
-
-    @Test
-    void includes_rejectsAMemberOfOnlyOtherCommunities() {
-        assertFalse(scope.includes(userWith(membership(outOfScope, true))));
-    }
-
-    @Test
-    void includes_rejectsADisabledMembershipInScope() {
-        assertFalse(scope.includes(userWith(membership(inScope, false))));
-    }
-
-    @Test
-    @DisplayName("MEM-004 a pending membership in scope does not bring its user into the scope")
-    void includes_rejectsAPendingMembershipInScope() {
-        CommunityMembership pending = new CommunityMembership.Builder()
-                .withId(UUID.randomUUID())
-                .withCommunity(inScope)
-                .withRole(CommunityRole.COMMUNITY_MEMBER)
-                .withEnabled(true)
-                .build();
-
-        assertFalse(scope.includes(userWith(pending)));
-    }
-
-    @Test
-    void includes_rejectsAUserWithNoMemberships() {
-        assertFalse(scope.includes(userWith()));
-    }
-
-    @Test
-    void includes_rejectsAUserWhoseMembershipsWereNeverLoaded() {
-        User user = UserMother.randomUser();
-        user.setMemberships(null);
-
-        assertFalse(scope.includes(user));
-    }
-
-    @Test
-    void includes_rejectsAMembershipWithNoCommunity() {
-        assertFalse(scope.includes(userWith(membershipWithoutCommunity())));
-    }
-
-    @Test
-    void includes_admitsTheCaller_whateverTheirMemberships() {
-        assertTrue(scope.includes(caller()));
-    }
-
-    @Test
-    void includes_admitsNobodyAsTheCaller_whenThereIsNoCaller() {
-        UserScope noCaller = UserScope.visibleTo(null, Set.of(inScope.getId()));
-
-        assertFalse(noCaller.includes(userWith(membership(outOfScope, true))));
-    }
-
-    @Test
-    void includes_admitsEveryone_whenUnrestricted() {
-        assertTrue(UserScope.all().includes(userWith()));
-        assertTrue(UserScope.all().includes(userWith(membership(outOfScope, false))));
     }
 
     // --- includesMembershipOf ---

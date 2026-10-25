@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -65,7 +65,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withAddress("Address 1")
                 .withEnabled(true)
                 .build();
-        createSupplyRepository.create(supply1, UserId.of(user.getId()));
+        createSupplyRepository.create(supply1, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         Supply supply2 = new Supply.Builder()
                 .withId(UUID.randomUUID())
@@ -75,7 +75,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withAddress("Address 2")
                 .withEnabled(true)
                 .build();
-        createSupplyRepository.create(supply2, UserId.of(user.getId()));
+        createSupplyRepository.create(supply2, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -106,7 +106,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withAddress("My Address")
                 .withEnabled(true)
                 .build();
-        Supply createdSupply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Supply createdSupply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // Login as the user
         String loginBody = "{\"username\": \"" + user.getPersonalId() + "\",\"password\": \"" + user.getPassword() + "\"}";
@@ -188,7 +188,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withAddress("User 2 Address")
                 .withEnabled(true)
                 .build();
-        createSupplyRepository.create(supply, UserId.of(user2.getId()));
+        createSupplyRepository.create(supply, UserId.of(user2.getId()), DEFAULT_COMMUNITY_ID);
 
         // Login as user1 and try to access user2's supplies
         String loginBody = "{\"username\": \"" + user1.getPersonalId() + "\",\"password\": \"" + user1.getPassword() + "\"}";
@@ -257,7 +257,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withAddress("Address")
                 .withEnabled(true)
                 .build();
-        createSupplyRepository.create(supply, UserId.of(user.getId()));
+        createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsDefaultPlatformAdmin();
 

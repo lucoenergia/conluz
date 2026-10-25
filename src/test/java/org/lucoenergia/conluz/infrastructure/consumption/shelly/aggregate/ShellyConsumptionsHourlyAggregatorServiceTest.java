@@ -22,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.lucoenergia.conluz.infrastructure.consumption.shelly.ShellyInstantConsumptionsInfluxLoader.*;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 
 @Transactional
@@ -62,13 +63,13 @@ class ShellyConsumptionsHourlyAggregatorServiceTest extends BaseIntegrationTest 
                         .withMqttPrefix(SUPPLY_A_MQTT_PREFIX)
                         .withId("shelly-a")
                         .build())
-                .build(), UserId.of(user.getId()));
+                .build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         createSupplyRepository.create(SupplyMother.random(user)
                 .withShelly(new SupplyShelly.Builder()
                         .withMqttPrefix(SUPPLY_B_MQTT_PREFIX)
                         .withId("shelly-b")
                         .build())
-                .build(), UserId.of(user.getId()));
+                .build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         //When
         shellyConsumptionsHourlyAggregatorService.aggregate(START_DATE, END_DATE);

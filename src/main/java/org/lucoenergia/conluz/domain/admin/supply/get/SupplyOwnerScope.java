@@ -1,7 +1,5 @@
 package org.lucoenergia.conluz.domain.admin.supply.get;
 
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
-
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -39,18 +37,6 @@ public final class SupplyOwnerScope {
      */
     public Set<UUID> communityIds() {
         return communityIds == null ? Set.of() : communityIds;
-    }
-
-    /**
-     * Whether the scope admits this supply. A supply with no community is admitted only by an
-     * unrestricted scope.
-     */
-    public boolean includes(Supply supply) {
-        if (isUnrestricted()) {
-            return true;
-        }
-        UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
-        return communityId != null && communityIds.contains(communityId);
     }
 
     @Override

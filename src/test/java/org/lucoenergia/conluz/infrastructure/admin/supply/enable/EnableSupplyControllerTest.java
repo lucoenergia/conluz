@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -64,7 +64,7 @@ class EnableSupplyControllerTest extends BaseControllerTest {
                 .withDistributor(supply.getDistributor())
                 .withShelly(supply.getShelly())
                 .build();
-        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(String.format("%s/%s/enable", PATH, supply.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -98,7 +98,7 @@ class EnableSupplyControllerTest extends BaseControllerTest {
                 .withDistributor(supply.getDistributor())
                 .withShelly(supply.getShelly())
                 .build();
-        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(post(String.format("%s/%s/enable", PATH, supply.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

@@ -40,6 +40,7 @@ import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.P
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 @Transactional
 class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
@@ -76,7 +77,7 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         User user = UserMother.randomUser();
         user = createUserRepository.create(user);
         Supply supply = SupplyMother.random(user).build();
-        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         Plant plantEntityOne = PlantMother.random(supply).build();
         createPlantRepository.create(plantEntityOne, SupplyId.of(supply.getId()));
         Plant plantEntityTwo = PlantMother.random(supply).build();
@@ -92,7 +93,7 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
     void testFindByIdReturnsThePlantWhenItExists() {
 
         User user = createUserRepository.create(UserMother.randomUser());
-        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         Plant plant = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
 
         Optional<Plant> result = getPlantRepositoryDatabase.findById(PlantId.of(plant.getId()));

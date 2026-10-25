@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 /**
  * Commits, since the race it covers is between two transactions. The configuration and its plant are created the
@@ -141,7 +142,7 @@ class SetHuaweiConfigurationServiceIntegrationTest extends BaseIntegrationTest {
     private void createEnabledConfiguration() {
         User user = createUserRepository.create(UserMother.randomUser());
         userId = user.getId();
-        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(userId));
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(userId), DEFAULT_COMMUNITY_ID);
         supplyId = supply.getId();
         plantId = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supplyId)).getId();
         setHuaweiConfigurationRepository.setHuaweiConfiguration(plantId, new HuaweiConfig.Builder()

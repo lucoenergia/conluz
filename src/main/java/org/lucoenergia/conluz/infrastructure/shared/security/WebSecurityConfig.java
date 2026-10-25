@@ -6,7 +6,6 @@ import org.lucoenergia.conluz.infrastructure.shared.error.GlobalExceptionFilter;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationExceptionFilter;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.PasswordChangeRequiredFilter;
-import org.lucoenergia.conluz.infrastructure.shared.security.community.CommunityContextFilter;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.ConluzAccessDeniedHandler;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.ConluzAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,14 +43,13 @@ public class WebSecurityConfig {
     private final GlobalExceptionFilter globalExceptionFilter;
     private final ObjectMapper objectMapper;
     private final ErrorBuilder errorBuilder;
-    private final CommunityContextFilter communityContextFilter;
     private final PasswordChangeRequiredFilter passwordChangeRequiredFilter;
 
     public WebSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                              JwtAuthenticationExceptionFilter jwtAuthenticationExceptionFilter,
                              AuthenticationProvider authenticationProvider,
                              GlobalExceptionFilter globalExceptionFilter, ObjectMapper objectMapper,
-                             ErrorBuilder errorBuilder, CommunityContextFilter communityContextFilter,
+                             ErrorBuilder errorBuilder,
                              PasswordChangeRequiredFilter passwordChangeRequiredFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.jwtAuthenticationExceptionFilter = jwtAuthenticationExceptionFilter;
@@ -59,7 +57,6 @@ public class WebSecurityConfig {
         this.globalExceptionFilter = globalExceptionFilter;
         this.objectMapper = objectMapper;
         this.errorBuilder = errorBuilder;
-        this.communityContextFilter = communityContextFilter;
         this.passwordChangeRequiredFilter = passwordChangeRequiredFilter;
     }
 
@@ -78,10 +75,8 @@ public class WebSecurityConfig {
                 )
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                // A user who must change their password is refused right after authentication, before any
-                // community resolution
+                // A user who must change their password is refused right after authentication
                 .addFilterAfter(passwordChangeRequiredFilter, JwtAuthenticationFilter.class)
-                .addFilterAfter(communityContextFilter, PasswordChangeRequiredFilter.class)
                 .addFilterBefore(jwtAuthenticationExceptionFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(globalExceptionFilter, JwtAuthenticationExceptionFilter.class)
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> {

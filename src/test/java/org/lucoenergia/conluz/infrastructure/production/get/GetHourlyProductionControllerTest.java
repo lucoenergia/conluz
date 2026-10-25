@@ -32,7 +32,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -66,7 +66,7 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
         // Register a plant in the default community whose code matches the seeded InfluxDB station_code,
         // so the community-scoped production query resolves data.
         User plantOwner = createUserRepository.create(UserMother.randomUser());
-        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()));
+        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()), DEFAULT_COMMUNITY_ID);
         plant = createPlantRepository.create(
                 PlantMother.random(plantSupply).withProviderCode(EnergyProductionInfluxLoader.STATION_CODE).build(),
                 SupplyId.of(plantSupply.getId()));
@@ -155,9 +155,9 @@ class GetHourlyProductionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
 
         // Create some supplies
-        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
-        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
-        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         persistCoefficient(supply.getId());
 
         mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/hourly")

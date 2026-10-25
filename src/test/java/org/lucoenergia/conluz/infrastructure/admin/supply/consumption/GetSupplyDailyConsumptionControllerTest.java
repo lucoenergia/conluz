@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -85,7 +85,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(CUPS_CODE).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -107,7 +107,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         // Create supply for this user
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(createdPartnerUser).withCode(CUPS_CODE).build(),
-                UserId.of(createdPartnerUser.getId()));
+                UserId.of(createdPartnerUser.getId()), DEFAULT_COMMUNITY_ID);
 
         // Login as the partner user
         String partnerToken = loginUser(partnerUser);
@@ -128,7 +128,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User ownerUser = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(ownerUser).withCode(CUPS_CODE).build(),
-                UserId.of(ownerUser.getId()));
+                UserId.of(ownerUser.getId()), DEFAULT_COMMUNITY_ID);
 
         // Login as a different partner user
         String partnerToken = loginAsPartner();
@@ -152,7 +152,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(CUPS_CODE).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -171,7 +171,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(CUPS_CODE).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -260,7 +260,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(CUPS_CODE).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -289,7 +289,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(CUPS_CODE).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -315,7 +315,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(SupplyConsumptionSavingsInfluxLoader.CUPS_WITH_SAVINGS).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -356,7 +356,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(SupplyConsumptionSavingsInfluxLoader.CUPS_WITH_SAVINGS).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -383,7 +383,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(SupplyConsumptionSavingsInfluxLoader.CUPS_WITH_SAVINGS).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -409,7 +409,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply otherSupply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(SupplyConsumptionSavingsInfluxLoader.OTHER_CUPS_WITH_SAVINGS).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + otherSupply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -435,7 +435,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode(SupplyConsumptionSavingsInfluxLoader.CUPS_WITH_SAVINGS).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -459,7 +459,7 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode("ES" + RandomStringUtils.random(20, false, true)).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         influxFixture.write(List.of(RoundingNoiseDataset.firstRecord(supply.getCode()),
                 RoundingNoiseDataset.secondRecord(supply.getCode())));
         try {

@@ -29,7 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -398,7 +398,7 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
 
     private void persistSuppliesOwnedBy(User owner, int count) {
         for (int i = 0; i < count; i++) {
-            createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()));
+            createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
         }
     }
 
@@ -409,7 +409,7 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     private void persistPlants(int count) {
         for (int i = 0; i < count; i++) {
             Supply supply = createSupplyRepository.create(SupplyMother.random().build(),
-                    UserId.of(persistUser().getId()));
+                    UserId.of(persistUser().getId()), DEFAULT_COMMUNITY_ID);
             createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
         }
     }

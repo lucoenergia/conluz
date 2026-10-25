@@ -5,6 +5,9 @@ import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.token.CreateOneTimeTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
+import org.lucoenergia.conluz.infrastructure.admin.user.platformadmin.invitation.PlatformAdminInvitationJpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,9 +19,17 @@ import java.util.UUID;
 public class CreateOneTimeTokenRepositoryDatabase implements CreateOneTimeTokenRepository {
 
     private final OneTimeTokenJpaRepository jpaRepository;
+    private final UserRepository userRepository;
+    private final CommunityMembershipJpaRepository membershipRepository;
+    private final PlatformAdminInvitationJpaRepository invitationRepository;
 
-    public CreateOneTimeTokenRepositoryDatabase(OneTimeTokenJpaRepository jpaRepository) {
+    public CreateOneTimeTokenRepositoryDatabase(OneTimeTokenJpaRepository jpaRepository, UserRepository userRepository,
+                                                CommunityMembershipJpaRepository membershipRepository,
+                                                PlatformAdminInvitationJpaRepository invitationRepository) {
         this.jpaRepository = jpaRepository;
+        this.userRepository = userRepository;
+        this.membershipRepository = membershipRepository;
+        this.invitationRepository = invitationRepository;
     }
 
     @Override
@@ -26,7 +37,7 @@ public class CreateOneTimeTokenRepositoryDatabase implements CreateOneTimeTokenR
                               Instant expiresAt) {
         // The user row first, then the token rows: a concurrent issuer for the same user waits here until this
         // transaction commits, and then revokes the token inserted below
-        if (jpaRepository.lockUser(userId.getId()).isEmpty()) {
+        if (userRepository.lockById(userId.getId()).isEmpty()) {
             throw new UserNotFoundException(userId);
         }
         jpaRepository.revokeActive(userId.getId(), purpose, createdAt);
@@ -40,8 +51,8 @@ public class CreateOneTimeTokenRepositoryDatabase implements CreateOneTimeTokenR
         // The user row, then the membership row, then the token rows: a concurrent issuer for the same membership
         // waits here until this transaction commits, and then revokes the token inserted below. A user without the
         // membership is reported as a missing membership, since that is what the caller asked for
-        UUID membershipId = jpaRepository.lockUser(userId.getId())
-                .flatMap(user -> jpaRepository.lockMembership(userId.getId(), communityId))
+        UUID membershipId = userRepository.lockById(userId.getId())
+                .flatMap(user -> membershipRepository.lockByUserIdAndCommunityId(userId.getId(), communityId))
                 .orElseThrow(() -> new MembershipNotFoundException(communityId, userId.getId()));
         jpaRepository.revokeActiveOfMembership(membershipId, createdAt);
         jpaRepository.saveAndFlush(new OneTimeTokenEntity(UUID.randomUUID(), userId.getId(), membershipId, purpose,
@@ -52,10 +63,10 @@ public class CreateOneTimeTokenRepositoryDatabase implements CreateOneTimeTokenR
     public void replaceActiveForPlatformAdminInvitation(UserId userId, UUID invitationId, OneTimeTokenPurpose purpose,
                                                         String tokenHash, Instant createdAt, Instant expiresAt) {
         // The user row, then the invitation row, then the token rows, as for a membership
-        if (jpaRepository.lockUser(userId.getId()).isEmpty()) {
+        if (userRepository.lockById(userId.getId()).isEmpty()) {
             throw new UserNotFoundException(userId);
         }
-        if (jpaRepository.lockPlatformAdminInvitation(invitationId).isEmpty()) {
+        if (invitationRepository.lockById(invitationId).isEmpty()) {
             throw new IllegalStateException("The platform-admin invitation " + invitationId + " does not exist");
         }
         jpaRepository.revokeActiveOfPlatformAdminInvitation(invitationId, createdAt);

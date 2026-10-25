@@ -25,7 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -56,7 +56,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
 
         // Creates one supply
         Supply supply = SupplyMother.random().build();
-        supply = createSupplyRepository.create(supply, UserId.of(userOne.getId()));
+        supply = createSupplyRepository.create(supply, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
 
         // Modify data of the supply
         UpdateSupplyBody supplyModified = new UpdateSupplyBody();
@@ -100,7 +100,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
 
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(),
-                UserId.of(user.getId()));
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         UpdateSupplyBody supplyModified = new UpdateSupplyBody();
         supplyModified.setCode("code");

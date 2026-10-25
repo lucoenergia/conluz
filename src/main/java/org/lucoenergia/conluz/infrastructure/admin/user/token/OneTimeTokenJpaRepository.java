@@ -13,36 +13,6 @@ import java.util.UUID;
 
 public interface OneTimeTokenJpaRepository extends JpaRepository<OneTimeTokenEntity, UUID> {
 
-    /**
-     * Locks the user row until the end of the transaction. {@code NO KEY UPDATE} conflicts with itself, so
-     * concurrent callers for the same user run one after another, but not with the {@code KEY SHARE} lock that
-     * foreign key checks from other tables take.
-     *
-     * @return the user's id, or empty if the user does not exist
-     */
-    @Query(value = "SELECT id FROM users WHERE id = :userId FOR NO KEY UPDATE", nativeQuery = true)
-    Optional<UUID> lockUser(@Param("userId") UUID userId);
-
-    /**
-     * Locks the user's membership in the community until the end of the transaction, with the same lock mode as
-     * {@link #lockUser}. Lock the user row first.
-     *
-     * @return the membership's id, or empty if the user has no membership in the community
-     */
-    @Query(value = "SELECT id FROM community_memberships WHERE user_id = :userId AND community_id = :communityId "
-            + "FOR NO KEY UPDATE", nativeQuery = true)
-    Optional<UUID> lockMembership(@Param("userId") UUID userId, @Param("communityId") UUID communityId);
-
-    /**
-     * Locks the platform-admin invitation row until the end of the transaction, with the same lock mode as
-     * {@link #lockUser}. Lock the invitation's user row first.
-     *
-     * @return the invitation's id, or empty if it does not exist
-     */
-    @Query(value = "SELECT id FROM platform_admin_invitation WHERE id = :invitationId FOR NO KEY UPDATE",
-            nativeQuery = true)
-    Optional<UUID> lockPlatformAdminInvitation(@Param("invitationId") UUID invitationId);
-
     @Modifying
     @Query("UPDATE one_time_token t SET t.revokedAt = :now "
             + "WHERE t.userId = :userId AND t.purpose = :purpose AND t.usedAt IS NULL AND t.revokedAt IS NULL")

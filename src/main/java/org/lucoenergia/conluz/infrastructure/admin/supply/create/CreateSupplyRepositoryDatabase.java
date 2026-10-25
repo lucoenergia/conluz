@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
@@ -28,8 +29,6 @@ import java.util.UUID;
 @Repository
 public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
 
-    public static final UUID DEFAULT_COMMUNITY_ID = UUID.fromString("f47ac10b-58cc-4372-a567-0e02b2c3d479");
-
     private final SupplyRepository supplyRepository;
     private final UserRepository userRepository;
     private final CommunityJpaRepository communityJpaRepository;
@@ -47,16 +46,13 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
     }
 
     @Override
-    public Supply create(Supply supply, UserId id) {
-        return create(supply, id, null);
-    }
-
-    @Override
     public Supply create(Supply supply, UserId id, UUID communityId) {
         Optional<UserEntity> result = userRepository.findById(id.getId());
         if (result.isEmpty()) {
             throw new UserNotFoundException(id);
         }
+        CommunityEntity communityEntity = communityJpaRepository.findById(communityId)
+                .orElseThrow(() -> new CommunityNotFoundException(communityId));
         if (supplyRepository.countByCode(supply.getCode()) > 0) {
             throw new SupplyAlreadyExistsException(SupplyCode.of(supply.getCode()));
         }
@@ -88,9 +84,6 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                     .withValidDateFrom(supply.getContract().getValidDateFrom())
                     .build();
         }
-
-        UUID effectiveCommunityId = communityId != null ? communityId : DEFAULT_COMMUNITY_ID;
-        CommunityEntity communityEntity = communityJpaRepository.findById(effectiveCommunityId).orElse(null);
 
         SupplyEntity supplyEntity = new SupplyEntity.Builder()
                 .withId(supplyId)
