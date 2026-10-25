@@ -11,6 +11,12 @@
 #
 # Submitting needs `contents: write`, which GITHUB_TOKEN never gets on pull requests from forks, so the
 # submission job fails there. The check is therefore intentionally not required (#475).
+#
+# Dependency review waits for the head submission, so it never compares against a graph that is not there
+# yet; if the submission fails, the review is skipped rather than passed. It still retries while GitHub
+# reports snapshot warnings, but the action has no option to fail once the retry times out: if the base
+# commit has no snapshot (for example before the first submission on main), or processing outlasts the
+# timeout, the review proceeds and only shows the warning in the job summary (#475).
 name: 'Dependency Review'
 on:
   push:
@@ -40,3 +46,17 @@ jobs:
           # every other configuration is still submitted, as development, and stays visible to
           # Dependabot alerts.
           DEPENDENCY_GRAPH_RUNTIME_INCLUDE_CONFIGURATIONS: '^(runtimeClasspath|compileClasspath)$'
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    needs: dependency-submission
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+          retry-on-snapshot-warnings: true
+          retry-on-snapshot-warnings-timeout: 300
