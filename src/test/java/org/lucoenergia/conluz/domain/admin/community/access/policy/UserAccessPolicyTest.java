@@ -387,7 +387,7 @@ class UserAccessPolicyTest {
             for (Map.Entry<String, User> user : matrix.users.entrySet()) {
                 User target = user.getValue();
                 boolean visible = policy.canSee(caller.getValue(), target.getId(), target::getMemberships);
-                assertEquals(visible, scope.includes(target),
+                assertEquals(visible, admits(scope, target),
                         caller.getKey() + ", user " + user.getKey() + ": scope " + scope
                                 + " disagrees with canSee=" + visible);
                 if (visible) included++; else excluded++;
@@ -411,7 +411,7 @@ class UserAccessPolicyTest {
             UserScope scope = policy.visibleUsers(caller.getValue());
             for (Map.Entry<String, User> user : matrix.users.entrySet()) {
                 User target = user.getValue();
-                if (!scope.includes(target)) {
+                if (!admits(scope, target)) {
                     continue;
                 }
                 for (CommunityMembership membership : target.getMemberships()) {
@@ -427,6 +427,20 @@ class UserAccessPolicyTest {
             }
         }
         assertTrue(shown > 0 && hidden > 0, "shown=" + shown + ", hidden=" + hidden);
+    }
+
+    /**
+     * Whether the scope admits this user: the in-memory reading of what {@code UserRepository.findAllVisible}
+     * selects. Everyone when unrestricted, the caller, and the users with an active membership in one of the
+     * scope's communities.
+     */
+    private static boolean admits(UserScope scope, User user) {
+        if (scope.isUnrestricted() || (scope.selfId() != null && scope.selfId().equals(user.getId()))) {
+            return true;
+        }
+        return user.getMemberships() != null && user.getMemberships().stream()
+                .anyMatch(m -> m.isActive() && m.getCommunity() != null
+                        && scope.communityIds().contains(m.getCommunity().getId()));
     }
 
     /**
