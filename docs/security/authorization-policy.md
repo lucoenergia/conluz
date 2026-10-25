@@ -9,11 +9,9 @@ This policy is MANDATORY. Every REST controller endpoint MUST enforce it via a `
 
 A membership is **active** when it is accepted and enabled (ADR-0003 §2). A pending membership (not
 yet accepted) and a disabled one grant nothing: their holder is answered exactly like someone with no
-membership in that community, including for the `X-Community-Id` header. That header must name a
-community in which the caller holds an active membership, or the request is answered 403, a platform
-admin included (#446, MEM-032). The two states are
-independent, and the roster (`GET /api/v1/communities/{communityId}/memberships`) shows both. Whether
-a membership is active is decided only by `CommunityMembership.isActive()`, and in queries by
+membership in that community. The two states are independent, and the roster
+(`GET /api/v1/communities/{communityId}/memberships`) shows both. Whether a membership is active is
+decided only by `CommunityMembership.isActive()`, and in queries by
 `ActiveMembershipJpql.ACTIVE_MEMBERSHIP`; `MembershipStateArchTest` enforces it. Owning a supply is
 not access: any membership counts for it, pending or disabled included (#341).
 
