@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 /**
  * End-to-end tests for the CoefficientResolver-driven per-supply production path, against real
@@ -99,7 +99,7 @@ class GetProductionServiceImplIntegrationTest extends BaseIntegrationTest {
         // Registered in the default community, but that no longer matters for per-supply resolution
         // (see the class Javadoc) -- only the coefficient rows created per-test do.
         User plantOwner = createUserRepository.create(UserMother.randomUser());
-        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()));
+        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()), DEFAULT_COMMUNITY_ID);
         plant = createPlantRepository.create(
                 PlantMother.random(plantSupply).withProviderCode(EnergyProductionInfluxLoader.STATION_CODE).build(),
                 SupplyId.of(plantSupply.getId()));
@@ -112,7 +112,7 @@ class GetProductionServiceImplIntegrationTest extends BaseIntegrationTest {
 
     private Supply createTestedSupply() {
         User user = createUserRepository.create(UserMother.randomUser());
-        return createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        return createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
     }
 
     private void persistCoefficient(UUID supplyId, Plant plant, BigDecimal coefficient, Instant validFrom, Instant validTo) {
@@ -140,7 +140,7 @@ class GetProductionServiceImplIntegrationTest extends BaseIntegrationTest {
     /** Seeds a second station's raw hourly production, independent of the shared loader's fixture. */
     private Plant createSecondPlant(double powerAtEveryHour) {
         User owner = createUserRepository.create(UserMother.randomUser());
-        Supply ownerSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()));
+        Supply ownerSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
         Plant secondPlant = createPlantRepository.create(
                 PlantMother.random(ownerSupply).withProviderCode(OTHER_STATION_CODE).build(),
                 SupplyId.of(ownerSupply.getId()));

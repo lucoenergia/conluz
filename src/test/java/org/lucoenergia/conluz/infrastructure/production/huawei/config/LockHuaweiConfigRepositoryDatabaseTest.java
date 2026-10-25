@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 /**
  * Commits, since the lock must be seen from another transaction. The configuration and its plant are created the
@@ -108,7 +109,7 @@ class LockHuaweiConfigRepositoryDatabaseTest extends BaseIntegrationTest {
     private void createConfiguration() {
         User user = createUserRepository.create(UserMother.randomUser());
         userId = user.getId();
-        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(userId));
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(userId), DEFAULT_COMMUNITY_ID);
         supplyId = supply.getId();
         plantId = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supplyId)).getId();
         setHuaweiConfigurationRepository.setHuaweiConfiguration(plantId, new HuaweiConfig.Builder()

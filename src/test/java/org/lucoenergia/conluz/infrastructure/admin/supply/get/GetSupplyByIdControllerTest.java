@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -44,7 +44,7 @@ class GetSupplyByIdControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         Supply supply = SupplyMother.random(user).build();
-        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 

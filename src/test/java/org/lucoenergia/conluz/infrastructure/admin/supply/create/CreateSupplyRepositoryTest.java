@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 @Transactional
 class CreateSupplyRepositoryTest extends BaseIntegrationTest {
@@ -44,7 +45,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = SupplyMother.random(user).build();
 
-        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         entityManager.flush();
         entityManager.clear();
 
@@ -55,7 +56,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         assertEquals(supply.getAddressRef(), row.get("address_ref"));
         assertEquals(supply.getEnabled(), row.get("enabled"));
         assertEquals(user.getId(), row.get("user_id"));
-        assertEquals(CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID, row.get("community_id"));
+        assertEquals(DEFAULT_COMMUNITY_ID, row.get("community_id"));
 
         Map<String, Object> shelly = jdbcTemplate.queryForMap("SELECT * FROM supplies_shelly WHERE supply_id = ?",
                 result.getId());
@@ -82,7 +83,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         Supply supply = SupplyMother.random(user).build();
 
         // Act
-        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // Assert
         assertNotNull(result);
@@ -119,7 +120,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
                 .build();
 
         // Act
-        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // Assert
         assertNotNull(result);
@@ -146,7 +147,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
                 .build();
 
         // Act
-        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // Assert
         assertNotNull(result.getShelly());
@@ -173,7 +174,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
                 .build();
 
         // Act
-        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // Assert
         assertNull(result.getShelly());
@@ -199,7 +200,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
                 .build();
 
         // Act
-        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // Assert
         assertNull(result.getShelly());
@@ -219,7 +220,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
                 .build();
 
         // Act
-        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Supply result = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // Assert
         assertNotNull(result);
@@ -243,7 +244,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
 
         // Act & Assert
         assertThrows(UserNotFoundException.class,
-                () -> createSupplyRepository.create(supply, nonExistentUserId));
+                () -> createSupplyRepository.create(supply, nonExistentUserId, DEFAULT_COMMUNITY_ID));
     }
 
     @Test
@@ -251,7 +252,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         // Arrange
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = SupplyMother.random(user).build();
-        createSupplyRepository.create(supply, UserId.of(user.getId()));
+        createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         Supply duplicate = SupplyMother.random(user)
                 .withCode(supply.getCode())
@@ -259,7 +260,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
 
         // Act & Assert
         assertThrows(SupplyAlreadyExistsException.class,
-                () -> createSupplyRepository.create(duplicate, UserId.of(user.getId())));
+                () -> createSupplyRepository.create(duplicate, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID));
     }
 
     @Test
@@ -268,7 +269,7 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         user = createUserRepository.create(user);
 
         Supply supply = SupplyMother.random(user).build();
-        Supply created = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        Supply created = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         assertNotNull(created.getCommunity(), "Supply created via service should be linked to the default community");
         assertEquals(UUID.fromString("f47ac10b-58cc-4372-a567-0e02b2c3d479"), created.getCommunity().getId());

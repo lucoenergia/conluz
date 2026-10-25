@@ -19,7 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -48,11 +48,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne).build();
-        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
+        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyTwo = SupplyMother.random(userOne).build();
-        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
+        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyThree = SupplyMother.random(userTwo).build();
-        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
+        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -102,11 +102,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne).build();
-        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
+        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyTwo = SupplyMother.random(userOne).build();
-        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
+        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyThree = SupplyMother.random(userTwo).build();
-        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
+        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -134,11 +134,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne).build();
-        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyTwo = SupplyMother.random(userOne).build();
-        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyThree = SupplyMother.random(userTwo).build();
-        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -205,11 +205,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne).build();
-        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
+        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyTwo = SupplyMother.random(userOne).build();
-        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
+        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyThree = SupplyMother.random(userTwo).build();
-        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
+        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -235,11 +235,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne).build();
-        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
+        createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyTwo = SupplyMother.random(userOne).build();
-        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
+        createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyThree = SupplyMother.random(userTwo).build();
-        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
+        createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -265,11 +265,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne).withName("First").build();
-        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyTwo = SupplyMother.random(userOne).withName("Second").build();
-        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyThree = SupplyMother.random(userTwo).withName("Third").build();
-        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -299,11 +299,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne).withName("First").withCode("B").build();
-        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyTwo = SupplyMother.random(userOne).withName("First").withCode("A").build();
-        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyThree = SupplyMother.random(userTwo).withName("Third").withCode("C").build();
-        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
@@ -334,11 +334,11 @@ class GetAllSuppliesControllerTest extends BaseControllerTest {
 
         // Create three supplies
         Supply supplyOne = SupplyMother.random(userOne).withName("First").build();
-        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyTwo = SupplyMother.random(userOne).withName("Second").build();
-        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()));
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         Supply supplyThree = SupplyMother.random(userTwo).withName("Third").build();
-        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()));
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 

@@ -34,7 +34,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -439,7 +439,7 @@ class SetHuaweiConfigControllerTest extends BaseControllerTest {
     private Plant createPlant() {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
-        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()));
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         return createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
     }
 

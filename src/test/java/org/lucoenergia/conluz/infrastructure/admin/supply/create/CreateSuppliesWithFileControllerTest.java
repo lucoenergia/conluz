@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.not;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -213,7 +213,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 .withName(RandomStringUtils.random(20, true, true))
                 .withUser(user)
                 .build();
-        createSupplyRepository.create(supply, UserId.of(user.getId()));
+        createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         ClassPathResource resource = new ClassPathResource(SUPPLIES_CSV);
 

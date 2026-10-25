@@ -37,7 +37,7 @@ import static org.hamcrest.Matchers.closeTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture.hourlyRecord;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -209,7 +209,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                                 .withValidDateFrom(LocalDate.of(2015, 6, 30))
                                 .build())
                         .build(),
-                UserId.of(owner.getId()));
+                UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
 
         writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 1.0f));
 
@@ -752,7 +752,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     private Supply createSupplyOwnedBy(User owner) {
         return createSupplyRepository.create(
                 SupplyMother.random(owner).withCode(randomCupsCode()).build(),
-                UserId.of(owner.getId()));
+                UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
     }
 
     private String randomCupsCode() {

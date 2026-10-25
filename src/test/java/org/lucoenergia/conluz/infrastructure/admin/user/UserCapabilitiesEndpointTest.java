@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -178,7 +178,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
     @Test
     void theOwnerOfASupplyIsAReferenceCarryingNeitherCapabilitiesNorMemberships() throws Exception {
         User owner = persistMemberOf(DEFAULT_COMMUNITY_ID);
-        var supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()));
+        var supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get("/api/v1/supplies/{supplyId}", supply.getId())
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID)))

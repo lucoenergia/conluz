@@ -48,7 +48,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -94,11 +94,11 @@ class DeletePlantControllerTest extends BaseControllerTest {
         User userOne = UserMother.randomUser();
         createUserRepository.create(userOne);
         Supply supplyOne = SupplyMother.random().build();
-        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()));
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
         User userTwo = UserMother.randomUser();
         createUserRepository.create(userTwo);
         Supply supplyTwo = SupplyMother.random().build();
-        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()));
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         // Create three supplies
         Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();

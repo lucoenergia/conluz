@@ -34,7 +34,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -72,7 +72,7 @@ class GetSupplyHourlyProductionControllerTest extends BaseControllerTest {
         // so the per-supply production query (driven by supply_partition_coefficient, see
         // persistCoefficient) resolves data.
         User plantOwner = createUserRepository.create(UserMother.randomUser());
-        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()));
+        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()), DEFAULT_COMMUNITY_ID);
         plant = createPlantRepository.create(
                 PlantMother.random(plantSupply).withProviderCode(EnergyProductionInfluxLoader.STATION_CODE).build(),
                 SupplyId.of(plantSupply.getId()));
@@ -116,7 +116,7 @@ class GetSupplyHourlyProductionControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
-        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         persistCoefficient(supply.getId());
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/production/hourly")
@@ -132,7 +132,7 @@ class GetSupplyHourlyProductionControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultPlatformAdmin();
 
         User user = createUserRepository.create(UserMother.randomUser());
-        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -150,7 +150,7 @@ class GetSupplyHourlyProductionControllerTest extends BaseControllerTest {
         String authHeader = loginAsDefaultPlatformAdmin();
 
         User user = createUserRepository.create(UserMother.randomUser());
-        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + "/production/hourly")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

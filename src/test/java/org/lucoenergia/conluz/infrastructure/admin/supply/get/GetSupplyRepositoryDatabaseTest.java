@@ -31,6 +31,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
+
 @Transactional
 class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
 
@@ -62,9 +64,9 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
         User user = UserMother.randomUser();
         user = createUserRepository.create(user);
 
-        final Supply supplyOne = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
-        final Supply supplyTwo = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
-        final Supply supplyThree = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        final Supply supplyOne = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        final Supply supplyTwo = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        final Supply supplyThree = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // When
         List<Supply> result = getSupplyRepositoryDatabase.findAll();
@@ -89,8 +91,8 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
     void countReturnsNumberOfPersistedSupplies() {
         // Given
         User user = createUserRepository.create(UserMother.randomUser());
-        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
-        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // When
         long result = getSupplyRepositoryDatabase.count();
@@ -103,7 +105,7 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
     void findByIdReturnsTheSupplyWhenItExists() {
         // Given
         User user = createUserRepository.create(UserMother.randomUser());
-        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // When
         Optional<Supply> result = getSupplyRepositoryDatabase.findById(SupplyId.of(supply.getId()));
@@ -126,7 +128,7 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
     void findByCodeReturnsTheSupplyWhenItExists() {
         // Given
         User user = createUserRepository.create(UserMother.randomUser());
-        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // When
         Optional<Supply> result = getSupplyRepositoryDatabase.findByCode(SupplyCode.of(supply.getCode()));
@@ -149,9 +151,9 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
     void findAllPagedReturnsRequestedPage() {
         // Given
         User user = createUserRepository.create(UserMother.randomUser());
-        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
-        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
-        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()));
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         // When
         PagedResult<Supply> firstPage = getSupplyRepositoryDatabase.findAll(PagedRequest.of(0, 2));
@@ -170,10 +172,10 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
         User owner = createUserRepository.create(UserMother.randomUser());
         User otherUser = createUserRepository.create(UserMother.randomUser());
 
-        Supply ownedOne = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()));
-        Supply ownedTwo = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()));
+        Supply ownedOne = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
+        Supply ownedTwo = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
         Supply otherUsersSupply = createSupplyRepository.create(SupplyMother.random(otherUser).build(),
-                UserId.of(otherUser.getId()));
+                UserId.of(otherUser.getId()), DEFAULT_COMMUNITY_ID);
 
         // When
         List<Supply> result = getSupplyRepositoryDatabase.findByUserId(UserId.of(owner.getId()));
@@ -219,7 +221,7 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
     void findByUserIdAndCommunityIdsReturnsEmptyListForAnEmptySetOfCommunities() {
         // Given
         User owner = createUserRepository.create(UserMother.randomUser());
-        createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()));
+        createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
 
         // When
         List<Supply> result = getSupplyRepositoryDatabase.findByUserIdAndCommunityIds(UserId.of(owner.getId()),

@@ -7,6 +7,11 @@ import java.util.UUID;
 
 public class CommunityMother {
 
+    /**
+     * The community the {@code backfill_default_community} changeset creates, present in every test database.
+     */
+    public static final UUID DEFAULT_COMMUNITY_ID = UUID.fromString("f47ac10b-58cc-4372-a567-0e02b2c3d479");
+
     public static Community.Builder random() {
         return new Community.Builder()
                 .withId(UUID.randomUUID())

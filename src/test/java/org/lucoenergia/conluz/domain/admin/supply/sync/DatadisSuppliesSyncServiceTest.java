@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 
 @Transactional
 class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
@@ -80,9 +81,9 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
                 .withCode(codeOne)
                 .withAddress("OldAddress")
                 .build();
-        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(user.getId()));
-        createSupplyRepository.create(SupplyMother.random().withCode(codeTwo).build(), UserId.of(user.getId()));
-        createSupplyRepository.create(SupplyMother.random().withCode(codeThree).build(), UserId.of(user.getId()));
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random().withCode(codeTwo).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random().withCode(codeThree).build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         when(getSupplyRepositoryDatadis.getSuppliesByUser(Mockito.any(User.class))).thenReturn(datadisSupplies);
 
@@ -120,9 +121,9 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
                 .withCode(codeOne)
                 .withAddress("OldAddress")
                 .build();
-        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userTwo.getId()));
-        createSupplyRepository.create(SupplyMother.random().withCode(codeTwo).build(), UserId.of(userTwo.getId()));
-        createSupplyRepository.create(SupplyMother.random().withCode(codeThree).build(), UserId.of(userTwo.getId()));
+        supplyOne = createSupplyRepository.create(supplyOne, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random().withCode(codeTwo).build(), UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random().withCode(codeThree).build(), UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
 
         when(getSupplyRepositoryDatadis.getSuppliesByUser(Mockito.any(User.class))).thenReturn(datadisSupplies);
 

@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
-import static org.lucoenergia.conluz.infrastructure.admin.supply.create.CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID;
+import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,7 +45,7 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         Supply supply = SupplyMother.random().build();
-        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         Plant plant = PlantMother.random(supply).build();
         plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
 
@@ -123,7 +123,7 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         Supply supply = SupplyMother.random().build();
-        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         Plant plant = PlantMother.random(supply).build();
         plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
 
@@ -146,7 +146,7 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
         User user = UserMother.randomUser();
         createUserRepository.create(user);
         Supply supply = SupplyMother.random().build();
-        supply = createSupplyRepository.create(supply, UserId.of(user.getId()));
+        supply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         Plant plant = PlantMother.random(supply).build();
         plant = createPlantRepository.create(plant, SupplyId.of(supply.getId()));
 

@@ -33,7 +33,7 @@ class LiquibaseUpgradePathIntegrationTest {
     private static final String BOUNDARY_CHANGESET_ID = "add_address_ref_to_supplies_20250903T2347";
     private static final String SHELLY_TARGET_CHANGESET_ID = "create_shelly_config";
 
-    // Test-local mirror of CreateSupplyRepositoryDatabase.DEFAULT_COMMUNITY_ID, deliberately not
+    // Test-local mirror of CommunityMother.DEFAULT_COMMUNITY_ID, deliberately not
     // imported so this test stays a pure black-box schema/data assertion.
     private static final String DEFAULT_COMMUNITY_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
 
