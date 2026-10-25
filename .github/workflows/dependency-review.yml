@@ -1,22 +1,42 @@
-# Dependency Review Action
+# Dependency graph submission and review
 #
-# This Action will scan dependency manifest files that change as part of a Pull Request, surfacing known-vulnerable versions of the packages declared or updated in the PR. Once installed, if the workflow run is marked as required, PRs introducing known-vulnerable packages will be blocked from merging.
+# GitHub does not parse Gradle manifests, so the repository's dependency graph only contains the Gradle
+# dependencies that a workflow submits through the Dependency Submission API. Both Dependabot alerts and
+# dependency review read that graph: without this workflow, neither of them sees any Java dependency.
 #
-# Source repository: https://github.com/actions/dependency-review-action
-# Public documentation: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review#dependency-review-enforcement
+# The graph is submitted on every push to main (the base that pull requests are compared against) and for
+# the head of every pull request. Both submissions come from the same job of the same workflow on purpose:
+# the snapshot's job correlator is derived from the workflow name and job id, and dependency review only
+# compares snapshots that share a correlator. Renaming this workflow or the submission job resets that.
+#
+# Submitting needs `contents: write`, which GITHUB_TOKEN never gets on pull requests from forks, so the
+# submission job fails there. The check is therefore intentionally not required (#475).
 name: 'Dependency Review'
-on: [pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
-  dependency-review:
+  dependency-submission:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 'Checkout Repository'
-        uses: actions/checkout@v3
-      - name: 'Dependency Review'
-        uses: actions/dependency-review-action@v3
+        uses: actions/checkout@v7
+      - name: 'Set up JDK 17'
+        uses: actions/setup-java@v6
         with:
-          fail-on-severity: low
+          java-version: '17'
+          distribution: 'zulu'
+      - name: 'Submit Gradle dependency graph'
+        uses: gradle/actions/dependency-submission@v6
+        env:
+          # Scopes only what ships as runtime, so dependency review (which fails on runtime scope by
+          # default) is not blocked by test-only dependencies. Nothing is excluded from the graph:
+          # every other configuration is still submitted, as development, and stays visible to
+          # Dependabot alerts.
+          DEPENDENCY_GRAPH_RUNTIME_INCLUDE_CONFIGURATIONS: '^(runtimeClasspath|compileClasspath)$'
