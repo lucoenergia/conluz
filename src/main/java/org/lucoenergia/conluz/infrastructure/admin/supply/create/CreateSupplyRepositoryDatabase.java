@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
@@ -50,6 +51,8 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
         if (result.isEmpty()) {
             throw new UserNotFoundException(id);
         }
+        CommunityEntity communityEntity = communityJpaRepository.findById(communityId)
+                .orElseThrow(() -> new CommunityNotFoundException(communityId));
         if (supplyRepository.countByCode(supply.getCode()) > 0) {
             throw new SupplyAlreadyExistsException(SupplyCode.of(supply.getCode()));
         }
@@ -81,8 +84,6 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                     .withValidDateFrom(supply.getContract().getValidDateFrom())
                     .build();
         }
-
-        CommunityEntity communityEntity = communityJpaRepository.findById(communityId).orElse(null);
 
         SupplyEntity supplyEntity = new SupplyEntity.Builder()
                 .withId(supplyId)

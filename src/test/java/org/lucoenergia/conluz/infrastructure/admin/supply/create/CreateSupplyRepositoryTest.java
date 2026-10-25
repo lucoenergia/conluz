@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 import jakarta.persistence.EntityManager;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -245,6 +246,18 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
         // Act & Assert
         assertThrows(UserNotFoundException.class,
                 () -> createSupplyRepository.create(supply, nonExistentUserId, DEFAULT_COMMUNITY_ID));
+    }
+
+    @Test
+    void shouldThrowCommunityNotFoundExceptionWhenCommunityDoesNotExist() {
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = SupplyMother.random(user).build();
+        UUID nonExistentCommunityId = UUID.randomUUID();
+
+        assertThrows(CommunityNotFoundException.class,
+                () -> createSupplyRepository.create(supply, UserId.of(user.getId()), nonExistentCommunityId));
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT count(*) FROM supplies WHERE code = ?", Integer.class,
+                supply.getCode()));
     }
 
     @Test
