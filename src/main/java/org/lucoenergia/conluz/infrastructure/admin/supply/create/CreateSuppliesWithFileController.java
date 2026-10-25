@@ -114,7 +114,7 @@ public class CreateSuppliesWithFileController {
             @Parameter(description = "CSV file format: code(String), address(String), addressRef(String), personalId(String; the DNI/NIE/NIF of the existing owner, normalised before the lookup: whitespace, dots and hyphens removed, letters upper-cased). The owner must be a member of the target community: a row whose owner is not a member of it gets the same per-row \"user not found\" error as a row whose personalId matches no user.")
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "Target community UUID.")
-            @RequestParam(value = "communityId", required = false) UUID communityId) {
+            @RequestParam("communityId") UUID communityId) {
 
         Optional<ResponseEntity<RestError>> optionalResponseEntity = csvFileRequestValidator.validate(file);
         if (optionalResponseEntity.isPresent()) {

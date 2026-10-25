@@ -17680,7 +17680,7 @@
             "description" : "Target community UUID.",
             "in" : "query",
             "name" : "communityId",
-            "required" : false,
+            "required" : true,
             "schema" : {
               "format" : "uuid",
               "type" : "string"

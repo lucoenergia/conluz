@@ -28,8 +28,6 @@ import java.util.UUID;
 @Repository
 public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
 
-    public static final UUID DEFAULT_COMMUNITY_ID = UUID.fromString("f47ac10b-58cc-4372-a567-0e02b2c3d479");
-
     private final SupplyRepository supplyRepository;
     private final UserRepository userRepository;
     private final CommunityJpaRepository communityJpaRepository;
@@ -44,11 +42,6 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
         this.communityJpaRepository = communityJpaRepository;
         this.supplyEntityMapper = supplyEntityMapper;
         this.userEntityMapper = userEntityMapper;
-    }
-
-    @Override
-    public Supply create(Supply supply, UserId id) {
-        return create(supply, id, null);
     }
 
     @Override
@@ -89,8 +82,7 @@ public class CreateSupplyRepositoryDatabase implements CreateSupplyRepository {
                     .build();
         }
 
-        UUID effectiveCommunityId = communityId != null ? communityId : DEFAULT_COMMUNITY_ID;
-        CommunityEntity communityEntity = communityJpaRepository.findById(effectiveCommunityId).orElse(null);
+        CommunityEntity communityEntity = communityJpaRepository.findById(communityId).orElse(null);
 
         SupplyEntity supplyEntity = new SupplyEntity.Builder()
                 .withId(supplyId)

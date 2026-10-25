@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.hamcrest.Matchers.hasItem;
@@ -134,6 +135,37 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 Map.of("code", "ES0033333333333333QQ0Q", "name", "Second", "address", "Main St 2",
                         "address_ref", "A9384752345OA128", "enabled", true, "user_id", owner.getId(),
                         "community_id", community.getId())), rows);
+    }
+
+    @Test
+    void testImportWithoutCommunityIdIsRefused() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User owner = UserMother.randomUser();
+        createUserRepository.create(owner);
+        createMembershipRepository.create(community.getId(), owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        String csv = "code,addressRef,address,partitionCoefficient,personalId,name\n"
+                + "ES0033333333333333RR0R,A9384752345OA129,Main St 3,0.078632," + owner.getPersonalId() + ",Third\n";
+        MockMultipartFile file = new MockMultipartFile(
+                MULTIPART_FILE_NAME, "supplies.csv", TEXT_CSV_MEDIA_TYPE, csv.getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart(URL)
+                        .file(file)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.message").value(containsString("communityId")));
+
+        Assertions.assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM supplies WHERE user_id = ?", Integer.class, owner.getId()));
+    }
+
+    @Test
+    void theContractDeclaresCommunityIdAsRequired() throws Exception {
+        mockMvc.perform(get("/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/supplies/import'].post.parameters[?(@.name == 'communityId')]"
+                        + ".required").value(true));
     }
 
     /**

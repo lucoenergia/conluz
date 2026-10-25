@@ -141,7 +141,6 @@ class CreateSupplyServiceTest {
         // Same constructor and argument as for an unknown personalId, so the handlers render the same answer.
         assertEquals(Optional.of(personalId), exception.getUserPersonalId());
         assertEquals(Optional.empty(), exception.getUserId());
-        verify(supplyRepository, never()).create(any(), any());
         verify(supplyRepository, never()).create(any(), any(), any());
     }
 
