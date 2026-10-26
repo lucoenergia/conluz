@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -166,8 +167,8 @@ class PendingAdminInvitationNotificationControllerTest extends BaseCommunityAdmi
     // --- A failure never changes the outcome ---
 
     @Test
-    @DisplayName("MEM-035 a community admin's send, bulk send, resend and revoke of a pending admin's invitation "
-            + "succeed when the notification cannot be handed over")
+    @DisplayName("MEM-035 a community admin's send, bulk send, resend and revoke of a pending admin's invitation, and "
+            + "an edit of its contact email, succeed when the notification cannot be handed over")
     void everyInvitationSucceeds_whenTheNotificationFails() throws Exception {
         Community community = newCommunity();
         String bearer = loginUser(admin(community));
@@ -184,17 +185,28 @@ class PendingAdminInvitationNotificationControllerTest extends BaseCommunityAdmi
         revoke(bearer, community.getId(), single.userId()).andExpect(status().isOk());
         sendInvitations(bearer, community.getId()).andExpect(status().isOk())
                 .andExpect(jsonPath("$.sent").value(1));
+        String newEmail = newEmail();
+        mockMvc.perform(put("/api/v1/communities/{communityId}/memberships/{userId}/record", community.getId(),
+                        bulk.userId())
+                        .header(HttpHeaders.AUTHORIZATION, bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("fullName", bulk.fullName(),
+                                "contactEmail", newEmail))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.invitationExpiresAt").isEmpty());
+        resend(bearer, community.getId(), bulk.userId()).andExpect(status().isOk());
 
         assertThat(logs.all())
                 .filteredOn(event -> event.getLevel() == Level.WARN
                         && event.getFormattedMessage().startsWith(WARN_PREFIX))
                 .extracting(ILoggingEvent::getFormattedMessage)
                 .containsExactly(failure("INVITED", community), failure("INVITATION_RESENT", community),
-                        failure("INVITED", community));
+                        failure("INVITED", community), failure("INVITATION_RESENT", community));
         // The invitations still leave
-        MimeMessage[] sent = awaitNextEmails(3);
+        MimeMessage[] sent = awaitNextEmails(4);
         assertThat(sent).extracting(email -> email.getAllRecipients()[0].toString())
-                .containsExactlyInAnyOrder(single.contactEmail(), single.contactEmail(), bulk.contactEmail());
+                .containsExactlyInAnyOrder(single.contactEmail(), single.contactEmail(), bulk.contactEmail(),
+                        newEmail);
     }
 
     // --- Fixtures ---

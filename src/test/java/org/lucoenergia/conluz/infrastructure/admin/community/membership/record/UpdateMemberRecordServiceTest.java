@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException;
@@ -19,6 +20,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.record.UpdateMem
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.token.GetOneTimeTokenService;
 import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
+import org.lucoenergia.conluz.domain.admin.user.token.RevokeOneTimeTokenService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -60,10 +62,13 @@ class UpdateMemberRecordServiceTest {
     private UpdateMemberRecordRepository updateMemberRecordRepository;
     @Mock
     private GetOneTimeTokenService getOneTimeTokenService;
+    @Mock
+    private RevokeOneTimeTokenService revokeOneTimeTokenService;
 
     private UpdateMemberRecordService service() {
         return new UpdateMemberRecordServiceImpl(getCommunityRepository, lockUserRepository, lockMembershipRepository,
-                getMembershipsRepository, updateMemberRecordRepository, getOneTimeTokenService);
+                getMembershipsRepository, updateMemberRecordRepository, getOneTimeTokenService,
+                revokeOneTimeTokenService);
     }
 
     @Test
@@ -122,6 +127,69 @@ class UpdateMemberRecordServiceTest {
     }
 
     @Test
+    @DisplayName("MEM-028 a pending membership's invitation link is revoked when its contact email changes, after the "
+            + "record is written under the locks")
+    void aPendingMembershipsLink_isRevoked_whenItsContactEmailChanges() {
+        locked(pending("old@example.org"));
+        when(updateMemberRecordRepository.update(COMMUNITY_ID, USER_ID, WITH_EMAIL)).thenReturn(true);
+
+        service().update(COMMUNITY_ID, USER_ID, WITH_EMAIL);
+
+        InOrder order = inOrder(lockUserRepository, lockMembershipRepository, updateMemberRecordRepository,
+                revokeOneTimeTokenService);
+        order.verify(lockUserRepository).lock(USER_ID);
+        order.verify(lockMembershipRepository).lock(USER_ID, COMMUNITY_ID);
+        order.verify(updateMemberRecordRepository).update(COMMUNITY_ID, USER_ID, WITH_EMAIL);
+        order.verify(revokeOneTimeTokenService).revokeForMembership(USER_ID, COMMUNITY_ID,
+                OneTimeTokenPurpose.INVITATION);
+    }
+
+    @Test
+    @DisplayName("MEM-028 a pending membership's invitation link is revoked when its contact email is removed")
+    void aPendingMembershipsLink_isRevoked_whenItsContactEmailIsRemoved() {
+        locked(pending("lucia@example.org"));
+        when(updateMemberRecordRepository.update(COMMUNITY_ID, USER_ID, WITHOUT_EMAIL)).thenReturn(true);
+
+        service().update(COMMUNITY_ID, USER_ID, WITHOUT_EMAIL);
+
+        verify(revokeOneTimeTokenService).revokeForMembership(USER_ID, COMMUNITY_ID, OneTimeTokenPurpose.INVITATION);
+    }
+
+    @Test
+    @DisplayName("MEM-028 a pending membership's invitation link is kept when its contact email changes only in case "
+            + "or surrounding spaces")
+    void aPendingMembershipsLink_isKept_whenItsContactEmailOnlyChangesInCaseOrSpaces() {
+        locked(pending(" Lucia@Example.ORG "));
+        when(updateMemberRecordRepository.update(COMMUNITY_ID, USER_ID, WITH_EMAIL)).thenReturn(true);
+
+        service().update(COMMUNITY_ID, USER_ID, WITH_EMAIL);
+
+        verifyNoInteractions(revokeOneTimeTokenService);
+    }
+
+    @Test
+    @DisplayName("MEM-028 a pending membership without a contact email that stays without one keeps its state")
+    void aPendingMembershipWithoutAContactEmail_revokesNothing_whenItStaysWithoutOne() {
+        locked(pending(null));
+        when(updateMemberRecordRepository.update(COMMUNITY_ID, USER_ID, WITHOUT_EMAIL)).thenReturn(true);
+
+        service().update(COMMUNITY_ID, USER_ID, WITHOUT_EMAIL);
+
+        verifyNoInteractions(revokeOneTimeTokenService);
+    }
+
+    @Test
+    @DisplayName("MEM-028 an accepted membership's contact email change revokes nothing")
+    void anAcceptedMembership_revokesNothing_whenItsContactEmailChanges() {
+        locked(CommunityMembershipMother.active().withContactEmail("old@example.org").build());
+        when(updateMemberRecordRepository.update(COMMUNITY_ID, USER_ID, WITH_EMAIL)).thenReturn(true);
+
+        service().update(COMMUNITY_ID, USER_ID, WITH_EMAIL);
+
+        verifyNoInteractions(revokeOneTimeTokenService);
+    }
+
+    @Test
     @DisplayName("MEM-028 a user without a membership in the community is not found, and nothing is written")
     void aUserWithoutAMembershipThere_isNotFound_andNothingIsWritten() {
         communityExists();
@@ -165,6 +233,11 @@ class UpdateMemberRecordServiceTest {
     private void communityExists() {
         when(getCommunityRepository.findById(COMMUNITY_ID))
                 .thenReturn(Optional.of(new Community.Builder().withId(COMMUNITY_ID).build()));
+    }
+
+    private static CommunityMembership pending(String contactEmail) {
+        return new CommunityMembership.Builder().withRole(CommunityRole.COMMUNITY_MEMBER)
+                .withFullName("Lucía Pérez Gómez").withContactEmail(contactEmail).build();
     }
 
     private static CommunityMembership membership(CommunityRole role) {
