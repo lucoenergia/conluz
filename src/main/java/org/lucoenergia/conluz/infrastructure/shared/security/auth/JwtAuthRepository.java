@@ -79,16 +79,6 @@ public class JwtAuthRepository implements AuthRepository {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public Map<String, String> getCommunityMemberships(Token token) {
-        Object claim = getAllClaims(token).get(CUSTOM_CLAIM_COMMUNITY_MEMBERSHIPS);
-        if (claim instanceof Map) {
-            return (Map<String, String>) claim;
-        }
-        return Map.of();
-    }
-
-    @Override
     public Optional<String> getJtiFromToken(Token token) {
         try {
             return Optional.ofNullable(getClaim(token, Claims::getId));

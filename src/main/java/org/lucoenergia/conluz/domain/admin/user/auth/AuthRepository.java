@@ -3,7 +3,6 @@ package org.lucoenergia.conluz.domain.admin.user.auth;
 import org.lucoenergia.conluz.domain.admin.user.User;
 
 import java.util.Date;
-import java.util.Map;
 import java.util.Optional;
 
 public interface AuthRepository {
@@ -45,12 +44,4 @@ public interface AuthRepository {
      * @return true if the token was issued for a platform admin
      */
     boolean isPlatformAdmin(Token token);
-
-    /**
-     * Returns the community memberships encoded in the token.
-     *
-     * @param token The token
-     * @return A map of community id (string) to role name (string)
-     */
-    Map<String, String> getCommunityMemberships(Token token);
 }

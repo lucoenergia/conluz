@@ -13,11 +13,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.lucoenergia.conluz.domain.admin.community.Community;
-import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
-import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
-import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
-import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
 import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
@@ -38,7 +33,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -212,29 +206,6 @@ class JwtAuthRepositoryTest {
         Token token = repository.getToken(user);
 
         Assertions.assertFalse(repository.isPlatformAdmin(token));
-    }
-
-    // --- getCommunityMemberships ---
-
-    @Test
-    void getCommunityMemberships_returnsMembershipMapFromToken() {
-        Community community = CommunityMother.random().build();
-        User user = UserMother.randomUser();
-        CommunityMembership membership = CommunityMembershipMother.active()
-                .withId(UUID.randomUUID())
-                .withUser(user)
-                .withCommunity(community)
-                .withRole(CommunityRole.COMMUNITY_ADMIN)
-                .withEnabled(true)
-                .build();
-        user.setMemberships(List.of(membership));
-        mockJwtConfig();
-
-        Token token = repository.getToken(user);
-
-        Map<String, String> memberships = repository.getCommunityMemberships(token);
-        Assertions.assertTrue(memberships.containsKey(community.getId().toString()));
-        Assertions.assertEquals(CommunityRole.COMMUNITY_ADMIN.name(), memberships.get(community.getId().toString()));
     }
 
     @Test

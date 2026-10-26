@@ -113,9 +113,7 @@ class MembershipInvestmentDoesNotLeakTest extends BaseControllerTest {
     /**
      * The token travels to the client and its payload is readable by anyone holding it, so an
      * investment in any claim would be public to the bearer regardless of any endpoint guard.
-     * The whole payload is decoded rather than read through
-     * {@link AuthRepository#getCommunityMemberships}, because that accessor's {@code Map&lt;String,
-     * String&gt;} shape could not carry an amount even if a claim did.
+     * The whole payload is decoded, so a claim is checked whatever its shape.
      */
     @Test
     void theJwtPayloadNeverCarriesTheInvestment() {
