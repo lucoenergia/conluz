@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.14'
+    id 'org.springframework.boot' version '3.5.16'
     id 'io.spring.dependency-management' version '1.1.4'
 }
 
@@ -22,6 +22,11 @@ java {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
+
+// Spring Boot 3.5 is out of OSS support and its managed Tomcat lacks the fixes for critical CVEs (#487).
+// Remove this override once Spring Boot manages Tomcat 10.1.61 or newer, at the latest when migrating
+// to Spring Boot 4.
+ext['tomcat.version'] = '10.1.61'
 
 repositories {
     mavenCentral()
