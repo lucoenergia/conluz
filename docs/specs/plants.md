@@ -33,13 +33,21 @@ It covers only the rules #437 touched.
   configuration, in the same transaction. Only a community admin of the plant's community MAY delete it: anyone else
   who can see the plant MUST be refused with 403, and anyone who cannot MUST be answered 404. The deletion MUST lock
   the plant row exclusively before checking, so a sharing agreement or coefficient being inserted at the same time is
-  waited for and then refuses it.
+  waited for and then refuses it. Every writer of a sharing agreement, a partition coefficient or a Huawei
+  configuration that references a plant MUST lock the plant against deletion before writing, and answer the plant's
+  404 when it is gone, so a writer that runs while the plant is being deleted waits for the deletion and is then
+  answered 404, never a foreign-key error; a Huawei configuration written just before the deletion is deleted with
+  the plant.
 - **Rationale:** A sharing agreement, even a draft or a superseded one, is the community's record of how energy was
   shared, with its distributor files, and the coefficients are its content: deleting the plant must not remove them as
   a side effect, and a plant cannot be disabled, so a plant that holds them is kept. The Huawei configuration only
   serves the plant, so it has no meaning without it. Without the lock, an agreement committed between the check and
-  the delete would make the deletion fail on a foreign key with an unhandled error.
-- **Source:** #437
+  the delete would make the deletion fail on a foreign key with an unhandled error, and without the writer's lock, a
+  writer that read the plant before the deletion would fail the same way after it. The writer's lock conflicts only
+  with the deletion's, and a Huawei configuration writer takes it before the configuration row, as the deletion does
+  (ADR-0003 §11).
+- **Source:** #437. #480 made the writers lock the plant, which removed the accepted exception for a writer racing
+  the deletion.
 
 ## Impossible states
 
@@ -51,4 +59,3 @@ It covers only the rules #437 touched.
 | Exception | Reason | Expires when | Source |
 | --- | --- | --- | --- |
 | A deleted plant's production series stay in the time-series database, keyed by its provider code (`station_code`); a plant created again with the same provider code shows them | The series are measurements of the installation, and deleting them cannot be undone or made part of the database transaction | A rule decides what happens to the series of a deleted plant, as for supplies (SUP-001) | #437 |
-| A sharing agreement, partition coefficient or Huawei configuration written for a plant while the plant is being deleted fails with an unhandled foreign-key error once the deletion commits | Sharing agreement creation, coefficient saving and Huawei configuration writes do not lock the plant row; the deletion itself is safe (PLT-001) | Those writers lock the plant row before writing | #437 |
