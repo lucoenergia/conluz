@@ -7,11 +7,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
-import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
-import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.admin.supply.create.ImportSuppliesService;
+import org.lucoenergia.conluz.domain.admin.supply.create.ImportedSupplyRow;
+import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportRow;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileParser;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvFileRequestValidator;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -23,9 +21,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.Unautho
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.io.CsvParseExceptionHandler;
 import org.lucoenergia.conluz.domain.shared.response.CreationInBulkResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -38,11 +33,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.UUID;
-
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 
 /**
@@ -57,21 +50,21 @@ import java.util.Optional;
 @Validated
 public class CreateSuppliesWithFileController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CreateSuppliesWithFileController.class);
-
     private final CsvFileRequestValidator csvFileRequestValidator;
     private final CsvFileParser csvFileParser;
-    private final MessageSource messageSource;
-    private final CreateSupplyService createSupplyService;
+    private final ImportSuppliesService importSuppliesService;
+    private final ImportSuppliesResponseMapper responseMapper;
     private final CsvParseExceptionHandler csvParseExceptionHandler;
 
     public CreateSuppliesWithFileController(CsvFileRequestValidator csvFileRequestValidator,
-                                            CsvFileParser csvFileParser, MessageSource messageSource,
-                                            CreateSupplyService createSupplyService, CsvParseExceptionHandler csvParseExceptionHandler) {
+                                            CsvFileParser csvFileParser,
+                                            ImportSuppliesService importSuppliesService,
+                                            ImportSuppliesResponseMapper responseMapper,
+                                            CsvParseExceptionHandler csvParseExceptionHandler) {
         this.csvFileRequestValidator = csvFileRequestValidator;
         this.csvFileParser = csvFileParser;
-        this.messageSource = messageSource;
-        this.createSupplyService = createSupplyService;
+        this.importSuppliesService = importSuppliesService;
+        this.responseMapper = responseMapper;
         this.csvParseExceptionHandler = csvParseExceptionHandler;
     }
 
@@ -122,8 +115,6 @@ public class CreateSuppliesWithFileController {
         if (optionalResponseEntity.isPresent()) {
             return optionalResponseEntity.get();
         }
-        CreationInBulkResponse<String, String> response = new CreationInBulkResponse<>();
-
         List<CreateSupplyBody> supplies;
         try {
             supplies = csvFileParser.parse(file.getInputStream(), CreateSupplyBody.class);
@@ -131,31 +122,12 @@ public class CreateSuppliesWithFileController {
             return csvParseExceptionHandler.handleCsvParsingError(ex);
         }
 
-        // save supplies in DB
-        supplies.forEach(supply -> {
-            try {
-                Supply newSupply = createSupplyService.create(supply.mapToSupply(),
-                        UserPersonalId.of(supply.getPersonalId()), communityId);
-                response.addCreated(newSupply.getCode());
-            } catch (SupplyAlreadyExistsException e) {
-                LOGGER.error("Supply already exists", e);
-                response.addError(supply.getCode(),
-                        messageSource.getMessage("error.supply.already.exists",
-                                Collections.singletonList(supply.getCode()).toArray(),
-                                LocaleContextHolder.getLocale()));
-            } catch (UserNotFoundException e) {
-                LOGGER.error("User not found", e);
-                response.addError(supply.getCode(),
-                        messageSource.getMessage("error.user.not.found",
-                                Collections.singletonList(supply.getPersonalId()).toArray(),
-                                LocaleContextHolder.getLocale()));
-            } catch (Exception e) {
-                LOGGER.error("Unable to create supply", e);
-                response.addError(supply.getCode(),
-                        messageSource.getMessage("error.supply.unable.to.create", new List[]{},
-                                LocaleContextHolder.getLocale()));
-            }
-        });
+        List<SupplyImportRow> rows = supplies.stream()
+                .map(supply -> new SupplyImportRow(supply.mapToSupply(), supply.getCode(), supply.getPersonalId()))
+                .toList();
+        List<ImportedSupplyRow> imported = importSuppliesService.importSupplies(communityId, rows);
+        CreationInBulkResponse<String, String> response = responseMapper.toResponse(imported,
+                LocaleContextHolder.getLocale());
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
