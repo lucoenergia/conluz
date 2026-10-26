@@ -16,6 +16,6 @@ class MessageI18nTest extends BaseIntegrationTest {
     void testMessage() {
         String message = messageSource.getMessage("error.admin.user.already.initialized", new Object[0],
                 LocaleContextHolder.getLocale());
-        Assertions.assertEquals("El usuario admin ya ha sido initializado.", message);
+        Assertions.assertEquals("El usuario admin ya ha sido inicializado.", message);
     }
 }
