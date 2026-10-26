@@ -95,11 +95,6 @@ public class GetUserRepositoryDatabase implements GetUserRepository {
     }
 
     @Override
-    public Optional<User> getDefaultAdminUser() {
-        return userRepository.findFirstByNumber(0).map(userEntityMapper::map);
-    }
-
-    @Override
     public List<User> findAllUsersWithAtLeastOneSupply() {
         return userEntityMapper.mapList(userRepository.findAllUsersWithAtLeastOneSupply());
     }
