@@ -36,12 +36,4 @@ public interface AuthRepository {
      * @return The JWT ID, or empty if not present or if an error occurs
      */
     Optional<String> getJtiFromToken(Token token);
-
-    /**
-     * Returns whether the token owner is a platform admin.
-     *
-     * @param token The token
-     * @return true if the token was issued for a platform admin
-     */
-    boolean isPlatformAdmin(Token token);
 }

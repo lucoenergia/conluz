@@ -64,12 +64,6 @@ public class JwtAuthRepository implements AuthRepository {
     }
 
     @Override
-    public boolean isPlatformAdmin(Token token) {
-        Object claim = getAllClaims(token).get(CUSTOM_CLAIM_IS_PLATFORM_ADMIN);
-        return Boolean.TRUE.equals(claim);
-    }
-
-    @Override
     public Optional<String> getJtiFromToken(Token token) {
         try {
             return Optional.ofNullable(getClaim(token, Claims::getId));

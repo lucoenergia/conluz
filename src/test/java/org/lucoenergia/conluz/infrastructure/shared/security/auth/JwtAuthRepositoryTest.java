@@ -184,30 +184,6 @@ class JwtAuthRepositoryTest {
     
     
 
-    // --- isPlatformAdmin ---
-
-    @Test
-    void isPlatformAdmin_returnsTrue_whenTokenContainsPlatformAdminClaim() {
-        User user = UserMother.randomUser();
-        user.setPlatformAdmin(true);
-        mockJwtConfig();
-
-        Token token = repository.getToken(user);
-
-        Assertions.assertTrue(repository.isPlatformAdmin(token));
-    }
-
-    @Test
-    void isPlatformAdmin_returnsFalse_whenTokenDoesNotContainPlatformAdminClaim() {
-        User user = UserMother.randomUser();
-        user.setPlatformAdmin(false);
-        mockJwtConfig();
-
-        Token token = repository.getToken(user);
-
-        Assertions.assertFalse(repository.isPlatformAdmin(token));
-    }
-
     @Test
     void findRejectionReason_acceptsAnyToken_whenThePasswordWasNeverChanged() {
         User user = UserMother.randomUser();
