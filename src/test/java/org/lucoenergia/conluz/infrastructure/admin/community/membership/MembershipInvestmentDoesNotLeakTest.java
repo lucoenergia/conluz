@@ -119,13 +119,14 @@ class MembershipInvestmentDoesNotLeakTest extends BaseControllerTest {
     void theJwtPayloadNeverCarriesTheInvestment() {
         CommunityEntity community = persistCommunity();
         User member = persistMemberWithInvestment(community.getId());
-        // The claims are built from the principal's memberships, so they have to be loaded first.
+        // Loaded so the token is built from a principal that carries the membership and its investment
         member.setMemberships(getMembershipsRepository.findByUserId(member.getId()));
 
         String payload = decodePayload(authRepository.getToken(member).getToken());
 
-        assertTrue(payload.contains(community.getId().toString()),
-                () -> "the membership is missing from the payload: " + payload);
+        // The token carries no membership at all (#481), so neither the membership nor its investment is in it
+        assertFalse(payload.contains(community.getId().toString()),
+                () -> "the membership is in the payload: " + payload);
         assertNoInvestment(payload);
     }
 
