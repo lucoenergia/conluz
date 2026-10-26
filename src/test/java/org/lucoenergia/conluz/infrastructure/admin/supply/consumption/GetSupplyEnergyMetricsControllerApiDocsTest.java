@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.test.web.servlet.MvcResult;
@@ -8,6 +9,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -108,6 +111,39 @@ class GetSupplyEnergyMetricsControllerApiDocsTest extends BaseControllerTest {
 
         assertTrue(!savings.toString().contains("\"nullable\""),
                 () -> SAVINGS_SCHEMA + " carries a nullable keyword: " + savings);
+    }
+
+    @Test
+    @DisplayName("SEM-001 documents the reference period as an optional enum query parameter beside the two dates")
+    void documentsTheReferencePeriodAsAnOptionalEnumQueryParameterBesideTheTwoDates() throws Exception {
+        JsonNode parameters = document().path("paths").path("/api/v1/supplies/{supplyId}/energy-metrics")
+                .path("get").path("parameters");
+
+        JsonNode period = parameter(parameters, "period");
+        assertEquals("query", period.path("in").asText());
+        assertFalse(period.path("required").asBoolean(), () -> "period must be optional: " + period);
+        assertEquals(List.of("LATEST_PUBLISHED_MONTH"), textValues(period.path("schema").path("enum")),
+                () -> "period enum was " + period);
+        for (String date : List.of("startDate", "endDate")) {
+            JsonNode parameter = parameter(parameters, date);
+            assertFalse(parameter.path("required").asBoolean(), () -> date + " must be optional: " + parameter);
+        }
+    }
+
+    private static JsonNode parameter(JsonNode parameters, String name) {
+        for (JsonNode parameter : parameters) {
+            if (name.equals(parameter.path("name").asText())) {
+                return parameter;
+            }
+        }
+        throw new AssertionError("No parameter named " + name + " in " + parameters);
+    }
+
+    private JsonNode document() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api-docs"))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString());
     }
 
     private JsonNode schema(String name) throws Exception {

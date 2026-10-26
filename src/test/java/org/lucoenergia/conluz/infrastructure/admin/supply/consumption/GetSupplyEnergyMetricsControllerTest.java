@@ -4,6 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
@@ -13,6 +18,8 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
@@ -21,11 +28,15 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -56,6 +67,18 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     private static final String URL = "/api/v1/supplies";
     private static final String PATH = "/energy-metrics";
     private static final double TOLERANCE = 1e-6;
+    private static final String LATEST = "LATEST_PUBLISHED_MONTH";
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
+    /**
+     * October 2026 is the current month: the search window runs from October 2024 to September
+     * 2026, and October itself is never a candidate.
+     */
+    private static final Instant NOW = Instant.parse("2026-10-20T10:00:00Z");
+    /**
+     * Every record of these local hours is left out of a month, so 20 of its 24 hours a day carry a
+     * record: 83 %, below the publication threshold.
+     */
+    private static final Integer[] FOUR_HOURS_A_DAY = {20, 21, 22, 23};
 
     @Autowired
     private CreateUserRepository createUserRepository;
@@ -63,6 +86,12 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture fixture;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private CreateMembershipRepository createMembershipRepository;
+    @Autowired
+    private CommunityMembershipJpaRepository communityMembershipJpaRepository;
     @Autowired
     @Qualifier("getDatadisConsumptionRepositoryInflux")
     private GetDatadisConsumptionRepository getDatadisConsumptionRepository;
@@ -750,6 +779,321 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    // --- SEM-001: the latest published month of this supply alone ---
+
+    /**
+     * Two supplies of the same owner in the same community. A publishes July and August in full but
+     * only 83 % of September; B publishes August and September in full. Both carry the whole current
+     * month. A resolves August, which a membership-wide resolution would have answered with B's
+     * September; B resolves September.
+     */
+    @Test
+    @DisplayName("SEM-001 AC1 each supply of an owner resolves the latest month it published itself")
+    void eachSupplyOfAnOwnerResolvesTheLatestMonthItPublishedItself() throws Exception {
+        travelTo(NOW);
+        User owner = createEnabledUser();
+        Supply supplyA = createSupplyOwnedBy(owner);
+        Supply supplyB = createSupplyOwnedBy(owner);
+        writePublishedZeros(supplyA, YearMonth.of(2026, 7));
+        writePublishedZeros(supplyA, YearMonth.of(2026, 8));
+        writePublishedZeros(supplyA, YearMonth.of(2026, 9), FOUR_HOURS_A_DAY);
+        writePublishedZeros(supplyA, YearMonth.of(2026, 10));
+        writePublishedZeros(supplyB, YearMonth.of(2026, 8));
+        writePublishedZeros(supplyB, YearMonth.of(2026, 9));
+        writePublishedZeros(supplyB, YearMonth.of(2026, 10));
+
+        requestLatest(supplyA, loginUser(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.supply.id").value(supplyA.getId().toString()))
+                .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-08-31T23:00:00+02:00"))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(744))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(744));
+
+        requestLatest(supplyB, loginUser(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.supply.id").value(supplyB.getId().toString()))
+                .andExpect(jsonPath("$.period.startDate").value("2026-09-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-09-30T23:00:00+02:00"))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(720))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(720));
+    }
+
+    /**
+     * The resolved month is aggregated exactly as an explicit period over it: the self-consumed
+     * energy of the one record carrying any is reported, and priced.
+     */
+    @Test
+    @DisplayName("SEM-001 AC1 the resolved month is aggregated over this supply's records")
+    void theResolvedMonthIsAggregatedOverThisSuppliesRecords() throws Exception {
+        travelTo(NOW);
+        User owner = createEnabledUser();
+        Supply supply = createSupplyOwnedBy(owner);
+        writePublishedZeros(supply, YearMonth.of(2026, 9));
+        writeRecords(hourlyRecord(supply.getCode(), "2026/09/10", "12:00", 3.0f, 4.0f, 1.0f));
+
+        requestLatest(supply, loginUser(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value("2026-09-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(3.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.surplusKWh").value(closeTo(1.0, TOLERANCE)))
+                // 4 x 0.15 = 0.60.
+                .andExpect(jsonPath("$.savings.amountEur").value(closeTo(0.60, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(closeTo(0.8, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC2 the reference period combined with a start date is a bad request")
+    void theReferencePeriodCombinedWithAStartDateIsABadRequest() throws Exception {
+        User owner = createEnabledUser();
+        Supply supply = createSupplyOwnedBy(owner);
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner))
+                        .queryParam("period", LATEST)
+                        .queryParam("startDate", "2026-08-01T00:00:00+02:00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_CONFLICTING"));
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC2 the reference period combined with an end date is a bad request")
+    void theReferencePeriodCombinedWithAnEndDateIsABadRequest() throws Exception {
+        User owner = createEnabledUser();
+        Supply supply = createSupplyOwnedBy(owner);
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner))
+                        .queryParam("period", LATEST)
+                        .queryParam("endDate", "2026-08-31T23:00:00+02:00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_CONFLICTING"));
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC2 the reference period combined with both dates is a bad request")
+    void theReferencePeriodCombinedWithBothDatesIsABadRequest() throws Exception {
+        User owner = createEnabledUser();
+        Supply supply = createSupplyOwnedBy(owner);
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner))
+                        .queryParam("period", LATEST)
+                        .queryParam("startDate", "2026-08-01T00:00:00+02:00")
+                        .queryParam("endDate", "2026-08-31T23:00:00+02:00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_CONFLICTING"));
+    }
+
+    /**
+     * August is below the threshold, September carries consumption and measured surplus but no
+     * self-consumption yet, and the current month is published in full. No complete month before
+     * the current one is published, so no period is resolved: the current month is never chosen
+     * instead.
+     */
+    @Test
+    @DisplayName("SEM-001 AC3 a supply without a published month before the current one resolves no period")
+    void aSupplyWithoutAPublishedMonthBeforeTheCurrentOneResolvesNoPeriod() throws Exception {
+        travelTo(NOW);
+        User owner = createEnabledUser();
+        Supply supply = createSupplyOwnedBy(owner);
+        writePublishedZeros(supply, YearMonth.of(2026, 8), FOUR_HOURS_A_DAY);
+        fixture.writeAt(supply.getCode(), hourly(YearMonth.of(2026, 9)), 0.5f, null, 0.2f);
+        writePublishedZeros(supply, YearMonth.of(2026, 10));
+
+        assertNoPeriodResolved(requestLatest(supply, loginUser(owner)), supply);
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC3 a supply without any stored record resolves no period")
+    void aSupplyWithoutAnyStoredRecordResolvesNoPeriod() throws Exception {
+        travelTo(NOW);
+        User owner = createEnabledUser();
+        Supply supply = createSupplyOwnedBy(owner);
+
+        assertNoPeriodResolved(requestLatest(supply, loginUser(owner)), supply);
+    }
+
+    /**
+     * Without {@code period}, the same records still span from the first stored record to the
+     * last, the below-threshold and the current month included.
+     */
+    @Test
+    @DisplayName("SEM-001 AC4 without a period nor dates the period still spans every stored record")
+    void withoutAPeriodNorDatesThePeriodStillSpansEveryStoredRecord() throws Exception {
+        travelTo(NOW);
+        User owner = createEnabledUser();
+        Supply supply = createSupplyOwnedBy(owner);
+        writePublishedZeros(supply, YearMonth.of(2026, 8));
+        writePublishedZeros(supply, YearMonth.of(2026, 9), FOUR_HOURS_A_DAY);
+        writePublishedZeros(supply, YearMonth.of(2026, 10));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
+                // The last September record is at 19:00; October is stored in full.
+                .andExpect(jsonPath("$.period.endDate").value("2026-10-31T23:00:00+01:00"))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(744 + 600 + 745))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(744 + 720 + 745));
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC4 explicit dates over the resolved month answer exactly what the reference period answers")
+    void explicitDatesOverTheResolvedMonthAnswerExactlyWhatTheReferencePeriodAnswers() throws Exception {
+        travelTo(NOW);
+        User owner = createEnabledUser();
+        Supply supply = createSupplyOwnedBy(owner);
+        writePublishedZeros(supply, YearMonth.of(2026, 8));
+        writeRecords(hourlyRecord(supply.getCode(), "2026/08/10", "12:00", 3.0f, 4.0f, 1.0f));
+        String token = loginUser(owner);
+
+        String explicit = mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, token)
+                        .queryParam("startDate", "2026-08-01T00:00:00+02:00")
+                        .queryParam("endDate", "2026-08-31T23:00:00+02:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andReturn().getResponse().getContentAsString();
+        String latest = requestLatest(supply, token)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertEquals(objectMapper.readTree(explicit), objectMapper.readTree(latest));
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC5 the owner can read the latest published month")
+    void theOwnerCanReadTheLatestPublishedMonth() throws Exception {
+        Community community = createCommunity();
+        User owner = createMemberOf(community);
+        Supply supply = createSupplyOwnedBy(owner, community);
+
+        requestLatest(supply, loginUser(owner)).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC5 an enabled community admin can read the latest published month")
+    void anEnabledCommunityAdminCanReadTheLatestPublishedMonth() throws Exception {
+        Community community = createCommunity();
+        Supply supply = createSupplyOwnedBy(createMemberOf(community), community);
+
+        requestLatest(supply, loginAsCommunityAdmin(community.getId())).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC5 a platform admin is answered not found")
+    void aPlatformAdminIsAnsweredNotFound() throws Exception {
+        String platformAdminToken = loginAsDefaultPlatformAdmin();
+        Community community = createCommunity();
+        Supply supply = createSupplyOwnedBy(createMemberOf(community), community);
+
+        requestLatest(supply, platformAdminToken).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC5 a member of another community is answered not found")
+    void aMemberOfAnotherCommunityIsAnsweredNotFound() throws Exception {
+        Community community = createCommunity();
+        Supply supply = createSupplyOwnedBy(createMemberOf(community), community);
+
+        requestLatest(supply, loginAsCommunityMember(createCommunity().getId())).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC5 a disabled community admin is answered not found")
+    void aDisabledCommunityAdminIsAnsweredNotFound() throws Exception {
+        Community community = createCommunity();
+        Supply supply = createSupplyOwnedBy(createMemberOf(community), community);
+        User admin = createEnabledUser();
+        createMembershipRepository.create(community.getId(), admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, admin.getId(), community.getId());
+
+        requestLatest(supply, loginUser(admin)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC5 a member of the same community who is neither the owner nor an admin is answered not found")
+    void aMemberOfTheSameCommunityWhoIsNeitherTheOwnerNorAnAdminIsAnsweredNotFound() throws Exception {
+        Community community = createCommunity();
+        Supply supply = createSupplyOwnedBy(createMemberOf(community), community);
+
+        requestLatest(supply, loginAsCommunityMember(community.getId())).andExpect(status().isNotFound());
+    }
+
+    private ResultActions requestLatest(Supply supply, String token) throws Exception {
+        return mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                .header(HttpHeaders.AUTHORIZATION, token)
+                .queryParam("period", LATEST));
+    }
+
+    /**
+     * The same answer the membership energy metrics give when no period can be resolved: null
+     * bounds, zero totals, no coverage, unpriced savings and null ratios.
+     */
+    private void assertNoPeriodResolved(ResultActions result, Supply supply) throws Exception {
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$.supply.id").value(supply.getId().toString()))
+                .andExpect(jsonPath("$.period.startDate").value(nullValue()))
+                .andExpect(jsonPath("$.period.endDate").value(nullValue()))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(0))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(0))
+                .andExpect(jsonPath("$.energy.totalConsumptionKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.surplusKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.assignedProductionKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$.savings.amountEur").value(nullValue()))
+                .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
+                .andExpect(jsonPath("$.savings.estimatedPrice").value(nullValue()))
+                .andExpect(jsonPath("$.selfSufficiencyRatio").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"startDate\":null")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"amountEur\":null")));
+    }
+
+    private void writePublishedZeros(Supply supply, YearMonth month, Integer... skippedLocalHours) {
+        fixture.writePublishedZeros(supply.getCode(), month, ZONE, skippedLocalHours);
+    }
+
+    /**
+     * Every hour of the month in the zone.
+     */
+    private static List<Instant> hourly(YearMonth month) {
+        Instant end = month.plusMonths(1).atDay(1).atStartOfDay(ZONE).toInstant();
+        List<Instant> times = new ArrayList<>();
+        for (Instant time = month.atDay(1).atStartOfDay(ZONE).toInstant(); time.isBefore(end);
+             time = time.plusSeconds(3600)) {
+            times.add(time);
+        }
+        return times;
+    }
+
+    private User createEnabledUser() {
+        User user = UserMother.randomUser();
+        user.enable();
+        createUserRepository.create(user);
+        return user;
+    }
+
+    private Community createCommunity() {
+        return createCommunityRepository.create(CommunityMother.random().build());
+    }
+
+    private User createMemberOf(Community community) {
+        User member = createEnabledUser();
+        createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        return member;
+    }
+
+    private Supply createSupplyOwnedBy(User owner, Community community) {
+        return createSupplyRepository.create(
+                SupplyMother.random(owner).withCode(randomCupsCode()).build(),
+                UserId.of(owner.getId()), community.getId());
     }
 
     private Supply createSupplyOwnedBy(User owner) {
