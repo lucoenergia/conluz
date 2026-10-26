@@ -56,7 +56,6 @@ dependencies {
     implementation 'com.opencsv:opencsv:5.9'
 
     implementation "org.apache.commons:commons-compress:1.26.0"
-    implementation "org.apache.commons:commons-collections4:4.4"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
