@@ -435,7 +435,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(PATH, community.getId(), member.getId())
                         .header(HttpHeaders.AUTHORIZATION, loginUser(member))
                         .queryParam("startDate", DAY_START))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_INCOMPLETE"));
     }
 
     @Test
@@ -444,7 +445,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
 
         requestPeriod(community, member, loginUser(member), DAY_END, DAY_START)
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_START_AFTER_END"));
     }
 
     @Test
@@ -458,7 +460,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
                         .queryParam("startDate", DAY_START)
                         .queryParam("endDate", DAY_END))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("period")));
+                .andExpect(jsonPath("$.message").value(containsString("period")))
+                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_CONFLICTING"));
     }
 
     @Test
