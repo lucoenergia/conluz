@@ -43,9 +43,23 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.blacklisted_token (
                                           jti character varying(64) NOT NULL,
-                                          expiration timestamp without time zone NOT NULL,
-                                          revoked_at timestamp without time zone NOT NULL
+                                          expiration timestamp with time zone NOT NULL,
+                                          revoked_at timestamp with time zone NOT NULL
 );
+
+
+--
+-- Name: COLUMN blacklisted_token.expiration; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.blacklisted_token.expiration IS 'When the revoked token expires.';
+
+
+--
+-- Name: COLUMN blacklisted_token.revoked_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.blacklisted_token.revoked_at IS 'When the token was revoked.';
 
 
 --
@@ -552,7 +566,7 @@ COMMENT ON COLUMN public.sharing_agreement.installed_power_kw IS 'A deliberate s
 -- Name: COLUMN sharing_agreement.created_by; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.sharing_agreement.created_by IS 'NULL means the agreement was created by the system (a migration), not by a person -- there is no honest user id to record. Phase 2d creates exactly one such synthetic agreement to carry coefficients that predate this model. Do not backfill this with a synthetic ''system'' user row: it could not authenticate, it would appear in member listings, and someone would eventually delete it.';
+COMMENT ON COLUMN public.sharing_agreement.created_by IS 'The user who created the agreement. NULL means the agreement was created by the system (a migration), not by a person, or that the creator''s account has been deleted. Not filled with a synthetic ''system'' user: such a row could not authenticate and would appear in member listings.';
 
 
 --

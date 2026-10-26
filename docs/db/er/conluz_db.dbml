@@ -1,8 +1,8 @@
 
 Table "blacklisted_token" {
   "jti" "character varying(64)" [pk, not null]
-  "expiration" timestamp [not null]
-  "revoked_at" timestamp [not null]
+  "expiration" timestamp [not null, note: 'When the revoked token expires.']
+  "revoked_at" timestamp [not null, note: 'When the token was revoked.']
 }
 
 Table "communities" {
@@ -172,7 +172,7 @@ Table "sharing_agreement" {
   "status" text [not null, note: 'DRAFT, PUBLISHED or SUPERSEDED. TEXT + CHECK rather than a native PostgreSQL ENUM: a native enum cannot have a value removed, and extending it (ALTER TYPE ... ADD VALUE) has historically been restricted inside transactions -- a poor fit for Liquibase and for a value set that will change. TEXT + CHECK is trivially alterable and reads identically.']
   "installed_power_kw" numeric [note: '''A deliberate snapshot of the plant\'s installed power at authoring time, not a join to plants.total_power: the plant\'s installed power today is not the power the agreement was authored against.''']
   "created_at" timestamp [not null]
-  "created_by" uuid [note: '''NULL means the agreement was created by the system (a migration), not by a person -- there is no honest user id to record. Phase 2d creates exactly one such synthetic agreement to carry coefficients that predate this model. Do not backfill this with a synthetic \'system\' user row: it could not authenticate, it would appear in member listings, and someone would eventually delete it.''']
+  "created_by" uuid [note: '''The user who created the agreement. NULL means the agreement was created by the system (a migration), not by a person, or that the creator\'s account has been deleted. Not filled with a synthetic \'system\' user: such a row could not authenticate and would appear in member listings.''']
   "updated_at" timestamp [note: 'When the agreement was last edited. NULL means it has never been edited since creation.']
   "updated_by" uuid [note: 'The user who last edited the agreement. NULL means it has never been edited since creation.']
 
