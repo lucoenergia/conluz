@@ -306,7 +306,8 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
 
         request(community, member, loginUser(member), FEBRUARY_END, JANUARY_START)
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_START_AFTER_END"));
     }
 
     // --- Authorization (AC9) ---

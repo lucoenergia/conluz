@@ -1,9 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -56,11 +58,28 @@ public class GetSupplyEnergyMetricsController {
                     - Supply owners can only retrieve energy metrics for their own supplies
 
                     **Period:**
-                    `startDate` and `endDate` are optional and must be supplied together; supplying exactly
-                    one of them is a bad request, as is a `startDate` after the `endDate`. When neither is
-                    supplied the period spans from the supply's earliest stored record to its latest, and a
-                    supply with no record at all returns a successful response with null period bounds, zero
-                    totals and null ratios.
+                    The period is resolved in exactly one of three ways, and the resolved bounds are
+                    always reported in `period`, also when the caller supplied them.
+
+                    - `startDate` and `endDate`: an explicit period. They must be supplied together;
+                      supplying exactly one of them is a bad request, as is a `startDate` after the
+                      `endDate`.
+                    - `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in the
+                      supply's time zone, that the distributor has published for **this supply**. It is
+                      resolved from this supply's records alone: a month published only for another supply
+                      of the same owner is never chosen. An hourly record is published when it carries
+                      self-consumed energy, zero included, and surplus alone does not count. A month is
+                      published when at least 90% of the hours it could have published carry it: the hours
+                      of the month from the later of its first hour and the supply's first published
+                      record. An unpublished or partly published month is skipped and the search continues
+                      backwards through the 24 complete months before the current one. The current month is
+                      never a candidate. The period runs from `00:00` of the first day to `23:00` of the
+                      last day. Combining it with `startDate` or `endDate` is a bad request.
+                    - Neither: from the supply's earliest stored record to its latest.
+
+                    When no period can be resolved -- no published month in the search window, or no
+                    stored record at all -- the response is still successful, with null period bounds,
+                    zero totals and null ratios.
 
                     **Both bounds are inclusive.** A caller wanting a single calendar day must pass `00:00`
                     to `23:00` of that day, not `00:00` to the following `00:00`, which would count the
@@ -85,8 +104,9 @@ public class GetSupplyEnergyMetricsController {
                     totals, so a partially synchronised period yields a proportionally low figure rather
                     than a flagged one. `coverage` is the field that tells the two apart. Consistently
                     with that, an explicitly requested period containing no record at all is worth `0.00`,
-                    while `null` is reserved for the one case where no period could be resolved: a supply
-                    with no stored record and no requested period.
+                    while `null` is reserved for the case where no period could be resolved: a supply
+                    with no stored record and no requested period, or no published month for
+                    `period=LATEST_PUBLISHED_MONTH`.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyEnergyMetrics",
@@ -107,13 +127,18 @@ public class GetSupplyEnergyMetricsController {
     @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
     public SupplyEnergyMetricsResponse getSupplyEnergyMetrics(
             @PathVariable("supplyId") UUID supplyId,
+            @Parameter(description = "First instant of an explicit period, inclusive. Requires endDate.")
             @RequestParam(value = "startDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
+            @Parameter(description = "Last instant of an explicit period, inclusive. Requires startDate.")
             @RequestParam(value = "endDate", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
+            @Parameter(description = "A period the server resolves by itself. Cannot be combined with " +
+                    "startDate or endDate.")
+            @RequestParam(value = "period", required = false) EnergyMetricsReferencePeriod period) {
 
         SupplyEnergyMetrics metrics = getSupplyEnergyMetricsService.getEnergyMetrics(
-                SupplyId.of(supplyId), startDate, endDate);
+                SupplyId.of(supplyId), startDate, endDate, period);
 
         return new SupplyEnergyMetricsResponse(metrics);
     }

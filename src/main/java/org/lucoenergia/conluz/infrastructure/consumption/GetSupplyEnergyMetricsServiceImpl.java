@@ -8,16 +8,21 @@ import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsu
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
+import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -28,29 +33,50 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
     private final GetSupplyRepository getSupplyRepository;
     private final DateConverter dateConverter;
     private final SupplySavingsCalculator supplySavingsCalculator;
+    private final ReferenceMonthResolver referenceMonthResolver;
+    private final ZoneResolver zoneResolver;
 
     public GetSupplyEnergyMetricsServiceImpl(
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
             GetSupplyRepository getSupplyRepository,
             DateConverter dateConverter,
-            SupplySavingsCalculator supplySavingsCalculator) {
+            SupplySavingsCalculator supplySavingsCalculator,
+            ReferenceMonthResolver referenceMonthResolver,
+            ZoneResolver zoneResolver) {
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.dateConverter = dateConverter;
         this.supplySavingsCalculator = supplySavingsCalculator;
+        this.referenceMonthResolver = referenceMonthResolver;
+        this.zoneResolver = zoneResolver;
     }
 
     @Override
     public SupplyEnergyMetrics getEnergyMetrics(SupplyId supplyId, OffsetDateTime startDate, OffsetDateTime endDate) {
+        return getEnergyMetrics(supplyId, startDate, endDate, null);
+    }
 
-        EnergyMetricsPeriodValidator.validate(startDate, endDate);
+    @Override
+    public SupplyEnergyMetrics getEnergyMetrics(SupplyId supplyId, OffsetDateTime startDate, OffsetDateTime endDate,
+                                                EnergyMetricsReferencePeriod referencePeriod) {
+
+        EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod);
 
         Supply supply = getSupplyOrThrow(supplyId);
 
         OffsetDateTime resolvedStartDate = startDate;
         OffsetDateTime resolvedEndDate = endDate;
 
-        if (resolvedStartDate == null) {
+        if (referencePeriod == EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH) {
+            Optional<EnergyMetricsPeriod> latestPublishedMonth = latestPublishedMonth(supply);
+            if (latestPublishedMonth.isEmpty()) {
+                // No month in the search window is published for this supply. The same empty
+                // result as a supply without any record, not an error.
+                return SupplyEnergyMetrics.empty(supply, null, null, 0L);
+            }
+            resolvedStartDate = latestPublishedMonth.get().getStartDate();
+            resolvedEndDate = latestPublishedMonth.get().getEndDate();
+        } else if (resolvedStartDate == null) {
             Optional<RecordedConsumptionPeriod> recordedPeriod =
                     getDatadisConsumptionAggregateRepository.findRecordedPeriod(supply);
             if (recordedPeriod.isEmpty()) {
@@ -98,6 +124,16 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 startDate.toInstant(),
                 DateConverter.toExclusiveUpperBound(endDate),
                 totalSelfConsumptionKWh);
+    }
+
+    /**
+     * The latest month published for this supply alone: its owner's other supplies never lend it
+     * a month it has not published itself.
+     */
+    private Optional<EnergyMetricsPeriod> latestPublishedMonth(Supply supply) {
+        ZoneId zone = zoneResolver.resolveZoneIdForSupply(supply.getId());
+        return referenceMonthResolver.resolveLatestPublishedMonth(List.of(supply), zone)
+                .map(month -> EnergyMetricsPeriod.ofMonth(month, zone));
     }
 
     private Supply getSupplyOrThrow(SupplyId supplyId) {

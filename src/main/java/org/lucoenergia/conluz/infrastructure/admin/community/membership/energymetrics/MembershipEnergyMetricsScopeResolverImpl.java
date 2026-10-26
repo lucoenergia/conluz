@@ -18,9 +18,7 @@ import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -39,12 +37,6 @@ import java.util.UUID;
  */
 @Component
 public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnergyMetricsScopeResolver {
-
-    /**
-     * The hour of the last hourly record of a day. Both period bounds are inclusive, so a period
-     * ending on a day ends on this hour rather than on the following midnight.
-     */
-    private static final LocalTime LAST_HOUR_OF_DAY = LocalTime.of(23, 0);
 
     private final GetMembershipsRepository getMembershipsRepository;
     private final GetSupplyRepository getSupplyRepository;
@@ -104,19 +96,9 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
         if (referencePeriod == EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH) {
             ZoneId zone = zoneResolver.resolveZoneIdForCommunity(communityId);
             return referenceMonthResolver.resolveLatestPublishedMonth(supplies, zone)
-                    .map(month -> monthPeriod(month, zone));
+                    .map(month -> EnergyMetricsPeriod.ofMonth(month, zone));
         }
         return recordedPeriod(supplies);
-    }
-
-    /**
-     * From the first hour of the month to its last, both inclusive, each carrying the offset in
-     * force at that instant.
-     */
-    private static EnergyMetricsPeriod monthPeriod(YearMonth month, ZoneId zone) {
-        return new EnergyMetricsPeriod(
-                month.atDay(1).atStartOfDay(zone).toOffsetDateTime(),
-                month.atEndOfMonth().atTime(LAST_HOUR_OF_DAY).atZone(zone).toOffsetDateTime());
     }
 
     /**

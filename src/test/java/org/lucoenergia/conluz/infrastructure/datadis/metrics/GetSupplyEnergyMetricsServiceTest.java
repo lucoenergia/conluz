@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.datadis.metrics;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -16,7 +17,9 @@ import org.lucoenergia.conluz.domain.admin.supply.tariff.TimeOfUsePlan;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.UnsupportedTariffPlanException;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
+import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
@@ -34,6 +37,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -81,10 +85,12 @@ class GetSupplyEnergyMetricsServiceTest {
     private final TimeConfiguration timeConfiguration = mock(TimeConfiguration.class);
     private final SupplyTariffResolver tariffResolver = mock(SupplyTariffResolver.class);
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
+    private final ReferenceMonthResolver referenceMonthResolver = mock(ReferenceMonthResolver.class);
     private final GetSupplyEnergyMetricsService service = new GetSupplyEnergyMetricsServiceImpl(
             aggregateRepository, getSupplyRepository, new DateConverter(timeConfiguration),
             new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
-                    CONFIGURED_ESTIMATE));
+                    CONFIGURED_ESTIMATE),
+            referenceMonthResolver, zoneResolver);
 
     private final Supply supply = SupplyMother.random().build();
     private final SupplyId supplyId = SupplyId.of(supply.getId());
@@ -528,6 +534,75 @@ class GetSupplyEnergyMetricsServiceTest {
         return service.getEnergyMetrics(supplyId,
                         OffsetDateTime.parse(startDate), OffsetDateTime.parse(endDate))
                 .getExpectedHours();
+    }
+
+    // --- SEM-001: the latest published month of this supply alone ---
+
+    @Test
+    @DisplayName("SEM-001 AC1 the month is resolved from this supply alone, in the supply's zone")
+    void theLatestPublishedMonthIsResolvedFromThisSupplyAloneInItsZone() {
+        givenSupplyExists();
+        when(referenceMonthResolver.resolveLatestPublishedMonth(List.of(supply), ZONE))
+                .thenReturn(Optional.of(YearMonth.of(2026, 8)));
+        givenAggregate(new DatadisConsumptionAggregate(3d, 4d, 1d, 744L));
+
+        SupplyEnergyMetrics metrics = service.getEnergyMetrics(supplyId, null, null,
+                EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH);
+
+        verify(referenceMonthResolver).resolveLatestPublishedMonth(List.of(supply), ZONE);
+        OffsetDateTime monthStart = OffsetDateTime.parse("2026-08-01T00:00:00+02:00");
+        OffsetDateTime monthEnd = OffsetDateTime.parse("2026-08-31T23:00:00+02:00");
+        verify(aggregateRepository).aggregateByRangeOfDates(supply, monthStart, monthEnd);
+        assertEquals(monthStart, metrics.getStartDate());
+        assertEquals(monthEnd, metrics.getEndDate());
+        assertEquals(744L, metrics.getExpectedHours());
+        assertEquals(4d, metrics.getSelfConsumptionKWh());
+        // The recorded range is never asked for when the server resolves the period.
+        verify(aggregateRepository, never()).findRecordedPeriod(any(Supply.class));
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC3 no published month yields an empty result without aggregating")
+    void noPublishedMonthYieldsAnEmptyResultWithoutAggregating() {
+        givenSupplyExists();
+        when(referenceMonthResolver.resolveLatestPublishedMonth(List.of(supply), ZONE))
+                .thenReturn(Optional.empty());
+
+        SupplyEnergyMetrics metrics = service.getEnergyMetrics(supplyId, null, null,
+                EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH);
+
+        assertSame(supply, metrics.getSupply());
+        assertNull(metrics.getStartDate());
+        assertNull(metrics.getEndDate());
+        assertEquals(0L, metrics.getHoursWithData());
+        assertEquals(0L, metrics.getExpectedHours());
+        assertNull(metrics.getSavings().getAmountEur());
+        verify(aggregateRepository, never()).aggregateByRangeOfDates(any(Supply.class), any(), any());
+        verify(aggregateRepository, never()).findRecordedPeriod(any(Supply.class));
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC2 the reference period with a date is rejected before anything is read")
+    void theReferencePeriodWithADateIsRejectedBeforeAnythingIsRead() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> service.getEnergyMetrics(supplyId, START_DATE, null,
+                        EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH));
+
+        assertEquals(InvalidEnergyMetricsPeriodException.Reason.CONFLICTING_PERIOD, exception.getReason());
+        verifyNoInteractions(getSupplyRepository);
+        verifyNoInteractions(referenceMonthResolver);
+        verifyNoInteractions(aggregateRepository);
+    }
+
+    @Test
+    @DisplayName("SEM-001 AC4 without a reference period the month is never resolved")
+    void withoutAReferencePeriodTheMonthIsNeverResolved() {
+        givenSupplyExists();
+        givenAggregate(new DatadisConsumptionAggregate(1d, 0d, 0d, 24L));
+
+        service.getEnergyMetrics(supplyId, START_DATE, END_DATE, null);
+
+        verifyNoInteractions(referenceMonthResolver);
     }
 
     private void givenSupplyExists() {

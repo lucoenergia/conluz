@@ -101,12 +101,18 @@ public class SupplyExceptionHandler {
             case INCOMPLETE_PERIOD -> "error.energy.metrics.period.incomplete";
             case CONFLICTING_PERIOD -> "error.energy.metrics.period.conflicting";
         };
+        RestErrorCode code = switch (e.getReason()) {
+            case START_AFTER_END -> RestErrorCode.ENERGY_METRICS_PERIOD_START_AFTER_END;
+            case INCOMPLETE_PERIOD -> RestErrorCode.ENERGY_METRICS_PERIOD_INCOMPLETE;
+            case CONFLICTING_PERIOD -> RestErrorCode.ENERGY_METRICS_PERIOD_CONFLICTING;
+        };
 
         String message = messageSource.getMessage(
                 messageKey,
                 List.of("startDate", "endDate", "period").toArray(),
                 LocaleContextHolder.getLocale()
         );
-        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
+        // No params: the caller supplied every value the message refers to.
+        return errorBuilder.build(message, code, null, HttpStatus.BAD_REQUEST);
     }
 }
