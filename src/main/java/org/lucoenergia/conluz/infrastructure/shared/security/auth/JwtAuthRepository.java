@@ -6,7 +6,6 @@ import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SecurityException;
 import io.jsonwebtoken.security.WeakKeyException;
-import org.apache.commons.collections4.map.HashedMap;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
@@ -29,8 +28,6 @@ public class JwtAuthRepository implements AuthRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthRepository.class);
 
-    private static final String CUSTOM_CLAIM_IS_PLATFORM_ADMIN = "is_platform_admin";
-
     private final JwtConfiguration jwtConfiguration;
     private final Clock clock;
 
@@ -46,7 +43,6 @@ public class JwtAuthRepository implements AuthRepository {
         String jti = UUID.randomUUID().toString();
 
         String token = Jwts.builder()
-                .addClaims(getCustomClaims(user))
                 .setSubject(user.getId().toString())
                 .setId(jti)
                 .setIssuedAt(Date.from(now))
@@ -55,12 +51,6 @@ public class JwtAuthRepository implements AuthRepository {
                 .compact();
 
         return Token.of(token);
-    }
-
-    private Map<String, Object> getCustomClaims(User user) {
-        Map<String, Object> claims = new HashedMap<>();
-        claims.put(CUSTOM_CLAIM_IS_PLATFORM_ADMIN, user.isPlatformAdmin());
-        return claims;
     }
 
     @Override

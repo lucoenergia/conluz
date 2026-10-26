@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.PASSWORD;
 import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.PERSONAL_ID;
@@ -29,7 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 @Transactional
 class LoginUserControllerTest extends BaseControllerTest {
@@ -67,6 +70,25 @@ class LoginUserControllerTest extends BaseControllerTest {
         assertFalse(payload.has("community_memberships"), () -> "the token lists memberships: " + payloadText);
         assertFalse(payloadText.contains(active.getId().toString()), () -> "the token names a community: " + payloadText);
         assertFalse(payloadText.contains(pending.getId().toString()), () -> "the token names a community: " + payloadText);
+    }
+
+    /**
+     * Nothing reads a role or a membership from the token: the server loads the user again on every request (#390).
+     * So the token carries only what identifies and bounds it (#481).
+     */
+    @Test
+    void theTokenCarriesOnlyItsSubjectIdAndValidity_evenForAPlatformAdmin() throws Exception {
+        User user = UserMother.randomUser();
+        user.enable();
+        user.setPlatformAdmin(true);
+        createUserRepository.create(user);
+
+        String token = loginUser(user).substring("Bearer ".length());
+
+        JsonNode payload = objectMapper.readTree(Base64.getUrlDecoder().decode(token.split("\\.")[1]));
+        Set<String> claims = new HashSet<>();
+        payload.fieldNames().forEachRemaining(claims::add);
+        assertEquals(Set.of("sub", "jti", "iat", "exp"), claims, () -> "the token carries: " + payload);
     }
 
     @ParameterizedTest
