@@ -80,7 +80,7 @@ jobs:
       # We only build linux/amd64 today, but Buildx is a prerequisite for the
       # GitHub Actions cache backend (`type=gha`) configured below.
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # Authenticates against ghcr.io using the workflow's ephemeral
       # GITHUB_TOKEN — no PAT or repository secret required for publishing.
