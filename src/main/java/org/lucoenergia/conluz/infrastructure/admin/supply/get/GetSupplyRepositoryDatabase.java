@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-@Transactional
+@Transactional(readOnly = true)
 @Repository
 public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
 

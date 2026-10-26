@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminRule;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.GetPlatformAdminsRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,14 +21,14 @@ public class DeleteUserServiceImpl implements DeleteUserService {
 
     private final DeleteUserRepository repository;
     private final GetUserRepository getUserRepository;
-    private final ManagePlatformAdminRepository platformAdminRepository;
+    private final GetPlatformAdminsRepository platformAdminRepository;
     private final LockUserRepository lockUserRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final DeleteMembershipRepository deleteMembershipRepository;
 
     public DeleteUserServiceImpl(DeleteUserRepository repository,
                                  GetUserRepository getUserRepository,
-                                 ManagePlatformAdminRepository platformAdminRepository,
+                                 GetPlatformAdminsRepository platformAdminRepository,
                                  LockUserRepository lockUserRepository,
                                  GetSupplyRepository getSupplyRepository,
                                  DeleteMembershipRepository deleteMembershipRepository) {

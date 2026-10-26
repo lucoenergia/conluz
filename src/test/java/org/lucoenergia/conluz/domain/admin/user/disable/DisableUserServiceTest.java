@@ -6,7 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.GetPlatformAdminsRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.disable.DisableUserServiceImpl;
 import org.mockito.Mock;
@@ -31,7 +31,7 @@ class DisableUserServiceTest {
     @Mock
     private GetUserRepository getUserRepository;
     @Mock
-    private ManagePlatformAdminRepository platformAdminRepository;
+    private GetPlatformAdminsRepository platformAdminRepository;
 
     private DisableUserService service() {
         return new DisableUserServiceImpl(disableUserRepository, getUserRepository, platformAdminRepository,

@@ -23,17 +23,19 @@ class ManagePlatformAdminAccessServiceTest {
     @Mock
     private ManagePlatformAdminRepository repository;
     @Mock
+    private GetPlatformAdminsRepository getPlatformAdminsRepository;
+    @Mock
     private GetUserRepository getUserRepository;
 
     private ManagePlatformAdminAccessService service() {
-        return new ManagePlatformAdminAccessServiceImpl(repository, getUserRepository);
+        return new ManagePlatformAdminAccessServiceImpl(repository, getPlatformAdminsRepository, getUserRepository);
     }
 
     @Test
     @DisplayName("ACC-013 an enabled platform admin is revoked while another one is enabled")
     void revoke_enabledAdminWithMoreThanOneEnabledAdmin_delegatesToRepository() {
         UserId id = existing(true, true);
-        when(repository.countPlatformAdmins()).thenReturn(2L);
+        when(getPlatformAdminsRepository.countPlatformAdmins()).thenReturn(2L);
 
         service().revoke(id);
 
@@ -44,7 +46,7 @@ class ManagePlatformAdminAccessServiceTest {
     @DisplayName("ACC-013 the last enabled platform admin is not revoked")
     void revoke_lastEnabledAdmin_throwsAndDoesNotRevoke() {
         UserId id = existing(true, true);
-        when(repository.countPlatformAdmins()).thenReturn(1L);
+        when(getPlatformAdminsRepository.countPlatformAdmins()).thenReturn(1L);
 
         assertThrows(LastPlatformAdminException.class, () -> service().revoke(id));
 
@@ -55,7 +57,7 @@ class ManagePlatformAdminAccessServiceTest {
     @DisplayName("ACC-013 a disabled platform admin is revoked even while only one platform admin is enabled")
     void revoke_disabledAdminWithOneEnabledAdmin_delegatesToRepository() {
         UserId id = existing(true, false);
-        when(repository.countPlatformAdmins()).thenReturn(1L);
+        when(getPlatformAdminsRepository.countPlatformAdmins()).thenReturn(1L);
 
         service().revoke(id);
 
@@ -69,7 +71,7 @@ class ManagePlatformAdminAccessServiceTest {
 
         assertThrows(UserNotPlatformAdminException.class, () -> service().revoke(id));
 
-        verify(repository, never()).countPlatformAdmins();
+        verify(getPlatformAdminsRepository, never()).countPlatformAdmins();
         verify(repository, never()).revoke(any());
     }
 
@@ -81,7 +83,7 @@ class ManagePlatformAdminAccessServiceTest {
 
         assertThrows(UserNotFoundException.class, () -> service().revoke(id));
 
-        verify(repository, never()).countPlatformAdmins();
+        verify(getPlatformAdminsRepository, never()).countPlatformAdmins();
         verify(repository, never()).revoke(any());
     }
 

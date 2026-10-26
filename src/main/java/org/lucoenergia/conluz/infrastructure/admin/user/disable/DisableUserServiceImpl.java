@@ -5,7 +5,7 @@ import org.lucoenergia.conluz.domain.admin.user.disable.DisableUserService;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminRule;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.GetPlatformAdminsRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,12 +18,12 @@ public class DisableUserServiceImpl implements DisableUserService {
 
     private final DisableUserRepository repository;
     private final GetUserRepository getUserRepository;
-    private final ManagePlatformAdminRepository platformAdminRepository;
+    private final GetPlatformAdminsRepository platformAdminRepository;
     private final Clock clock;
 
     public DisableUserServiceImpl(DisableUserRepository repository,
                                   GetUserRepository getUserRepository,
-                                  ManagePlatformAdminRepository platformAdminRepository,
+                                  GetPlatformAdminsRepository platformAdminRepository,
                                   Clock clock) {
         this.repository = repository;
         this.getUserRepository = getUserRepository;

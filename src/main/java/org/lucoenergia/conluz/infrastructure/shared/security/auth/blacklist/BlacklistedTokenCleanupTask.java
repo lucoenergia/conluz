@@ -1,6 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.shared.security.auth.blacklist;
 
-import org.lucoenergia.conluz.domain.admin.user.auth.BlacklistedTokenRepository;
+import org.lucoenergia.conluz.domain.admin.user.auth.DeleteBlacklistedTokenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,10 +16,10 @@ public class BlacklistedTokenCleanupTask {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BlacklistedTokenCleanupTask.class);
 
-    private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final DeleteBlacklistedTokenRepository blacklistedTokenRepository;
     private final Clock clock;
 
-    public BlacklistedTokenCleanupTask(BlacklistedTokenRepository blacklistedTokenRepository, Clock clock) {
+    public BlacklistedTokenCleanupTask(DeleteBlacklistedTokenRepository blacklistedTokenRepository, Clock clock) {
         this.blacklistedTokenRepository = blacklistedTokenRepository;
         this.clock = clock;
     }

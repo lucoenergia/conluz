@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
-import org.lucoenergia.conluz.domain.admin.user.auth.BlacklistedTokenRepository;
+import org.lucoenergia.conluz.domain.admin.user.auth.GetBlacklistedTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
 import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
 import org.lucoenergia.conluz.domain.admin.user.auth.VerifiedToken;
@@ -32,11 +32,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final AuthRepository authRepository;
     private final UserDetailsService userDetailsService;
     private final JwtAccessTokenHandler jwtAccessTokenHandler;
-    private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final GetBlacklistedTokenRepository blacklistedTokenRepository;
 
     public JwtAuthenticationFilter(AuthRepository authRepository, UserDetailsService userDetailsService,
                                    JwtAccessTokenHandler jwtAccessTokenHandler,
-                                   BlacklistedTokenRepository blacklistedTokenRepository) {
+                                   GetBlacklistedTokenRepository blacklistedTokenRepository) {
         this.authRepository = authRepository;
         this.userDetailsService = userDetailsService;
         this.jwtAccessTokenHandler = jwtAccessTokenHandler;

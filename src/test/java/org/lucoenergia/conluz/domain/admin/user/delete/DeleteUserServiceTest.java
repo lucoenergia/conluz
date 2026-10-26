@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
-import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.GetPlatformAdminsRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.delete.DeleteUserServiceImpl;
 import org.mockito.InOrder;
@@ -31,7 +31,7 @@ class DeleteUserServiceTest {
     @Mock
     private GetUserRepository getUserRepository;
     @Mock
-    private ManagePlatformAdminRepository platformAdminRepository;
+    private GetPlatformAdminsRepository platformAdminRepository;
     @Mock
     private LockUserRepository lockUserRepository;
     @Mock
