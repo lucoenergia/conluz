@@ -43,7 +43,7 @@ dependencies {
     // type must be visible at compile time in main sources, not just on the runtime classpath.
     implementation 'org.postgresql:postgresql'
 
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
 
     implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
     implementation "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
