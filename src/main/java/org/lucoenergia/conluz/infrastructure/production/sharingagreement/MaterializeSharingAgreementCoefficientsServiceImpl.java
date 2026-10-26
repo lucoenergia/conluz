@@ -3,11 +3,13 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.lock.LockSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.production.plant.lock.LockPlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.DuplicatePartitionCoefficientEntryException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.DuplicatePartitionCoefficientSupplyException;
@@ -38,17 +40,23 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
     private final GetPlantRepository getPlantRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
+    private final LockPlantRepository lockPlantRepository;
+    private final LockSupplyRepository lockSupplyRepository;
     private final Clock clock;
 
     public MaterializeSharingAgreementCoefficientsServiceImpl(GetSharingAgreementService getSharingAgreementService,
                                                                 GetPlantRepository getPlantRepository,
                                                                 GetSupplyRepository getSupplyRepository,
                                                                 SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository,
+                                                                LockPlantRepository lockPlantRepository,
+                                                                LockSupplyRepository lockSupplyRepository,
                                                                 Clock clock) {
         this.getSharingAgreementService = getSharingAgreementService;
         this.getPlantRepository = getPlantRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.supplyPartitionCoefficientRepository = supplyPartitionCoefficientRepository;
+        this.lockPlantRepository = lockPlantRepository;
+        this.lockSupplyRepository = lockSupplyRepository;
         this.clock = clock;
     }
 
@@ -78,6 +86,10 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
      * rows via the caller's resolver, then atomically replaces the agreement's coefficient set. Used
      * by both the CUPS-keyed {@link #replaceAll} (distributor-file import + legacy manual path) and
      * the supplyId-keyed replace method.
+     *
+     * <p>The plant, then each supply, is locked against deletion before the coefficients are written (PLT-001,
+     * SUP-001): a deletion in progress is waited for, and then the plant or the supply is not found, instead of a
+     * coefficient failing on its foreign key.</p>
      */
     private List<SupplyPartitionCoefficient> replaceAllInternal(UUID plantId, UUID sharingAgreementId,
                                                                   Runnable duplicateCheck,
@@ -90,6 +102,9 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
 
         duplicateCheck.run();
 
+        if (!lockPlantRepository.lockAsReferenced(PlantId.of(plantId))) {
+            throw new PlantNotFoundException(PlantId.of(plantId));
+        }
         Plant plant = getPlantRepository.findById(PlantId.of(plantId))
                 .orElseThrow(() -> new PlantNotFoundException(PlantId.of(plantId)));
         UUID communityId = plant.getSupply().getCommunity().getId();
@@ -122,6 +137,9 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
         Supply supply = getSupplyRepository.findByCode(SupplyCode.of(entry.getCups()))
                 .filter(candidate -> candidate.getCommunity().getId().equals(communityId))
                 .orElseThrow(() -> new SupplyNotFoundException(SupplyCode.of(entry.getCups())));
+        if (!lockSupplyRepository.lockAsReferenced(SupplyId.of(supply.getId()))) {
+            throw new SupplyNotFoundException(SupplyCode.of(entry.getCups()));
+        }
 
         return new SupplyPartitionCoefficient.Builder()
                 .withId(UUID.randomUUID())
@@ -140,6 +158,9 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
         Supply supply = getSupplyRepository.findById(SupplyId.of(entry.getSupplyId()))
                 .filter(candidate -> candidate.getCommunity().getId().equals(communityId))
                 .orElseThrow(() -> new SupplyNotFoundException(SupplyId.of(entry.getSupplyId())));
+        if (!lockSupplyRepository.lockAsReferenced(SupplyId.of(supply.getId()))) {
+            throw new SupplyNotFoundException(SupplyId.of(entry.getSupplyId()));
+        }
 
         return new SupplyPartitionCoefficient.Builder()
                 .withId(UUID.randomUUID())

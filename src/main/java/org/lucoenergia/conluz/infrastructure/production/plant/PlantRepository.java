@@ -43,6 +43,14 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
     @Query(value = "SELECT id FROM plants WHERE id = :plantId FOR UPDATE", nativeQuery = true)
     Optional<UUID> lockById(@Param("plantId") UUID plantId);
 
+    /**
+     * {@code FOR KEY SHARE} is the lock PostgreSQL's foreign-key check takes on a referenced row: it conflicts only
+     * with the {@code FOR UPDATE} of {@link #lockById}, so it waits for a deletion and blocks one, and never blocks an
+     * update of the plant.
+     */
+    @Query(value = "SELECT id FROM plants WHERE id = :plantId FOR KEY SHARE", nativeQuery = true)
+    Optional<UUID> lockAsReferencedById(@Param("plantId") UUID plantId);
+
     @EntityGraph(attributePaths = {"supply", "supply.user", "supply.community", "supply.contract",
             "supply.distributor", "supply.shelly"})
     Optional<PlantEntity> findByProviderCode(String providerCode);

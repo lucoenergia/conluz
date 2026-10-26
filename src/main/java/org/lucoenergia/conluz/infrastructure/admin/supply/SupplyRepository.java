@@ -49,6 +49,14 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
     @Query(value = "SELECT id FROM supplies WHERE id = :supplyId FOR UPDATE", nativeQuery = true)
     Optional<UUID> lockById(@Param("supplyId") UUID supplyId);
 
+    /**
+     * {@code FOR KEY SHARE} is the lock PostgreSQL's foreign-key check takes on a referenced row: it conflicts only
+     * with the {@code FOR UPDATE} of {@link #lockById}, so it waits for a deletion and blocks one, and never blocks an
+     * update of the supply.
+     */
+    @Query(value = "SELECT id FROM supplies WHERE id = :supplyId FOR KEY SHARE", nativeQuery = true)
+    Optional<UUID> lockAsReferencedById(@Param("supplyId") UUID supplyId);
+
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     List<SupplyEntity> findByUserId(UUID userId);
 

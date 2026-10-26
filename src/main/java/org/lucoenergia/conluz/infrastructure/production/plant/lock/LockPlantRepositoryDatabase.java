@@ -21,4 +21,9 @@ public class LockPlantRepositoryDatabase implements LockPlantRepository {
     public boolean lock(PlantId plantId) {
         return repository.lockById(plantId.getId()).isPresent();
     }
+
+    @Override
+    public boolean lockAsReferenced(PlantId plantId) {
+        return repository.lockAsReferencedById(plantId.getId()).isPresent();
+    }
 }
