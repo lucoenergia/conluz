@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.AdminChangeActor;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChange;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,22 +19,26 @@ import java.util.UUID;
 public class FirstInvitationStep {
 
     private final InvitationSending sending;
+    private final CommunityAdminChangeNotifier notifier;
 
-    public FirstInvitationStep(InvitationSending sending) {
+    public FirstInvitationStep(InvitationSending sending, CommunityAdminChangeNotifier notifier) {
         this.sending = sending;
+        this.notifier = notifier;
     }
 
     /**
      * @return whether the membership was invited; false if, once locked, it no longer exists or is no longer
      * eligible, for example because a concurrent request invited it first
      */
-    public boolean inviteIfEligible(UUID communityId, UserId userId) {
+    public boolean inviteIfEligible(UUID communityId, UserId userId, UserId sentBy) {
         Optional<CommunityMembership> membership = sending.lockAndFind(communityId, userId);
         // Re-checked under the lock: the selection was made without it
         if (membership.isEmpty() || !isEligible(membership.get())) {
             return false;
         }
-        sending.issueAndSend(membership.get());
+        CommunityMembership invited = sending.issueAndSend(membership.get());
+        // One change per membership invited; skipped by the notifier when the membership is a member's
+        notifier.notify(CommunityAdminChange.INVITED, null, invited, AdminChangeActor.person(sentBy));
         return true;
     }
 

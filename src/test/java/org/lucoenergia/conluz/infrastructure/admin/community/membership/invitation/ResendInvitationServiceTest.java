@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationResendL
 import org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipNotInvitedException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.ResendInvitationService;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.UpdateMembershipInvitationRepository;
@@ -48,6 +49,7 @@ class ResendInvitationServiceTest {
 
     private static final UUID USER_ID = UUID.randomUUID();
     private static final UUID COMMUNITY_ID = UUID.randomUUID();
+    private static final UserId ACTOR = UserId.of(UUID.randomUUID());
     private static final Instant NOW = Instant.parse("2026-01-02T00:00:00Z");
     private static final Instant WINDOW_START = NOW.minus(Duration.ofHours(24));
 
@@ -65,6 +67,8 @@ class ResendInvitationServiceTest {
     private UpdateMembershipInvitationRepository updateMembershipInvitationRepository;
     @Mock
     private EmailSender emailSender;
+    @Mock
+    private CommunityAdminChangeNotifier notifier;
 
     private ResendInvitationService service() {
         return service("https://web.test", true);
@@ -80,14 +84,14 @@ class ResendInvitationServiceTest {
                         true),
                 clock);
         return new ResendInvitationServiceImpl(new InvitationResending(sending, getOneTimeTokenService, clock),
-                sending);
+                sending, notifier);
     }
 
     @Test
     @DisplayName("MEM-010 without a public web URL a resend is refused before anything is locked or issued")
     void withoutAPublicUrl_isRefusedBeforeAnything() {
         assertThrows(MembershipInvitationUnavailableException.class,
-                () -> service("", true).resend(COMMUNITY_ID, UserId.of(USER_ID)));
+                () -> service("", true).resend(COMMUNITY_ID, UserId.of(USER_ID), ACTOR));
 
         verifyNoInteractions(lockUserRepository, lockMembershipRepository, getMembershipsRepository);
         nothingIsCountedIssuedOrSent();
@@ -97,7 +101,7 @@ class ResendInvitationServiceTest {
     @DisplayName("MEM-010 with email sending disabled a resend is refused before anything is locked or issued")
     void withEmailSendingDisabled_isRefusedBeforeAnything() {
         assertThrows(MembershipInvitationUnavailableException.class,
-                () -> service("https://web.test", false).resend(COMMUNITY_ID, UserId.of(USER_ID)));
+                () -> service("https://web.test", false).resend(COMMUNITY_ID, UserId.of(USER_ID), ACTOR));
 
         verifyNoInteractions(lockUserRepository, lockMembershipRepository, getMembershipsRepository);
         nothingIsCountedIssuedOrSent();
@@ -110,7 +114,7 @@ class ResendInvitationServiceTest {
                 .withInvitedAt(NOW.minus(Duration.ofDays(1))));
 
         assertThrows(MembershipAlreadyExistsException.class,
-                () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID)));
+                () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID), ACTOR));
 
         nothingIsCountedIssuedOrSent();
     }
@@ -121,7 +125,7 @@ class ResendInvitationServiceTest {
         storedUnderTheLock(new CommunityMembership.Builder().withEnabled(false).withContactEmail("member@example.org")
                 .withInvitedAt(Instant.parse("2026-01-01T00:00:00Z")));
 
-        assertThrows(MembershipDisabledException.class, () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID)));
+        assertThrows(MembershipDisabledException.class, () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID), ACTOR));
 
         nothingIsCountedIssuedOrSent();
     }
@@ -131,7 +135,7 @@ class ResendInvitationServiceTest {
     void aMembershipNeverInvited_isRefused() {
         storedUnderTheLock(new CommunityMembership.Builder().withContactEmail("member@example.org"));
 
-        assertThrows(MembershipNotInvitedException.class, () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID)));
+        assertThrows(MembershipNotInvitedException.class, () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID), ACTOR));
 
         nothingIsCountedIssuedOrSent();
     }
@@ -142,7 +146,7 @@ class ResendInvitationServiceTest {
         storedUnderTheLock(new CommunityMembership.Builder().withInvitedAt(NOW.minus(Duration.ofDays(1))));
 
         assertThrows(MembershipWithoutContactEmailException.class,
-                () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID)));
+                () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID), ACTOR));
 
         nothingIsCountedIssuedOrSent();
     }
@@ -166,10 +170,10 @@ class ResendInvitationServiceTest {
 
         MembershipInvitationResendLimitException refused = assertThrows(
                 MembershipInvitationResendLimitException.class,
-                () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID)));
+                () -> service().resend(COMMUNITY_ID, UserId.of(USER_ID), ACTOR));
 
         assertEquals(expectedRetryAfter, refused.getRetryAfterSeconds());
-        verifyNoInteractions(createOneTimeTokenService, updateMembershipInvitationRepository, emailSender);
+        verifyNoInteractions(createOneTimeTokenService, updateMembershipInvitationRepository, emailSender, notifier);
     }
 
     private void storedUnderTheLock(CommunityMembership.Builder membership) {
@@ -185,6 +189,6 @@ class ResendInvitationServiceTest {
 
     private void nothingIsCountedIssuedOrSent() {
         verifyNoInteractions(createOneTimeTokenService, getOneTimeTokenService, updateMembershipInvitationRepository,
-                emailSender);
+                emailSender, notifier);
     }
 }

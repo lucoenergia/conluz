@@ -22,6 +22,9 @@ class FirstInvitationStepIntegrationTest extends BaseInvitationTest {
     @Autowired
     private FirstInvitationStep step;
 
+    // A member's membership is not notified, so the actor is never looked up
+    private static final UserId ACTOR = UserId.of(UUID.randomUUID());
+
     @Test
     @DisplayName("MEM-012 called outside any transaction, the step invites an eligible membership and commits it")
     void anEligibleMembership_isInvited_inATransactionOfItsOwn() throws Exception {
@@ -30,7 +33,7 @@ class FirstInvitationStepIntegrationTest extends BaseInvitationTest {
         String personalId = (String) body.get("personalId");
         UUID userId = registered(loginAsAdminOf(community), community.getId(), body);
 
-        assertTrue(step.inviteIfEligible(community.getId(), UserId.of(userId)));
+        assertTrue(step.inviteIfEligible(community.getId(), UserId.of(userId), ACTOR));
 
         assertThat(invitedAt(personalId, community.getId())).isEqualTo(clock.instant());
         assertThat(invitationTokenCount(personalId, community.getId())).isEqualTo(1);
@@ -45,10 +48,10 @@ class FirstInvitationStepIntegrationTest extends BaseInvitationTest {
         Map<String, Object> body = newRecord();
         String personalId = (String) body.get("personalId");
         UUID userId = registered(loginAsAdminOf(community), community.getId(), body);
-        assertTrue(step.inviteIfEligible(community.getId(), UserId.of(userId)));
+        assertTrue(step.inviteIfEligible(community.getId(), UserId.of(userId), ACTOR));
         tokenFrom(awaitNextEmails(1)[0]);
 
-        assertFalse(step.inviteIfEligible(community.getId(), UserId.of(userId)));
+        assertFalse(step.inviteIfEligible(community.getId(), UserId.of(userId), ACTOR));
 
         assertThat(invitationTokenCount(personalId, community.getId())).isEqualTo(1);
     }
@@ -56,6 +59,6 @@ class FirstInvitationStepIntegrationTest extends BaseInvitationTest {
     @Test
     @DisplayName("MEM-012 a membership that does not exist is skipped without an error")
     void aMissingMembership_isSkipped() {
-        assertFalse(step.inviteIfEligible(newCommunity().getId(), UserId.of(UUID.randomUUID())));
+        assertFalse(step.inviteIfEligible(newCommunity().getId(), UserId.of(UUID.randomUUID()), ACTOR));
     }
 }

@@ -55,9 +55,19 @@ public class CommunityAdminChangeNotificationArchTest extends BaseArchTest {
             DeleteMembershipServiceImpl.class,
             DisableCommunityAdminServiceImpl.class,
             EnableCommunityAdminServiceImpl.class,
+            // A community admin may send or resend a pending admin's invitation through the member endpoints (#482);
+            // the notifier skips a member's membership
+            SendInvitationServiceImpl.class,
+            FirstInvitationStep.class,
+            ResendInvitationServiceImpl.class,
     };
 
-    /** The other callers of the writers below, none of which changes a community's admins. */
+    /**
+     * The other callers of the writers below, none of which changes a community's admins.
+     *
+     * <p>Revoking an invitation, by the platform admin or by a community admin, is in neither list: it is not
+     * notified (MEM-035), as it gives no one access, and it calls none of the writers below.</p>
+     */
     private static final Class<?>[] NOT_ADMIN_CHANGES = {
             // Disable and enable only memberships with the member role (setEnabled filters on COMMUNITY_MEMBER)
             DisableMembershipServiceImpl.class,
@@ -65,11 +75,6 @@ public class CommunityAdminChangeNotificationArchTest extends BaseArchTest {
             // Register members, always with the member role
             RegisterMemberServiceImpl.class,
             MemberImportRowStep.class,
-            // Send or resend an invitation of a membership that exists already: no role or state changes. A
-            // community admin may send one to a pending admin through them, which is not one of #466's events
-            SendInvitationServiceImpl.class,
-            FirstInvitationStep.class,
-            ResendInvitationServiceImpl.class,
             // The resending rules, shared by the member and the admin resend; its callers are checked here
             InvitationResending.class,
             // Deletes every membership of an account, admins included, but no request can reach it: its guard

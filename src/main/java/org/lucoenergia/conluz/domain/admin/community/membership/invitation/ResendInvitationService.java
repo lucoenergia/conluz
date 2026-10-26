@@ -30,6 +30,8 @@ public interface ResendInvitationService {
      *         record has no contact email
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipInvitationResendLimitException if 4 invitations
      *         have been issued for the membership in the last 24 hours
+     * @param resentBy the community admin who resends it, named in the notification to the community's other admins
+     *        when the membership is an admin's (#482)
      */
-    MembershipWithInvitation resend(UUID communityId, UserId userId);
+    MembershipWithInvitation resend(UUID communityId, UserId userId, UserId resentBy);
 }

@@ -27,6 +27,8 @@ public interface SendInvitationService {
      *         already been sent its invitation
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException if the member
      *         record has no contact email
+     * @param sentBy the community admin who sends it, named in the notification to the community's other admins when
+     *        the membership is an admin's (#482)
      */
-    MembershipWithInvitation send(UUID communityId, UserId userId);
+    MembershipWithInvitation send(UUID communityId, UserId userId, UserId sentBy);
 }

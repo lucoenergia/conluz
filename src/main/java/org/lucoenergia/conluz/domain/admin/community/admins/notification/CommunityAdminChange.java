@@ -5,9 +5,15 @@ package org.lucoenergia.conluz.domain.admin.community.admins.notification;
  */
 public enum CommunityAdminChange {
 
-    /** The platform admin invited someone to administer the community. */
+    /**
+     * Someone was invited to administer the community: by the platform admin, or by a community admin sending a
+     * pending admin's first invitation through the member endpoints (#482).
+     */
     INVITED,
-    /** The platform admin sent a pending admin's invitation again. */
+    /**
+     * A pending admin's invitation was sent again: by the platform admin, or by a community admin through the member
+     * endpoints (#482).
+     */
     INVITATION_RESENT,
     /** A pending admin accepted their invitation. */
     ACCEPTED,

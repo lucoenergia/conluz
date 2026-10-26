@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.AdminChangeActor;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChange;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipDisabledException;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyInvitedException;
@@ -22,13 +25,15 @@ public class SendInvitationServiceImpl implements SendInvitationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(SendInvitationServiceImpl.class);
 
     private final InvitationSending sending;
+    private final CommunityAdminChangeNotifier notifier;
 
-    public SendInvitationServiceImpl(InvitationSending sending) {
+    public SendInvitationServiceImpl(InvitationSending sending, CommunityAdminChangeNotifier notifier) {
         this.sending = sending;
+        this.notifier = notifier;
     }
 
     @Override
-    public MembershipWithInvitation send(UUID communityId, UserId userId) {
+    public MembershipWithInvitation send(UUID communityId, UserId userId, UserId sentBy) {
         sending.requireAvailable();
 
         // Read under the lock, so two invitations of the same membership run one after the other
@@ -47,6 +52,8 @@ public class SendInvitationServiceImpl implements SendInvitationService {
             throw new MembershipWithoutContactEmailException(communityId, userId.getId());
         }
         CommunityMembership invited = sending.issueAndSend(membership);
+        // Skipped by the notifier when the membership is a member's
+        notifier.notify(CommunityAdminChange.INVITED, null, invited, AdminChangeActor.person(sentBy));
 
         LOGGER.info("Member invited: userId={}, communityId={}", userId.getId(), communityId);
         return sending.withInvitation(invited);
