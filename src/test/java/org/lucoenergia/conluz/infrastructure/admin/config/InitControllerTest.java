@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.lucoenergia.conluz.domain.admin.user.DefaultUserAdminMother.PERSONAL_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,19 +36,25 @@ class InitControllerTest extends BaseControllerTest {
 
     @Test
     void testInit() throws Exception {
+        allowInitialisationAgain();
 
-        init();
+        postInit(objectMapper.writeValueAsString(bodyWith("33600005E", "a secure password!!")))
+                .andExpect(status().isOk());
 
-        Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(PERSONAL_ID)));
+        Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of("33600005E")));
     }
 
     @Test
     void testInitCannotBeExecutedTwice() throws Exception {
+        allowInitialisationAgain();
+        postInit(objectMapper.writeValueAsString(bodyWith("33600006F", "a secure password!!")))
+                .andExpect(status().isOk());
 
-        init();
+        MvcResult result = postInit(objectMapper.writeValueAsString(bodyWith("33600007G", "a secure password!!")))
+                .andReturn();
 
-        MvcResult result = init();
         Assertions.assertEquals(HttpStatus.FORBIDDEN.value(), result.getResponse().getStatus());
+        Assertions.assertFalse(getUserRepository.existsByPersonalId(UserPersonalId.of("33600007G")));
     }
 
     @Test

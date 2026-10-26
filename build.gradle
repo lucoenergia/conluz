@@ -81,6 +81,16 @@ tasks.named('test') {
     // state (committed data, Hibernate statistics, captured logs, the mutable clock) that rules out JUnit's
     // in-JVM parallel execution (#443).
     maxParallelForks = Math.max(1, Math.min(4, Runtime.runtime.availableProcessors().intdiv(2)))
+    // Opt-in check that no test depends on the state another one leaves behind (#481): -PrandomTestOrder runs the
+    // classes of each fork, and the methods of each class, in a random order, and -PrandomTestOrder=<seed> repeats an
+    // order. The default order stays deterministic.
+    if (project.hasProperty('randomTestOrder')) {
+        def seed = project.property('randomTestOrder') ?: Long.toString(new Random().nextLong())
+        logger.lifecycle("Running tests in a random order with seed ${seed}")
+        systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$Random'
+        systemProperty 'junit.jupiter.testmethod.order.default', 'org.junit.jupiter.api.MethodOrderer$Random'
+        systemProperty 'junit.jupiter.execution.order.random.seed', seed
+    }
     testLogging {
         events "failed", "skipped"
         exceptionFormat "full"
