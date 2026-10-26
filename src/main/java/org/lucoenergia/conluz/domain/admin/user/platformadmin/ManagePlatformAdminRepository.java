@@ -7,6 +7,4 @@ public interface ManagePlatformAdminRepository {
     void grant(UserId id);
 
     void revoke(UserId id);
-
-    long countPlatformAdmins();
 }

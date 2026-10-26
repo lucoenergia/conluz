@@ -8,13 +8,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
-@Transactional
+@Transactional(readOnly = true)
 @Repository
-public class GetConfigRepositoryImpl implements GetConfigRepository {
+public class GetConfigRepositoryDatabase implements GetConfigRepository {
 
     private final ConfigRepository configRepository;
 
-    public GetConfigRepositoryImpl(ConfigRepository configRepository) {
+    public GetConfigRepositoryDatabase(ConfigRepository configRepository) {
         this.configRepository = configRepository;
     }
 

@@ -43,7 +43,7 @@ class AuthServiceImplTest {
     private final Authenticator authenticator = Mockito.mock(Authenticator.class);
     private final GetUserRepository getUserRepository = Mockito.mock(GetUserRepository.class);
     private final AuthRepository authRepository = Mockito.mock(AuthRepository.class);
-    private final BlacklistedTokenRepository blacklistedTokenRepository = Mockito.mock(BlacklistedTokenRepository.class);
+    private final CreateBlacklistedTokenRepository blacklistedTokenRepository = Mockito.mock(CreateBlacklistedTokenRepository.class);
 
     private final AuthenticationThrottleService authenticationThrottleService =
             Mockito.mock(AuthenticationThrottleService.class);

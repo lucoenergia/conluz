@@ -32,12 +32,18 @@ tied to a member of its community, and what deleting one does. It covers only th
   distributor and Shelly details, and its owner and the owner's memberships MUST be kept. Only a community admin of
   the supply's community MAY delete it: anyone else who can see the supply MUST be refused with 403, and anyone who
   cannot, a platform admin included, MUST be answered 404. The deletion MUST lock the supply row exclusively before
-  checking, so a plant or coefficient being inserted at the same time is waited for and then refuses it.
+  checking, so a plant or coefficient being inserted at the same time is waited for and then refuses it. Every
+  writer of a plant or a partition coefficient that references a supply (creating a plant, moving a plant to another
+  supply, writing an agreement's coefficients) MUST lock the supply against deletion before writing, and answer the
+  supply's 404 when it is gone, so a writer that runs while the supply is being deleted waits for the deletion and is
+  then answered 404, never a foreign-key error.
 - **Rationale:** A plant carries the community's production and its sharing agreements, and the coefficients are
   the content of an agreement: deleting the supply must not remove or change them as a side effect. A supply that
   is still used is taken out of use by disabling it (`disableSupply`), which keeps the data. Deleting a supply is
-  what lets its owner's membership (MEM-029) and account (ACC-009) be deleted.
-- **Source:** #412
+  what lets its owner's membership (MEM-029) and account (ACC-009) be deleted. The writer's lock conflicts only with
+  the deletion's, so writers never wait for each other or for an update of the supply (ADR-0003 §11).
+- **Source:** #412. #480 made the writers lock the supply, which removed the accepted exception for a writer racing
+  the deletion.
 
 ### SUP-002 — A supply is created only for a member of its community
 
@@ -61,4 +67,3 @@ tied to a member of its community, and what deleting one does. It covers only th
 | Exception | Reason | Expires when | Source |
 | --- | --- | --- | --- |
 | A deleted supply's consumption series stay in the time-series database, keyed by CUPS; a supply created again with the same CUPS shows them | The series are measurements of the point of consumption, and deleting them cannot be undone or made part of the database transaction | A rule decides what happens to the series of a deleted supply | #412 |
-| A plant or partition coefficient written for a supply while the supply is being deleted fails with an unhandled foreign-key error once the deletion commits | Plant creation and coefficient saving do not lock the supply row; the deletion itself is safe (SUP-001) | Plant creation and coefficient saving lock the supply row before writing | #412 |

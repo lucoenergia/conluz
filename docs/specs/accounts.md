@@ -130,8 +130,8 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   created: a person changes only their own contact details (`updateProfile`), and a community changes its member
   record (#416). Disabling a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN` exactly when ACC-013's
   last-platform-admin rule would refuse revoking their role: only an **enabled** platform admin while no more than
-  one platform admin is enabled. A disabled platform admin MAY be disabled again whatever the number of enabled
-  platform admins. A member's data in a community is
+  one platform admin is enabled, applied under ACC-013's lock. A disabled platform admin MAY be disabled again
+  whatever the number of enabled platform admins. A member's data in a community is
   changed on their member record (#416); a member is suspended in a community by disabling their membership
   (MEM-027).
 - **Rationale:** An account belongs to the person, and the same account can belong to several communities
@@ -142,7 +142,7 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   platform admin while at most one was enabled, whoever the target was. #446 withdrew the platform admin's access to
   the four operations (ACC-020); until then it was the only caller allowed them. #447 removed editing a user
   (`updateUser`), which replaced the name, personal ID and number, and which a community admin could still use on
-  their own account.
+  their own account. #480 applied the last-platform-admin rule under ACC-013's lock.
 
 ### ACC-009 — Deleting an account deletes its memberships, and is refused for a supply owner
 
@@ -152,7 +152,8 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   user who owns a supply in any community, enabled or not, MUST be refused with 409 `USER_OWNS_SUPPLIES`, and
   nothing MUST be deleted. Deleting a platform admin MUST be refused with 409 `USER_LAST_PLATFORM_ADMIN`, and nothing
   deleted, exactly when ACC-013's last-platform-admin rule would refuse revoking their role: only an **enabled**
-  platform admin while no more than one platform admin is enabled; a disabled platform admin MAY be deleted. Who may
+  platform admin while no more than one platform admin is enabled, applied under ACC-013's lock; a disabled platform
+  admin MAY be deleted. Who may
   delete a user is ACC-008's: since #446, nobody over the API, so these rules apply to the deletion itself, wherever
   it is started from. Memberships the user invited MUST be kept, with no inviter
   (MEM-003); sharing agreements and distributor files the user created, edited or uploaded MUST be kept, with no
@@ -166,7 +167,7 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   member, or created, edited or uploaded an agreement's records, is a historical detail; the records themselves
   belong to the community and must outlive the person.
 - **Source:** #412, ADR-0003 §1. #452 applied ACC-013's last-platform-admin rule, which until then refused any
-  platform admin while at most one was enabled, whoever the target was.
+  platform admin while at most one was enabled, whoever the target was. #480 applied it under ACC-013's lock.
 
 ### ACC-010 — Member registration, admin invitations and the member import accept only a valid DNI, NIE or NIF
 
@@ -260,13 +261,20 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 
   Otherwise the role MUST be revoked. Because a disabled account cannot authenticate and the caller may not revoke
   themselves, the third check can only refuse a revoke that runs at the same time as another one; it MUST still be
-  applied.
+  applied. Revoking the role, disabling an account (ACC-008) and deleting one (ACC-009) MUST lock the platform-admin
+  set before reading their target, so that any two of them running at the same time run one after another, and the
+  second applies this rule to the enabled platform admins the first left: the last two enabled platform admins are
+  never both removed.
 - **Rationale:** Revoking a role nobody holds is a mistake the caller should hear about rather than a silent success,
   and an unknown user is a 404 regardless of how many platform admins there are. The last-platform-admin rule exists
   to keep someone able to administer the platform: only enabled platform admins can, so only they count, and a
-  disabled platform admin must not be impossible to clean up just because one other admin is enabled.
+  disabled platform admin must not be impossible to clean up just because one other admin is enabled. The rule
+  depends on every platform admin, so it holds under concurrency only if every flow that can remove an enabled one
+  waits for the others; flows that can only add one need not (ADR-0003 §11).
 - **Source:** #456. The target checks and the exception for disabled platform admins were decided by the
   maintainer; until then revoke refused whenever at most one platform admin was enabled, whoever the target was.
+  #480 serialised revoking, disabling and deleting on the platform-admin set; until then two of them at the same
+  time could remove the last two enabled platform admins.
 ### ACC-014 — The platform-admin role is granted only by accepting an invitation with its confirmation code
 
 - **Status:** Active

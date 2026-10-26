@@ -25,4 +25,9 @@ public class GetPlatformAdminsRepositoryDatabase implements GetPlatformAdminsRep
     public List<User> findAll() {
         return userEntityMapper.mapList(userRepository.findAllByIsPlatformAdminTrueOrderByFullNameAscIdAsc());
     }
+
+    @Override
+    public long countPlatformAdmins() {
+        return userRepository.countByIsPlatformAdminTrueAndEnabledTrue();
+    }
 }

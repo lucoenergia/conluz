@@ -30,12 +30,6 @@ public class ManagePlatformAdminRepositoryDatabase implements ManagePlatformAdmi
         setPlatformAdmin(id, false);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public long countPlatformAdmins() {
-        return userRepository.countByIsPlatformAdminTrueAndEnabledTrue();
-    }
-
     private void setPlatformAdmin(UserId id, boolean value) {
         Optional<UserEntity> entity = userRepository.findById(id.getId());
         if (entity.isEmpty()) {

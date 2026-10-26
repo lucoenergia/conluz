@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.platformadmin.ManagePlatformAdminAccessServiceImpl;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,17 +24,22 @@ class ManagePlatformAdminAccessServiceTest {
     @Mock
     private ManagePlatformAdminRepository repository;
     @Mock
+    private GetPlatformAdminsRepository getPlatformAdminsRepository;
+    @Mock
     private GetUserRepository getUserRepository;
+    @Mock
+    private LockPlatformAdminsRepository lockPlatformAdminsRepository;
 
     private ManagePlatformAdminAccessService service() {
-        return new ManagePlatformAdminAccessServiceImpl(repository, getUserRepository);
+        return new ManagePlatformAdminAccessServiceImpl(repository, getPlatformAdminsRepository, getUserRepository,
+                lockPlatformAdminsRepository);
     }
 
     @Test
     @DisplayName("ACC-013 an enabled platform admin is revoked while another one is enabled")
     void revoke_enabledAdminWithMoreThanOneEnabledAdmin_delegatesToRepository() {
         UserId id = existing(true, true);
-        when(repository.countPlatformAdmins()).thenReturn(2L);
+        when(getPlatformAdminsRepository.countPlatformAdmins()).thenReturn(2L);
 
         service().revoke(id);
 
@@ -44,7 +50,7 @@ class ManagePlatformAdminAccessServiceTest {
     @DisplayName("ACC-013 the last enabled platform admin is not revoked")
     void revoke_lastEnabledAdmin_throwsAndDoesNotRevoke() {
         UserId id = existing(true, true);
-        when(repository.countPlatformAdmins()).thenReturn(1L);
+        when(getPlatformAdminsRepository.countPlatformAdmins()).thenReturn(1L);
 
         assertThrows(LastPlatformAdminException.class, () -> service().revoke(id));
 
@@ -55,7 +61,7 @@ class ManagePlatformAdminAccessServiceTest {
     @DisplayName("ACC-013 a disabled platform admin is revoked even while only one platform admin is enabled")
     void revoke_disabledAdminWithOneEnabledAdmin_delegatesToRepository() {
         UserId id = existing(true, false);
-        when(repository.countPlatformAdmins()).thenReturn(1L);
+        when(getPlatformAdminsRepository.countPlatformAdmins()).thenReturn(1L);
 
         service().revoke(id);
 
@@ -69,7 +75,7 @@ class ManagePlatformAdminAccessServiceTest {
 
         assertThrows(UserNotPlatformAdminException.class, () -> service().revoke(id));
 
-        verify(repository, never()).countPlatformAdmins();
+        verify(getPlatformAdminsRepository, never()).countPlatformAdmins();
         verify(repository, never()).revoke(any());
     }
 
@@ -81,8 +87,24 @@ class ManagePlatformAdminAccessServiceTest {
 
         assertThrows(UserNotFoundException.class, () -> service().revoke(id));
 
-        verify(repository, never()).countPlatformAdmins();
+        verify(getPlatformAdminsRepository, never()).countPlatformAdmins();
         verify(repository, never()).revoke(any());
+    }
+
+    @Test
+    @DisplayName("ACC-013 the platform-admin set is locked before the target is read and the platform admins counted")
+    void revoke_locksThePlatformAdminsBeforeReadingAndCounting() {
+        UserId id = existing(true, true);
+        when(getPlatformAdminsRepository.countPlatformAdmins()).thenReturn(2L);
+
+        service().revoke(id);
+
+        InOrder order = inOrder(lockPlatformAdminsRepository, getUserRepository, getPlatformAdminsRepository,
+                repository);
+        order.verify(lockPlatformAdminsRepository).lock();
+        order.verify(getUserRepository).findById(id);
+        order.verify(getPlatformAdminsRepository).countPlatformAdmins();
+        order.verify(repository).revoke(id);
     }
 
     private UserId existing(boolean platformAdmin, boolean enabled) {

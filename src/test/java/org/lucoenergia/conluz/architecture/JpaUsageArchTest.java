@@ -22,8 +22,9 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  * <p>Allowed locations for JPA entities and repositories:</p>
  * <ul>
  *   <li>Spring Data JPA repository interfaces ({@code extends JpaRepository})</li>
- *   <li>Repository implementation classes (named {@code *RepositoryImpl},
- *       {@code *RepositoryDatabase}, {@code *RepositoryInflux}, or {@code *RepositoryRest})</li>
+ *   <li>Repository implementation classes (named {@code *RepositoryDatabase}, {@code *RepositoryInflux}, or
+ *       {@code *RepositoryRest}). A database repository is named {@code *RepositoryDatabase}, so that
+ *       {@link RepositoryTransactionalArchTest} checks its transactions (#480).</li>
  *   <li>Entity mapper classes (named {@code *EntityMapper})</li>
  *   <li>Other entity classes</li>
  * </ul>
@@ -117,7 +118,7 @@ public class JpaUsageArchTest extends BaseArchTest {
                 .and().areNotAssignableTo(JpaRepository.class)
                 .and().haveNameNotMatching(".*\\$.*")          // inner classes (entity builders, etc.)
                 .and().haveNameNotMatching(".*EntityMapper")
-                .and().haveNameNotMatching(".*Repository(Database|Impl|Influx|Rest)$")
+                .and().haveNameNotMatching(".*Repository(Database|Influx|Rest)$")
                 .and().haveNameNotMatching(".*JpaRepository$")
                 .and().haveNameNotMatching(nameMatching(SERVICE_EXCEPTIONS))
                 .and().haveNameNotMatching(nameMatching(INFRASTRUCTURE_EXCEPTIONS))
@@ -133,7 +134,7 @@ public class JpaUsageArchTest extends BaseArchTest {
                 .and().areNotAssignableTo(JpaRepository.class)
                 .and().haveNameNotMatching(".*\\$.*")          // inner classes (entity builders, etc.)
                 .and().haveNameNotMatching(".*EntityMapper")
-                .and().haveNameNotMatching(".*Repository(Database|Impl|Influx|Rest)$")
+                .and().haveNameNotMatching(".*Repository(Database|Influx|Rest)$")
                 .and().haveNameNotMatching(".*JpaRepository$")
                 .and().haveNameNotMatching(nameMatching(SERVICE_EXCEPTIONS))
                 .and().haveNameNotMatching(nameMatching(INFRASTRUCTURE_EXCEPTIONS))

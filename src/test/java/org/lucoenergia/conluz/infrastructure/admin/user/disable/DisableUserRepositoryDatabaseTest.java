@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Transactional
-class DisableUserRepositoryImplTest extends BaseIntegrationTest {
+class DisableUserRepositoryDatabaseTest extends BaseIntegrationTest {
 
     private static final Instant FIRST_DISABLE = Instant.parse("2026-10-04T10:11:12.345Z");
     private static final Instant SECOND_DISABLE = Instant.parse("2026-10-05T08:09:10.111Z");

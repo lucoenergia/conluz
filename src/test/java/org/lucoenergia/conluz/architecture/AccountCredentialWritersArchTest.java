@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdmi
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.accept.CommunityInvitationAcceptance;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.create.CreateDefaultAdminUserServiceImpl;
-import org.lucoenergia.conluz.infrastructure.admin.user.create.CreateUserRepositoryImpl;
+import org.lucoenergia.conluz.infrastructure.admin.user.create.CreateUserRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.create.CreateUserServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.user.password.ChangePasswordRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.admin.user.password.ChangePasswordServiceImpl;
@@ -48,7 +48,7 @@ public class AccountCredentialWritersArchTest extends BaseArchTest {
                         + "who will use it (#447)")
                 .check(IMPORTED_CLASSES);
         noClasses()
-                .that().doNotBelongToAnyOf(CreateUserServiceImpl.class, CreateUserRepositoryImpl.class)
+                .that().doNotBelongToAnyOf(CreateUserServiceImpl.class, CreateUserRepositoryDatabase.class)
                 .should().dependOnClassesThat().areAssignableTo(CreateUserRepository.class)
                 .because("creating an account with a password is reached only through /init's creation (#447)")
                 .check(IMPORTED_CLASSES);
@@ -72,7 +72,7 @@ public class AccountCredentialWritersArchTest extends BaseArchTest {
                         + "the password change, reset and invitation acceptance (#447)")
                 .check(IMPORTED_CLASSES);
         noClasses()
-                .that().doNotBelongToAnyOf(UserEntity.class, CreateUserRepositoryImpl.class)
+                .that().doNotBelongToAnyOf(UserEntity.class, CreateUserRepositoryDatabase.class)
                 .should().callMethodWhere(target(owner(assignableTo(UserEntity.class)))
                         .and(target(name("createNewUser"))))
                 .because("creating an account with a password is reached only through /init's creation (#447)")
@@ -83,7 +83,7 @@ public class AccountCredentialWritersArchTest extends BaseArchTest {
     @DisplayName("ACC-008 a personal ID is written only when the account is created")
     void aPersonalIdIsNeverChanged() {
         noClasses()
-                .that().doNotBelongToAnyOf(UserEntity.class, CreateUserRepositoryImpl.class)
+                .that().doNotBelongToAnyOf(UserEntity.class, CreateUserRepositoryDatabase.class)
                 .should().callMethodWhere(target(owner(assignableTo(UserEntity.class)))
                         .and(target(name("setPersonalId"))))
                 .because("no path changes the personal ID of an existing account (#447); the account without a "

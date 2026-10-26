@@ -12,7 +12,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
-import org.lucoenergia.conluz.domain.admin.user.auth.BlacklistedTokenRepository;
+import org.lucoenergia.conluz.domain.admin.user.auth.GetBlacklistedTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
 import org.lucoenergia.conluz.domain.admin.user.auth.TokenRejectionReason;
 import org.lucoenergia.conluz.domain.admin.user.auth.VerifiedToken;
@@ -41,7 +41,7 @@ class JwtAuthenticationFilterTest {
     @Mock
     private JwtAccessTokenHandler jwtAccessTokenHandler;
     @Mock
-    private BlacklistedTokenRepository blacklistedTokenRepository;
+    private GetBlacklistedTokenRepository blacklistedTokenRepository;
 
     @Mock
     private HttpServletRequest request;

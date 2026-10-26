@@ -10,4 +10,9 @@ public interface GetPlatformAdminsRepository {
      * @return every user holding the platform-admin role, enabled or not, by full name and then id
      */
     List<User> findAll();
+
+    /**
+     * @return the number of enabled users holding the platform-admin role
+     */
+    long countPlatformAdmins();
 }

@@ -12,11 +12,11 @@ import java.util.UUID;
 
 @Repository
 @Transactional(readOnly = true)
-public class GetShellyConfigRepositoryImpl implements GetShellyConfigRepository {
+public class GetShellyConfigRepositoryDatabase implements GetShellyConfigRepository {
 
     private final ShellyConfigRepository shellyConfigRepository;
 
-    public GetShellyConfigRepositoryImpl(ShellyConfigRepository shellyConfigRepository) {
+    public GetShellyConfigRepositoryDatabase(ShellyConfigRepository shellyConfigRepository) {
         this.shellyConfigRepository = shellyConfigRepository;
     }
 

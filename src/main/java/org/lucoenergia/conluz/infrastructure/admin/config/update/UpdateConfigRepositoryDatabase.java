@@ -10,11 +10,11 @@ import java.util.Optional;
 
 @Transactional
 @Repository
-public class UpdateConfigRepositoryImpl implements UpdateConfigRepository {
+public class UpdateConfigRepositoryDatabase implements UpdateConfigRepository {
 
     private final ConfigRepository configRepository;
 
-    public UpdateConfigRepositoryImpl(ConfigRepository configRepository) {
+    public UpdateConfigRepositoryDatabase(ConfigRepository configRepository) {
         this.configRepository = configRepository;
     }
 

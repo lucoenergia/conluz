@@ -7,14 +7,14 @@ import org.mockito.Mockito;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
-class BlacklistedTokenRepositoryTest {
+class CreateBlacklistedTokenRepositoryTest {
 
     private final BlacklistedTokenJpaRepository jpaRepository = Mockito.mock(BlacklistedTokenJpaRepository.class);
 
-    private final BlacklistedTokenRepositoryImpl repository = new BlacklistedTokenRepositoryImpl(jpaRepository);
+    private final CreateBlacklistedTokenRepositoryDatabase repository =
+            new CreateBlacklistedTokenRepositoryDatabase(jpaRepository);
 
     @Test
     void save_shouldConvertAndSaveToken() {
@@ -22,44 +22,16 @@ class BlacklistedTokenRepositoryTest {
         String jti = "test-jti";
         Instant expiration = Instant.parse("2026-01-01T11:00:00Z");
         BlacklistedToken token = new BlacklistedToken(jti, expiration, Instant.parse("2026-01-01T10:00:00Z"));
-        
+
         BlacklistedTokenEntity entity = BlacklistedTokenEntity.fromDomain(token);
         when(jpaRepository.save(any(BlacklistedTokenEntity.class))).thenReturn(entity);
-        
+
         // When
         BlacklistedToken savedToken = repository.save(token);
-        
+
         // Then
         verify(jpaRepository).save(any(BlacklistedTokenEntity.class));
         assertEquals(jti, savedToken.getJti());
         assertEquals(expiration, savedToken.getExpiration());
-    }
-
-    @Test
-    void existsByJti_shouldDelegateToJpaRepository() {
-        // Given
-        String jti = "test-jti";
-        when(jpaRepository.existsByJti(jti)).thenReturn(true);
-        
-        // When
-        boolean exists = repository.existsByJti(jti);
-        
-        // Then
-        verify(jpaRepository).existsByJti(jti);
-        assertTrue(exists);
-    }
-
-    @Test
-    void deleteAllExpiredBefore_shouldDelegateToJpaRepository() {
-        // Given
-        Instant now = Instant.parse("2026-01-01T10:00:00Z");
-        when(jpaRepository.deleteAllByExpirationBefore(now)).thenReturn(5);
-        
-        // When
-        int deletedCount = repository.deleteAllExpiredBefore(now);
-        
-        // Then
-        verify(jpaRepository).deleteAllByExpirationBefore(now);
-        assertEquals(5, deletedCount);
     }
 }

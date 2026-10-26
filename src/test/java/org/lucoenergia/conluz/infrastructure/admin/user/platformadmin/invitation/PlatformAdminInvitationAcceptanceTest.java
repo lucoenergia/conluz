@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.disable.DisableUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.GetPlatformAdminsRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminAccessService;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -27,6 +28,8 @@ class PlatformAdminInvitationAcceptanceTest extends BasePlatformAdminInvitationT
     private DisableUserRepository disableUserRepository;
     @Autowired
     private ManagePlatformAdminAccessService managePlatformAdminAccessService;
+    @Autowired
+    private GetPlatformAdminsRepository getPlatformAdminsRepository;
 
     // --- Inspection ---
 
@@ -271,12 +274,12 @@ class PlatformAdminInvitationAcceptanceTest extends BasePlatformAdminInvitationT
     void aPendingInvitation_isNeverCountedAsAPlatformAdmin() throws Exception {
         // The default admin is the one enabled platform admin
         String bearer = loginAsDefaultPlatformAdmin();
-        long before = managePlatformAdminRepository.countPlatformAdmins();
+        long before = getPlatformAdminsRepository.countPlatformAdmins();
         UUID defaultAdmin = UUID.fromString(currentUserId(bearer));
 
         PlatformInvitation invitation = invited(bearer);
 
-        assertThat(managePlatformAdminRepository.countPlatformAdmins()).isEqualTo(before).isEqualTo(1);
+        assertThat(getPlatformAdminsRepository.countPlatformAdmins()).isEqualTo(before).isEqualTo(1);
         assertThatThrownBy(() -> managePlatformAdminAccessService.revoke(UserId.of(defaultAdmin)))
                 .isInstanceOf(LastPlatformAdminException.class);
         JsonNode list = platformAdminList(bearer);

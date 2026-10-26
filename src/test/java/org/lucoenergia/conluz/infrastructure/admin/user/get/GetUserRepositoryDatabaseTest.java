@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Transactional
-class GetUserRepositoryImplTest extends BaseIntegrationTest {
+class GetUserRepositoryDatabaseTest extends BaseIntegrationTest {
 
     @Autowired
     private GetUserRepository getUserRepository;

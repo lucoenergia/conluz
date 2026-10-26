@@ -21,4 +21,9 @@ public class LockSupplyRepositoryDatabase implements LockSupplyRepository {
     public boolean lock(SupplyId supplyId) {
         return repository.lockById(supplyId.getId()).isPresent();
     }
+
+    @Override
+    public boolean lockAsReferenced(SupplyId supplyId) {
+        return repository.lockAsReferencedById(supplyId.getId()).isPresent();
+    }
 }

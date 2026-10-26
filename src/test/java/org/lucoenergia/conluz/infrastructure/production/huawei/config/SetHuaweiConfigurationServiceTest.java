@@ -14,6 +14,9 @@ import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigura
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationRepository;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationService;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiConfigRepository;
+import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.lock.LockPlantRepository;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -27,8 +30,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +42,8 @@ class SetHuaweiConfigurationServiceTest {
     private static final UUID PLANT_ID = UUID.randomUUID();
     private static final String BASE_URL = "https://fusionsolar.example.com/thirdData";
 
+    @Mock
+    private LockPlantRepository lockPlantRepository;
     @Mock
     private LockHuaweiConfigRepository lockHuaweiConfigRepository;
     @Mock
@@ -48,8 +55,9 @@ class SetHuaweiConfigurationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SetHuaweiConfigurationServiceImpl(lockHuaweiConfigRepository, getHuaweiConfigRepository,
-                setHuaweiConfigurationRepository);
+        service = new SetHuaweiConfigurationServiceImpl(lockPlantRepository, lockHuaweiConfigRepository,
+                getHuaweiConfigRepository, setHuaweiConfigurationRepository);
+        lenient().when(lockPlantRepository.lockAsReferenced(PlantId.of(PLANT_ID))).thenReturn(true);
     }
 
     @Test
@@ -127,6 +135,29 @@ class SetHuaweiConfigurationServiceTest {
         order.verify(lockHuaweiConfigRepository).lock(PLANT_ID);
         order.verify(getHuaweiConfigRepository).getHuaweiConfig(PLANT_ID);
         order.verify(setHuaweiConfigurationRepository).setHuaweiConfiguration(eq(PLANT_ID), any());
+    }
+
+    @Test
+    @DisplayName("PLT-001 the plant is locked against deletion before the configuration row, in a plant deletion's order")
+    void locksThePlantBeforeTheConfiguration() {
+        givenStored(storedConfig("stored"));
+
+        service.setHuaweiConfiguration(PLANT_ID, configuration());
+
+        InOrder order = inOrder(lockPlantRepository, lockHuaweiConfigRepository, setHuaweiConfigurationRepository);
+        order.verify(lockPlantRepository).lockAsReferenced(PlantId.of(PLANT_ID));
+        order.verify(lockHuaweiConfigRepository).lock(PLANT_ID);
+        order.verify(setHuaweiConfigurationRepository).setHuaweiConfiguration(eq(PLANT_ID), any());
+    }
+
+    @Test
+    @DisplayName("PLT-001 a plant deleted before the write is not found, and nothing is written")
+    void aDeletedPlantIsNotFound() {
+        when(lockPlantRepository.lockAsReferenced(PlantId.of(PLANT_ID))).thenReturn(false);
+
+        assertThatThrownBy(() -> service.setHuaweiConfiguration(PLANT_ID, configuration("newPassword")))
+                .isInstanceOf(PlantNotFoundException.class);
+        verifyNoInteractions(lockHuaweiConfigRepository, getHuaweiConfigRepository, setHuaweiConfigurationRepository);
     }
 
     private static SetHuaweiConfiguration configuration() {

@@ -8,10 +8,12 @@ import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.production.plant.lock.LockPlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.create.CreateSharingAgreementServiceImpl;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -26,6 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,10 +41,14 @@ class CreateSharingAgreementServiceImplTest {
     @Mock
     private GetPlantRepository getPlantRepository;
     @Mock
+    private LockPlantRepository lockPlantRepository;
+    @Mock
     private CreateSharingAgreementRepository repository;
 
     private CreateSharingAgreementServiceImpl service() {
-        return new CreateSharingAgreementServiceImpl(getPlantRepository, repository, Clock.fixed(NOW, ZoneOffset.UTC));
+        lenient().when(lockPlantRepository.lockAsReferenced(any())).thenReturn(true);
+        return new CreateSharingAgreementServiceImpl(getPlantRepository, lockPlantRepository, repository,
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -55,6 +64,42 @@ class CreateSharingAgreementServiceImplTest {
 
         assertThrows(PlantNotFoundException.class,
                 () -> service().create(plantId, request));
+    }
+
+    @Test
+    void plt001_create_locksThePlantBeforeReadingItAndWritingTheAgreement() {
+        UUID plantId = UUID.randomUUID();
+        Plant plant = PlantMother.random().withId(plantId).build();
+        when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.of(plant));
+        when(repository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        CreateSharingAgreementServiceImpl service = service();
+
+        service.create(plantId, request());
+
+        InOrder order = inOrder(lockPlantRepository, getPlantRepository, repository);
+        order.verify(lockPlantRepository).lockAsReferenced(PlantId.of(plantId));
+        order.verify(getPlantRepository).findById(PlantId.of(plantId));
+        order.verify(repository).create(any());
+    }
+
+    @Test
+    void plt001_create_throwsPlantNotFound_whenThePlantIsDeletedBeforeTheLock() {
+        UUID plantId = UUID.randomUUID();
+        CreateSharingAgreementServiceImpl service = service();
+        when(lockPlantRepository.lockAsReferenced(PlantId.of(plantId))).thenReturn(false);
+
+        assertThrows(PlantNotFoundException.class, () -> service.create(plantId, request()));
+
+        verifyNoInteractions(getPlantRepository, repository);
+    }
+
+    private static CreateSharingAgreement request() {
+        return new CreateSharingAgreement.Builder()
+                .withName("name")
+                .withNotes("notes")
+                .withInstalledPowerKw(BigDecimal.TEN)
+                .withCreatedBy(UUID.randomUUID())
+                .build();
     }
 
     @Test

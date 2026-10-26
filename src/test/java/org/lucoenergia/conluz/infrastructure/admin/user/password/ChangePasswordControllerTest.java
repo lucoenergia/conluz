@@ -7,7 +7,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthRepository;
-import org.lucoenergia.conluz.domain.admin.user.auth.BlacklistedTokenRepository;
+import org.lucoenergia.conluz.domain.admin.user.auth.GetBlacklistedTokenRepository;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
@@ -48,7 +48,7 @@ class ChangePasswordControllerTest extends BaseControllerTest {
     @Autowired
     private AuthRepository authRepository;
     @Autowired
-    private BlacklistedTokenRepository blacklistedTokenRepository;
+    private GetBlacklistedTokenRepository blacklistedTokenRepository;
 
     @Test
     void validChange_answers204_revokesEveryEarlierToken_andClearsTheFlag() throws Exception {

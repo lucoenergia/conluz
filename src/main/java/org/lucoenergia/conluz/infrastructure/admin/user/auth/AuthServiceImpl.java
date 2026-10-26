@@ -27,12 +27,12 @@ public class AuthServiceImpl implements AuthService {
     private final Authenticator authenticator;
     private final GetUserRepository getUserRepository;
     private final AuthRepository authRepository;
-    private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final CreateBlacklistedTokenRepository blacklistedTokenRepository;
     private final AuthenticationThrottleService authenticationThrottleService;
     private final Clock clock;
 
     public AuthServiceImpl(Authenticator authenticator, GetUserRepository getUserRepository,
-                           AuthRepository authRepository, BlacklistedTokenRepository blacklistedTokenRepository,
+                           AuthRepository authRepository, CreateBlacklistedTokenRepository blacklistedTokenRepository,
                            AuthenticationThrottleService authenticationThrottleService,
                            Clock clock) {
         this.authenticator = authenticator;
