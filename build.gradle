@@ -23,6 +23,11 @@ java {
     }
 }
 
+// Spring Boot 3.5 is out of OSS support and its managed Tomcat lacks the fixes for critical CVEs (#487).
+// Remove this override once Spring Boot manages Tomcat 10.1.61 or newer, at the latest when migrating
+// to Spring Boot 4.
+ext['tomcat.version'] = '10.1.61'
+
 repositories {
     mavenCentral()
 }
