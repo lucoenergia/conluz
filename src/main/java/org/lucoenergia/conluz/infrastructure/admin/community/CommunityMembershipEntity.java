@@ -64,7 +64,7 @@ public class CommunityMembershipEntity {
     private UUID invitedBy;
 
     /**
-     * When the membership was invited, or null when it was not created by an invitation.
+     * When the member was last sent an invitation, or null when the membership was not created by an invitation.
      */
     @Column(name = "invited_at")
     private Instant invitedAt;
