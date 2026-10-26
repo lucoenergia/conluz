@@ -51,7 +51,7 @@ jobs:
       # history/tags, which build.gradle needs at build time to resolve the
       # exact tag via `git describe --tags`.
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
