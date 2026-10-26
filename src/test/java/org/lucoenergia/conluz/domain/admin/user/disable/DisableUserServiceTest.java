@@ -6,9 +6,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.LockPlatformAdminsRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.GetPlatformAdminsRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.disable.DisableUserServiceImpl;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,10 +34,12 @@ class DisableUserServiceTest {
     private GetUserRepository getUserRepository;
     @Mock
     private GetPlatformAdminsRepository platformAdminRepository;
+    @Mock
+    private LockPlatformAdminsRepository lockPlatformAdminsRepository;
 
     private DisableUserService service() {
         return new DisableUserServiceImpl(disableUserRepository, getUserRepository, platformAdminRepository,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                lockPlatformAdminsRepository, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -116,5 +120,23 @@ class DisableUserServiceTest {
         service().disable(id);
 
         verify(platformAdminRepository, never()).countPlatformAdmins();
+    }
+
+    @Test
+    @DisplayName("ACC-008 ACC-013 the platform-admin set is locked before the target is read and the platform admins counted")
+    void disable_locksThePlatformAdminsBeforeReadingAndCounting() {
+        UserId id = UserId.of(UUID.randomUUID());
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).enabled(true).build();
+        when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
+        when(platformAdminRepository.countPlatformAdmins()).thenReturn(2L);
+
+        service().disable(id);
+
+        InOrder order = inOrder(lockPlatformAdminsRepository, getUserRepository, platformAdminRepository,
+                disableUserRepository);
+        order.verify(lockPlatformAdminsRepository).lock();
+        order.verify(getUserRepository).findById(id);
+        order.verify(platformAdminRepository).countPlatformAdmins();
+        order.verify(disableUserRepository).disable(eq(id), any(Instant.class));
     }
 }

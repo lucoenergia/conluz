@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.platformadmin.ManagePlatformAdminAccessServiceImpl;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -26,9 +27,12 @@ class ManagePlatformAdminAccessServiceTest {
     private GetPlatformAdminsRepository getPlatformAdminsRepository;
     @Mock
     private GetUserRepository getUserRepository;
+    @Mock
+    private LockPlatformAdminsRepository lockPlatformAdminsRepository;
 
     private ManagePlatformAdminAccessService service() {
-        return new ManagePlatformAdminAccessServiceImpl(repository, getPlatformAdminsRepository, getUserRepository);
+        return new ManagePlatformAdminAccessServiceImpl(repository, getPlatformAdminsRepository, getUserRepository,
+                lockPlatformAdminsRepository);
     }
 
     @Test
@@ -85,6 +89,22 @@ class ManagePlatformAdminAccessServiceTest {
 
         verify(getPlatformAdminsRepository, never()).countPlatformAdmins();
         verify(repository, never()).revoke(any());
+    }
+
+    @Test
+    @DisplayName("ACC-013 the platform-admin set is locked before the target is read and the platform admins counted")
+    void revoke_locksThePlatformAdminsBeforeReadingAndCounting() {
+        UserId id = existing(true, true);
+        when(getPlatformAdminsRepository.countPlatformAdmins()).thenReturn(2L);
+
+        service().revoke(id);
+
+        InOrder order = inOrder(lockPlatformAdminsRepository, getUserRepository, getPlatformAdminsRepository,
+                repository);
+        order.verify(lockPlatformAdminsRepository).lock();
+        order.verify(getUserRepository).findById(id);
+        order.verify(getPlatformAdminsRepository).countPlatformAdmins();
+        order.verify(repository).revoke(id);
     }
 
     private UserId existing(boolean platformAdmin, boolean enabled) {

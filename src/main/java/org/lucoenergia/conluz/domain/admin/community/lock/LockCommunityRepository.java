@@ -7,8 +7,9 @@ import java.util.UUID;
  * community's admins run one after another (MEM-033), and so do replacements of its contact channels. It must be
  * called inside a transaction: outside one, the lock would be released at once.
  *
- * <p><b>Lock ordering.</b> Community row, then user row, then membership row, then token rows. Call this before
- * {@link org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository}.</p>
+ * <p><b>Lock ordering.</b> Platform-admin set, then community row, then user row, then membership row, then token
+ * rows. Call this after {@link org.lucoenergia.conluz.domain.admin.user.platformadmin.LockPlatformAdminsRepository}
+ * and before {@link org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository}.</p>
  */
 public interface LockCommunityRepository {
 

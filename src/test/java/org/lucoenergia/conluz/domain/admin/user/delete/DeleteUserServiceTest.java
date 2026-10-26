@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.LastPlatformAdminException;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.LockPlatformAdminsRepository;
 import org.lucoenergia.conluz.domain.admin.user.platformadmin.GetPlatformAdminsRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.delete.DeleteUserServiceImpl;
@@ -38,10 +39,12 @@ class DeleteUserServiceTest {
     private GetSupplyRepository getSupplyRepository;
     @Mock
     private DeleteMembershipRepository deleteMembershipRepository;
+    @Mock
+    private LockPlatformAdminsRepository lockPlatformAdminsRepository;
 
     private DeleteUserService service() {
         return new DeleteUserServiceImpl(deleteUserRepository, getUserRepository, platformAdminRepository,
-                lockUserRepository, getSupplyRepository, deleteMembershipRepository);
+                lockUserRepository, getSupplyRepository, deleteMembershipRepository, lockPlatformAdminsRepository);
     }
 
     @Test
@@ -146,5 +149,25 @@ class DeleteUserServiceTest {
         service().delete(id);
 
         verify(platformAdminRepository, never()).countPlatformAdmins();
+    }
+
+    @Test
+    @DisplayName("ACC-009 ACC-013 the platform-admin set is locked before the user row, the read and the count")
+    void delete_locksThePlatformAdminsBeforeTheUserRowReadingAndCounting() {
+        UserId id = UserId.of(UUID.randomUUID());
+        User user = new User.Builder().id(id.getId()).isPlatformAdmin(true).enabled(true).build();
+        when(lockUserRepository.lock(id)).thenReturn(true);
+        when(getUserRepository.findById(id)).thenReturn(Optional.of(user));
+        when(platformAdminRepository.countPlatformAdmins()).thenReturn(2L);
+
+        service().delete(id);
+
+        InOrder order = inOrder(lockPlatformAdminsRepository, lockUserRepository, getUserRepository,
+                platformAdminRepository, deleteUserRepository);
+        order.verify(lockPlatformAdminsRepository).lock();
+        order.verify(lockUserRepository).lock(id);
+        order.verify(getUserRepository).findById(id);
+        order.verify(platformAdminRepository).countPlatformAdmins();
+        order.verify(deleteUserRepository).delete(id);
     }
 }
