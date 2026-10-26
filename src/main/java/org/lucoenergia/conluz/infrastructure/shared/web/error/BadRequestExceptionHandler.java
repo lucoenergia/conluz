@@ -84,10 +84,11 @@ public class BadRequestExceptionHandler {
     public ResponseEntity<RestError> handleException(MethodArgumentNotValidException e) {
 
         List<String> errorMessages = new ArrayList<>();
+        // The rejected value is never repeated: it may be a password, an email address or a personal ID (#479)
         for (FieldError error : e.getFieldErrors()) {
             errorMessages.add(messageSource.getMessage(
                     "error.property.invalid",
-                    Arrays.asList(error.getField(), error.getRejectedValue(), error.getDefaultMessage()).toArray(),
+                    Arrays.asList(error.getField(), error.getDefaultMessage()).toArray(),
                     LocaleContextHolder.getLocale()
             ));
         }
@@ -140,7 +141,8 @@ public class BadRequestExceptionHandler {
                 .stream()
                 .map(error -> messageSource.getMessage(
                         "error.property.invalid",
-                        List.of(error.getPropertyPath(), error.getInvalidValue(), error.getMessage()).toArray(),
+                        // Without the invalid value, as for a body above
+                        List.of(error.getPropertyPath(), error.getMessage()).toArray(),
                         LocaleContextHolder.getLocale()
                 ))
                 .reduce(messageSource.getMessage(
@@ -204,8 +206,13 @@ public class BadRequestExceptionHandler {
         return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Logged at ERROR with the stack trace although it answers 400: in this application an
+     * {@link IllegalArgumentException} is thrown for a broken invariant, a programming error, not for a refusal of
+     * the request's data, which has its own exception (#479).
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<RestError> handleException(IllegalArgumentException e) {
-        return errorBuilder.build(e, "error.invalid.arguments", List.of().toArray(), HttpStatus.BAD_REQUEST);
+        return errorBuilder.buildForBrokenInvariant(e, "error.invalid.arguments", List.of().toArray(), HttpStatus.BAD_REQUEST);
     }
 }

@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.containsString;
 import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -86,6 +88,19 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void testGetPlantById_theNotFoundMessageNamesTheBareUuid() throws Exception {
+        String authHeader = loginAsPartner();
+        final String plantId = UUID.randomUUID().toString();
+
+        mockMvc.perform(get("/api/v1/plants/" + plantId)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value(containsString("'" + plantId + "'")))
+                .andExpect(jsonPath("$.message").value(not(containsString("PlantId{"))));
     }
 
     @Test

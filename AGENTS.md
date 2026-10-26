@@ -132,6 +132,17 @@ In this repository, **spec** always means one of these documents; test files are
   must never assemble one with a query per item. `CapabilityCoverageArchTest` fails the build while
   a guard is unclassified, and `CapabilityGuardEquivalenceTest` fails if a capability and its guard
   disagree. Full reference and a checklist: [`docs/security/capability-inventory.md`](docs/security/capability-inventory.md).
+- **Log a refusal at the level of what it means, not at ERROR.** ERROR, with the stack trace, is only for an
+  unexpected failure: an unhandled exception, a 5xx. WARN, one line without a stack trace, is for a security
+  refusal: authentication, authorization, a rejected token, throttling (401, 403, 429). INFO, one line without a
+  stack trace, is for a refusal of the request's data or of a business rule: 400, 404, 409, 413, and the import and
+  invitation refusals. `ErrorBuilder.build` applies this from the status, so a handler never picks a level itself; a
+  refusal already logged where it happens (a failed login, a rejected token) is answered with
+  `buildWithoutLogging`. The one documented exception is `IllegalArgumentException`: it still answers 400 but is
+  logged at ERROR with the stack trace (`buildForBrokenInvariant`), because here it means a broken invariant, a
+  programming error; a refusal of the request's data gets its own exception instead. No log line, response or
+  exception message contains a personal ID, an email address, a phone number, a password or a token; below 500
+  `ErrorBuilder` logs only the type of an exception, never its message.
 
 ## Security & Authorization Policy
 

@@ -93,7 +93,8 @@ public class JwtAuthRepository implements AuthRepository {
         try {
             return Optional.ofNullable(getClaim(token, Claims::getId));
         } catch (Exception e) {
-            LOGGER.error("Error extracting JTI from token", e);
+            // Only the type, without the stack trace: the message of a parsing error may carry part of the token
+            LOGGER.warn("Could not extract the JTI from a token: {}", e.getClass().getSimpleName());
             return Optional.empty();
         }
     }

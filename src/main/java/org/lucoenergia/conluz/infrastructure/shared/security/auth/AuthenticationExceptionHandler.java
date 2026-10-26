@@ -2,10 +2,13 @@ package org.lucoenergia.conluz.infrastructure.shared.security.auth;
 
 
 import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.TooManyFailedAttemptsException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
@@ -19,9 +22,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestControllerAdvice
 public class AuthenticationExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationExceptionHandler.class);
 
     private final ErrorBuilder errorBuilder;
     private final MessageSource messageSource;
@@ -36,9 +42,18 @@ public class AuthenticationExceptionHandler {
         return buildResponse(e);
     }
 
+    /**
+     * A token rejected after the authentication filter, logged as the filter logs it: a single warning, without a
+     * stack trace or the token, carrying the trace id of the response. The user is named only when the token's
+     * signature was verified.
+     */
     @ExceptionHandler(InvalidTokenException.class)
-    public ResponseEntity<RestError> handleInvalidTokenException(InvalidTokenException e) {
-        return buildResponse(e);
+    public ResponseEntity<RestError> handleInvalidTokenException(InvalidTokenException e, HttpServletRequest request) {
+        ResponseEntity<RestError> response = handleRejectedToken();
+        LOGGER.warn("Token rejected: reason={}, user={}, ip={}, traceId={}", e.getReason(),
+                e.getUserId().map(UUID::toString).orElse("unknown"), request.getRemoteAddr(),
+                response.getBody().getTraceId());
+        return response;
     }
 
     /**

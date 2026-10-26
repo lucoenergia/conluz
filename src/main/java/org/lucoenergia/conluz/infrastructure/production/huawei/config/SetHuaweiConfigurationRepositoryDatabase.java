@@ -2,6 +2,8 @@ package org.lucoenergia.conluz.infrastructure.production.huawei.config;
 
 import org.lucoenergia.conluz.domain.production.huawei.HuaweiConfig;
 import org.lucoenergia.conluz.domain.production.huawei.config.SetHuaweiConfigurationRepository;
+import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.springframework.stereotype.Repository;
@@ -29,7 +31,7 @@ public class SetHuaweiConfigurationRepositoryDatabase implements SetHuaweiConfig
                     HuaweiConfigEntity e = new HuaweiConfigEntity();
                     e.setId(UUID.randomUUID());
                     PlantEntity plant = plantRepository.findById(plantId)
-                            .orElseThrow(() -> new IllegalArgumentException("Plant not found: " + plantId));
+                            .orElseThrow(() -> new PlantNotFoundException(PlantId.of(plantId)));
                     e.setPlant(plant);
                     return e;
                 });

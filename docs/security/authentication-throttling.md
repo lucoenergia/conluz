@@ -52,6 +52,8 @@ is only ever throttled for a bounded time, and it is released on its own.
 - **What does not count:** a new password equal to the current one (`USER_PASSWORD_UNCHANGED`) or that breaks
   the password policy (in both cases the current one was right, so the counter is not reset either), an
   unexpected error such as the database being unavailable, and refused (429) attempts.
+- **A login body without a `password`** is answered 400 as an invalid body before the throttling is reached: it
+  reserves no slot and counts no failure, since it guesses no password (#479).
 - **Resets.** A successful login or password change resets that **account's** counter. Nothing resets the
   **address** counter: it only ends with its window.
 - **While either counter is over its limit** both endpoints refuse. When both are, the longer wait is given.

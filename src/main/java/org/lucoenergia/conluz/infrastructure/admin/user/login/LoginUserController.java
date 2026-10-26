@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.user.auth.AuthService;
 import org.lucoenergia.conluz.domain.admin.user.auth.Token;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.AuthResponseHandler;
@@ -49,7 +50,7 @@ public class LoginUserController {
     @BadRequestErrorResponse
     @TooManyRequestsErrorResponse
     @InternalServerErrorResponse
-    public ResponseEntity<Token> login(@RequestBody LoginRequest body, HttpServletRequest request,
+    public ResponseEntity<Token> login(@Valid @RequestBody LoginRequest body, HttpServletRequest request,
                                        HttpServletResponse response) {
         Token accessToken = authService.login(loginAssembler.assemble(body), request.getRemoteAddr());
         // Add cookie to the response
