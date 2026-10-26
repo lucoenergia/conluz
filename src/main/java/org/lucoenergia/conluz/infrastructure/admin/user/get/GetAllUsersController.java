@@ -67,7 +67,7 @@ public class GetAllUsersController {
 
                     **What the listing contains:** only the users the caller may read one by one
                     (`GET /api/v1/users/{userId}`). The caller sees themselves
-                    and the users with an enabled membership in a community they administer — not those of
+                    and the users with an active membership in a community they administer — not those of
                     communities they merely belong to.
 
                     **What each user's `memberships` contains:** every caller sees all of their own; otherwise only the memberships in communities the

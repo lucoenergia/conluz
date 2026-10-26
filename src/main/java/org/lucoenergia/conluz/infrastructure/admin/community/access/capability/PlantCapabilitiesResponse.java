@@ -14,7 +14,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "What the caller may do with this plant.", requiredProperties = {"canRead", "canManage", "canListSharingAgreements", "canManageSharingAgreements", "canReadSupply"})
 public class PlantCapabilitiesResponse {
 
-    @Schema(description = "Whether the caller may read this plant. Open to any enabled member of its community.")
+    @Schema(description = "Whether the caller may read this plant. Open to any active member of its community.")
     private final boolean canRead;
 
     @Schema(description = "Whether the caller may update or delete this plant, and read and write its Huawei configuration.")
