@@ -17,13 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 @Repository
-public class CreateUserRepositoryImpl implements CreateUserRepository {
+public class CreateUserRepositoryDatabase implements CreateUserRepository {
 
     private final UserRepository repository;
     private final UserEntityMapper mapper;
     private final UserPasswordEncoder passwordEncoder;
 
-    public CreateUserRepositoryImpl(UserRepository repository, UserEntityMapper mapper,
+    public CreateUserRepositoryDatabase(UserRepository repository, UserEntityMapper mapper,
                                     UserPasswordEncoder passwordEncoder) {
         this.repository = repository;
         this.mapper = mapper;

@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-public class CreateUserRepositoryImplTest extends BaseIntegrationTest {
+public class CreateUserRepositoryDatabaseTest extends BaseIntegrationTest {
 
     @Autowired
     private CreateUserRepository repository;

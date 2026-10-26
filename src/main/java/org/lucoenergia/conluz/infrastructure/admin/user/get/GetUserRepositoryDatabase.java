@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationResultM
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,14 +22,15 @@ import java.util.Set;
 import java.util.UUID;
 
 @Repository
-public class GetUserRepositoryImpl implements GetUserRepository {
+@Transactional(readOnly = true)
+public class GetUserRepositoryDatabase implements GetUserRepository {
 
     private final UserRepository userRepository;
     private final UserEntityMapper userEntityMapper;
     private final PaginationRequestMapper paginationRequestMapper;
     private final PaginationResultMapper<UserEntity, User> paginationResultMapper;
 
-    public GetUserRepositoryImpl(UserRepository userRepository, UserEntityMapper userEntityMapper,
+    public GetUserRepositoryDatabase(UserRepository userRepository, UserEntityMapper userEntityMapper,
                                  PaginationRequestMapper paginationRequestMapper,
                                  PaginationResultMapper<UserEntity, User> paginationResultMapper) {
         this.userRepository = userRepository;

@@ -11,9 +11,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDist
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserEntityMapper;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
 @Component
 public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
 
