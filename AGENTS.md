@@ -57,6 +57,18 @@ Before writing or changing a Liquibase changeset, read `docs/db/migrations/liqui
 For new installations and existing databases (PostgreSQL and InfluxDB setup scripts), see
 [`docs/db/setup.md`](docs/db/setup.md).
 
+### Scheduled jobs
+
+Background jobs (data syncs, aggregations, token cleanup) are Spring `@Scheduled` methods, enabled by
+`SchedulingConfiguration` unless `conluz.scheduling.enabled=false`. The test configuration sets it to `false`, so tests
+call a job directly instead of waiting for it.
+
+### Creating accounts
+
+There is no `POST /api/v1/users`. An account is created by `/api/v1/init` (the default admin), by registering or
+importing members into a community (`…/memberships/register`, `…/memberships/import`), or by inviting a community
+admin or a platform admin (`…/admins/invite`, `/api/v1/platform-admins/invite`).
+
 ## The OpenAPI snapshot
 
 `src/main/resources/api/docs/api-docs.json` is a committed, normalised copy of the whole generated

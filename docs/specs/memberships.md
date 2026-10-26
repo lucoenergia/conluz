@@ -381,9 +381,9 @@ lazily, as issues touch it.
   nothing from the admin's next request (MEM-004), while their other memberships keep granting what they did. It
   MUST log one line with the user, the community and the operation.
 - **Rationale:** Suspending an admin of one community must not lock them out of the others (ADR-0003 §2); the
-  account's flag would. Memberships are read again on every request (#390), so no session needs revoking.
-  Disabling a member's membership is out of scope (#395).
-- **Source:** #395, ADR-0003 §2 and §3
+  account's flag would. Memberships are read again on every request (#390), so no session needs revoking. A
+  member's membership is enabled and disabled by a community admin instead (MEM-027).
+- **Source:** #395, #481, ADR-0003 §2 and §3
 
 ### MEM-024 — Giving a membership the admin role requires a contact email
 

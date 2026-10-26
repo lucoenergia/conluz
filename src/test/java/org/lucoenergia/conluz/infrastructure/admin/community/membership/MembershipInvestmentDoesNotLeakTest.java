@@ -113,21 +113,20 @@ class MembershipInvestmentDoesNotLeakTest extends BaseControllerTest {
     /**
      * The token travels to the client and its payload is readable by anyone holding it, so an
      * investment in any claim would be public to the bearer regardless of any endpoint guard.
-     * The whole payload is decoded rather than read through
-     * {@link AuthRepository#getCommunityMemberships}, because that accessor's {@code Map&lt;String,
-     * String&gt;} shape could not carry an amount even if a claim did.
+     * The whole payload is decoded, so a claim is checked whatever its shape.
      */
     @Test
     void theJwtPayloadNeverCarriesTheInvestment() {
         CommunityEntity community = persistCommunity();
         User member = persistMemberWithInvestment(community.getId());
-        // The claims are built from the principal's memberships, so they have to be loaded first.
+        // Loaded so the token is built from a principal that carries the membership and its investment
         member.setMemberships(getMembershipsRepository.findByUserId(member.getId()));
 
         String payload = decodePayload(authRepository.getToken(member).getToken());
 
-        assertTrue(payload.contains(community.getId().toString()),
-                () -> "the membership is missing from the payload: " + payload);
+        // The token carries no membership at all (#481), so neither the membership nor its investment is in it
+        assertFalse(payload.contains(community.getId().toString()),
+                () -> "the membership is in the payload: " + payload);
         assertNoInvestment(payload);
     }
 

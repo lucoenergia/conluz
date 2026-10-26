@@ -276,7 +276,7 @@ invitation's resend and revoke only on rows with one. On a pending row `revocabl
 | `canUpdateRole` | `canManageMemberships(communityId)` |
 | `canDelete` | `canManageMemberships(communityId)` |
 | `canManageInvestment` | `canManageMembershipInvestment(communityId)` |
-| `canReadPayback` | `canReadMembershipPayback(communityId, userId)` |
+| `canReadPayback` | `canReadMembershipPrivateData(communityId, userId)` |
 | `canInvite` | `canInviteMembers(communityId)` (invite, resend and revoke the invitation) |
 | `canEnable` | `canChangeMemberState(communityId, userId)` |
 | `canDisable` | `canChangeMemberState(communityId, userId)` |

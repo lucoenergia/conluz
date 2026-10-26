@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -63,6 +64,7 @@ public class LogoutUserController {
     })
     @BadRequestErrorResponse
     @InternalServerErrorResponse
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         // Extract token from request
         Optional<String> tokenString = jwtAccessTokenHandler.getTokenFromRequest(request);

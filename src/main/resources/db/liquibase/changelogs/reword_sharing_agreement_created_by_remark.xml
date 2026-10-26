@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Rewords the remark on sharing_agreement.created_by (#481). The remark it replaces described the agreements a
+         migration creates by referring to a step of the plan that produced them, which a reader of the schema cannot
+         look up, and it left out that the foreign key has set the column to NULL when the creator's account is
+         deleted since add_on_delete_set_null_to_sharing_agreement_created_by_fk.
+
+         Only the column's comment changes; no data or constraint does. The rollback is deliberately empty: putting the
+         previous comment back would only bring back the reference this changeset removes, and a comment has no effect
+         on the schema's behaviour. -->
+    <changeSet id="reword_sharing_agreement_created_by_remark" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot reword the remark on sharing_agreement.created_by: the column does not exist.">
+            <columnExists tableName="sharing_agreement" columnName="created_by"/>
+        </preConditions>
+        <setColumnRemarks tableName="sharing_agreement"
+                          columnName="created_by"
+                          columnDataType="UUID"
+                          remarks="The user who created the agreement. NULL means the agreement was created by the system (a migration), not by a person, or that the creator's account has been deleted. Not filled with a synthetic 'system' user: such a row could not authenticate and would appear in member listings."/>
+        <rollback>
+            <!-- Intentionally empty: see the comment above. -->
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

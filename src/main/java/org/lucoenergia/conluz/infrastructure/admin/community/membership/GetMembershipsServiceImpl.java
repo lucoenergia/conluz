@@ -1,8 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
-import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
-import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsService;
 import org.lucoenergia.conluz.domain.admin.community.membership.LastActiveCommunityAdminRule;
@@ -22,22 +20,17 @@ import java.util.UUID;
 public class GetMembershipsServiceImpl implements GetMembershipsService {
 
     private final GetMembershipsRepository getMembershipsRepository;
-    private final GetCommunityRepository getCommunityRepository;
     private final GetOneTimeTokenService getOneTimeTokenService;
 
     public GetMembershipsServiceImpl(GetMembershipsRepository getMembershipsRepository,
-                                     GetCommunityRepository getCommunityRepository,
                                      GetOneTimeTokenService getOneTimeTokenService) {
         this.getMembershipsRepository = getMembershipsRepository;
-        this.getCommunityRepository = getCommunityRepository;
         this.getOneTimeTokenService = getOneTimeTokenService;
     }
 
     @Override
     public List<MembershipInRoster> findByCommunityId(UUID communityId) {
-        getCommunityRepository.findById(communityId)
-                .orElseThrow(() -> new CommunityNotFoundException(communityId));
-
+        // The repository answers CommunityNotFoundException for a community that does not exist
         List<CommunityMembership> memberships = getMembershipsRepository.findByCommunityId(communityId);
         Map<UUID, Instant> invitationExpiries = getOneTimeTokenService.findValidExpiriesInCommunity(communityId,
                 OneTimeTokenPurpose.INVITATION);

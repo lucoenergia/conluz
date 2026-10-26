@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- blacklisted_token.expiration and revoked_at are instants, but were created as TIMESTAMP without a time zone,
+         the only two such columns left (#481). They become TIMESTAMPTZ, like every other instant in the schema.
+
+         Every existing value holds the instant's wall clock in UTC: Hibernate writes an Instant into a TIMESTAMP
+         column in UTC whatever the JVM's or the session's time zone, so each value is read back with AT TIME ZONE
+         'UTC' and keeps the instant it stood for. No instant changes and no value is ambiguous, since UTC has no
+         daylight saving time.
+
+         The rollback turns the columns back into TIMESTAMP holding the UTC wall clock, the form in which the
+         application wrote them. -->
+    <changeSet id="convert_blacklisted_token_timestamps_to_timestamptz" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot convert blacklisted_token.expiration and revoked_at to TIMESTAMPTZ: they are not both TIMESTAMP without time zone. Inspect them with: SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'blacklisted_token' AND column_name IN ('expiration', 'revoked_at');">
+            <tableExists tableName="blacklisted_token"/>
+            <sqlCheck expectedResult="2">
+                SELECT count(*) FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'blacklisted_token'
+                  AND column_name IN ('expiration', 'revoked_at')
+                  AND data_type = 'timestamp without time zone'
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            ALTER TABLE blacklisted_token
+                ALTER COLUMN expiration TYPE TIMESTAMPTZ USING expiration AT TIME ZONE 'UTC',
+                ALTER COLUMN revoked_at TYPE TIMESTAMPTZ USING revoked_at AT TIME ZONE 'UTC'
+        </sql>
+        <setColumnRemarks tableName="blacklisted_token"
+                          columnName="expiration"
+                          columnDataType="TIMESTAMPTZ"
+                          remarks="When the revoked token expires."/>
+        <setColumnRemarks tableName="blacklisted_token"
+                          columnName="revoked_at"
+                          columnDataType="TIMESTAMPTZ"
+                          remarks="When the token was revoked."/>
+        <rollback>
+            <sql>
+                ALTER TABLE blacklisted_token
+                    ALTER COLUMN expiration TYPE TIMESTAMP USING expiration AT TIME ZONE 'UTC',
+                    ALTER COLUMN revoked_at TYPE TIMESTAMP USING revoked_at AT TIME ZONE 'UTC'
+            </sql>
+            <sql>
+                COMMENT ON COLUMN blacklisted_token.expiration IS NULL;
+                COMMENT ON COLUMN blacklisted_token.revoked_at IS NULL
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

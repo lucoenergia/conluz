@@ -31,7 +31,5 @@ public interface GetUserRepository {
 
     List<User> findAll();
 
-    Optional<User> getDefaultAdminUser();
-
     List<User> findAllUsersWithAtLeastOneSupply();
 }

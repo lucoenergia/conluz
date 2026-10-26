@@ -43,8 +43,6 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
                                                                @Param("fullName") String fullName,
                                                                @Param("email") String email);
 
-    Optional<UserEntity> findFirstByNumber(int number);
-
     boolean existsByPersonalId(String personalId);
 
     long countByIsPlatformAdminTrueAndEnabledTrue();

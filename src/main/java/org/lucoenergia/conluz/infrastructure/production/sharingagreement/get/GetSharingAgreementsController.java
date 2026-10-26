@@ -58,7 +58,7 @@ public class GetSharingAgreementsController {
 
                     Returns 404 if the plant does not exist or if the caller is not a member of its
                     community, to avoid leaking the existence of plants by ID. Returns 403 if the
-                    caller is an enabled member of the plant's community but not a community admin.
+                    caller is an active member of the plant's community but not a community admin.
 
                     Authentication is required using a Bearer token.
                     """,
