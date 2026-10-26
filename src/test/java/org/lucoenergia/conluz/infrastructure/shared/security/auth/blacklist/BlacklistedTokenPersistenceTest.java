@@ -51,6 +51,9 @@ class BlacklistedTokenPersistenceTest extends BaseIntegrationTest {
 
     @Test
     void onlyTokensThatExpiredBeforeTheGivenInstantAreDeleted() {
+        // Other test classes commit blacklisted tokens to the shared database; this test's transaction removes them,
+        // and rolls the removal back, so the counts below are only this test's token
+        jdbcTemplate.update("DELETE FROM blacklisted_token");
         createBlacklistedTokenRepository.save(new BlacklistedToken("expiring", EXPIRATION, REVOKED_AT));
         entityManager.flush();
 
