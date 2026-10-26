@@ -161,6 +161,12 @@ class GetMembershipsRepositoryTest extends BaseIntegrationTest {
     }
 
     @Test
+    void findByCommunityId_refusesAnUnknownCommunity() {
+        assertThrows(CommunityNotFoundException.class,
+                () -> getMembershipsRepository.findByCommunityId(UUID.randomUUID()));
+    }
+
+    @Test
     void findByCommunityIdAndRole_refusesAnUnknownCommunity() {
         assertThrows(CommunityNotFoundException.class, () -> getMembershipsRepository.findByCommunityIdAndRole(
                 UUID.randomUUID(), CommunityRole.COMMUNITY_ADMIN));
