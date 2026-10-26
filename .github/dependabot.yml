@@ -1,0 +1,47 @@
+# Weekly version updates per ecosystem (#322, #475). Minor and patch updates are grouped into one PR per
+# ecosystem so they stay cheap to review; majors are left out of the group so each arrives as its own PR.
+# Security updates are grouped separately so a fix is never held back behind a routine bump.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      gradle-minor-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      gradle-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions-minor-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      github-actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # Covers the root Dockerfile only; the Compose example under deploy/ is out of scope (#475).
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      docker-minor-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      docker-security:
+        applies-to: security-updates
+        patterns: ["*"]
