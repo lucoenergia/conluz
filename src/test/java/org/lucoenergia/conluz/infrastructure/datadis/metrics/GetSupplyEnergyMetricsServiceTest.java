@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.domain.admin.supply.tariff.UnsupportedTariffPlanEx
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
+import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
@@ -81,10 +82,12 @@ class GetSupplyEnergyMetricsServiceTest {
     private final TimeConfiguration timeConfiguration = mock(TimeConfiguration.class);
     private final SupplyTariffResolver tariffResolver = mock(SupplyTariffResolver.class);
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
+    private final ReferenceMonthResolver referenceMonthResolver = mock(ReferenceMonthResolver.class);
     private final GetSupplyEnergyMetricsService service = new GetSupplyEnergyMetricsServiceImpl(
             aggregateRepository, getSupplyRepository, new DateConverter(timeConfiguration),
             new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
-                    CONFIGURED_ESTIMATE));
+                    CONFIGURED_ESTIMATE),
+            referenceMonthResolver, zoneResolver);
 
     private final Supply supply = SupplyMother.random().build();
     private final SupplyId supplyId = SupplyId.of(supply.getId());
