@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -21,10 +23,13 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,7 +37,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * A community admin editing the member records of their community (MEM-028, #416): only the record is written, never
- * the account, the person's other memberships, or the membership's role, state and invitation.
+ * the account, the person's other memberships, or the membership's role and state. Changing the contact email of a
+ * pending membership revokes its invitation link (#482).
  */
 class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
 
@@ -321,17 +327,17 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
     // --- Invitations ---
 
     @Test
-    @DisplayName("MEM-028 after the contact email changes, the link already sent still works until a resend "
-            + "replaces it, and the resend goes to the new address only")
+    @DisplayName("MEM-028 after the contact email changes, the link already sent stops working, and a resend goes "
+            + "to the new address only")
     void aResendGoesToTheNewContactEmail() throws Exception {
         InvitedMember member = invitedMember();
         Map<String, Object> edit = newEdit();
 
         updateRecord(member.bearer(), member.community().getId(), member.userId(), edit)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.invitationExpiresAt").isNotEmpty());
+                .andExpect(jsonPath("$.invitationExpiresAt").isEmpty());
 
-        assertThat(linkWorks(member.token())).isTrue();
+        assertThat(linkWorks(member.token())).isFalse();
         resend(member).andExpect(status().isOk());
         MimeMessage resent = awaitNextEmails(1)[0];
         assertThat(recipientsOf(resent)).containsExactly((String) edit.get("contactEmail"));
@@ -356,10 +362,110 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
         assertThat(recipientsOf(awaitNextEmails(1)[0])).containsExactly((String) edit.get("contactEmail"));
     }
 
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = CommunityRole.class)
+    @DisplayName("MEM-028 changing a pending membership's contact email revokes its link: inspecting and accepting "
+            + "it fail as invalid, and a resend reaches the new address")
+    void aContactEmailChange_revokesAPendingMembershipsLink(CommunityRole role) throws Exception {
+        Community community = newCommunity();
+        String admin = loginAsAdminOf(community);
+        Map<String, Object> record = registeredRecord(admin, community);
+        remember((String) record.get("personalId"));
+        remember((String) record.get("phoneNumber"));
+        UUID userId = userIdOf((String) record.get("personalId"));
+        if (role == CommunityRole.COMMUNITY_ADMIN) {
+            promote(admin, community, userId);
+        }
+        invite(admin, community.getId(), userId).andExpect(status().isOk());
+        String token = tokenFrom(emailTo(awaitNextEmailsHandedOver(), (String) record.get("contactEmail")));
+        Map<String, Object> edit = newEdit();
+        remember((String) edit.get("phoneNumber"));
+
+        updateRecord(admin, community.getId(), userId, edit)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value(role.name()))
+                .andExpect(jsonPath("$.invitationExpiresAt").isEmpty());
+
+        assertThat(linkWorks(token)).isFalse();
+        inspect(token, CLIENT_IP).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_TOKEN_INVALID"));
+        accept(token, newPassword(), CLIENT_IP).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_TOKEN_INVALID"));
+        assertThat(acceptedAt((String) record.get("personalId"), community.getId())).isNull();
+
+        resend(admin, community.getId(), userId).andExpect(status().isOk());
+        MimeMessage resent = emailTo(awaitNextEmailsHandedOver(), (String) edit.get("contactEmail"));
+        String newToken = tokenFrom(resent);
+        assertThat(linkWorks(newToken)).isTrue();
+        inspect(newToken, CLIENT_IP).andExpect(status().isOk());
+    }
+
+    /**
+     * An edit of a pending membership that keeps its contact email, as a mailbox.
+     */
+    private enum KeptEmail {
+        SAME_EMAIL(edit -> {
+        }),
+        EMAIL_IN_ANOTHER_CASE(edit -> edit.put("contactEmail",
+                ((String) edit.get("contactEmail")).toUpperCase(Locale.ROOT))),
+        ONLY_THE_NAME(edit -> edit.put("fullName", "Another Name " + UUID.randomUUID())),
+        ONLY_THE_PHONE(edit -> edit.put("phoneNumber", "688888888"));
+
+        private final Consumer<Map<String, Object>> change;
+
+        KeptEmail(Consumer<Map<String, Object>> change) {
+            this.change = change;
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(KeptEmail.class)
+    @DisplayName("MEM-028 an edit that keeps a pending membership's contact email, or changes only its case, keeps "
+            + "the link")
+    void anEditKeepingTheContactEmail_keepsTheLink(KeptEmail kept) throws Exception {
+        Community community = newCommunity();
+        String admin = loginAsAdminOf(community);
+        Map<String, Object> record = registeredRecord(admin, community);
+        remember((String) record.get("personalId"));
+        remember((String) record.get("phoneNumber"));
+        UUID userId = userIdOf((String) record.get("personalId"));
+        invite(admin, community.getId(), userId).andExpect(status().isOk());
+        String token = tokenFrom(awaitNextEmails(1)[0]);
+        Map<String, Object> edit = new LinkedHashMap<>(record);
+        edit.remove("personalId");
+        kept.change.accept(edit);
+        remember((String) edit.get("contactEmail"));
+        remember((String) edit.get("phoneNumber"));
+
+        updateRecord(admin, community.getId(), userId, edit)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contactEmail").value(edit.get("contactEmail")))
+                .andExpect(jsonPath("$.invitationExpiresAt").isNotEmpty());
+
+        assertThat(linkWorks(token)).isTrue();
+        inspect(token, CLIENT_IP).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("MEM-028 changing an accepted membership's contact email revokes nothing")
+    void aContactEmailChangeOfAnAcceptedMembership_revokesNothing() throws Exception {
+        Community community = newCommunity();
+        String admin = loginAsAdminOf(community);
+        User person = newUser();
+        registerAndAccept(person, community, admin);
+        List<Map<String, Object>> tokensBefore = tokenRows(person.getPersonalId());
+
+        updateRecord(admin, community.getId(), person.getId(), newEdit())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.invitationExpiresAt").isEmpty());
+
+        assertThat(tokenRows(person.getPersonalId())).isEqualTo(tokensBefore);
+    }
+
     // --- Logging ---
 
     @Test
-    @DisplayName("MEM-028 one line is logged per change, with the user and the community")
+    @DisplayName("MEM-028 one line is logged per change, with the user, the community and whether a link was revoked")
     void oneLineIsLogged() throws Exception {
         Community community = newCommunity();
         User member = memberOf(community, CommunityRole.COMMUNITY_MEMBER);
@@ -372,7 +478,32 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
                 .filteredOn(event -> event.getFormattedMessage().startsWith("Member record"))
                 .extracting(event -> event.getFormattedMessage())
                 .containsExactly("Member record updated: userId=" + member.getId() + ", communityId="
-                        + community.getId());
+                        + community.getId() + ", invitationRevoked=false");
+    }
+
+    @Test
+    @DisplayName("MEM-028 the line logged for a change of a pending membership's contact email says its link was "
+            + "revoked")
+    void theLoggedLine_saysTheLinkWasRevoked() throws Exception {
+        Community community = newCommunity();
+        String admin = loginAsAdminOf(community);
+        Map<String, Object> record = registeredRecord(admin, community);
+        remember((String) record.get("personalId"));
+        remember((String) record.get("phoneNumber"));
+        UUID userId = userIdOf((String) record.get("personalId"));
+        invite(admin, community.getId(), userId).andExpect(status().isOk());
+        awaitNextEmailsHandedOver();
+        Map<String, Object> edit = newEdit();
+        remember((String) edit.get("phoneNumber"));
+        logs.clear();
+
+        updateRecord(admin, community.getId(), userId, edit).andExpect(status().isOk());
+
+        assertThat(logs.allOfThisThread())
+                .filteredOn(event -> event.getFormattedMessage().startsWith("Member record"))
+                .extracting(event -> event.getFormattedMessage())
+                .containsExactly("Member record updated: userId=" + userId + ", communityId=" + community.getId()
+                        + ", invitationRevoked=true");
     }
 
     // --- Fixtures ---
@@ -406,6 +537,14 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
         String token = tokenFrom(awaitNextEmails(1)[0]);
         acceptAsUser(loginUser(person), token, CLIENT_IP).andExpect(status().isNoContent());
         return body;
+    }
+
+    private void promote(String admin, Community community, UUID userId) throws Exception {
+        mockMvc.perform(patch("/api/v1/communities/{communityId}/memberships/{userId}", community.getId(), userId)
+                        .header(HttpHeaders.AUTHORIZATION, admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"" + CommunityRole.COMMUNITY_ADMIN.name() + "\"}"))
+                .andExpect(status().isOk());
     }
 
     private UUID userIdOf(String personalId) {

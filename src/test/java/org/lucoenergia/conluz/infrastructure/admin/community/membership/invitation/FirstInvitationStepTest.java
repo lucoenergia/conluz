@@ -5,6 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.AdminChangeActor;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChange;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -20,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,26 +31,32 @@ class FirstInvitationStepTest {
 
     private static final UserId USER_ID = UserId.of(UUID.randomUUID());
     private static final UUID COMMUNITY_ID = UUID.randomUUID();
+    private static final UserId ACTOR = UserId.of(UUID.randomUUID());
     private static final String CONTACT_EMAIL = "member@example.org";
 
     @Mock
     private InvitationSending sending;
+    @Mock
+    private CommunityAdminChangeNotifier notifier;
 
     private FirstInvitationStep step() {
-        return new FirstInvitationStep(sending);
+        return new FirstInvitationStep(sending, notifier);
     }
 
     @Test
     @DisplayName("MEM-012 a membership still eligible once locked is invited")
     void anEligibleMembership_isInvited_afterItIsLocked() {
         CommunityMembership eligible = new CommunityMembership.Builder().withContactEmail(CONTACT_EMAIL).build();
+        CommunityMembership invited = new CommunityMembership.Builder().withContactEmail(CONTACT_EMAIL).build();
         when(sending.lockAndFind(COMMUNITY_ID, USER_ID)).thenReturn(Optional.of(eligible));
+        when(sending.issueAndSend(eligible)).thenReturn(invited);
 
-        assertTrue(step().inviteIfEligible(COMMUNITY_ID, USER_ID));
+        assertTrue(step().inviteIfEligible(COMMUNITY_ID, USER_ID, ACTOR));
 
-        InOrder order = inOrder(sending);
+        InOrder order = inOrder(sending, notifier);
         order.verify(sending).lockAndFind(COMMUNITY_ID, USER_ID);
         order.verify(sending).issueAndSend(eligible);
+        order.verify(notifier).notify(CommunityAdminChange.INVITED, null, invited, AdminChangeActor.person(ACTOR));
     }
 
     @Test
@@ -54,9 +64,10 @@ class FirstInvitationStepTest {
     void aMembershipGoneOnceLocked_isSkipped() {
         when(sending.lockAndFind(COMMUNITY_ID, USER_ID)).thenReturn(Optional.empty());
 
-        assertFalse(step().inviteIfEligible(COMMUNITY_ID, USER_ID));
+        assertFalse(step().inviteIfEligible(COMMUNITY_ID, USER_ID, ACTOR));
 
         verify(sending, never()).issueAndSend(any());
+        verifyNoInteractions(notifier);
     }
 
     @Test
@@ -87,8 +98,9 @@ class FirstInvitationStepTest {
     private void assertSkipped(CommunityMembership underTheLock) {
         when(sending.lockAndFind(COMMUNITY_ID, USER_ID)).thenReturn(Optional.of(underTheLock));
 
-        assertFalse(step().inviteIfEligible(COMMUNITY_ID, USER_ID));
+        assertFalse(step().inviteIfEligible(COMMUNITY_ID, USER_ID, ACTOR));
 
         verify(sending, never()).issueAndSend(any());
+        verifyNoInteractions(notifier);
     }
 }

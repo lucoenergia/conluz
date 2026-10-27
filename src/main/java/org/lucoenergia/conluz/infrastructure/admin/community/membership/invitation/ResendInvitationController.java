@@ -183,7 +183,7 @@ public class ResendInvitationController {
     public MemberResponse resendInvitation(@AuthenticationPrincipal User currentUser,
                                            @PathVariable("communityId") UUID communityId,
                                            @PathVariable("userId") UUID userId) {
-        MembershipWithInvitation resent = service.resend(communityId, UserId.of(userId));
+        MembershipWithInvitation resent = service.resend(communityId, UserId.of(userId), UserId.of(currentUser.getId()));
         CommunityMembership membership = resent.membership();
         return new MemberResponse(membership.getUser().getPersonalId(), membership, resent.invitationExpiresAt(),
                 capabilitiesAssembler.assemble(currentUser, membership));

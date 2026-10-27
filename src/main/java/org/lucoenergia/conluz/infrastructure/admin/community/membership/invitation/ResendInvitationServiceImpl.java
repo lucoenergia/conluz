@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation;
 
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.AdminChangeActor;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChange;
+import org.lucoenergia.conluz.domain.admin.community.admins.notification.CommunityAdminChangeNotifier;
 import org.lucoenergia.conluz.domain.admin.community.membership.MembershipWithInvitation;
 import org.lucoenergia.conluz.domain.admin.community.membership.invitation.ResendInvitationService;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -19,16 +22,21 @@ public class ResendInvitationServiceImpl implements ResendInvitationService {
 
     private final InvitationResending resending;
     private final InvitationSending sending;
+    private final CommunityAdminChangeNotifier notifier;
 
-    public ResendInvitationServiceImpl(InvitationResending resending, InvitationSending sending) {
+    public ResendInvitationServiceImpl(InvitationResending resending, InvitationSending sending,
+                                       CommunityAdminChangeNotifier notifier) {
         this.resending = resending;
         this.sending = sending;
+        this.notifier = notifier;
     }
 
     @Override
-    public MembershipWithInvitation resend(UUID communityId, UserId userId) {
+    public MembershipWithInvitation resend(UUID communityId, UserId userId, UserId resentBy) {
         // Every membership of the community, whatever its role
         CommunityMembership invited = resending.resend(communityId, userId, membership -> true);
+        // Skipped by the notifier when the membership is a member's
+        notifier.notify(CommunityAdminChange.INVITATION_RESENT, null, invited, AdminChangeActor.person(resentBy));
 
         LOGGER.info("Member invitation resent: userId={}, communityId={}", userId.getId(), communityId);
         return sending.withInvitation(invited);

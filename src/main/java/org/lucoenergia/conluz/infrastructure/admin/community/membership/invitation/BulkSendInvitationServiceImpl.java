@@ -33,14 +33,14 @@ public class BulkSendInvitationServiceImpl implements BulkSendInvitationService 
     }
 
     @Override
-    public SentInvitations send(UUID communityId) {
+    public SentInvitations send(UUID communityId, UserId sentBy) {
         sending.requireAvailable();
 
         // In ascending user id, and invited in that order: two concurrent calls lock in the same order
         List<UserId> candidates = getMembershipsRepository.findFirstInvitationCandidates(communityId, BATCH_SIZE);
         int sent = 0;
         for (UserId candidate : candidates) {
-            if (step.inviteIfEligible(communityId, candidate)) {
+            if (step.inviteIfEligible(communityId, candidate, sentBy)) {
                 sent++;
             }
         }

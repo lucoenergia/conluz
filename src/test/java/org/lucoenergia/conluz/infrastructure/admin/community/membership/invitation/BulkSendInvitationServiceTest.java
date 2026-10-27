@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 class BulkSendInvitationServiceTest {
 
     private static final UUID COMMUNITY_ID = UUID.randomUUID();
+    private static final UserId ACTOR = UserId.of(UUID.randomUUID());
 
     @Mock
     private InvitationSending sending;
@@ -43,7 +44,7 @@ class BulkSendInvitationServiceTest {
     void whenTheServerCannotSend_nothingIsSelected() {
         doThrow(new MembershipInvitationUnavailableException()).when(sending).requireAvailable();
 
-        assertThrows(MembershipInvitationUnavailableException.class, () -> service().send(COMMUNITY_ID));
+        assertThrows(MembershipInvitationUnavailableException.class, () -> service().send(COMMUNITY_ID, ACTOR));
 
         verifyNoInteractions(getMembershipsRepository, step);
     }
@@ -57,19 +58,19 @@ class BulkSendInvitationServiceTest {
         UserId third = UserId.of(UUID.randomUUID());
         when(getMembershipsRepository.findFirstInvitationCandidates(COMMUNITY_ID, 50))
                 .thenReturn(List.of(first, second, third));
-        when(step.inviteIfEligible(COMMUNITY_ID, first)).thenReturn(true);
-        when(step.inviteIfEligible(COMMUNITY_ID, second)).thenReturn(false);
-        when(step.inviteIfEligible(COMMUNITY_ID, third)).thenReturn(true);
+        when(step.inviteIfEligible(COMMUNITY_ID, first, ACTOR)).thenReturn(true);
+        when(step.inviteIfEligible(COMMUNITY_ID, second, ACTOR)).thenReturn(false);
+        when(step.inviteIfEligible(COMMUNITY_ID, third, ACTOR)).thenReturn(true);
         when(getMembershipsRepository.countFirstInvitationCandidates(COMMUNITY_ID)).thenReturn(7L);
 
-        assertEquals(new SentInvitations(2, 7), service().send(COMMUNITY_ID));
+        assertEquals(new SentInvitations(2, 7), service().send(COMMUNITY_ID, ACTOR));
 
         InOrder order = inOrder(sending, getMembershipsRepository, step);
         order.verify(sending).requireAvailable();
         order.verify(getMembershipsRepository).findFirstInvitationCandidates(COMMUNITY_ID, 50);
-        order.verify(step).inviteIfEligible(COMMUNITY_ID, first);
-        order.verify(step).inviteIfEligible(COMMUNITY_ID, second);
-        order.verify(step).inviteIfEligible(COMMUNITY_ID, third);
+        order.verify(step).inviteIfEligible(COMMUNITY_ID, first, ACTOR);
+        order.verify(step).inviteIfEligible(COMMUNITY_ID, second, ACTOR);
+        order.verify(step).inviteIfEligible(COMMUNITY_ID, third, ACTOR);
         order.verify(getMembershipsRepository).countFirstInvitationCandidates(COMMUNITY_ID);
     }
 }

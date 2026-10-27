@@ -53,7 +53,8 @@ public class UpdateMemberRecordController {
                     Replaces the record this community keeps on a member: full name, member number, contact email, \
                     address and phone number. The whole record is sent: an optional value that is missing, null, \
                     empty or blank is cleared. Only the record is written, never the person's account, which they \
-                    share with their other communities, nor the membership's role, state or invitation.
+                    share with their other communities, nor the membership's role or state. The only other change \
+                    is the invitation link revoked as described below.
 
                     Any membership of the community may be edited, whatever its role and whether it is pending, \
                     accepted or disabled, the caller's own included. A user with no membership in the community \
@@ -62,8 +63,10 @@ public class UpdateMemberRecordController {
                     A membership with the `COMMUNITY_ADMIN` role must keep a contact email: a record without one \
                     responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and nothing is changed.
 
-                    An invitation link already sent stays valid; the next invitation, or resend, goes to the new \
-                    contact email.
+                    Changing the contact email of a pending membership revokes its active invitation link, so a link \
+                    sent to the old address stops working and `invitationExpiresAt` is null; the next invitation, or \
+                    resend, goes to the new contact email. A change only of letter case is not a change of address \
+                    and keeps the link.
 
                     **Required: Community Admin of this community.** A platform admin who is not one is refused with \
                     403.

@@ -468,15 +468,24 @@ lazily, as issues touch it.
   empty or blank, and a missing member number, MUST be stored as none, and nothing is trimmed. A membership with
   the role `COMMUNITY_ADMIN` whose new record has no contact email MUST be refused with 400
   `MEMBERSHIP_WITHOUT_CONTACT_EMAIL`, changing nothing. The change MUST write only the record's full name, member
-  number, contact email, address and phone number, never the account, the role, the state or the invitation, and
-  MUST take the user, then the membership lock. An invitation link already sent stays valid; the next send or
-  resend goes to the new contact email (MEM-009, MEM-010). It MUST log one line with the user and the community,
-  and never an email address.
+  number, contact email, address and phone number, never the account, the role, the state or the invitation
+  instant, and MUST take the user, then the membership lock. When the membership is pending and its contact email
+  changes, its active invitation link MUST be revoked in the same transaction, taking the token rows after the
+  membership lock: a link sent to the old address stops working, and the new address is reached by a send or a
+  resend (MEM-009, MEM-010). Whether the address changed MUST be decided on both values trimmed and lower-cased,
+  none and blank being equal, so a change only of case or of surrounding spaces keeps the link; the email is still
+  stored as it is sent. Any other edit, and an edit of an accepted membership, MUST revoke nothing. It MUST log one
+  line with the user, the community and whether a link was revoked, and never an email address.
 - **Rationale:** The account belongs to the person and is shared by every community they belong to; what a
   community knows about a member is its own record (ADR-0003 §1), so correcting it must not reach the account
   or another community (ACC-008). Admins need a contact email (ADR-0003 §8, MEM-024), so it cannot be removed
-  from an admin's record. A blank email is "no email", as everywhere else (ACC-003).
-- **Source:** #416, ADR-0003 §1 and §8
+  from an admin's record. A blank email is "no email", as everywhere else (ACC-003). A link already sent to an
+  address the community no longer uses for the person would otherwise keep working there; revoking it means the
+  link always matches the record, and a resend to the new address, notified when the membership is an admin's
+  (MEM-035), is needed to reach it. A change only of case or of surrounding spaces reaches the same mailbox in
+  practice, so revoking for it would only force a pointless resend. The log line says whether a link was revoked,
+  so support can tell a link revoked by a record edit apart from one revoked otherwise.
+- **Source:** #416, #482, ADR-0003 §1 and §8
 
 ### MEM-029 — The membership of a supply owner in the community is not deleted
 
@@ -634,18 +643,24 @@ lazily, as issues touch it.
 - **Rule:** An active community admin MAY promote a member to admin (MEM-024) and demote or remove any admin of
   the community, themselves included, subject to MEM-033 and MEM-029. The platform admin MUST NOT demote or remove
   a community's admins (MEM-031), and MAY invite them, resend and revoke their invitations, and suspend and
-  reactivate them, through `…/admins` (MEM-020, MEM-022, MEM-023). A community admin MUST NOT suspend
-  another admin (MEM-027, MEM-023).
+  reactivate them, through `…/admins` (MEM-020, MEM-022, MEM-023). An active community admin MAY send, resend and
+  revoke the invitation of a pending admin of the community through the member endpoints (`sendInvitation`,
+  `sendInvitations`, `resendInvitation`, `revokeInvitation`), as for any pending membership. A community admin MUST
+  NOT suspend another admin (MEM-027, MEM-023).
 - **Rationale:** Admins of the same community are peers, and the community decides who administers it. The
   platform admin appoints a community's first admins and keeps suspension as a security tool, for example for a
-  compromised account, but does not take part in the community's own governance.
-- **Source:** #449, #446, #415, #395, ADR-0003 §10
+  compromised account, but does not take part in the community's own governance. A pending admin, invited by the
+  platform admin or promoted while pending, is reached through the same invitation flow as a member: a community
+  admin, a peer, may send it, and the send is told to the other admins (MEM-035).
+- **Source:** #449, #446, #415, #395, #482, ADR-0003 §10
 
 ### MEM-035 — Every change to a community's admins is told to its admins
 
 - **Status:** Active
 - **Rule:** Every change to a community's admins MUST be notified by email, after commit: an admin invitation sent
-  or resent by the platform admin (`inviteCommunityAdmin`, `resendCommunityAdminInvitation`), an admin invitation
+  or resent by the platform admin (`inviteCommunityAdmin`, `resendCommunityAdminInvitation`), a pending admin's
+  invitation sent or resent by a community admin (`sendInvitation`, each admin's membership invited by
+  `sendInvitations`, `resendInvitation`), an admin invitation
   accepted (`acceptInvitation`, `acceptInvitationAsCurrentUser`), a member promoted to admin or an admin demoted
   (`updateMembershipRole`), an admin's membership deleted (`deleteMembership`), and an admin suspended or
   reactivated (`disableCommunityAdmin`, `enableCommunityAdmin`). The email MUST go to every other active admin of
@@ -656,7 +671,9 @@ lazily, as issues touch it.
   change, by the full names of their member records or as the platform operator, what happened and when, and how to
   act if it was not expected: talk to the community's other admins, or contact the operator. A request refused by
   its own rules, a request that changes nothing (giving a membership the role it has, enabling an enabled admin or
-  disabling a suspended one) and a change to a member's membership MUST NOT be notified. The notification MUST NOT
+  disabling a suspended one), a change to a member's membership and the revocation of an invitation, by the
+  platform admin or a community admin (`revokeCommunityAdminInvitation`, `revokeInvitation`), MUST NOT be notified.
+  The notification MUST NOT
   change the outcome of the request: a failure to build or hand over an email MUST be logged, without personal
   data, and the request MUST succeed. One line MUST be logged at INFO per notified change, after commit, with the
   community id, the affected user id, the change, the actor's user id and the number of emails.
@@ -664,7 +681,9 @@ lazily, as issues touch it.
   away access to all of it. Its admins must be able to notice a change they did not make, including one made by
   the platform admin, who can invite its own account (#466 D1). The affected admin is told only when their real
   access changes: a pending admin never had it. An admin who cannot act is not told, as MEM-033 does not count them.
-- **Source:** #466, ADR-0003 §10
+  A send or resend by a community admin is told like the platform admin's, since it can reach an address the
+  sender chose (ADR-0003, accepted risk). A revocation gives no one access, so it is not told.
+- **Source:** #466, #482, ADR-0003 §10
 
 ### MEM-036 — A notification of a change to a community's admins carries no personal identifiers
 

@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.community.membership.invitation;
 
+import org.lucoenergia.conluz.domain.shared.UserId;
+
 import java.util.UUID;
 
 /**
@@ -20,6 +22,8 @@ public interface BulkSendInvitationService {
      * @throws org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException if the server
      *         cannot send: the public web URL is not configured, or email sending is disabled. Checked first, and
      *         nothing is selected, issued or recorded
+     * @param sentBy the community admin who sends them, named in the notification to the community's other admins
+     *        for each admin's membership invited (#482)
      */
-    SentInvitations send(UUID communityId);
+    SentInvitations send(UUID communityId, UserId sentBy);
 }

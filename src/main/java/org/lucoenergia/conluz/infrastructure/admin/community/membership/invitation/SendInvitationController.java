@@ -138,7 +138,7 @@ public class SendInvitationController {
     public MemberResponse sendInvitation(@AuthenticationPrincipal User currentUser,
                                          @PathVariable("communityId") UUID communityId,
                                          @PathVariable("userId") UUID userId) {
-        MembershipWithInvitation invited = service.send(communityId, UserId.of(userId));
+        MembershipWithInvitation invited = service.send(communityId, UserId.of(userId), UserId.of(currentUser.getId()));
         CommunityMembership membership = invited.membership();
         return new MemberResponse(membership.getUser().getPersonalId(), membership, invited.invitationExpiresAt(),
                 capabilitiesAssembler.assemble(currentUser, membership));

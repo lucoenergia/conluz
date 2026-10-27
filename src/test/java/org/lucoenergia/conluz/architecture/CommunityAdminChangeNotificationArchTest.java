@@ -9,10 +9,13 @@ import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembership
 import org.lucoenergia.conluz.domain.admin.community.membership.SetMembershipEnabledRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.UpdateMembershipRoleRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.AcceptMembershipRepository;
+import org.lucoenergia.conluz.domain.admin.user.token.RevokeOneTimeTokenRepository;
+import org.lucoenergia.conluz.domain.admin.user.token.RevokeOneTimeTokenService;
 import org.lucoenergia.conluz.infrastructure.admin.community.admins.DisableCommunityAdminServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.community.admins.EnableCommunityAdminServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.community.admins.InviteCommunityAdminServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.community.admins.ResendCommunityAdminInvitationServiceImpl;
+import org.lucoenergia.conluz.infrastructure.admin.community.admins.RevokeCommunityAdminInvitationServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.DeleteMembershipServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.DisableMembershipServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.EnableMembershipServiceImpl;
@@ -20,12 +23,16 @@ import org.lucoenergia.conluz.infrastructure.admin.community.membership.UpdateMe
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.accept.CommunityInvitationAcceptance;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.FirstInvitationStep;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.InvitationResending;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.InvitationRevoking;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.InvitationSending;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.ResendInvitationServiceImpl;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.RevokeInvitationServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.invitation.SendInvitationServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.MemberImportRowStep;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.MembershipRegistration;
+import org.lucoenergia.conluz.infrastructure.admin.community.membership.record.UpdateMemberRecordServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.RegisterMemberServiceImpl;
+import org.lucoenergia.conluz.infrastructure.admin.user.token.RevokeOneTimeTokenServiceImpl;
 import org.lucoenergia.conluz.infrastructure.admin.user.delete.DeleteUserServiceImpl;
 
 import static com.tngtech.archunit.core.domain.JavaCall.Predicates.target;
@@ -43,6 +50,11 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  * community's admins, and must then call {@link CommunityAdminChangeNotifier}, or is listed here with the reason it
  * changes no admin. A new caller fails the build until it is classified, so a new path that changes admins cannot
  * forget to notify them by accident.</p>
+ *
+ * <p>A membership's invitation link is revoked through a few more. Revoking it is not notified (MEM-035), so every
+ * class that calls one of them is listed here with the reason, and none of them calls the notifier. A new caller
+ * fails the build until it is classified, and a decision to notify a revocation moves its class to the services that
+ * change a community's admins (#482).</p>
  */
 public class CommunityAdminChangeNotificationArchTest extends BaseArchTest {
 
@@ -55,6 +67,11 @@ public class CommunityAdminChangeNotificationArchTest extends BaseArchTest {
             DeleteMembershipServiceImpl.class,
             DisableCommunityAdminServiceImpl.class,
             EnableCommunityAdminServiceImpl.class,
+            // A community admin may send or resend a pending admin's invitation through the member endpoints (#482);
+            // the notifier skips a member's membership
+            SendInvitationServiceImpl.class,
+            FirstInvitationStep.class,
+            ResendInvitationServiceImpl.class,
     };
 
     /** The other callers of the writers below, none of which changes a community's admins. */
@@ -65,16 +82,28 @@ public class CommunityAdminChangeNotificationArchTest extends BaseArchTest {
             // Register members, always with the member role
             RegisterMemberServiceImpl.class,
             MemberImportRowStep.class,
-            // Send or resend an invitation of a membership that exists already: no role or state changes. A
-            // community admin may send one to a pending admin through them, which is not one of #466's events
-            SendInvitationServiceImpl.class,
-            FirstInvitationStep.class,
-            ResendInvitationServiceImpl.class,
             // The resending rules, shared by the member and the admin resend; its callers are checked here
             InvitationResending.class,
             // Deletes every membership of an account, admins included, but no request can reach it: its guard
             // refuses every caller until account deletion is designed (#325)
             DeleteUserServiceImpl.class,
+    };
+
+    /**
+     * The callers of the revokers below. A revocation gives no one access, so it is not notified (MEM-035).
+     */
+    private static final Class<?>[] REVOCATIONS = {
+            // A community admin revoking a member's or a pending admin's invitation through the member endpoints
+            RevokeInvitationServiceImpl.class,
+            // The platform admin revoking a pending community admin's invitation
+            RevokeCommunityAdminInvitationServiceImpl.class,
+            // An edit of a pending membership's contact email revokes its link: the new address is reached only by a
+            // send or a resend, which is notified for an admin's membership (MEM-028)
+            UpdateMemberRecordServiceImpl.class,
+            // The revoking rules, shared by the member and the admin revoke; its callers are checked here
+            InvitationRevoking.class,
+            // The implementation of the port; its callers are checked here
+            RevokeOneTimeTokenServiceImpl.class,
     };
 
     @Test
@@ -99,6 +128,40 @@ public class CommunityAdminChangeNotificationArchTest extends BaseArchTest {
                         + "must be told to them (MEM-035, #466): call CommunityAdminChangeNotifier and add the "
                         + "class to ADMIN_CHANGING_SERVICES, or add it to NOT_ADMIN_CHANGES with the reason")
                 .check(IMPORTED_CLASSES);
+    }
+
+    @Test
+    @DisplayName("MEM-035 a new revoker of a membership's invitation link is classified")
+    void everyRevokerOfAMembershipsLink_isClassified() {
+        noClasses()
+                .that().doNotBelongToAnyOf(ADMIN_CHANGING_SERVICES)
+                .and().doNotBelongToAnyOf(REVOCATIONS)
+                .should().callMethodWhere(revokesAMembershipsLink())
+                .because("a class that revokes a membership's invitation link may act on a pending admin (MEM-035, "
+                        + "#482): add it to REVOCATIONS with the reason, or, if the revocation is to be told to the "
+                        + "community's admins, call CommunityAdminChangeNotifier and add it to "
+                        + "ADMIN_CHANGING_SERVICES")
+                .check(IMPORTED_CLASSES);
+    }
+
+    @Test
+    @DisplayName("MEM-035 no revocation of a membership's invitation link is notified")
+    void noRevocation_isNotified() {
+        noClasses()
+                .that().belongToAnyOf(REVOCATIONS)
+                .should().callMethodWhere(target(owner(equivalentTo(CommunityAdminChangeNotifier.class)))
+                        .and(target(name("notify"))))
+                .because("a revocation gives no one access and is not told to a community's admins (MEM-035): a "
+                        + "class that notifies one moves to ADMIN_CHANGING_SERVICES, and MEM-035 changes with it")
+                .check(IMPORTED_CLASSES);
+    }
+
+    private static DescribedPredicate<JavaCall<?>> revokesAMembershipsLink() {
+        return target(owner(equivalentTo(InvitationRevoking.class))).and(target(name("revoke")))
+                .or(target(owner(equivalentTo(RevokeOneTimeTokenService.class)))
+                        .and(target(name("revokeForMembership"))))
+                .or(target(owner(equivalentTo(RevokeOneTimeTokenRepository.class)))
+                        .and(target(name("revokeActiveForMembership"))));
     }
 
     private static DescribedPredicate<JavaCall<?>> writesAMembershipsRoleOrState() {
