@@ -29,6 +29,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.time.Instant;
 import java.time.Month;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -214,6 +216,25 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
         request(membershipPath("/energy-metrics"), AUGUST_START, AUGUST_END)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.coverage.expectedHours").value(744));
+    }
+
+    // --- AC7: a period the server resolves is half-open too ---
+
+    @Test
+    @DisplayName("EPR-001 AC7 the latest published month resolved to August is [08-01, 09-01) on supply and membership energy metrics")
+    void theLatestPublishedMonthIsHalfOpen() throws Exception {
+        influxFixture.writePublishedZeros(supply.getCode(), YearMonth.of(2026, 8), ZoneId.of("Europe/Madrid"));
+
+        for (String path : List.of(supplyPath("/energy-metrics"), membershipPath("/energy-metrics"))) {
+            mockMvc.perform(get(path)
+                            .header(HttpHeaders.AUTHORIZATION, token)
+                            .queryParam("period", "LATEST_PUBLISHED_MONTH"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.period.startDate").value(AUGUST_START))
+                    .andExpect(jsonPath("$.period.endDate").value(AUGUST_END))
+                    .andExpect(jsonPath("$.coverage.expectedHours").value(744))
+                    .andExpect(jsonPath("$.coverage.hoursWithData").value(744));
+        }
     }
 
     // --- AC4: an end after the start of the current hour is clipped to it ---
