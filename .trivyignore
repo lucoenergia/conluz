@@ -14,4 +14,4 @@
 # - Entries are decided by the maintainer. The workflows fail if an entry lacks exp: or a reason.
 
 CVE-2026-47884 exp:2027-01-31  # XsltView is not used; no 6.2.x fix, only Spring Framework 7.0.9 (#488)
-CVE-2026-47890 exp:2027-01-31  # SSE view fragments are not used; no 6.2.x fix, only Spring Framework 7.0.9 (#488). Re-check before #162
+CVE-2026-47890 exp:2027-01-31  # Not exploitable while the app has no SSE or fragment rendering; no 6.2.x fix; see #488. Re-evaluate before #162 adds SSE.
