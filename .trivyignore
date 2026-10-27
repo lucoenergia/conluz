@@ -1,0 +1,17 @@
+# Accepted findings for the container image scan (#476, policy in #474).
+#
+# Both image scans (build-and-push-image.yml before publishing, image-scan.yml weekly) read this
+# file. An entry hides a vulnerability from the SARIF report and from the gate that blocks a release.
+#
+# Format, one entry per line:
+#
+#   <ID> exp:<YYYY-MM-DD>  # <reason>
+#
+# - <ID> is the vulnerability ID Trivy reports (for example a CVE ID).
+# - exp: is mandatory. On and after that date the entry stops applying and the finding is reported
+#   again, so an accepted finding is reviewed instead of being hidden forever.
+# - The reason is mandatory and says why the finding is accepted, with the issue that tracks it.
+# - Entries are decided by the maintainer. The workflows fail if an entry lacks exp: or a reason.
+
+CVE-2026-47884 exp:2027-01-31  # XsltView is not used; no 6.2.x fix, only Spring Framework 7.0.9 (#488)
+CVE-2026-47890 exp:2027-01-31  # SSE view fragments are not used; no 6.2.x fix, only Spring Framework 7.0.9 (#488). Re-check before #162
