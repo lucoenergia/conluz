@@ -64,6 +64,17 @@ expect fail "heading only inside an HTML comment" \
   $'## Summary\n\n<!--\n## Upgrade actions\nNone\n-->\n' "$NO_HEADING"
 expect fail "unclosed comment hides the rest of the section" \
   $'## Upgrade actions\n\n<!-- unclosed\nNone' "$EMPTY"
+expect fail "several comments on one line" $'## Upgrade actions\n\n<!-- one --> <!-- two -->\n' "$EMPTY"
+expect pass "text after a comment on the same line" $'## Upgrade actions\n\n<!-- instructions --> None'
+expect pass "a comment marker in inline code before the section is text (#511)" \
+  $'## Decisions\n\nAn unclosed `<!--` drops everything after it.\n\n## Upgrade actions\n\nNone\n\n## How to verify\n'
+expect pass "a comment marker in the middle of a line inside the section is text" $'## Upgrade actions\n\nSee the `<!--` marker.'
+expect fail "a heading inside a backtick fence does not count" \
+  $'## Summary\n\n```markdown\n## Upgrade actions\nNone\n```\n' "$NO_HEADING"
+expect fail "a heading inside a tilde fence does not count" \
+  $'## Summary\n\n~~~\n## Upgrade actions\nNone\n~~~\n' "$NO_HEADING"
+expect pass "a heading after a closed fence counts" \
+  $'## Summary\n\n```\n<!-- not a comment\n```\n\n## Upgrade actions\n\nNone'
 expect pass "None" $'## Upgrade actions\n\nNone'
 expect pass "none" $'## Upgrade actions\n\nnone'
 expect pass "None after the template comment" \
