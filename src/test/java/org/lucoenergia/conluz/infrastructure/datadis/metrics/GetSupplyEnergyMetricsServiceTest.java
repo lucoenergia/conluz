@@ -34,6 +34,7 @@ import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -72,6 +73,11 @@ class GetSupplyEnergyMetricsServiceTest {
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
     /**
+     * Well after every period the tests request.
+     */
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-27T10:00:00Z"), ZoneOffset.UTC);
+
+    /**
      * The estimated price the calculator reports, as the application would bind it from
      * configuration. Deliberately equal to the base the stubbed estimated segments carry, as it is
      * in production, where the estimated resolver builds its segments from this same value.
@@ -90,7 +96,7 @@ class GetSupplyEnergyMetricsServiceTest {
             aggregateRepository, getSupplyRepository, new DateConverter(timeConfiguration),
             new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
                     CONFIGURED_ESTIMATE),
-            referenceMonthResolver, zoneResolver);
+            referenceMonthResolver, zoneResolver, CLOCK);
 
     private final Supply supply = SupplyMother.random().build();
     private final SupplyId supplyId = SupplyId.of(supply.getId());

@@ -20,6 +20,7 @@ import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -35,6 +36,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
     private final SupplySavingsCalculator supplySavingsCalculator;
     private final ReferenceMonthResolver referenceMonthResolver;
     private final ZoneResolver zoneResolver;
+    private final Clock clock;
 
     public GetSupplyEnergyMetricsServiceImpl(
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
@@ -42,13 +44,15 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
             DateConverter dateConverter,
             SupplySavingsCalculator supplySavingsCalculator,
             ReferenceMonthResolver referenceMonthResolver,
-            ZoneResolver zoneResolver) {
+            ZoneResolver zoneResolver,
+            Clock clock) {
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.dateConverter = dateConverter;
         this.supplySavingsCalculator = supplySavingsCalculator;
         this.referenceMonthResolver = referenceMonthResolver;
         this.zoneResolver = zoneResolver;
+        this.clock = clock;
     }
 
     @Override
@@ -60,7 +64,9 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
     public SupplyEnergyMetrics getEnergyMetrics(SupplyId supplyId, OffsetDateTime startDate, OffsetDateTime endDate,
                                                 EnergyMetricsReferencePeriod referencePeriod) {
 
-        EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod);
+        ZoneId zone = zoneResolver.resolveZoneIdForSupply(supplyId.getId());
+        OffsetDateTime startOfCurrentHour = EnergyMetricsPeriod.startOfCurrentHour(clock, zone);
+        EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod, startOfCurrentHour, zone);
 
         Supply supply = getSupplyOrThrow(supplyId);
 
@@ -68,7 +74,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
         OffsetDateTime resolvedEndDate = endDate;
 
         if (referencePeriod == EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH) {
-            Optional<EnergyMetricsPeriod> latestPublishedMonth = latestPublishedMonth(supply);
+            Optional<EnergyMetricsPeriod> latestPublishedMonth = latestPublishedMonth(supply, zone);
             if (latestPublishedMonth.isEmpty()) {
                 // No month in the search window is published for this supply. The same empty
                 // result as a supply without any record, not an error.
@@ -132,8 +138,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
      * The latest month published for this supply alone: its owner's other supplies never lend it
      * a month it has not published itself.
      */
-    private Optional<EnergyMetricsPeriod> latestPublishedMonth(Supply supply) {
-        ZoneId zone = zoneResolver.resolveZoneIdForSupply(supply.getId());
+    private Optional<EnergyMetricsPeriod> latestPublishedMonth(Supply supply, ZoneId zone) {
         return referenceMonthResolver.resolveLatestPublishedMonth(List.of(supply), zone)
                 .map(month -> EnergyMetricsPeriod.ofMonth(month, zone));
     }

@@ -32,6 +32,8 @@ import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.mockito.ArgumentMatcher;
 
 import java.math.BigDecimal;
+import java.time.ZoneOffset;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
@@ -60,6 +62,11 @@ import static org.mockito.Mockito.when;
 class GetMembershipEnergyMetricsServiceTest {
 
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
+
+    /**
+     * Well after every period the tests request.
+     */
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-27T10:00:00Z"), ZoneOffset.UTC);
     private static final UUID COMMUNITY_ID = UUID.randomUUID();
     private static final UUID USER_ID = UUID.randomUUID();
 
@@ -77,7 +84,8 @@ class GetMembershipEnergyMetricsServiceTest {
 
     private final GetMembershipEnergyMetricsService service = new GetMembershipEnergyMetricsServiceImpl(
             new MembershipEnergyMetricsScopeResolverImpl(getMembershipsRepository, getSupplyRepository,
-                    aggregateRepository, referenceMonthResolver, zoneResolver, new DateConverter(timeConfiguration)),
+                    aggregateRepository, referenceMonthResolver, zoneResolver, new DateConverter(timeConfiguration),
+                    CLOCK),
             supplyMetricsService);
 
     private final Supply first = SupplyMother.random().build();

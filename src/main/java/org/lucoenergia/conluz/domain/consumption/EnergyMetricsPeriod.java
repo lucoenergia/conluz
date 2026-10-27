@@ -1,8 +1,10 @@
 package org.lucoenergia.conluz.domain.consumption;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -36,6 +38,15 @@ public class EnergyMetricsPeriod {
      */
     public static EnergyMetricsPeriod ofRecords(OffsetDateTime firstRecord, OffsetDateTime lastRecord) {
         return new EnergyMetricsPeriod(firstRecord, lastRecord.plusHours(1));
+    }
+
+    /**
+     * The start of the hour still in progress on {@code clock}, read in {@code zone} and carrying
+     * the offset in force there: no hour from it onwards has fully happened yet.
+     */
+    public static OffsetDateTime startOfCurrentHour(Clock clock, ZoneId zone) {
+        return ZonedDateTime.now(clock).withZoneSameInstant(zone).truncatedTo(ChronoUnit.HOURS)
+                .toOffsetDateTime();
     }
 
     /**

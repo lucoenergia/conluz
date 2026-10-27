@@ -5,6 +5,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -47,10 +49,17 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     private static final String MEMBERSHIP_PATH = "/api/v1/communities/{communityId}/memberships/{userId}";
     private static final double TOLERANCE = 1e-6;
 
+    private static final String SUPPLY_ENERGY_METRICS = "supply energy metrics";
+    private static final String SUPPLY_DAILY = "supply daily series";
+    private static final String SUPPLY_MONTHLY = "supply monthly series";
+    private static final String MEMBERSHIP_ENERGY_METRICS = "membership energy metrics";
+    private static final String MEMBERSHIP_MONTHLY = "membership monthly series";
+
     /**
-     * Well after every period requested below, so that none of them reaches the current hour.
+     * 2026-10-26T10:30 in Madrid, the day after the clocks went back: the current hour started at
+     * 10:00+01:00, after every period the AC1 and AC2 tests request.
      */
-    private static final Instant NOW = Instant.parse("2026-10-27T10:00:00Z");
+    private static final Instant NOW = Instant.parse("2026-10-26T09:30:00Z");
 
     private static final String DAY_START = "2026-08-10T00:00:00+02:00";
     private static final String DAY_END = "2026-08-11T00:00:00+02:00";
@@ -207,6 +216,86 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.coverage.expectedHours").value(744));
     }
 
+    // --- AC3: a start not strictly before the end ---
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
+            MEMBERSHIP_MONTHLY})
+    @DisplayName("EPR-001 AC3 equal bounds are answered 400 ENERGY_METRICS_PERIOD_START_AFTER_END")
+    void equalBoundsAreRejected(String endpoint) throws Exception {
+        assertRejected(endpoint, DAY_START, DAY_START, "ENERGY_METRICS_PERIOD_START_AFTER_END");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
+            MEMBERSHIP_MONTHLY})
+    @DisplayName("EPR-001 AC3 inverted bounds are answered 400 ENERGY_METRICS_PERIOD_START_AFTER_END")
+    void invertedBoundsAreRejected(String endpoint) throws Exception {
+        assertRejected(endpoint, DAY_END, DAY_START, "ENERGY_METRICS_PERIOD_START_AFTER_END");
+    }
+
+    // --- AC5: a start at or after the start of the current hour ---
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
+            MEMBERSHIP_MONTHLY})
+    @DisplayName("EPR-003 AC5 a start at the start of the current hour is answered 400 ENERGY_METRICS_PERIOD_START_IN_FUTURE")
+    void aStartAtTheStartOfTheCurrentHourIsRejected(String endpoint) throws Exception {
+        assertRejected(endpoint, "2026-10-26T10:00:00+01:00", "2026-11-01T00:00:00+01:00",
+                "ENERGY_METRICS_PERIOD_START_IN_FUTURE");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
+            MEMBERSHIP_MONTHLY})
+    @DisplayName("EPR-003 AC5 a start tomorrow is answered 400 ENERGY_METRICS_PERIOD_START_IN_FUTURE")
+    void aStartTomorrowIsRejected(String endpoint) throws Exception {
+        assertRejected(endpoint, "2026-10-27T00:00:00+01:00", "2026-10-28T00:00:00+01:00",
+                "ENERGY_METRICS_PERIOD_START_IN_FUTURE");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
+            MEMBERSHIP_MONTHLY})
+    @DisplayName("EPR-003 AC5 a start in the previous hour is accepted")
+    void aStartInThePreviousHourIsAccepted(String endpoint) throws Exception {
+        request(path(endpoint), "2026-10-26T09:00:00+01:00", "2026-10-26T10:00:00+01:00")
+                .andExpect(status().isOk());
+    }
+
+    // --- AC6: at most 24 calendar months, on the requested bounds ---
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
+            MEMBERSHIP_MONTHLY})
+    @DisplayName("EPR-004 AC6 exactly 24 calendar months are accepted")
+    void exactlyTwentyFourMonthsAreAccepted(String endpoint) throws Exception {
+        request(path(endpoint), "2024-10-01T00:00:00+02:00", "2026-10-01T00:00:00+02:00")
+                .andExpect(status().isOk());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
+            MEMBERSHIP_MONTHLY})
+    @DisplayName("EPR-004 AC6 24 calendar months and a day are answered 400 ENERGY_METRICS_PERIOD_TOO_LONG")
+    void twentyFourMonthsAndADayAreRejected(String endpoint) throws Exception {
+        assertRejected(endpoint, "2024-10-01T00:00:00+02:00", "2026-10-02T00:00:00+02:00",
+                "ENERGY_METRICS_PERIOD_TOO_LONG");
+    }
+
+    /**
+     * Clipping the end to the current hour would bring this period under 24 months; the cap is
+     * evaluated on the bounds as requested.
+     */
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
+            MEMBERSHIP_MONTHLY})
+    @DisplayName("EPR-004 AC6 24 months and a day ending in the future are answered 400 ENERGY_METRICS_PERIOD_TOO_LONG")
+    void twentyFourMonthsAndADayEndingInTheFutureAreRejected(String endpoint) throws Exception {
+        assertRejected(endpoint, "2024-10-26T00:00:00+02:00", "2026-10-27T00:00:00+01:00",
+                "ENERGY_METRICS_PERIOD_TOO_LONG");
+    }
+
     // --- Out of scope: the supply hourly series keeps both bounds inclusive ---
 
     @Test
@@ -247,6 +336,24 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
 
     private void writeAt(OffsetDateTime time, float gridImportKWh) {
         influxFixture.writeAt(supply.getCode(), time.toInstant(), gridImportKWh, 0f, 0f);
+    }
+
+    private void assertRejected(String endpoint, String startDate, String endDate, String code) throws Exception {
+        request(path(endpoint), startDate, endDate)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value(code))
+                .andExpect(jsonPath("$.message").isNotEmpty());
+    }
+
+    private String path(String endpoint) {
+        return switch (endpoint) {
+            case SUPPLY_ENERGY_METRICS -> supplyPath("/energy-metrics");
+            case SUPPLY_DAILY -> supplyPath("/consumption/daily");
+            case SUPPLY_MONTHLY -> supplyPath("/consumption/monthly");
+            case MEMBERSHIP_ENERGY_METRICS -> membershipPath("/energy-metrics");
+            case MEMBERSHIP_MONTHLY -> membershipPath("/consumption/monthly");
+            default -> throw new IllegalArgumentException(endpoint);
+        };
     }
 
     private String supplyPath(String suffix) {

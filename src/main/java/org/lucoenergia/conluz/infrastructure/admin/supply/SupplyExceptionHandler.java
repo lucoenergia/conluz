@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.delete.SupplyHasPartitionCoefficientsException;
 import org.lucoenergia.conluz.domain.admin.supply.delete.SupplyHasPlantsException;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
 import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
@@ -98,18 +99,22 @@ public class SupplyExceptionHandler {
 
         String messageKey = switch (e.getReason()) {
             case START_AFTER_END -> "error.energy.metrics.period.start.after.end";
+            case START_IN_FUTURE -> "error.energy.metrics.period.start.in.future";
+            case TOO_LONG -> "error.energy.metrics.period.too.long";
             case INCOMPLETE_PERIOD -> "error.energy.metrics.period.incomplete";
             case CONFLICTING_PERIOD -> "error.energy.metrics.period.conflicting";
         };
         RestErrorCode code = switch (e.getReason()) {
             case START_AFTER_END -> RestErrorCode.ENERGY_METRICS_PERIOD_START_AFTER_END;
+            case START_IN_FUTURE -> RestErrorCode.ENERGY_METRICS_PERIOD_START_IN_FUTURE;
+            case TOO_LONG -> RestErrorCode.ENERGY_METRICS_PERIOD_TOO_LONG;
             case INCOMPLETE_PERIOD -> RestErrorCode.ENERGY_METRICS_PERIOD_INCOMPLETE;
             case CONFLICTING_PERIOD -> RestErrorCode.ENERGY_METRICS_PERIOD_CONFLICTING;
         };
 
         String message = messageSource.getMessage(
                 messageKey,
-                List.of("startDate", "endDate", "period").toArray(),
+                List.of("startDate", "endDate", "period", EnergyMetricsPeriodValidator.MAX_MONTHS).toArray(),
                 LocaleContextHolder.getLocale()
         );
         // No params: the caller supplied every value the message refers to.

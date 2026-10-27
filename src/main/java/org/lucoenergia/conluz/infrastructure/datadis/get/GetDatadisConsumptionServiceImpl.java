@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.datadis.get;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
@@ -17,6 +19,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -32,16 +35,19 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     private final GetSupplyRepository getSupplyRepository;
     private final SupplySavingsCalculator supplySavingsCalculator;
     private final ZoneResolver zoneResolver;
+    private final Clock clock;
 
     public GetDatadisConsumptionServiceImpl(
             @Qualifier("getDatadisConsumptionRepositoryInflux") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
             GetSupplyRepository getSupplyRepository,
             SupplySavingsCalculator supplySavingsCalculator,
-            ZoneResolver zoneResolver) {
+            ZoneResolver zoneResolver,
+            Clock clock) {
         this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.supplySavingsCalculator = supplySavingsCalculator;
         this.zoneResolver = zoneResolver;
+        this.clock = clock;
     }
 
     @Override
@@ -61,8 +67,9 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     @Override
     public List<SupplyConsumptionBucket> getDailySeriesBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                  OffsetDateTime endDate) {
+        ZoneId zone = zoneResolver.resolveZoneIdForSupply(supplyId.getId());
+        validate(startDate, endDate, zone);
         Supply supply = getSupplyOrThrow(supplyId);
-        ZoneId zone = zoneResolver.resolveZoneIdForSupply(supply.getId());
         // The period is half-open, so every bucket below clips against the same pair the query
         // itself was bounded by.
         Instant rangeFrom = startDate.toInstant();
@@ -77,13 +84,22 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     @Override
     public List<SupplyConsumptionBucket> getMonthlySeriesBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                    OffsetDateTime endDate) {
+        ZoneId zone = zoneResolver.resolveZoneIdForSupply(supplyId.getId());
+        validate(startDate, endDate, zone);
         Supply supply = getSupplyOrThrow(supplyId);
-        ZoneId zone = zoneResolver.resolveZoneIdForSupply(supply.getId());
 
         return getDatadisConsumptionRepository.getMonthlyConsumptionsByRangeOfDates(supply, startDate, endDate)
                 .stream()
                 .map(consumption -> priceMonth(supply, consumption, zone))
                 .toList();
+    }
+
+    /**
+     * The same rules every energy metrics period obeys, before anything is read.
+     */
+    private void validate(OffsetDateTime startDate, OffsetDateTime endDate, ZoneId zone) {
+        EnergyMetricsPeriodValidator.validate(startDate, endDate,
+                EnergyMetricsPeriod.startOfCurrentHour(clock, zone), zone);
     }
 
     /**

@@ -110,6 +110,8 @@ class DatadisMonthlyAggregationMembershipConsistencyTest extends BaseControllerT
     @Test
     @DisplayName("DCA-001 after the daily run, the monthly series and the energy metrics agree on a closed month")
     void afterTheDailyRunTheMonthlySeriesAndTheEnergyMetricsAgreeOnAClosedMonth() throws Exception {
+        // The application reads the same day the job runs on, so May has already happened.
+        travelTo(CLOCK.instant());
         CommunityEntity community = communityJpaRepository.save(CommunityMother.randomEntity().build());
         setDatadisConfigurationRepository.setDatadisConfiguration(community.getId(), new DatadisConfig.Builder()
                 .setUsername("user").setPassword("password").setEnabled(true).build());

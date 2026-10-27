@@ -17,6 +17,15 @@ public class InvalidEnergyMetricsPeriodException extends RuntimeException {
          */
         START_AFTER_END,
         /**
+         * The start date is at or after the start of the current hour: the period has not begun.
+         */
+        START_IN_FUTURE,
+        /**
+         * The end date is later than the start date plus the longest period that may be
+         * requested.
+         */
+        TOO_LONG,
+        /**
          * A reference period was requested together with explicit dates. The period is either
          * resolved by the server or supplied by the caller, never both.
          */
