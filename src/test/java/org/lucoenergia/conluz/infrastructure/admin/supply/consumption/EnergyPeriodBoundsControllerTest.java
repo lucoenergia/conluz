@@ -373,15 +373,16 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * Clipping the end to the current hour would bring this period under 24 months; the cap is
-     * evaluated on the bounds as requested.
+     * The requested end is 24 months and a day after the start, but the end clipped to the current
+     * hour (10:00) is before the start plus 24 months (12:00): the cap is evaluated on the bounds as
+     * requested, so the period is still rejected.
      */
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
             MEMBERSHIP_MONTHLY})
     @DisplayName("EPR-004 AC6 24 months and a day ending in the future are answered 400 ENERGY_METRICS_PERIOD_TOO_LONG")
     void twentyFourMonthsAndADayEndingInTheFutureAreRejected(String endpoint) throws Exception {
-        assertRejected(endpoint, "2024-10-26T00:00:00+02:00", "2026-10-27T00:00:00+01:00",
+        assertRejected(endpoint, "2024-10-26T12:00:00+02:00", "2026-10-27T12:00:00+01:00",
                 "ENERGY_METRICS_PERIOD_TOO_LONG");
     }
 
