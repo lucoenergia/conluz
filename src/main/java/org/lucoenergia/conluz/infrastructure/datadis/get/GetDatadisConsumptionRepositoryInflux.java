@@ -75,13 +75,13 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
     @Override
     public List<DatadisConsumption> getDailyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
         return getConsumptionsByRangeOfDatesGroupedByDuration(supply, startDate, endDate,
-                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.DAILY, true);
+                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.DAILY, false, true);
     }
 
     @Override
     public List<DatadisConsumption> getHourlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
         return getConsumptionsByRangeOfDatesGroupedByDuration(supply, startDate, endDate,
-                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.HOURLY, false);
+                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.HOURLY, false, false);
     }
 
     @Override
@@ -123,8 +123,9 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
     }
 
     /**
-     * Grouped sums over an interval that is <strong>inclusive on both ends</strong>, exactly as the
-     * public consumption endpoints document it: the bounds are the caller's instants, unadjusted.
+     * Grouped sums between the caller's instants, unadjusted. {@code exclusiveEnd} selects the
+     * half-open {@code [startDate, endDate)} over the inclusive {@code [startDate, endDate]}, as in
+     * {@code GetProductionRepositoryInflux}.
      *
      * <p>{@code localCalendarAligned} appends {@code tz('<zone>')} -- the zone
      * {@link ZoneResolver#resolveZoneIdForSupply(java.util.UUID)} gives for this supply -- so that
@@ -152,7 +153,8 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
      */
     private List<DatadisConsumption> getConsumptionsByRangeOfDatesGroupedByDuration(Supply supply, OffsetDateTime startDate,
                                                                          OffsetDateTime endDate, String measurementName,
-                                                                         String duration, boolean localCalendarAligned) {
+                                                                         String duration, boolean exclusiveEnd,
+                                                                         boolean localCalendarAligned) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             String timeZoneClause = localCalendarAligned
@@ -170,12 +172,13 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                             FROM "%s"
                             WHERE cups = '%s'
                                 AND time >= '%s'
-                                AND time <= '%s'
+                                AND time %s '%s'
                             GROUP BY time(%s), cups%s
                             """,
                     measurementName,
                     supply.getCode(),
                     dateConverter.convertToString(startDate),
+                    exclusiveEnd ? "<" : "<=",
                     dateConverter.convertToString(endDate),
                     duration,
                     timeZoneClause));
