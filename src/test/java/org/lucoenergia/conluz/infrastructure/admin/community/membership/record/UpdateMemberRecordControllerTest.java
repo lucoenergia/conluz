@@ -465,7 +465,7 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
     // --- Logging ---
 
     @Test
-    @DisplayName("MEM-028 one line is logged per change, with the user and the community")
+    @DisplayName("MEM-028 one line is logged per change, with the user, the community and whether a link was revoked")
     void oneLineIsLogged() throws Exception {
         Community community = newCommunity();
         User member = memberOf(community, CommunityRole.COMMUNITY_MEMBER);
@@ -478,7 +478,32 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
                 .filteredOn(event -> event.getFormattedMessage().startsWith("Member record"))
                 .extracting(event -> event.getFormattedMessage())
                 .containsExactly("Member record updated: userId=" + member.getId() + ", communityId="
-                        + community.getId());
+                        + community.getId() + ", invitationRevoked=false");
+    }
+
+    @Test
+    @DisplayName("MEM-028 the line logged for a change of a pending membership's contact email says its link was "
+            + "revoked")
+    void theLoggedLine_saysTheLinkWasRevoked() throws Exception {
+        Community community = newCommunity();
+        String admin = loginAsAdminOf(community);
+        Map<String, Object> record = registeredRecord(admin, community);
+        remember((String) record.get("personalId"));
+        remember((String) record.get("phoneNumber"));
+        UUID userId = userIdOf((String) record.get("personalId"));
+        invite(admin, community.getId(), userId).andExpect(status().isOk());
+        awaitNextEmailsHandedOver();
+        Map<String, Object> edit = newEdit();
+        remember((String) edit.get("phoneNumber"));
+        logs.clear();
+
+        updateRecord(admin, community.getId(), userId, edit).andExpect(status().isOk());
+
+        assertThat(logs.allOfThisThread())
+                .filteredOn(event -> event.getFormattedMessage().startsWith("Member record"))
+                .extracting(event -> event.getFormattedMessage())
+                .containsExactly("Member record updated: userId=" + userId + ", communityId=" + community.getId()
+                        + ", invitationRevoked=true");
     }
 
     // --- Fixtures ---

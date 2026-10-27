@@ -79,14 +79,15 @@ public class UpdateMemberRecordServiceImpl implements UpdateMemberRecordService 
         }
         // A link sent to the old address of a pending membership stops working: the new address is reached by a send
         // or a resend (#482)
-        if (current.isPending() && !sameMailbox(current.getContactEmail(), record.contactEmail())) {
-            revokeOneTimeTokenService.revokeForMembership(userId, communityId, OneTimeTokenPurpose.INVITATION);
-        }
+        boolean invitationRevoked = current.isPending()
+                && !sameMailbox(current.getContactEmail(), record.contactEmail())
+                && revokeOneTimeTokenService.revokeForMembership(userId, communityId, OneTimeTokenPurpose.INVITATION);
         CommunityMembership updated = getMembershipsRepository
                 .findByUserIdAndCommunityId(userId.getId(), communityId)
                 .orElseThrow(() -> new MembershipNotFoundException(communityId, userId.getId()));
 
-        LOGGER.info("Member record updated: userId={}, communityId={}", userId.getId(), communityId);
+        LOGGER.info("Member record updated: userId={}, communityId={}, invitationRevoked={}", userId.getId(), communityId,
+                invitationRevoked);
         return new MembershipWithInvitation(updated, getOneTimeTokenService
                 .findValidExpiryForMembership(userId, communityId, OneTimeTokenPurpose.INVITATION)
                 .orElse(null));
