@@ -227,3 +227,21 @@ weeks.
 
 ## PR description
 Once every work finishes on a branch, generate a PR description in english and markdown format ready to be pasted in GitHub. Generate it in a file on /tmp folder and give me the full path to the file.
+
+### Upgrade actions
+
+Every PR description has an `## Upgrade actions` section (see `.github/pull_request_template.md`). It
+says `None`, or describes each manual step an operator must take when upgrading to the release that
+contains the PR: what to do, whether before or after the new version starts, whether it is required,
+and how to check it was done. A new, renamed, removed or newly mandatory environment variable, a data
+step that Liquibase does not do, and a deployment-order constraint are all upgrade actions; a Liquibase
+migration that runs on startup is not. An action that is not `None` is registered in the private
+`lucoenergia/conluz-infra` repository under `docs/deployment/upgrade-actions/`, following
+[that directory's README](https://github.com/lucoenergia/conluz-infra/blob/main/docs/deployment/upgrade-actions/README.md),
+keyed by the first release that contains the change.
+
+The **Upgrade actions declared** check (`.github/workflows/pr-upgrade-actions.yml`) fails a PR whose
+description has no such section, or only whitespace and HTML comments in it; editing the description
+re-runs it. Dependabot PRs are exempt from the check, because their descriptions are generated. A
+dependency bump that does need an operator step must still declare it in its description, and review
+is what catches one that does not.

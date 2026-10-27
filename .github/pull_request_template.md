@@ -94,6 +94,18 @@ Closes #000
      operator should run before deploying, with placeholders only. Write "none" if there is none.
 -->
 
+## Upgrade actions
+
+<!-- Upgrade actions: mandatory, checked by CI. Write "None", or describe each manual step an
+     operator must take when upgrading to the release that contains this PR: what to do, whether
+     before or after the new version starts, whether it is required, and how to check it was done.
+     Typical cases: a new, renamed, removed or newly mandatory environment variable; a data step
+     that Liquibase does not do; a deployment-order constraint. A Liquibase migration that runs on
+     startup needs none. When it is not "None", register it in `lucoenergia/conluz-infra` under
+     `docs/deployment/upgrade-actions/`, following that directory's README.md
+     (https://github.com/lucoenergia/conluz-infra/blob/main/docs/deployment/upgrade-actions/README.md),
+     keyed by the first release that contains the change. -->
+
 ## Frontend impact
 
 <!-- Frontend impact: what `conluz-web` has to do — regenerate the client, gate a new affordance on

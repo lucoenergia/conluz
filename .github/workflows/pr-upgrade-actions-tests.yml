@@ -1,0 +1,32 @@
+# Lints and tests the script behind the "Upgrade actions declared" check (#503), on pull requests that
+# change it or its workflows.
+#
+# This is a separate workflow because of its path filter: the check itself must run on every pull
+# request, or a required check would wait forever on the ones that do not touch these paths.
+name: PR description check tests
+
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/**'
+      - '.github/workflows/pr-upgrade-actions*.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade-actions-tests:
+    name: Upgrade actions check tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Lint the scripts
+        run: shellcheck .github/scripts/*.sh
+
+      - name: Run the tests
+        run: bash .github/scripts/test-check-upgrade-actions.sh

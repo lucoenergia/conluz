@@ -97,7 +97,8 @@ class PlatformAdminKeptAccessControllerTest extends BasePlatformAdminInvitationT
         assertThat(list.size()).isEqualTo(2);
         perform(platformAdmin, post(admins + "/{userId}/invitation/resend", community.getId(), pending))
                 .andExpect(status().isOk());
-        awaitNextEmails(1);
+        // The resend also notifies the accepted admin (#466): two emails, sent concurrently
+        awaitNextEmailsHandedOver();
         perform(platformAdmin, post(admins + "/{userId}/invitation/revoke", community.getId(), pending))
                 .andExpect(status().isOk());
         perform(platformAdmin, post(admins + "/{userId}/disable", community.getId(), accepted))

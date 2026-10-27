@@ -1,0 +1,50 @@
+# Fails a pull request whose description does not declare its upgrade actions (#503): every PR has an
+# "## Upgrade actions" section saying "None", or the manual step an operator must take, which is then
+# registered in lucoenergia/conluz-infra. See the "PR description" section of AGENTS.md.
+#
+# The job runs again when the description is edited, so fixing it needs no new commit.
+#
+# Security: the description is written by whoever opens the pull request.
+# - The trigger is `pull_request`, never `pull_request_target`: the job runs with a read-only token and
+#   no secrets, also for pull requests from forks.
+# - The description reaches the script only through the PR_BODY environment variable. Never use
+#   `${{ github.event.pull_request.body }}` inside a `run:` block: it would be pasted into the shell
+#   script before it runs, and a description containing `$(...)` would execute.
+# - The job runs the pull request's own copy of the script, so a pull request that changes it is
+#   checked by its changed version; reviewing changes to .github/ is what guards against that.
+#
+# Dependabot pull requests are exempt: their descriptions are generated and never carry the section.
+# A job skipped by `if:` counts as successful for a required check. The exemption names the bot
+# rather than skipping every bot account, so a new bot hits the check until someone decides to exempt
+# it. A dependency bump that does need an operator step must still declare it in its description.
+#
+# Do not rename the job: "Upgrade actions declared" is the name a maintainer marks as a required check.
+name: PR description
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-upgrade-actions-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  upgrade-actions:
+    name: Upgrade actions declared
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check the Upgrade actions section
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: bash .github/scripts/check-upgrade-actions.sh
