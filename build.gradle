@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.16'
-    id 'io.spring.dependency-management' version '1.1.4'
+    id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'org.lucoenergia'
@@ -53,15 +53,15 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
 
-    implementation 'com.opencsv:opencsv:5.9'
+    implementation 'com.opencsv:opencsv:5.12.0'
 
-    implementation "org.apache.commons:commons-compress:1.26.0"
+    implementation "org.apache.commons:commons-compress:1.28.0"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:influxdb'
-    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.1'
     // Embedded SMTP server for the email sending tests. Its Jakarta Mail and Angus versions are the ones
     // Spring Boot manages. JUnit 4 is only needed for its JUnit 4 rule, which is not used.
     testImplementation('com.icegreen:greenmail:2.1.14') {
