@@ -75,7 +75,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
     @Override
     public List<DatadisConsumption> getDailyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
         return getConsumptionsByRangeOfDatesGroupedByDuration(supply, startDate, endDate,
-                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.DAILY, false, true);
+                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.DAILY, true, true);
     }
 
     @Override
@@ -89,7 +89,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             Query query = new Query(String.format(
-                    "SELECT * FROM \"%s\" WHERE cups = '%s' AND time >= '%s' AND time <= '%s'",
+                    "SELECT * FROM \"%s\" WHERE cups = '%s' AND time >= '%s' AND time < '%s'",
                     DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT,
                     supply.getCode(),
                     dateConverter.convertToString(startDate),

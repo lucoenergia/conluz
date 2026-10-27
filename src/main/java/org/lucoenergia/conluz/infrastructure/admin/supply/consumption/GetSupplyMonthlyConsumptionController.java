@@ -69,15 +69,16 @@ public class GetSupplyMonthlyConsumptionController {
                     application is configured with, not the UTC one, so its total includes the first
                     and last local hours of the month and nothing from its neighbours.
 
-                    **Range bounds:** `startDate` and `endDate` are both inclusive, and they select
-                    pre-aggregated points by the instant each one is stamped at, which is local
-                    midnight on the first day of its month. Pass them with the zone's offset to
+                    """ + EnergyPeriodApiDocs.RANGE_BOUNDS + """
+
+                    The bounds select pre-aggregated points by the instant each one is stamped at,
+                    which is local midnight on the first day of its month. Pass them with the zone's offset to
                     select the months intended: local `2023-01-01T00:00:00+01:00` is
                     `2022-12-31T23:00:00Z`, so a bound expressed in UTC can select one month too few
                     or too many.
 
                     **Whole months only.** A month is included if and only if its day-1 timestamp
-                    falls inside the inclusive bounds, and once included it always carries the whole
+                    falls inside the half-open bounds, and once included it always carries the whole
                     month's energy and the whole month's savings -- bounds falling mid-month never
                     trim it. A request ending on the 15th therefore still returns that month in
                     full.

@@ -100,7 +100,7 @@ class EstimatedPriceConfigurationTest extends BaseControllerTest {
         mockMvc.perform(get(ENERGY_METRICS_PATH, supply.getId())
                         .header(HttpHeaders.AUTHORIZATION, loginUser(owner))
                         .queryParam("startDate", "2025-02-01T00:00:00+01:00")
-                        .queryParam("endDate", "2025-02-01T00:00:00+01:00"))
+                        .queryParam("endDate", "2025-02-01T01:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
                 .andExpect(content().string(containsString(CONFIGURED_PRICE_JSON)));

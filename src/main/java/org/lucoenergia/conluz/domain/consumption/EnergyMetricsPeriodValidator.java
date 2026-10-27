@@ -12,18 +12,18 @@ public final class EnergyMetricsPeriodValidator {
     }
 
     /**
-     * Both dates are optional and must be supplied together, and the start cannot be after the
-     * end.
+     * Both dates are optional and must be supplied together, and the start must be strictly before
+     * the end: the period is half-open, so equal bounds make an empty period.
      *
      * @throws InvalidEnergyMetricsPeriodException when exactly one date is supplied, or the start
-     *         is after the end
+     *         is not before the end
      */
     public static void validate(OffsetDateTime startDate, OffsetDateTime endDate) {
         if ((startDate == null) != (endDate == null)) {
             throw new InvalidEnergyMetricsPeriodException(
                     InvalidEnergyMetricsPeriodException.Reason.INCOMPLETE_PERIOD);
         }
-        if (startDate != null && startDate.isAfter(endDate)) {
+        if (startDate != null && !startDate.isBefore(endDate)) {
             throw new InvalidEnergyMetricsPeriodException(
                     InvalidEnergyMetricsPeriodException.Reason.START_AFTER_END);
         }

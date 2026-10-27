@@ -14,8 +14,8 @@ import java.util.Optional;
 public interface GetDatadisConsumptionAggregateRepository {
 
     /**
-     * Totals the supply's hourly consumption records between the two instants, both bounds
-     * inclusive. Returns an {@link DatadisConsumptionAggregate#empty() empty aggregate} when no
+     * Totals the supply's hourly consumption records in the half-open interval
+     * {@code [startDate, endDate)}. Returns an {@link DatadisConsumptionAggregate#empty() empty aggregate} when no
      * record falls in the range.
      */
     DatadisConsumptionAggregate aggregateByRangeOfDates(Supply supply, OffsetDateTime startDate,
@@ -26,7 +26,7 @@ public interface GetDatadisConsumptionAggregateRepository {
      * interval {@code [from, to)}: a record sitting exactly on {@code from} counts, one sitting
      * exactly on {@code to} does not.
      *
-     * <p>Half-open, unlike {@link #aggregateByRangeOfDates}, precisely so that the adjacent
+     * <p>Half-open, as {@link #aggregateByRangeOfDates} is, precisely so that the adjacent
      * sub-intervals one period is cut into can be summed independently and added up: with two
      * inclusive bounds the instant on the shared boundary would be counted by both sides.
      *

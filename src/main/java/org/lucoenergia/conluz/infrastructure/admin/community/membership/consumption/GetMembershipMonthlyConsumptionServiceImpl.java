@@ -95,7 +95,7 @@ public class GetMembershipMonthlyConsumptionServiceImpl implements GetMembership
     }
 
     /**
-     * Every month whose local midnight on day 1 falls inside the inclusive bounds, in chronological
+     * Every month whose local midnight on day 1 falls inside the half-open bounds, in chronological
      * order: the rule by which the per-supply series selects the pre-aggregated point stamped at
      * that instant.
      */
@@ -107,7 +107,7 @@ public class GetMembershipMonthlyConsumptionServiceImpl implements GetMembership
             month = month.plusMonths(1);
         }
         List<YearMonth> months = new ArrayList<>();
-        while (!startOf(month, zone).isAfter(to)) {
+        while (startOf(month, zone).isBefore(to)) {
             months.add(month);
             month = month.plusMonths(1);
         }

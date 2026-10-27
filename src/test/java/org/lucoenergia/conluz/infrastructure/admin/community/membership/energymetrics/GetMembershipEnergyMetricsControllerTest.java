@@ -64,7 +64,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
 
     /** A single day in summer time: 24 hourly slots, both bounds inclusive. */
     private static final String DAY_START = "2026-05-10T00:00:00+02:00";
-    private static final String DAY_END = "2026-05-10T23:00:00+02:00";
+    private static final String DAY_END = "2026-05-11T00:00:00+02:00";
 
     @Autowired
     private CommunityJpaRepository communityJpaRepository;
@@ -223,7 +223,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         requestLatest(community, member, loginUser(member))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2026-07-01T00:00:00+02:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2026-07-31T23:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-08-01T00:00:00+02:00"))
                 .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(744))
                 // 31 days * 24 hours * 2 supplies.
@@ -262,7 +262,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         requestLatest(community, member, loginUser(member))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2026-08-31T23:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-09-01T00:00:00+02:00"))
                 // 743 * 0.3 self-consumed, 744 * 0.5 surplus.
                 .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(222.9, 1e-3)))
                 .andExpect(jsonPath("$.energy.surplusKWh").value(closeTo(372.0, 1e-3)))

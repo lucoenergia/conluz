@@ -29,10 +29,10 @@ public final class RoundingNoiseDataset {
     public static final String FIRST_HOUR = "10:00";
     public static final String SECOND_HOUR = "11:00";
     public static final String DAY_START = "2024-02-10T00:00:00+01:00";
-    public static final String DAY_END = "2024-02-10T23:00:00+01:00";
-    /** The local bounds of February 2024: midnight of day 1 to the last hour of the last day. */
+    public static final String DAY_END = "2024-02-11T00:00:00+01:00";
+    /** The local bounds of February 2024, half-open: midnight of day 1 to midnight of 1 March. */
     public static final String MONTH_START = "2024-02-01T00:00:00+01:00";
-    public static final String MONTH_END = "2024-02-29T23:00:00+01:00";
+    public static final String MONTH_END = "2024-03-01T00:00:00+01:00";
 
     public static final float FIRST_GRID_IMPORT = 0.1234f;
     public static final float FIRST_SELF_CONSUMPTION = 0.0164f;

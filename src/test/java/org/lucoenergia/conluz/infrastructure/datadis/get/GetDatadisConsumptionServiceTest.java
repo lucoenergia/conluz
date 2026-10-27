@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.datadis.get;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -178,9 +179,10 @@ class GetDatadisConsumptionServiceTest {
     /**
      * Daily buckets, unlike monthly ones, <em>are</em> clipped: the query reads the hourly
      * measurement between the requested bounds, so an edge bucket's energy covers only the hours
-     * asked for and its pricing must cover exactly those.
+     * asked for and its pricing must cover exactly those -- up to the exclusive end, unchanged.
      */
     @Test
+    @DisplayName("EPR-001 the edge daily buckets are priced only over the half-open hours requested")
     void theEdgeDailyBucketsArePricedOnlyOverTheHoursRequested() {
         givenSegments(
                 segment("2024-02-01", "2024-02-11", "0.10"),
@@ -188,13 +190,12 @@ class GetDatadisConsumptionServiceTest {
         givenDailyBuckets(bucket("2024/02/10", 3.0), bucket("2024/02/11", 5.0));
 
         service.getDailySeriesBySupply(SupplyId.of(supply.getId()),
-                madridOffset("2024-02-10T12:00+01:00"), madridOffset("2024-02-11T11:59:59+01:00"));
+                madridOffset("2024-02-10T12:00+01:00"), madridOffset("2024-02-11T12:00+01:00"));
 
         verify(aggregateRepository).sumSelfConsumptionKWh(any(Supply.class),
                 eq(madrid("2024-02-10T12:00+01:00")), eq(madrid("2024-02-11T00:00+01:00")));
         verify(aggregateRepository).sumSelfConsumptionKWh(any(Supply.class),
-                eq(madrid("2024-02-11T00:00+01:00")),
-                eq(madrid("2024-02-11T11:59:59+01:00").plusNanos(1)));
+                eq(madrid("2024-02-11T00:00+01:00")), eq(madrid("2024-02-11T12:00+01:00")));
     }
 
     /**

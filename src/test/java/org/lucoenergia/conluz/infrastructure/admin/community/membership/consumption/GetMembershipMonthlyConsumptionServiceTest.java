@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.consumption;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
@@ -163,21 +164,23 @@ class GetMembershipMonthlyConsumptionServiceTest {
     }
 
     /**
-     * AC6, the edges of the rule. Both bounds are inclusive, so bounds sitting exactly on local
-     * midnight of day 1 select that month. And the bounds are instants: the same wall-clock
-     * bounds read in UTC are an hour or two later in Madrid, so 2024-02-01T00:00Z, 01:00 local,
-     * leaves February out, while 2024-03-31T23:59:59Z, already 01:59 on 1 April local, takes April
-     * in -- one month too few at the start and one too many at the end.
+     * AC6, the edges of the rule. The bounds are half-open, so a start sitting exactly on local
+     * midnight of day 1 selects that month and an end sitting exactly on it does not. And the
+     * bounds are instants: the same wall-clock bounds read in UTC are an hour or two later in
+     * Madrid, so 2024-02-01T00:00Z, 01:00 local, leaves February out, while 2024-03-31T23:59:59Z,
+     * already 01:59 on 1 April local, takes April in -- one month too few at the start and one too
+     * many at the end.
      */
     @Test
-    void theBoundsAreInclusiveInstantsComparedWithLocalMidnightOfDayOne() {
+    @DisplayName("EPR-001 AC2 the bounds are half-open instants compared with local midnight of day 1")
+    void theBoundsAreHalfOpenInstantsComparedWithLocalMidnightOfDayOne() {
         givenMembership();
         givenSupplies();
 
         assertMonths(service.getMonthlySeries(COMMUNITY_ID, USER_ID,
                         OffsetDateTime.parse("2024-02-01T00:00:00+01:00"),
                         OffsetDateTime.parse("2024-04-01T00:00:00+02:00")),
-                "2024-02", "2024-03", "2024-04");
+                "2024-02", "2024-03");
         assertMonths(service.getMonthlySeries(COMMUNITY_ID, USER_ID,
                         OffsetDateTime.parse("2024-02-01T00:00:00Z"),
                         OffsetDateTime.parse("2024-03-31T23:59:59Z")),

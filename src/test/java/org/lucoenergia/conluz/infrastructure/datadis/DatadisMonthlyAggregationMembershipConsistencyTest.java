@@ -69,7 +69,7 @@ class DatadisMonthlyAggregationMembershipConsistencyTest extends BaseControllerT
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-09T03:00:00Z"), ZoneOffset.UTC);
     private static final YearMonth MAY = YearMonth.of(2026, 5);
     private static final String MAY_START = "2026-05-01T00:00:00+02:00";
-    private static final String MAY_END = "2026-05-31T23:00:00+02:00";
+    private static final String MAY_END = "2026-06-01T00:00:00+02:00";
 
     @Autowired
     private CommunityJpaRepository communityJpaRepository;

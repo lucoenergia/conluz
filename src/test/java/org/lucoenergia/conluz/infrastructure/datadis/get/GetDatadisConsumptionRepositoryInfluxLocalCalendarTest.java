@@ -5,6 +5,7 @@ import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.influxdb.dto.Query;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -163,25 +164,27 @@ class GetDatadisConsumptionRepositoryInfluxLocalCalendarTest extends BaseIntegra
     }
 
     /**
-     * AC5. Both range bounds stay inclusive, so a record sitting exactly on either one is returned.
+     * AC5. The range is half-open: a record sitting exactly on the start is returned, one sitting
+     * exactly on the end is not, and no bucket starting at the end is emitted at all.
      */
     @Test
-    void recordsOnTheInclusiveBoundsAreStillReturned() {
-        write(CUPS_A, "2023-02-10T00:00:00Z", 1.0);   // exactly on startDate
+    @DisplayName("EPR-001 AC1 the record on startDate is included, the one on endDate excluded, and no bucket starts at endDate")
+    void theRecordOnTheStartIsReturnedAndTheOneOnTheEndIsNot() {
+        write(CUPS_A, "2023-02-09T23:00:00Z", 1.0);   // exactly on startDate, local 00:00 on the 10th
         write(CUPS_A, "2023-02-11T12:00:00Z", 2.0);
-        write(CUPS_A, "2023-02-12T23:59:59Z", 4.0);   // exactly on endDate
-        write(CUPS_A, "2023-02-13T00:00:00Z", 8.0);   // one second past endDate
+        write(CUPS_A, "2023-02-12T22:00:00Z", 4.0);   // local 23:00 on the 12th, the last hour in range
+        write(CUPS_A, "2023-02-12T23:00:00Z", 8.0);   // exactly on endDate, local 00:00 on the 13th
         flush();
 
         List<DatadisConsumption> result = repository.getDailyConsumptionsByRangeOfDates(supplyA,
-                OffsetDateTime.parse("2023-02-10T00:00:00Z"), OffsetDateTime.parse("2023-02-12T23:59:59Z"));
+                OffsetDateTime.parse("2023-02-10T00:00:00+01:00"), OffsetDateTime.parse("2023-02-13T00:00:00+01:00"));
         Map<String, Float> days = byDate(result);
 
         assertEquals(1.0f, days.get("2023/02/10"), 0.0f, "The record on startDate must be included");
         assertEquals(2.0f, days.get("2023/02/11"), 0.0f);
-        assertEquals(4.0f, days.get("2023/02/13"), 0.0f,
-                "23:59:59Z is 00:59:59 local on the 13th; the record on endDate must be included");
-        assertFalse(days.containsValue(8.0f), "A record past endDate must not be returned");
+        assertEquals(4.0f, days.get("2023/02/12"), 0.0f);
+        assertEquals(3, days.size(), "No bucket may start at endDate: " + days.keySet());
+        assertFalse(days.containsValue(8.0f), "The record on endDate must not be returned");
     }
 
     /**

@@ -12,7 +12,8 @@ public class InvalidEnergyMetricsPeriodException extends RuntimeException {
          */
         INCOMPLETE_PERIOD,
         /**
-         * The start date is after the end date.
+         * The start date is not strictly before the end date: after it, or equal to it, which
+         * makes the half-open period empty.
          */
         START_AFTER_END,
         /**

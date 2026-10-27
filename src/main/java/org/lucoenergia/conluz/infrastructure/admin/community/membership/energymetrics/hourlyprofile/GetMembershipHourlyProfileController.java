@@ -57,7 +57,8 @@ public class GetMembershipHourlyProfileController {
                     carry it, counted from the later of the month's first hour and the supply's first
                     published record. It **cannot be chosen**: only inside a published month is a
                     stored zero a measured zero rather than a value not published yet. The resolved
-                    bounds are reported in `period`. When no month can be resolved -- no published
+                    bounds are reported in `period`, half-open: from `00:00` of the first day of the
+                    month, included, to `00:00` of the first day of the next month, excluded. When no month can be resolved -- no published
                     month in the search window, or no supplies to search -- the response is still
                     successful, with null period bounds and 24 buckets without any sample.
 

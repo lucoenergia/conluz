@@ -102,8 +102,8 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
     }
 
     /**
-     * From the earliest record stored for any of the supplies to the latest, or empty when none of
-     * them has stored a record.
+     * From the earliest record stored for any of the supplies to the end of the hour of the latest,
+     * or empty when none of them has stored a record.
      */
     private Optional<EnergyMetricsPeriod> recordedPeriod(List<Supply> supplies) {
         List<RecordedConsumptionPeriod> recorded = supplies.stream()
@@ -117,7 +117,7 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
                 .min(Instant::compareTo).orElseThrow();
         Instant lastRecord = recorded.stream().map(RecordedConsumptionPeriod::getLastRecord)
                 .max(Instant::compareTo).orElseThrow();
-        return Optional.of(new EnergyMetricsPeriod(
+        return Optional.of(EnergyMetricsPeriod.ofRecords(
                 dateConverter.convertInstantToOffsetDateTime(firstRecord),
                 dateConverter.convertInstantToOffsetDateTime(lastRecord)));
     }

@@ -84,8 +84,11 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 // report. This is an empty result, not a missing supply.
                 return SupplyEnergyMetrics.empty(supply, null, null, 0L);
             }
-            resolvedStartDate = dateConverter.convertInstantToOffsetDateTime(recordedPeriod.get().getFirstRecord());
-            resolvedEndDate = dateConverter.convertInstantToOffsetDateTime(recordedPeriod.get().getLastRecord());
+            EnergyMetricsPeriod recorded = EnergyMetricsPeriod.ofRecords(
+                    dateConverter.convertInstantToOffsetDateTime(recordedPeriod.get().getFirstRecord()),
+                    dateConverter.convertInstantToOffsetDateTime(recordedPeriod.get().getLastRecord()));
+            resolvedStartDate = recorded.getStartDate();
+            resolvedEndDate = recorded.getEndDate();
         }
 
         DatadisConsumptionAggregate aggregate = getDatadisConsumptionAggregateRepository
@@ -107,11 +110,10 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
     /**
      * Prices the self-consumed energy of the resolved period.
      *
-     * <p>The period's public end is inclusive; it is converted to an exclusive instant
-     * <strong>here and only here</strong>, and the calculator consumes that one instant pair for
-     * the civil range it resolves a tariff for, for the clamping of each segment and for its
-     * half-open sums -- so the priced instants and the instants the aggregate already summed are
-     * the same set by construction.
+     * <p>The period is half-open, as the aggregate's, and the calculator consumes that one instant
+     * pair for the civil range it resolves a tariff for, for the clamping of each segment and for
+     * its half-open sums -- so the priced instants and the instants the aggregate already summed
+     * are the same set by construction.
      *
      * <p>The aggregate's own total is handed over so a period covered by a single tariff segment
      * reports an amount consistent with the {@code selfConsumptionKWh} beside it, without a
@@ -122,7 +124,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
         return supplySavingsCalculator.estimate(
                 supply,
                 startDate.toInstant(),
-                DateConverter.toExclusiveUpperBound(endDate),
+                endDate.toInstant(),
                 totalSelfConsumptionKWh);
     }
 

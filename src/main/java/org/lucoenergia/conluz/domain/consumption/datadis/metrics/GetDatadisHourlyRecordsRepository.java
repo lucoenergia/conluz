@@ -12,8 +12,8 @@ import java.util.function.Consumer;
 public interface GetDatadisHourlyRecordsRepository {
 
     /**
-     * Hands every hourly record the supply stored between the two instants, both bounds inclusive,
-     * to {@code consumer}, in no guaranteed order. Returns once every record has been handed over.
+     * Hands every hourly record the supply stored in the half-open interval
+     * {@code [startDate, endDate)} to {@code consumer}, in no guaranteed order. Returns once every record has been handed over.
      *
      * <p>The consumer may be invoked on a thread other than the caller's; everything it did is
      * visible to the caller once this method returns.</p>

@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.energymetrics;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
@@ -129,17 +130,18 @@ class GetMembershipEnergyMetricsServiceTest {
     }
 
     /**
-     * July 2026 is entirely in summer time, so both bounds carry +02:00, and the period ends on
-     * the last hour of the month rather than on the following midnight.
+     * July 2026 is entirely in summer time, so both bounds carry +02:00, and the half-open period
+     * ends on the following midnight.
      */
     @Test
-    void theReferencePeriodIsTheResolvedMonthFromItsFirstToItsLastHour() {
+    @DisplayName("EPR-001 AC7 the reference period is the resolved month, up to the following midnight")
+    void theReferencePeriodIsTheResolvedMonthToTheFollowingMidnight() {
         givenMembership();
         givenSupplies(first, second);
         when(referenceMonthResolver.resolveLatestPublishedMonth(List.of(first, second), ZONE))
                 .thenReturn(Optional.of(YearMonth.of(2026, 7)));
         OffsetDateTime julyStart = OffsetDateTime.parse("2026-07-01T00:00:00+02:00");
-        OffsetDateTime julyEnd = OffsetDateTime.parse("2026-07-31T23:00:00+02:00");
+        OffsetDateTime julyEnd = OffsetDateTime.parse("2026-08-01T00:00:00+02:00");
         givenSupplyMetrics(first, julyStart, julyEnd, 744L, 1d, 1d, 1d);
         givenSupplyMetrics(second, julyStart, julyEnd, 744L, 1d, 1d, 1d);
 
@@ -157,13 +159,14 @@ class GetMembershipEnergyMetricsServiceTest {
      * force at its own instant.
      */
     @Test
+    @DisplayName("EPR-001 each bound of the reference month carries the offset in force at it")
     void eachBoundOfTheReferenceMonthCarriesTheOffsetInForceAtIt() {
         givenMembership();
         givenSupplies(first);
         when(referenceMonthResolver.resolveLatestPublishedMonth(List.of(first), ZONE))
                 .thenReturn(Optional.of(YearMonth.of(2026, 10)));
         OffsetDateTime octoberStart = OffsetDateTime.parse("2026-10-01T00:00:00+02:00");
-        OffsetDateTime octoberEnd = OffsetDateTime.parse("2026-10-31T23:00:00+01:00");
+        OffsetDateTime octoberEnd = OffsetDateTime.parse("2026-11-01T00:00:00+01:00");
         givenSupplyMetrics(first, octoberStart, octoberEnd, 745L, 1d, 1d, 1d);
 
         MembershipEnergyMetrics metrics = service.getEnergyMetrics(COMMUNITY_ID, USER_ID, null, null,
@@ -197,6 +200,7 @@ class GetMembershipEnergyMetricsServiceTest {
      * coverage.
      */
     @Test
+    @DisplayName("EPR-001 without any period every supply is computed over the recorded range, to the end of the latest record's hour")
     void withoutAnyPeriodEverySupplyIsComputedOverTheWholeRecordedRangeOfTheMembership() {
         givenMembership();
         givenSupplies(first, second);
@@ -205,7 +209,8 @@ class GetMembershipEnergyMetricsServiceTest {
         when(aggregateRepository.findRecordedPeriod(second)).thenReturn(Optional.of(new RecordedConsumptionPeriod(
                 Instant.parse("2025-02-01T09:00:00Z"), Instant.parse("2025-04-20T09:00:00Z"))));
         OffsetDateTime rangeStart = OffsetDateTime.parse("2025-01-10T10:00:00+01:00");
-        OffsetDateTime rangeEnd = OffsetDateTime.parse("2025-04-20T11:00:00+02:00");
+        // The latest record is at 11:00 local, so the half-open range ends an hour later.
+        OffsetDateTime rangeEnd = OffsetDateTime.parse("2025-04-20T12:00:00+02:00");
         givenSupplyMetrics(first, rangeStart, rangeEnd, 10L, 1d, 1d, 1d);
         givenSupplyMetrics(second, rangeStart, rangeEnd, 10L, 1d, 1d, 1d);
 

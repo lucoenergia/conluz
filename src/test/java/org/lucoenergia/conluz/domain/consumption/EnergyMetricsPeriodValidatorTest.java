@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.consumption;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
@@ -40,6 +41,12 @@ class EnergyMetricsPeriodValidatorTest {
         assertReason(InvalidEnergyMetricsPeriodException.Reason.START_AFTER_END, END, START, null);
         assertDoesNotThrow(() -> EnergyMetricsPeriodValidator.validate(START, END, null));
         assertDoesNotThrow(() -> EnergyMetricsPeriodValidator.validate(null, null, null));
+    }
+
+    @Test
+    @DisplayName("EPR-001 AC3 equal bounds make an empty period and are rejected as a start not before the end")
+    void equalBoundsAreRejected() {
+        assertReason(InvalidEnergyMetricsPeriodException.Reason.START_AFTER_END, START, START, null);
     }
 
     private static void assertReason(InvalidEnergyMetricsPeriodException.Reason reason, OffsetDateTime startDate,

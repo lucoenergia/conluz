@@ -22,7 +22,7 @@ public interface GetDatadisConsumptionRepository {
      *
      * @param supply the supply for which the consumption data is retrieved, must not be null
      * @param startDate the start date of the range, inclusive, must not be null
-     * @param endDate the end date of the range, inclusive, must not be null
+     * @param endDate the end date of the range, exclusive, must not be null
      * @return a list of {@code DatadisConsumption} objects representing daily consumption data within the specified date range
      */
     List<DatadisConsumption> getDailyConsumptionsByRangeOfDates(@NotNull Supply supply,
@@ -49,7 +49,7 @@ public interface GetDatadisConsumptionRepository {
      *
      * @param supply the supply for which the consumption data is retrieved, must not be null
      * @param startDate the start date of the range, inclusive, must not be null
-     * @param endDate the end date of the range, inclusive, must not be null
+     * @param endDate the end date of the range, exclusive, must not be null
      * @return a list of {@code DatadisConsumption} objects representing monthly consumption data within the specified date range
      */
     List<DatadisConsumption> getMonthlyConsumptionsByRangeOfDates(@NotNull Supply supply,

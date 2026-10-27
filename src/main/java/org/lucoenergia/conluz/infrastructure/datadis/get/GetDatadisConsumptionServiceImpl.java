@@ -63,10 +63,10 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
                                                                  OffsetDateTime endDate) {
         Supply supply = getSupplyOrThrow(supplyId);
         ZoneId zone = zoneResolver.resolveZoneIdForSupply(supply.getId());
-        // The public end is inclusive; it becomes an exclusive instant here and only here, so every
-        // bucket below clips against the same pair the query itself was bounded by.
+        // The period is half-open, so every bucket below clips against the same pair the query
+        // itself was bounded by.
         Instant rangeFrom = startDate.toInstant();
-        Instant rangeToExclusive = DateConverter.toExclusiveUpperBound(endDate);
+        Instant rangeToExclusive = endDate.toInstant();
 
         return getDatadisConsumptionRepository.getDailyConsumptionsByRangeOfDates(supply, startDate, endDate)
                 .stream()
