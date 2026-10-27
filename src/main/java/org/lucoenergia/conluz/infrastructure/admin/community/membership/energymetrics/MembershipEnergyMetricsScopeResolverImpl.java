@@ -78,8 +78,8 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
 
         List<Supply> supplies = getSupplyRepository.findAllByOwnerAndCommunityId(UserId.of(userId), communityId);
 
-        Optional<EnergyMetricsPeriod> period = resolvePeriod(zone, supplies, startDate, endDate,
-                referencePeriod);
+        Optional<EnergyMetricsPeriod> period = resolvePeriod(zone, startOfCurrentHour, supplies, startDate,
+                endDate, referencePeriod);
 
         return new MembershipEnergyMetricsScope(supplies, period.orElse(null));
     }
@@ -91,13 +91,16 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
 
     /**
      * The period to compute over, or empty when none can be resolved. An explicit period always
-     * resolves, even for a membership without supplies.
+     * resolves, even for a membership without supplies, with its end clipped to the current hour.
      */
-    private Optional<EnergyMetricsPeriod> resolvePeriod(ZoneId zone, List<Supply> supplies,
+    private Optional<EnergyMetricsPeriod> resolvePeriod(ZoneId zone, OffsetDateTime startOfCurrentHour,
+                                                        List<Supply> supplies,
                                                         OffsetDateTime startDate, OffsetDateTime endDate,
                                                         EnergyMetricsReferencePeriod referencePeriod) {
         if (startDate != null) {
-            return Optional.of(new EnergyMetricsPeriod(startDate, endDate));
+            // An end after the current hour is clipped to it, so no supply reads or expects an
+            // hour that has not happened.
+            return Optional.of(new EnergyMetricsPeriod(startDate, endDate).endingNoLaterThan(startOfCurrentHour));
         }
         if (referencePeriod == EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH) {
             return referenceMonthResolver.resolveLatestPublishedMonth(supplies, zone)

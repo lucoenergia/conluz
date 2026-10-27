@@ -50,6 +50,14 @@ public class EnergyMetricsPeriod {
     }
 
     /**
+     * This period, ending no later than {@code cutOff}: an end after it is moved back to it, so the
+     * period never reaches an hour that has not fully happened. The start is left as it is.
+     */
+    public EnergyMetricsPeriod endingNoLaterThan(OffsetDateTime cutOff) {
+        return endDate.isAfter(cutOff) ? new EnergyMetricsPeriod(startDate, cutOff) : this;
+    }
+
+    /**
      * The first instant of the period, inclusive.
      */
     public OffsetDateTime getStartDate() {

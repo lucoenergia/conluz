@@ -59,7 +59,8 @@ public class GetMembershipEnergyMetricsController {
 
                     **Period:**
                     The period is resolved in exactly one of three ways, and the resolved bounds are
-                    always reported in `period`, also when the caller supplied them.
+                    always reported in `period`, also when the caller supplied them, with an end after
+                    the current hour clipped as described under **Period checks**.
 
                     - `startDate` and `endDate`: an explicit period, with the same semantics as the
                       per-supply endpoint. They must be supplied together, and a `startDate` that

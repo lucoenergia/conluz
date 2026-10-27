@@ -216,6 +216,74 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.coverage.expectedHours").value(744));
     }
 
+    // --- AC4: an end after the start of the current hour is clipped to it ---
+
+    private static final String CLIPPED_END = "2026-10-26T10:00:00+01:00";
+    private static final String FUTURE_END = "2026-11-01T00:00:00+01:00";
+
+    @Test
+    @DisplayName("EPR-002 AC4 supply energy metrics clip the end to the current hour, report it and count no hour from it")
+    void supplyEnergyMetricsClipTheEndToTheCurrentHour() throws Exception {
+        givenRecordsAroundTheCurrentHour();
+
+        request(supplyPath("/energy-metrics"), "2026-10-26T00:00:00+01:00", FUTURE_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.endDate").value(CLIPPED_END))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(10))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(1))
+                .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(1.0, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("EPR-002 AC4 membership energy metrics clip the end to the current hour, report it and count no hour from it")
+    void membershipEnergyMetricsClipTheEndToTheCurrentHour() throws Exception {
+        givenRecordsAroundTheCurrentHour();
+
+        request(membershipPath("/energy-metrics"), "2026-10-26T00:00:00+01:00", FUTURE_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.endDate").value(CLIPPED_END))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(10))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(1))
+                .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(1.0, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("EPR-002 AC4 the supply daily series emits no bucket after the day of the current hour")
+    void theSupplyDailySeriesEmitsNoBucketAfterTheDayOfTheCurrentHour() throws Exception {
+        givenRecordsAroundTheCurrentHour();
+
+        request(supplyPath("/consumption/daily"), "2026-10-24T00:00:00+02:00", FUTURE_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(3)))
+                .andExpect(jsonPath("$[2].date").value("2026/10/26"))
+                // The 09:00 record only: the one at 10:00 is on the clipped end.
+                .andExpect(jsonPath("$[2].gridImportKWh").value(closeTo(1.0, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("EPR-002 AC4 the supply monthly series emits no month starting after the current hour")
+    void theSupplyMonthlySeriesEmitsNoMonthStartingAfterTheCurrentHour() throws Exception {
+        givenMonthlyAggregatesForSeptemberOctoberAndNovember();
+
+        request(supplyPath("/consumption/monthly"), "2026-09-01T00:00:00+02:00", "2026-12-01T00:00:00+01:00")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].date").value("2026/09/01"))
+                .andExpect(jsonPath("$[1].date").value("2026/10/01"));
+    }
+
+    @Test
+    @DisplayName("EPR-002 AC4 the membership monthly series emits no month starting after the current hour")
+    void theMembershipMonthlySeriesEmitsNoMonthStartingAfterTheCurrentHour() throws Exception {
+        givenMonthlyAggregatesForSeptemberOctoberAndNovember();
+
+        request(membershipPath("/consumption/monthly"), "2026-09-01T00:00:00+02:00", "2026-12-01T00:00:00+01:00")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].date").value("2026/09/01"))
+                .andExpect(jsonPath("$[1].date").value("2026/10/01"));
+    }
+
     // --- AC3: a start not strictly before the end ---
 
     @ParameterizedTest(name = "{0}")
@@ -330,6 +398,31 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
         writeAt(OffsetDateTime.parse("2026-08-15T12:00:00+02:00"), 2f);
         writeAt(OffsetDateTime.parse("2026-09-15T12:00:00+02:00"), 4f);
         for (Month month : List.of(Month.JULY, Month.AUGUST, Month.SEPTEMBER)) {
+            monthlyAggregationRepository.aggregateMonthlyConsumption(supply, month, 2026);
+        }
+    }
+
+    /**
+     * A record on each of the two days before the current hour's, one at 09:00 on its day and one
+     * at 10:00, exactly on the start of the current hour. A record stored for an hour that has not
+     * fully happened is unusual, but it is what shows the clipped end is exclusive.
+     */
+    private void givenRecordsAroundTheCurrentHour() {
+        writeAt(OffsetDateTime.parse("2026-10-24T12:00:00+02:00"), 4f);
+        writeAt(OffsetDateTime.parse("2026-10-25T12:00:00+01:00"), 4f);
+        writeAt(OffsetDateTime.parse("2026-10-26T09:00:00+01:00"), 1f);
+        writeAt(OffsetDateTime.parse("2026-10-26T10:00:00+01:00"), 2f);
+    }
+
+    /**
+     * Pre-aggregates for September, October and November: November's is stamped at local midnight
+     * of 1 November, after the current hour.
+     */
+    private void givenMonthlyAggregatesForSeptemberOctoberAndNovember() {
+        writeAt(OffsetDateTime.parse("2026-09-15T12:00:00+02:00"), 1f);
+        writeAt(OffsetDateTime.parse("2026-10-15T12:00:00+02:00"), 2f);
+        writeAt(OffsetDateTime.parse("2026-11-15T12:00:00+01:00"), 4f);
+        for (Month month : List.of(Month.SEPTEMBER, Month.OCTOBER, Month.NOVEMBER)) {
             monthlyAggregationRepository.aggregateMonthlyConsumption(supply, month, 2026);
         }
     }

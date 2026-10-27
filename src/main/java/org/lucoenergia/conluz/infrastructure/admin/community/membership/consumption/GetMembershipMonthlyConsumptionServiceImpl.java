@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.consumption.Memb
 import org.lucoenergia.conluz.domain.admin.community.membership.energymetrics.MembershipEnergyMetricsScope;
 import org.lucoenergia.conluz.domain.admin.community.membership.energymetrics.MembershipEnergyMetricsScopeResolver;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -65,13 +66,21 @@ public class GetMembershipMonthlyConsumptionServiceImpl implements GetMembership
 
         MembershipEnergyMetricsScope scope =
                 membershipEnergyMetricsScopeResolver.resolve(communityId, userId, startDate, endDate, null);
-        List<Supply> supplies = scope.getSupplies();
 
+        // Explicit dates always resolve a period, its end clipped to the current hour; every supply
+        // and the months emitted follow that one period rather than the dates as requested.
+        return scope.getPeriod()
+                .map(period -> getMonthlySeries(communityId, scope.getSupplies(), period))
+                .orElse(List.of());
+    }
+
+    private List<MembershipMonthlyConsumptionBucket> getMonthlySeries(UUID communityId, List<Supply> supplies,
+                                                                      EnergyMetricsPeriod period) {
         Map<YearMonth, Map<SupplyId, List<SupplyConsumptionBucket>>> contributionsByMonth = new HashMap<>();
         for (Supply supply : supplies) {
             SupplyId supplyId = SupplyId.of(supply.getId());
-            for (SupplyConsumptionBucket bucket :
-                    getDatadisConsumptionService.getMonthlySeriesBySupply(supplyId, startDate, endDate)) {
+            for (SupplyConsumptionBucket bucket : getDatadisConsumptionService.getMonthlySeriesBySupply(
+                    supplyId, period.getStartDate(), period.getEndDate())) {
                 contributionsByMonth
                         .computeIfAbsent(monthOf(bucket), month -> new LinkedHashMap<>())
                         .computeIfAbsent(supplyId, id -> new ArrayList<>())
@@ -80,7 +89,7 @@ public class GetMembershipMonthlyConsumptionServiceImpl implements GetMembership
         }
 
         ZoneId zone = zoneResolver.resolveZoneIdForCommunity(communityId);
-        return monthsSelectedBy(startDate, endDate, zone).stream()
+        return monthsSelectedBy(period.getStartDate(), period.getEndDate(), zone).stream()
                 .map(month -> MembershipMonthlyConsumptionBucket.of(month, supplies.size(),
                         contributionsByMonth.getOrDefault(month, Map.of())))
                 .toList();

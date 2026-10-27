@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.domain.consumption;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -79,5 +81,40 @@ class EnergyMetricsPeriodTest {
         assertEquals(OffsetDateTime.parse("2024-02-01T00:00:00+01:00"), period.getStartDate());
         assertEquals(OffsetDateTime.parse("2024-02-01T03:00:00+01:00"), period.getEndDate());
         assertEquals(3, period.getExpectedHours());
+    }
+
+    @Test
+    @DisplayName("EPR-002 an end after the cut-off is moved back to it, the start untouched")
+    void anEndAfterTheCutOffIsMovedBackToIt() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-10-26T00:00:00+01:00");
+        OffsetDateTime cutOff = OffsetDateTime.parse("2026-10-26T10:00:00+01:00");
+
+        EnergyMetricsPeriod clipped = new EnergyMetricsPeriod(start, OffsetDateTime.parse("2026-11-01T00:00:00+01:00"))
+                .endingNoLaterThan(cutOff);
+
+        assertEquals(start, clipped.getStartDate());
+        assertEquals(cutOff, clipped.getEndDate());
+        assertEquals(10, clipped.getExpectedHours());
+    }
+
+    @Test
+    @DisplayName("EPR-002 an end at or before the cut-off is left as it is")
+    void anEndAtOrBeforeTheCutOffIsLeftAsItIs() {
+        OffsetDateTime cutOff = OffsetDateTime.parse("2026-10-26T10:00:00+01:00");
+        EnergyMetricsPeriod atCutOff = new EnergyMetricsPeriod(OffsetDateTime.parse("2026-10-26T00:00:00+01:00"), cutOff);
+        EnergyMetricsPeriod before = new EnergyMetricsPeriod(OffsetDateTime.parse("2026-10-26T00:00:00+01:00"),
+                OffsetDateTime.parse("2026-10-26T09:00:00+01:00"));
+
+        assertEquals(cutOff, atCutOff.endingNoLaterThan(cutOff).getEndDate());
+        assertEquals(before.getEndDate(), before.endingNoLaterThan(cutOff).getEndDate());
+    }
+
+    @Test
+    @DisplayName("EPR-002 AC4 the current hour starts on the hour in the zone, with the offset in force there")
+    void theCurrentHourStartsOnTheHourInTheZone() {
+        Clock clock = Clock.fixed(Instant.parse("2026-10-26T09:30:00Z"), ZoneId.of("UTC"));
+
+        assertEquals(OffsetDateTime.parse("2026-10-26T10:00:00+01:00"),
+                EnergyMetricsPeriod.startOfCurrentHour(clock, MADRID));
     }
 }

@@ -59,7 +59,8 @@ public class GetSupplyEnergyMetricsController {
 
                     **Period:**
                     The period is resolved in exactly one of three ways, and the resolved bounds are
-                    always reported in `period`, also when the caller supplied them.
+                    always reported in `period`, also when the caller supplied them, with an end after
+                    the current hour clipped as described under **Period checks**.
 
                     - `startDate` and `endDate`: an explicit period. They must be supplied together;
                       supplying exactly one of them is a bad request, as is a `startDate` that is not

@@ -71,7 +71,10 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
         Supply supply = getSupplyOrThrow(supplyId);
 
         OffsetDateTime resolvedStartDate = startDate;
-        OffsetDateTime resolvedEndDate = endDate;
+        // An explicit end after the current hour is clipped to it before anything is read, so no
+        // hour that has not happened is summed or expected, and the response reports the end used.
+        OffsetDateTime resolvedEndDate = startDate == null ? null
+                : new EnergyMetricsPeriod(startDate, endDate).endingNoLaterThan(startOfCurrentHour).getEndDate();
 
         if (referencePeriod == EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH) {
             Optional<EnergyMetricsPeriod> latestPublishedMonth = latestPublishedMonth(supply, zone);

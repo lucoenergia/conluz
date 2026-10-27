@@ -173,6 +173,32 @@ class GetMembershipMonthlyConsumptionServiceTest {
     }
 
     /**
+     * The clock stands at 11:00 on 27 October in Madrid. The per-supply series is asked for the
+     * period clipped to that hour, and November, whose day-1 midnight falls after it, is not
+     * emitted even though the requested end reaches into December.
+     */
+    @Test
+    @DisplayName("EPR-002 AC4 every supply and the months emitted follow the end clipped to the current hour")
+    void everySupplyAndTheMonthsEmittedFollowTheClippedEnd() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-09-01T00:00:00+02:00");
+        OffsetDateTime clippedEnd = OffsetDateTime.parse("2026-10-27T11:00:00+01:00");
+        givenMembership();
+        givenSupplies(first, second);
+        givenMonthlySeries(first, start, clippedEnd,
+                month("2026/09/01", 10f, 1f, "0.15", TariffSource.ESTIMATE),
+                month("2026/10/01", 20f, 2f, "0.30", TariffSource.ESTIMATE));
+        givenMonthlySeries(second, start, clippedEnd,
+                month("2026/10/01", 40f, 4f, "0.60", TariffSource.ESTIMATE));
+
+        List<MembershipMonthlyConsumptionBucket> series = service.getMonthlySeries(COMMUNITY_ID, USER_ID, start,
+                OffsetDateTime.parse("2026-12-01T00:00:00+01:00"));
+
+        assertMonths(series, "2026-09", "2026-10");
+        assertMonth(series.get(0), "10", "0.15", 2, 1);
+        assertMonth(series.get(1), "60", "0.90", 2, 2);
+    }
+
+    /**
      * AC6, the edges of the rule. The bounds are half-open, so a start sitting exactly on local
      * midnight of day 1 selects that month and an end sitting exactly on it does not. And the
      * bounds are instants: the same wall-clock bounds read in UTC are an hour or two later in
