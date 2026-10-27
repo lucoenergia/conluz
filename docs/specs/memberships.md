@@ -475,7 +475,7 @@ lazily, as issues touch it.
   resend (MEM-009, MEM-010). Whether the address changed MUST be decided on both values trimmed and lower-cased,
   none and blank being equal, so a change only of case or of surrounding spaces keeps the link; the email is still
   stored as it is sent. Any other edit, and an edit of an accepted membership, MUST revoke nothing. It MUST log one
-  line with the user and the community, and never an email address.
+  line with the user, the community and whether a link was revoked, and never an email address.
 - **Rationale:** The account belongs to the person and is shared by every community they belong to; what a
   community knows about a member is its own record (ADR-0003 §1), so correcting it must not reach the account
   or another community (ACC-008). Admins need a contact email (ADR-0003 §8, MEM-024), so it cannot be removed
@@ -483,7 +483,8 @@ lazily, as issues touch it.
   address the community no longer uses for the person would otherwise keep working there; revoking it means the
   link always matches the record, and a resend to the new address, notified when the membership is an admin's
   (MEM-035), is needed to reach it. A change only of case or of surrounding spaces reaches the same mailbox in
-  practice, so revoking for it would only force a pointless resend.
+  practice, so revoking for it would only force a pointless resend. The log line says whether a link was revoked,
+  so support can tell a link revoked by a record edit apart from one revoked otherwise.
 - **Source:** #416, #482, ADR-0003 §1 and §8
 
 ### MEM-029 — The membership of a supply owner in the community is not deleted
