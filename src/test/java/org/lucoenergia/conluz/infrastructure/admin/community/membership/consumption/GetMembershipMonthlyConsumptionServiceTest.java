@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.consumption;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembershipMother;
@@ -32,6 +33,9 @@ import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.mockito.ArgumentMatcher;
 
 import java.math.BigDecimal;
+import java.time.ZoneOffset;
+import java.time.Instant;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -58,6 +62,11 @@ import static org.mockito.Mockito.when;
 class GetMembershipMonthlyConsumptionServiceTest {
 
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
+
+    /**
+     * Well after every period the tests request.
+     */
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-27T10:00:00Z"), ZoneOffset.UTC);
     private static final UUID COMMUNITY_ID = UUID.randomUUID();
     private static final UUID USER_ID = UUID.randomUUID();
     private static final EstimatedPrice PRICE = EstimatedPrice.of(new BigDecimal("0.15"));
@@ -77,7 +86,8 @@ class GetMembershipMonthlyConsumptionServiceTest {
 
     private final GetMembershipMonthlyConsumptionService service = new GetMembershipMonthlyConsumptionServiceImpl(
             new MembershipEnergyMetricsScopeResolverImpl(getMembershipsRepository, getSupplyRepository,
-                    aggregateRepository, referenceMonthResolver, zoneResolver, new DateConverter(timeConfiguration)),
+                    aggregateRepository, referenceMonthResolver, zoneResolver, new DateConverter(timeConfiguration),
+                    CLOCK),
             getDatadisConsumptionService,
             zoneResolver);
 
@@ -163,21 +173,49 @@ class GetMembershipMonthlyConsumptionServiceTest {
     }
 
     /**
-     * AC6, the edges of the rule. Both bounds are inclusive, so bounds sitting exactly on local
-     * midnight of day 1 select that month. And the bounds are instants: the same wall-clock
-     * bounds read in UTC are an hour or two later in Madrid, so 2024-02-01T00:00Z, 01:00 local,
-     * leaves February out, while 2024-03-31T23:59:59Z, already 01:59 on 1 April local, takes April
-     * in -- one month too few at the start and one too many at the end.
+     * The clock stands at 11:00 on 27 October in Madrid. The per-supply series is asked for the
+     * period clipped to that hour, and November, whose day-1 midnight falls after it, is not
+     * emitted even though the requested end reaches into December.
      */
     @Test
-    void theBoundsAreInclusiveInstantsComparedWithLocalMidnightOfDayOne() {
+    @DisplayName("EPR-002 AC4 every supply and the months emitted follow the end clipped to the current hour")
+    void everySupplyAndTheMonthsEmittedFollowTheClippedEnd() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-09-01T00:00:00+02:00");
+        OffsetDateTime clippedEnd = OffsetDateTime.parse("2026-10-27T11:00:00+01:00");
+        givenMembership();
+        givenSupplies(first, second);
+        givenMonthlySeries(first, start, clippedEnd,
+                month("2026/09/01", 10f, 1f, "0.15", TariffSource.ESTIMATE),
+                month("2026/10/01", 20f, 2f, "0.30", TariffSource.ESTIMATE));
+        givenMonthlySeries(second, start, clippedEnd,
+                month("2026/10/01", 40f, 4f, "0.60", TariffSource.ESTIMATE));
+
+        List<MembershipMonthlyConsumptionBucket> series = service.getMonthlySeries(COMMUNITY_ID, USER_ID, start,
+                OffsetDateTime.parse("2026-12-01T00:00:00+01:00"));
+
+        assertMonths(series, "2026-09", "2026-10");
+        assertMonth(series.get(0), "10", "0.15", 2, 1);
+        assertMonth(series.get(1), "60", "0.90", 2, 2);
+    }
+
+    /**
+     * AC6, the edges of the rule. The bounds are half-open, so a start sitting exactly on local
+     * midnight of day 1 selects that month and an end sitting exactly on it does not. And the
+     * bounds are instants: the same wall-clock bounds read in UTC are an hour or two later in
+     * Madrid, so 2024-02-01T00:00Z, 01:00 local, leaves February out, while 2024-03-31T23:59:59Z,
+     * already 01:59 on 1 April local, takes April in -- one month too few at the start and one too
+     * many at the end.
+     */
+    @Test
+    @DisplayName("EPR-001 AC2 the bounds are half-open instants compared with local midnight of day 1")
+    void theBoundsAreHalfOpenInstantsComparedWithLocalMidnightOfDayOne() {
         givenMembership();
         givenSupplies();
 
         assertMonths(service.getMonthlySeries(COMMUNITY_ID, USER_ID,
                         OffsetDateTime.parse("2024-02-01T00:00:00+01:00"),
                         OffsetDateTime.parse("2024-04-01T00:00:00+02:00")),
-                "2024-02", "2024-03", "2024-04");
+                "2024-02", "2024-03");
         assertMonths(service.getMonthlySeries(COMMUNITY_ID, USER_ID,
                         OffsetDateTime.parse("2024-02-01T00:00:00Z"),
                         OffsetDateTime.parse("2024-03-31T23:59:59Z")),

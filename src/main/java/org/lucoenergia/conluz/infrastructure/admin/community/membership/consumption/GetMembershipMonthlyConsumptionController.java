@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.membership.consumption.GetMembershipMonthlyConsumptionService;
+import org.lucoenergia.conluz.infrastructure.admin.supply.consumption.EnergyPeriodApiDocs;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -67,12 +68,14 @@ public class GetMembershipMonthlyConsumptionController {
 
                     **Time zone and month selection:**
                     Months are local calendar months of the community's time zone, not UTC ones.
-                    `startDate` and `endDate` are both required and both inclusive, and a month is in
-                    range if and only if its local midnight on day 1 falls inside them -- the rule the
+                    `startDate` and `endDate` are both required, and a month is in range if and only
+                    if its local midnight on day 1 falls inside them -- the rule the
                     per-supply monthly series selects its pre-aggregated points by. Once in range a
                     month always carries its whole energy and its whole savings: bounds falling
                     mid-month never trim it. Pass the bounds with the zone's offset: a bound expressed
                     in UTC can select one month too few or too many.
+
+                    """ + EnergyPeriodApiDocs.RANGE_BOUNDS + """
 
                     **Completeness:**
                     `supplyCount` is the number of supplies the member **currently** owns in the
@@ -122,9 +125,9 @@ public class GetMembershipMonthlyConsumptionController {
     public List<MembershipMonthlyConsumptionBucketResponse> getMembershipMonthlyConsumption(
             @PathVariable("communityId") UUID communityId,
             @PathVariable("userId") UUID userId,
-            @Parameter(description = "First instant of the period, inclusive.")
+            @Parameter(description = "Start of the period, inclusive.")
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
-            @Parameter(description = "Last instant of the period, inclusive.")
+            @Parameter(description = "End of the period, exclusive.")
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
 
         return service.getMonthlySeries(communityId, userId, startDate, endDate)

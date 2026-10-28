@@ -58,14 +58,14 @@ public class GetDatadisHourlyRecordsRepositoryInflux implements GetDatadisHourly
                               Consumer<HourlyEnergyRecord> consumer) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
-            // Both bounds are inclusive, matching the aggregate over the same period.
+            // Half-open, [startDate, endDate), matching the aggregate over the same period.
             Query query = new Query(String.format(
                     """
                             SELECT "consumption_kwh", "self_consumption_energy_kwh", "surplus_energy_kwh"
                             FROM "%s"
                             WHERE cups = '%s'
                                 AND time >= '%s'
-                                AND time <= '%s'
+                                AND time < '%s'
                             """,
                     DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                     supply.getCode(),

@@ -17,6 +17,7 @@ import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -44,6 +45,7 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
     private final ReferenceMonthResolver referenceMonthResolver;
     private final ZoneResolver zoneResolver;
     private final DateConverter dateConverter;
+    private final Clock clock;
 
     public MembershipEnergyMetricsScopeResolverImpl(
             GetMembershipsRepository getMembershipsRepository,
@@ -51,13 +53,15 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
             ReferenceMonthResolver referenceMonthResolver,
             ZoneResolver zoneResolver,
-            DateConverter dateConverter) {
+            DateConverter dateConverter,
+            Clock clock) {
         this.getMembershipsRepository = getMembershipsRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.referenceMonthResolver = referenceMonthResolver;
         this.zoneResolver = zoneResolver;
         this.dateConverter = dateConverter;
+        this.clock = clock;
     }
 
     @Override
@@ -65,15 +69,17 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
                                                 OffsetDateTime endDate,
                                                 EnergyMetricsReferencePeriod referencePeriod) {
 
-        EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod);
+        ZoneId zone = zoneResolver.resolveZoneIdForCommunity(communityId);
+        OffsetDateTime startOfCurrentHour = EnergyMetricsPeriod.startOfCurrentHour(clock, zone);
+        EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod, startOfCurrentHour, zone);
 
         getMembershipsRepository.findByUserIdAndCommunityId(userId, communityId)
                 .orElseThrow(() -> new MembershipNotFoundException(communityId, userId));
 
         List<Supply> supplies = getSupplyRepository.findAllByOwnerAndCommunityId(UserId.of(userId), communityId);
 
-        Optional<EnergyMetricsPeriod> period = resolvePeriod(communityId, supplies, startDate, endDate,
-                referencePeriod);
+        Optional<EnergyMetricsPeriod> period = resolvePeriod(zone, startOfCurrentHour, supplies, startDate,
+                endDate, referencePeriod);
 
         return new MembershipEnergyMetricsScope(supplies, period.orElse(null));
     }
@@ -85,16 +91,18 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
 
     /**
      * The period to compute over, or empty when none can be resolved. An explicit period always
-     * resolves, even for a membership without supplies.
+     * resolves, even for a membership without supplies, with its end clipped to the current hour.
      */
-    private Optional<EnergyMetricsPeriod> resolvePeriod(UUID communityId, List<Supply> supplies,
+    private Optional<EnergyMetricsPeriod> resolvePeriod(ZoneId zone, OffsetDateTime startOfCurrentHour,
+                                                        List<Supply> supplies,
                                                         OffsetDateTime startDate, OffsetDateTime endDate,
                                                         EnergyMetricsReferencePeriod referencePeriod) {
         if (startDate != null) {
-            return Optional.of(new EnergyMetricsPeriod(startDate, endDate));
+            // An end after the current hour is clipped to it, so no supply reads or expects an
+            // hour that has not happened.
+            return Optional.of(new EnergyMetricsPeriod(startDate, endDate).endingNoLaterThan(startOfCurrentHour));
         }
         if (referencePeriod == EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH) {
-            ZoneId zone = zoneResolver.resolveZoneIdForCommunity(communityId);
             return referenceMonthResolver.resolveLatestPublishedMonth(supplies, zone)
                     .map(month -> EnergyMetricsPeriod.ofMonth(month, zone));
         }
@@ -102,8 +110,8 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
     }
 
     /**
-     * From the earliest record stored for any of the supplies to the latest, or empty when none of
-     * them has stored a record.
+     * From the earliest record stored for any of the supplies to the end of the hour of the latest,
+     * or empty when none of them has stored a record.
      */
     private Optional<EnergyMetricsPeriod> recordedPeriod(List<Supply> supplies) {
         List<RecordedConsumptionPeriod> recorded = supplies.stream()
@@ -117,7 +125,7 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
                 .min(Instant::compareTo).orElseThrow();
         Instant lastRecord = recorded.stream().map(RecordedConsumptionPeriod::getLastRecord)
                 .max(Instant::compareTo).orElseThrow();
-        return Optional.of(new EnergyMetricsPeriod(
+        return Optional.of(EnergyMetricsPeriod.ofRecords(
                 dateConverter.convertInstantToOffsetDateTime(firstRecord),
                 dateConverter.convertInstantToOffsetDateTime(lastRecord)));
     }

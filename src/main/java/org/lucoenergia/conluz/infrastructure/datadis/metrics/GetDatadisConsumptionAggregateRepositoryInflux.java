@@ -57,7 +57,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                                                                 OffsetDateTime endDate) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
-            // Both bounds are inclusive, matching the sibling consumption endpoints.
+            // Half-open, [startDate, endDate): a record on the end bound belongs to the next period.
             Query query = new Query(String.format(
                     """
                             SELECT
@@ -68,7 +68,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                             FROM "%s"
                             WHERE cups = '%s'
                                 AND time >= '%s'
-                                AND time <= '%s'
+                                AND time < '%s'
                             """,
                     DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                     supply.getCode(),
@@ -93,8 +93,8 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
     public double sumSelfConsumptionKWh(Supply supply, Instant from, Instant to) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
-            // >= and <, where the sibling aggregate uses >= and <=: the upper bound is exclusive
-            // so that adjacent sub-intervals of one period do not both count the boundary record.
+            // >= and <, as in the sibling aggregate: the upper bound is exclusive so that adjacent
+            // sub-intervals of one period do not both count the boundary record.
             // convertToString formats nine fractional digits, so a bound that differs from another
             // by a single nanosecond still reaches InfluxDB as a distinct instant.
             Query query = new Query(String.format(

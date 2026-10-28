@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.datadis.metrics;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -31,8 +32,8 @@ import static org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionIn
  * <p>These exercise the behaviour of the engine itself, which a mock could only assume: that a
  * query matching no point returns no series rather than a row of zeros, that a {@code SUM} over a
  * field the supply's records do not carry returns null rather than zero, that
- * {@code aggregateByRangeOfDates}' two bounds are inclusive while
- * {@code sumSelfConsumptionKWh}'s upper bound is not, that a one-nanosecond difference between
+ * {@code aggregateByRangeOfDates} and {@code sumSelfConsumptionKWh} both exclude their upper
+ * bound, that a one-nanosecond difference between
  * two bounds survives into the query rather than being truncated away, and that
  * {@code FIRST}/{@code LAST} report the timestamps of real records.</p>
  *
@@ -66,7 +67,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(supply,
                 OffsetDateTime.parse("2024-02-01T00:00:00+01:00"),
-                OffsetDateTime.parse("2024-02-01T02:00:00+01:00"));
+                OffsetDateTime.parse("2024-02-01T03:00:00+01:00"));
 
         assertEquals(102d, aggregate.getConsumptionKWh(), 1e-6);
         assertEquals(53d, aggregate.getSelfConsumptionEnergyKWh(), 1e-6);
@@ -75,10 +76,12 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     }
 
     /**
-     * Both range bounds are inclusive, and records outside the range contribute nothing.
+     * The range is half-open: the record on the start bound counts, the one on the end bound does
+     * not, and records outside the range contribute nothing.
      */
     @Test
-    void includesTheRecordsSittingExactlyOnEitherBoundAndExcludesTheRest() {
+    @DisplayName("EPR-001 AC1 the aggregate includes the record on startDate and excludes the one on endDate")
+    void includesTheRecordOnTheStartBoundAndExcludesTheOneOnTheEndBound() {
         Supply supply = supply();
         write(
                 hourlyRecord(supply.getCode(), "2024/02/01", "09:00", 16.0f, 0.0f, 0.0f),
@@ -91,9 +94,9 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 OffsetDateTime.parse("2024-02-01T10:00:00+01:00"),
                 OffsetDateTime.parse("2024-02-01T12:00:00+01:00"));
 
-        // 1 + 2 + 4: the two bounds are in, the records either side of them are out.
-        assertEquals(7d, aggregate.getConsumptionKWh(), 1e-6);
-        assertEquals(3L, aggregate.getHoursWithData());
+        // 1 + 2: the start bound is in; the end bound and the records either side are out.
+        assertEquals(3d, aggregate.getConsumptionKWh(), 1e-6);
+        assertEquals(2L, aggregate.getHoursWithData());
     }
 
     /**
@@ -146,7 +149,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(withoutSelfConsumption,
                 OffsetDateTime.parse("2024-02-01T00:00:00+01:00"),
-                OffsetDateTime.parse("2024-02-01T01:00:00+01:00"));
+                OffsetDateTime.parse("2024-02-01T02:00:00+01:00"));
 
         assertEquals(12d, aggregate.getConsumptionKWh(), 1e-6);
         assertEquals(0d, aggregate.getSelfConsumptionEnergyKWh());
@@ -252,7 +255,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(supply,
                 OffsetDateTime.parse("2023-10-29T00:00:00+02:00"),
-                OffsetDateTime.parse("2023-10-29T23:00:00+01:00"));
+                OffsetDateTime.parse("2023-10-30T00:00:00+01:00"));
         assertEquals(24L, aggregate.getHoursWithData());
     }
 
@@ -331,12 +334,12 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     }
 
     /**
-     * Over the whole period the half-open sum must agree exactly with the inclusive aggregate,
+     * Over the whole period the half-open sum must agree exactly with the aggregate,
      * which is what lets a single-segment schedule reuse the aggregate instead of issuing a
      * second query.
      */
     @Test
-    void theHalfOpenSumOverTheWholePeriodMatchesTheInclusiveAggregate() {
+    void theHalfOpenSumOverTheWholePeriodMatchesTheAggregate() {
         Supply supply = supply();
         write(
                 hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 9.0f),
@@ -344,11 +347,10 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 1.0f, 2.0f, 2.0f));
 
         OffsetDateTime start = OffsetDateTime.parse("2024-02-01T00:00:00+01:00");
-        OffsetDateTime end = OffsetDateTime.parse("2024-02-01T02:00:00+01:00");
+        OffsetDateTime end = OffsetDateTime.parse("2024-02-01T03:00:00+01:00");
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(supply, start, end);
-        double halfOpen = repository.sumSelfConsumptionKWh(supply,
-                start.toInstant(), DateConverter.toExclusiveUpperBound(end));
+        double halfOpen = repository.sumSelfConsumptionKWh(supply, start.toInstant(), end.toInstant());
 
         assertEquals(53d, halfOpen, 1e-6);
         assertEquals(aggregate.getSelfConsumptionEnergyKWh(), halfOpen);

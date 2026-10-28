@@ -78,5 +78,6 @@ are always called **tests**, never specs.
 | `PLT` | Plants | [`plants.md`](plants.md) |
 | `EVL` | Energy values in consumption and energy metrics responses | [`energy-values.md`](energy-values.md) |
 | `CTC` | Contact channels | [`contact.md`](contact.md) |
+| `EPR` | Periods of energy metrics and consumption series | [`energy-periods.md`](energy-periods.md) |
 | `SEM` | Supply energy metrics | [`supply-energy-metrics.md`](supply-energy-metrics.md) |
 | `PRC` | OMIE prices | [`omie-prices.md`](omie-prices.md) |

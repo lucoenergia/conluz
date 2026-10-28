@@ -46,7 +46,7 @@ class GetMembershipHourlyProfileServiceTest {
     private static final UUID USER_ID = UUID.randomUUID();
 
     private static final OffsetDateTime JULY_START = OffsetDateTime.parse("2026-07-01T00:00:00+02:00");
-    private static final OffsetDateTime JULY_END = OffsetDateTime.parse("2026-07-31T23:00:00+02:00");
+    private static final OffsetDateTime JULY_END = OffsetDateTime.parse("2026-08-01T00:00:00+02:00");
 
     private final MembershipEnergyMetricsScopeResolver scopeResolver = mock(MembershipEnergyMetricsScopeResolver.class);
     private final GetDatadisConsumptionAggregateRepository aggregateRepository =

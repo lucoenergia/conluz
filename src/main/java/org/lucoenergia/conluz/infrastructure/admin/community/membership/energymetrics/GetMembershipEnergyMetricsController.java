@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.membership.energymetrics.GetMembershipEnergyMetricsService;
 import org.lucoenergia.conluz.domain.admin.community.membership.energymetrics.MembershipEnergyMetrics;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
+import org.lucoenergia.conluz.infrastructure.admin.supply.consumption.EnergyPeriodApiDocs;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -58,12 +59,12 @@ public class GetMembershipEnergyMetricsController {
 
                     **Period:**
                     The period is resolved in exactly one of three ways, and the resolved bounds are
-                    always reported in `period`, also when the caller supplied them.
+                    always reported in `period`, also when the caller supplied them, with an end after
+                    the current hour clipped as described under **Period checks**.
 
                     - `startDate` and `endDate`: an explicit period, with the same semantics as the
-                      per-supply endpoint. They must be supplied together, and a `startDate` after
-                      the `endDate` is a bad request. **Both bounds are inclusive**: a single
-                      calendar day runs from `00:00` to `23:00` of that day.
+                      per-supply endpoint. They must be supplied together, and a `startDate` that
+                      is not before the `endDate` is a bad request.
                     - `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in
                       the community's time zone, that the distributor has published for any of the
                       member's supplies. The distributor publishes a month's self-consumed energy
@@ -80,14 +81,16 @@ public class GetMembershipEnergyMetricsController {
                       the search continues backwards through the 24 complete months before the
                       current one. The current month is never a candidate. When no month in the
                       search window is published, no period is resolved. The period runs from
-                      `00:00` of the first day to `23:00` of the last day. Combining it with
-                      `startDate` or `endDate` is a bad request.
-                    - Neither: from the earliest to the latest record stored for any of the member's
-                      supplies.
+                      `00:00` of the first day of the month to `00:00` of the first day of the next
+                      month. Combining it with `startDate` or `endDate` is a bad request.
+                    - Neither: from the earliest record stored for any of the member's supplies to
+                      the end of the hour of the latest.
 
                     When no period can be resolved -- no published month in the search window, no
                     stored record at all, or no supplies to search -- the response is still
                     successful, with null period bounds, zero totals and null ratios.
+
+                    """ + EnergyPeriodApiDocs.RANGE_BOUNDS + """
 
                     **Coverage:**
                     `coverage.hoursWithData` counts the hourly records found across every supply.
@@ -135,10 +138,10 @@ public class GetMembershipEnergyMetricsController {
     public MembershipEnergyMetricsResponse getMembershipEnergyMetrics(
             @PathVariable("communityId") UUID communityId,
             @PathVariable("userId") UUID userId,
-            @Parameter(description = "First instant of an explicit period, inclusive. Requires endDate.")
+            @Parameter(description = "Start of an explicit period, inclusive. Requires endDate.")
             @RequestParam(value = "startDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
-            @Parameter(description = "Last instant of an explicit period, inclusive. Requires startDate.")
+            @Parameter(description = "End of an explicit period, exclusive. Requires startDate.")
             @RequestParam(value = "endDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
             @Parameter(description = "A period the server resolves by itself. Cannot be combined with " +

@@ -107,7 +107,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         ResultActions response = request(community, member, loginUser(member))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2026-08-31T23:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-09-01T00:00:00+02:00"))
                 .andExpect(jsonPath("$.buckets.length()").value(24));
         for (int hour = 0; hour < 24; hour++) {
             response.andExpect(jsonPath("$.buckets[" + hour + "].hour").value(hour));
@@ -170,7 +170,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
 
         assertEquals(aggregated.path("period"), profile.path("period"));
         assertEquals("2026-08-01T00:00:00+02:00", profile.path("period").path("startDate").asText());
-        assertEquals("2026-08-31T23:00:00+02:00", profile.path("period").path("endDate").asText());
+        assertEquals("2026-09-01T00:00:00+02:00", profile.path("period").path("endDate").asText());
     }
 
     // --- AC3: averaged over every record, not over per-supply averages ---
@@ -319,7 +319,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         ResultActions response = request(community, member, loginUser(member))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2026-10-01T00:00:00+02:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2026-10-31T23:00:00+01:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-11-01T00:00:00+01:00"))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(745))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(745))
                 .andExpect(jsonPath("$.buckets[2].totalConsumptionSampleCount").value(32))
@@ -352,7 +352,7 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         ResultActions response = request(community, member, loginUser(member))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2026-03-01T00:00:00+01:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2026-03-31T23:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-04-01T00:00:00+02:00"))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(743))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(743))
                 .andExpect(jsonPath("$.buckets.length()").value(24))

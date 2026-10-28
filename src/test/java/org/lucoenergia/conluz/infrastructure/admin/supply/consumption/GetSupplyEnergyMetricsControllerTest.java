@@ -121,7 +121,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T00:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T02:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-01T03:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supply.id").value(supply.getId().toString()))
                 .andExpect(jsonPath("$.supply.code").value(supply.getCode()))
@@ -151,7 +151,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T00:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T00:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-01T01:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.energy.totalConsumptionKWh").value(closeTo(0.0, TOLERANCE)))
                 .andExpect(jsonPath("$.selfSufficiencyRatio").value(nullValue()))
@@ -168,7 +168,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T00:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T00:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-01T01:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.energy.assignedProductionKWh").value(closeTo(0.0, TOLERANCE)))
                 .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
@@ -190,7 +190,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T00:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T01:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-01T02:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(2))
                 .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(12.0, TOLERANCE)))
@@ -203,6 +203,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("EPR-001 an unbounded request spans from the first stored record to the end of the hour of the last")
     void testUnboundedRequestSpansFromTheFirstStoredRecordToTheLast() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
@@ -216,7 +217,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2024-02-01T00:00:00+01:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2024-02-01T02:00:00+01:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2024-02-01T03:00:00+01:00"))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(3))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(3))
                 .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(6.0, TOLERANCE)));
@@ -246,7 +247,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2024-02-01T00:00:00+01:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2024-02-01T00:00:00+01:00"));
+                .andExpect(jsonPath("$.period.endDate").value("2024-02-01T01:00:00+01:00"));
     }
 
     @Test
@@ -262,7 +263,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T00:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T23:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-02T00:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.coverage.expectedHours").value(24))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(3))
@@ -308,10 +309,10 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2025-01-01T00:00:00+01:00")
-                        .queryParam("endDate", "2025-01-01T23:00:00+01:00"))
+                        .queryParam("endDate", "2025-01-02T00:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2025-01-01T00:00:00+01:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2025-01-01T23:00:00+01:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2025-01-02T00:00:00+01:00"))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(24))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(0))
                 .andExpect(jsonPath("$.energy.totalConsumptionKWh").value(closeTo(0.0, TOLERANCE)))
@@ -324,11 +325,12 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * Both bounds are inclusive, so the record sitting exactly on endDate counts and the next one
-     * does not.
+     * The period is half-open, so the record sitting exactly on startDate counts and the one sitting
+     * exactly on endDate does not.
      */
     @Test
-    void testBothPeriodBoundsAreInclusive() throws Exception {
+    @DisplayName("EPR-001 AC1 the record on startDate counts and the one on endDate does not")
+    void testTheStartBoundIsIncludedAndTheEndBoundExcluded() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
@@ -340,11 +342,11 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T10:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T11:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-01T12:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(2))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(2))
-                // The record on the bound is in; the one an hour later is out.
+                // The record on the start bound is in; the one on the end bound is out.
                 .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(3.0, TOLERANCE)));
     }
 
@@ -352,6 +354,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
      * The local day the clocks go forward has 23 hours, so a fully covered one must not report 24.
      */
     @Test
+    @DisplayName("EPR-001 AC1 the spring daylight saving day spans 23 hours")
     void testExpectedHoursFollowsTheSpringDaylightSavingTransition() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
@@ -371,7 +374,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2023-03-26T00:00:00+01:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2023-03-26T23:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2023-03-27T00:00:00+02:00"))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(23))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(23));
     }
@@ -381,6 +384,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
      * 24 of them -- the second 02:00 is never written -- which is exactly the gap coverage reports.
      */
     @Test
+    @DisplayName("EPR-001 AC1 the autumn daylight saving day spans 25 hours")
     void testExpectedHoursFollowsTheAutumnDaylightSavingTransition() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
@@ -397,7 +401,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2023-10-29T00:00:00+02:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2023-10-29T23:00:00+01:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2023-10-30T00:00:00+01:00"))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(25))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(24));
     }
@@ -423,7 +427,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T00:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T02:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-01T03:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.savings.amountEur").value(closeTo(7.95, TOLERANCE)))
                 .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
@@ -518,7 +522,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         MvcResult result = mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T00:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T02:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-01T03:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -551,7 +555,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2025-01-01T00:00:00+01:00")
-                        .queryParam("endDate", "2025-01-01T23:00:00+01:00"))
+                        .queryParam("endDate", "2025-01-02T00:00:00+01:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.savings.amountEur").value(closeTo(0.0, TOLERANCE)))
                 .andExpect(jsonPath("$.savings.tariffSource").value("ESTIMATE"))
@@ -608,7 +612,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T10:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T12:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-01T13:00:00+01:00"))
                 .andExpect(status().isOk())
                 // Hand-computed from the three in-period records.
                 .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(8.0, TOLERANCE)))
@@ -618,11 +622,12 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * The record on the inclusive end bound is priced, the one an hour later is not -- the saving
-     * honours the same inclusive bounds the energy totals do.
+     * The record on the exclusive end bound is not priced -- the saving honours the same half-open
+     * bounds the energy totals do.
      */
     @Test
-    void testSavingsHonourTheInclusiveEndBound() throws Exception {
+    @DisplayName("EPR-001 the savings leave out the record on the exclusive end bound")
+    void testSavingsHonourTheExclusiveEndBound() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
@@ -634,9 +639,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .queryParam("startDate", "2024-02-01T10:00:00+01:00")
-                        .queryParam("endDate", "2024-02-01T11:00:00+01:00"))
+                        .queryParam("endDate", "2024-02-01T12:00:00+01:00"))
                 .andExpect(status().isOk())
-                // 20 x 0.15 = 3.00. The 12:00 record would have taken it to 153.00.
+                // 20 x 0.15 = 3.00. The 12:00 record, on the end bound, would have taken it to 153.00.
                 .andExpect(jsonPath("$.savings.amountEur").value(closeTo(3.00, TOLERANCE)))
                 .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(20.0, TOLERANCE)));
     }
@@ -790,7 +795,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
      * September; B resolves September.
      */
     @Test
-    @DisplayName("SEM-001 AC1 each supply of an owner resolves the latest month it published itself")
+    @DisplayName("SEM-001 EPR-001 AC7 each supply of an owner resolves the latest month it published itself, half-open")
     void eachSupplyOfAnOwnerResolvesTheLatestMonthItPublishedItself() throws Exception {
         travelTo(NOW);
         User owner = createEnabledUser();
@@ -808,7 +813,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supply.id").value(supplyA.getId().toString()))
                 .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2026-08-31T23:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-09-01T00:00:00+02:00"))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(744))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(744));
 
@@ -816,7 +821,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supply.id").value(supplyB.getId().toString()))
                 .andExpect(jsonPath("$.period.startDate").value("2026-09-01T00:00:00+02:00"))
-                .andExpect(jsonPath("$.period.endDate").value("2026-09-30T23:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-10-01T00:00:00+02:00"))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(720))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(720));
     }
@@ -935,8 +940,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
-                // The last September record is at 19:00; October is stored in full.
-                .andExpect(jsonPath("$.period.endDate").value("2026-10-31T23:00:00+01:00"))
+                // The last September record is at 19:00; October is stored in full, its last record at
+                // 23:00 on the 31st, so the period ends an hour later.
+                .andExpect(jsonPath("$.period.endDate").value("2026-11-01T00:00:00+01:00"))
                 .andExpect(jsonPath("$.coverage.hoursWithData").value(744 + 600 + 745))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(744 + 720 + 745));
     }
@@ -954,7 +960,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         String explicit = mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, token)
                         .queryParam("startDate", "2026-08-01T00:00:00+02:00")
-                        .queryParam("endDate", "2026-08-31T23:00:00+02:00"))
+                        .queryParam("endDate", "2026-09-01T00:00:00+02:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00"))
                 .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))

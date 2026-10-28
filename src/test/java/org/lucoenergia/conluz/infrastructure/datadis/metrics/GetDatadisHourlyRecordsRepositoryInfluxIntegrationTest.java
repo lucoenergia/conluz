@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.datadis.metrics;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -28,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * (see {@link BaseIntegrationTest}).
  *
  * <p>These pin what only the engine and the client can show: that a field a record does not carry
- * comes back as null while a stored zero comes back as zero, that both bounds are inclusive, and
+ * comes back as null while a stored zero comes back as zero, that the period is half-open, and
  * that a period longer than one chunk is handed over in full.</p>
  */
 class GetDatadisHourlyRecordsRepositoryInfluxIntegrationTest extends BaseIntegrationTest {
@@ -51,7 +52,7 @@ class GetDatadisHourlyRecordsRepositoryInfluxIntegrationTest extends BaseIntegra
         fixture.writeAt(supply.getCode(), Instant.parse("2024-02-01T10:00:00Z"), 1.5f, 0.0f, 0.0f);
         fixture.writeAt(supply.getCode(), Instant.parse("2024-02-01T11:00:00Z"), 2.5f, null, null);
 
-        List<HourlyEnergyRecord> records = read(supply, "2024-02-01T10:00:00Z", "2024-02-01T11:00:00Z");
+        List<HourlyEnergyRecord> records = read(supply, "2024-02-01T10:00:00Z", "2024-02-01T12:00:00Z");
 
         assertEquals(2, records.size());
         HourlyEnergyRecord zeros = records.get(0);
@@ -66,7 +67,8 @@ class GetDatadisHourlyRecordsRepositoryInfluxIntegrationTest extends BaseIntegra
     }
 
     @Test
-    void includesTheRecordsSittingExactlyOnEitherBoundAndExcludesTheRest() {
+    @DisplayName("EPR-001 the hourly records include the one on startDate and exclude the one on endDate")
+    void includesTheRecordOnTheStartBoundAndExcludesTheOneOnTheEndBound() {
         Supply supply = supply();
         fixture.writeAt(supply.getCode(), List.of(
                 Instant.parse("2024-02-01T09:00:00Z"),
@@ -79,8 +81,7 @@ class GetDatadisHourlyRecordsRepositoryInfluxIntegrationTest extends BaseIntegra
 
         assertEquals(List.of(
                         Instant.parse("2024-02-01T10:00:00Z"),
-                        Instant.parse("2024-02-01T11:00:00Z"),
-                        Instant.parse("2024-02-01T12:00:00Z")),
+                        Instant.parse("2024-02-01T11:00:00Z")),
                 records.stream().map(HourlyEnergyRecord::getTime).toList());
     }
 
@@ -113,7 +114,7 @@ class GetDatadisHourlyRecordsRepositoryInfluxIntegrationTest extends BaseIntegra
         List<Instant> times = LongStream.range(0, count).mapToObj(hour -> first.plus(Duration.ofHours(hour))).toList();
         fixture.writeAt(supply.getCode(), times, 1.0f, 0.5f, 0.25f);
 
-        List<HourlyEnergyRecord> records = read(supply, first.toString(), times.get(count - 1).toString());
+        List<HourlyEnergyRecord> records = read(supply, first.toString(), first.plus(Duration.ofHours(count)).toString());
 
         assertEquals(count, records.size());
         assertEquals(times, records.stream().map(HourlyEnergyRecord::getTime).sorted().toList());

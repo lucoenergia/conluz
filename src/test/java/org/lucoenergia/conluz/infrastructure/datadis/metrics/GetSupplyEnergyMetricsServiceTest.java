@@ -34,6 +34,7 @@ import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -72,6 +73,11 @@ class GetSupplyEnergyMetricsServiceTest {
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
     /**
+     * Well after every period the tests request.
+     */
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-27T10:00:00Z"), ZoneOffset.UTC);
+
+    /**
      * The estimated price the calculator reports, as the application would bind it from
      * configuration. Deliberately equal to the base the stubbed estimated segments carry, as it is
      * in production, where the estimated resolver builds its segments from this same value.
@@ -90,7 +96,7 @@ class GetSupplyEnergyMetricsServiceTest {
             aggregateRepository, getSupplyRepository, new DateConverter(timeConfiguration),
             new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
                     CONFIGURED_ESTIMATE),
-            referenceMonthResolver, zoneResolver);
+            referenceMonthResolver, zoneResolver, CLOCK);
 
     private final Supply supply = SupplyMother.random().build();
     private final SupplyId supplyId = SupplyId.of(supply.getId());
@@ -131,13 +137,14 @@ class GetSupplyEnergyMetricsServiceTest {
     }
 
     @Test
-    void aPeriodOfASingleInstantIsAccepted() {
-        givenSupplyExists();
-        givenAggregate(new DatadisConsumptionAggregate(1d, 0d, 0d, 1L));
+    @DisplayName("EPR-001 AC3 a period whose bounds are equal is empty and rejected")
+    void aPeriodWithEqualBoundsIsRejectedAsEmpty() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> service.getEnergyMetrics(supplyId, START_DATE, START_DATE));
 
-        SupplyEnergyMetrics metrics = service.getEnergyMetrics(supplyId, START_DATE, START_DATE);
-
-        assertEquals(1L, metrics.getExpectedHours());
+        assertEquals(InvalidEnergyMetricsPeriodException.Reason.START_AFTER_END, exception.getReason());
+        verifyNoInteractions(getSupplyRepository);
+        verifyNoInteractions(aggregateRepository);
     }
 
     /**
@@ -189,6 +196,7 @@ class GetSupplyEnergyMetricsServiceTest {
     }
 
     @Test
+    @DisplayName("EPR-001 an unbounded period spans the stored records in the configured zone, to the end of the last record's hour")
     void anUnboundedPeriodSpansTheStoredRecordsInTheConfiguredZone() {
         givenSupplyExists();
         givenConfiguredZoneIsMadrid();
@@ -202,7 +210,8 @@ class GetSupplyEnergyMetricsServiceTest {
 
         // Europe/Madrid in February, so the stored instants surface as +01:00, not as UTC.
         assertEquals(OffsetDateTime.parse("2024-02-01T00:00:00+01:00"), metrics.getStartDate());
-        assertEquals(OffsetDateTime.parse("2024-02-01T23:00:00+01:00"), metrics.getEndDate());
+        // The last record is at 23:00, so the half-open period ends at the following midnight.
+        assertEquals(OffsetDateTime.parse("2024-02-02T00:00:00+01:00"), metrics.getEndDate());
         assertEquals(ZoneOffset.ofHours(1), metrics.getStartDate().getOffset());
         assertEquals(24L, metrics.getExpectedHours());
     }
@@ -227,24 +236,27 @@ class GetSupplyEnergyMetricsServiceTest {
     }
 
     @Test
+    @DisplayName("EPR-001 AC1 expected hours count the 24 hourly slots of a full day")
     void expectedHoursCountsTheHourlySlotsOfAFullDay() {
-        assertEquals(24L, expectedHoursBetween("2024-02-01T00:00:00+01:00", "2024-02-01T23:00:00+01:00"));
+        assertEquals(24L, expectedHoursBetween("2024-02-01T00:00:00+01:00", "2024-02-02T00:00:00+01:00"));
     }
 
     /**
      * Europe/Madrid on 2023-03-26 loses an hour, so a full local day is 23 hourly slots.
      */
     @Test
+    @DisplayName("EPR-001 AC1 expected hours shrink to 23 on the spring daylight saving transition")
     void expectedHoursShrinksOnTheSpringDaylightSavingTransition() {
-        assertEquals(23L, expectedHoursBetween("2023-03-26T00:00:00+01:00", "2023-03-26T23:00:00+02:00"));
+        assertEquals(23L, expectedHoursBetween("2023-03-26T00:00:00+01:00", "2023-03-27T00:00:00+02:00"));
     }
 
     /**
      * Europe/Madrid on 2023-10-29 repeats an hour, so a full local day is 25 hourly slots.
      */
     @Test
+    @DisplayName("EPR-001 AC1 expected hours grow to 25 on the autumn daylight saving transition")
     void expectedHoursGrowsOnTheAutumnDaylightSavingTransition() {
-        assertEquals(25L, expectedHoursBetween("2023-10-29T00:00:00+02:00", "2023-10-29T23:00:00+01:00"));
+        assertEquals(25L, expectedHoursBetween("2023-10-29T00:00:00+02:00", "2023-10-30T00:00:00+01:00"));
     }
 
     // --- Estimated savings ---
@@ -286,6 +298,7 @@ class GetSupplyEnergyMetricsServiceTest {
      * must not be priced into it.
      */
     @Test
+    @DisplayName("EPR-001 each segment is clamped to the half-open instants of the period")
     void eachSegmentIsClampedToTheRealInstantsOfThePeriod() {
         givenSupplyExists();
         givenAggregate(new DatadisConsumptionAggregate(0d, 30d, 0d, 48L));
@@ -300,10 +313,10 @@ class GetSupplyEnergyMetricsServiceTest {
         // Lower bound of the first segment is the period start, not 2020-01-01...
         verify(aggregateRepository).sumSelfConsumptionKWh(any(Supply.class),
                 eq(madrid("2024-02-01T10:00:00+01:00")), eq(madrid("2024-02-02T00:00:00+01:00")));
-        // ...and the upper bound of the second is the exclusive period end, not 2030-01-01.
+        // ...and the upper bound of the second is the period's own exclusive end, not 2030-01-01.
         verify(aggregateRepository).sumSelfConsumptionKWh(any(Supply.class),
                 eq(madrid("2024-02-02T00:00:00+01:00")),
-                eq(madrid("2024-02-02T15:00:00+01:00").plusNanos(1)));
+                eq(madrid("2024-02-02T15:00:00+01:00")));
     }
 
     /**
@@ -539,7 +552,7 @@ class GetSupplyEnergyMetricsServiceTest {
     // --- SEM-001: the latest published month of this supply alone ---
 
     @Test
-    @DisplayName("SEM-001 AC1 the month is resolved from this supply alone, in the supply's zone")
+    @DisplayName("SEM-001 EPR-001 AC7 the month is resolved from this supply alone, in the supply's zone, half-open")
     void theLatestPublishedMonthIsResolvedFromThisSupplyAloneInItsZone() {
         givenSupplyExists();
         when(referenceMonthResolver.resolveLatestPublishedMonth(List.of(supply), ZONE))
@@ -551,7 +564,7 @@ class GetSupplyEnergyMetricsServiceTest {
 
         verify(referenceMonthResolver).resolveLatestPublishedMonth(List.of(supply), ZONE);
         OffsetDateTime monthStart = OffsetDateTime.parse("2026-08-01T00:00:00+02:00");
-        OffsetDateTime monthEnd = OffsetDateTime.parse("2026-08-31T23:00:00+02:00");
+        OffsetDateTime monthEnd = OffsetDateTime.parse("2026-09-01T00:00:00+02:00");
         verify(aggregateRepository).aggregateByRangeOfDates(supply, monthStart, monthEnd);
         assertEquals(monthStart, metrics.getStartDate());
         assertEquals(monthEnd, metrics.getEndDate());

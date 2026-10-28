@@ -59,11 +59,12 @@ public class GetSupplyEnergyMetricsController {
 
                     **Period:**
                     The period is resolved in exactly one of three ways, and the resolved bounds are
-                    always reported in `period`, also when the caller supplied them.
+                    always reported in `period`, also when the caller supplied them, with an end after
+                    the current hour clipped as described under **Period checks**.
 
                     - `startDate` and `endDate`: an explicit period. They must be supplied together;
-                      supplying exactly one of them is a bad request, as is a `startDate` after the
-                      `endDate`.
+                      supplying exactly one of them is a bad request, as is a `startDate` that is not
+                      before the `endDate`.
                     - `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in the
                       supply's time zone, that the distributor has published for **this supply**. It is
                       resolved from this supply's records alone: a month published only for another supply
@@ -73,17 +74,17 @@ public class GetSupplyEnergyMetricsController {
                       of the month from the later of its first hour and the supply's first published
                       record. An unpublished or partly published month is skipped and the search continues
                       backwards through the 24 complete months before the current one. The current month is
-                      never a candidate. The period runs from `00:00` of the first day to `23:00` of the
-                      last day. Combining it with `startDate` or `endDate` is a bad request.
-                    - Neither: from the supply's earliest stored record to its latest.
+                      never a candidate. The period runs from `00:00` of the first day of the month to
+                      `00:00` of the first day of the next month. Combining it with `startDate` or
+                      `endDate` is a bad request.
+                    - Neither: from the supply's earliest stored record to the end of the hour of its
+                      latest.
 
                     When no period can be resolved -- no published month in the search window, or no
                     stored record at all -- the response is still successful, with null period bounds,
                     zero totals and null ratios.
 
-                    **Both bounds are inclusive.** A caller wanting a single calendar day must pass `00:00`
-                    to `23:00` of that day, not `00:00` to the following `00:00`, which would count the
-                    boundary hour in both days.
+                    """ + EnergyPeriodApiDocs.RANGE_BOUNDS + """
 
                     The `coverage` object reports how many hourly records were found against how many hours
                     the period spans, so a partially synchronised period can be told apart from a genuinely
@@ -127,10 +128,10 @@ public class GetSupplyEnergyMetricsController {
     @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
     public SupplyEnergyMetricsResponse getSupplyEnergyMetrics(
             @PathVariable("supplyId") UUID supplyId,
-            @Parameter(description = "First instant of an explicit period, inclusive. Requires endDate.")
+            @Parameter(description = "Start of an explicit period, inclusive. Requires endDate.")
             @RequestParam(value = "startDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
-            @Parameter(description = "Last instant of an explicit period, inclusive. Requires startDate.")
+            @Parameter(description = "End of an explicit period, exclusive. Requires startDate.")
             @RequestParam(value = "endDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
             @Parameter(description = "A period the server resolves by itself. Cannot be combined with " +
