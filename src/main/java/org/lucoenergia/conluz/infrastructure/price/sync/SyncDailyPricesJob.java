@@ -25,18 +25,17 @@ public class SyncDailyPricesJob implements Job {
     }
 
     /**
-     * This method is executed based on a cron expression to retrieve OMIE prices daily.
-     * It synchronises the last week of market days, today included, in OMIE's time zone whatever zone the
-     * application is configured with.
+     * Runs once a day at 21:00 in OMIE's time zone, whatever zone the JVM runs in, after OMIE has published
+     * tomorrow's prices (around 13:00). It synchronises the last seven market days, today and tomorrow (PRC-008).
      */
     @Override
-    @Scheduled(cron = "0 0 6 * * *")
+    @Scheduled(cron = "0 0 21 * * *", zone = "Europe/Madrid")
     public void run() {
         LOGGER.info("OMIE prices daily retrieval started...");
 
         LocalDate today = LocalDate.now(clock.withZone(OmieConfig.OMIE_ZONE));
 
-        syncDailyPricesService.syncDailyPricesByDays(today.minusDays(7), today.plusDays(1));
+        syncDailyPricesService.syncDailyPricesByDays(today.minusDays(7), today.plusDays(2));
 
         LOGGER.info("...finished OMIE prices daily retrieval.");
     }

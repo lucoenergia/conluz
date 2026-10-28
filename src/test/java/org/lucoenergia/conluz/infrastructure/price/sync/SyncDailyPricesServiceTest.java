@@ -11,12 +11,14 @@ import org.lucoenergia.conluz.domain.price.sync.InvalidPriceSyncPeriodException;
 import org.lucoenergia.conluz.domain.price.sync.OmieDayPrices;
 import org.lucoenergia.conluz.domain.price.sync.PriceSyncResult;
 import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
+import org.lucoenergia.conluz.infrastructure.price.OmieConfig;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -107,6 +109,32 @@ class SyncDailyPricesServiceTest {
 
         assertEquals(List.of(new PriceSyncResult(start, PriceSyncResult.Outcome.SKIPPED, 0,
                 PriceSyncResult.SkipReason.FILE_NOT_FOUND)), results);
+    }
+
+    @Test
+    @DisplayName("PRC-008 the job's range with tomorrow not yet published reports tomorrow skipped as FILE_NOT_FOUND and the eight other days stored")
+    void syncDailyPricesByDays_reportsTomorrowNotYetPublishedAndStoresTheOtherDays() {
+        // 21:00 on 2026-10-19 in Madrid, when the job runs
+        Clock jobClock = Clock.fixed(Instant.parse("2026-10-19T19:00:00Z"), ZoneOffset.UTC);
+        SyncDailyPricesService service = new SyncDailyPricesServiceImpl(getOmiePricesRepository,
+                persistOmiePricesRepository, jobClock);
+        LocalDate today = LocalDate.parse("2026-10-19");
+        List<OmieDayPrices> days = new ArrayList<>();
+        List<PriceSyncResult> expected = new ArrayList<>();
+        for (LocalDate day = today.minusDays(7); !day.isAfter(today); day = day.plusDays(1)) {
+            days.add(OmieDayPrices.served(day, List.of(new PriceByHour(0.1,
+                    day.atStartOfDay(OmieConfig.OMIE_ZONE).toOffsetDateTime()))));
+            expected.add(new PriceSyncResult(day, PriceSyncResult.Outcome.STORED, 1, null));
+        }
+        days.add(OmieDayPrices.notServed(today.plusDays(1), OmieDayPrices.Status.NOT_FOUND));
+        expected.add(new PriceSyncResult(today.plusDays(1), PriceSyncResult.Outcome.SKIPPED, 0,
+                PriceSyncResult.SkipReason.FILE_NOT_FOUND));
+        when(getOmiePricesRepository.getPricesByDays(today.minusDays(7), today.plusDays(2))).thenReturn(days);
+
+        List<PriceSyncResult> results = service.syncDailyPricesByDays(today.minusDays(7), today.plusDays(2));
+
+        assertEquals(expected, results);
+        verify(persistOmiePricesRepository, times(1)).persistPrices(anyList());
     }
 
     @Test
