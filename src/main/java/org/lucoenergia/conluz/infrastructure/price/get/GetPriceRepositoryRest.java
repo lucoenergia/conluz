@@ -34,6 +34,7 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
 
     private static final long QUARTER_MINUTES = 15;
     private static final long HOUR_MINUTES = 60;
+    private static final int SPAIN_PRICE_COLUMN = 5;
 
     private final ConluzRestClientBuilder conluzRestClientBuilder;
 
@@ -125,7 +126,8 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
      * - Month.
      * - Day.
      * - Period, numbered from 1.
-     * - Two double values.
+     * - Marginal price of the Portuguese system, in EUR/MWh.
+     * - Marginal price of the Spanish system, in EUR/MWh. This is the price stored.
      * The first line is a header (MARGINALPDBC;) and the last one a trailer (*).
      * <p>
      * A period lasts 15 or 60 minutes. Period n starts (n - 1) periods after the start of the market day in
@@ -161,7 +163,7 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
                     .toOffsetDateTime();
 
             // We divide the value by 1000 because the price comes in MWh and we use kWh
-            double priceKwh = Double.parseDouble(fields[4]) / 1000;
+            double priceKwh = Double.parseDouble(fields[SPAIN_PRICE_COLUMN]) / 1000;
             // Format number to have exactly 6 decimals
             priceKwh = Math.floor(priceKwh * 1e6) / 1e6;
 

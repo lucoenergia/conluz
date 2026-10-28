@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -41,6 +42,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
     public static final String OMIE_QUARTER_PRICES_DST_FALL = "src/test/resources/fixtures/price/omie_quarter_prices_DST_fall.txt";
     public static final String OMIE_HOUR_PRICES_DST_FALL = "src/test/resources/fixtures/price/omie_hour_prices_DST_fall.txt";
     public static final String OMIE_QUARTER_PRICES_WRONG_COUNT = "src/test/resources/fixtures/price/omie_quarter_prices_wrong_count.txt";
+    public static final String OMIE_HOUR_PRICES_SPLIT_MARKET = "src/test/resources/fixtures/price/omie_hour_prices_split_market.txt";
 
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
 
@@ -307,6 +309,30 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         assertEquals(96, prices.size());
         assertEquals(Instant.parse("2025-12-13T23:00:00Z"), prices.get(0).getHour().toInstant());
         assertEquals(Instant.parse("2025-12-14T22:45:00Z"), prices.get(95).getHour().toInstant());
+    }
+
+    @Test
+    @DisplayName("PRC-004 the stored price is the Spanish marginal price, not the Portuguese one")
+    void syncDailyPrices_storesSpanishPriceWhenIberianMarketSplits() throws IOException {
+
+        // Assemble
+        // Each row is year;month;day;period;Portuguese price;Spanish price, in EUR/MWh. On this day
+        // periods 7, 8 and 9 have Portuguese prices 0, 0 and 0.04, and Spanish prices 0.4, 3.25 and 2.97.
+        stubOmieFiles(Map.of("20240405.1", OMIE_HOUR_PRICES_SPLIT_MARKET));
+
+        // Act
+        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20240405"), day("20240405"));
+
+        // Assert
+        assertEquals(24, prices.size());
+
+        assertEquals(0.0004, prices.get(6).getPrice());
+        assertEquals(0.00325, prices.get(7).getPrice());
+        assertEquals(0.00297, prices.get(8).getPrice());
+
+        assertNotEquals(0.0, prices.get(6).getPrice());
+        assertNotEquals(0.0, prices.get(7).getPrice());
+        assertNotEquals(0.00004, prices.get(8).getPrice());
     }
 
     private void stubOmieFiles(Map<String, String> fixturesByFile) throws IOException {
