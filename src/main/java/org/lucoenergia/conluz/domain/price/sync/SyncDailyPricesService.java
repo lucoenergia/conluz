@@ -1,12 +1,9 @@
 package org.lucoenergia.conluz.domain.price.sync;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface SyncDailyPricesService {
-
-    void syncDailyPricesByDateInterval(OffsetDateTime startDate, OffsetDateTime endDate);
 
     /**
      * Fetches the OMIE prices of each market day of {@code [startDate, endDate)} again and stores them, each day's

@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
@@ -32,22 +31,6 @@ public class SyncDailyPricesServiceImpl implements SyncDailyPricesService {
         this.getOmiePricesRepository = getOmiePricesRepository;
         this.persistOmiePricesRepository = persistOmiePricesRepository;
         this.clock = clock;
-    }
-
-    @Override
-    public void syncDailyPricesByDateInterval(OffsetDateTime startDate, OffsetDateTime endDate) {
-
-        if (startDate.isAfter(endDate)) {
-            LOGGER.error("Start date is after end date. Start date: {}, end date: {}", startDate, endDate);
-            return;
-        }
-
-        List<PriceByHour> prices = getOmiePricesRepository
-                .getPricesByDays(startDate.toLocalDate(), endDate.toLocalDate().plusDays(1)).stream()
-                .flatMap(day -> day.prices().stream())
-                .toList();
-
-        persistOmiePricesRepository.persistPrices(prices);
     }
 
     @Override
