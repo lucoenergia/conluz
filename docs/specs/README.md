@@ -67,7 +67,7 @@ are always called **tests**, never specs.
 | Prefix | Capability | File |
 | --- | --- | --- |
 | `ENM` | Membership energy metrics | [`membership-energy-metrics.md`](membership-energy-metrics.md) |
-| `DCA` | Datadis consumption pre-aggregation | [`datadis-consumption-pre-aggregation.md`](datadis-consumption-pre-aggregation.md) |
+| `DCA` | Datadis consumption and production pre-aggregation | [`datadis-pre-aggregation.md`](datadis-pre-aggregation.md) |
 | `HPA` | Huawei production pre-aggregation | [`huawei-production-pre-aggregation.md`](huawei-production-pre-aggregation.md) |
 | `HCF` | Huawei configuration | [`huawei-configuration.md`](huawei-configuration.md) |
 | `DCF` | Datadis configuration | [`datadis-configuration.md`](datadis-configuration.md) |

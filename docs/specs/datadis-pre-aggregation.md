@@ -1,4 +1,4 @@
-# Spec — Datadis consumption pre-aggregation
+# Spec — Datadis pre-aggregation
 
 | | |
 | --- | --- |
@@ -12,9 +12,10 @@
 
 The monthly and yearly totals the scheduled jobs pre-compute, per supply, from the hourly records
 the daily Datadis sync stores, so that monthly and yearly series need not sum the hourly records on
-every request. Both series come from Datadis consumption data: the production pre-aggregates sum the
-hourly production the sync derives from the surplus of plant supplies. This spec covers only how
-fresh those totals are kept; the rest of the capability is specified lazily, as issues touch it.
+every request. The spec covers both pre-aggregated series, consumption and production. Both come
+from Datadis consumption data: the production pre-aggregates sum the hourly production the sync
+derives from the surplus of plant supplies. This spec covers only how fresh those totals are kept;
+the rest of the capability is specified lazily, as issues touch it.
 
 ## Glossary
 
