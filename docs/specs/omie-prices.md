@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | None: prices are synchronised by the scheduled job `SyncDailyPricesJob`, not by an operation |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #516 |
+| **Last reviewed against code** | #519 |
 
 ## Purpose
 
@@ -54,6 +54,18 @@ timestamped prices; the rest of the capability is specified lazily, as issues to
 - **Rationale:** The job synchronises seven days at a time. A single rejected day (the 25-hour day of
   2026-10-25) used to abort the whole run, so no price was stored for a week.
 - **Source:** #516
+
+### PRC-004 — The stored price is the Spanish system's marginal price
+
+- **Status:** Active
+- **Rule:** The price stored for each period MUST be the marginal price of the Spanish system (6th
+  column of OMIE's `marginalpdbc` files), never the Portuguese one.
+- **Rationale:** Each row of the file carries the marginal price of the Portuguese system and then
+  that of the Spanish system. They are equal while the Iberian market is coupled, but differ when it
+  splits (for example 0 and 3.25 €/MWh in period 8 of 2024-04-05). Conluz communities are Spanish, so
+  the Portuguese price misprices their energy whenever the market splits.
+- **Source:** #519; OMIE `marginalpdbc` column layout: year; month; day; period; Portuguese price;
+  Spanish price.
 
 ## Impossible states
 
