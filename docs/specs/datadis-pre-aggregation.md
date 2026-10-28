@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → read by `getMembershipMonthlyConsumption`, among others; rebuilt on demand by `syncMonthlyDatadisConsumptions`, `syncYearlyDatadisConsumptions`, `syncMonthlyDatadisProduction`, `syncYearlyDatadisProduction` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #380 |
+| **Last reviewed against code** | #524 |
 
 ## Purpose
 
@@ -66,29 +66,62 @@ Then it is October 2026, and the window is October 2025 to October 2026
 - **Status:** Active
 - **Rule:** After each daily aggregation run, the monthly production pre-aggregate for every month
   inside the hourly re-sync window MUST equal the sum of that month's hourly production records,
-  per supply and per field. Months outside the window MUST NOT be rewritten.
+  per plant supply (the scope of DCA-004) and per field. Months outside the window MUST NOT be
+  rewritten.
 - **Rationale:** The daily sync rewrites the hourly production of plant supplies over the same
   window as their consumption, so the production totals froze in the same way. The month is summed
   between local midnights, as in DCA-001: the production aggregation used literal UTC bounds, which in
   Madrid dropped the first local hour or two of every month and counted the first of the next month
   instead (#380), so re-aggregating the window alone would only have rewritten the wrong sums.
-- **Source:** #375, #380
+  The pre-aggregate is kept per plant supply because only plant supplies have hourly production
+  (DCA-004).
+- **Source:** #375, #380, #524
 
 ### DCA-003 — The yearly pre-aggregates are current for every year the re-sync window overlaps
 
 - **Status:** Active
 - **Rule:** After each daily yearly aggregation run, the yearly consumption and production
   pre-aggregates for every year overlapping the hourly re-sync window MUST equal the sum of that
-  year's monthly pre-aggregate points, per supply and per field. Years outside the window MUST NOT
-  be rewritten.
+  year's monthly pre-aggregate points, per field: the consumption pre-aggregates per supply, the
+  production pre-aggregates per plant supply (the scope of DCA-004). Years outside the window MUST
+  NOT be rewritten.
 - **Rationale:** The yearly totals are summed from the monthly ones. Once DCA-001 and DCA-002 rewrite
   every month of the window, the window reaches into the previous year (October to December 2025 on
   2026-10-09), and a yearly job that only re-aggregated the current year left that year's total at
   the monthly values it summed before they were corrected. The year is summed between local
   midnights of 1 January: monthly points are stamped at local midnight of the 1st, so January sits at
   23:00Z of the previous year, and the production yearly aggregation, which used literal UTC bounds,
-  counted every January in the previous year's total and none in its own (#380).
-- **Source:** #375, #380
+  counted every January in the previous year's total and none in its own (#380). The production
+  totals follow the scope of DCA-004 because they are summed from the monthly production
+  pre-aggregates, which exist only for plant supplies.
+- **Source:** #375, #380, #524
+
+### DCA-004 — The production pre-aggregates are computed only for plant supplies
+
+- **Status:** Active
+- **Rule:** The monthly and yearly Datadis production pre-aggregates MUST be computed only for
+  supplies linked to a plant of the community, by the scheduled jobs and by
+  `syncMonthlyDatadisProduction` and `syncYearlyDatadisProduction` alike. A `supplyCode` of a
+  community supply that is not linked to a plant MUST be answered as not found.
+- **Rationale:** Only plant supplies have hourly Datadis production (the sync derives it from their
+  surplus) and only their production is read. Aggregating every other supply ran queries that
+  could never find data and filled the logs with WARN lines that hid a plant supply with no
+  production. A `supplyCode` that is not a plant supply is answered as not found, as the production
+  read path answers a supply that does not back a plant of the community.
+- **Source:** #524
+
+**Scenarios**
+
+```gherkin
+Given a Datadis-enabled community with two plant supplies and two supplies not linked to a plant, all with hourly production
+When the daily production aggregation runs
+Then the two plant supplies get their monthly and yearly production totals
+And the other two supplies get no production point, and keep any they already had
+
+Given a supply of the community that is not linked to a plant
+When a community admin asks syncMonthlyDatadisProduction or syncYearlyDatadisProduction to aggregate it
+Then the request is answered as not found
+```
 
 ## Impossible states
 
