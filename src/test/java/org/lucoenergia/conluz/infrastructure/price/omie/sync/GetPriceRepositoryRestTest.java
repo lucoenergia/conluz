@@ -9,7 +9,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.infrastructure.price.get.GetPriceRepositoryRest;
-import org.lucoenergia.conluz.infrastructure.price.get.OmiePriceFileException;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.ArgumentMatchers;
@@ -29,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -268,9 +267,11 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         // Assemble
         stubOmieFiles(Map.of("20251213.1", OMIE_QUARTER_PRICES_WRONG_COUNT));
 
-        // Act & assert
-        assertThrows(OmiePriceFileException.class,
-                () -> repository.getPricesByRangeOfDates(day("20251213"), day("20251213")));
+        // Act
+        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20251213"), day("20251213"));
+
+        // Assert
+        assertTrue(prices.isEmpty());
     }
 
     @Test
@@ -282,9 +283,30 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
                 .replace("2025;12;12;2;", "2025;12;12;3;");
         stubOmieBodies(Map.of("20251212.1", body));
 
-        // Act & assert
-        assertThrows(OmiePriceFileException.class,
-                () -> repository.getPricesByRangeOfDates(day("20251212"), day("20251212")));
+        // Act
+        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20251212"), day("20251212"));
+
+        // Assert
+        assertTrue(prices.isEmpty());
+    }
+
+    @Test
+    @DisplayName("PRC-003 a day whose file is rejected does not prevent the other days from being returned")
+    void syncDailyPrices_returnsOtherDaysWhenOneDayIsRejected() throws IOException {
+
+        // Assemble
+        String validNextDay = Files.readString(Paths.get(OMIE_QUARTER_PRICES)).replace("2025;12;12;", "2025;12;14;");
+        stubOmieBodies(Map.of(
+                "20251213.1", Files.readString(Paths.get(OMIE_QUARTER_PRICES_WRONG_COUNT)),
+                "20251214.1", validNextDay));
+
+        // Act
+        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20251213"), day("20251214"));
+
+        // Assert
+        assertEquals(96, prices.size());
+        assertEquals(Instant.parse("2025-12-13T23:00:00Z"), prices.get(0).getHour().toInstant());
+        assertEquals(Instant.parse("2025-12-14T22:45:00Z"), prices.get(95).getHour().toInstant());
     }
 
     private void stubOmieFiles(Map<String, String> fixturesByFile) throws IOException {

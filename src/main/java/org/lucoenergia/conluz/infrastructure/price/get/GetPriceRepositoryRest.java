@@ -56,14 +56,17 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
             final String dayFormatted = formatDay(currentDate);
             LOGGER.info("Synchronizing OMIE prices for day {}.", dayFormatted);
 
-            final List<PriceByHour> pricesPerDay = getPrices(client, "1", dayFormatted);
-            if (!pricesPerDay.isEmpty()) {
+            try {
+                List<PriceByHour> pricesPerDay = getPrices(client, "1", dayFormatted);
+                if (pricesPerDay.isEmpty()) {
+                    // If the result using number 1 is empty, we try with 2
+                    pricesPerDay = getPrices(client, "2", dayFormatted);
+                }
                 prices.addAll(pricesPerDay);
-                LOGGER.debug("Prices for day {}: {}", currentDate, prices);
-            } else {
-                // If the result using number 1 is empty, we try with 2
-                prices.addAll(getPrices(client, "2", dayFormatted));
-                LOGGER.debug("Prices for day {}: {}", currentDate, prices);
+                LOGGER.debug("Prices for day {}: {}", currentDate, pricesPerDay);
+            } catch (OmiePriceFileException e) {
+                // A day that cannot be parsed is skipped, so it does not prevent the other days from being stored
+                LOGGER.error(String.format("Unable to parse OMIE prices for day %s", dayFormatted), e);
             }
 
             currentDate = currentDate.plusDays(1);
