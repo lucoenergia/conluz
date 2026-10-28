@@ -28,6 +28,10 @@ import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.datadis.aggregate.DatadisMonthlyAggregationJob;
@@ -51,6 +55,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,7 +65,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * The four scheduled Datadis pre-aggregation jobs, end to end over a real PostgreSQL and InfluxDB.
  *
  * <p>Two communities with Datadis enabled, two supplies each, and a third community whose Datadis
- * config is disabled. Every job is built here from the application's own beans with a fixed
+ * config is disabled. Every supply is linked to a plant, because only plant supplies have Datadis
+ * production. Every job is built here from the application's own beans with a fixed
  * {@link Clock}, rather than replacing the application clock, which other components share.
  *
  * <p>The jobs run on 2026-10-09 at 05:00 in Madrid, so the sync window is 2025-10 to 2026-10 and
@@ -94,6 +100,10 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
+    private CreatePlantRepository createPlantRepository;
+    @Autowired
+    private GetPlantRepository getPlantRepository;
+    @Autowired
     private SetDatadisConfigurationRepository setDatadisConfigurationRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
@@ -115,7 +125,9 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private ZoneResolver zoneResolver;
 
-    /** The supplies of the two communities with Datadis enabled. */
+    /** The two communities with Datadis enabled. */
+    private final List<Community> enabledCommunities = new ArrayList<>();
+    /** The supplies of the two communities with Datadis enabled, each linked to a plant. */
     private final List<Supply> enabledSupplies = new ArrayList<>();
     private Supply disabledSupply;
 
@@ -123,10 +135,16 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     void persistCommunities() {
         for (int i = 0; i < 2; i++) {
             Community community = persistCommunity(true);
-            enabledSupplies.add(persistSupply(community));
-            enabledSupplies.add(persistSupply(community));
+            enabledCommunities.add(community);
+            Supply first = persistPlantSupply(community);
+            Supply second = persistPlantSupply(community);
+            enabledSupplies.add(first);
+            enabledSupplies.add(second);
+            // The plant belongs to its supply's community, which is how the aggregation finds it.
+            assertEquals(Set.of(first.getCode(), second.getCode()),
+                    getPlantRepository.findSupplyCodesByCommunity(community.getId()));
         }
-        disabledSupply = persistSupply(persistCommunity(false));
+        disabledSupply = persistPlantSupply(persistCommunity(false));
     }
 
     @AfterEach
@@ -240,8 +258,8 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     // --- DCA-002: monthly production ---
 
     @Test
-    @DisplayName("DCA-002 a single run rewrites every month of the window to the sum of its hourly production, for every supply of every Datadis-enabled community")
-    void aSingleRunRewritesEveryMonthOfTheWindowToTheSumOfItsHourlyProduction() {
+    @DisplayName("DCA-002 a single run rewrites every month of the window to the sum of its hourly production, for every plant supply of every Datadis-enabled community")
+    void aSingleRunRewritesEveryMonthOfTheWindowToTheSumOfItsHourlyProductionForEveryPlantSupply() {
         float base = 1f;
         Map<String, Double> expected = new HashMap<>();
         for (Supply supply : enabledSupplies) {
@@ -383,6 +401,12 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
                         .build())
                 .build();
         return createSupplyRepository.create(supply, UserId.of(owner.getId()), community.getId());
+    }
+
+    private Supply persistPlantSupply(Community community) {
+        Supply supply = persistSupply(community);
+        createPlantRepository.create(PlantMother.random().build(), SupplyId.of(supply.getId()));
+        return supply;
     }
 
     // --- InfluxDB ---
