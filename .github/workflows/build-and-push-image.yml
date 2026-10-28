@@ -7,7 +7,8 @@
 #      GITHUB_TOKEN do NOT trigger downstream workflows, so this one would not
 #      fire if version-update.yml ever switches to GITHUB_TOKEN.
 #   2. That tag push triggers this workflow, which checks out the tagged
-#      commit, builds the JAR, and publishes the image to GHCR.
+#      commit, builds the JAR and the image, scans the image with Trivy, and
+#      publishes it to GHCR only if the scan gate passes (#476, policy in #474).
 #
 # Resulting tags published per release (for tag `1.0.76`):
 #   ghcr.io/lucoenergia/conluz:1.0.76
@@ -41,9 +42,12 @@ jobs:
     # `packages: write` is what allows the built-in GITHUB_TOKEN to push to GHCR.
     # Without it, the docker/login-action step would still succeed but the
     # final push would fail with `denied: installation not allowed to ...`.
+    # `security-events: write` lets the job upload the scan results (SARIF) to
+    # code scanning.
     permissions:
       contents: read
       packages: write
+      security-events: write
 
     steps:
       # Checks out the repo at the pushed tag's commit, so the JAR built below
@@ -108,17 +112,113 @@ jobs:
             type=raw,value=latest
 
       # Builds the image from the root Dockerfile (which expects a pre-built
-      # JAR at build/libs/conluz-*.jar) and pushes every tag produced above.
+      # JAR at build/libs/conluz-*.jar) into the runner's local Docker image
+      # store, without pushing it. The steps below scan this local image and
+      # push it only if the scan gate passes, so the published image is the
+      # one that was scanned (#476).
+      # `conluz-scan:<sha>` is a local-only tag that both scans use, so they
+      # always target this build; it is never pushed.
       # `cache-from`/`cache-to: type=gha` reuses the BuildKit layer cache
       # across runs via GitHub's Actions cache, avoiding full rebuilds.
-      - name: Build and push Docker image
+      # An image loaded into the local store carries no build attestation, so
+      # the published image has no BuildKit provenance attestation.
+      - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
           platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          load: true
+          push: false
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            conluz-scan:${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Every accepted finding must have an expiry and a reason (policy in #474):
+      # fail on any entry that lacks `exp:YYYY-MM-DD` or a `# reason`.
+      - name: Lint .trivyignore
+        run: |
+          bad=$(grep -nvE '^[[:space:]]*(#|$)' .trivyignore | grep -vE 'exp:[0-9]{4}-[0-9]{2}-[0-9]{2}([[:space:]].*)?#[[:space:]]*[^[:space:]]' || true)
+          if [ -n "$bad" ]; then
+            echo "::error file=.trivyignore::every entry needs exp:YYYY-MM-DD and a # reason"
+            echo "$bad"
+            exit 1
+          fi
+
+      # Report scan: CRITICAL and HIGH vulnerabilities with a fix available, in
+      # OS packages and in the libraries inside the JAR, written as SARIF for
+      # code scanning. It never fails the job; the gate below does.
+      # `limit-severities-for-sarif` is needed for `severity` to apply to SARIF.
+      # The action caches the vulnerability database between runs. If the
+      # database cannot be downloaded, the scan fails and nothing is pushed.
+      - name: Scan image (report)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: conluz-scan:${{ github.sha }}
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: 0
+
+      # Uploads the report even when a later step fails, under one stable
+      # category so each run replaces the previous image results.
+      - name: Upload scan results to code scanning
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+          category: container-image
+
+      # Gate (policy in #474): fail on any CRITICAL vulnerability with a fix
+      # available that `.trivyignore` does not accept. A failure here stops the
+      # job before the push.
+      - name: Scan image (gate)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: conluz-scan:${{ github.sha }}
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          format: table
+          exit-code: 1
+
+      # Pushes the scanned local image under every tag produced by the metadata
+      # step (never the local-only scan tag), and shows that each pushed tag is
+      # the scanned image. It prints the scanned image's ID and its config
+      # digest, read from `docker save` because the image ID is the config
+      # digest only with the classic image store (with the containerd store it
+      # is the manifest list's digest). It then compares that config digest
+      # with the one of each pushed tag and fails the run if they differ.
+      - name: Push Docker image
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          SCAN_REF: conluz-scan:${{ github.sha }}
+        run: |
+          echo "Scanned image ID: $(docker image inspect --format '{{.Id}}' "$SCAN_REF")"
+          scanned=$(docker save "$SCAN_REF" | tar -xO manifest.json | jq -r '.[0].Config | sub("^blobs/sha256/"; "sha256:")')
+          echo "Scanned image config digest: $scanned"
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            docker push "$tag"
+            manifest=$(docker buildx imagetools inspect --raw "$tag")
+            if jq -e '.manifests' <<<"$manifest" >/dev/null; then
+              digest=$(jq -r '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest' <<<"$manifest")
+              manifest=$(docker buildx imagetools inspect --raw "${tag%:*}@$digest")
+            fi
+            pushed=$(jq -r '.config.digest' <<<"$manifest")
+            echo "Pushed $tag, config digest: $pushed"
+            if [ "$pushed" != "$scanned" ]; then
+              echo "::error::$tag config digest $pushed differs from the scanned image's $scanned"
+              exit 1
+            fi
+          done <<<"$TAGS"

@@ -1,0 +1,96 @@
+# Scans the published Conluz Docker image every week (#476, policy in #474).
+#
+# Why: build-and-push-image.yml scans each image before publishing it, but a
+# deployed image is only replaced when an operator upgrades it, which happens on
+# demand. Vulnerabilities disclosed after a release would stay unnoticed in the
+# running image, so this workflow rescans `latest` against the current
+# vulnerability database.
+#
+# What it does: uploads a SARIF report of fixable CRITICAL and HIGH findings to
+# code scanning (Security tab, category `container-image`), then fails if a
+# fixable CRITICAL finding is not accepted in `.trivyignore`.
+#
+# A failing run is the notification: GitHub emails the owner of the schedule
+# (the last person to edit the cron) about failed scheduled runs, so their
+# notifications for failed workflows must stay enabled.
+#
+# GitHub disables scheduled workflows in public repositories after 60 days
+# without repository activity. If that happens, re-enable it from the Actions
+# tab.
+
+name: Scan published Docker image
+
+on:
+  schedule:
+    # Mondays at 05:00 UTC.
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    # `contents: read` checks out `.trivyignore`; `security-events: write`
+    # uploads the SARIF report. The image is public, so pulling it needs no
+    # `packages` permission.
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # Every accepted finding must have an expiry and a reason (policy in #474):
+      # fail on any entry that lacks `exp:YYYY-MM-DD` or a `# reason`.
+      - name: Lint .trivyignore
+        run: |
+          bad=$(grep -nvE '^[[:space:]]*(#|$)' .trivyignore | grep -vE 'exp:[0-9]{4}-[0-9]{2}-[0-9]{2}([[:space:]].*)?#[[:space:]]*[^[:space:]]' || true)
+          if [ -n "$bad" ]; then
+            echo "::error file=.trivyignore::every entry needs exp:YYYY-MM-DD and a # reason"
+            echo "$bad"
+            exit 1
+          fi
+
+      # Report scan: CRITICAL and HIGH vulnerabilities with a fix available, in
+      # OS packages and in the libraries inside the JAR, written as SARIF for
+      # code scanning. It never fails the job; the gate below does.
+      # `limit-severities-for-sarif` is needed for `severity` to apply to SARIF.
+      # The action caches the vulnerability database between runs.
+      - name: Scan image (report)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: ghcr.io/lucoenergia/conluz:latest
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: 0
+
+      # Uploads the report even when a later step fails, under the same
+      # category as the release scan so each run replaces the previous results.
+      - name: Upload scan results to code scanning
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+          category: container-image
+
+      # Gate (policy in #474): fail on any CRITICAL vulnerability with a fix
+      # available that `.trivyignore` does not accept.
+      - name: Scan image (gate)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: ghcr.io/lucoenergia/conluz:latest
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          format: table
+          exit-code: 1
