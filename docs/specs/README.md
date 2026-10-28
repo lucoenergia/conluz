@@ -79,3 +79,4 @@ are always called **tests**, never specs.
 | `EVL` | Energy values in consumption and energy metrics responses | [`energy-values.md`](energy-values.md) |
 | `CTC` | Contact channels | [`contact.md`](contact.md) |
 | `SEM` | Supply energy metrics | [`supply-energy-metrics.md`](supply-energy-metrics.md) |
+| `PRC` | OMIE prices | [`omie-prices.md`](omie-prices.md) |
