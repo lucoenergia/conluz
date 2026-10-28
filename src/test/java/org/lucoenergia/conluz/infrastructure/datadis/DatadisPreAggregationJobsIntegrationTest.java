@@ -60,6 +60,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * The four scheduled Datadis pre-aggregation jobs, end to end over a real PostgreSQL and InfluxDB.
@@ -130,6 +131,8 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     /** The supplies of the two communities with Datadis enabled, each linked to a plant. */
     private final List<Supply> enabledSupplies = new ArrayList<>();
     private Supply disabledSupply;
+    /** Supplies a test adds to an enabled community without linking them to a plant. */
+    private final List<Supply> nonPlantSupplies = new ArrayList<>();
 
     @BeforeEach
     void persistCommunities() {
@@ -151,6 +154,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     void clearWrittenSeries() {
         List<Supply> supplies = new ArrayList<>(enabledSupplies);
         supplies.add(disabledSupply);
+        supplies.addAll(nonPlantSupplies);
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             for (Supply supply : supplies) {
                 for (String measurement : List.of(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, CONSUMPTION_MONTH,
@@ -331,6 +335,48 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
         assertYear(disabledSupply, 2026, 999);
     }
 
+    // --- DCA-004: production only for plant supplies ---
+
+    /**
+     * Two supplies of the first enabled community are not linked to a plant, next to its two plant
+     * supplies. Both have hourly production, which only a plant supply can really have, so that
+     * aggregating them would write a point. One of them holds sentinel monthly and yearly points.
+     */
+    @Test
+    @DisplayName("DCA-004 the production jobs neither rewrite nor create a point for a supply not linked to a plant, and aggregate the plant supplies of the same community")
+    void theProductionJobsAggregateOnlyThePlantSuppliesOfACommunity() {
+        Community community = enabledCommunities.get(0);
+        Supply seededNonPlant = persistNonPlantSupply(community);
+        Supply unseededNonPlant = persistNonPlantSupply(community);
+        Supply plantA = enabledSupplies.get(0);
+        Supply plantB = enabledSupplies.get(1);
+
+        Instant closedMonth = start(CLOSED_MONTH);
+        Instant year2026 = start(YearMonth.of(2026, 1));
+        writeProduction(PRODUCTION_MONTH, seededNonPlant, closedMonth, 7f);
+        writeProduction(PRODUCTION_YEAR, seededNonPlant, year2026, 999f);
+        for (Supply supply : List.of(seededNonPlant, unseededNonPlant)) {
+            writeProduction(PRODUCTION_HOUR, supply, closedMonth, 100f);
+        }
+        writeProduction(PRODUCTION_HOUR, plantA, closedMonth, 2f);
+        writeProduction(PRODUCTION_HOUR, plantA, closedMonth.plusSeconds(86_400), 3f);
+        writeProduction(PRODUCTION_HOUR, plantB, closedMonth, 4f);
+        writeProduction(PRODUCTION_HOUR, plantB, closedMonth.plusSeconds(86_400), 6f);
+
+        productionMonthlyJob().run();
+        productionYearlyJob().run();
+
+        assertEquals(7.0, (Double) read(PRODUCTION_MONTH, seededNonPlant, closedMonth).get("production_kwh"));
+        assertEquals(999.0, (Double) read(PRODUCTION_YEAR, seededNonPlant, year2026).get("production_kwh"));
+        assertNoPoint(PRODUCTION_MONTH, unseededNonPlant);
+        assertNoPoint(PRODUCTION_YEAR, unseededNonPlant);
+
+        assertEquals(5.0, (Double) read(PRODUCTION_MONTH, plantA, closedMonth).get("production_kwh"));
+        assertEquals(10.0, (Double) read(PRODUCTION_MONTH, plantB, closedMonth).get("production_kwh"));
+        assertEquals(5.0, (Double) read(PRODUCTION_YEAR, plantA, year2026).get("production_kwh"));
+        assertEquals(10.0, (Double) read(PRODUCTION_YEAR, plantB, year2026).get("production_kwh"));
+    }
+
     private void seedYears(Supply supply, float base) {
         for (int year : List.of(2024, 2025, 2026)) {
             writeConsumptionYear(supply, year, 999f);
@@ -403,6 +449,12 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
         return createSupplyRepository.create(supply, UserId.of(owner.getId()), community.getId());
     }
 
+    private Supply persistNonPlantSupply(Community community) {
+        Supply supply = persistSupply(community);
+        nonPlantSupplies.add(supply);
+        return supply;
+    }
+
     private Supply persistPlantSupply(Community community) {
         Supply supply = persistSupply(community);
         createPlantRepository.create(PlantMother.random().build(), SupplyId.of(supply.getId()));
@@ -464,6 +516,14 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
             batchPoints.point(point);
             connection.write(batchPoints);
+        }
+    }
+
+    private void assertNoPoint(String measurement, Supply supply) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            QueryResult result = connection.query(new Query(String.format(
+                    "SELECT * FROM \"%s\" WHERE cups = '%s'", measurement, supply.getCode())));
+            assertNull(result.getResults().get(0).getSeries(), "a " + measurement + " point for " + supply.getCode());
         }
     }
 

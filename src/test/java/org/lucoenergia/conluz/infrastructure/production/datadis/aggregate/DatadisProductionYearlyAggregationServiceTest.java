@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.datadis.aggregate;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -292,5 +293,100 @@ class DatadisProductionYearlyAggregationServiceTest {
         // Then - single supply path, no community-wide lookup
         verify(getSupplyRepository, never()).findAllByCommunityId(any(UUID.class));
         verify(aggregationRepository, times(1)).aggregateYearlyProduction(eq(supply), eq(2024));
+    }
+
+    // -----------------------------------------------------------------------
+    // DCA-004: only the community's supplies linked to a plant are aggregated
+    // -----------------------------------------------------------------------
+
+    private static Supply supplyWithDistributorCode(String distributorCode) {
+        return SupplyMother.random()
+                .withDistributor(new SupplyDistributor.Builder().withCode(distributorCode).build())
+                .build();
+    }
+
+    @Test
+    @DisplayName("DCA-004 a community run aggregates only the community's plant supplies, and still skips one without distributor code")
+    void communityRunAggregatesOnlyPlantSupplies() {
+
+        // Given
+        UUID communityId = UUID.randomUUID();
+        Supply plantA = supplyWithDistributorCode("DIST001");
+        Supply plantB = supplyWithDistributorCode("DIST002");
+        Supply plantWithoutDistributorCode = supplyWithDistributorCode(null);
+        Supply nonPlantA = supplyWithDistributorCode("DIST003");
+        Supply nonPlantB = supplyWithDistributorCode("DIST004");
+        when(getSupplyRepository.findAllByCommunityId(communityId))
+                .thenReturn(List.of(nonPlantA, plantA, plantWithoutDistributorCode, nonPlantB, plantB));
+        givenPlantSupplies(communityId, plantA, plantB, plantWithoutDistributorCode);
+
+        // When
+        service.aggregateYearlyProductions(communityId, 2024);
+
+        // Then
+        verify(aggregationRepository).aggregateYearlyProduction(plantA, 2024);
+        verify(aggregationRepository).aggregateYearlyProduction(plantB, 2024);
+        verify(aggregationRepository, times(2)).aggregateYearlyProduction(any(Supply.class), anyInt());
+    }
+
+    @Test
+    @DisplayName("DCA-004 a community without plant supplies is not aggregated at all")
+    void communityWithoutPlantSuppliesIsNotAggregated() {
+
+        // Given
+        UUID communityId = UUID.randomUUID();
+        givenPlantSupplies(communityId);
+
+        // When
+        service.aggregateYearlyProductions(communityId, 2024);
+
+        // Then - neither the supplies are read nor the time series queried
+        verify(getSupplyRepository, never()).findAllByCommunityId(any(UUID.class));
+        verifyNoInteractions(aggregationRepository);
+    }
+
+    @Test
+    @DisplayName("DCA-004 a supply of the community that is not linked to a plant is not found")
+    void supplyNotLinkedToAPlantIsNotFound() {
+
+        // Given
+        Community community = CommunityMother.random().build();
+        Supply nonPlant = SupplyMother.random()
+                .withCommunity(community)
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build())
+                .build();
+        Supply plantA = supplyWithDistributorCode("DIST002");
+        Supply plantB = supplyWithDistributorCode("DIST003");
+        SupplyCode supplyCode = SupplyCode.of(nonPlant.getCode());
+        when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(nonPlant));
+        givenPlantSupplies(community.getId(), plantA, plantB);
+
+        // When / Then
+        assertThrows(SupplyNotFoundException.class,
+                () -> service.aggregateYearlyProductions(community.getId(), supplyCode, 2024));
+        verifyNoInteractions(aggregationRepository);
+    }
+
+    @Test
+    @DisplayName("DCA-004 a supply of the community linked to a plant is aggregated")
+    void supplyLinkedToAPlantIsAggregated() {
+
+        // Given
+        Community community = CommunityMother.random().build();
+        Supply plant = SupplyMother.random()
+                .withCommunity(community)
+                .withDistributor(new SupplyDistributor.Builder().withCode("DIST001").build())
+                .build();
+        Supply otherPlant = supplyWithDistributorCode("DIST002");
+        SupplyCode supplyCode = SupplyCode.of(plant.getCode());
+        when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(plant));
+        givenPlantSupplies(community.getId(), otherPlant, plant);
+
+        // When
+        service.aggregateYearlyProductions(community.getId(), supplyCode, 2024);
+
+        // Then
+        verify(aggregationRepository).aggregateYearlyProduction(plant, 2024);
+        verify(aggregationRepository, times(1)).aggregateYearlyProduction(any(Supply.class), anyInt());
     }
 }
