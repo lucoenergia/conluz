@@ -128,11 +128,17 @@ public class GetPriceRepositoryRest implements GetOmiePricesRepository {
                         return new OmieFile(bodyString, false);
                     }
                 }
+                LOGGER.info("OMIE served an empty prices file for day {} using number {}.", dayFormatted, number);
+            } else if (response.code() >= 500) {
+                // The body is not logged: OMIE answers with a whole HTML page
+                LOGGER.error("Unable to fetch OMIE prices for day {} using number {}: OMIE answered {}.",
+                        dayFormatted, number, response.code());
+                return new OmieFile(null, true);
             } else {
-                LOGGER.error("Unable to synchronize OMIE prices for day {} using number {}. Code {}, message: {}",
-                        dayFormatted, number, response.code(),
-                        response.body() != null ? response.body().string() : response.message());
-                return new OmieFile(null, response.code() >= 500);
+                // Expected every day for tomorrow until OMIE publishes it, around 13:00 Europe/Madrid
+                LOGGER.info("OMIE has no prices file for day {} using number {}: it answered {}.",
+                        dayFormatted, number, response.code());
+                return new OmieFile(null, false);
             }
         } catch (IOException e) {
             LOGGER.error(String.format("Unable to sync OMIE prices for day %s", dayFormatted), e);

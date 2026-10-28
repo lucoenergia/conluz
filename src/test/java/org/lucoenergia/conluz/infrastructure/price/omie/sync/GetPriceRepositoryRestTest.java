@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.price.omie.sync;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -11,6 +13,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.domain.price.sync.OmieDayPrices;
+import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.price.get.GetPriceRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
@@ -32,6 +35,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -48,6 +52,11 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
     public static final String OMIE_HOUR_PRICES_SPLIT_MARKET = "src/test/resources/fixtures/price/omie_hour_prices_split_market.txt";
     public static final String OMIE_QUARTER_PRICES_NON_NUMERIC_PRICE = "src/test/resources/fixtures/price/omie_quarter_prices_non_numeric_price.txt";
     public static final String OMIE_QUARTER_PRICES_MISSING_COLUMN = "src/test/resources/fixtures/price/omie_quarter_prices_missing_column.txt";
+
+    /**
+     * What OMIE answers for a file it does not have: a whole HTML page, about 26 KB in reality.
+     */
+    private static final String HTML_PAGE = "<html><body>" + "x".repeat(26_000) + "</body></html>";
 
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
 
@@ -410,6 +419,57 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
     }
 
     @Test
+    void getPricesByDays_logsAMissingFileAsOneInfoLineWithoutItsBody() {
+
+        // Assemble
+        stubOmieResponses(Map.of(
+                "20251212.1", OmieStub.status(404, HTML_PAGE),
+                "20251212.2", OmieStub.status(404, HTML_PAGE)));
+
+        // Act
+        List<ILoggingEvent> events;
+        try (LogCapture logs = LogCapture.of(GetPriceRepositoryRest.class)) {
+            repository.getPricesByDays(day("20251212"), day("20251213"));
+            events = logs.all();
+        }
+
+        // Assert
+        List<ILoggingEvent> missingFile = events.stream()
+                .filter(event -> event.getFormattedMessage().contains("has no prices file")).toList();
+        assertEquals(2, missingFile.size());
+        missingFile.forEach(event -> assertEquals(Level.INFO, event.getLevel()));
+        assertTrue(missingFile.get(0).getFormattedMessage().contains("20251212 using number 1: it answered 404"));
+        assertTrue(missingFile.get(1).getFormattedMessage().contains("20251212 using number 2: it answered 404"));
+        assertTrue(events.stream().noneMatch(event -> event.getLevel().isGreaterOrEqual(Level.WARN)));
+        assertTrue(events.stream().noneMatch(event -> event.getFormattedMessage().contains("<html")));
+    }
+
+    @Test
+    void getPricesByDays_logsAServerErrorAsOneErrorLineWithoutItsBody() {
+
+        // Assemble
+        stubOmieResponses(Map.of(
+                "20251212.1", OmieStub.status(503, HTML_PAGE),
+                "20251212.2", OmieStub.status(404, HTML_PAGE)));
+
+        // Act
+        List<ILoggingEvent> events;
+        try (LogCapture logs = LogCapture.of(GetPriceRepositoryRest.class)) {
+            repository.getPricesByDays(day("20251212"), day("20251213"));
+            events = logs.all();
+        }
+
+        // Assert
+        List<ILoggingEvent> errors = events.stream()
+                .filter(event -> event.getLevel().isGreaterOrEqual(Level.WARN)).toList();
+        assertEquals(1, errors.size());
+        assertEquals(Level.ERROR, errors.get(0).getLevel());
+        assertTrue(errors.get(0).getFormattedMessage().contains("20251212 using number 1: OMIE answered 503"));
+        assertNull(errors.get(0).getThrowableProxy());
+        assertTrue(events.stream().noneMatch(event -> event.getFormattedMessage().contains("<html")));
+    }
+
+    @Test
     void getPricesByDays_reportsAnEmptyFileAsNotFound() {
 
         // Assemble
@@ -440,6 +500,10 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
 
         static OmieStub status(int code) {
             return new OmieStub(code, "", false);
+        }
+
+        static OmieStub status(int code, String body) {
+            return new OmieStub(code, body, false);
         }
 
         static OmieStub body(String body) {
