@@ -6,12 +6,12 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Prices`; operation `syncPrices`. Prices are also synchronised by the scheduled job `SyncDailyPricesJob` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #520 |
+| **Last reviewed against code** | #522 |
 
 ## Purpose
 
-The day-ahead market prices published by OMIE, downloaded once a day for the last seven days and
-stored in the `omie_prices_kwh` measurement. A platform admin can also re-synchronise an earlier range
+The day-ahead market prices published by OMIE, downloaded once a day for the last seven days, today and
+tomorrow, and stored in the `omie_prices_kwh` measurement. A platform admin can also re-synchronise an earlier range
 of days on demand. This spec covers how a day's file is turned into timestamped prices and how a range
 of days is re-synchronised; the rest of the capability is specified lazily, as issues touch it.
 
@@ -106,6 +106,19 @@ of days is re-synchronised; the rest of the capability is specified lazily, as i
   and no report. Retrying the same request unchanged is the remedy, and it is safe only if repeating it
   converges on what one successful run stores.
 - **Source:** #520
+
+### PRC-008 — The daily sync runs at 21:00 Madrid and includes tomorrow
+
+- **Status:** Active
+- **Rule:** The daily price sync MUST run once a day at 21:00 Europe/Madrid and MUST sync the market
+  days `[today−7, today+2)` in Europe/Madrid, including tomorrow.
+- **Rationale:** OMIE publishes tomorrow's prices around 13:00 Europe/Madrid. Syncing them the evening
+  before makes them available before the day starts; a morning run only stored them once the day had
+  begun, and not at all if that run failed. 21:00 is a deliberate choice, leaving hours of margin after
+  publication, and must not be moved earlier without reopening this decision. The schedule is
+  evaluated in Europe/Madrid, never in the JVM's default zone. A failed run is repaired by the next
+  run, whose range still covers the missed days, or by a manual re-synchronisation (PRC-005).
+- **Source:** #522
 
 ## Impossible states
 
