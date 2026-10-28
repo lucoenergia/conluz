@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -24,13 +26,16 @@ public class DatadisProductionYearlyAggregationServiceImpl implements DatadisPro
     private final GetSupplyRepository getSupplyRepository;
     private final DatadisProductionYearlyAggregationRepository aggregationRepository;
     private final GetDatadisConfigRepository getDatadisConfigRepository;
+    private final GetPlantRepository getPlantRepository;
 
     public DatadisProductionYearlyAggregationServiceImpl(GetSupplyRepository getSupplyRepository,
                                                         DatadisProductionYearlyAggregationRepository aggregationRepository,
-                                                        GetDatadisConfigRepository getDatadisConfigRepository) {
+                                                        GetDatadisConfigRepository getDatadisConfigRepository,
+                                                        GetPlantRepository getPlantRepository) {
         this.getSupplyRepository = getSupplyRepository;
         this.aggregationRepository = aggregationRepository;
         this.getDatadisConfigRepository = getDatadisConfigRepository;
+        this.getPlantRepository = getPlantRepository;
     }
 
     @Override
@@ -49,8 +54,12 @@ public class DatadisProductionYearlyAggregationServiceImpl implements DatadisPro
 
     @Override
     public void aggregateYearlyProductions(UUID communityId, int year) {
+        Set<String> plantCups = getPlantRepository.findSupplyCodesByCommunity(communityId);
+        if (plantCups.isEmpty()) {
+            return;
+        }
         for (Supply supply : getSupplyRepository.findAllByCommunityId(communityId)) {
-            if (hasNoDistributorCode(supply)) {
+            if (hasNoDistributorCode(supply) || !plantCups.contains(supply.getCode())) {
                 continue;
             }
             aggregateForSupplyYear(supply, year);
@@ -62,6 +71,10 @@ public class DatadisProductionYearlyAggregationServiceImpl implements DatadisPro
         Supply supply = getSupplyRepository.findByCode(supplyCode)
                 .orElseThrow(() -> new SupplyNotFoundException(supplyCode));
         if (supply.getCommunity() == null || !communityId.equals(supply.getCommunity().getId())) {
+            throw new SupplyNotFoundException(supplyCode);
+        }
+        // Only a supply linked to a plant has Datadis production, as in the read path.
+        if (!getPlantRepository.findSupplyCodesByCommunity(communityId).contains(supply.getCode())) {
             throw new SupplyNotFoundException(supplyCode);
         }
         if (hasNoDistributorCode(supply)) {

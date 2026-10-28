@@ -10,13 +10,20 @@ import java.util.UUID;
  */
 public interface DatadisProductionMonthlyAggregationService {
 
+    /**
+     * Aggregates every month of the year for the community's supplies linked to a plant.
+     */
     void aggregateMonthlyProductions(UUID communityId, int year);
 
+    /**
+     * Aggregates the month for the community's supplies linked to a plant.
+     */
     void aggregateMonthlyProductions(UUID communityId, Month month, int year);
 
     /**
      * Aggregates a single supply, requiring it to belong to the given community so a job for one
-     * community cannot aggregate another community's supply.
+     * community cannot aggregate another community's supply, and to be linked to a plant of that
+     * community; otherwise it throws {@code SupplyNotFoundException}.
      */
     void aggregateMonthlyProductions(UUID communityId, SupplyCode supplyCode, Month month, int year);
 
@@ -26,7 +33,7 @@ public interface DatadisProductionMonthlyAggregationService {
      * supply and/or month were requested.
      *
      * @param communityId the community whose supplies are aggregated
-     * @param supplyCode  optional CUPS; when null/blank, all the community's supplies are aggregated
+     * @param supplyCode  optional CUPS; when null/blank, all the community's supplies linked to a plant are aggregated
      * @param month       optional month (1-12); when null, every month of the year is aggregated
      * @param year        the year to aggregate
      */

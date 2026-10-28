@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Month;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -25,13 +27,16 @@ public class DatadisProductionMonthlyAggregationServiceImpl implements DatadisPr
     private final GetSupplyRepository getSupplyRepository;
     private final DatadisProductionMonthlyAggregationRepository aggregationRepository;
     private final GetDatadisConfigRepository getDatadisConfigRepository;
+    private final GetPlantRepository getPlantRepository;
 
     public DatadisProductionMonthlyAggregationServiceImpl(GetSupplyRepository getSupplyRepository,
                                                           DatadisProductionMonthlyAggregationRepository aggregationRepository,
-                                                          GetDatadisConfigRepository getDatadisConfigRepository) {
+                                                          GetDatadisConfigRepository getDatadisConfigRepository,
+                                                          GetPlantRepository getPlantRepository) {
         this.getSupplyRepository = getSupplyRepository;
         this.aggregationRepository = aggregationRepository;
         this.getDatadisConfigRepository = getDatadisConfigRepository;
+        this.getPlantRepository = getPlantRepository;
     }
 
     @Override
@@ -60,8 +65,12 @@ public class DatadisProductionMonthlyAggregationServiceImpl implements DatadisPr
 
     @Override
     public void aggregateMonthlyProductions(UUID communityId, int year) {
+        Set<String> plantCups = getPlantRepository.findSupplyCodesByCommunity(communityId);
+        if (plantCups.isEmpty()) {
+            return;
+        }
         for (Supply supply : getSupplyRepository.findAllByCommunityId(communityId)) {
-            if (hasNoDistributorCode(supply)) {
+            if (hasNoDistributorCode(supply) || !plantCups.contains(supply.getCode())) {
                 continue;
             }
             for (Month month : Month.values()) {
@@ -72,8 +81,12 @@ public class DatadisProductionMonthlyAggregationServiceImpl implements DatadisPr
 
     @Override
     public void aggregateMonthlyProductions(UUID communityId, Month month, int year) {
+        Set<String> plantCups = getPlantRepository.findSupplyCodesByCommunity(communityId);
+        if (plantCups.isEmpty()) {
+            return;
+        }
         for (Supply supply : getSupplyRepository.findAllByCommunityId(communityId)) {
-            if (hasNoDistributorCode(supply)) {
+            if (hasNoDistributorCode(supply) || !plantCups.contains(supply.getCode())) {
                 continue;
             }
             aggregateForSupplyMonthYear(supply, month, year);
@@ -85,6 +98,10 @@ public class DatadisProductionMonthlyAggregationServiceImpl implements DatadisPr
         Supply supply = getSupplyRepository.findByCode(supplyCode)
                 .orElseThrow(() -> new SupplyNotFoundException(supplyCode));
         if (supply.getCommunity() == null || !communityId.equals(supply.getCommunity().getId())) {
+            throw new SupplyNotFoundException(supplyCode);
+        }
+        // Only a supply linked to a plant has Datadis production, as in the read path.
+        if (!getPlantRepository.findSupplyCodesByCommunity(communityId).contains(supply.getCode())) {
             throw new SupplyNotFoundException(supplyCode);
         }
         if (hasNoDistributorCode(supply)) {
