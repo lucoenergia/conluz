@@ -46,4 +46,10 @@ public interface PlatformAccessGuard {
      * so there is no self-exclusion to absorb.
      */
     boolean canManagePlatformAdminInvitations();
+
+    /**
+     * Re-synchronising the OMIE prices of a range of market days. Prices are platform-wide data, not scoped to any
+     * community, so only a platform admin may rewrite them; a community admin may not.
+     */
+    boolean canSyncPrices();
 }

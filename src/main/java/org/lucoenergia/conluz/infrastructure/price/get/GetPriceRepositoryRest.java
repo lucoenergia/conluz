@@ -5,12 +5,12 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
-import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
+import org.lucoenergia.conluz.domain.price.sync.GetOmiePricesRepository;
+import org.lucoenergia.conluz.domain.price.sync.OmieDayPrices;
 import org.lucoenergia.conluz.infrastructure.price.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -26,8 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Repository
-@Qualifier(value = "getPriceRepositoryRest")
-public class GetPriceRepositoryRest implements GetPriceRepository {
+public class GetPriceRepositoryRest implements GetOmiePricesRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GetPriceRepositoryRest.class);
     private static final String OMIE_URL = "https://www.omie.es/es/file-download";
@@ -43,47 +42,68 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
     }
 
     @Override
-    public List<PriceByHour> getPricesByRangeOfDates(OffsetDateTime startDate, OffsetDateTime endDate) {
+    public List<OmieDayPrices> getPricesByDays(LocalDate startDate, LocalDate endDate) {
 
-        LOGGER.info("Getting OMIE prices for intervale of {} and {}.", startDate, endDate);
+        LOGGER.info("Getting OMIE prices from {} to {}, exclusive.", startDate, endDate);
 
-        final List<PriceByHour> prices = new ArrayList<>();
+        final List<OmieDayPrices> days = new ArrayList<>();
         final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(30));
 
-        OffsetDateTime currentDate = startDate;
-        while (!currentDate.isAfter(endDate)) {
-            LOGGER.info("Getting OMIE prices for day {}.", currentDate);
-
-            final String dayFormatted = formatDay(currentDate);
-            LOGGER.info("Synchronizing OMIE prices for day {}.", dayFormatted);
-
-            try {
-                List<PriceByHour> pricesPerDay = getPrices(client, "1", dayFormatted);
-                if (pricesPerDay.isEmpty()) {
-                    // If the result using number 1 is empty, we try with 2
-                    pricesPerDay = getPrices(client, "2", dayFormatted);
-                }
-                prices.addAll(pricesPerDay);
-                LOGGER.debug("Prices for day {}: {}", currentDate, pricesPerDay);
-            } catch (OmiePriceFileException e) {
-                // A day that cannot be parsed is skipped, so it does not prevent the other days from being stored
-                LOGGER.error(String.format("Unable to parse OMIE prices for day %s", dayFormatted), e);
-            }
-
-            currentDate = currentDate.plusDays(1);
+        for (LocalDate day = startDate; day.isBefore(endDate); day = day.plusDays(1)) {
+            days.add(getDayPrices(client, day));
         }
 
-        return prices;
+        return days;
     }
 
-    private String formatDay(OffsetDateTime day) {
+    private OmieDayPrices getDayPrices(OkHttpClient client, LocalDate day) {
+
+        final String dayFormatted = formatDay(day);
+        LOGGER.info("Synchronizing OMIE prices for day {}.", dayFormatted);
+
+        final OmieFile first = getFile(client, "1", dayFormatted);
+        if (first.body() != null) {
+            return parse(day, dayFormatted, first.body());
+        }
+        // If there is no file with number 1, we try with 2
+        final OmieFile second = getFile(client, "2", dayFormatted);
+        if (second.body() != null) {
+            return parse(day, dayFormatted, second.body());
+        }
+        return OmieDayPrices.notServed(day, first.fetchFailed() || second.fetchFailed()
+                ? OmieDayPrices.Status.FETCH_FAILED
+                : OmieDayPrices.Status.NOT_FOUND);
+    }
+
+    /**
+     * Any failure to parse a day's file rejects that day alone, so it does not prevent the other days from being
+     * stored: not only a format mismatch the parser detects, but also a malformed row it trips over, such as a price
+     * that is not a number or a missing column.
+     */
+    private OmieDayPrices parse(LocalDate day, String dayFormatted, String body) {
+        try {
+            final List<PriceByHour> prices = parseBody(body);
+            LOGGER.debug("Prices for day {}: {}", day, prices);
+            return OmieDayPrices.served(day, prices);
+        } catch (RuntimeException e) {
+            LOGGER.error(String.format("Unable to parse OMIE prices for day %s", dayFormatted), e);
+            return OmieDayPrices.notServed(day, OmieDayPrices.Status.REJECTED);
+        }
+    }
+
+    private String formatDay(LocalDate day) {
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         return day.format(formatter);
     }
 
-    private List<PriceByHour> getPrices(OkHttpClient client, String number, String dayFormatted) {
+    /**
+     * The body of one OMIE file, or null when there is none to parse. {@code fetchFailed} tells a file that could not
+     * be fetched (a connection failure or a server error) from one that OMIE does not have.
+     */
+    private record OmieFile(String body, boolean fetchFailed) {
+    }
 
-        final List<PriceByHour> prices = new ArrayList<>();
+    private OmieFile getFile(OkHttpClient client, String number, String dayFormatted) {
 
         final String queryParameter = String.format("?parents[0]=marginalpdbc&filename=marginalpdbc_%s.%s",
                 dayFormatted, number);
@@ -105,19 +125,27 @@ public class GetPriceRepositoryRest implements GetPriceRepository {
                 if (responseBody != null) {
                     final String bodyString = responseBody.string();
                     if (!bodyString.isEmpty()) {
-                        return parseBody(bodyString);
+                        return new OmieFile(bodyString, false);
                     }
                 }
+                LOGGER.info("OMIE served an empty prices file for day {} using number {}.", dayFormatted, number);
+            } else if (response.code() >= 500) {
+                // The body is not logged: OMIE answers with a whole HTML page
+                LOGGER.error("Unable to fetch OMIE prices for day {} using number {}: OMIE answered {}.",
+                        dayFormatted, number, response.code());
+                return new OmieFile(null, true);
             } else {
-                LOGGER.error("Unable to synchronize OMIE prices for day {} using number {}. Code {}, message: {}",
-                        dayFormatted, number, response.code(),
-                        response.body() != null ? response.body().string() : response.message());
+                // Expected every day for tomorrow until OMIE publishes it, around 13:00 Europe/Madrid
+                LOGGER.info("OMIE has no prices file for day {} using number {}: it answered {}.",
+                        dayFormatted, number, response.code());
+                return new OmieFile(null, false);
             }
         } catch (IOException e) {
             LOGGER.error(String.format("Unable to sync OMIE prices for day %s", dayFormatted), e);
+            return new OmieFile(null, true);
         }
 
-        return prices;
+        return new OmieFile(null, false);
     }
 
     /**

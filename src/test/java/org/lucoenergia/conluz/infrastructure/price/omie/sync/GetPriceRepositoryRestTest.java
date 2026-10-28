@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.price.omie.sync;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -7,7 +9,11 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
+import org.lucoenergia.conluz.domain.price.sync.OmieDayPrices;
+import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.price.get.GetPriceRepositoryRest;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
@@ -29,6 +35,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,6 +50,13 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
     public static final String OMIE_HOUR_PRICES_DST_FALL = "src/test/resources/fixtures/price/omie_hour_prices_DST_fall.txt";
     public static final String OMIE_QUARTER_PRICES_WRONG_COUNT = "src/test/resources/fixtures/price/omie_quarter_prices_wrong_count.txt";
     public static final String OMIE_HOUR_PRICES_SPLIT_MARKET = "src/test/resources/fixtures/price/omie_hour_prices_split_market.txt";
+    public static final String OMIE_QUARTER_PRICES_NON_NUMERIC_PRICE = "src/test/resources/fixtures/price/omie_quarter_prices_non_numeric_price.txt";
+    public static final String OMIE_QUARTER_PRICES_MISSING_COLUMN = "src/test/resources/fixtures/price/omie_quarter_prices_missing_column.txt";
+
+    /**
+     * What OMIE answers for a file it does not have: a whole HTML page, about 26 KB in reality.
+     */
+    private static final String HTML_PAGE = "<html><body>" + "x".repeat(26_000) + "</body></html>";
 
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
 
@@ -86,7 +100,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         when(responseBody.string()).thenReturn(bodyString);
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByRangeOfDates(startDate, endDate);
+        List<PriceByHour> prices = pricesOf(repository.getPricesByDays(startDate.toLocalDate(), endDate.toLocalDate().plusDays(1)));
 
         // Assert
         assertEquals(144, prices.size());
@@ -170,7 +184,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         when(responseBody.string()).thenReturn(bodyString);
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByRangeOfDates(startDate, endDate);
+        List<PriceByHour> prices = pricesOf(repository.getPricesByDays(startDate.toLocalDate(), endDate.toLocalDate().plusDays(1)));
 
         // Assert
         assertEquals(96, prices.size());
@@ -194,7 +208,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         stubOmieFiles(Map.of("20260329.1", OMIE_QUARTER_PRICES_DST));
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20260329"), day("20260329"));
+        List<PriceByHour> prices = pricesOf(repository.getPricesByDays(day("20260329"), day("20260329").plusDays(1)));
 
         // Assert
         assertEquals(92, prices.size());
@@ -220,7 +234,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         stubOmieFiles(Map.of("20261025.1", OMIE_QUARTER_PRICES_DST_FALL));
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20261025"), day("20261025"));
+        List<PriceByHour> prices = pricesOf(repository.getPricesByDays(day("20261025"), day("20261025").plusDays(1)));
 
         // Assert
         assertEquals(100, prices.size());
@@ -247,7 +261,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         stubOmieFiles(Map.of("20231029.1", OMIE_HOUR_PRICES_DST_FALL));
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20231029"), day("20231029"));
+        List<PriceByHour> prices = pricesOf(repository.getPricesByDays(day("20231029"), day("20231029").plusDays(1)));
 
         // Assert
         assertEquals(25, prices.size());
@@ -270,7 +284,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         stubOmieFiles(Map.of("20251213.1", OMIE_QUARTER_PRICES_WRONG_COUNT));
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20251213"), day("20251213"));
+        List<PriceByHour> prices = pricesOf(repository.getPricesByDays(day("20251213"), day("20251213").plusDays(1)));
 
         // Assert
         assertTrue(prices.isEmpty());
@@ -286,7 +300,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         stubOmieBodies(Map.of("20251212.1", body));
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20251212"), day("20251212"));
+        List<PriceByHour> prices = pricesOf(repository.getPricesByDays(day("20251212"), day("20251212").plusDays(1)));
 
         // Assert
         assertTrue(prices.isEmpty());
@@ -303,7 +317,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
                 "20251214.1", validNextDay));
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20251213"), day("20251214"));
+        List<PriceByHour> prices = pricesOf(repository.getPricesByDays(day("20251213"), day("20251214").plusDays(1)));
 
         // Assert
         assertEquals(96, prices.size());
@@ -321,7 +335,7 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         stubOmieFiles(Map.of("20240405.1", OMIE_HOUR_PRICES_SPLIT_MARKET));
 
         // Act
-        List<PriceByHour> prices = repository.getPricesByRangeOfDates(day("20240405"), day("20240405"));
+        List<PriceByHour> prices = pricesOf(repository.getPricesByDays(day("20240405"), day("20240405").plusDays(1)));
 
         // Assert
         assertEquals(24, prices.size());
@@ -333,6 +347,200 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         assertNotEquals(0.0, prices.get(6).getPrice());
         assertNotEquals(0.0, prices.get(7).getPrice());
         assertNotEquals(0.00004, prices.get(8).getPrice());
+    }
+
+    @Test
+    @DisplayName("PRC-003 each day of a range is reported, in date order, with why it was not served")
+    void getPricesByDays_reportsEachDayInOrderWithItsStatus() throws IOException {
+
+        // Assemble
+        String servedDay = Files.readString(Paths.get(OMIE_QUARTER_PRICES)).replace("2025;12;12;", "2025;12;14;");
+        stubOmieResponses(Map.of(
+                "20251213.1", OmieStub.status(404),
+                "20251213.2", OmieStub.status(404),
+                "20251214.1", OmieStub.body(servedDay),
+                "20251215.1", OmieStub.body(Files.readString(Paths.get(OMIE_QUARTER_PRICES_WRONG_COUNT))
+                        .replace("2025;12;13;", "2025;12;15;")),
+                "20251216.1", OmieStub.status(503),
+                "20251216.2", OmieStub.status(404),
+                "20251217.1", OmieStub.connectionFailure(),
+                "20251217.2", OmieStub.connectionFailure()));
+
+        // Act
+        List<OmieDayPrices> days = repository.getPricesByDays(day("20251213"), day("20251218"));
+
+        // Assert
+        assertEquals(List.of(day("20251213"), day("20251214"), day("20251215"), day("20251216"), day("20251217")),
+                days.stream().map(OmieDayPrices::day).toList());
+        assertEquals(List.of(OmieDayPrices.Status.NOT_FOUND, OmieDayPrices.Status.SERVED,
+                        OmieDayPrices.Status.REJECTED, OmieDayPrices.Status.FETCH_FAILED,
+                        OmieDayPrices.Status.FETCH_FAILED),
+                days.stream().map(OmieDayPrices::status).toList());
+        assertEquals(List.of(0, 96, 0, 0, 0), days.stream().map(day -> day.prices().size()).toList());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {OMIE_QUARTER_PRICES_NON_NUMERIC_PRICE, OMIE_QUARTER_PRICES_MISSING_COLUMN})
+    @DisplayName("PRC-003 a day whose file has a malformed row is rejected, and the other days are still served")
+    void getPricesByDays_rejectsADayWithAMalformedRowAndServesTheOthers(String malformedFixture) throws IOException {
+
+        // Assemble
+        String validDay = Files.readString(Paths.get(OMIE_QUARTER_PRICES));
+        stubOmieBodies(Map.of(
+                "20251211.1", validDay.replace("2025;12;12;", "2025;12;11;"),
+                "20251212.1", Files.readString(Paths.get(malformedFixture)),
+                "20251213.1", validDay.replace("2025;12;12;", "2025;12;13;")));
+
+        // Act
+        List<OmieDayPrices> days = repository.getPricesByDays(day("20251211"), day("20251214"));
+
+        // Assert
+        assertEquals(List.of(OmieDayPrices.Status.SERVED, OmieDayPrices.Status.REJECTED,
+                        OmieDayPrices.Status.SERVED),
+                days.stream().map(OmieDayPrices::status).toList());
+        assertEquals(List.of(96, 0, 96), days.stream().map(day -> day.prices().size()).toList());
+    }
+
+    @Test
+    void getPricesByDays_triesTheSecondFileWhenTheFirstIsMissing() throws IOException {
+
+        // Assemble
+        stubOmieResponses(Map.of(
+                "20251212.1", OmieStub.status(404),
+                "20251212.2", OmieStub.body(Files.readString(Paths.get(OMIE_QUARTER_PRICES)))));
+
+        // Act
+        List<OmieDayPrices> days = repository.getPricesByDays(day("20251212"), day("20251213"));
+
+        // Assert
+        assertEquals(1, days.size());
+        assertEquals(OmieDayPrices.Status.SERVED, days.get(0).status());
+        assertEquals(96, days.get(0).prices().size());
+    }
+
+    @Test
+    void getPricesByDays_logsAMissingFileAsOneInfoLineWithoutItsBody() {
+
+        // Assemble
+        stubOmieResponses(Map.of(
+                "20251212.1", OmieStub.status(404, HTML_PAGE),
+                "20251212.2", OmieStub.status(404, HTML_PAGE)));
+
+        // Act
+        List<ILoggingEvent> events;
+        try (LogCapture logs = LogCapture.of(GetPriceRepositoryRest.class)) {
+            repository.getPricesByDays(day("20251212"), day("20251213"));
+            events = logs.all();
+        }
+
+        // Assert
+        List<ILoggingEvent> missingFile = events.stream()
+                .filter(event -> event.getFormattedMessage().contains("has no prices file")).toList();
+        assertEquals(2, missingFile.size());
+        missingFile.forEach(event -> assertEquals(Level.INFO, event.getLevel()));
+        assertTrue(missingFile.get(0).getFormattedMessage().contains("20251212 using number 1: it answered 404"));
+        assertTrue(missingFile.get(1).getFormattedMessage().contains("20251212 using number 2: it answered 404"));
+        assertTrue(events.stream().noneMatch(event -> event.getLevel().isGreaterOrEqual(Level.WARN)));
+        assertTrue(events.stream().noneMatch(event -> event.getFormattedMessage().contains("<html")));
+    }
+
+    @Test
+    void getPricesByDays_logsAServerErrorAsOneErrorLineWithoutItsBody() {
+
+        // Assemble
+        stubOmieResponses(Map.of(
+                "20251212.1", OmieStub.status(503, HTML_PAGE),
+                "20251212.2", OmieStub.status(404, HTML_PAGE)));
+
+        // Act
+        List<ILoggingEvent> events;
+        try (LogCapture logs = LogCapture.of(GetPriceRepositoryRest.class)) {
+            repository.getPricesByDays(day("20251212"), day("20251213"));
+            events = logs.all();
+        }
+
+        // Assert
+        List<ILoggingEvent> errors = events.stream()
+                .filter(event -> event.getLevel().isGreaterOrEqual(Level.WARN)).toList();
+        assertEquals(1, errors.size());
+        assertEquals(Level.ERROR, errors.get(0).getLevel());
+        assertTrue(errors.get(0).getFormattedMessage().contains("20251212 using number 1: OMIE answered 503"));
+        assertNull(errors.get(0).getThrowableProxy());
+        assertTrue(events.stream().noneMatch(event -> event.getFormattedMessage().contains("<html")));
+    }
+
+    @Test
+    void getPricesByDays_reportsAnEmptyFileAsNotFound() {
+
+        // Assemble
+        stubOmieResponses(Map.of("20251212.1", OmieStub.body(""), "20251212.2", OmieStub.body("")));
+
+        // Act
+        List<OmieDayPrices> days = repository.getPricesByDays(day("20251212"), day("20251213"));
+
+        // Assert
+        assertEquals(OmieDayPrices.Status.NOT_FOUND, days.get(0).status());
+        assertTrue(days.get(0).prices().isEmpty());
+    }
+
+    @Test
+    void getPricesByDays_returnsNothingForAnEmptyRange() {
+
+        // Act
+        List<OmieDayPrices> days = repository.getPricesByDays(day("20251212"), day("20251212"));
+
+        // Assert
+        assertTrue(days.isEmpty());
+    }
+
+    /**
+     * What the stubbed OMIE answers for one file: a status code, a successful body, or a connection failure.
+     */
+    private record OmieStub(int code, String body, boolean ioFailure) {
+
+        static OmieStub status(int code) {
+            return new OmieStub(code, "", false);
+        }
+
+        static OmieStub status(int code, String body) {
+            return new OmieStub(code, body, false);
+        }
+
+        static OmieStub body(String body) {
+            return new OmieStub(200, body, false);
+        }
+
+        static OmieStub connectionFailure() {
+            return new OmieStub(0, "", true);
+        }
+    }
+
+    /**
+     * Answers each OMIE file name (e.g. "20261025.1") with its stub, and any other file with a 404.
+     */
+    private void stubOmieResponses(Map<String, OmieStub> stubsByFile) {
+        when(conluzRestClientBuilder.build(eq(false), ArgumentMatchers.any(Duration.class))).thenReturn(okHttpClient);
+        when(okHttpClient.newCall(ArgumentMatchers.any(Request.class))).thenAnswer(invocation -> {
+            String url = invocation.getArgument(0, Request.class).url().toString();
+            OmieStub stub = stubsByFile.entrySet().stream()
+                    .filter(entry -> url.endsWith("marginalpdbc_" + entry.getKey()))
+                    .map(Map.Entry::getValue)
+                    .findFirst()
+                    .orElse(OmieStub.status(404));
+            Call dayCall = Mockito.mock(Call.class);
+            if (stub.ioFailure()) {
+                when(dayCall.execute()).thenThrow(new IOException("connection reset"));
+                return dayCall;
+            }
+            Response dayResponse = Mockito.mock(Response.class);
+            ResponseBody dayResponseBody = Mockito.mock(ResponseBody.class);
+            when(dayCall.execute()).thenReturn(dayResponse);
+            when(dayResponse.isSuccessful()).thenReturn(stub.code() >= 200 && stub.code() < 300);
+            when(dayResponse.code()).thenReturn(stub.code());
+            when(dayResponse.body()).thenReturn(dayResponseBody);
+            when(dayResponseBody.string()).thenReturn(stub.body());
+            return dayCall;
+        });
     }
 
     private void stubOmieFiles(Map<String, String> fixturesByFile) throws IOException {
@@ -366,9 +574,12 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
         });
     }
 
-    private static OffsetDateTime day(String yyyyMMdd) {
-        return LocalDate.parse(yyyyMMdd, DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay()
-                .atOffset(ZoneOffset.UTC);
+    private static LocalDate day(String yyyyMMdd) {
+        return LocalDate.parse(yyyyMMdd, DateTimeFormatter.ofPattern("yyyyMMdd"));
+    }
+
+    private static List<PriceByHour> pricesOf(List<OmieDayPrices> days) {
+        return days.stream().flatMap(day -> day.prices().stream()).toList();
     }
 
     private static long distinctInstants(List<PriceByHour> prices) {

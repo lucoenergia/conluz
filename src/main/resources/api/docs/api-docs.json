@@ -1209,6 +1209,9 @@
               "ENERGY_METRICS_PERIOD_START_AFTER_END",
               "ENERGY_METRICS_PERIOD_START_IN_FUTURE",
               "ENERGY_METRICS_PERIOD_TOO_LONG",
+              "PRICE_SYNC_PERIOD_START_AFTER_END",
+              "PRICE_SYNC_PERIOD_TOO_LONG",
+              "PRICE_SYNC_PERIOD_END_BEYOND_TOMORROW",
               "CONTACT_CHANNELS_MISSING",
               "CONTACT_CHANNELS_TOO_MANY",
               "CONTACT_CHANNEL_TYPE_INVALID",
@@ -2658,6 +2661,10 @@
           "canListUsers" : {
             "description" : "Whether the caller may list users (GET /api/v1/users): an active community admin of at least one community. False for a platform admin who administers no community.",
             "type" : "boolean"
+          },
+          "canSyncPrices" : {
+            "description" : "Whether the caller may re-synchronise the OMIE prices of a range of market days (POST /api/v1/prices/sync).",
+            "type" : "boolean"
           }
         },
         "required" : [
@@ -2665,7 +2672,8 @@
           "canCreateCommunity",
           "canInvitePlatformAdmins",
           "canListPlatformAdmins",
-          "canListUsers"
+          "canListUsers",
+          "canSyncPrices"
         ],
         "type" : "object"
       },
@@ -2680,6 +2688,52 @@
             "type" : "number"
           }
         },
+        "type" : "object"
+      },
+      "PriceSyncResponse" : {
+        "description" : "What the synchronisation did with one market day.",
+        "properties" : {
+          "date" : {
+            "description" : "The market day, a calendar day in Europe/Madrid.",
+            "example" : "2026-03-29",
+            "format" : "date",
+            "type" : "string"
+          },
+          "outcome" : {
+            "description" : "STORED when the day's prices were written, replacing those stored at the same instants; SKIPPED when they were not, leaving whatever was stored for the day.",
+            "enum" : [
+              "STORED",
+              "SKIPPED"
+            ],
+            "example" : "STORED",
+            "type" : "string"
+          },
+          "skipReason" : {
+            "description" : "Why the day was skipped; null when it was stored. FILE_NOT_FOUND: OMIE has no file for the day, which is expected for tomorrow before around 13:00 Europe/Madrid. FILE_REJECTED: the file does not match the format expected for the day. FETCH_FAILED: the file could not be fetched, because the connection failed or OMIE answered a server error; sending the same request again may succeed.",
+            "enum" : [
+              "FILE_NOT_FOUND",
+              "FILE_REJECTED",
+              "FETCH_FAILED"
+            ],
+            "example" : "FILE_NOT_FOUND",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "storedPrices" : {
+            "description" : "Number of prices written for the day; 0 when it was skipped.",
+            "example" : 92,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [
+          "date",
+          "outcome",
+          "skipReason",
+          "storedPrices"
+        ],
         "type" : "object"
       },
       "ProductionByTime" : {
@@ -2941,6 +2995,9 @@
               "ENERGY_METRICS_PERIOD_START_AFTER_END",
               "ENERGY_METRICS_PERIOD_START_IN_FUTURE",
               "ENERGY_METRICS_PERIOD_TOO_LONG",
+              "PRICE_SYNC_PERIOD_START_AFTER_END",
+              "PRICE_SYNC_PERIOD_TOO_LONG",
+              "PRICE_SYNC_PERIOD_END_BEYOND_TOMORROW",
               "CONTACT_CHANNELS_MISSING",
               "CONTACT_CHANNELS_TOO_MANY",
               "CONTACT_CHANNEL_TYPE_INVALID",
@@ -3910,6 +3967,27 @@
         },
         "required" : [
           "year"
+        ],
+        "type" : "object"
+      },
+      "SyncPricesBody" : {
+        "properties" : {
+          "endDate" : {
+            "description" : "Market day the range ends at, excluded: a calendar day in Europe/Madrid.",
+            "example" : "2026-03-30",
+            "format" : "date",
+            "type" : "string"
+          },
+          "startDate" : {
+            "description" : "First market day to synchronise, included: a calendar day in Europe/Madrid.",
+            "example" : "2026-03-28",
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "endDate",
+          "startDate"
         ],
         "type" : "object"
       },
@@ -17605,6 +17683,122 @@
           }
         },
         "summary" : "Retrieve hourly energy prices within a specified date interval.",
+        "tags" : [
+          "Prices"
+        ]
+      }
+    },
+    "/api/v1/prices/sync" : {
+      "post" : {
+        "description" : "Fetches the OMIE day-ahead prices of each market day of the range again, the same way the daily job does, and stores them: each day's prices replace those stored at the same instants. A day OMIE does not serve keeps whatever is stored for it. Sending the same request again, for example after one that was interrupted, leaves the stored prices as a single successful run would.\n\n**Range bounds:** the range is half-open, `[startDate, endDate)`: `startDate` is included and `endDate` is not, so `startDate=2026-03-28` and `endDate=2026-03-30` synchronise 28 and 29 March. Both are market days, calendar days in Europe/Madrid.\n\n**Range checks:** a range is checked in this order, and the first rule it breaks is answered 400 with that rule's code, before anything is fetched:\n\n1. `startDate` is strictly before `endDate`: equal dates make an empty range (`PRICE_SYNC_PERIOD_START_AFTER_END`).\n2. The range is at most 31 days long (`PRICE_SYNC_PERIOD_TOO_LONG`).\n3. The range extends no further than tomorrow in Europe/Madrid: `endDate` is no later than the day after tomorrow (`PRICE_SYNC_PERIOD_END_BEYOND_TOMORROW`). A range beyond tomorrow is rejected, not clipped.\n\nThe response lists every day of the range in date order, stored or skipped, and is 200 even when some days are skipped. OMIE publishes tomorrow's prices around 13:00 Europe/Madrid, so before then tomorrow is skipped with `FILE_NOT_FOUND`. Each day is one request to OMIE, which can take up to 30 seconds, so a long range takes minutes.\n\n**Required: an enabled platform admin.** Any other authenticated caller gets 403.\n",
+        "operationId" : "syncPrices",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SyncPricesBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PriceSyncResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Each day of the range, in date order, stored or skipped"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Re-synchronise the OMIE prices of a range of market days.",
         "tags" : [
           "Prices"
         ]

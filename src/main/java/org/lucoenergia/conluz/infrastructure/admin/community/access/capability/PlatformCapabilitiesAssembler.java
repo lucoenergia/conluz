@@ -24,10 +24,10 @@ public class PlatformCapabilitiesAssembler {
     }
 
     public PlatformCapabilitiesResponse assemble(User caller) {
-        // Four of these lines evaluate to the same predicate today -- each reduces to "is the caller a
-        // platform admin" -- and no test can tell them apart while they do. They are four different
+        // Five of these lines evaluate to the same predicate today -- each reduces to "is the caller a
+        // platform admin" -- and no test can tell them apart while they do. They are five different
         // questions: may I open the administration surface, may I create a community, may I list the
-        // platform admins, may I invite one. They are kept apart so any one of them can diverge
+        // platform admins, may I invite one, may I re-synchronise the prices. They are kept apart so any one of them can diverge
         // without a call site changing, so do not fold them into a shared local or a single field.
         // See the platform section of docs/security/capability-inventory.md.
         return PlatformCapabilitiesResponse.builder()
@@ -36,6 +36,7 @@ public class PlatformCapabilitiesAssembler {
                 .withCanAdministerPlatform(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .withCanListPlatformAdmins(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .withCanInvitePlatformAdmins(policies.platform().canAdministerPlatform(caller).isAllowed())
+                .withCanSyncPrices(policies.platform().canAdministerPlatform(caller).isAllowed())
                 .build();
     }
 }

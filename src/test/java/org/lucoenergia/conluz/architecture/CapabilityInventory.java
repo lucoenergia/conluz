@@ -58,6 +58,7 @@ final class CapabilityInventory {
                 capability(PLATFORM, "canInvitePlatformAdmins"),
                 capability(PLATFORM_ADMIN, "canResendInvitation"),
                 capability(PLATFORM_ADMIN, "canRevokeInvitation"));
+        report("canSyncPrices", capability(PLATFORM, "canSyncPrices"));
 
         // --- community ---
         report("canReadCommunity", capability(COMMUNITY, "canRead"));
