@@ -7,6 +7,8 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.domain.price.sync.OmieDayPrices;
 import org.lucoenergia.conluz.infrastructure.price.get.GetPriceRepositoryRest;
@@ -44,6 +46,8 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
     public static final String OMIE_HOUR_PRICES_DST_FALL = "src/test/resources/fixtures/price/omie_hour_prices_DST_fall.txt";
     public static final String OMIE_QUARTER_PRICES_WRONG_COUNT = "src/test/resources/fixtures/price/omie_quarter_prices_wrong_count.txt";
     public static final String OMIE_HOUR_PRICES_SPLIT_MARKET = "src/test/resources/fixtures/price/omie_hour_prices_split_market.txt";
+    public static final String OMIE_QUARTER_PRICES_NON_NUMERIC_PRICE = "src/test/resources/fixtures/price/omie_quarter_prices_non_numeric_price.txt";
+    public static final String OMIE_QUARTER_PRICES_MISSING_COLUMN = "src/test/resources/fixtures/price/omie_quarter_prices_missing_column.txt";
 
     private final ConluzRestClientBuilder conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
 
@@ -364,6 +368,28 @@ class GetPriceRepositoryRestTest extends BaseIntegrationTest {
                         OmieDayPrices.Status.FETCH_FAILED),
                 days.stream().map(OmieDayPrices::status).toList());
         assertEquals(List.of(0, 96, 0, 0, 0), days.stream().map(day -> day.prices().size()).toList());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {OMIE_QUARTER_PRICES_NON_NUMERIC_PRICE, OMIE_QUARTER_PRICES_MISSING_COLUMN})
+    @DisplayName("PRC-003 a day whose file has a malformed row is rejected, and the other days are still served")
+    void getPricesByDays_rejectsADayWithAMalformedRowAndServesTheOthers(String malformedFixture) throws IOException {
+
+        // Assemble
+        String validDay = Files.readString(Paths.get(OMIE_QUARTER_PRICES));
+        stubOmieBodies(Map.of(
+                "20251211.1", validDay.replace("2025;12;12;", "2025;12;11;"),
+                "20251212.1", Files.readString(Paths.get(malformedFixture)),
+                "20251213.1", validDay.replace("2025;12;12;", "2025;12;13;")));
+
+        // Act
+        List<OmieDayPrices> days = repository.getPricesByDays(day("20251211"), day("20251214"));
+
+        // Assert
+        assertEquals(List.of(OmieDayPrices.Status.SERVED, OmieDayPrices.Status.REJECTED,
+                        OmieDayPrices.Status.SERVED),
+                days.stream().map(OmieDayPrices::status).toList());
+        assertEquals(List.of(96, 0, 96), days.stream().map(day -> day.prices().size()).toList());
     }
 
     @Test

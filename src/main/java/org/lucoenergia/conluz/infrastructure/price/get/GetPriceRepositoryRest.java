@@ -61,29 +61,34 @@ public class GetPriceRepositoryRest implements GetOmiePricesRepository {
         final String dayFormatted = formatDay(day);
         LOGGER.info("Synchronizing OMIE prices for day {}.", dayFormatted);
 
+        final OmieFile first = getFile(client, "1", dayFormatted);
+        if (first.body() != null) {
+            return parse(day, dayFormatted, first.body());
+        }
+        // If there is no file with number 1, we try with 2
+        final OmieFile second = getFile(client, "2", dayFormatted);
+        if (second.body() != null) {
+            return parse(day, dayFormatted, second.body());
+        }
+        return OmieDayPrices.notServed(day, first.fetchFailed() || second.fetchFailed()
+                ? OmieDayPrices.Status.FETCH_FAILED
+                : OmieDayPrices.Status.NOT_FOUND);
+    }
+
+    /**
+     * Any failure to parse a day's file rejects that day alone, so it does not prevent the other days from being
+     * stored: not only a format mismatch the parser detects, but also a malformed row it trips over, such as a price
+     * that is not a number or a missing column.
+     */
+    private OmieDayPrices parse(LocalDate day, String dayFormatted, String body) {
         try {
-            final OmieFile first = getFile(client, "1", dayFormatted);
-            if (first.body() != null) {
-                return served(day, parseBody(first.body()));
-            }
-            // If there is no file with number 1, we try with 2
-            final OmieFile second = getFile(client, "2", dayFormatted);
-            if (second.body() != null) {
-                return served(day, parseBody(second.body()));
-            }
-            return OmieDayPrices.notServed(day, first.fetchFailed() || second.fetchFailed()
-                    ? OmieDayPrices.Status.FETCH_FAILED
-                    : OmieDayPrices.Status.NOT_FOUND);
-        } catch (OmiePriceFileException e) {
-            // A day that cannot be parsed is skipped, so it does not prevent the other days from being stored
+            final List<PriceByHour> prices = parseBody(body);
+            LOGGER.debug("Prices for day {}: {}", day, prices);
+            return OmieDayPrices.served(day, prices);
+        } catch (RuntimeException e) {
             LOGGER.error(String.format("Unable to parse OMIE prices for day %s", dayFormatted), e);
             return OmieDayPrices.notServed(day, OmieDayPrices.Status.REJECTED);
         }
-    }
-
-    private static OmieDayPrices served(LocalDate day, List<PriceByHour> prices) {
-        LOGGER.debug("Prices for day {}: {}", day, prices);
-        return OmieDayPrices.served(day, prices);
     }
 
     private String formatDay(LocalDate day) {
