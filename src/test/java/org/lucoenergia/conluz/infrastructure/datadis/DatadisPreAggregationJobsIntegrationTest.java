@@ -9,7 +9,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -22,13 +28,8 @@ import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.datadis.aggregate.DatadisMonthlyAggregationJob;
 import org.lucoenergia.conluz.infrastructure.datadis.aggregate.DatadisYearlyAggregationJob;
 import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
@@ -87,13 +88,11 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
             "consumption_kwh", "self_consumption_energy_kwh", "surplus_energy_kwh", "generation_energy_kwh");
 
     @Autowired
-    private CommunityJpaRepository communityJpaRepository;
+    private CreateCommunityRepository createCommunityRepository;
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private SupplyRepository supplyRepository;
+    private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private SetDatadisConfigurationRepository setDatadisConfigurationRepository;
     @Autowired
@@ -117,13 +116,13 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     private ZoneResolver zoneResolver;
 
     /** The supplies of the two communities with Datadis enabled. */
-    private final List<SupplyEntity> enabledSupplies = new ArrayList<>();
-    private SupplyEntity disabledSupply;
+    private final List<Supply> enabledSupplies = new ArrayList<>();
+    private Supply disabledSupply;
 
     @BeforeEach
     void persistCommunities() {
         for (int i = 0; i < 2; i++) {
-            CommunityEntity community = persistCommunity(true);
+            Community community = persistCommunity(true);
             enabledSupplies.add(persistSupply(community));
             enabledSupplies.add(persistSupply(community));
         }
@@ -132,10 +131,10 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
 
     @AfterEach
     void clearWrittenSeries() {
-        List<SupplyEntity> supplies = new ArrayList<>(enabledSupplies);
+        List<Supply> supplies = new ArrayList<>(enabledSupplies);
         supplies.add(disabledSupply);
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
-            for (SupplyEntity supply : supplies) {
+            for (Supply supply : supplies) {
                 for (String measurement : List.of(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, CONSUMPTION_MONTH,
                         CONSUMPTION_YEAR, PRODUCTION_HOUR, PRODUCTION_MONTH, PRODUCTION_YEAR)) {
                     connection.query(new Query(String.format("DROP SERIES FROM \"%s\" WHERE \"cups\" = '%s'",
@@ -155,7 +154,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("DCA-001 a stale point of a closed month in the window is rewritten to the sum of its hourly records, per field")
     void aStalePointOfAClosedMonthIsRewrittenToTheSumOfItsHourlyRecords() {
-        SupplyEntity supply = enabledSupplies.get(0);
+        Supply supply = enabledSupplies.get(0);
         writeConsumptionMonth(supply, CLOSED_MONTH, 90f, 0f, 3f, 0f);
         writeHour(supply, "2026/05/01", "00:00", 10.5f, 4.25f, 1f, 6f);
         writeHour(supply, "2026/05/15", "13:00", 20f, 8f, 2.5f, 12f);
@@ -180,7 +179,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     void aSingleRunCorrectsEveryMonthOfTheWindowForEverySupply() {
         Map<String, double[]> expected = new HashMap<>();
         float base = 1f;
-        for (SupplyEntity supply : enabledSupplies) {
+        for (Supply supply : enabledSupplies) {
             for (YearMonth month : List.of(FIRST_MONTH, CLOSED_MONTH, CURRENT_MONTH)) {
                 writeConsumptionMonth(supply, month, 999f, 999f, 999f, 999f);
                 String day = String.format("%d/%02d/01", month.getYear(), month.getMonthValue());
@@ -193,7 +192,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
 
         monthlyConsumptionJob().run();
 
-        for (SupplyEntity supply : enabledSupplies) {
+        for (Supply supply : enabledSupplies) {
             for (YearMonth month : List.of(FIRST_MONTH, CLOSED_MONTH, CURRENT_MONTH)) {
                 Map<String, Object> point = read(CONSUMPTION_MONTH, supply, start(month));
                 double[] sums = expected.get(supply.getCode() + month);
@@ -212,7 +211,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("DCA-001 a month before the window is not rewritten")
     void aMonthBeforeTheWindowIsNotRewritten() {
-        SupplyEntity supply = enabledSupplies.get(1);
+        Supply supply = enabledSupplies.get(1);
         writeConsumptionMonth(supply, BEFORE_WINDOW, 7f, 6f, 5f, 4f);
         writeHour(supply, "2025/09/15", "12:00", 100f, 100f, 100f, 100f);
 
@@ -245,7 +244,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     void aSingleRunRewritesEveryMonthOfTheWindowToTheSumOfItsHourlyProduction() {
         float base = 1f;
         Map<String, Double> expected = new HashMap<>();
-        for (SupplyEntity supply : enabledSupplies) {
+        for (Supply supply : enabledSupplies) {
             for (YearMonth month : List.of(FIRST_MONTH, CLOSED_MONTH, CURRENT_MONTH)) {
                 writeProduction(PRODUCTION_MONTH, supply, start(month), 999f);
                 // The month's first local hour, one in the middle, and the next month's first local hour.
@@ -259,7 +258,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
 
         productionMonthlyJob().run();
 
-        for (SupplyEntity supply : enabledSupplies) {
+        for (Supply supply : enabledSupplies) {
             for (YearMonth month : List.of(FIRST_MONTH, CLOSED_MONTH, CURRENT_MONTH)) {
                 assertEquals(expected.get(supply.getCode() + month),
                         (Double) read(PRODUCTION_MONTH, supply, start(month)).get("production_kwh"),
@@ -271,7 +270,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("DCA-002 a month before the window, and a community with Datadis disabled, are not rewritten")
     void aMonthBeforeTheWindowAndADisabledCommunityAreNotRewritten() {
-        SupplyEntity supply = enabledSupplies.get(2);
+        Supply supply = enabledSupplies.get(2);
         writeProduction(PRODUCTION_MONTH, supply, start(BEFORE_WINDOW), 7f);
         writeProduction(PRODUCTION_HOUR, supply, start(BEFORE_WINDOW).plusSeconds(86_400), 100f);
         writeProduction(PRODUCTION_MONTH, disabledSupply, start(CLOSED_MONTH), 7f);
@@ -293,7 +292,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     @DisplayName("DCA-003 a single run rewrites every year the window overlaps to the sum of its monthly points, and leaves earlier years alone")
     void aSingleRunRewritesEveryYearTheWindowOverlapsToTheSumOfItsMonthlyPoints() {
         float base = 1f;
-        for (SupplyEntity supply : enabledSupplies) {
+        for (Supply supply : enabledSupplies) {
             seedYears(supply, base);
             base += 1f;
         }
@@ -303,7 +302,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
         productionYearlyJob().run();
 
         base = 1f;
-        for (SupplyEntity supply : enabledSupplies) {
+        for (Supply supply : enabledSupplies) {
             // 2025: January (base) + December (2 * base); 2026: January (3 * base) + September (4 * base).
             assertYear(supply, 2025, base * 3);
             assertYear(supply, 2026, base * 7);
@@ -314,7 +313,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
         assertYear(disabledSupply, 2026, 999);
     }
 
-    private void seedYears(SupplyEntity supply, float base) {
+    private void seedYears(Supply supply, float base) {
         for (int year : List.of(2024, 2025, 2026)) {
             writeConsumptionYear(supply, year, 999f);
             writeProduction(PRODUCTION_YEAR, supply, start(YearMonth.of(year, 1)), 999f);
@@ -326,12 +325,12 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
         writeMonthlyOfEveryKind(supply, YearMonth.of(2026, 9), base * 4);
     }
 
-    private void writeMonthlyOfEveryKind(SupplyEntity supply, YearMonth month, float value) {
+    private void writeMonthlyOfEveryKind(Supply supply, YearMonth month, float value) {
         writeConsumptionMonth(supply, month, value, value, value, value);
         writeProduction(PRODUCTION_MONTH, supply, start(month), value);
     }
 
-    private void assertYear(SupplyEntity supply, int year, double expected) {
+    private void assertYear(Supply supply, int year, double expected) {
         Instant start = start(YearMonth.of(year, 1));
         Map<String, Object> consumption = read(CONSUMPTION_YEAR, supply, start);
         for (String field : CONSUMPTION_FIELDS) {
@@ -365,19 +364,25 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
 
     // --- PostgreSQL ---
 
-    private CommunityEntity persistCommunity(boolean datadisEnabled) {
-        CommunityEntity community = communityJpaRepository.save(CommunityMother.randomEntity().build());
+    private Community persistCommunity(boolean datadisEnabled) {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
         setDatadisConfigurationRepository.setDatadisConfiguration(community.getId(), new DatadisConfig.Builder()
                 .setUsername("user").setPassword("password").setEnabled(datadisEnabled).build());
         return community;
     }
 
-    private SupplyEntity persistSupply(CommunityEntity community) {
+    private Supply persistSupply(Community community) {
         User owner = UserMother.randomUser();
         owner.enable();
         createUserRepository.create(owner);
-        return supplyRepository.save(SupplyEntityMother.random(
-                userRepository.getReferenceById(owner.getId()), community));
+        Supply supply = SupplyMother.random(owner)
+                .withDistributor(new SupplyDistributor.Builder()
+                        .withName("EDISTRIBUCION")
+                        .withCode("2")
+                        .withPointType(5)
+                        .build())
+                .build();
+        return createSupplyRepository.create(supply, UserId.of(owner.getId()), community.getId());
     }
 
     // --- InfluxDB ---
@@ -390,7 +395,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
      * Writes one hourly consumption record through the production persistence, at a local date and
      * time.
      */
-    private void writeHour(SupplyEntity supply, String date, String time, float consumption, float selfConsumption,
+    private void writeHour(Supply supply, String date, String time, float consumption, float selfConsumption,
                            float surplus, float generation) {
         DatadisConsumption record = DatadisConsumptionInfluxFixture.hourlyRecord(supply.getCode(), date, time,
                 consumption, selfConsumption, surplus);
@@ -398,17 +403,17 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
         influxFixture.write(List.of(record));
     }
 
-    private void writeConsumptionMonth(SupplyEntity supply, YearMonth month, float consumption,
+    private void writeConsumptionMonth(Supply supply, YearMonth month, float consumption,
                                        float selfConsumption, float surplus, float generation) {
         writeConsumptionPoint(CONSUMPTION_MONTH, supply, start(month), consumption, selfConsumption, surplus,
                 generation);
     }
 
-    private void writeConsumptionYear(SupplyEntity supply, int year, float value) {
+    private void writeConsumptionYear(Supply supply, int year, float value) {
         writeConsumptionPoint(CONSUMPTION_YEAR, supply, start(YearMonth.of(year, 1)), value, value, value, value);
     }
 
-    private void writeConsumptionPoint(String measurement, SupplyEntity supply, Instant time, float consumption,
+    private void writeConsumptionPoint(String measurement, Supply supply, Instant time, float consumption,
                                        float selfConsumption, float surplus, float generation) {
         write(Point.measurement(measurement)
                 .time(time.toEpochMilli(), TimeUnit.MILLISECONDS)
@@ -421,7 +426,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
                 .build());
     }
 
-    private void writeProduction(String measurement, SupplyEntity supply, Instant time, float production) {
+    private void writeProduction(String measurement, Supply supply, Instant time, float production) {
         write(Point.measurement(measurement)
                 .time(time.toEpochMilli(), TimeUnit.MILLISECONDS)
                 .tag("cups", supply.getCode())
@@ -441,7 +446,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     /**
      * The fields of the single point the supply has at that instant in the measurement.
      */
-    private Map<String, Object> read(String measurement, SupplyEntity supply, Instant time) {
+    private Map<String, Object> read(String measurement, Supply supply, Instant time) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             QueryResult result = connection.query(new Query(String.format(
                     "SELECT * FROM \"%s\" WHERE cups = '%s' AND time = '%s'", measurement, supply.getCode(), time)));
