@@ -2,8 +2,8 @@ package org.lucoenergia.conluz.infrastructure.price.sync;
 
 import org.lucoenergia.conluz.domain.price.PriceByHour;
 import org.lucoenergia.conluz.domain.price.persist.PersistOmiePricesRepository;
+import org.lucoenergia.conluz.domain.price.sync.GetOmiePricesRepository;
 import org.lucoenergia.conluz.domain.price.sync.SyncDailyPricesService;
-import org.lucoenergia.conluz.infrastructure.price.get.GetPriceRepositoryRest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,12 +16,12 @@ public class SyncDailyPricesServiceImpl implements SyncDailyPricesService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncDailyPricesServiceImpl.class);
 
-    private final GetPriceRepositoryRest getPriceRepositoryRest;
+    private final GetOmiePricesRepository getOmiePricesRepository;
     private final PersistOmiePricesRepository persistOmiePricesRepository;
 
-    public SyncDailyPricesServiceImpl(GetPriceRepositoryRest getPriceRepositoryRest,
+    public SyncDailyPricesServiceImpl(GetOmiePricesRepository getOmiePricesRepository,
                                       PersistOmiePricesRepository persistOmiePricesRepository) {
-        this.getPriceRepositoryRest = getPriceRepositoryRest;
+        this.getOmiePricesRepository = getOmiePricesRepository;
         this.persistOmiePricesRepository = persistOmiePricesRepository;
     }
 
@@ -33,7 +33,10 @@ public class SyncDailyPricesServiceImpl implements SyncDailyPricesService {
             return;
         }
 
-        List<PriceByHour> prices = getPriceRepositoryRest.getPricesByRangeOfDates(startDate, endDate);
+        List<PriceByHour> prices = getOmiePricesRepository
+                .getPricesByDays(startDate.toLocalDate(), endDate.toLocalDate().plusDays(1)).stream()
+                .flatMap(day -> day.prices().stream())
+                .toList();
 
         persistOmiePricesRepository.persistPrices(prices);
     }
