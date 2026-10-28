@@ -14,7 +14,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * <p>Returned only by {@code GET /api/v1/users/current}: these are facts about the caller, not
  * about a user, so they do not belong on {@link org.lucoenergia.conluz.infrastructure.admin.user.UserResponse}.</p>
  */
-@Schema(description = "What the caller may do on the platform as a whole.", requiredProperties = {"canCreateCommunity", "canListUsers", "canAdministerPlatform", "canListPlatformAdmins", "canInvitePlatformAdmins"})
+@Schema(description = "What the caller may do on the platform as a whole.", requiredProperties = {"canCreateCommunity", "canListUsers", "canAdministerPlatform", "canListPlatformAdmins", "canInvitePlatformAdmins", "canSyncPrices"})
 public class PlatformCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may create a community (POST /api/v1/communities).")
@@ -32,12 +32,16 @@ public class PlatformCapabilitiesResponse {
     @Schema(description = "Whether the caller may invite a person to the platform-admin role (POST /api/v1/platform-admins/invite).")
     private final boolean canInvitePlatformAdmins;
 
+    @Schema(description = "Whether the caller may re-synchronise the OMIE prices of a range of market days (POST /api/v1/prices/sync).")
+    private final boolean canSyncPrices;
+
     private PlatformCapabilitiesResponse(Builder builder) {
         this.canCreateCommunity = builder.canCreateCommunity;
         this.canListUsers = builder.canListUsers;
         this.canAdministerPlatform = builder.canAdministerPlatform;
         this.canListPlatformAdmins = builder.canListPlatformAdmins;
         this.canInvitePlatformAdmins = builder.canInvitePlatformAdmins;
+        this.canSyncPrices = builder.canSyncPrices;
     }
 
     public boolean isCanCreateCommunity() {
@@ -60,6 +64,10 @@ public class PlatformCapabilitiesResponse {
         return canInvitePlatformAdmins;
     }
 
+    public boolean isCanSyncPrices() {
+        return canSyncPrices;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -75,6 +83,7 @@ public class PlatformCapabilitiesResponse {
         private boolean canAdministerPlatform;
         private boolean canListPlatformAdmins;
         private boolean canInvitePlatformAdmins;
+        private boolean canSyncPrices;
 
         public Builder withCanCreateCommunity(boolean canCreateCommunity) {
             this.canCreateCommunity = canCreateCommunity;
@@ -98,6 +107,11 @@ public class PlatformCapabilitiesResponse {
 
         public Builder withCanInvitePlatformAdmins(boolean canInvitePlatformAdmins) {
             this.canInvitePlatformAdmins = canInvitePlatformAdmins;
+            return this;
+        }
+
+        public Builder withCanSyncPrices(boolean canSyncPrices) {
+            this.canSyncPrices = canSyncPrices;
             return this;
         }
 

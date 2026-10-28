@@ -65,6 +65,11 @@ class PlatformAccessGuardImpl implements PlatformAccessGuard {
         return administersPlatform();
     }
 
+    @Override
+    public boolean canSyncPrices() {
+        return administersPlatform();
+    }
+
     private boolean administersPlatform() {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null) {

@@ -70,8 +70,10 @@ must not read another person's record and conclude something about its own permi
 | `canAdministerPlatform` | *(no guard — see below)* | — |
 | `canListPlatformAdmins` | `canListPlatformAdmins` | `GET /platform-admins` |
 | `canInvitePlatformAdmins` | `canManagePlatformAdminInvitations` | `POST /platform-admins/invite` |
+| `canSyncPrices` | `canSyncPrices` | `POST /prices/sync` |
 
-Both of the last two sit on the **platform** scope because neither names a resource.
+`canListPlatformAdmins`, `canInvitePlatformAdmins` and `canSyncPrices` sit on the **platform** scope
+because none of them names a resource.
 `canAdministerPlatform` gates a *surface* — the communities administration page, the platform
 overview, the landing route.
 
@@ -85,12 +87,13 @@ authenticated caller may call it, scoped to the communities they can see — so 
 communities **administration page** is not a fact about that listing. It is a decision about
 administering the platform, and this is the capability that says so.
 
-Four of the five coincide today, and the doc says so rather than leaving a reader to discover it:
-`canCreateCommunity`, `canAdministerPlatform`, `canListPlatformAdmins` and `canInvitePlatformAdmins`
-are the *same expression*, all reading `PlatformAccessPolicy.canAdministerPlatform` — there is no
-`canCreateCommunity`, `canListPlatformAdmins` or `canInvitePlatformAdmins` policy method. They answer
-different questions — "may I open the administration surface", "may I create a community", "may I see
-who the platform admins are", "may I invite a platform admin" — and are kept apart so any one can
+Five of the six coincide today, and the doc says so rather than leaving a reader to discover it:
+`canCreateCommunity`, `canAdministerPlatform`, `canListPlatformAdmins`, `canInvitePlatformAdmins` and
+`canSyncPrices` are the *same expression*, all reading `PlatformAccessPolicy.canAdministerPlatform` —
+there is no `canCreateCommunity`, `canListPlatformAdmins`, `canInvitePlatformAdmins` or `canSyncPrices`
+policy method. They answer different questions — "may I open the administration surface", "may I create
+a community", "may I see who the platform admins are", "may I invite a platform admin", "may I
+re-synchronise the prices" — and are kept apart so any one can
 diverge without a call site changing, the same argument made below for the sharing-agreement pair.
 `canCreateUsers` used to be another, through the platform-admin branch of
 `UserAccessPolicy.canCreateIn`; it diverged in #446, which is the reason for keeping them apart, and was

@@ -2658,6 +2658,10 @@
           "canListUsers" : {
             "description" : "Whether the caller may list users (GET /api/v1/users): an active community admin of at least one community. False for a platform admin who administers no community.",
             "type" : "boolean"
+          },
+          "canSyncPrices" : {
+            "description" : "Whether the caller may re-synchronise the OMIE prices of a range of market days (POST /api/v1/prices/sync).",
+            "type" : "boolean"
           }
         },
         "required" : [
@@ -2665,7 +2669,8 @@
           "canCreateCommunity",
           "canInvitePlatformAdmins",
           "canListPlatformAdmins",
-          "canListUsers"
+          "canListUsers",
+          "canSyncPrices"
         ],
         "type" : "object"
       },

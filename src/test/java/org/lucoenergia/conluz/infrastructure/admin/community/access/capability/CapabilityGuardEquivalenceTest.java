@@ -443,6 +443,7 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
                     () -> guard.canListPlatformAdmins());
             assertSame("canInvitePlatformAdmins", capabilities.isCanInvitePlatformAdmins(),
                     () -> guard.canManagePlatformAdminInvitations());
+            assertSame("canSyncPrices", capabilities.isCanSyncPrices(), () -> guard.canSyncPrices());
             // canAdministerPlatform is deliberately absent: it has no guard to be equal to -- it
             // gates a surface rather than an endpoint -- exactly as community.canCreatePlants is
             // absent from theCommunityCapabilitiesEqualTheirGuards. Its anchor is

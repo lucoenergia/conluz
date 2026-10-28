@@ -51,6 +51,7 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 // ACC-020: a platform admin who administers no community may not list users.
                 .andExpect(jsonPath("$.platformCapabilities.canListUsers").value(false))
                 .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(true))
+                .andExpect(jsonPath("$.platformCapabilities.canSyncPrices").value(true))
                 .andExpect(jsonPath("$.capabilities.canRead").value(true))
                 // Nobody may delete, disable or de-admin themselves, platform admins included.
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
@@ -71,7 +72,8 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.platformCapabilities.canListUsers").value(true))
                 .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(false))
-                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false));
+                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false))
+                .andExpect(jsonPath("$.platformCapabilities.canSyncPrices").value(false));
     }
 
     /**
@@ -90,7 +92,8 @@ class UserCapabilitiesEndpointTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.capabilities.canDelete").value(false))
                 .andExpect(jsonPath("$.platformCapabilities.canListUsers").value(false))
                 .andExpect(jsonPath("$.platformCapabilities.canCreateCommunity").value(false))
-                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false));
+                .andExpect(jsonPath("$.platformCapabilities.canAdministerPlatform").value(false))
+                .andExpect(jsonPath("$.platformCapabilities.canSyncPrices").value(false));
     }
 
     @Test
