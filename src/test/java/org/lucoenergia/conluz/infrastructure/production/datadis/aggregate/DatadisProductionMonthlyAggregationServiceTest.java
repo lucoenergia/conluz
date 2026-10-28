@@ -12,6 +12,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationRepository;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.mockito.InjectMocks;
@@ -21,7 +22,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Month;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
@@ -38,6 +42,9 @@ class DatadisProductionMonthlyAggregationServiceTest {
     @Mock
     private GetDatadisConfigRepository getDatadisConfigRepository;
 
+    @Mock
+    private GetPlantRepository getPlantRepository;
+
     @InjectMocks
     private DatadisProductionMonthlyAggregationServiceImpl service;
 
@@ -50,6 +57,12 @@ class DatadisProductionMonthlyAggregationServiceTest {
                 .build();
     }
 
+    /** Links the given supplies, and only them, to plants of the community. */
+    private void givenPlantSupplies(UUID communityId, Supply... supplies) {
+        Set<String> codes = Stream.of(supplies).map(Supply::getCode).collect(Collectors.toSet());
+        when(getPlantRepository.findSupplyCodesByCommunity(communityId)).thenReturn(codes);
+    }
+
     @Test
     void testAggregateMonthlyForCommunityWholeYearProcessesEveryMonth() {
 
@@ -59,6 +72,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
         Supply supply2 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply1, supply2));
 
+        givenPlantSupplies(communityId, supply1, supply2);
         // When
         service.aggregateMonthlyProductions(communityId, 2024);
 
@@ -82,6 +96,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
         Supply supplyWithoutCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("   ").build()).build();
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
 
+        givenPlantSupplies(communityId, supplyWithCode, supplyWithoutCode);
         // When
         service.aggregateMonthlyProductions(communityId, 2024);
 
@@ -101,6 +116,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
         Supply supply2 = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode("DIST002").build()).build();
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply1, supply2));
 
+        givenPlantSupplies(communityId, supply1, supply2);
         // When
         service.aggregateMonthlyProductions(communityId, Month.APRIL, 2024);
 
@@ -120,6 +136,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
         Supply supplyWithoutCode = SupplyMother.random().withDistributor(new SupplyDistributor.Builder().withCode(null).build()).build();
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supplyWithCode, supplyWithoutCode));
 
+        givenPlantSupplies(communityId, supplyWithCode, supplyWithoutCode);
         // When
         service.aggregateMonthlyProductions(communityId, Month.JANUARY, 2024);
 
@@ -142,6 +159,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
                 .when(aggregationRepository)
                 .aggregateMonthlyProduction(eq(failing), any(Month.class), anyInt());
 
+        givenPlantSupplies(communityId, failing, next);
         // When - should not throw, just log the error
         service.aggregateMonthlyProductions(communityId, Month.JUNE, 2024);
 
@@ -162,6 +180,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
                 .build();
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
+        givenPlantSupplies(community.getId(), supply);
         // When
         service.aggregateMonthlyProductions(community.getId(), supplyCode, Month.MAY, 2024);
 
@@ -233,6 +252,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
                 .build();
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
+        givenPlantSupplies(community.getId(), supply);
         // When - the supply belongs to the community but has no distributor code
         service.aggregateMonthlyProductions(community.getId(), supplyCode, Month.MAY, 2024);
 
@@ -280,6 +300,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
 
+        givenPlantSupplies(communityId, supply);
         // When
         service.syncMonthlyProductions(communityId, null, null, 2024);
 
@@ -298,6 +319,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
 
+        givenPlantSupplies(communityId, supply);
         // When
         service.syncMonthlyProductions(communityId, null, 4, 2024);
 
@@ -318,6 +340,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
         when(getDatadisConfigRepository.findByCommunityId(community.getId())).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findByCode(SupplyCode.of("CUPS001"))).thenReturn(Optional.of(supply));
 
+        givenPlantSupplies(community.getId(), supply);
         // When
         service.syncMonthlyProductions(community.getId(), "CUPS001", null, 2024);
 
@@ -339,6 +362,7 @@ class DatadisProductionMonthlyAggregationServiceTest {
         when(getDatadisConfigRepository.findByCommunityId(community.getId())).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findByCode(SupplyCode.of("CUPS001"))).thenReturn(Optional.of(supply));
 
+        givenPlantSupplies(community.getId(), supply);
         // When
         service.syncMonthlyProductions(community.getId(), "CUPS001", 6, 2024);
 
