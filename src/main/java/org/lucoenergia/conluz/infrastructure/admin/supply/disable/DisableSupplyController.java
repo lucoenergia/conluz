@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.disable.DisableSupplyService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPlantAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
@@ -29,13 +30,16 @@ public class DisableSupplyController {
     private final DisableSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final MemberDataAssembler memberDataAssembler;
+    private final SupplyPlantAssembler supplyPlantAssembler;
 
     public DisableSupplyController(DisableSupplyService service,
                                    SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                  MemberDataAssembler memberDataAssembler) {
+                                  MemberDataAssembler memberDataAssembler,
+            SupplyPlantAssembler supplyPlantAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.memberDataAssembler = memberDataAssembler;
+        this.supplyPlantAssembler = supplyPlantAssembler;
     }
 
     @PostMapping(path = "/supplies/{supplyId}/disable")
@@ -70,6 +74,6 @@ public class DisableSupplyController {
                                        @PathVariable("supplyId") UUID supplyId) {
         Supply updated = service.disable(SupplyId.of(supplyId));
         return new SupplyResponse(updated, capabilitiesAssembler.assemble(currentUser, updated),
-                memberDataAssembler.recordOfSupplyOwner(updated));
+                memberDataAssembler.recordOfSupplyOwner(updated), supplyPlantAssembler.plantOf(updated));
     }
 }

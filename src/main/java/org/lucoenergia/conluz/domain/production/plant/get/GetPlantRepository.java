@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.production.plant.get;
 
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PlantReference;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedRequest;
@@ -9,6 +10,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -53,4 +55,11 @@ public interface GetPlantRepository {
      * Whether any plant is attached to the given supply.
      */
     boolean existsBySupply(SupplyId supplyId);
+
+    /**
+     * The plant whose own supply each of the given supplies is, keyed by supply id, read in one query.
+     * A supply that is no plant's own supply is absent from the map, and an empty collection issues no
+     * query. A supply is the supply of at most one plant (PLT-002), so each key has one plant.
+     */
+    Map<UUID, PlantReference> findReferencesBySupplies(Collection<SupplyId> supplyIds);
 }

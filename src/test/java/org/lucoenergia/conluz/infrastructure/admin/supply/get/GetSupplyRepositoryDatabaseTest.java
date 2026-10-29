@@ -400,7 +400,7 @@ class GetSupplyRepositoryDatabaseTest extends BaseIntegrationTest {
         statistics.clear();
 
         List<SupplyResponse> responses = supplies.stream()
-                .map(supply -> new SupplyResponse(supply, capabilities, null))
+                .map(supply -> new SupplyResponse(supply, capabilities, null, null))
                 .toList();
 
         Assertions.assertEquals(0, statistics.getPrepareStatementCount(),

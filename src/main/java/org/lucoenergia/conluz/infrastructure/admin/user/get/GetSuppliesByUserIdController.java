@@ -7,8 +7,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PlantReference;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPlantAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -41,15 +43,18 @@ public class GetSuppliesByUserIdController {
     private final CommunityAccessGuard communityAccessGuard;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final MemberDataAssembler memberDataAssembler;
+    private final SupplyPlantAssembler supplyPlantAssembler;
 
     public GetSuppliesByUserIdController(GetSupplyService supplyService,
                                          CommunityAccessGuard communityAccessGuard,
                                          SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                         MemberDataAssembler memberDataAssembler) {
+                                         MemberDataAssembler memberDataAssembler,
+            SupplyPlantAssembler supplyPlantAssembler) {
         this.supplyService = supplyService;
         this.communityAccessGuard = communityAccessGuard;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.memberDataAssembler = memberDataAssembler;
+        this.supplyPlantAssembler = supplyPlantAssembler;
     }
 
     @GetMapping("/{userId}/supplies")
@@ -96,10 +101,11 @@ public class GetSuppliesByUserIdController {
 
         // One query for the member records of every owner on this page, not one per supply.
         Function<Supply, CommunityMembership> ownerRecords = memberDataAssembler.recordsOfSupplyOwners(supplies);
+        Function<Supply, PlantReference> plants = supplyPlantAssembler.plantsOf(supplies);
 
         return supplies.stream()
                 .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
-                        ownerRecords.apply(supply)))
+                        ownerRecords.apply(supply), plants.apply(supply)))
                 .toList();
     }
 }

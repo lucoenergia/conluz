@@ -40,6 +40,13 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
 
     boolean existsBySupplyId(UUID supplyId);
 
+    /**
+     * For each plant whose own supply is one of the given supplies: its supply id, its id and its name,
+     * in that order, as a projection that loads no entity.
+     */
+    @Query("SELECT p.supply.id, p.id, p.name FROM plants p WHERE p.supply.id IN :supplyIds")
+    List<Object[]> findReferencesBySupplyIdIn(@Param("supplyIds") Collection<UUID> supplyIds);
+
     @Query(value = "SELECT id FROM plants WHERE id = :plantId FOR UPDATE", nativeQuery = true)
     Optional<UUID> lockById(@Param("plantId") UUID plantId);
 

@@ -3897,6 +3897,14 @@
               "null"
             ]
           },
+          "plant" : {
+            "$ref" : "#/components/schemas/PlantReferenceResponse",
+            "description" : "The plant whose own supply this is: the supply its production is measured at. Null when the supply is no plant's own supply.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
           "shelly" : {
             "$ref" : "#/components/schemas/SupplyShellyResponse",
             "description" : "Shelly device information of the supply",
@@ -3926,6 +3934,7 @@
           "id",
           "name",
           "ownerRecord",
+          "plant",
           "shelly",
           "user"
         ],
