@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
@@ -14,12 +15,14 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
@@ -35,6 +38,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -65,6 +69,8 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     private GetSupplyRepository getSupplyRepository;
     @Autowired
     private CommunityMembershipJpaRepository communityMembershipJpaRepository;
+    @Autowired
+    private CreateSupplyRepository createSupplyRepository;
 
     @Test
     void testCreateSupplyWithoutName() throws Exception {
@@ -566,5 +572,130 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+    }
+
+    @ParameterizedTest
+    @DisplayName("SUP-004 a code that is not a CUPS once upper-cased is refused with 400 SUPPLY_CUPS_INVALID, "
+            + "naming no code, and nothing is created")
+    @ValueSource(strings = {"ES0031300325733001F", "ES0031300325733001FH0", "ES0031300325733001FH0FX",
+            "ES00313003257330 1FH0F", "ES0031300325733001\tH"})
+    void testCreateSupplyWithACodeThatIsNotACupsIsRefused(String code) throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User owner = memberOf(DEFAULT_COMMUNITY_ID);
+
+        String response = mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(supplyBody(DEFAULT_COMMUNITY_ID, code, owner.getPersonalId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("SUPPLY_CUPS_INVALID"))
+                .andReturn().getResponse().getContentAsString();
+
+        Assertions.assertFalse(response.contains(code));
+        Assertions.assertTrue(getSupplyRepository.findAllByCommunityId(DEFAULT_COMMUNITY_ID).stream()
+                .noneMatch(supply -> supply.getUser().getId().equals(owner.getId())));
+    }
+
+    @Test
+    @DisplayName("SUP-004 a lower-case code is stored upper-cased")
+    void testCreateSupplyStoresTheCodeUpperCased() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User owner = memberOf(DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(supplyBody(DEFAULT_COMMUNITY_ID, "es0031300325733005fh", owner.getPersonalId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ES0031300325733005FH"));
+
+        Assertions.assertTrue(supplyRepository.findByCode("ES0031300325733005FH").isPresent());
+        Assertions.assertTrue(supplyRepository.findByCode("es0031300325733005fh").isEmpty());
+    }
+
+    @ParameterizedTest
+    @DisplayName("SUP-005 a CUPS another supply of the community has, in either length and in any case, is refused "
+            + "with 400 SUPPLY_ALREADY_EXISTS, naming no code, and nothing is created")
+    @CsvSource({
+            "ES0031300325733003FH, ES0031300325733003FH0F",
+            "ES0031300325733003FH0F, ES0031300325733003FH",
+            "ES0031300325733003FH0F, es0031300325733003fh0f",
+            "es0031300325733003fh, ES0031300325733003FH0F",
+            "ES0031300325733003FH0F, ES0031300325733003FH0F"
+    })
+    void testCreateSupplyWithTheCupsOfASupplyOfTheCommunityIsRefused(String stored, String submitted)
+            throws Exception {
+        existingSupply(stored, DEFAULT_COMMUNITY_ID);
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User owner = memberOf(DEFAULT_COMMUNITY_ID);
+
+        String response = mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(supplyBody(DEFAULT_COMMUNITY_ID, submitted, owner.getPersonalId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("SUPPLY_ALREADY_EXISTS"))
+                .andReturn().getResponse().getContentAsString();
+
+        Assertions.assertFalse(response.toUpperCase(Locale.ROOT).contains(stored.toUpperCase(Locale.ROOT)));
+        Assertions.assertFalse(response.toUpperCase(Locale.ROOT).contains(submitted.toUpperCase(Locale.ROOT)));
+        Assertions.assertTrue(getSupplyRepository.findAllByCommunityId(DEFAULT_COMMUNITY_ID).stream()
+                .noneMatch(supply -> supply.getUser().getId().equals(owner.getId())));
+    }
+
+    @Test
+    @DisplayName("SUP-005 a CUPS a supply of another community has is refused with 400 "
+            + "SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY, naming neither that community nor its owner")
+    void testCreateSupplyWithTheCupsOfASupplyOfAnotherCommunityIsRefused() throws Exception {
+        Community other = createCommunityRepository.create(CommunityMother.random().build());
+        User otherOwner = existingSupply("ES0031300325733006FH0F", other.getId());
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User owner = memberOf(DEFAULT_COMMUNITY_ID);
+
+        String response = mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(supplyBody(DEFAULT_COMMUNITY_ID, "ES0031300325733006FH", owner.getPersonalId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY"))
+                .andReturn().getResponse().getContentAsString();
+
+        for (String named : List.of(other.getName(), other.getId().toString(), otherOwner.getFullName(),
+                otherOwner.getPersonalId(), otherOwner.getId().toString(), "ES0031300325733006FH")) {
+            Assertions.assertFalse(response.contains(named), named);
+        }
+        Assertions.assertTrue(supplyRepository.findByCode("ES0031300325733006FH").isEmpty());
+    }
+
+    @Test
+    @DisplayName("SUP-005 a 22-character CUPS that does not end in 0F is not the same CUPS as its first 20 "
+            + "characters")
+    void testCreateSupplyWithAFullCupsNotEndingIn0FDoesNotMatchItsPrefix() throws Exception {
+        existingSupply("ES0031300325733004FH", DEFAULT_COMMUNITY_ID);
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User owner = memberOf(DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(supplyBody(DEFAULT_COMMUNITY_ID, "ES0031300325733004FH1F", owner.getPersonalId())))
+                .andExpect(status().isOk());
+    }
+
+    private User memberOf(UUID communityId) {
+        User user = createUserRepository.create(UserMother.randomUser());
+        createMembershipRepository.create(communityId, user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        return user;
+    }
+
+    /**
+     * Written through the repository, which does not check the code, so that codes stored before the CUPS rules can
+     * be set up too. Returns its owner.
+     */
+    private User existingSupply(String code, UUID communityId) {
+        User owner = memberOf(communityId);
+        createSupplyRepository.create(SupplyMother.random(owner).withCode(code).build(), UserId.of(owner.getId()),
+                communityId);
+        return owner;
     }
 }
