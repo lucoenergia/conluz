@@ -17,8 +17,9 @@ import java.util.UUID;
 public class SupplyAccessPolicy {
 
     /**
-     * Reading a supply is open to its owner and to the active community admins of its community —
-     * the same access editing requires, so a caller who may not read it is never told it exists.
+     * Reading a supply is open to its owner while they hold an active membership in its community, and
+     * to the active community admins of that community — the same access editing requires, so a caller
+     * who may not read it is never told it exists.
      */
     public AccessDecision canRead(User caller, Supply supply) {
         return isVisible(caller, supply) ? AccessDecision.ALLOWED : AccessDecision.NOT_VISIBLE;
@@ -67,21 +68,25 @@ public class SupplyAccessPolicy {
 
     /**
      * The single spelling of "can this caller see this supply at all": it exists, and they either
-     * administer its community or own it.
+     * administer its community or own it while their membership in its community is active. Owning
+     * a supply is not access (MEM-004): an owner whose membership is pending or disabled is answered
+     * as anyone outside the community (SUP-003).
      */
     public boolean isVisible(User caller, Supply supply) {
-        return supply != null && (isCommunityAdminOf(caller, supply) || isOwner(caller, supply));
+        return supply != null && (isCommunityAdminOf(caller, supply) || isActiveOwner(caller, supply));
     }
 
     /**
      * {@link #isVisible(User, Supply)} in set form, for the supplies of one owner: which of them the
      * caller may see, expressed so a listing can apply it in a single query instead of evaluating
-     * each row. The owner sees all of theirs; anyone else sees those in the communities they
-     * administer — never more than they could read one by one.
+     * each row. The owner sees theirs in the communities where their membership is active; anyone
+     * else sees those in the communities they administer — never more than they could read one by
+     * one.
      */
     public SupplyOwnerScope visibleSuppliesOwnedBy(User caller, UUID ownerId) {
         if (CallerMemberships.isCurrentUser(caller, ownerId)) {
-            return SupplyOwnerScope.all();
+            // Every community the caller administers is one of their active memberships too.
+            return SupplyOwnerScope.inCommunities(CallerMemberships.activeMembershipCommunityIds(caller));
         }
         return SupplyOwnerScope.inCommunities(CallerMemberships.adminCommunityIds(caller));
     }
@@ -101,5 +106,13 @@ public class SupplyAccessPolicy {
     public boolean isOwner(User caller, Supply supply) {
         return supply.getUser() != null && supply.getUser().getId() != null
                 && supply.getUser().getId().equals(caller.getId());
+    }
+
+    /**
+     * Owns the supply and holds an active membership in its community.
+     */
+    private boolean isActiveOwner(User caller, Supply supply) {
+        UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
+        return isOwner(caller, supply) && CallerMemberships.hasMembershipInCommunity(caller, communityId);
     }
 }

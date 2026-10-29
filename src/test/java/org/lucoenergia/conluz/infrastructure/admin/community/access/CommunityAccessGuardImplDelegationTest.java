@@ -78,8 +78,9 @@ class CommunityAccessGuardImplDelegationTest {
 
     @Test
     void canReadSupply_isDelegatedToTheSupplyGuard_inTheAllowingDirection() {
-        User user = authenticated(UserMother.randomUser());
-        Supply supply = supplyOwnedBy(user.getId());
+        Community community = CommunityMother.random().build();
+        User user = authenticated(userWithMembership(community, CommunityRole.COMMUNITY_MEMBER));
+        Supply supply = supplyOwnedBy(user.getId(), community);
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
         assertTrue(guard().canReadSupply(supply.getId()));
@@ -247,12 +248,13 @@ class CommunityAccessGuardImplDelegationTest {
         return targetUserId;
     }
 
-    private Supply supplyOwnedBy(UUID ownerId) {
+    private Supply supplyOwnedBy(UUID ownerId, Community community) {
         User owner = new User.Builder().id(ownerId).build();
         return new Supply.Builder()
                 .withId(UUID.randomUUID())
                 .withCode("ES001")
                 .withUser(owner)
+                .withCommunity(community)
                 .withName("Supply")
                 .withAddress("Address")
                 .withEnabled(true)

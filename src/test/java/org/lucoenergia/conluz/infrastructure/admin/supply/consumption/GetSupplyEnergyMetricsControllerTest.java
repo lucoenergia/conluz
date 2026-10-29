@@ -655,6 +655,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         User owner = UserMother.randomUser();
         owner.enable();
         User createdOwner = createUserRepository.create(owner);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, createdOwner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyOwnedBy(createdOwner);
 
         writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 10.0f, 0.0f));
@@ -672,6 +673,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         User owner = UserMother.randomUser();
         owner.enable();
         User createdOwner = createUserRepository.create(owner);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, createdOwner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyOwnedBy(createdOwner);
 
         writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 1.0f, 0.0f));
@@ -681,6 +683,18 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supply.id").value(supply.getId().toString()))
                 .andExpect(jsonPath("$.selfSufficiencyRatio").value(closeTo(0.2, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("SUP-003 the owner whose membership is disabled is answered not found")
+    void theOwnerWhoseMembershipIsDisabledIsAnsweredNotFound() throws Exception {
+        User owner = createMemberOfDefaultCommunity();
+        Supply supply = createSupplyOwnedBy(owner);
+        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, owner.getId(), DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -798,7 +812,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 EPR-001 AC7 each supply of an owner resolves the latest month it published itself, half-open")
     void eachSupplyOfAnOwnerResolvesTheLatestMonthItPublishedItself() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supplyA = createSupplyOwnedBy(owner);
         Supply supplyB = createSupplyOwnedBy(owner);
         writePublishedZeros(supplyA, YearMonth.of(2026, 7));
@@ -834,7 +848,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC1 the resolved month is aggregated over this supply's records")
     void theResolvedMonthIsAggregatedOverThisSuppliesRecords() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 9));
         writeRecords(hourlyRecord(supply.getCode(), "2026/09/10", "12:00", 3.0f, 4.0f, 1.0f));
@@ -853,7 +867,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("SEM-001 AC2 the reference period combined with a start date is a bad request")
     void theReferencePeriodCombinedWithAStartDateIsABadRequest() throws Exception {
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
@@ -867,7 +881,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("SEM-001 AC2 the reference period combined with an end date is a bad request")
     void theReferencePeriodCombinedWithAnEndDateIsABadRequest() throws Exception {
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
@@ -881,7 +895,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("SEM-001 AC2 the reference period combined with both dates is a bad request")
     void theReferencePeriodCombinedWithBothDatesIsABadRequest() throws Exception {
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
@@ -903,7 +917,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC3 a supply without a published month before the current one resolves no period")
     void aSupplyWithoutAPublishedMonthBeforeTheCurrentOneResolvesNoPeriod() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 8), FOUR_HOURS_A_DAY);
         fixture.writeAt(supply.getCode(), hourly(YearMonth.of(2026, 9)), 0.5f, null, 0.2f);
@@ -916,7 +930,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC3 a supply without any stored record resolves no period")
     void aSupplyWithoutAnyStoredRecordResolvesNoPeriod() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
 
         assertNoPeriodResolved(requestLatest(supply, loginUser(owner)), supply);
@@ -930,7 +944,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC4 without a period nor dates the period still spans every stored record")
     void withoutAPeriodNorDatesThePeriodStillSpansEveryStoredRecord() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 8));
         writePublishedZeros(supply, YearMonth.of(2026, 9), FOUR_HOURS_A_DAY);
@@ -951,7 +965,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC4 explicit dates over the resolved month answer exactly what the reference period answers")
     void explicitDatesOverTheResolvedMonthAnswerExactlyWhatTheReferencePeriodAnswers() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 8));
         writeRecords(hourlyRecord(supply.getCode(), "2026/08/10", "12:00", 3.0f, 4.0f, 1.0f));
@@ -1088,6 +1102,12 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
 
     private Community createCommunity() {
         return createCommunityRepository.create(CommunityMother.random().build());
+    }
+
+    private User createMemberOfDefaultCommunity() {
+        User member = createEnabledUser();
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        return member;
     }
 
     private User createMemberOf(Community community) {

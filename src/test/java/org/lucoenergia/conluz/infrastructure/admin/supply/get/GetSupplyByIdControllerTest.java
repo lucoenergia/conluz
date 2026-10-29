@@ -1,6 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.junit.jupiter.api.DisplayName;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -37,6 +42,10 @@ class GetSupplyByIdControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private CreateMembershipRepository createMembershipRepository;
+    @Autowired
+    private CommunityMembershipJpaRepository communityMembershipJpaRepository;
 
     @Test
     void testGetSupplyByIdSuccess() throws Exception {
@@ -72,6 +81,45 @@ class GetSupplyByIdControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.community.id").value(community.getId().toString()))
                 .andExpect(jsonPath("$.community.name").value(community.getName()));
+    }
+
+    @Test
+    @DisplayName("SUP-003 the owner reads their supply while their membership in its community is active")
+    void theOwnerReadsTheirSupplyWhileTheirMembershipIsActive() throws Exception {
+        User owner = createOwnerMemberOfDefaultCommunity();
+        Supply supply = createSupplyRepository.create(SupplyMother.random(owner).build(),
+                UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(get(URL + "/" + supply.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(supply.getId().toString()));
+    }
+
+    @Test
+    @DisplayName("SUP-003 the owner whose membership is disabled is answered not found")
+    void theOwnerWhoseMembershipIsDisabledIsAnsweredNotFound() throws Exception {
+        User owner = createOwnerMemberOfDefaultCommunity();
+        Supply supply = createSupplyRepository.create(SupplyMother.random(owner).build(),
+                UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
+        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, owner.getId(), DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(get(URL + "/" + supply.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("SUP-003 the owner whose membership is pending is answered not found")
+    void theOwnerWhoseMembershipIsPendingIsAnsweredNotFound() throws Exception {
+        User owner = createOwnerMemberOfDefaultCommunity();
+        Supply supply = createSupplyRepository.create(SupplyMother.random(owner).build(),
+                UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
+        MembershipStateTestSupport.markPending(communityMembershipJpaRepository, owner.getId(), DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(get(URL + "/" + supply.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -130,5 +178,13 @@ class GetSupplyByIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    private User createOwnerMemberOfDefaultCommunity() {
+        User owner = UserMother.randomUser();
+        owner.enable();
+        createUserRepository.create(owner);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        return owner;
     }
 }

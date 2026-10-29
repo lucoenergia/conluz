@@ -3,6 +3,8 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -37,6 +39,8 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
     private static final String END_DATE = "2023-04-30T23:59:59Z";
     private static final String CUPS_CODE = "ES0031406912345678JN0F";
 
+    @Autowired
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
@@ -85,6 +89,7 @@ class GetSupplyYearlyConsumptionControllerTest extends BaseControllerTest {
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(createdPartnerUser).withCode(CUPS_CODE).build(),
                 UserId.of(createdPartnerUser.getId()), DEFAULT_COMMUNITY_ID);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, createdPartnerUser.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         // Login as the partner user
         String partnerToken = loginUser(partnerUser);
