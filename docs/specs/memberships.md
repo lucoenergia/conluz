@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `MEM` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `getAllUsers`, `getUserById`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById`, `setMembershipInvestment`, `clearMembershipInvestment`, `getMembershipPayback`, `getMembershipMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
+| **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `getAllUsers`, `getUserById`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById`, `setMembershipInvestment`, `clearMembershipInvestment`, `getMembershipPayback`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #466 |
+| **Last reviewed against code** | #410 |
 
 ## Purpose
 
@@ -588,7 +588,7 @@ lazily, as issues touch it.
   records. A platform admin who is not an active community admin of the community MUST be refused with 403 the
   roster (`getMemberships`), re-roling (`updateMembershipRole`) and deleting (`deleteMembership`) its memberships, as registering, importing, inviting, enabling, disabling and editing
   records already are (MEM-007, MEM-009, MEM-027, MEM-028, MEM-030); it MUST be answered 404 on a membership's
-  investment, payback, monthly consumption, energy metrics and hourly profile, as anyone who is not one of the
+  investment, payback, monthly and daily consumption, energy metrics and hourly profile, as anyone who is not one of the
   community's admins or the member themselves is. Every membership capability it receives in that community MUST be
   `false`, and the community's `canManageMemberships` too. The community itself, with its
   aggregated data (name, member count, supply count, admin names, MEM-006), MUST stay visible to it, and a
@@ -598,7 +598,7 @@ lazily, as issues touch it.
 - **Rationale:** The roster carries every member's record and personal ID, which only the community's own
   administration reads (ADR-0003 §1 and §3). The platform admin needs to identify and contact a community's admins,
   and nothing more.
-- **Source:** #446, ADR-0003 §3, #329. #447 removed creating a membership (`createMembership`) and the community's
+- **Source:** #446, ADR-0003 §3, #329; #410 added the daily consumption. #447 removed creating a membership (`createMembership`) and the community's
   `canCreateUsers`, so no caller can add an existing user to a community by id any more.
 
 ### MEM-032 — The X-Community-Id header names a community the caller is a member of

@@ -153,6 +153,7 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
                 call(404, HttpMethod.DELETE, memberships + "/{u}/investment"),
                 call(404, HttpMethod.GET, memberships + "/{u}/payback"),
                 call(404, HttpMethod.GET, memberships + "/{u}/consumption/monthly").dates(),
+                call(404, HttpMethod.GET, memberships + "/{u}/consumption/daily").dates(),
                 call(404, HttpMethod.GET, memberships + "/{u}/energy-metrics"),
                 call(404, HttpMethod.GET, memberships + "/{u}/energy-metrics/hourly-profile")));
     }

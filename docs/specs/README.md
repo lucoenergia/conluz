@@ -81,3 +81,4 @@ are always called **tests**, never specs.
 | `EPR` | Periods of energy metrics and consumption series | [`energy-periods.md`](energy-periods.md) |
 | `SEM` | Supply energy metrics | [`supply-energy-metrics.md`](supply-energy-metrics.md) |
 | `PRC` | OMIE prices | [`omie-prices.md`](omie-prices.md) |
+| `MCS` | Membership consumption series | [`membership-consumption-series.md`](membership-consumption-series.md) |

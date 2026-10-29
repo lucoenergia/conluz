@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -104,7 +105,9 @@ public class GetSupplyDailyConsumptionController {
     @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
     public List<SupplyConsumptionBucketResponse> getSupplyDailyConsumption(
             @PathVariable("supplyId") UUID supplyId,
+            @Parameter(description = "Start of the period, inclusive.")
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
+            @Parameter(description = "End of the period, exclusive.")
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
 
         return getDatadisConsumptionService.getDailySeriesBySupply(SupplyId.of(supplyId), startDate, endDate)
