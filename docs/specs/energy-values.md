@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `EVL` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
+| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #460 |
+| **Last reviewed against code** | #410 |
 
 ## Purpose
 
@@ -37,14 +37,16 @@ touch it.
 
 - **Status:** Active
 - **Rule:** kWh values in `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`,
-  `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption` and `getMembershipEnergyMetrics` MUST
-  be rounded to 3 decimals, half-up, at response mapping. Stored values MUST NOT be rounded.
+  `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption` and
+  `getMembershipEnergyMetrics` MUST be rounded to 3 decimals, half-up, at response mapping. Stored
+  values MUST NOT be rounded.
 - **Rationale:** Summing floating-point values leaves storage noise behind (`0.1 + 0.2` reads
   `0.30000000000000004`; the membership monthly series returned figures such as `161.308001`). That
   noise leaked into the API, so every client had to round, and equality checks between endpoints
   were fragile. 3 decimals is the resolution the distributor reports in, so no measured information
   is lost. Rounding stays out of storage so the stored records keep what Datadis published.
-- **Source:** #385
+- **Source:** #385; #410 added `getMembershipDailyConsumption`, which rounds through the same mapping
+  as the membership monthly series.
 
 **Scenarios**
 
