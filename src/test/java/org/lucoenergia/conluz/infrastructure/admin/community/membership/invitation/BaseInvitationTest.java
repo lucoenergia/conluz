@@ -12,6 +12,7 @@ import org.lucoenergia.conluz.infrastructure.admin.community.membership.register
 import org.mockito.invocation.Invocation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.sql.Timestamp;
@@ -110,6 +111,23 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
     protected ResultActions sendInvitations(String bearer, UUID communityId) throws Exception {
         return mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/invite", communityId)
                 .header(HttpHeaders.AUTHORIZATION, bearer));
+    }
+
+    /**
+     * A bulk send to the selected members (#527), with the body as given.
+     */
+    protected ResultActions sendInvitations(String bearer, UUID communityId, String body) throws Exception {
+        return mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/invite", communityId)
+                .header(HttpHeaders.AUTHORIZATION, bearer)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+    }
+
+    /**
+     * A bulk send to the selected members (#527), in the order given.
+     */
+    protected ResultActions sendInvitations(String bearer, UUID communityId, List<UUID> userIds) throws Exception {
+        return sendInvitations(bearer, communityId, objectMapper.writeValueAsString(Map.of("userIds", userIds)));
     }
 
     // --- Emails and links ---

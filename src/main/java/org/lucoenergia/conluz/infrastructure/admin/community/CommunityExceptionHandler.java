@@ -14,6 +14,8 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipNotInvitedExcepti
 import org.lucoenergia.conluz.domain.admin.community.MembershipWithoutContactEmailException;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationLoginRequiredException;
 import org.lucoenergia.conluz.domain.admin.community.membership.accept.InvitationTokenInvalidException;
+import org.lucoenergia.conluz.domain.admin.community.membership.invitation.BulkSendInvitationService;
+import org.lucoenergia.conluz.domain.admin.community.membership.invitation.InvitationSelectionRefusedException;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportMembersService;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportFileRefusedException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
@@ -321,6 +323,31 @@ public class CommunityExceptionHandler {
                         RestErrorCode.MEMBERSHIP_IMPORT_TOO_MANY_ROWS, Map.of("maxRows", maxRows));
             }
         };
+    }
+
+    /**
+     * A 400: the selection of members to invite is refused as a whole, and nobody was invited. Not logged: the
+     * request's data is refused before anything happens, and the selection names nothing worth recording.
+     */
+    @ExceptionHandler(InvitationSelectionRefusedException.class)
+    public ResponseEntity<RestError> handleException(InvitationSelectionRefusedException e) {
+        return switch (e.getProblem()) {
+            case EMPTY -> selectionRefused("error.membership.invitation.selection.empty", List.of(),
+                    RestErrorCode.MEMBERSHIP_INVITATION_SELECTION_EMPTY, Map.of());
+            case TOO_LARGE -> {
+                String maxUserIds = String.valueOf(BulkSendInvitationService.BATCH_SIZE);
+                yield selectionRefused("error.membership.invitation.selection.too.large", List.of(maxUserIds),
+                        RestErrorCode.MEMBERSHIP_INVITATION_SELECTION_TOO_LARGE, Map.of("maxUserIds", maxUserIds));
+            }
+            case DUPLICATED -> selectionRefused("error.membership.invitation.selection.duplicated", List.of(),
+                    RestErrorCode.MEMBERSHIP_INVITATION_SELECTION_DUPLICATED, Map.of());
+        };
+    }
+
+    private ResponseEntity<RestError> selectionRefused(String messageKey, List<String> args, RestErrorCode code,
+                                                       Map<String, String> params) {
+        String message = messageSource.getMessage(messageKey, args.toArray(), LocaleContextHolder.getLocale());
+        return errorBuilder.buildWithoutLogging(message, code, params, HttpStatus.BAD_REQUEST);
     }
 
     private ResponseEntity<RestError> importRefused(String messageKey, List<String> args, RestErrorCode code,
