@@ -56,7 +56,7 @@ class MembershipEnergyMetricsTest {
                 supply(24L, 1d, 1d, 3d, "0")));
 
         assertEquals(0.4020d, metrics.getEnergyBalance().getSelfSufficiencyRatio(), 1e-4);
-        assertEquals(0.7593d, metrics.getEnergyBalance().getSelfConsumptionRatio(), 1e-4);
+        assertEquals(0.7593d, metrics.getSelfConsumptionRatio().getValue(), 1e-4);
     }
 
     @Test
@@ -68,10 +68,10 @@ class MembershipEnergyMetricsTest {
                 supply(24L, 0d, 0d, 4d, "0"),
                 supply(24L, 0d, 0d, 6d, "0")));
 
-        assertNull(withoutAssignedProduction.getEnergyBalance().getSelfConsumptionRatio());
+        assertNull(withoutAssignedProduction.getSelfConsumptionRatio().getValue());
         assertEquals(0d, withoutAssignedProduction.getEnergyBalance().getSelfSufficiencyRatio());
         assertNull(withoutConsumption.getEnergyBalance().getSelfSufficiencyRatio());
-        assertEquals(0d, withoutConsumption.getEnergyBalance().getSelfConsumptionRatio());
+        assertEquals(0d, withoutConsumption.getSelfConsumptionRatio().getValue());
     }
 
     /**
@@ -127,7 +127,7 @@ class MembershipEnergyMetricsTest {
         assertEquals(0L, metrics.getExpectedHours());
         assertEquals(0, metrics.getSupplyCount());
         assertNull(metrics.getEnergyBalance().getSelfSufficiencyRatio());
-        assertNull(metrics.getEnergyBalance().getSelfConsumptionRatio());
+        assertNull(metrics.getSelfConsumptionRatio().getValue());
     }
 
     /**
@@ -143,7 +143,7 @@ class MembershipEnergyMetricsTest {
         assertNull(metrics.getSavings().getEstimatedPrice());
         assertEquals(0d, metrics.getEnergyBalance().getTotalConsumptionKWh());
         assertNull(metrics.getEnergyBalance().getSelfSufficiencyRatio());
-        assertNull(metrics.getEnergyBalance().getSelfConsumptionRatio());
+        assertNull(metrics.getSelfConsumptionRatio().getValue());
         assertEquals(2, metrics.getSupplyCount());
         assertEquals(0, metrics.getSuppliesWithData());
     }
