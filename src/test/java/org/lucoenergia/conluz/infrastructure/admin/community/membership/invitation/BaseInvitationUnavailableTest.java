@@ -136,6 +136,34 @@ abstract class BaseInvitationUnavailableTest extends BaseRegisterMemberTest {
     }
 
     @Test
+    @DisplayName("MEM-037 a bulk send to selected members is refused with 503 before anyone is invited, and one "
+            + "warning names only the email category")
+    void aSelectedBulkSend_isRefused() throws Exception {
+        Community community = newCommunity();
+        String bearer = loginAsAdminOf(community);
+        Map<String, Object> body = newRecord();
+        UUID userId = registered(bearer, community.getId(), body);
+        String personalId = (String) body.get("personalId");
+        remember(personalId);
+        logs.clear();
+
+        String response = mockMvc.perform(post("/api/v1/communities/{communityId}/memberships/invite",
+                        community.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"userIds\":[\"" + userId + "\"]}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_UNAVAILABLE"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(tokenCount(personalId)).isZero();
+        assertThat(membershipRow(personalId, community.getId()).get("invited_at")).isNull();
+        verify(emailSender, never()).send(any());
+        assertTheOneWarning();
+        assertNoSecretIn(response);
+    }
+
+    @Test
     @DisplayName("MEM-020 inviting a community admin is refused with 503 before anything is created, and one warning "
             + "names only the email category")
     void aCommunityAdminInvitation_isRefusedBeforeAnythingIsCreated() throws Exception {
