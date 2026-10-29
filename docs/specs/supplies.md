@@ -6,12 +6,13 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Supplies`; operations `createSupply`, `createSuppliesWithFile`, `deleteSupply` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #412 |
+| **Last reviewed against code** | #411 |
 
 ## Purpose
 
 A supply is a member's point of consumption (CUPS) in a community. This spec covers the rules that keep a supply
-tied to a member of its community, and what deleting one does. It covers only the rules #412 touched.
+tied to a member of its community, what deleting one does, and who reads one. It covers only the rules #412 and #411
+touched.
 
 ## Glossary
 
@@ -57,6 +58,20 @@ tied to a member of its community, and what deleting one does. It covers only th
   the deletion then sees the supply and is refused, or the creation finds the owner gone. Without the lock both
   could succeed and leave a supply whose owner is not a member, or the deletion could fail on a foreign key.
 - **Source:** #341, #412
+
+### SUP-003 — A supply's owner reads it only while their membership in its community is active
+
+- **Status:** Active
+- **Rule:** The owner of a supply MUST be able to read it, and everything read through it, only while their
+  membership in the supply's community is active. An owner whose membership there is pending or disabled MUST be
+  answered exactly as someone with no membership in that community: 404 on `getSupply`, `getSupplyEnergyMetrics`,
+  the supply's consumption and production series, its partition coefficients and `createPlant`, and the supply left
+  out of `getSuppliesByUserId`, even when they ask for their own supplies. A community admin's access is unchanged.
+- **Rationale:** Owning a supply is not access (MEM-004). Before #411 ownership alone opened every supply read, so a
+  suspended or not yet accepted member kept reading their community's supply data through the supplies they own, and
+  a response gaining community data (such as the supply's plant) would have reached them too. The listing applies the
+  same rule as a single read, so it never carries a supply whose own read answers 404.
+- **Source:** #411, MEM-004
 
 ## Impossible states
 
