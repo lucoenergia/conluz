@@ -18760,6 +18760,7 @@
             }
           },
           {
+            "description" : "Start of the period, inclusive.",
             "in" : "query",
             "name" : "startDate",
             "required" : true,
@@ -18769,6 +18770,7 @@
             }
           },
           {
+            "description" : "End of the period, exclusive.",
             "in" : "query",
             "name" : "endDate",
             "required" : true,
@@ -19056,6 +19058,7 @@
             }
           },
           {
+            "description" : "Start of the period, inclusive.",
             "in" : "query",
             "name" : "startDate",
             "required" : true,
@@ -19065,6 +19068,7 @@
             }
           },
           {
+            "description" : "End of the period, exclusive.",
             "in" : "query",
             "name" : "endDate",
             "required" : true,
