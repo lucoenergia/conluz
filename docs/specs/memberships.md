@@ -211,15 +211,18 @@ lazily, as issues touch it.
   refused. The request MUST answer how many it sent and how many eligible memberships remain. When the server
   cannot send, it MUST refuse exactly as MEM-009 does, before selecting or issuing anything. It MUST log one line
   with the community and the counts. Whether a membership is awaiting acceptance MUST be decided only by
-  `CommunityMembership.isAwaitingAcceptance()`, and in queries by `ActiveMembershipJpql.AWAITING_ACCEPTANCE`.
+  `CommunityMembership.isAwaitingAcceptance()`, and in queries by `ActiveMembershipJpql.AWAITING_ACCEPTANCE`. This
+  is the request without a body, and it MUST be kept as it is; a request with a selection of members follows
+  MEM-037.
 - **Rationale:** Members registered without an invitation, such as an import, are invited by an explicit action
   bounded at 50 per request, so it cannot overflow the email queue (ADR-0003 §5). A disabled membership grants
   nothing even once accepted (MEM-004), so inviting it in bulk would ask the member to accept something
   useless. One transaction per membership holds one lock pair at a time, starts each email once it is committed,
   and keeps the invitations already made when a later one fails; the next request continues where it stopped. A
   single order of locks keeps two concurrent requests from deadlocking. One spelling of "awaiting acceptance", as
-  for "active" (MEM-004), keeps the code and the queries in step.
-- **Source:** #393, ADR-0003 §5
+  for "active" (MEM-004), keeps the code and the queries in step. The mode without a body is kept for the clients
+  that use it, until none does (#527 D1).
+- **Source:** #393, #527, ADR-0003 §5
 
 ### MEM-013 — A member shows when it was last invited and when its invitation link expires
 
@@ -660,7 +663,7 @@ lazily, as issues touch it.
 - **Status:** Active
 - **Rule:** Every change to a community's admins MUST be notified by email, after commit: an admin invitation sent
   or resent by the platform admin (`inviteCommunityAdmin`, `resendCommunityAdminInvitation`), a pending admin's
-  invitation sent or resent by a community admin (`sendInvitation`, each admin's membership invited by
+  invitation sent or resent by a community admin (`sendInvitation`, each admin's membership sent or resent by
   `sendInvitations`, `resendInvitation`), an admin invitation
   accepted (`acceptInvitation`, `acceptInvitationAsCurrentUser`), a member promoted to admin or an admin demoted
   (`updateMembershipRole`), an admin's membership deleted (`deleteMembership`), and an admin suspended or
@@ -684,7 +687,7 @@ lazily, as issues touch it.
   access changes: a pending admin never had it. An admin who cannot act is not told, as MEM-033 does not count them.
   A send or resend by a community admin is told like the platform admin's, since it can reach an address the
   sender chose (ADR-0003, accepted risk). A revocation gives no one access, so it is not told.
-- **Source:** #466, #482, ADR-0003 §10
+- **Source:** #466, #482, #527, ADR-0003 §10
 
 ### MEM-036 — A notification of a change to a community's admins carries no personal identifiers
 
@@ -696,6 +699,33 @@ lazily, as issues touch it.
   full name is enough for an admin to recognise the person. Identifiers and contact details are personal data the
   recipients do not need.
 - **Source:** #466, ADR-0003, ADR-0002
+
+### MEM-037 — Bulk sending to selected members sends or resends each one, with one result per selected user
+
+- **Status:** Active
+- **Rule:** The callers allowed by MEM-009 MAY send the invitations of a chosen list of memberships of a community
+  in one request (`sendInvitations` with a body). The list MUST hold 1 to 50 distinct user ids; an empty list, a
+  longer one, or one naming a user id twice MUST be refused with 400 and
+  `MEMBERSHIP_INVITATION_SELECTION_EMPTY`, `MEMBERSHIP_INVITATION_SELECTION_TOO_LARGE` (with the limit in
+  `maxUserIds`) or `MEMBERSHIP_INVITATION_SELECTION_DUPLICATED`, before anything else. When the server cannot send,
+  the request MUST be refused exactly as MEM-009 does, once, before any membership is read. Each selected membership
+  MUST be processed in a transaction of its own, in ascending user id, and locked before choosing what to do with
+  it: one never invited MUST be sent its first invitation exactly as MEM-009 specifies, and one already invited MUST
+  be resent it exactly as MEM-010 specifies, its limit included, each notified as MEM-035 specifies. A membership
+  that either refuses MUST get a refusal with the code and parameters that endpoint answers: accepted, disabled,
+  without a contact email, or over the resend limit with the wait in `retryAfterSeconds`. A user id that is not a
+  membership of the community MUST get `MEMBERSHIP_NOT_FOUND`, the same result whether or not the account exists or
+  belongs to another community. One membership's refusal MUST NOT stop the others. The request MUST answer one
+  result per selected user id, in the order requested, each `SENT`, `RESENT` or `REFUSED`, with how many were sent
+  their first invitation and how many memberships remain eligible for one, as MEM-012 counts them. It MUST log one
+  line with the community and the counts, and no user id.
+- **Rationale:** An admin chooses whom to invite, and the screen can say who will receive an email. Reusing the
+  single send and resend keeps one set of rules, one limit and one notification for every way of inviting a member;
+  choosing under the lock keeps a concurrent send from turning a resend into a refusal. A transaction per
+  membership keeps one refusal, or one later failure, from undoing the invitations already made, as in MEM-012, and
+  the limit of 50 keeps a request from overflowing the email queue. Answering every id outside the community alike
+  tells a caller nothing about accounts that are not theirs to see.
+- **Source:** #527, #393, #482, ADR-0003 §5
 
 ## Impossible states
 

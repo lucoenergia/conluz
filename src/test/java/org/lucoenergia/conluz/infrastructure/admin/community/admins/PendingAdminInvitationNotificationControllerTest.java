@@ -123,6 +123,49 @@ class PendingAdminInvitationNotificationControllerTest extends BaseCommunityAdmi
         assertThat(awaitNextEmailsHandedOver()).hasSize(5);
     }
 
+    @Test
+    @DisplayName("MEM-037 a bulk send selecting a pending admin never invited is told to the other admins as a first "
+            + "invitation, not to the actor nor to the invited admin")
+    void aSelectedFirstInvitationOfAPendingAdmin_isToldToTheOtherAdmins() throws Exception {
+        Community community = newCommunity();
+        User actor = admin(community);
+        User other = admin(community);
+        String bearer = loginUser(actor);
+        Pending pending = pendingAdmin(community, bearer, "Seleccionada Pendiente");
+
+        sendInvitations(bearer, community.getId(), List.of(pending.userId())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.results[0].outcome").value("SENT"));
+
+        List<Email> notifications = nextAdminChangeNotifications();
+        assertThat(recipients(notifications)).containsExactly(other.getEmail());
+        assertThat(bodyTo(notifications, other.getEmail())).contains(actor.getFullName() + " ha invitado a "
+                + pending.fullName() + " a administrar " + community.getName() + ".");
+        tokenFrom(emailTo(awaitNextEmailsHandedOver(), pending.contactEmail()));
+    }
+
+    @Test
+    @DisplayName("MEM-037 a bulk send selecting a pending admin already invited is told to the other admins as a "
+            + "resend, not to the actor nor to the invited admin")
+    void aSelectedResendToAPendingAdmin_isToldToTheOtherAdmins() throws Exception {
+        Community community = newCommunity();
+        User actor = admin(community);
+        User other = admin(community);
+        String bearer = loginUser(actor);
+        Pending pending = pendingAdmin(community, bearer, "Reseleccionada Pendiente");
+        invite(bearer, community.getId(), pending.userId()).andExpect(status().isOk());
+        nextAdminChangeNotifications();
+        tokenFrom(emailTo(awaitNextEmailsHandedOver(), pending.contactEmail()));
+
+        sendInvitations(bearer, community.getId(), List.of(pending.userId())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.results[0].outcome").value("RESENT"));
+
+        List<Email> notifications = nextAdminChangeNotifications();
+        assertThat(recipients(notifications)).containsExactly(other.getEmail());
+        assertThat(bodyTo(notifications, other.getEmail())).contains(actor.getFullName() + " ha vuelto a enviar a "
+                + pending.fullName() + " la invitación para administrar " + community.getName() + ".");
+        tokenFrom(emailTo(awaitNextEmailsHandedOver(), pending.contactEmail()));
+    }
+
     // --- Revoke ---
 
     @Test

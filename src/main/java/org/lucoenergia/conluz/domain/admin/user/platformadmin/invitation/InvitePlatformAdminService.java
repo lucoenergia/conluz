@@ -14,8 +14,8 @@ public interface InvitePlatformAdminService {
      * creates a pending invitation; issues its link and its confirmation code; and emails the link, never the code,
      * once the transaction commits. The answer and the log are the same whether or not the account existed.
      *
-     * @throws org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException if the server
-     *         cannot send the email; nothing is looked up or written
+     * @throws PlatformAdminInvitationUnavailableException if the server cannot send the email;
+     *         nothing is looked up or written
      * @throws org.lucoenergia.conluz.domain.admin.user.UserPersonalIdInvalidException if the personal id is not a
      *         valid DNI, NIE or NIF
      * @throws UserAlreadyPlatformAdminException if the account already holds the role

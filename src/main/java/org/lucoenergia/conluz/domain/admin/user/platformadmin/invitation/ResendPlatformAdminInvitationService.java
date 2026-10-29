@@ -9,8 +9,7 @@ public interface ResendPlatformAdminInvitationService {
      * attempts, and emails the new link once the transaction commits. At most one initial send and three resends per
      * invitation in any 24 hours.
      *
-     * @throws org.lucoenergia.conluz.domain.admin.community.MembershipInvitationUnavailableException if the server
-     *         cannot send the email
+     * @throws PlatformAdminInvitationUnavailableException if the server cannot send the email
      * @throws org.lucoenergia.conluz.domain.admin.user.UserNotFoundException if the user does not exist
      * @throws PlatformAdminNotInvitedException if the user has no pending invitation
      * @throws PlatformAdminInvitationResendLimitException if the limit is reached
