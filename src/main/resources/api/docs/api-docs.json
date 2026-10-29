@@ -1640,6 +1640,85 @@
         ],
         "type" : "object"
       },
+      "MembershipDailyConsumptionBucketResponse" : {
+        "properties" : {
+          "assignedProductionKWh" : {
+            "description" : "Energy assigned to every supply of the membership over the day: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
+            "example" : 4.25,
+            "type" : "number"
+          },
+          "date" : {
+            "description" : "The day, a local calendar date in the community's time zone.",
+            "example" : "2024/01/15",
+            "type" : "string"
+          },
+          "gridImportKWh" : {
+            "description" : "Energy taken from the grid by every supply of the membership over the day. Does not include self-consumed energy. In kWh, rounded to 3 decimals. 0 when no supply stored a record.",
+            "example" : 7.75,
+            "type" : "number"
+          },
+          "savingsEur" : {
+            "description" : "Estimated amount the day's self-consumed energy saved across every supply that stored a record, in euros, rounded to cents. Null when no supply stored a record that day: a day with nothing stored is not a day that saved nothing. Unlike the per-supply series, which never reports null here. A supply that did store a record with no self-consumption is a measured zero and makes the amount 0.00, not null. Null exactly when tariffSource is null.",
+            "example" : 0.38,
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "selfConsumptionKWh" : {
+            "description" : "Energy produced by the community and consumed by every supply of the membership over the day, as reported by the distributor. In kWh, rounded to 3 decimals.",
+            "example" : 2.5,
+            "type" : "number"
+          },
+          "suppliesWithData" : {
+            "description" : "Number of those supplies that stored at least one hourly record that day, within the period. Measured day by day, whereas the aggregated energy metrics measure their suppliesWithData over the whole period, so the two figures are not comparable across endpoints. Below supplyCount, the day is incomplete.",
+            "example" : 2,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "supplyCount" : {
+            "description" : "Number of supplies the member currently owns in the community. The model records no date a supply joined, so the same count applies to every day, including days before a supply started reporting.",
+            "example" : 3,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "surplusKWh" : {
+            "description" : "Energy assigned to every supply of the membership and fed back to the grid over the day. In kWh, rounded to 3 decimals.",
+            "example" : 1.75,
+            "type" : "number"
+          },
+          "tariffSource" : {
+            "description" : "Whether the prices behind savingsEur are the supplies' contracted tariffs or an estimate. A single estimated stretch of any supply makes the whole amount an estimate. Null exactly when savingsEur is null: with no amount there is nothing whose prices to describe.",
+            "enum" : [
+              "REAL_TARIFF",
+              "ESTIMATE"
+            ],
+            "example" : "ESTIMATE",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "time" : {
+            "description" : "Local time the day starts at in the community's time zone: always midnight, also for a first day the period starts in the middle of.",
+            "example" : "00:00",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "assignedProductionKWh",
+          "date",
+          "gridImportKWh",
+          "savingsEur",
+          "selfConsumptionKWh",
+          "suppliesWithData",
+          "supplyCount",
+          "surplusKWh",
+          "tariffSource",
+          "time"
+        ],
+        "type" : "object"
+      },
       "MembershipEnergyMetricsCoverageResponse" : {
         "properties" : {
           "expectedHours" : {
@@ -8646,6 +8725,165 @@
           }
         ],
         "summary" : "Updates the role of a membership.",
+        "tags" : [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/memberships/{userId}/consumption/daily" : {
+      "get" : {
+        "description" : "For each day of the requested period, the energy and the estimated savings of\n**every** supply the member owns in this community that stored a record that day,\nadded up. Each energy figure sums the unrounded per-supply daily totals and is\nrounded once, to 3 decimals, on the result; the savings are likewise summed\nunrounded and rounded once, to cents. A figure can therefore differ from adding\nup the rounded figures of the per-supply daily series. Supplies in the member's\nother communities are not counted.\n\n**Source and freshness:**\nEach supply's day is summed from its hourly records when it is read, exactly as\nthe per-supply daily series sums it, so a day reflects the hourly records stored\nat the time of the request.\n\n**Every day is emitted:**\nA bucket is returned for every local calendar day of the community's time zone\nthat overlaps the period, in chronological order, whether or not any supply\nstored a record that day, so the series has a regular time axis. A day runs\nfrom its local midnight to the next one, so the days on which daylight saving\ntime starts and ends cover 23 and 25 hours. The first and the last day are cut\nto the period: a period starting at 12:00 counts only that day's hours from\n12:00, in energy and in savings, and a period clipped to the current hour ends\nwith today's hours up to then. `date` is the local day and `time` always\n`00:00`, also on a cut first day.\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\n**Completeness:**\n`supplyCount` is the number of supplies the member **currently** owns in the\ncommunity, and `suppliesWithData` how many of them stored at least one hourly\nrecord that day, within the period. A day with `suppliesWithData` below\n`supplyCount` is incomplete. The model records no date a supply joined its\ncommunity, so the count is the same for every day, and the days before a supply\nstarted reporting show as incomplete. The aggregated energy metrics measure\ntheir `suppliesWithData` over the whole period, so the two are not comparable.\n\n**Gaps and measured zeros:**\nThe energy figures add up only the supplies that stored a record that day; a\nday on which no supply stored one reports zero energy. `savingsEur` is an\n**estimate** of what the day's self-consumed energy was worth, pricing the\n**energy term before taxes** only, exactly as the per-supply series does. It is\n`null` when no supply stored a record that day (`suppliesWithData` is 0), and\nonly then: a day with nothing stored is a different statement from a day that\nsaved nothing, which reports `0.00` -- as does a day whose stored records carry\nno self-consumption, a measured zero. This differs from the per-supply series,\nwhich reports `0.00` for every bucket it emits. `tariffSource` says where the\nprices came from -- `ESTIMATE` or `REAL_TARIFF` -- and a single estimated supply\nmakes the whole day an estimate; it is `null` exactly when `savingsEur` is.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404: every day in range, with zero totals, null savings and a\n`supplyCount` of 0.\n",
+        "operationId" : "getMembershipDailyConsumption",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "userId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "Start of the period, inclusive.",
+            "in" : "query",
+            "name" : "startDate",
+            "required" : true,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "End of the period, exclusive.",
+            "in" : "query",
+            "name" : "endDate",
+            "required" : true,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MembershipDailyConsumptionBucketResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Daily consumption retrieved successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Retrieves the daily consumption of every supply of a membership, added up per day.",
         "tags" : [
           "Memberships"
         ]
