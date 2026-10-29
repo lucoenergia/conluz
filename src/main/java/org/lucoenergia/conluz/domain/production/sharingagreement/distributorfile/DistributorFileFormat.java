@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile;
 
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
@@ -25,9 +27,9 @@ public final class DistributorFileFormat {
      * CR too, so this governs only what is written.
      */
     public static final String LINE_SEPARATOR = "\r\n";
-    public static final int CUPS_LENGTH = 22;
-    public static final int SHORT_CUPS_LENGTH = 20;
-    public static final String SHORT_CUPS_SUFFIX = "0F";
+    public static final int CUPS_LENGTH = SupplyCode.CUPS_LENGTH;
+    public static final int SHORT_CUPS_LENGTH = SupplyCode.SHORT_CUPS_LENGTH;
+    public static final String SHORT_CUPS_SUFFIX = SupplyCode.SHORT_CUPS_SUFFIX;
     public static final int REQUIRED_DECIMAL_DIGITS = 6;
     public static final Charset CHARSET = StandardCharsets.UTF_8;
     public static final Pattern FILENAME_PATTERN = Pattern.compile("^(?<code>[^_]+)_(?<year>\\d{4})\\.txt$");
@@ -48,37 +50,15 @@ public final class DistributorFileFormat {
 
     /**
      * Normalizes a stored supply code into the {@link #CUPS_LENGTH}-character CUPS the file format
-     * requires, or empty when the code cannot produce one. A {@link #SHORT_CUPS_LENGTH}-character
-     * CUPS is completed with {@link #SHORT_CUPS_SUFFIX}; a CUPS that is already the full length is
-     * returned unchanged, which makes this idempotent.
-     *
-     * <p>Whitespace is rejected rather than trimmed: the format forbids blank spaces in the field,
-     * and silently stripping them would change the identifier being filed.
+     * requires, or empty when the code cannot produce one, with the supply's own rule
+     * ({@link SupplyCode#toFullLength}): the file carries the CUPS a supply stands for.
      *
      * <p>Returns {@link Optional} rather than throwing because the two callers need different
      * policies for a code that cannot be normalized -- generation reports every offending supply at
      * once, while the upload path skips them so one unusable supply cannot block a whole community.
      */
     public static Optional<String> normalizeCups(String cups) {
-        if (cups == null || cups.isEmpty() || containsWhitespace(cups)) {
-            return Optional.empty();
-        }
-        if (cups.length() == SHORT_CUPS_LENGTH) {
-            return Optional.of(cups + SHORT_CUPS_SUFFIX);
-        }
-        if (cups.length() == CUPS_LENGTH) {
-            return Optional.of(cups);
-        }
-        return Optional.empty();
-    }
-
-    private static boolean containsWhitespace(String value) {
-        for (int i = 0; i < value.length(); i++) {
-            if (Character.isWhitespace(value.charAt(i))) {
-                return true;
-            }
-        }
-        return false;
+        return SupplyCode.toFullLength(cups);
     }
 
     /**
