@@ -2,12 +2,12 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyOwnerNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.supply.create.ImportSuppliesService;
 import org.lucoenergia.conluz.domain.admin.supply.create.ImportedSupplyRow;
 import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportOutcome;
 import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportRow;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +49,7 @@ public class ImportSuppliesServiceImpl implements ImportSuppliesService {
         } catch (SupplyAlreadyExistsException e) {
             LOGGER.error("Supply already exists", e);
             return new ImportedSupplyRow(row.code(), row.personalId(), SupplyImportOutcome.ALREADY_EXISTS);
-        } catch (UserNotFoundException e) {
+        } catch (SupplyOwnerNotFoundException e) {
             LOGGER.error("User not found", e);
             return new ImportedSupplyRow(row.code(), row.personalId(), SupplyImportOutcome.USER_NOT_FOUND);
         } catch (Exception e) {

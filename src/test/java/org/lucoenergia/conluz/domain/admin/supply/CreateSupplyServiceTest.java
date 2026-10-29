@@ -10,7 +10,6 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
 import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
 import org.lucoenergia.conluz.domain.admin.user.lock.LockUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -34,10 +33,12 @@ import static org.mockito.Mockito.when;
 
 class CreateSupplyServiceTest {
 
+    private static final String CUPS = "ES0031300325733001FH0F";
+
 
     @Test
     void sup002_createLocksTheOwnerBeforeCheckingTheirMembership() {
-        Supply supply = new Supply.Builder().withCode("code").withAddress("address").build();
+        Supply supply = new Supply.Builder().withCode(CUPS).withAddress("address").build();
         User user = UserMother.randomUser();
         UUID communityId = UUID.randomUUID();
         when(userRepository.findByPersonalId(any(UserPersonalId.class))).thenReturn(Optional.of(user));
@@ -54,13 +55,13 @@ class CreateSupplyServiceTest {
 
     @Test
     void sup002_createRejectsAnOwnerDeletedWhileWaitingForTheLockExactlyLikeAnUnknownOne() {
-        Supply supply = new Supply.Builder().withCode("code").withAddress("address").build();
+        Supply supply = new Supply.Builder().withCode(CUPS).withAddress("address").build();
         User user = UserMother.randomUser();
         UUID communityId = UUID.randomUUID();
         when(userRepository.findByPersonalId(any(UserPersonalId.class))).thenReturn(Optional.of(user));
         when(lockUserRepository.lock(UserId.of(user.getId()))).thenReturn(false);
 
-        assertThrows(UserNotFoundException.class,
+        assertThrows(SupplyOwnerNotFoundException.class,
                 () -> createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), communityId));
 
         verifyNoInteractions(getMembershipsRepository);
@@ -71,7 +72,8 @@ class CreateSupplyServiceTest {
     private final GetMembershipsRepository getMembershipsRepository = mock(GetMembershipsRepository.class);
     private final LockUserRepository lockUserRepository = mock(LockUserRepository.class);
     private final CreateSupplyService createSupplyService =
-            new CreateSupplyServiceImpl(supplyRepository, userRepository, getMembershipsRepository, lockUserRepository);
+            new CreateSupplyServiceImpl(supplyRepository, userRepository, getMembershipsRepository, lockUserRepository,
+                    mock(SupplyCodeAvailability.class));
 
     @BeforeEach
     void lockSucceeds() {
@@ -83,7 +85,7 @@ class CreateSupplyServiceTest {
         // arrange
         Supply expectedSupply = new Supply.Builder()
                 .withId(UUID.randomUUID())
-                .withCode("code")
+                .withCode(CUPS)
                 .withAddress("address")
                 .withEnabled(Boolean.TRUE)
                 .build();
@@ -105,11 +107,11 @@ class CreateSupplyServiceTest {
     }
 
     @Test
-    void testCreateSupplyWithUserPersonalIdWhenUserNotExistThrowUserNotFoundException() {
+    void testCreateSupplyWithUserPersonalIdWhenUserNotExistThrowSupplyOwnerNotFoundException() {
         // arrange
         Supply supply = new Supply.Builder()
                 .withId(UUID.randomUUID())
-                .withCode("code")
+                .withCode(CUPS)
                 .withAddress("address")
                 .withEnabled(Boolean.TRUE)
                 .build();
@@ -119,7 +121,7 @@ class CreateSupplyServiceTest {
         when(userRepository.findByPersonalId(any(UserPersonalId.class))).thenReturn(Optional.empty());
 
         // act & assert
-        assertThrows(UserNotFoundException.class, () -> createSupplyService.create(supply, UserPersonalId.of("123"),
+        assertThrows(SupplyOwnerNotFoundException.class, () -> createSupplyService.create(supply, UserPersonalId.of("123"),
                 communityId));
         verifyNoInteractions(getMembershipsRepository);
         verifyNoInteractions(supplyRepository);
@@ -135,12 +137,9 @@ class CreateSupplyServiceTest {
         when(getMembershipsRepository.findByUserIdAndCommunityId(user.getId(), communityId))
                 .thenReturn(Optional.empty());
 
-        UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+        // The same exception as for an unknown personalId, and it carries nothing, so the answers are the same.
+        assertThrows(SupplyOwnerNotFoundException.class,
                 () -> createSupplyService.create(supply, personalId, communityId));
-
-        // Same constructor and argument as for an unknown personalId, so the handlers render the same answer.
-        assertEquals(Optional.of(personalId), exception.getUserPersonalId());
-        assertEquals(Optional.empty(), exception.getUserId());
         verify(supplyRepository, never()).create(any(), any(), any());
     }
 
@@ -157,7 +156,8 @@ class CreateSupplyServiceTest {
         Supply created = createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), communityId);
 
         assertEquals(supply, created);
-        verify(supplyRepository).create(eq(supply), argThat(id -> user.getId().equals(id.getId())), eq(communityId));
+        verify(supplyRepository).create(argThat(written -> written.getCode().equals(supply.getCode().toUpperCase())),
+                argThat(id -> user.getId().equals(id.getId())), eq(communityId));
     }
 
     private static CommunityMembership membership(User user, boolean enabled) {

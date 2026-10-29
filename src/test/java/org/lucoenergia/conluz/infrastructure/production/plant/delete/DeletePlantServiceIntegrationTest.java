@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.delete;
 
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -161,7 +162,7 @@ class DeletePlantServiceIntegrationTest extends BaseSupplyCreationRaceTest {
 
     private Plant newPlant() {
         Community community = newCommunity();
-        Supply supply = createSupply(newMemberOf(community), community, "ES" + UUID.randomUUID());
+        Supply supply = createSupply(newMemberOf(community), community, SupplyMother.randomCups());
         Plant plant = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
         plants.add(plant.getId());
         return plant;

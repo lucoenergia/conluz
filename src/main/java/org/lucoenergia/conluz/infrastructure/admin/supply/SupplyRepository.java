@@ -40,7 +40,12 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     Optional<SupplyEntity> findByCode(String code);
 
-    int countByCode(String code);
+    @Query("SELECT DISTINCT s.community.id FROM supplies s WHERE UPPER(s.code) IN :codes")
+    Set<UUID> findCommunityIdsByUpperCaseCodeIn(@Param("codes") Collection<String> codes);
+
+    @Query("SELECT DISTINCT s.community.id FROM supplies s WHERE UPPER(s.code) IN :codes AND s.id <> :excludedId")
+    Set<UUID> findCommunityIdsByUpperCaseCodeInExcluding(@Param("codes") Collection<String> codes,
+                                                         @Param("excludedId") UUID excludedId);
 
     boolean existsByUserId(UUID userId);
 

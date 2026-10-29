@@ -60,7 +60,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
 
         // Modify data of the supply
         UpdateSupplyBody supplyModified = new UpdateSupplyBody();
-        supplyModified.setCode("code");
+        supplyModified.setCode(SupplyMother.randomCups());
         supplyModified.setName("name");
         supplyModified.setAddress("address");
         supplyModified.setAddressRef("4ASDF654ASDF89ASD");
@@ -103,7 +103,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         UpdateSupplyBody supplyModified = new UpdateSupplyBody();
-        supplyModified.setCode("code");
+        supplyModified.setCode(SupplyMother.randomCups());
         supplyModified.setAddress("address");
 
         mockMvc.perform(put(String.format("%s/%s", PATH, supply.getId()))
@@ -128,7 +128,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
                 UserId.of(user.getId()), community.getId());
 
         UpdateSupplyBody supplyModified = new UpdateSupplyBody();
-        supplyModified.setCode("code");
+        supplyModified.setCode(SupplyMother.randomCups());
         supplyModified.setName("name");
         supplyModified.setAddress("address");
         supplyModified.setAddressRef("4ASDF654ASDF89ASD");

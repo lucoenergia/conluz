@@ -5,7 +5,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -258,22 +257,6 @@ class CreateSupplyRepositoryTest extends BaseIntegrationTest {
                 () -> createSupplyRepository.create(supply, UserId.of(user.getId()), nonExistentCommunityId));
         assertEquals(0, jdbcTemplate.queryForObject("SELECT count(*) FROM supplies WHERE code = ?", Integer.class,
                 supply.getCode()));
-    }
-
-    @Test
-    void shouldThrowSupplyAlreadyExistsExceptionWhenCodeAlreadyExists() {
-        // Arrange
-        User user = createUserRepository.create(UserMother.randomUser());
-        Supply supply = SupplyMother.random(user).build();
-        createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
-
-        Supply duplicate = SupplyMother.random(user)
-                .withCode(supply.getCode())
-                .build();
-
-        // Act & Assert
-        assertThrows(SupplyAlreadyExistsException.class,
-                () -> createSupplyRepository.create(duplicate, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID));
     }
 
     @Test

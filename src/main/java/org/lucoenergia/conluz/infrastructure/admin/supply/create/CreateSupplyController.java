@@ -66,7 +66,16 @@ public class CreateSupplyController {
                     not one of its admins.**
 
                     The owner identified by `personalId` must be a member of the supply's community. An owner who is
-                    not a member of it is reported as not found (404), exactly like a `personalId` that matches no user.
+                    not a member of it is reported as not found (404, `SUPPLY_OWNER_NOT_FOUND`), exactly like a
+                    `personalId` that matches no user.
+
+                    The `code` is the supply's CUPS. It is upper-cased and stored that way; it must then hold no
+                    whitespace and be 20 or 22 characters long, or the request is refused with 400
+                    `SUPPLY_CUPS_INVALID`. A CUPS is the same as another once both are completed to 22 characters
+                    (a 20-character one with `0F`) and compared case-insensitively. If a supply of this community
+                    already has the same CUPS, the request is refused with 400 `SUPPLY_ALREADY_EXISTS`; if only a
+                    supply of another community has it, with 400 `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY`, which
+                    names neither that community nor its owner.
 
                     Upon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.
                     

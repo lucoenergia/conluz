@@ -92,7 +92,7 @@ class OpenInViewDisabledReadPathsControllerTest extends BaseControllerTest {
         platformAdmin = newUser();
         managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
 
-        supply = createSupplyService.create(SupplyMother.random(member).withCode("ES" + UUID.randomUUID()).build(),
+        supply = createSupplyService.create(SupplyMother.random(member).withCode(SupplyMother.randomCups()).build(),
                 UserPersonalId.of(member.getPersonalId()), community.getId());
         plant = createPlantService.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
         agreement = createSharingAgreementService.create(plant.getId(), new CreateSharingAgreement.Builder()

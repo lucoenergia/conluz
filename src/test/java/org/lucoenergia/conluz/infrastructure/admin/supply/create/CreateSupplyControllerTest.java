@@ -108,7 +108,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.ownerRecord.contactEmail").value(user.getEmail()))
                 .andExpect(jsonPath("$.ownerRecord.phoneNumber").value(user.getPhoneNumber()));
 
-        Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333AA0A"));
+        Assertions.assertTrue(supplyRepository.findByCode("ES0033333333333333AA0A").isPresent());
     }
 
     /**
@@ -248,7 +248,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.ownerRecord.contactEmail").value(user.getEmail()))
                 .andExpect(jsonPath("$.ownerRecord.phoneNumber").value(user.getPhoneNumber()));
 
-        Assertions.assertEquals(1, supplyRepository.countByCode("ES0033333333333333BB0B"));
+        Assertions.assertTrue(supplyRepository.findByCode("ES0033333333333333BB0B").isPresent());
     }
 
     @Test
@@ -377,6 +377,8 @@ class CreateSupplyControllerTest extends BaseControllerTest {
      * nor learn that their personalId is registered on the platform.
      */
     @Test
+    @DisplayName("SUP-002 an owner who is not a member of the community gets exactly the answer of an unknown "
+            + "personalId, 404 SUPPLY_OWNER_NOT_FOUND, naming neither")
     void testCreateSupplyForAMemberOfAnotherCommunityAnswersExactlyLikeAnUnknownPersonalId() throws Exception {
 
         Community communityA = createCommunityRepository.create(CommunityMother.random().build());
@@ -392,10 +394,10 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         ObjectNode unknownResponse = postSupplyExpectingNotFound(authHeader, communityA.getId(), "ES0033333333333333HH0H",
                 unknownPersonalId);
 
-        // Everything but the trace id and the timestamp must match; the message quotes the personalId
-        // that was sent, which is the only part that legitimately differs between the two requests.
-        Assertions.assertTrue(memberOfBResponse.get("message").asText().contains(memberOfB.getPersonalId()));
-        Assertions.assertTrue(unknownResponse.get("message").asText().contains(unknownPersonalId));
+        // Everything but the trace id and the timestamp must match, and neither answer names the personalId sent
+        Assertions.assertEquals("SUPPLY_OWNER_NOT_FOUND", unknownResponse.at("/errors/0/code").asText());
+        Assertions.assertFalse(memberOfBResponse.toString().contains(memberOfB.getPersonalId()));
+        Assertions.assertFalse(unknownResponse.toString().contains(unknownPersonalId));
         Assertions.assertEquals(
                 withoutVaryingFields(unknownResponse, unknownPersonalId),
                 withoutVaryingFields(memberOfBResponse, memberOfB.getPersonalId()));

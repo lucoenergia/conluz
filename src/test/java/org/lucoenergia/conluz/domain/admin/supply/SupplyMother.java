@@ -41,10 +41,17 @@ public class SupplyMother {
                         .build());
     }
 
+    /**
+     * A random CUPS as a supply write accepts it: 22 characters, upper-case, without whitespace (SUP-004).
+     */
+    public static String randomCups() {
+        return "ES" + RandomStringUtils.random(18, true, true).toUpperCase() + "0F";
+    }
+
     public static Supply.Builder random(User user) {
         return new Supply.Builder()
                 .withId(UUID.randomUUID())
-                .withCode(RandomStringUtils.random(20, true, true))
+                .withCode(randomCups())
                 .withAddress(RandomStringUtils.random(20, true, true))
                 .withEnabled(new Random().nextBoolean())
                 .withUser(user)

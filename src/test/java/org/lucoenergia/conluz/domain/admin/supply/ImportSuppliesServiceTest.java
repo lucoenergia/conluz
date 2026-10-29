@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.create.ImportSuppliesService;
 import org.lucoenergia.conluz.domain.admin.supply.create.ImportedSupplyRow;
 import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportOutcome;
 import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportRow;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.ImportSuppliesServiceImpl;
 import org.mockito.Mock;
@@ -46,9 +46,9 @@ class ImportSuppliesServiceTest {
         when(createSupplyService.create(same(created.supply()), any(), eq(COMMUNITY_ID)))
                 .thenReturn(SupplyMother.random().withCode("ES0001").build());
         when(createSupplyService.create(same(alreadyExists.supply()), any(), eq(COMMUNITY_ID)))
-                .thenThrow(new SupplyAlreadyExistsException(SupplyCode.of("ES0002")));
+                .thenThrow(new SupplyAlreadyExistsException());
         when(createSupplyService.create(same(userNotFound.supply()), any(), eq(COMMUNITY_ID)))
-                .thenThrow(new UserNotFoundException());
+                .thenThrow(new SupplyOwnerNotFoundException());
         when(createSupplyService.create(same(failed.supply()), any(), eq(COMMUNITY_ID)))
                 .thenThrow(new IllegalStateException("unexpected"));
         when(createSupplyService.create(same(createdLast.supply()), any(), eq(COMMUNITY_ID)))

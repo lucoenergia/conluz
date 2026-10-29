@@ -236,7 +236,7 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
         createUserRepository.create(user);
         createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
-        String supplyCode = "ES002100823465";
+        String supplyCode = "ES002100823465AAAAAA0F";
         Supply supply = new Supply.Builder()
                 .withId(UUID.randomUUID())
                 .withCode(supplyCode)
@@ -266,13 +266,12 @@ class CreateSuppliesWithFileControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.created").isArray())
                 .andExpect(jsonPath("$.created").isNotEmpty())
                 .andExpect(jsonPath("$.created", hasSize(1)))
-                .andExpect(jsonPath("$.created", hasItem("ES004567891234")))
+                .andExpect(jsonPath("$.created", hasItem("ES004567891234AAAAAA0F")))
                 .andExpect(jsonPath("$.errors").isArray())
                 .andExpect(jsonPath("$.errors").isNotEmpty())
-                .andExpect(jsonPath("$.errors[*].errorMessage", hasItem("El punto de suministro con CUPS 'ES002100823465' ya existe.")))
-                .andExpect(jsonPath("$.errors[*].item", hasItem("ES007890123456")))
-                .andExpect(jsonPath("$.errors[*].errorMessage", hasItem("El usuario con identificador '456123789D' no ha sido encontrado. Revise que el identificador sea correcto.")))
-                .andExpect(jsonPath("$.errors[*].errorMessage", not(hasItem("No ha sido posible crear el punto de suministro con los datos proporcionados."))));
+                .andExpect(jsonPath("$.errors[*].errorMessage", hasItem("Ya hay un suministro de esta comunidad con este CUPS, quizá escrito con 20 o 22 caracteres o con otras mayúsculas y minúsculas.")))
+                .andExpect(jsonPath("$.errors[*].item", hasItem("ES007890123456AAAAAA0F")))
+                .andExpect(jsonPath("$.errors[*].errorMessage", hasItem("El usuario con identificador '456123789D' no ha sido encontrado. Revise que el identificador sea correcto.")));
     }
 
     @Test

@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyCodeInvalidException;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyOwnerNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyRegisteredInAnotherCommunityException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.delete.SupplyHasPartitionCoefficientsException;
 import org.lucoenergia.conluz.domain.admin.supply.delete.SupplyHasPlantsException;
@@ -83,15 +86,47 @@ public class SupplyExceptionHandler {
                 Map.of("supplyId", supplyId), HttpStatus.CONFLICT);
     }
 
+    /**
+     * A 400: another supply of the same community has the same CUPS, in either length and in any case (SUP-005).
+     */
     @ExceptionHandler(SupplyAlreadyExistsException.class)
     public ResponseEntity<RestError> handleException(SupplyAlreadyExistsException e) {
+        return refused("error.supply.already.exists", RestErrorCode.SUPPLY_ALREADY_EXISTS, HttpStatus.BAD_REQUEST);
+    }
 
-        String message = messageSource.getMessage(
-                "error.supply.already.exists",
-                List.of(e.getCode().getCode()).toArray(),
-                LocaleContextHolder.getLocale()
-        );
-        return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
+    /**
+     * A 400: a supply of another community has the same CUPS (SUP-005). The message names neither that community
+     * nor its owner.
+     */
+    @ExceptionHandler(SupplyRegisteredInAnotherCommunityException.class)
+    public ResponseEntity<RestError> handleException(SupplyRegisteredInAnotherCommunityException e) {
+        return refused("error.supply.registered.in.another.community",
+                RestErrorCode.SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * A 400: the code written to a supply is not a CUPS (SUP-004).
+     */
+    @ExceptionHandler(SupplyCodeInvalidException.class)
+    public ResponseEntity<RestError> handleException(SupplyCodeInvalidException e) {
+        return refused("error.supply.cups.invalid", RestErrorCode.SUPPLY_CUPS_INVALID, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * A 404: the owner of a supply being created is unknown, or not a member of its community; the two are answered
+     * alike (SUP-002).
+     */
+    @ExceptionHandler(SupplyOwnerNotFoundException.class)
+    public ResponseEntity<RestError> handleException(SupplyOwnerNotFoundException e) {
+        return refused("error.supply.owner.not.found", RestErrorCode.SUPPLY_OWNER_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * The message is written from its key alone, so that it never holds a value of the request.
+     */
+    private ResponseEntity<RestError> refused(String messageKey, RestErrorCode code, HttpStatus status) {
+        String message = messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
+        return errorBuilder.build(message, code, Map.of(), status);
     }
 
     @ExceptionHandler(InvalidEnergyMetricsPeriodException.class)

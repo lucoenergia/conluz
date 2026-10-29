@@ -20,6 +20,19 @@ public interface GetSupplyRepository {
     Optional<Supply> findByCode(SupplyCode code);
 
     /**
+     * The communities of the supplies whose code, upper-cased, is one of {@code codes}, in any community, enabled or
+     * not.
+     *
+     * @param codes upper-cased codes
+     */
+    Set<UUID> findCommunityIdsByUpperCaseCodes(List<String> codes);
+
+    /**
+     * As {@link #findCommunityIdsByUpperCaseCodes(List)}, leaving out the supply {@code excluded}.
+     */
+    Set<UUID> findCommunityIdsByUpperCaseCodes(List<String> codes, SupplyId excluded);
+
+    /**
      * Bulk lookup for enriching a list of records that each reference a supply by id, avoiding an
      * N+1 loop of {@link #findById(SupplyId)} calls.
      */

@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.shared;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -47,6 +49,35 @@ public class SupplyCode {
             return Optional.of(cups);
         }
         return Optional.empty();
+    }
+
+    /**
+     * A code written to a supply: upper-cased, then accepted only if it is a CUPS by {@link #toFullLength}. Codes
+     * stored before this rule are not revalidated (#532).
+     *
+     * @return the upper-cased code, or empty if it is not a CUPS
+     */
+    public static Optional<SupplyCode> ofCups(String raw) {
+        if (raw == null) {
+            return Optional.empty();
+        }
+        String code = raw.toUpperCase(Locale.ROOT);
+        return toFullLength(code).map(full -> SupplyCode.of(code));
+    }
+
+    /**
+     * The stored codes, upper-cased, that are the same CUPS as this one: its {@link #CUPS_LENGTH}-character form, and
+     * the {@link #SHORT_CUPS_LENGTH}-character form when that one ends in {@link #SHORT_CUPS_SUFFIX}.
+     *
+     * @throws IllegalStateException if this code is not a CUPS; only a code from {@link #ofCups} is compared
+     */
+    public List<String> sameCupsForms() {
+        String full = toFullLength(code.toUpperCase(Locale.ROOT))
+                .orElseThrow(() -> new IllegalStateException("Not a CUPS"));
+        if (full.endsWith(SHORT_CUPS_SUFFIX)) {
+            return List.of(full, full.substring(0, SHORT_CUPS_LENGTH));
+        }
+        return List.of(full);
     }
 
     private static boolean containsWhitespace(String value) {
