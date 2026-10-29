@@ -22,7 +22,8 @@ class EnergyPeriodApiDocsTest extends BaseControllerTest {
             "/api/v1/supplies/{supplyId}/consumption/daily",
             "/api/v1/supplies/{supplyId}/consumption/monthly",
             "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics",
-            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/monthly"
+            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/monthly",
+            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/daily"
     })
     void everyOperationTakingAPeriodDocumentsTheSameBounds(String path) throws Exception {
         String description = apiDocs().path("paths").path(path).path("get").path("description").asText();
