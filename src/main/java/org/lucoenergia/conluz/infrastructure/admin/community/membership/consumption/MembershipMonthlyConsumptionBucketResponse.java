@@ -3,15 +3,11 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.consump
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.membership.consumption.MembershipMonthlyConsumptionBucket;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
-import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
-import org.lucoenergia.conluz.infrastructure.shared.web.KWhRounding;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
 
 /**
  * One local calendar month of a membership's consumption series: the monthly figures of every supply
@@ -88,24 +84,17 @@ public class MembershipMonthlyConsumptionBucketResponse {
     private final int suppliesWithData;
 
     public MembershipMonthlyConsumptionBucketResponse(MembershipMonthlyConsumptionBucket bucket) {
+        MembershipConsumptionBucketFigures figures = new MembershipConsumptionBucketFigures(bucket.getTotals());
         this.date = bucket.getMonth().atDay(1).format(DateTimeFormatter.ofPattern(DateConverter.DATE_FORMAT));
         this.time = LocalTime.MIDNIGHT.format(DateTimeFormatter.ofPattern(DateConverter.TIME_FORMAT));
-        this.gridImportKWh = rounded(bucket.getConsumptionKWh().doubleValue());
-        this.surplusKWh = rounded(bucket.getSurplusEnergyKWh().doubleValue());
-        this.selfConsumptionKWh = rounded(bucket.getSelfConsumptionEnergyKWh().doubleValue());
-        this.assignedProductionKWh = rounded(bucket.getAssignedProductionKWh());
-        Optional<SupplySavings> savings = bucket.getSavings();
-        // Scale is declared inline rather than as a constant: ResponseSchemaNullabilityArchTest
-        // inspects every field of a *Response class, static ones included.
-        int cents = 2;
-        this.savingsEur = savings.map(s -> s.getAmountEur().setScale(cents, RoundingMode.HALF_UP)).orElse(null);
-        this.tariffSource = savings.map(SupplySavings::getTariffSource).orElse(null);
-        this.supplyCount = bucket.getSupplyCount();
-        this.suppliesWithData = bucket.getSuppliesWithData();
-    }
-
-    private static BigDecimal rounded(double kWh) {
-        return BigDecimal.valueOf(KWhRounding.round(kWh));
+        this.gridImportKWh = figures.gridImportKWh();
+        this.surplusKWh = figures.surplusKWh();
+        this.selfConsumptionKWh = figures.selfConsumptionKWh();
+        this.assignedProductionKWh = figures.assignedProductionKWh();
+        this.savingsEur = figures.savingsEur();
+        this.tariffSource = figures.tariffSource();
+        this.supplyCount = figures.supplyCount();
+        this.suppliesWithData = figures.suppliesWithData();
     }
 
     public String getDate() {
