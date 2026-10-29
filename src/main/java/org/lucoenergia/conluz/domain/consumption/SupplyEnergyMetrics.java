@@ -16,6 +16,9 @@ import java.time.OffsetDateTime;
  *
  * <p>{@link #getSavings()} is always present, and reports what the self-consumed energy was worth
  * over the same period the energy totals cover.</p>
+ *
+ * <p>A plant's own supply keeps every total, coverage and savings figure, but its self-consumption
+ * ratio does not apply (SEM-003): see {@link SelfConsumptionRatio}.</p>
  */
 public class SupplyEnergyMetrics {
 
@@ -26,6 +29,8 @@ public class SupplyEnergyMetrics {
     private final long expectedHours;
     private final EnergyBalance energyBalance;
     private final SupplySavings savings;
+    private final boolean plantSupply;
+    private final SelfConsumptionRatio selfConsumptionRatio;
 
     /**
      * @param gridImportKWh      the sum of the stored {@code consumption_kwh} field, which is
@@ -33,11 +38,12 @@ public class SupplyEnergyMetrics {
      * @param selfConsumptionKWh the sum of the stored {@code self_consumption_energy_kwh} field
      * @param surplusKWh         the sum of the stored {@code surplus_energy_kwh} field
      * @param savings            what {@code selfConsumptionKWh} was worth over this same period
+     * @param plantSupply        whether the supply is a plant's own supply, as the plant link says
      */
     public SupplyEnergyMetrics(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate,
                                long hoursWithData, long expectedHours, double gridImportKWh,
                                double selfConsumptionKWh, double surplusKWh,
-                               SupplySavings savings) {
+                               SupplySavings savings, boolean plantSupply) {
         this.supply = supply;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -45,6 +51,8 @@ public class SupplyEnergyMetrics {
         this.expectedHours = expectedHours;
         this.energyBalance = new EnergyBalance(gridImportKWh, selfConsumptionKWh, surplusKWh);
         this.savings = savings;
+        this.plantSupply = plantSupply;
+        this.selfConsumptionRatio = SelfConsumptionRatio.ofSupply(energyBalance, plantSupply);
     }
 
     /**
@@ -52,9 +60,9 @@ public class SupplyEnergyMetrics {
      * savings are {@link SupplySavings#unpriced()}: with no period there is nothing to price.
      */
     public static SupplyEnergyMetrics empty(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate,
-                                            long expectedHours) {
+                                            long expectedHours, boolean plantSupply) {
         return new SupplyEnergyMetrics(supply, startDate, endDate, 0L, expectedHours, 0d, 0d, 0d,
-                SupplySavings.unpriced());
+                SupplySavings.unpriced(), plantSupply);
     }
 
     public Supply getSupply() {
@@ -101,8 +109,18 @@ public class SupplyEnergyMetrics {
         return energyBalance.getSelfSufficiencyRatio();
     }
 
-    public Double getSelfConsumptionRatio() {
-        return energyBalance.getSelfConsumptionRatio();
+    /**
+     * The self-consumption ratio of this supply, with its basis; not applicable to a plant's own supply.
+     */
+    public SelfConsumptionRatio getSelfConsumptionRatio() {
+        return selfConsumptionRatio;
+    }
+
+    /**
+     * Whether the supply is a plant's own supply.
+     */
+    public boolean isPlantSupply() {
+        return plantSupply;
     }
 
     public EnergyBalance getEnergyBalance() {

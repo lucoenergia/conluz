@@ -48,6 +48,11 @@ public class GetSupplyEnergyMetricsController {
 
                     - `selfSufficiencyRatio`: self-consumed energy divided by total consumed energy.
                     - `selfConsumptionRatio`: self-consumed energy divided by the energy assigned to the supply.
+                      It does not apply to a plant's own supply, whose surplus is stored as production:
+                      it is then `null` with `selfConsumptionRatioStatus` `NOT_APPLICABLE`, while every
+                      other figure is reported as usual. `NOTHING_ASSIGNED` means nothing was assigned to
+                      the supply in the period, and `AVAILABLE` that the ratio is computed.
+                      `selfConsumptionRatioBasis` reports the two figures it was computed from.
 
                     Both ratios are computed by summing every record first and dividing once, so hours of
                     different magnitude weigh differently. A ratio whose denominator is zero is returned as

@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.domain.admin.community.membership.energymetrics;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.consumption.SelfConsumptionRatioStatus;
+import org.junit.jupiter.api.DisplayName;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
@@ -133,7 +135,7 @@ class MembershipEnergyMetricsTest {
      */
     @Test
     void savingsAreNullOnlyWhenNoPeriodCouldBeResolved() {
-        MembershipEnergyMetrics metrics = MembershipEnergyMetrics.withoutPeriod(2);
+        MembershipEnergyMetrics metrics = MembershipEnergyMetrics.withoutPeriod(2, 0);
 
         assertNull(metrics.getStartDate());
         assertNull(metrics.getEndDate());
@@ -146,6 +148,53 @@ class MembershipEnergyMetricsTest {
         assertEquals(0, metrics.getSuppliesWithData());
     }
 
+    @Test
+    @DisplayName("ENM-007 ENM-008 AC2 a plant supply is left out of the self-consumption ratio and kept in every total")
+    void aPlantSupplyIsLeftOutOfTheRatioAndKeptInEveryTotal() {
+        MembershipEnergyMetrics metrics = MembershipEnergyMetrics.of(START, END, List.of(
+                supply(24L, 10d, 100d, 100d, "1.00"),
+                plantSupply(24L, 5d, 50d, 0d, "0.50")));
+
+        assertEquals(SelfConsumptionRatioStatus.AVAILABLE, metrics.getSelfConsumptionRatio().getStatus());
+        assertEquals(0.5d, metrics.getSelfConsumptionRatio().getValue(), 1e-9);
+        assertEquals(100d, metrics.getSelfConsumptionRatio().getSelfConsumptionKWh(), 1e-9);
+        assertEquals(200d, metrics.getSelfConsumptionRatio().getAssignedProductionKWh(), 1e-9);
+        assertEquals(1, metrics.getSelfConsumptionRatio().getExcludedPlantSupplyCount());
+        // The totals and the self-sufficiency ratio still count the plant supply.
+        assertEquals(150d, metrics.getEnergyBalance().getSelfConsumptionKWh(), 1e-9);
+        assertEquals(250d, metrics.getEnergyBalance().getAssignedProductionKWh(), 1e-9);
+        assertEquals(150d / 165d, metrics.getEnergyBalance().getSelfSufficiencyRatio(), 1e-9);
+        assertEquals(new BigDecimal("1.50"), metrics.getSavings().getAmountEur());
+        assertEquals(2, metrics.getSupplyCount());
+    }
+
+    @Test
+    @DisplayName("ENM-007 without a period, a membership of plant supplies only has a non-applicable ratio")
+    void withoutAPeriodAMembershipOfPlantSuppliesOnlyHasANonApplicableRatio() {
+        MembershipEnergyMetrics metrics = MembershipEnergyMetrics.withoutPeriod(2, 2);
+
+        assertEquals(SelfConsumptionRatioStatus.NOT_APPLICABLE, metrics.getSelfConsumptionRatio().getStatus());
+        assertNull(metrics.getSelfConsumptionRatio().getValue());
+        assertEquals(2, metrics.getSelfConsumptionRatio().getExcludedPlantSupplyCount());
+    }
+
+    @Test
+    @DisplayName("ENM-007 without a period, a membership with a regular supply has nothing assigned, and counts its plant supplies")
+    void withoutAPeriodAMembershipWithARegularSupplyHasNothingAssigned() {
+        MembershipEnergyMetrics metrics = MembershipEnergyMetrics.withoutPeriod(2, 1);
+
+        assertEquals(SelfConsumptionRatioStatus.NOTHING_ASSIGNED, metrics.getSelfConsumptionRatio().getStatus());
+        assertNull(metrics.getSelfConsumptionRatio().getValue());
+        assertEquals(1, metrics.getSelfConsumptionRatio().getExcludedPlantSupplyCount());
+    }
+
+    private static SupplyEnergyMetrics plantSupply(long hoursWithData, double gridImportKWh,
+                                                   double selfConsumptionKWh, double surplusKWh, String savingsEur) {
+        return new SupplyEnergyMetrics(SupplyMother.random().build(), START, END, hoursWithData, HOURS_IN_PERIOD,
+                gridImportKWh, selfConsumptionKWh, surplusKWh,
+                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, null), true);
+    }
+
     private static SupplyEnergyMetrics supply(long hoursWithData, double gridImportKWh, double selfConsumptionKWh,
                                               double surplusKWh, String savingsEur) {
         return supply(hoursWithData, gridImportKWh, selfConsumptionKWh, surplusKWh,
@@ -155,6 +204,6 @@ class MembershipEnergyMetricsTest {
     private static SupplyEnergyMetrics supply(long hoursWithData, double gridImportKWh, double selfConsumptionKWh,
                                               double surplusKWh, SupplySavings savings) {
         return new SupplyEnergyMetrics(SupplyMother.random().build(), START, END, hoursWithData, HOURS_IN_PERIOD,
-                gridImportKWh, selfConsumptionKWh, surplusKWh, savings);
+                gridImportKWh, selfConsumptionKWh, surplusKWh, savings, false);
     }
 }

@@ -29,6 +29,7 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
     private static final String SUPPLY_ENERGY = "SupplyEnergyMetricsEnergyResponse";
     private static final String MEMBERSHIP_ENERGY = "MembershipEnergyMetricsEnergyResponse";
     private static final String HOURLY_PROFILE_BUCKET = "MembershipHourlyProfileBucketResponse";
+    private static final String RATIO_BASIS = "SelfConsumptionRatioBasisResponse";
 
     private static final String SUPPLY_MONTHLY_PATH = "/api/v1/supplies/{supplyId}/consumption/monthly";
     private static final String MEMBERSHIP_MONTHLY_PATH =
@@ -132,6 +133,12 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
     private static final List<String> SERIES_AND_METRICS =
             List.of(SUPPLY_BUCKET, MEMBERSHIP_BUCKET, MEMBERSHIP_DAILY_BUCKET, SUPPLY_ENERGY, MEMBERSHIP_ENERGY);
 
+    private static List<String> withRatioBasis(List<String> schemas) {
+        List<String> all = new ArrayList<>(schemas);
+        all.add(RATIO_BASIS);
+        return all;
+    }
+
     private static final List<Quantity> GLOSSARY = List.of(
             new Quantity("gridImportKWh", SERIES_AND_METRICS, false, List.of(
                     Pattern.compile("^energy taken from the grid by "),
@@ -139,12 +146,12 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
             new Quantity("totalConsumptionKWh", List.of(SUPPLY_ENERGY, MEMBERSHIP_ENERGY), true, List.of(
                     Pattern.compile("energy consumed"),
                     Pattern.compile("whatever its origin: grid ?import(kwh)? plus self-?consum"))),
-            new Quantity("selfConsumptionKWh", SERIES_AND_METRICS, false, List.of(
+            new Quantity("selfConsumptionKWh", withRatioBasis(SERIES_AND_METRICS), false, List.of(
                     Pattern.compile("^energy produced by the community and consumed by "),
                     Pattern.compile("as reported by the distributor"))),
             new Quantity("surplusKWh", SERIES_AND_METRICS, false, List.of(
                     Pattern.compile("^energy assigned to .* and fed back to the grid over "))),
-            new Quantity("assignedProductionKWh", SERIES_AND_METRICS, true, List.of(
+            new Quantity("assignedProductionKWh", withRatioBasis(SERIES_AND_METRICS), true, List.of(
                     Pattern.compile("energy assigned to [^:]*: self-?consum(ed|ptionkwh) plus surplus"))));
 
     @Test
@@ -174,6 +181,44 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
                 }
             }
         }
+    }
+
+    @Test
+    @DisplayName("SEM-004 ENM-008 EVL-001 the self-consumption ratio's basis states that both kWh figures are rounded to 3 decimals")
+    void theRatioBasisStatesItsPrecision() throws Exception {
+        JsonNode properties = document().path("components").path("schemas").path(RATIO_BASIS).path("properties");
+
+        for (String field : List.of("selfConsumptionKWh", "assignedProductionKWh")) {
+            String text = description(properties, field);
+            assertTrue(text.contains("rounded to 3 decimals"), () -> RATIO_BASIS + "." + field + " was: " + text);
+        }
+    }
+
+    @Test
+    @DisplayName("SEM-003 SEM-004 ENM-007 ENM-008 both energy metrics require the ratio's status, with its three values, and its basis")
+    void bothEnergyMetricsRequireTheRatiosStatusAndBasis() throws Exception {
+        JsonNode schemas = document().path("components").path("schemas");
+
+        for (String response : List.of("SupplyEnergyMetricsResponse", "MembershipEnergyMetricsResponse")) {
+            JsonNode schema = schemas.path(response);
+            List<String> required = new ArrayList<>();
+            schema.path("required").forEach(node -> required.add(node.asText()));
+            assertTrue(required.containsAll(List.of("selfConsumptionRatio", "selfConsumptionRatioStatus",
+                    "selfConsumptionRatioBasis")), () -> response + ".required was " + required);
+
+            List<String> values = new ArrayList<>();
+            schema.path("properties").path("selfConsumptionRatioStatus").path("enum")
+                    .forEach(node -> values.add(node.asText()));
+            assertTrue(values.equals(List.of("AVAILABLE", "NOTHING_ASSIGNED", "NOT_APPLICABLE")),
+                    () -> response + ".selfConsumptionRatioStatus was " + values);
+
+            String basis = schema.path("properties").path("selfConsumptionRatioBasis").path("$ref").asText();
+            assertTrue(basis.endsWith("/" + RATIO_BASIS), () -> response + ".selfConsumptionRatioBasis was " + basis);
+        }
+        List<String> basisRequired = new ArrayList<>();
+        schemas.path(RATIO_BASIS).path("required").forEach(node -> basisRequired.add(node.asText()));
+        assertTrue(basisRequired.containsAll(List.of("selfConsumptionKWh", "assignedProductionKWh",
+                "excludedPlantSupplyCount")), () -> RATIO_BASIS + ".required was " + basisRequired);
     }
 
     private static String description(JsonNode properties, String field) {
