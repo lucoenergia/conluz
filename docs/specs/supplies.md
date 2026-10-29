@@ -4,15 +4,15 @@
 | --- | --- |
 | **Prefix** | `SUP` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Supplies`; operations `createSupply`, `createSuppliesWithFile`, `deleteSupply` |
+| **Contract** | OpenAPI snapshot → tag `Supplies`; operations `createSupply`, `createSuppliesWithFile`, `deleteSupply`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `updateSupply`, `enableSupply`, `disableSupply` |
 | **Related ADRs** | — |
 | **Last reviewed against code** | #411 |
 
 ## Purpose
 
 A supply is a member's point of consumption (CUPS) in a community. This spec covers the rules that keep a supply
-tied to a member of its community, what deleting one does, and who reads one. It covers only the rules #412 and #411
-touched.
+tied to a member of its community, what deleting one does, who reads one, and how it references its
+plant. It covers only the rules #412 and #411 touched.
 
 ## Glossary
 
@@ -72,6 +72,20 @@ touched.
   a response gaining community data (such as the supply's plant) would have reached them too. The listing applies the
   same rule as a single read, so it never carries a supply whose own read answers 404.
 - **Source:** #411, MEM-004
+
+### SUP-004 — A supply references its plant when it is a plant's own supply
+
+- **Status:** Active
+- **Rule:** Every operation that answers a supply (`getSupply`, `getAllSupplies`,
+  `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`) MUST
+  reference the plant whose own supply it is, and MUST answer no plant for any other supply. A
+  listing MUST read those plants with one query for the whole page, never one per supply. The plant
+  is shown to whoever may read the supply (SUP-003).
+- **Rationale:** Only a plant pointed at its supply, so a client could not label a supply as a plant's
+  supply, nor explain why its self-consumption ratio does not apply (SEM-003). A supply is the supply
+  of at most one plant (PLT-002), so the reference is a single plant. Every caller who may read a
+  supply is an active member of its community, who may also read its plants.
+- **Source:** #411
 
 ## Impossible states
 

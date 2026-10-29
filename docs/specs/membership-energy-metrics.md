@@ -6,14 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Memberships`; operations `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #382 |
+| **Last reviewed against code** | #411 |
 
 ## Purpose
 
 The energy figures of a member's supplies in one community, added up: the aggregated energy metrics
-and the hourly profile the member home is built around. This spec covers only how the reference
-month those figures describe is resolved; the rest of the capability is specified lazily, as issues
-touch it.
+and the hourly profile the member home is built around. This spec covers how the reference month
+those figures describe is resolved, and the self-consumption ratio of the aggregated energy metrics;
+the rest of the capability is specified lazily, as issues touch it.
 
 ## Glossary
 
@@ -23,6 +23,7 @@ touch it.
 | Published month (of a supply) | A complete calendar month, in the community's time zone, in which the supply's published records cover at least 90 % of the hours it could have published (ENM-001). |
 | Reference month | The month `LATEST_PUBLISHED_MONTH` resolves to, and the only month the hourly profile reports on (ENM-002). |
 | Coverage | The hourly consumption records found against the hours the period spans times the supplies of the membership. It measures consumption records, not publication. |
+| Plant's own supply | As defined in SEM: the supply a plant is attached to, whose Datadis surplus is stored as the plant's production. |
 
 ## Rules
 
@@ -97,6 +98,58 @@ Then August is resolved, although 408 of its 744 hours are published
 - **Rationale:** ENM-001 chooses the month; it does not replace the signal of scattered gaps within
   it.
 - **Source:** #382
+
+### ENM-006 — The membership self-consumption ratio is computed once over its regular supplies
+
+- **Status:** Active
+- **Rule:** The self-consumption ratio of a membership's energy metrics MUST be the self-consumed
+  energy of its supplies that are no plant's own supply, summed, divided once by their summed
+  assigned production; it MUST NOT be an average of per-supply ratios. When nothing was assigned to
+  those supplies, a period without data and a reference month that does not resolve included, the
+  ratio MUST be null and reported as having nothing assigned.
+- **Rationale:** A supply consuming 100 kWh and one consuming 1 kWh must not weigh the same.
+- **Source:** #411
+
+### ENM-007 — Plant's own supplies are left out of the membership self-consumption ratio
+
+- **Status:** Active
+- **Rule:** A plant's own supply, identified by the plant–supply link alone, MUST be left out of both
+  the numerator and the denominator of the membership self-consumption ratio, under every resolution.
+  When every supply of the membership is a plant's own supply, the ratio MUST be null and reported as
+  not applicable, which takes precedence over having nothing assigned. Plant's own supplies MUST keep
+  counting in the energy totals, the self-sufficiency ratio, coverage and savings.
+- **Rationale:** A plant's own supply has its surplus stored as production, so its ratio is always 1
+  and counting it inflates the ratio of any member who owns one: 100 of 200 kWh on a regular supply
+  and 50 of 50 on a plant's supply would read 0.6 instead of 0.5. The other figures describe energy
+  the member really consumed or saved, so they keep it.
+- **Source:** #411
+
+### ENM-008 — Membership energy metrics expose the basis of the self-consumption ratio
+
+- **Status:** Active
+- **Rule:** Membership energy metrics MUST report the summed self-consumed and assigned energy the
+  self-consumption ratio was computed from, rounded as every other kWh figure (EVL-001), and the
+  number of plant's own supplies it leaves out. When the ratio is not applicable, both figures MUST be
+  0 and the count MUST be the number of plant's own supplies. Without plant's own supplies the basis
+  equals the energy totals.
+- **Rationale:** The member home shows the ratio with its "X of Y kWh assigned" line; once supplies
+  are left out, the totals no longer are that line, and the client must not recompute a ratio.
+- **Source:** #411
+
+**Scenarios**
+
+```gherkin
+Given a member with a regular supply that self-consumed 100 of 200 kWh assigned
+And a plant's own supply that self-consumed 50 of 50 kWh assigned
+When the membership energy metrics are read
+Then the self-consumption ratio is 0.5
+And its basis is 100 kWh of 200 kWh, with 1 plant supply left out
+And the self-consumed energy total is 150 kWh
+
+Given a member whose only supplies are two plant's own supplies
+When the membership energy metrics are read
+Then the self-consumption ratio is null and not applicable, with 2 plant supplies left out
+```
 
 ## Impossible states
 
