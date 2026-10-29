@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPlantAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
@@ -31,13 +32,16 @@ public class GetSupplyByIdController {
     private final GetSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final MemberDataAssembler memberDataAssembler;
+    private final SupplyPlantAssembler supplyPlantAssembler;
 
     public GetSupplyByIdController(GetSupplyService service,
                                    SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                  MemberDataAssembler memberDataAssembler) {
+                                  MemberDataAssembler memberDataAssembler,
+            SupplyPlantAssembler supplyPlantAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.memberDataAssembler = memberDataAssembler;
+        this.supplyPlantAssembler = supplyPlantAssembler;
     }
 
     @GetMapping("/{supplyId}")
@@ -67,6 +71,6 @@ public class GetSupplyByIdController {
                                    @PathVariable("supplyId") UUID supplyId) {
         Supply supply = service.getById(SupplyId.of(supplyId));
         return new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
-                memberDataAssembler.recordOfSupplyOwner(supply));
+                memberDataAssembler.recordOfSupplyOwner(supply), supplyPlantAssembler.plantOf(supply));
     }
 }

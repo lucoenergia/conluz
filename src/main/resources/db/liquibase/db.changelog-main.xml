@@ -87,4 +87,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/create_community_contact_channels_table.xml" relativeToChangelogFile="true" />
     <include file="changelogs/convert_blacklisted_token_timestamps_to_timestamptz.xml" relativeToChangelogFile="true" />
     <include file="changelogs/reword_sharing_agreement_created_by_remark.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_unique_constraint_to_plants_supply_id.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

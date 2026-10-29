@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `getAllUsers`, `getUserById`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById`, `setMembershipInvestment`, `clearMembershipInvestment`, `getMembershipPayback`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #527 |
+| **Last reviewed against code** | #411 |
 
 ## Purpose
 
@@ -74,12 +74,13 @@ lazily, as issues touch it.
   visible to a community admin through the user endpoints follows the same rule. Whether a membership is active
   MUST be decided only by `CommunityMembership.isActive()`, and in queries by
   `ActiveMembershipJpql.ACTIVE_MEMBERSHIP`. Owning a supply is not access: any membership in the
-  supply's community counts, pending or disabled included.
+  supply's community counts for owning one, pending or disabled included, but reading it takes an
+  active one (SUP-003).
 - **Rationale:** An invitation is a pending membership, so a person must not reach a community before
   accepting (ADR-0003 §2). One definition keeps every check in step; before #390, "is an active
   member" was written in ten places, each testing `enabled` alone. A community can operate a member
   who has not accepted yet, so supply ownership does not depend on the state (#341).
-- **Source:** #390, #341, ADR-0003 §2, #478
+- **Source:** #390, #341, ADR-0003 §2, #478, #411
 
 ### MEM-005 — Pending and disabled are independent, and the roster shows both
 

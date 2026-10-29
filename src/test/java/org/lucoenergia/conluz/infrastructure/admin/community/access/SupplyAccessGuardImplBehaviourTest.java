@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.access;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -70,13 +71,27 @@ class SupplyAccessGuardImplBehaviourTest {
 
     @Test
     void canReadSupply_returnsTrue_whenUserIsOwner() {
-        User user = UserMother.randomUser();
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 
-        Supply supply = supplyOwnedBy(user.getId());
+        Supply supply = supplyInCommunity(user.getId(), community);
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 
         assertTrue(guard().canReadSupply(supply.getId()));
+    }
+
+    @Test
+    @DisplayName("SUP-003 canReadSupply throws not found when the owner's membership is disabled")
+    void canReadSupply_throwsNotFound_whenOwnerMembershipIsDisabled() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, false);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+
+        Supply supply = supplyInCommunity(user.getId(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        assertThrows(SupplyNotFoundException.class, () -> guard().canReadSupply(supply.getId()));
     }
 
     @Test
@@ -176,8 +191,9 @@ class SupplyAccessGuardImplBehaviourTest {
 
     @Test
     void canEditSupply_returnsFalse_whenUserIsOwner() {
-        User user = UserMother.randomUser();
-        Supply supply = supplyOwnedBy(user.getId());
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
+        Supply supply = supplyInCommunity(user.getId(), community);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
 

@@ -88,7 +88,9 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     void findAllDetailsFiltersByPlantWhenAPlantIsGiven() {
         SupplyEntity supply = persistSupply();
         SharingAgreementEntity inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
-        SharingAgreementEntity inY = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
+        // coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
         persist(supply, inX, BigDecimal.valueOf(0.400000), T0, null);
         persist(supply, inY, BigDecimal.valueOf(0.600000), T0, null);
 
@@ -122,7 +124,9 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     void findAllDetailsHonoursIncludePendingAcrossBothPlantFilterVariants() {
         SupplyEntity supply = persistSupply();
         SharingAgreementEntity inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
-        SharingAgreementEntity inY = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
+        // coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
         SharingAgreementEntity draftInX = persistAgreement(inX.getPlant(), SharingAgreementStatus.DRAFT);
         SharingAgreementEntity draftInY = persistAgreement(inY.getPlant(), SharingAgreementStatus.DRAFT);
         persist(supply, inX, BigDecimal.valueOf(0.400000), T0, null);
@@ -181,7 +185,9 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     void findActiveDetailsExcludesPendingRowsAndReturnsOnePerPlant() {
         SupplyEntity supply = persistSupply();
         SharingAgreementEntity inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
-        SharingAgreementEntity inY = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
+        // coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
         SharingAgreementEntity draftInX = persistAgreement(inX.getPlant(), SharingAgreementStatus.DRAFT);
         persist(supply, inX, BigDecimal.valueOf(0.400000), T0, null);
         persist(supply, inY, BigDecimal.valueOf(0.600000), T0, null);
@@ -227,7 +233,9 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     void findDetailsAtTimestampReturnsOneItemPerPlantAndHonoursThePlantFilter() {
         SupplyEntity supply = persistSupply();
         SharingAgreementEntity inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
-        SharingAgreementEntity inY = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
+        // coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
         persist(supply, inX, BigDecimal.valueOf(0.400000), T0, null);
         persist(supply, inY, BigDecimal.valueOf(0.600000), T0, null);
         Instant inside = Instant.parse("2024-06-15T12:00:00Z");
@@ -263,7 +271,9 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
 
         SupplyEntity manyRowSupply = persistSupply();
         SharingAgreementEntity inX = persistPlantAndAgreement(manyRowSupply, SharingAgreementStatus.PUBLISHED);
-        SharingAgreementEntity inY = persistPlantAndAgreement(manyRowSupply, SharingAgreementStatus.PUBLISHED);
+        // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
+        // coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
         persist(manyRowSupply, inX, BigDecimal.valueOf(0.100000), T0, T1);
         persist(manyRowSupply, inX, BigDecimal.valueOf(0.200000), T1, null);
         persist(manyRowSupply, inY, BigDecimal.valueOf(0.700000), T0, null);

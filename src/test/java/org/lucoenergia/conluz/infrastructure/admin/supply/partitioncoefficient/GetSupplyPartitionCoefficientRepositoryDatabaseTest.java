@@ -183,7 +183,9 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
     void findByPlantIdAndSupplyIdAtTimestampDisambiguatesConcurrentPlants() {
         SupplyEntity supply = persistSupply();
         SharingAgreementEntity agreement1 = persistPlantAndPublishedAgreement(supply);
-        SharingAgreementEntity agreement2 = persistPlantAndPublishedAgreement(supply);
+        // A supply is the supply of at most one plant (PLT-002): the second plant gets its own supply,
+        // while both plants' coefficients stay on the shared consumer supply
+        SharingAgreementEntity agreement2 = persistPlantAndPublishedAgreement(persistSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant queryAt = Instant.parse("2024-06-01T00:00:00Z");
         // Same supply, concurrently active on two different plants -- only the exclusion constraint's
@@ -223,7 +225,9 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
     void findAllBySupplyIdAtTimestampReturnsEveryPlantActiveForThatSupply() {
         SupplyEntity supply = persistSupply();
         SharingAgreementEntity agreement1 = persistPlantAndPublishedAgreement(supply);
-        SharingAgreementEntity agreement2 = persistPlantAndPublishedAgreement(supply);
+        // A supply is the supply of at most one plant (PLT-002): the second plant gets its own supply,
+        // while both plants' coefficients stay on the shared consumer supply
+        SharingAgreementEntity agreement2 = persistPlantAndPublishedAgreement(persistSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant queryAt = Instant.parse("2024-06-01T00:00:00Z");
         persist(supply.getId(), agreement1.getPlant().getId(), agreement1.getId(), BigDecimal.valueOf(0.4), t0, null);

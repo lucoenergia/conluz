@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -103,9 +104,19 @@ class PlantAccessPolicyTest {
     @Test
     void canCreate_forbids_theSupplyOwnerWhoIsNotACommunityAdmin() {
         // The owner can see the supply but may not put a plant on it.
-        User owner = PolicyFixtures.stranger();
+        Community community = PolicyFixtures.community();
+        User owner = PolicyFixtures.memberOf(community);
         assertEquals(AccessDecision.FORBIDDEN,
-                policy.canCreate(owner, PolicyFixtures.supplyIn(PolicyFixtures.community(), owner.getId())));
+                policy.canCreate(owner, PolicyFixtures.supplyIn(community, owner.getId())));
+    }
+
+    @Test
+    @DisplayName("SUP-003 canCreate is not visible for a supply owner whose membership is disabled")
+    void canCreate_isNotVisible_forASupplyOwnerWhoseMembershipIsDisabled() {
+        Community community = PolicyFixtures.community();
+        User owner = PolicyFixtures.disabledMemberOf(community);
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canCreate(owner, PolicyFixtures.supplyIn(community, owner.getId())));
     }
 
     @Test
@@ -126,9 +137,11 @@ class PlantAccessPolicyTest {
     }
 
     @Test
-    void canCreate_forbids_theOwnerOfASupplyWithNoCommunity() {
+    @DisplayName("SUP-003 canCreate is not visible for the owner of a supply with no community")
+    void canCreate_isNotVisible_forTheOwnerOfASupplyWithNoCommunity() {
+        // No membership can match a missing community, so its owner has no active one there.
         User owner = PolicyFixtures.stranger();
-        assertEquals(AccessDecision.FORBIDDEN,
+        assertEquals(AccessDecision.NOT_VISIBLE,
                 policy.canCreate(owner, PolicyFixtures.supplyWithoutCommunity(owner.getId())));
     }
 

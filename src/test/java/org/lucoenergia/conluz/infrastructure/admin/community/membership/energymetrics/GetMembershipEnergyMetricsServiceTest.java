@@ -24,6 +24,7 @@ import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
@@ -81,12 +82,13 @@ class GetMembershipEnergyMetricsServiceTest {
     private final ReferenceMonthResolver referenceMonthResolver = mock(ReferenceMonthResolver.class);
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
     private final TimeConfiguration timeConfiguration = mock(TimeConfiguration.class);
+    private final GetPlantRepository getPlantRepository = mock(GetPlantRepository.class);
 
     private final GetMembershipEnergyMetricsService service = new GetMembershipEnergyMetricsServiceImpl(
             new MembershipEnergyMetricsScopeResolverImpl(getMembershipsRepository, getSupplyRepository,
                     aggregateRepository, referenceMonthResolver, zoneResolver, new DateConverter(timeConfiguration),
                     CLOCK),
-            supplyMetricsService);
+            supplyMetricsService, getPlantRepository);
 
     private final Supply first = SupplyMother.random().build();
     private final Supply second = SupplyMother.random().build();
@@ -302,6 +304,6 @@ class GetMembershipEnergyMetricsServiceTest {
         when(supplyMetricsService.getEnergyMetrics(SupplyId.of(supply.getId()), startDate, endDate))
                 .thenReturn(new SupplyEnergyMetrics(supply, startDate, endDate, hoursWithData, 24L,
                         gridImportKWh, selfConsumptionKWh, surplusKWh,
-                        SupplySavings.of(BigDecimal.ONE, TariffSource.ESTIMATE, null)));
+                        SupplySavings.of(BigDecimal.ONE, TariffSource.ESTIMATE, null), false));
     }
 }

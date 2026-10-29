@@ -4,14 +4,14 @@
 | --- | --- |
 | **Prefix** | `PLT` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Plants`; operation `deletePlant` |
+| **Contract** | OpenAPI snapshot → tag `Plants`; operations `deletePlant`, `createPlant`, `updatePlant` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #437 |
+| **Last reviewed against code** | #411 |
 
 ## Purpose
 
-A plant is a generation installation attached to a supply of a community. This spec covers what deleting one does.
-It covers only the rules #437 touched.
+A plant is a generation installation attached to a supply of a community. This spec covers what deleting one does,
+and which supply a plant may be attached to. It covers only the rules #437 and #411 touched.
 
 ## Glossary
 
@@ -49,7 +49,24 @@ It covers only the rules #437 touched.
 - **Source:** #437. #480 made the writers lock the plant, which removed the accepted exception for a writer racing
   the deletion.
 
+### PLT-002 — A supply is the supply of at most one plant
+
+- **Status:** Active
+- **Rule:** Creating a plant on a supply that already has a plant (`createPlant`), or moving a plant to
+  such a supply (`updatePlant`), MUST be refused with 409 `SUPPLY_ALREADY_HAS_PLANT`, and nothing MUST
+  be written. Updating a plant that keeps its own supply is not a conflict. Two writers racing for the
+  same supply MUST end with one plant and the same refusal for the other, never an unhandled error.
+- **Rationale:** A supply references the plant whose own supply it is (SUP-004), and the
+  self-consumption ratio leaves that supply out (SEM-003, ENM-007): both need the link to name a single
+  plant. Nothing kept that before: the schema allowed several plants on one supply. The writers check
+  before writing, and the database constraint catches the race between two of them.
+- **Source:** #411
+
 ## Impossible states
+
+- Two plants attached to the same supply — prevented by PLT-002 and the `plants_supply_id_uq` unique
+  constraint. A database holding such plants does not start the release that adds the constraint until
+  they are resolved by hand.
 
 - A sharing agreement, partition coefficient or Huawei configuration whose plant does not exist — prevented by the
   foreign keys to `plants`, which PLT-001 refuses or clears before deleting the plant.

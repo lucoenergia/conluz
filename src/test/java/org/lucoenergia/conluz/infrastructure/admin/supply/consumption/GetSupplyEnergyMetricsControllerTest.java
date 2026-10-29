@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -84,6 +87,8 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreatePlantRepository createPlantRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture fixture;
     @Autowired
@@ -655,6 +660,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         User owner = UserMother.randomUser();
         owner.enable();
         User createdOwner = createUserRepository.create(owner);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, createdOwner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyOwnedBy(createdOwner);
 
         writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 10.0f, 0.0f));
@@ -672,6 +678,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         User owner = UserMother.randomUser();
         owner.enable();
         User createdOwner = createUserRepository.create(owner);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, createdOwner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyOwnedBy(createdOwner);
 
         writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 1.0f, 0.0f));
@@ -681,6 +688,18 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supply.id").value(supply.getId().toString()))
                 .andExpect(jsonPath("$.selfSufficiencyRatio").value(closeTo(0.2, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("SUP-003 the owner whose membership is disabled is answered not found")
+    void theOwnerWhoseMembershipIsDisabledIsAnsweredNotFound() throws Exception {
+        User owner = createMemberOfDefaultCommunity();
+        Supply supply = createSupplyOwnedBy(owner);
+        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, owner.getId(), DEFAULT_COMMUNITY_ID);
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -798,7 +817,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 EPR-001 AC7 each supply of an owner resolves the latest month it published itself, half-open")
     void eachSupplyOfAnOwnerResolvesTheLatestMonthItPublishedItself() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supplyA = createSupplyOwnedBy(owner);
         Supply supplyB = createSupplyOwnedBy(owner);
         writePublishedZeros(supplyA, YearMonth.of(2026, 7));
@@ -834,7 +853,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC1 the resolved month is aggregated over this supply's records")
     void theResolvedMonthIsAggregatedOverThisSuppliesRecords() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 9));
         writeRecords(hourlyRecord(supply.getCode(), "2026/09/10", "12:00", 3.0f, 4.0f, 1.0f));
@@ -853,7 +872,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("SEM-001 AC2 the reference period combined with a start date is a bad request")
     void theReferencePeriodCombinedWithAStartDateIsABadRequest() throws Exception {
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
@@ -867,7 +886,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("SEM-001 AC2 the reference period combined with an end date is a bad request")
     void theReferencePeriodCombinedWithAnEndDateIsABadRequest() throws Exception {
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
@@ -881,7 +900,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("SEM-001 AC2 the reference period combined with both dates is a bad request")
     void theReferencePeriodCombinedWithBothDatesIsABadRequest() throws Exception {
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
@@ -903,7 +922,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC3 a supply without a published month before the current one resolves no period")
     void aSupplyWithoutAPublishedMonthBeforeTheCurrentOneResolvesNoPeriod() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 8), FOUR_HOURS_A_DAY);
         fixture.writeAt(supply.getCode(), hourly(YearMonth.of(2026, 9)), 0.5f, null, 0.2f);
@@ -916,7 +935,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC3 a supply without any stored record resolves no period")
     void aSupplyWithoutAnyStoredRecordResolvesNoPeriod() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
 
         assertNoPeriodResolved(requestLatest(supply, loginUser(owner)), supply);
@@ -930,7 +949,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC4 without a period nor dates the period still spans every stored record")
     void withoutAPeriodNorDatesThePeriodStillSpansEveryStoredRecord() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 8));
         writePublishedZeros(supply, YearMonth.of(2026, 9), FOUR_HOURS_A_DAY);
@@ -951,7 +970,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-001 AC4 explicit dates over the resolved month answer exactly what the reference period answers")
     void explicitDatesOverTheResolvedMonthAnswerExactlyWhatTheReferencePeriodAnswers() throws Exception {
         travelTo(NOW);
-        User owner = createEnabledUser();
+        User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 8));
         writeRecords(hourlyRecord(supply.getCode(), "2026/08/10", "12:00", 3.0f, 4.0f, 1.0f));
@@ -1031,6 +1050,157 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         requestLatest(supply, loginAsCommunityMember(community.getId())).andExpect(status().isNotFound());
     }
 
+    // --- Self-consumption ratio of a plant's own supply ---
+
+    /**
+     * 4 kWh imported, 3 self-consumed and 0 surplus, as a plant's own supply stores them: its surplus
+     * is stored as 0. The ratio would be 1; it does not apply instead, and every other figure
+     * is what the same records give a regular supply.
+     */
+    @Test
+    @DisplayName("SEM-003 SEM-004 AC1 a plant's own supply has no self-consumption ratio, and every other figure is unchanged")
+    void aPlantsOwnSupplyHasNoSelfConsumptionRatioAndEveryOtherFigureIsUnchanged() throws Exception {
+        Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
+        createPlantOn(supply);
+        writeRecords(
+                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 3.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 2.0f, 1.0f, 0.0f));
+
+        requestDay(supply)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOT_APPLICABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.selfConsumptionKWh").value(0.0))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.assignedProductionKWh").value(0.0))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(1))
+                .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(6.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.surplusKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.totalConsumptionKWh").value(closeTo(10.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.assignedProductionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfSufficiencyRatio").value(closeTo(0.4, TOLERANCE)))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(2))
+                .andExpect(jsonPath("$.coverage.expectedHours").value(24))
+                // 4 kWh * 0.15 = 0.60
+                .andExpect(jsonPath("$.savings.amountEur").value(closeTo(0.60, TOLERANCE)));
+    }
+
+    /**
+     * The same records as a plant's own supply, on a supply no plant uses: it consumed everything it
+     * was assigned, so its ratio is 1. A zero surplus never makes a supply a plant's own supply.
+     */
+    @Test
+    @DisplayName("SEM-002 SEM-004 a regular supply that used everything assigned has a ratio of 1, with the totals as basis")
+    void aRegularSupplyWithZeroSurplusHasARatioOfOne() throws Exception {
+        Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
+        writeRecords(
+                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 3.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 2.0f, 1.0f, 0.0f));
+
+        requestDay(supply)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(closeTo(1.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("AVAILABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.assignedProductionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(0))
+                .andExpect(jsonPath("$.selfSufficiencyRatio").value(closeTo(0.4, TOLERANCE)))
+                .andExpect(jsonPath("$.savings.amountEur").value(closeTo(0.60, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("SEM-002 SEM-004 a regular supply's basis is its own self-consumption and assigned energy")
+    void aRegularSuppliesBasisIsItsOwnEnergy() throws Exception {
+        Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 1.0f, 3.0f));
+
+        requestDay(supply)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(closeTo(0.25, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("AVAILABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.selfConsumptionKWh").value(closeTo(1.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.assignedProductionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(0));
+    }
+
+    @Test
+    @DisplayName("SEM-002 a regular supply with nothing assigned has nothing assigned")
+    void aRegularSupplyWithNothingAssignedHasNothingAssigned() throws Exception {
+        Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 0.0f, 0.0f));
+
+        requestDay(supply)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOTHING_ASSIGNED"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(0));
+    }
+
+    @Test
+    @DisplayName("SEM-003 AC6 a plant's own supply has no self-consumption ratio over its recorded span")
+    void aPlantsOwnSupplyHasNoRatioOverItsRecordedSpan() throws Exception {
+        Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
+        createPlantOn(supply);
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 3.0f, 0.0f));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(3.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOT_APPLICABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(1));
+    }
+
+    @Test
+    @DisplayName("SEM-003 AC6 a plant's own supply has no self-consumption ratio over the latest published month")
+    void aPlantsOwnSupplyHasNoRatioOverTheLatestPublishedMonth() throws Exception {
+        travelTo(NOW);
+        Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
+        createPlantOn(supply);
+        writePublishedZeros(supply, YearMonth.of(2026, 9));
+        writeRecords(hourlyRecord(supply.getCode(), "2026/09/10", "12:00", 3.0f, 4.0f, 0.0f));
+
+        requestLatest(supply, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value("2026-09-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOT_APPLICABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(1));
+    }
+
+    @Test
+    @DisplayName("SEM-003 without a published month, a plant's own supply is not applicable and a regular one has nothing assigned")
+    void withoutAPublishedMonthAPlantsOwnSupplyIsNotApplicable() throws Exception {
+        travelTo(NOW);
+        Supply plantSupply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
+        createPlantOn(plantSupply);
+        Supply regularSupply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
+        String token = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+
+        requestLatest(plantSupply, token)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOT_APPLICABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(1));
+        requestLatest(regularSupply, token)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOTHING_ASSIGNED"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(0));
+    }
+
+    private ResultActions requestDay(Supply supply) throws Exception {
+        return mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
+                .queryParam("startDate", "2024-02-01T00:00:00+01:00")
+                .queryParam("endDate", "2024-02-02T00:00:00+01:00"));
+    }
+
+    private void createPlantOn(Supply supply) {
+        createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
+    }
+
     private ResultActions requestLatest(Supply supply, String token) throws Exception {
         return mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                 .header(HttpHeaders.AUTHORIZATION, token)
@@ -1088,6 +1258,12 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
 
     private Community createCommunity() {
         return createCommunityRepository.create(CommunityMother.random().build());
+    }
+
+    private User createMemberOfDefaultCommunity() {
+        User member = createEnabledUser();
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        return member;
     }
 
     private User createMemberOf(Community community) {

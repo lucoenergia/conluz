@@ -24,6 +24,7 @@ import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodExcep
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.EstimatedPrice;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.admin.supply.tariff.EstimatedTariffProperties;
@@ -88,12 +89,13 @@ class GetSupplyEnergyMetricsServiceTest {
     private final GetDatadisConsumptionAggregateRepository aggregateRepository =
             mock(GetDatadisConsumptionAggregateRepository.class);
     private final GetSupplyRepository getSupplyRepository = mock(GetSupplyRepository.class);
+    private final GetPlantRepository getPlantRepository = mock(GetPlantRepository.class);
     private final TimeConfiguration timeConfiguration = mock(TimeConfiguration.class);
     private final SupplyTariffResolver tariffResolver = mock(SupplyTariffResolver.class);
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
     private final ReferenceMonthResolver referenceMonthResolver = mock(ReferenceMonthResolver.class);
     private final GetSupplyEnergyMetricsService service = new GetSupplyEnergyMetricsServiceImpl(
-            aggregateRepository, getSupplyRepository, new DateConverter(timeConfiguration),
+            aggregateRepository, getSupplyRepository, getPlantRepository, new DateConverter(timeConfiguration),
             new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
                     CONFIGURED_ESTIMATE),
             referenceMonthResolver, zoneResolver, CLOCK);
@@ -229,7 +231,7 @@ class GetSupplyEnergyMetricsServiceTest {
         assertEquals(0L, metrics.getExpectedHours());
         assertEquals(0d, metrics.getTotalConsumptionKWh());
         assertNull(metrics.getSelfSufficiencyRatio());
-        assertNull(metrics.getSelfConsumptionRatio());
+        assertNull(metrics.getSelfConsumptionRatio().getValue());
         assertSame(supply, metrics.getSupply());
         // There is no period to aggregate over, so the store is not asked for one.
         verify(aggregateRepository, never()).aggregateByRangeOfDates(any(Supply.class), any(), any());

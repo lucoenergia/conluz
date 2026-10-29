@@ -105,7 +105,9 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         SharingAgreementEntity agreement1 = ensurePlantAndPublishedAgreement(supply);
-        SharingAgreementEntity agreement2 = ensurePlantAndPublishedAgreement(supply);
+        // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
+        // its coefficients stay on the shared consumer supply
+        SharingAgreementEntity agreement2 = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         // Same [t0, open) window on both plants: without plantId these two rows would be
         // indistinguishable overlapping intervals for the same supply.
@@ -149,7 +151,9 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
+        // its coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
         SharingAgreementEntity draftInX = persistAgreement(inX, SharingAgreementStatus.DRAFT);
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
@@ -235,7 +239,9 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
+        // its coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
@@ -287,7 +293,9 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
+        // its coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
@@ -333,7 +341,9 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
+        // its coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
@@ -353,7 +363,9 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
         SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(supply);
+        // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
+        // its coefficients stay on the shared consumer supply
+        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
@@ -617,7 +629,9 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
      */
     private TwoPlantFixture twoPlantsWithActivatedAndPendingCoefficients(Supply supply) {
         SharingAgreementEntity publishedInX = ensurePlantAndPublishedAgreement(supply);
-        SharingAgreementEntity publishedInY = ensurePlantAndPublishedAgreement(supply);
+        // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
+        // its coefficients stay on the shared consumer supply
+        SharingAgreementEntity publishedInY = ensurePlantAndPublishedAgreement(createTestSupply());
         SharingAgreementEntity draftInX = persistAgreement(publishedInX, SharingAgreementStatus.DRAFT);
         SharingAgreementEntity draftInY = persistAgreement(publishedInY, SharingAgreementStatus.DRAFT);
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");

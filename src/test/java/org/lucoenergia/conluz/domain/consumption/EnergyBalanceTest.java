@@ -19,15 +19,14 @@ class EnergyBalanceTest {
     }
 
     /**
-     * The first balance has ratios 0.40 and 0.80, the second 0.50 and 0.25. Averaging them would
-     * give 0.45 and 0.525; the ratios of the sum are 41/102 and 41/54.
+     * The first balance has a ratio of 0.40, the second 0.50. Averaging them would give 0.45; the
+     * ratio of the sum is 41/102.
      */
     @Test
-    void theRatiosOfASumAreDerivedFromTheSummedTotalsAndNotAveraged() {
+    void theRatioOfASumIsDerivedFromTheSummedTotalsAndNotAveraged() {
         EnergyBalance sum = new EnergyBalance(60d, 40d, 10d).plus(new EnergyBalance(1d, 1d, 3d));
 
         assertEquals(0.4020d, sum.getSelfSufficiencyRatio(), 1e-4);
-        assertEquals(0.7593d, sum.getSelfConsumptionRatio(), 1e-4);
     }
 
     @Test
@@ -40,7 +39,6 @@ class EnergyBalanceTest {
         assertEquals(balance.getSelfConsumptionKWh(), sum.getSelfConsumptionKWh());
         assertEquals(balance.getSurplusKWh(), sum.getSurplusKWh());
         assertEquals(balance.getSelfSufficiencyRatio(), sum.getSelfSufficiencyRatio());
-        assertEquals(balance.getSelfConsumptionRatio(), sum.getSelfConsumptionRatio());
     }
 
     @Test
@@ -50,6 +48,5 @@ class EnergyBalanceTest {
         assertEquals(0d, empty.getTotalConsumptionKWh());
         assertEquals(0d, empty.getAssignedProductionKWh());
         assertNull(empty.getSelfSufficiencyRatio());
-        assertNull(empty.getSelfConsumptionRatio());
     }
 }

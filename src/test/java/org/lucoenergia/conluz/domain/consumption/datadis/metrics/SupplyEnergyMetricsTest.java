@@ -31,7 +31,7 @@ class SupplyEnergyMetricsTest {
         assertEquals(155d, metrics.getTotalConsumptionKWh(), 1e-9);
         assertEquals(64.5d, metrics.getAssignedProductionKWh(), 1e-9);
         assertEquals(53d / 155d, metrics.getSelfSufficiencyRatio(), 1e-9);
-        assertEquals(53d / 64.5d, metrics.getSelfConsumptionRatio(), 1e-9);
+        assertEquals(53d / 64.5d, metrics.getSelfConsumptionRatio().getValue(), 1e-9);
     }
 
     @Test
@@ -39,14 +39,14 @@ class SupplyEnergyMetricsTest {
         SupplyEnergyMetrics metrics = metrics(0d, 0d, 5d);
 
         assertNull(metrics.getSelfSufficiencyRatio());
-        assertEquals(0d, metrics.getSelfConsumptionRatio());
+        assertEquals(0d, metrics.getSelfConsumptionRatio().getValue());
     }
 
     @Test
     void aZeroAssignedProductionYieldsANullSelfConsumptionRatio() {
         SupplyEnergyMetrics metrics = metrics(10d, 0d, 0d);
 
-        assertNull(metrics.getSelfConsumptionRatio());
+        assertNull(metrics.getSelfConsumptionRatio().getValue());
         assertEquals(0d, metrics.getSelfSufficiencyRatio());
     }
 
@@ -55,7 +55,7 @@ class SupplyEnergyMetricsTest {
         SupplyEnergyMetrics metrics = metrics(0d, 0d, 0d);
 
         assertNull(metrics.getSelfSufficiencyRatio());
-        assertNull(metrics.getSelfConsumptionRatio());
+        assertNull(metrics.getSelfConsumptionRatio().getValue());
     }
 
     /**
@@ -69,16 +69,16 @@ class SupplyEnergyMetricsTest {
                 metrics(0d, 0d, 5d),
                 metrics(10d, 0d, 0d),
                 metrics(0d, 5d, 0d),
-                SupplyEnergyMetrics.empty(supply, START_DATE, END_DATE, 3L)}) {
+                SupplyEnergyMetrics.empty(supply, START_DATE, END_DATE, 3L, false)}) {
 
             assertFinite(metrics.getSelfSufficiencyRatio());
-            assertFinite(metrics.getSelfConsumptionRatio());
+            assertFinite(metrics.getSelfConsumptionRatio().getValue());
         }
     }
 
     @Test
     void anEmptyResultReportsZeroEnergyAndNoRatios() {
-        SupplyEnergyMetrics metrics = SupplyEnergyMetrics.empty(supply, null, null, 0L);
+        SupplyEnergyMetrics metrics = SupplyEnergyMetrics.empty(supply, null, null, 0L, false);
 
         assertNull(metrics.getStartDate());
         assertNull(metrics.getEndDate());
@@ -87,14 +87,14 @@ class SupplyEnergyMetricsTest {
         assertEquals(0d, metrics.getTotalConsumptionKWh());
         assertEquals(0d, metrics.getAssignedProductionKWh());
         assertNull(metrics.getSelfSufficiencyRatio());
-        assertNull(metrics.getSelfConsumptionRatio());
+        assertNull(metrics.getSelfConsumptionRatio().getValue());
         assertNotNull(metrics.getSupply());
     }
 
     private SupplyEnergyMetrics metrics(double gridImportKWh, double selfConsumptionKWh, double surplusKWh) {
         return new SupplyEnergyMetrics(supply, START_DATE, END_DATE, 3L, 3L,
                 gridImportKWh, selfConsumptionKWh, surplusKWh,
-                SupplySavings.of(new BigDecimal("1.23"), TariffSource.ESTIMATE, null));
+                SupplySavings.of(new BigDecimal("1.23"), TariffSource.ESTIMATE, null), false);
     }
 
     private void assertFinite(Double ratio) {

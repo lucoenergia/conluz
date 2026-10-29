@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- A supply is the supply of at most one plant (#411). Nothing kept that before: a plant
+         could be created on, or moved to, a supply that already had one. A supply's response
+         references its plant, and the self-consumption ratio leaves a plant's own supply out, so
+         both need the link to name a single plant. The plant writers refuse a second plant before
+         writing; the constraint is the backstop for two writers racing each other. supply_id is
+         already NOT NULL, so every row takes part. -->
+    <changeSet id="add_unique_constraint_to_plants_supply_id" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add plants_supply_id_uq: it already exists, or several plants share a supply_id. List them with: SELECT supply_id, count(*) FROM plants GROUP BY supply_id HAVING count(*) > 1">
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM pg_constraint WHERE conname = 'plants_supply_id_uq'
+            </sqlCheck>
+            <sqlCheck expectedResult="0">
+                SELECT count(*)
+                FROM (SELECT supply_id FROM plants
+                      GROUP BY supply_id HAVING count(*) > 1) AS duplicates
+            </sqlCheck>
+        </preConditions>
+        <addUniqueConstraint tableName="plants"
+                             columnNames="supply_id"
+                             constraintName="plants_supply_id_uq"/>
+        <rollback>
+            <dropUniqueConstraint tableName="plants" constraintName="plants_supply_id_uq"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

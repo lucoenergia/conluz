@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.plant;
 
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
+import org.lucoenergia.conluz.domain.production.plant.SupplyAlreadyHasPlantException;
 import org.lucoenergia.conluz.domain.production.plant.PlantMissingRegulatoryCodeException;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.delete.PlantHasPartitionCoefficientsException;
@@ -92,6 +93,20 @@ public class PlantExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.PLANT_HAS_PARTITION_COEFFICIENTS, Map.of("plantId", plantId),
+                HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(SupplyAlreadyHasPlantException.class)
+    public ResponseEntity<RestError> handleException(SupplyAlreadyHasPlantException e) {
+
+        String supplyId = e.getSupplyId().getId().toString();
+
+        String message = messageSource.getMessage(
+                "error.supply.already.has.plant",
+                Collections.singletonList(supplyId).toArray(),
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.SUPPLY_ALREADY_HAS_PLANT, Map.of("supplyId", supplyId),
                 HttpStatus.CONFLICT);
     }
 }

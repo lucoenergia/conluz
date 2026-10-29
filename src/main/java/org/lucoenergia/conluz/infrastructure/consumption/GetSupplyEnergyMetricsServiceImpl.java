@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
@@ -32,6 +33,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
 
     private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
     private final GetSupplyRepository getSupplyRepository;
+    private final GetPlantRepository getPlantRepository;
     private final DateConverter dateConverter;
     private final SupplySavingsCalculator supplySavingsCalculator;
     private final ReferenceMonthResolver referenceMonthResolver;
@@ -41,6 +43,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
     public GetSupplyEnergyMetricsServiceImpl(
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
             GetSupplyRepository getSupplyRepository,
+            GetPlantRepository getPlantRepository,
             DateConverter dateConverter,
             SupplySavingsCalculator supplySavingsCalculator,
             ReferenceMonthResolver referenceMonthResolver,
@@ -48,6 +51,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
             Clock clock) {
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.getSupplyRepository = getSupplyRepository;
+        this.getPlantRepository = getPlantRepository;
         this.dateConverter = dateConverter;
         this.supplySavingsCalculator = supplySavingsCalculator;
         this.referenceMonthResolver = referenceMonthResolver;
@@ -69,6 +73,8 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
         EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod, startOfCurrentHour, zone);
 
         Supply supply = getSupplyOrThrow(supplyId);
+        // Read once, before any branch, so every resolution, the empty ones included, carries it (SEM-003).
+        boolean plantSupply = getPlantRepository.existsBySupply(supplyId);
 
         OffsetDateTime resolvedStartDate = startDate;
         // An explicit end after the current hour is clipped to it before anything is read, so no
@@ -81,7 +87,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
             if (latestPublishedMonth.isEmpty()) {
                 // No month in the search window is published for this supply. The same empty
                 // result as a supply without any record, not an error.
-                return SupplyEnergyMetrics.empty(supply, null, null, 0L);
+                return SupplyEnergyMetrics.empty(supply, null, null, 0L, plantSupply);
             }
             resolvedStartDate = latestPublishedMonth.get().getStartDate();
             resolvedEndDate = latestPublishedMonth.get().getEndDate();
@@ -91,7 +97,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
             if (recordedPeriod.isEmpty()) {
                 // The supply has never stored a consumption record, so there is no period to
                 // report. This is an empty result, not a missing supply.
-                return SupplyEnergyMetrics.empty(supply, null, null, 0L);
+                return SupplyEnergyMetrics.empty(supply, null, null, 0L, plantSupply);
             }
             EnergyMetricsPeriod recorded = EnergyMetricsPeriod.ofRecords(
                     dateConverter.convertInstantToOffsetDateTime(recordedPeriod.get().getFirstRecord()),
@@ -113,7 +119,8 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 aggregate.getSelfConsumptionEnergyKWh(),
                 aggregate.getSurplusEnergyKWh(),
                 estimateSavings(supply, resolvedStartDate, resolvedEndDate,
-                        aggregate.getSelfConsumptionEnergyKWh()));
+                        aggregate.getSelfConsumptionEnergyKWh()),
+                plantSupply);
     }
 
     /**

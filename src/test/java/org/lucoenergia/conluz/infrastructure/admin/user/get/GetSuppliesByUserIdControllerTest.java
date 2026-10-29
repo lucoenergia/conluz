@@ -15,6 +15,8 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
+import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -48,6 +50,8 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private CommunityMembershipJpaRepository communityMembershipJpaRepository;
 
     @Test
     void testGetSuppliesByUserId_shouldReturnSuppliesWhenCommunityAdminRequestsAMemberOfTheirCommunity()
@@ -107,6 +111,7 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 .withEnabled(true)
                 .build();
         Supply createdSupply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         // Login as the user
         String loginBody = "{\"username\": \"" + user.getPersonalId() + "\",\"password\": \"" + user.getPassword() + "\"}";
@@ -145,6 +150,8 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                 UserId.of(user.getId()), communityA.getId());
         Supply supplyInB = createSupplyRepository.create(SupplyMother.random(user).build(),
                 UserId.of(user.getId()), communityB.getId());
+        createMembershipRepository.create(communityA.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.create(communityB.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         String authHeader = loginUser(user);
 
@@ -356,5 +363,30 @@ class GetSuppliesByUserIdControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().is(expected.value()));
+    }
+
+    @Test
+    @DisplayName("SUP-003 the owner's own listing leaves out the supplies of communities where their membership is not active")
+    void theOwnListingLeavesOutSuppliesOfCommunitiesWhereTheMembershipIsNotActive() throws Exception {
+        Community active = createCommunityRepository.create(CommunityMother.random().build());
+        Community disabled = createCommunityRepository.create(CommunityMother.random().build());
+        Community pending = createCommunityRepository.create(CommunityMother.random().build());
+        User user = UserMother.randomUser();
+        user.enable();
+        createUserRepository.create(user);
+        Map<UUID, Supply> supplies = new HashMap<>();
+        for (Community community : new Community[]{active, disabled, pending}) {
+            createMembershipRepository.create(community.getId(), user.getId(), CommunityRole.COMMUNITY_MEMBER);
+            supplies.put(community.getId(), createSupplyRepository.create(SupplyMother.random(user).build(),
+                    UserId.of(user.getId()), community.getId()));
+        }
+        MembershipStateTestSupport.markDisabled(communityMembershipJpaRepository, user.getId(), disabled.getId());
+        MembershipStateTestSupport.markPending(communityMembershipJpaRepository, user.getId(), pending.getId());
+
+        mockMvc.perform(get(String.format("/api/v1/users/%s/supplies", user.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(supplies.get(active.getId()).getId().toString()));
     }
 }

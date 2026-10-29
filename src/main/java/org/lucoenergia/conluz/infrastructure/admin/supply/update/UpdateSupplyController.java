@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPlantAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.*;
@@ -31,13 +32,16 @@ public class UpdateSupplyController {
     private final UpdateSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final MemberDataAssembler memberDataAssembler;
+    private final SupplyPlantAssembler supplyPlantAssembler;
 
     public UpdateSupplyController(UpdateSupplyService service,
                                   SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                  MemberDataAssembler memberDataAssembler) {
+                                  MemberDataAssembler memberDataAssembler,
+            SupplyPlantAssembler supplyPlantAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.memberDataAssembler = memberDataAssembler;
+        this.supplyPlantAssembler = supplyPlantAssembler;
     }
 
     @PutMapping("/supplies/{supplyId}")
@@ -73,6 +77,6 @@ public class UpdateSupplyController {
                                       @Valid @RequestBody UpdateSupplyBody body) {
         Supply updated = service.update(SupplyId.of(supplyId), body.mapToSupply());
         return new SupplyResponse(updated, capabilitiesAssembler.assemble(currentUser, updated),
-                memberDataAssembler.recordOfSupplyOwner(updated));
+                memberDataAssembler.recordOfSupplyOwner(updated), supplyPlantAssembler.plantOf(updated));
     }
 }

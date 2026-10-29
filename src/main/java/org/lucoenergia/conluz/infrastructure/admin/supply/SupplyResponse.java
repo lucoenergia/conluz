@@ -3,18 +3,20 @@ package org.lucoenergia.conluz.infrastructure.admin.supply;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PlantReference;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SupplyCapabilitiesResponse;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.MemberRecordResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.contract.SupplyContractResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.distributor.SupplyDistributorResponse;
 import org.lucoenergia.conluz.infrastructure.admin.supply.shelly.SupplyShellyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.CommunityReferenceResponse;
+import org.lucoenergia.conluz.infrastructure.shared.web.reference.PlantReferenceResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.reference.UserReferenceResponse;
 
 import java.util.UUID;
 
 @Schema(requiredProperties = {"id", "code", "user", "ownerRecord", "name", "address", "addressRef", "enabled",
-        "contract", "distributor", "shelly", "capabilities", "community"})
+        "contract", "distributor", "shelly", "capabilities", "community", "plant"})
 public class SupplyResponse {
 
     @Schema(description = "Internal unique identifier of the supply", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
@@ -43,6 +45,9 @@ public class SupplyResponse {
     private final SupplyShellyResponse shelly;
     @Schema(description = "Community the supply belongs to")
     private final CommunityReferenceResponse community;
+    @Schema(description = "The plant whose own supply this is: the supply its production is measured at. "
+            + "Null when the supply is no plant's own supply.", types = {"object", "null"})
+    private final PlantReferenceResponse plant;
 
     @Schema(description = "What the caller may do with this supply.")
     private final SupplyCapabilitiesResponse capabilities;
@@ -50,8 +55,11 @@ public class SupplyResponse {
     /**
      * @param ownerRecord the owner's membership in the supply's community (MEM-026), or {@code null} when the supply
      *                    has no owner or its owner has none; a listing reads those records once for the whole page.
+     * @param plant       the plant whose own supply this is (SUP-004), or {@code null}; a listing reads those plants
+     *                    once for the whole page.
      */
-    public SupplyResponse(Supply supply, SupplyCapabilitiesResponse capabilities, CommunityMembership ownerRecord) {
+    public SupplyResponse(Supply supply, SupplyCapabilitiesResponse capabilities, CommunityMembership ownerRecord,
+                          PlantReference plant) {
         this.id = supply.getId();
         this.code = supply.getCode();
         this.name = supply.getName();
@@ -64,6 +72,7 @@ public class SupplyResponse {
         this.distributor = supply.getDistributor() != null ? new SupplyDistributorResponse(supply.getDistributor()) : null;
         this.shelly = supply.getShelly() != null ? new SupplyShellyResponse(supply.getShelly()) : null;
         this.capabilities = capabilities;
+        this.plant = plant != null ? new PlantReferenceResponse(plant.id(), plant.name()) : null;
         // Dereferenced unguarded: supplies.community_id is NOT NULL with a foreign key, so a null
         // here is a bug that must surface rather than serialise into a non-nullable field.
         this.community = new CommunityReferenceResponse(supply.getCommunity().getId(),
@@ -120,5 +129,9 @@ public class SupplyResponse {
 
     public CommunityReferenceResponse getCommunity() {
         return community;
+    }
+
+    public PlantReferenceResponse getPlant() {
+        return plant;
     }
 }

@@ -107,6 +107,37 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("SUP-004 listing a community's supplies reads the plant of every plant's own supply in one query")
+    void listingACommunitysPlantSuppliesCostsTheSameForOneAndForFive() throws Exception {
+        String adminToken = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        String url = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/supplies";
+
+        persistPlants(1);
+        long forOne = statementsFor(url, adminToken);
+
+        persistPlants(4);
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "listing supplies must not read a plant per supply");
+    }
+
+    @Test
+    @DisplayName("SUP-004 listing a user's supplies reads the plant of every plant's own supply in one query")
+    void listingAUsersPlantSuppliesCostsTheSameForOneAndForFive() throws Exception {
+        String adminToken = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User owner = persistMember();
+        String url = "/api/v1/users/" + owner.getId() + "/supplies";
+
+        persistPlantsOwnedBy(owner, 1);
+        long forOne = statementsFor(url, adminToken);
+
+        persistPlantsOwnedBy(owner, 4);
+        long forFive = statementsFor(url, adminToken);
+
+        assertEquals(forOne, forFive, "listing a user's supplies must not read a plant per supply");
+    }
+
+    @Test
     @DisplayName("MEM-026 listing a community's supplies reads every owner's member record in one query")
     void listingACommunitysSuppliesOwnedByMembersCostsTheSameForOneAndForFive() throws Exception {
         // Owners who are members of the community, so each supply has a member record to show
@@ -410,6 +441,14 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         for (int i = 0; i < count; i++) {
             Supply supply = createSupplyRepository.create(SupplyMother.random().build(),
                     UserId.of(persistUser().getId()), DEFAULT_COMMUNITY_ID);
+            createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
+        }
+    }
+
+    private void persistPlantsOwnedBy(User owner, int count) {
+        for (int i = 0; i < count; i++) {
+            Supply supply = createSupplyRepository.create(SupplyMother.random().build(),
+                    UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
             createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
         }
     }

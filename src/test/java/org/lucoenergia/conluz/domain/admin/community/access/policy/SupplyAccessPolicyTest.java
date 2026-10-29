@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.community.access.policy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -26,9 +27,39 @@ class SupplyAccessPolicyTest {
     // forbidden: a 403 would confirm the supply exists.
 
     @Test
-    void canRead_allows_theOwner() {
-        User owner = PolicyFixtures.stranger();
+    @DisplayName("SUP-003 canRead allows the owner while their membership in the supply's community is active")
+    void canRead_allows_theOwnerWithAnActiveMembership() {
+        Community community = PolicyFixtures.community();
+        User owner = PolicyFixtures.memberOf(community);
         assertEquals(AccessDecision.ALLOWED,
+                policy.canRead(owner, PolicyFixtures.supplyIn(community, owner.getId())));
+    }
+
+    @Test
+    @DisplayName("SUP-003 canRead is not visible for an owner whose membership is disabled")
+    void canRead_isNotVisible_forAnOwnerWhoseMembershipIsDisabled() {
+        Community community = PolicyFixtures.community();
+        User owner = PolicyFixtures.disabledMemberOf(community);
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canRead(owner, PolicyFixtures.supplyIn(community, owner.getId())));
+    }
+
+    @Test
+    @DisplayName("SUP-003 canRead is not visible for an owner whose membership is pending")
+    void canRead_isNotVisible_forAnOwnerWhoseMembershipIsPending() {
+        Community community = PolicyFixtures.community();
+        User owner = PolicyFixtures.pendingMemberOf(community);
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canRead(owner, PolicyFixtures.supplyIn(community, owner.getId())));
+    }
+
+    @Test
+    @DisplayName("SUP-003 canRead is not visible for an owner with no membership in the supply's community")
+    void canRead_isNotVisible_forAnOwnerWithoutMembershipInTheSupplyCommunity() {
+        User owner = PolicyFixtures.memberOf(PolicyFixtures.community());
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canRead(owner, PolicyFixtures.supplyIn(PolicyFixtures.community(), owner.getId())));
+        assertEquals(AccessDecision.NOT_VISIBLE,
                 policy.canRead(owner, PolicyFixtures.supplyWithoutCommunity(owner.getId())));
     }
 
@@ -77,9 +108,19 @@ class SupplyAccessPolicyTest {
     @Test
     void canEdit_forbids_theOwnerWhoIsNotACommunityAdmin() {
         // The owner can see the supply, so this is the one supply denial that is a 403.
-        User owner = PolicyFixtures.stranger();
+        Community community = PolicyFixtures.community();
+        User owner = PolicyFixtures.memberOf(community);
         assertEquals(AccessDecision.FORBIDDEN,
-                policy.canEdit(owner, PolicyFixtures.supplyWithoutCommunity(owner.getId())));
+                policy.canEdit(owner, PolicyFixtures.supplyIn(community, owner.getId())));
+    }
+
+    @Test
+    @DisplayName("SUP-003 canEdit is not visible for an owner whose membership is disabled")
+    void canEdit_isNotVisible_forAnOwnerWhoseMembershipIsDisabled() {
+        Community community = PolicyFixtures.community();
+        User owner = PolicyFixtures.disabledMemberOf(community);
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canEdit(owner, PolicyFixtures.supplyIn(community, owner.getId())));
     }
 
     @Test
@@ -110,9 +151,9 @@ class SupplyAccessPolicyTest {
         Community community = PolicyFixtures.community();
         User admin = PolicyFixtures.adminOf(community);
         User member = PolicyFixtures.memberOf(community);
-        User owner = PolicyFixtures.stranger();
+        User owner = PolicyFixtures.memberOf(community);
         Supply supplyInCommunity = PolicyFixtures.supplyIn(community, UUID.randomUUID());
-        Supply ownedSupply = PolicyFixtures.supplyWithoutCommunity(owner.getId());
+        Supply ownedSupply = PolicyFixtures.supplyIn(community, owner.getId());
 
         assertEquals(policy.canRead(admin, supplyInCommunity),
                 policy.canReadPartitionCoefficients(admin, supplyInCommunity));
@@ -134,9 +175,10 @@ class SupplyAccessPolicyTest {
     void canReadPartitionCoefficients_allows_theOwnerWhoIsNotACommunityAdmin() {
         // The coefficients describe the owner's own share; hiding pending periods is the read's
         // job, not the guard's.
-        User owner = PolicyFixtures.stranger();
+        Community community = PolicyFixtures.community();
+        User owner = PolicyFixtures.memberOf(community);
         assertEquals(AccessDecision.ALLOWED, policy.canReadPartitionCoefficients(
-                owner, PolicyFixtures.supplyWithoutCommunity(owner.getId())));
+                owner, PolicyFixtures.supplyIn(community, owner.getId())));
     }
 
     @Test
@@ -214,9 +256,18 @@ class SupplyAccessPolicyTest {
     // "a listing never carries a supply its own GET would 404 on" a property of the policy.
 
     @Test
-    void visibleSuppliesOwnedBy_isEverything_forTheOwnerThemselves() {
-        User owner = PolicyFixtures.memberOf(PolicyFixtures.community());
-        assertEquals(SupplyOwnerScope.all(), policy.visibleSuppliesOwnedBy(owner, owner.getId()));
+    @DisplayName("SUP-003 visibleSuppliesOwnedBy is the active memberships' communities for the owner themselves")
+    void visibleSuppliesOwnedBy_isTheActiveMembershipCommunities_forTheOwnerThemselves() {
+        Community active = PolicyFixtures.community();
+        Community disabled = PolicyFixtures.community();
+        Community pending = PolicyFixtures.community();
+        User owner = PolicyFixtures.stranger();
+        owner.setMemberships(List.of(
+                PolicyFixtures.membershipIn(active, CommunityRole.COMMUNITY_MEMBER, true),
+                PolicyFixtures.membershipIn(disabled, CommunityRole.COMMUNITY_MEMBER, false),
+                PolicyFixtures.pending(PolicyFixtures.membershipIn(pending, CommunityRole.COMMUNITY_MEMBER, true))));
+        assertEquals(SupplyOwnerScope.inCommunities(Set.of(active.getId())),
+                policy.visibleSuppliesOwnedBy(owner, owner.getId()));
     }
 
     @Test
@@ -248,15 +299,24 @@ class SupplyAccessPolicyTest {
     }
 
     @Test
+    @DisplayName("SUP-003 visibleSuppliesOwnedBy includes exactly the supplies isVisible allows")
     void visibleSuppliesOwnedBy_includesExactlyTheSuppliesIsVisibleAllows() {
         Community a = PolicyFixtures.community();
         Community b = PolicyFixtures.community();
         Community c = PolicyFixtures.community();
         User owner = PolicyFixtures.withMembership(PolicyFixtures.stranger(), a, CommunityRole.COMMUNITY_MEMBER, true);
         UUID ownerId = owner.getId();
+        // The same owner, seen with each of their memberships turned inactive in turn.
+        User disabledOwner = new User.Builder().id(ownerId).build();
+        disabledOwner.setMemberships(List.of(PolicyFixtures.membershipIn(a, CommunityRole.COMMUNITY_MEMBER, false)));
+        User pendingOwner = new User.Builder().id(ownerId).build();
+        pendingOwner.setMemberships(List.of(
+                PolicyFixtures.pending(PolicyFixtures.membershipIn(a, CommunityRole.COMMUNITY_MEMBER, true))));
 
         Map<String, User> callers = new LinkedHashMap<>();
         callers.put("the owner", owner);
+        callers.put("the owner, disabled in A", disabledOwner);
+        callers.put("the owner, pending in A", pendingOwner);
         callers.put("admin of A", PolicyFixtures.adminOf(a));
         callers.put("admin of A and B", adminOfBoth(a, b));
         callers.put("admin of C only", PolicyFixtures.adminOf(c));

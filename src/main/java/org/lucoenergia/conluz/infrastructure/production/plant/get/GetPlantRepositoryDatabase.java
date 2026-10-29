@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.get;
 
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PlantReference;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantId;
@@ -19,9 +20,11 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Transactional(readOnly = true)
 @Repository
@@ -86,5 +89,15 @@ public class GetPlantRepositoryDatabase implements GetPlantRepository {
     @Override
     public boolean existsBySupply(SupplyId supplyId) {
         return plantRepository.existsBySupplyId(supplyId.getId());
+    }
+
+    @Override
+    public Map<UUID, PlantReference> findReferencesBySupplies(Collection<SupplyId> supplyIds) {
+        if (supplyIds.isEmpty()) {
+            return Map.of();
+        }
+        Set<UUID> ids = supplyIds.stream().map(SupplyId::getId).collect(Collectors.toSet());
+        return plantRepository.findReferencesBySupplyIdIn(ids).stream()
+                .collect(Collectors.toMap(row -> (UUID) row[0], row -> new PlantReference((UUID) row[1], (String) row[2])));
     }
 }

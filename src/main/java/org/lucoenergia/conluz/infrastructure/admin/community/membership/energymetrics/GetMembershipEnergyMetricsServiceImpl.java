@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,9 +29,10 @@ import java.util.UUID;
  * <h2>Query cost</h2>
  *
  * <p>The cost of resolving the scope (see {@link MembershipEnergyMetricsScopeResolverImpl}), then
- * per supply: one supply lookup, one aggregate query and one pricing query per tariff segment. The
- * cost grows with the number of supplies, not with the length of the period, since every sum is
- * pushed down to the store.
+ * per supply: one supply lookup, one plant-link query (whether it is a plant's own supply), one
+ * aggregate query and one pricing query per tariff segment. The cost grows with the number of
+ * supplies, not with the length of the period, since every sum is pushed down to the store. When no
+ * period resolves, a single batched plant-link query for every supply replaces all of that.
  */
 @Service
 @Transactional(readOnly = true)
@@ -38,12 +40,15 @@ public class GetMembershipEnergyMetricsServiceImpl implements GetMembershipEnerg
 
     private final MembershipEnergyMetricsScopeResolver membershipEnergyMetricsScopeResolver;
     private final GetSupplyEnergyMetricsService getSupplyEnergyMetricsService;
+    private final GetPlantRepository getPlantRepository;
 
     public GetMembershipEnergyMetricsServiceImpl(
             MembershipEnergyMetricsScopeResolver membershipEnergyMetricsScopeResolver,
-            GetSupplyEnergyMetricsService getSupplyEnergyMetricsService) {
+            GetSupplyEnergyMetricsService getSupplyEnergyMetricsService,
+            GetPlantRepository getPlantRepository) {
         this.membershipEnergyMetricsScopeResolver = membershipEnergyMetricsScopeResolver;
         this.getSupplyEnergyMetricsService = getSupplyEnergyMetricsService;
+        this.getPlantRepository = getPlantRepository;
     }
 
     @Override
@@ -56,7 +61,9 @@ public class GetMembershipEnergyMetricsServiceImpl implements GetMembershipEnerg
 
         Optional<EnergyMetricsPeriod> period = scope.getPeriod();
         if (period.isEmpty()) {
-            return MembershipEnergyMetrics.withoutPeriod(scope.getSupplies().size());
+            int plantSupplyCount = getPlantRepository.findReferencesBySupplies(scope.getSupplies().stream()
+                    .map(supply -> SupplyId.of(supply.getId())).toList()).size();
+            return MembershipEnergyMetrics.withoutPeriod(scope.getSupplies().size(), plantSupplyCount);
         }
 
         OffsetDateTime resolvedStartDate = period.get().getStartDate();

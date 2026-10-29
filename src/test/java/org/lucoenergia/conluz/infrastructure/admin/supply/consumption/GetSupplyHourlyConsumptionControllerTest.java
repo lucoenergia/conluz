@@ -5,6 +5,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -45,6 +47,8 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
     private static final String CUPS_CODE = "ES0031406912345678JN0F";
     private static final double TOLERANCE = 0.0001;
 
+    @Autowired
+    private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
@@ -96,6 +100,7 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(createdPartnerUser).withCode(CUPS_CODE).build(),
                 UserId.of(createdPartnerUser.getId()), DEFAULT_COMMUNITY_ID);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, createdPartnerUser.getId(), CommunityRole.COMMUNITY_MEMBER);
 
         // Login as the partner user
         String partnerToken = loginUser(partnerUser);
