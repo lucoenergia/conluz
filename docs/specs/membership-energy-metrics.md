@@ -23,7 +23,7 @@ the rest of the capability is specified lazily, as issues touch it.
 | Published month (of a supply) | A complete calendar month, in the community's time zone, in which the supply's published records cover at least 90 % of the hours it could have published (ENM-001). |
 | Reference month | The month `LATEST_PUBLISHED_MONTH` resolves to, and the only month the hourly profile reports on (ENM-002). |
 | Coverage | The hourly consumption records found against the hours the period spans times the supplies of the membership. It measures consumption records, not publication. |
-| Plant's own supply | As defined in SEM: the supply a plant is attached to, whose Datadis surplus is stored as the plant's production. |
+| Plant's own supply | As defined in SEM: the supply a plant is attached to, whose Datadis surplus is stored as 0. |
 
 ## Rules
 
@@ -118,7 +118,7 @@ Then August is resolved, although 408 of its 744 hours are published
   When every supply of the membership is a plant's own supply, the ratio MUST be null and reported as
   not applicable, which takes precedence over having nothing assigned. Plant's own supplies MUST keep
   counting in the energy totals, the self-sufficiency ratio, coverage and savings.
-- **Rationale:** A plant's own supply has its surplus stored as production, so its ratio is always 1
+- **Rationale:** A plant's own supply has its Datadis surplus stored as 0, so its ratio is always 1
   and counting it inflates the ratio of any member who owns one: 100 of 200 kWh on a regular supply
   and 50 of 50 on a plant's supply would read 0.6 instead of 0.5. The other figures describe energy
   the member really consumed or saved, so they keep it.

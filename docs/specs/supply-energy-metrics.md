@@ -20,7 +20,7 @@ issues touch it.
 | Term | Meaning |
 | --- | --- |
 | Published month (of a supply) | As defined by ENM-001, in the supply's time zone. |
-| Plant's own supply | The supply a plant is attached to, where its production is measured. A supply is the own supply of at most one plant (PLT-002). Its Datadis surplus is stored as the plant's production, so its stored surplus is zero. |
+| Plant's own supply | The supply a plant is attached to, where its production is measured. A supply is the own supply of at most one plant (PLT-002). The Datadis sync stores its surplus as 0 (`DatadisSyncServiceImpl#copyWithZeroSurplus`). |
 
 ## Rules
 
@@ -76,9 +76,8 @@ Then no period is resolved
   plant's own supply MUST be decided by the plant–supply link alone, never by its figures: a regular
   supply whose surplus is zero keeps its ratio. Every other figure (the energy totals, the
   self-sufficiency ratio, coverage and savings) MUST be reported exactly as for any other supply.
-- **Rationale:** A plant's own supply has its Datadis surplus stored as production, so its stored
-  surplus is zero and its ratio would always be 1, which says nothing about how its assigned energy
-  was used. A zero surplus is also what a regular supply that used everything reports, so only the
+- **Rationale:** A plant's own supply has its Datadis surplus stored as 0, so its ratio would always
+  be 1, which says nothing about how its assigned energy was used. A zero surplus is also what a regular supply that used everything reports, so only the
   link can tell the two apart. The other figures are still meaningful for that supply.
 - **Source:** #411
 
