@@ -74,10 +74,13 @@ public class GetMembershipDailyConsumptionServiceImpl implements GetMembershipDa
                 membershipEnergyMetricsScopeResolver.resolve(communityId, userId, startDate, endDate, null);
 
         // Explicit dates always resolve a period, its end clipped to the current hour; every supply
-        // and the days emitted follow that one period rather than the dates as requested.
+        // and the days emitted follow that one period rather than the dates as requested. A scope
+        // without one is a broken invariant, not an empty series.
         return scope.getPeriod()
                 .map(period -> getDailySeries(communityId, scope.getSupplies(), period))
-                .orElse(List.of());
+                .orElseThrow(() -> new IllegalStateException(
+                        "The membership daily consumption series resolved a scope from explicit bounds without a "
+                        + "period; explicit bounds always resolve one"));
     }
 
     private List<MembershipDailyConsumptionBucket> getDailySeries(UUID communityId, List<Supply> supplies,

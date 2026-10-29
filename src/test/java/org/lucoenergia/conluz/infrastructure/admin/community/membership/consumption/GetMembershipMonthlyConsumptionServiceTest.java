@@ -11,6 +11,8 @@ import org.lucoenergia.conluz.domain.admin.community.MembershipNotFoundException
 import org.lucoenergia.conluz.domain.admin.community.membership.GetMembershipsRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.consumption.GetMembershipMonthlyConsumptionService;
 import org.lucoenergia.conluz.domain.admin.community.membership.consumption.MembershipMonthlyConsumptionBucket;
+import org.lucoenergia.conluz.domain.admin.community.membership.energymetrics.MembershipEnergyMetricsScope;
+import org.lucoenergia.conluz.domain.admin.community.membership.energymetrics.MembershipEnergyMetricsScopeResolver;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -263,6 +265,26 @@ class GetMembershipMonthlyConsumptionServiceTest {
         assertThrows(MembershipNotFoundException.class,
                 () -> service.getMonthlySeries(COMMUNITY_ID, USER_ID, START, END));
 
+        verifyNoInteractions(getDatadisConsumptionService);
+    }
+
+    /**
+     * Explicit dates always resolve a period, so this branch is not reachable through the
+     * resolver. Forced here with a resolver that breaks that invariant: the series fails rather than
+     * answering an empty one.
+     */
+    @Test
+    void aScopeResolvedFromExplicitBoundsWithoutAPeriodIsABrokenInvariant() {
+        MembershipEnergyMetricsScopeResolver resolver = mock(MembershipEnergyMetricsScopeResolver.class);
+        when(resolver.resolve(COMMUNITY_ID, USER_ID, START, END, null))
+                .thenReturn(new MembershipEnergyMetricsScope(List.of(first), null));
+        GetMembershipMonthlyConsumptionService withoutPeriod =
+                new GetMembershipMonthlyConsumptionServiceImpl(resolver, getDatadisConsumptionService, zoneResolver);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> withoutPeriod.getMonthlySeries(COMMUNITY_ID, USER_ID, START, END));
+
+        assertTrue(exception.getMessage().contains("without a period"), exception::getMessage);
         verifyNoInteractions(getDatadisConsumptionService);
     }
 

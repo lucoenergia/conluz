@@ -266,18 +266,22 @@ class GetMembershipDailyConsumptionServiceTest {
 
     /**
      * Explicit dates always resolve a period, so this branch is not reachable through the
-     * resolver; it mirrors the membership monthly series, which answers an empty series there.
+     * resolver. Forced here with a resolver that breaks that invariant: the series fails rather than
+     * answering an empty one, as the membership monthly series does.
      */
     @Test
-    @DisplayName("MCS-001 a scope without a period gives an empty series, as the monthly series does")
-    void aScopeWithoutAPeriodGivesAnEmptySeries() {
+    @DisplayName("MCS-001 a scope resolved from explicit bounds without a period is a broken invariant")
+    void aScopeWithoutAPeriodIsABrokenInvariant() {
         MembershipEnergyMetricsScopeResolver resolver = mock(MembershipEnergyMetricsScopeResolver.class);
         when(resolver.resolve(COMMUNITY_ID, USER_ID, START, END, null))
                 .thenReturn(new MembershipEnergyMetricsScope(List.of(first), null));
         GetMembershipDailyConsumptionService withoutPeriod =
                 new GetMembershipDailyConsumptionServiceImpl(resolver, getDatadisConsumptionService, zoneResolver);
 
-        assertEquals(List.of(), withoutPeriod.getDailySeries(COMMUNITY_ID, USER_ID, START, END));
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> withoutPeriod.getDailySeries(COMMUNITY_ID, USER_ID, START, END));
+
+        assertTrue(exception.getMessage().contains("without a period"), exception::getMessage);
         verifyNoInteractions(getDatadisConsumptionService);
     }
 
