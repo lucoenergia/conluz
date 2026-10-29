@@ -554,7 +554,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
 
     /**
      * Regular supply: 100 self-consumed of 200 assigned. Plant supply: 50 of 50, its surplus stored
-     * as production. Counting the plant supply would report 150 / 250 = 0.6.
+     * as 0. Counting the plant supply would report 150 / 250 = 0.6.
      */
     @Test
     @DisplayName("ENM-006 ENM-007 ENM-008 AC2 plant supplies are left out of the self-consumption ratio and kept in every total")

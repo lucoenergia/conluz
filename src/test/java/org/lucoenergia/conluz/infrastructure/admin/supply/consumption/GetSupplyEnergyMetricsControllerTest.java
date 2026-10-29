@@ -1054,7 +1054,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
 
     /**
      * 4 kWh imported, 3 self-consumed and 0 surplus, as a plant's own supply stores them: its surplus
-     * goes to production. The ratio would be 1; it does not apply instead, and every other figure
+     * is stored as 0. The ratio would be 1; it does not apply instead, and every other figure
      * is what the same records give a regular supply.
      */
     @Test

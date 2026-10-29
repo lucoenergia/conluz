@@ -31,7 +31,7 @@ public class SupplyEnergyMetricsResponse {
     private final Double selfConsumptionRatio;
     @Schema(description = "Whether selfConsumptionRatio could be computed. AVAILABLE: it is. " +
             "NOTHING_ASSIGNED: no energy was assigned to the supplies it covers, which includes a period " +
-            "without data. NOT_APPLICABLE: the supply is a plant's own supply, whose surplus is stored as production.",
+            "without data. NOT_APPLICABLE: the supply is a plant's own supply, whose surplus is stored as 0.",
             example = "AVAILABLE")
     private final SelfConsumptionRatioStatus selfConsumptionRatioStatus;
     @Schema(description = "The energy selfConsumptionRatio was computed from, and the plant's own supplies " +

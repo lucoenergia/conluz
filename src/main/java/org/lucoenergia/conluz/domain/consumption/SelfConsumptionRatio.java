@@ -6,9 +6,9 @@ import java.util.List;
  * The share of the energy assigned to some supplies that they consumed rather than fed back to the
  * grid, together with the energy it was computed from and the plant supplies it leaves out.
  *
- * <p>A plant's own supply never takes part (SEM-003, ENM-007): its surplus is stored as production,
- * not as surplus, so its ratio would always be 1. The plant link, not any figure, says which supplies
- * those are. The energy of the remaining supplies is summed first and divided once (ENM-006), never
+ * <p>A plant's own supply never takes part (SEM-003, ENM-007): the Datadis sync stores its surplus
+ * as 0 ({@code DatadisSyncServiceImpl#copyWithZeroSurplus}), so its ratio would always be 1. The plant
+ * link, not any figure, says which supplies those are. The energy of the remaining supplies is summed first and divided once (ENM-006), never
  * averaged from per-supply ratios.</p>
  *
  * <p>This is the single place where the exclusion and the precedence of the statuses are decided:
