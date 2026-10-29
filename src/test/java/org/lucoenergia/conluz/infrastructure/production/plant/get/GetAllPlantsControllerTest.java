@@ -51,12 +51,15 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        Supply supplyThree = SupplyMother.random().build();
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
 
         // Create three supplies
         Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyThree).withProviderCode("TS-123456").build();
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
@@ -133,11 +136,14 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        Supply supplyThree = SupplyMother.random().build();
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
 
         Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyThree).withProviderCode("TS-123456").build();
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
@@ -210,11 +216,14 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        Supply supplyThree = SupplyMother.random().build();
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
 
         Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyThree).withProviderCode("TS-123456").build();
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
@@ -242,11 +251,14 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        Supply supplyThree = SupplyMother.random().build();
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
 
         Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyThree).withProviderCode("TS-123456").build();
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
@@ -274,17 +286,20 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        Supply supplyThree = SupplyMother.random().build();
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
 
         Plant plantOne = PlantMother.random(supplyOne)
                 .withProviderCode("TS-456789")
                 .withName("Plant One")
                 .build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne)
+        Plant plantTwo = PlantMother.random(supplyThree)
                 .withProviderCode("TS-123456")
                 .withName("Plant Two")
                 .build();
-        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo)
                 .withProviderCode("TS-789456")
                 .withName("Plant Three")
@@ -319,6 +334,9 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        Supply supplyThree = SupplyMother.random().build();
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
 
         Plant plantOne = PlantMother.random(supplyOne)
                 .withProviderCode("TS-456789")
@@ -326,12 +344,12 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .withTotalPower(60D)
                 .build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne)
+        Plant plantTwo = PlantMother.random(supplyThree)
                 .withProviderCode("TS-123456")
                 .withName("Plant Two")
                 .withTotalPower(60D)
                 .build();
-        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo)
                 .withProviderCode("TS-789456")
                 .withName("Plant Three")
@@ -368,6 +386,9 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        Supply supplyThree = SupplyMother.random().build();
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
 
         Plant plantOne = PlantMother.random(supplyOne)
                 .withProviderCode("TS-456789")
@@ -375,12 +396,12 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .withTotalPower(60D)
                 .build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne)
+        Plant plantTwo = PlantMother.random(supplyThree)
                 .withProviderCode("TS-123456")
                 .withName("Plant Two")
                 .withTotalPower(60D)
                 .build();
-        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo)
                 .withProviderCode("TS-789456")
                 .withName("Plant Three")

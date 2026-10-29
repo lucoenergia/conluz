@@ -76,10 +76,12 @@ class CreatePlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
                 PlantMother.random(supply).withRegulatoryCode(regulatoryCode).build(),
                 SupplyId.of(supply.getId()));
 
+        // A different supply, so the only rule the second plant breaks is the regulatory code's
+        Supply otherSupply = createSupply();
         assertThrows(DataIntegrityViolationException.class, () -> {
             createPlantRepository.create(
-                    PlantMother.random(supply).withRegulatoryCode(regulatoryCode).build(),
-                    SupplyId.of(supply.getId()));
+                    PlantMother.random(otherSupply).withRegulatoryCode(regulatoryCode).build(),
+                    SupplyId.of(otherSupply.getId()));
             plantRepository.flush();
         });
     }
@@ -87,14 +89,16 @@ class CreatePlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
     @Test
     void shouldAllowMultiplePlantsWithNullRegulatoryCode() {
         Supply supply = createSupply();
+        // A supply is the supply of at most one plant (PLT-002), so the second plant gets its own
+        Supply otherSupply = createSupply();
 
         assertDoesNotThrow(() -> {
             createPlantRepository.create(
                     PlantMother.random(supply).withRegulatoryCode(null).build(),
                     SupplyId.of(supply.getId()));
             createPlantRepository.create(
-                    PlantMother.random(supply).withRegulatoryCode(null).build(),
-                    SupplyId.of(supply.getId()));
+                    PlantMother.random(otherSupply).withRegulatoryCode(null).build(),
+                    SupplyId.of(otherSupply.getId()));
             plantRepository.flush();
         });
     }

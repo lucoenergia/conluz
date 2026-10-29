@@ -1,5 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.create;
 
+import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -60,6 +64,9 @@ public class CreatePlantController {
                     
                     Upon successful creation, the server responds with a status code of 200, providing comprehensive
                     details about the newly created plant, including its unique identifier.
+
+                    A supply is the supply of at most one plant: when the supply already has one, the request is
+                    answered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is created.
                     
                     In case of failure, the server returns an appropriate error status code along with a descriptiv
                     error message, aiding the client in diagnosing and addressing the issue.
@@ -73,6 +80,34 @@ public class CreatePlantController {
                     responseCode = "200",
                     description = "The plant has been successfully created.",
                     useReturnTypeSchema = true
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "The supply is already the supply of another plant. Nothing is written.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RestError.class),
+                            examples = @ExampleObject(
+                                    name = "Supply already has a plant",
+                                    value = """
+                                            {
+                                               "timestamp": "2026-10-29T10:10:25.534035352+01:00",
+                                               "status": 409,
+                                               "message": "The supply with ID '9a7e3c51-2b4d-4f6e-8a1b-3c5d7e9f0a2b' is already the supply of a plant, so no other plant can use it.",
+                                               "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                               "errors": [
+                                                 {
+                                                   "message": "The supply with ID '9a7e3c51-2b4d-4f6e-8a1b-3c5d7e9f0a2b' is already the supply of a plant, so no other plant can use it.",
+                                                   "code": "SUPPLY_ALREADY_HAS_PLANT",
+                                                   "params": {
+                                                     "supplyId": "9a7e3c51-2b4d-4f6e-8a1b-3c5d7e9f0a2b"
+                                                   }
+                                                 }
+                                               ]
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @BadRequestErrorResponse

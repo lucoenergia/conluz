@@ -118,7 +118,9 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
     void crossPlantOverlapIsAllowedForSameSupply() {
         SupplyEntity supply = persistSupply();
         SharingAgreementEntity agreement1 = persistPlantAndPublishedAgreement(supply);
-        SharingAgreementEntity agreement2 = persistPlantAndPublishedAgreement(supply);
+        // A supply is the supply of at most one plant (PLT-002): the second plant gets its own supply,
+        // while both plants' coefficients stay on the shared consumer supply
+        SharingAgreementEntity agreement2 = persistPlantAndPublishedAgreement(persistSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
 
