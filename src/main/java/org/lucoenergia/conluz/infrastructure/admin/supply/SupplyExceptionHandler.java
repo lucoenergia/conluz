@@ -4,6 +4,8 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyCodeInvalidException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyOwnerNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyRegisteredInAnotherCommunityException;
+import org.lucoenergia.conluz.domain.admin.supply.create.ImportSuppliesService;
+import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportFileRefusedException;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.delete.SupplyHasPartitionCoefficientsException;
 import org.lucoenergia.conluz.domain.admin.supply.delete.SupplyHasPlantsException;
@@ -119,6 +121,43 @@ public class SupplyExceptionHandler {
     @ExceptionHandler(SupplyOwnerNotFoundException.class)
     public ResponseEntity<RestError> handleException(SupplyOwnerNotFoundException e) {
         return refused("error.supply.owner.not.found", RestErrorCode.SUPPLY_OWNER_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * A 400: the file of supplies is refused as a whole, and nothing was created (SUP-003). Not logged with the
+     * headers: a file without a header line holds a supply's data in its first line, and the service has already
+     * logged the refusal without them.
+     */
+    @ExceptionHandler(SupplyImportFileRefusedException.class)
+    public ResponseEntity<RestError> handleException(SupplyImportFileRefusedException e) {
+        // Quoted in the message, so that a blank header can be seen; comma-separated in the params for the client
+        List<String> named = List.of(String.join(", ", e.getHeaders().stream().map(h -> "'" + h + "'").toList()));
+        Map<String, String> headers = Map.of("headers", String.join(",", e.getHeaders()));
+        return switch (e.getProblem()) {
+            case INVALID_ENCODING -> importRefused("error.supply.import.invalid.encoding", List.of(),
+                    RestErrorCode.SUPPLY_IMPORT_INVALID_ENCODING, Map.of());
+            case AMBIGUOUS_SEPARATOR -> importRefused("error.supply.import.ambiguous.separator", List.of(),
+                    RestErrorCode.SUPPLY_IMPORT_AMBIGUOUS_SEPARATOR, Map.of());
+            case MALFORMED_FILE -> importRefused("error.supply.import.malformed.file", List.of(),
+                    RestErrorCode.SUPPLY_IMPORT_MALFORMED_FILE, Map.of());
+            case UNKNOWN_HEADERS -> importRefused("error.supply.import.unknown.headers", named,
+                    RestErrorCode.SUPPLY_IMPORT_UNKNOWN_HEADERS, headers);
+            case DUPLICATED_HEADERS -> importRefused("error.supply.import.duplicated.headers", named,
+                    RestErrorCode.SUPPLY_IMPORT_DUPLICATED_HEADERS, headers);
+            case MISSING_HEADERS -> importRefused("error.supply.import.missing.headers", named,
+                    RestErrorCode.SUPPLY_IMPORT_MISSING_HEADERS, headers);
+            case TOO_MANY_ROWS -> {
+                String maxRows = String.valueOf(ImportSuppliesService.MAX_ROWS);
+                yield importRefused("error.supply.import.too.many.rows", List.of(maxRows),
+                        RestErrorCode.SUPPLY_IMPORT_TOO_MANY_ROWS, Map.of("maxRows", maxRows));
+            }
+        };
+    }
+
+    private ResponseEntity<RestError> importRefused(String messageKey, List<String> args, RestErrorCode code,
+                                                    Map<String, String> params) {
+        String message = messageSource.getMessage(messageKey, args.toArray(), LocaleContextHolder.getLocale());
+        return errorBuilder.buildWithoutLogging(message, code, params, HttpStatus.BAD_REQUEST);
     }
 
     /**
