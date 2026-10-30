@@ -575,7 +575,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     }
 
     @ParameterizedTest
-    @DisplayName("SUP-004 a code that is not a CUPS once upper-cased is refused with 400 SUPPLY_CUPS_INVALID, "
+    @DisplayName("SUP-006 a code that is not a CUPS once upper-cased is refused with 400 SUPPLY_CUPS_INVALID, "
             + "naming no code, and nothing is created")
     @ValueSource(strings = {"ES0031300325733001F", "ES0031300325733001FH0", "ES0031300325733001FH0FX",
             "ES00313003257330 1FH0F", "ES0031300325733001\tH"})
@@ -597,7 +597,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-004 a lower-case code is stored upper-cased")
+    @DisplayName("SUP-006 a lower-case code is stored upper-cased")
     void testCreateSupplyStoresTheCodeUpperCased() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         User owner = memberOf(DEFAULT_COMMUNITY_ID);
@@ -614,7 +614,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     }
 
     @ParameterizedTest
-    @DisplayName("SUP-005 a CUPS another supply of the community has, in either length and in any case, is refused "
+    @DisplayName("SUP-007 a CUPS another supply of the community has, in either length and in any case, is refused "
             + "with 400 SUPPLY_ALREADY_EXISTS, naming no code, and nothing is created")
     @CsvSource({
             "ES0031300325733003FH, ES0031300325733003FH0F",
@@ -644,7 +644,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-005 a CUPS a supply of another community has is refused with 400 "
+    @DisplayName("SUP-007 a CUPS a supply of another community has is refused with 400 "
             + "SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY, naming neither that community nor its owner")
     void testCreateSupplyWithTheCupsOfASupplyOfAnotherCommunityIsRefused() throws Exception {
         Community other = createCommunityRepository.create(CommunityMother.random().build());
@@ -668,7 +668,7 @@ class CreateSupplyControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-005 a 22-character CUPS that does not end in 0F is not the same CUPS as its first 20 "
+    @DisplayName("SUP-007 a 22-character CUPS that does not end in 0F is not the same CUPS as its first 20 "
             + "characters")
     void testCreateSupplyWithAFullCupsNotEndingIn0FDoesNotMatchItsPrefix() throws Exception {
         existingSupply("ES0031300325733004FH", DEFAULT_COMMUNITY_ID);

@@ -350,7 +350,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-004 a code stored before the CUPS rules is kept when the update leaves it unchanged")
+    @DisplayName("SUP-006 a code stored before the CUPS rules is kept when the update leaves it unchanged")
     void testUpdateSupplyKeepingALegacyCodeSucceeds() throws Exception {
         Supply supply = existingSupply("legacy code 7", DEFAULT_COMMUNITY_ID);
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
@@ -363,7 +363,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     }
 
     @ParameterizedTest
-    @DisplayName("SUP-004 a changed code that is not a CUPS is refused with 400 SUPPLY_CUPS_INVALID, naming no code, "
+    @DisplayName("SUP-006 a changed code that is not a CUPS is refused with 400 SUPPLY_CUPS_INVALID, naming no code, "
             + "and the supply is not changed")
     @ValueSource(strings = {"ES0031300325733001F", "ES0031300325733001FH0FX", "ES00313003257330 1FH0F",
             "legacy code 8"})
@@ -383,7 +383,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-004 a changed lower-case code is stored upper-cased")
+    @DisplayName("SUP-006 a changed lower-case code is stored upper-cased")
     void testUpdateSupplyStoresAChangedCodeUpperCased() throws Exception {
         Supply supply = existingSupply("ES0031300325733012FH0F", DEFAULT_COMMUNITY_ID);
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
@@ -397,7 +397,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     }
 
     @ParameterizedTest
-    @DisplayName("SUP-005 changing a code to the CUPS of another supply of the community, in either length and in "
+    @DisplayName("SUP-007 changing a code to the CUPS of another supply of the community, in either length and in "
             + "any case, is refused with 400 SUPPLY_ALREADY_EXISTS, naming no code")
     @CsvSource({
             "ES0031300325733014FH, ES0031300325733014FH0F",
@@ -421,7 +421,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-005 changing a code to the CUPS of a supply of another community is refused with 400 "
+    @DisplayName("SUP-007 changing a code to the CUPS of a supply of another community is refused with 400 "
             + "SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY, naming neither that community nor its owner")
     void testUpdateSupplyChangingTheCodeToADuplicateInAnotherCommunityIsRefused() throws Exception {
         Community other = createCommunityRepository.create(CommunityMother.random().build());
@@ -443,7 +443,7 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-005 changing a code to the other length of its own CUPS is accepted: the supply is not "
+    @DisplayName("SUP-007 changing a code to the other length of its own CUPS is accepted: the supply is not "
             + "compared with itself")
     void testUpdateSupplyChangingTheCodeToItsOtherLengthSucceeds() throws Exception {
         Supply supply = existingSupply("ES0031300325733018FH", DEFAULT_COMMUNITY_ID);

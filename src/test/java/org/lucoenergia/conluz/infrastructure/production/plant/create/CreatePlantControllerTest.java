@@ -2,6 +2,15 @@ package org.lucoenergia.conluz.infrastructure.production.plant.create;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -44,6 +53,12 @@ class CreatePlantControllerTest extends BaseControllerTest {
     private SupplyRepository supplyRepository;
     @Autowired
     private CommunityJpaRepository communityJpaRepository;
+    @Autowired
+    private CreateUserRepository createUserRepository;
+    @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreatePlantRepository createPlantRepository;
 
     @Test
     void testFullBody() throws Exception {
@@ -320,6 +335,36 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("PLT-002 creating a plant on a supply that already has a plant is a conflict, and nothing is created")
+    void creatingAPlantOnASupplyThatAlreadyHasAPlantIsAConflict() throws Exception {
+        User owner = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()),
+                DEFAULT_COMMUNITY_ID);
+        createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
+
+        String body = String.format("""
+                        {
+                          "providerCode": "PS-SECOND",
+                          "name": "Second plant",
+                          "supplyCode": "%s",
+                          "address": "Fake Street 123",
+                          "totalPower": "60.00",
+                          "inverterProvider": "HUAWEI"
+                        }
+                """, supply.getCode());
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("SUPPLY_ALREADY_HAS_PLANT"))
+                .andExpect(jsonPath("$.errors[0].params.supplyId").value(supply.getId().toString()));
+
+        Assertions.assertEquals(0, plantRepository.countByProviderCode("PS-SECOND"));
     }
 
     @Test

@@ -568,7 +568,7 @@ class PlantAccessGuardImplBehaviourTest {
     void canCreatePlant_returnsFalse_whenUserOwnsSupplyButIsNotCommunityAdmin() {
         // The owner can see the supply but only community admins may create plants -> 403.
         Community community = CommunityMother.random().build();
-        User user = UserMother.randomUser();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
         Supply supply = supplyInCommunityOwnedBy(user, community);
         when(authService.getCurrentUser()).thenReturn(Optional.of(user));
 

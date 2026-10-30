@@ -1,6 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.update;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.shared.PlantId;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -27,6 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -42,6 +46,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private CreatePlantRepository createPlantRepository;
+    @Autowired
+    private GetPlantRepository getPlantRepository;
 
     @Test
     void testUpdateAllFields() throws Exception {
@@ -89,6 +95,69 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.connectionDate").value(plantModified.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.inverterProvider").value(plantModified.getInverterProvider().name()))
                 .andExpect(jsonPath("$.totalPower").value(plantModified.getTotalPower()));
+    }
+
+    @Test
+    @DisplayName("PLT-002 moving a plant to a supply that already has a plant is a conflict, and nothing is updated")
+    void movingAPlantToASupplyThatAlreadyHasAPlantIsAConflict() throws Exception {
+        Supply supplyOne = createSupply();
+        Supply supplyTwo = createSupply();
+        Plant plantOne = createPlantRepository.create(PlantMother.random(supplyOne).build(),
+                SupplyId.of(supplyOne.getId()));
+        createPlantRepository.create(PlantMother.random(supplyTwo).build(), SupplyId.of(supplyTwo.getId()));
+
+        UpdatePlantBody body = updateBody(plantOne, supplyTwo.getCode());
+        body.setName("Renamed");
+
+        mockMvc.perform(put(String.format("/api/v1/plants/%s", plantOne.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errors[0].code").value("SUPPLY_ALREADY_HAS_PLANT"))
+                .andExpect(jsonPath("$.errors[0].params.supplyId").value(supplyTwo.getId().toString()));
+
+        Plant unchanged = getPlantRepository.findById(PlantId.of(plantOne.getId())).orElseThrow();
+        assertEquals(supplyOne.getId(), unchanged.getSupply().getId());
+        assertEquals(plantOne.getName(), unchanged.getName());
+    }
+
+    @Test
+    @DisplayName("PLT-002 updating a plant that keeps its own supply is not a conflict")
+    void updatingAPlantThatKeepsItsOwnSupplyIsNotAConflict() throws Exception {
+        Supply supply = createSupply();
+        Plant plant = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
+
+        UpdatePlantBody body = updateBody(plant, supply.getCode());
+        body.setName("Renamed");
+
+        mockMvc.perform(put(String.format("/api/v1/plants/%s", plant.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Renamed"))
+                .andExpect(jsonPath("$.supply.code").value(supply.getCode()));
+    }
+
+    private Supply createSupply() {
+        User owner = createUserRepository.create(UserMother.randomUser());
+        return createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()),
+                DEFAULT_COMMUNITY_ID);
+    }
+
+    private static UpdatePlantBody updateBody(Plant plant, String supplyCode) {
+        UpdatePlantBody body = new UpdatePlantBody();
+        body.setProviderCode(plant.getProviderCode());
+        body.setRegulatoryCode(plant.getRegulatoryCode());
+        body.setSupplyCode(supplyCode);
+        body.setName(plant.getName());
+        body.setAddress(plant.getAddress());
+        body.setDescription(plant.getDescription());
+        body.setConnectionDate(plant.getConnectionDate());
+        body.setInverterProvider(plant.getInverterProvider());
+        body.setTotalPower(plant.getTotalPower());
+        return body;
     }
 
     @Test
@@ -144,10 +213,6 @@ class UpdatePlantControllerTest extends BaseControllerTest {
 
         Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         plantOne = createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
-        createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
-        Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
-        createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
         UpdatePlantBody plantModified = new UpdatePlantBody();
         plantModified.setProviderCode("TS-234123");

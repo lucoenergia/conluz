@@ -10,7 +10,7 @@ public enum SupplyImportConstraint {
      */
     REQUIRED,
     /**
-     * The code, once upper-cased, holds whitespace or is neither 20 nor 22 characters long (SUP-004).
+     * The code, once upper-cased, holds whitespace or is neither 20 nor 22 characters long (SUP-006).
      */
     INVALID_CUPS
 }

@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPlantAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
@@ -41,13 +42,16 @@ public class CreateSupplyController {
     private final CreateSupplyService service;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final MemberDataAssembler memberDataAssembler;
+    private final SupplyPlantAssembler supplyPlantAssembler;
 
     public CreateSupplyController(CreateSupplyService service,
                                   SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                  MemberDataAssembler memberDataAssembler) {
+                                  MemberDataAssembler memberDataAssembler,
+            SupplyPlantAssembler supplyPlantAssembler) {
         this.service = service;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.memberDataAssembler = memberDataAssembler;
+        this.supplyPlantAssembler = supplyPlantAssembler;
     }
 
     @PostMapping
@@ -102,6 +106,6 @@ public class CreateSupplyController {
                                       @Valid @RequestBody CreateSupplyBody body) {
         Supply newSupply = service.create(body.mapToSupply(), UserPersonalId.of(body.getPersonalId()), body.getCommunityId());
         return new SupplyResponse(newSupply, capabilitiesAssembler.assemble(currentUser, newSupply),
-                memberDataAssembler.recordOfSupplyOwner(newSupply));
+                memberDataAssembler.recordOfSupplyOwner(newSupply), supplyPlantAssembler.plantOf(newSupply));
     }
 }

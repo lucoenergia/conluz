@@ -46,7 +46,14 @@ class GetEnergyStationRepositoryDatabaseTest extends BaseIntegrationTest {
                         .build()
         );
         PlantEntity plantEntity1 = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
-        PlantEntity plantEntity2 = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        SupplyEntity supplyTwo = supplyRepository.save(
+                SupplyMother.randomEntity()
+                        .withUser(user)
+                        .withCommunity(communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID))
+                        .build()
+        );
+        PlantEntity plantEntity2 = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supplyTwo).build());
 
         List<Plant> expectedPlants = getEnergyStationRepositoryDatabase.findAllByInverterProvider(InverterProvider.HUAWEI);
 

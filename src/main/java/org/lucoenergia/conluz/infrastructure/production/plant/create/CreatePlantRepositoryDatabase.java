@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
 import org.lucoenergia.conluz.domain.production.plant.PlantCannotBeCreatedException;
+import org.lucoenergia.conluz.domain.production.plant.SupplyAlreadyHasPlantException;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantProviderCode;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -13,6 +14,8 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantSupplyUniqueConstraint;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +48,9 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
         if (plantRepository.countByProviderCode(plant.getProviderCode()) > 0) {
             throw new PlantAlreadyExistsException(PlantProviderCode.of(plant.getProviderCode()));
         }
+        if (plantRepository.existsBySupplyId(id.getId())) {
+            throw new SupplyAlreadyHasPlantException(id);
+        }
 
         SupplyEntity supplyEntity = result.get();
         PlantEntity plantEntity = new PlantEntity.Builder()
@@ -60,7 +66,13 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
                 .withSupply(supplyEntity)
                 .build();
 
-        plantRepository.save(plantEntity);
+        try {
+            // Flushed here so a concurrent plant on the same supply that passed the check above is
+            // rejected by the unique constraint now, where it can be told apart from other integrity errors.
+            plantRepository.saveAndFlush(plantEntity);
+        } catch (DataIntegrityViolationException e) {
+            throw PlantSupplyUniqueConstraint.translate(e, id);
+        }
 
         Optional<PlantEntity> newPlantEntity = plantRepository.findByProviderCode(plant.getProviderCode());
         if (newPlantEntity.isEmpty()) {

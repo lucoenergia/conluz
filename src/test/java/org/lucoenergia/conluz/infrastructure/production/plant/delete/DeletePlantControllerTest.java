@@ -99,12 +99,15 @@ class DeletePlantControllerTest extends BaseControllerTest {
         createUserRepository.create(userTwo);
         Supply supplyTwo = SupplyMother.random().build();
         supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(userTwo.getId()), DEFAULT_COMMUNITY_ID);
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        Supply supplyThree = SupplyMother.random().build();
+        supplyThree = createSupplyRepository.create(supplyThree, UserId.of(userOne.getId()), DEFAULT_COMMUNITY_ID);
 
         // Create three supplies
         Plant plantOne = PlantMother.random(supplyOne).withProviderCode("TS-456789").build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
-        Plant plantTwo = PlantMother.random(supplyOne).withProviderCode("TS-123456").build();
-        plantTwo = createPlantRepository.create(plantTwo, SupplyId.of(supplyOne.getId()));
+        Plant plantTwo = PlantMother.random(supplyThree).withProviderCode("TS-123456").build();
+        plantTwo = createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo).withProviderCode("TS-789456").build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 

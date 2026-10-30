@@ -97,7 +97,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     // --- The file as spreadsheets export it ---
 
     @Test
-    @DisplayName("SUP-003 a file as Excel saves CSV on Windows, in Windows-1252 and separated by semicolons, creates "
+    @DisplayName("SUP-005 a file as Excel saves CSV on Windows, in Windows-1252 and separated by semicolons, creates "
             + "each valid row with its accents intact, and fails the others, each result on its own line")
     void aWindows1252File_createsEachValidRowWithItsAccents() throws Exception {
         Community community = newCommunity();
@@ -135,7 +135,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"application/vnd.ms-excel", "application/octet-stream"})
-    @DisplayName("SUP-003 a file is processed whatever content type it is uploaded with")
+    @DisplayName("SUP-005 a file is processed whatever content type it is uploaded with")
     void anyContentType_isProcessed(String contentType) throws Exception {
         Community community = newCommunity();
         User owner = memberOf(community, CommunityRole.COMMUNITY_MEMBER);
@@ -150,7 +150,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-003 a file with only the required columns is accepted, and the optional ones are stored as null")
+    @DisplayName("SUP-005 a file with only the required columns is accepted, and the optional ones are stored as null")
     void onlyTheRequiredColumns_areAccepted() throws Exception {
         Community community = newCommunity();
         User owner = memberOf(community, CommunityRole.COMMUNITY_MEMBER);
@@ -167,7 +167,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-003 empty optional cells are stored as null, and filled ones as they are; the name is not "
+    @DisplayName("SUP-005 empty optional cells are stored as null, and filled ones as they are; the name is not "
             + "derived from the address")
     void optionalCells_emptyAreNull_filledAreStored() throws Exception {
         Community community = newCommunity();
@@ -211,7 +211,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
 
     @ParameterizedTest
     @MethodSource("refusedFiles")
-    @DisplayName("SUP-003 a file that cannot be read, or whose header or size breaks the rules, is refused with 400 "
+    @DisplayName("SUP-005 a file that cannot be read, or whose header or size breaks the rules, is refused with 400 "
             + "and its code, and nothing is created")
     void aRefusedFile_createsNothing(byte[] content, String code, Map<String, String> params) throws Exception {
         Community community = newCommunity();
@@ -234,7 +234,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     // --- Rows ---
 
     @Test
-    @DisplayName("SUP-003 a row with an empty required cell, or a code that is not a CUPS, fails with "
+    @DisplayName("SUP-005 a row with an empty required cell, or a code that is not a CUPS, fails with "
             + "SUPPLY_IMPORT_ROW_INVALID and one error per rule broken, by column, and the other rows are created")
     void invalidRows_listEveryRuleBroken() throws Exception {
         Community community = newCommunity();
@@ -264,7 +264,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-003 a row with fewer or more cells than the header fails with SUPPLY_IMPORT_ROW_MALFORMED, and "
+    @DisplayName("SUP-005 a row with fewer or more cells than the header fails with SUPPLY_IMPORT_ROW_MALFORMED, and "
             + "the other rows are created")
     void malformedRows_fail() throws Exception {
         Community community = newCommunity();
@@ -325,7 +325,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-003 a personal ID typed with spaces, dots, a hyphen and a lower-case letter resolves to the "
+    @DisplayName("SUP-005 a personal ID typed with spaces, dots, a hyphen and a lower-case letter resolves to the "
             + "member")
     void aPersonalIdTypingVariant_resolvesToTheMember() throws Exception {
         Community community = newCommunity();
@@ -344,7 +344,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-004 a lower-case code is stored upper-cased")
+    @DisplayName("SUP-006 a lower-case code is stored upper-cased")
     void aLowerCaseCode_isStoredUpperCased() throws Exception {
         Community community = newCommunity();
         User owner = memberOf(community, CommunityRole.COMMUNITY_MEMBER);
@@ -361,7 +361,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     // --- Duplicates ---
 
     @Test
-    @DisplayName("SUP-005 a CUPS repeated in the file, in the other length or case, creates the first row and fails "
+    @DisplayName("SUP-007 a CUPS repeated in the file, in the other length or case, creates the first row and fails "
             + "the later ones with SUPPLY_ALREADY_EXISTS")
     void aCupsRepeatedInTheFile_createsTheFirstRowOnly() throws Exception {
         Community community = newCommunity();
@@ -381,7 +381,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-005 a CUPS a supply of the community already has, in either length and in any case, fails with "
+    @DisplayName("SUP-007 a CUPS a supply of the community already has, in either length and in any case, fails with "
             + "SUPPLY_ALREADY_EXISTS")
     void aCupsTheCommunityHas_fails() throws Exception {
         Community community = newCommunity();
@@ -406,7 +406,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-005 a CUPS a supply of another community has fails with SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY, "
+    @DisplayName("SUP-007 a CUPS a supply of another community has fails with SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY, "
             + "naming neither that community nor its owner")
     void aCupsAnotherCommunityHas_fails() throws Exception {
         Community community = newCommunity();
@@ -431,7 +431,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-003 importing the same file again fails every row already created with SUPPLY_ALREADY_EXISTS "
+    @DisplayName("SUP-005 importing the same file again fails every row already created with SUPPLY_ALREADY_EXISTS "
             + "and creates the rest")
     void reImportingTheSameFile_createsOnlyTheRest() throws Exception {
         Community community = newCommunity();
@@ -461,7 +461,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     // --- The result ---
 
     @Test
-    @DisplayName("SUP-003 a row result carries exactly its line, outcome, code, message and errors, and no value of "
+    @DisplayName("SUP-005 a row result carries exactly its line, outcome, code, message and errors, and no value of "
             + "the file")
     void aRowResult_carriesNoValueOfTheFile() throws Exception {
         Community community = newCommunity();
@@ -492,7 +492,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-003 every row message is in the language of the request's Accept-Language")
+    @DisplayName("SUP-005 every row message is in the language of the request's Accept-Language")
     void rowMessages_followAcceptLanguage() throws Exception {
         Community community = newCommunity();
         User owner = memberOf(community, CommunityRole.COMMUNITY_MEMBER);
@@ -526,7 +526,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     // --- Who may import ---
 
     @Test
-    @DisplayName("SUP-003 a platform admin who is not a community admin here is refused as createSupply refuses it, "
+    @DisplayName("SUP-005 a platform admin who is not a community admin here is refused as createSupply refuses it, "
             + "and nothing is created")
     void aPlatformAdmin_isRefused() throws Exception {
         Community community = newCommunity();
@@ -538,7 +538,7 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("SUP-003 a plain member of the community is refused as createSupply refuses it, and nothing is "
+    @DisplayName("SUP-005 a plain member of the community is refused as createSupply refuses it, and nothing is "
             + "created")
     void aPlainMember_isRefused() throws Exception {
         Community community = newCommunity();

@@ -7,6 +7,13 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -78,6 +85,10 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     private SupplyRepository supplyRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
+    @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreatePlantRepository createPlantRepository;
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -537,6 +548,204 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
 
         requestLatest(community, outsider, loginAsCommunityAdmin(community.getId()))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- Self-consumption ratio and plant supplies ---
+
+    /**
+     * Regular supply: 100 self-consumed of 200 assigned. Plant supply: 50 of 50, its surplus stored
+     * as 0. Counting the plant supply would report 150 / 250 = 0.6.
+     */
+    @Test
+    @DisplayName("ENM-006 ENM-007 ENM-008 AC2 plant supplies are left out of the self-consumption ratio and kept in every total")
+    void plantSuppliesAreLeftOutOfTheRatioAndKeptInEveryTotal() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        writeAc2Day(member, community, "2026/05/10");
+
+        assertAc2(requestPeriod(community, member, loginUser(member), DAY_START, DAY_END));
+    }
+
+    @Test
+    @DisplayName("ENM-007 ENM-008 AC6 plant supplies are left out of the ratio over the recorded span")
+    void plantSuppliesAreLeftOutOfTheRatioOverTheRecordedSpan() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        writeAc2Day(member, community, "2026/05/10");
+
+        assertAc2(mockMvc.perform(get(PATH, community.getId(), member.getId())
+                .header(HttpHeaders.AUTHORIZATION, loginUser(member))));
+    }
+
+    @Test
+    @DisplayName("ENM-007 ENM-008 AC6 plant supplies are left out of the ratio over the latest published month")
+    void plantSuppliesAreLeftOutOfTheRatioOverTheLatestPublishedMonth() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        Supply[] supplies = writeAc2Day(member, community, null);
+        for (Supply supply : supplies) {
+            influxFixture.writePublishedZeros(supply.getCode(), YearMonth.of(2026, 8), ZONE);
+        }
+        writeRecord(supplies[0], "2026/08/10", "10:00", 10f, 100f, 100f);
+        writeRecord(supplies[1], "2026/08/10", "11:00", 5f, 50f, 0f);
+
+        assertAc2(requestLatest(community, member, loginUser(member))
+                .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00")));
+    }
+
+    @Test
+    @DisplayName("ENM-007 AC3 a member whose supplies are all plant supplies has a non-applicable ratio")
+    void aMemberWhoseSuppliesAreAllPlantSuppliesHasANonApplicableRatio() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        Supply first = createPlantSupply(member, community);
+        Supply second = createPlantSupply(member, community);
+        writeRecord(first, "2026/05/10", "10:00", 5f, 50f, 0f);
+        writeRecord(second, "2026/05/10", "11:00", 5f, 20f, 0f);
+
+        requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOT_APPLICABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.selfConsumptionKWh").value(0.0))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.assignedProductionKWh").value(0.0))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(2))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(70.0, TOLERANCE)));
+    }
+
+    /**
+     * Supply A: 40 self-consumed of 50 assigned; supply B: 1 of 4. Neither is a plant's own supply,
+     * so the basis is the totals.
+     */
+    @Test
+    @DisplayName("ENM-006 ENM-008 AC4 without plant supplies the ratio is unchanged and its basis is the totals")
+    void withoutPlantSuppliesTheRatioIsUnchangedAndItsBasisIsTheTotals() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "10:00", 60f, 40f, 10f);
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "11:00", 1f, 1f, 3f);
+
+        requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(closeTo(41.0 / 54.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("AVAILABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.selfConsumptionKWh").value(closeTo(41.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.assignedProductionKWh").value(closeTo(54.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(0))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(41.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.assignedProductionKWh").value(closeTo(54.0, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("ENM-007 a regular supply with nothing assigned beside a plant supply has nothing assigned")
+    void aRegularSupplyWithNothingAssignedBesideAPlantSupplyHasNothingAssigned() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "10:00", 10f, 0f, 0f);
+        writeRecord(createPlantSupply(member, community), "2026/05/10", "11:00", 5f, 50f, 0f);
+
+        requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOTHING_ASSIGNED"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(1));
+    }
+
+    @Test
+    @DisplayName("ENM-007 a regular supply that used everything assigned keeps a ratio of 1 and is never taken for a plant supply")
+    void aRegularSupplyWithZeroSurplusIsNeverTakenForAPlantSupply() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "10:00", 10f, 30f, 0f);
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "11:00", 10f, 20f, 0f);
+
+        requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(closeTo(1.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("AVAILABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(0));
+    }
+
+    @Test
+    @DisplayName("ENM-007 without a published month, a member with a regular supply has nothing assigned and counts its plant supply")
+    void withoutAPublishedMonthAMemberWithARegularSupplyHasNothingAssigned() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        createRegularSupply(member, community);
+        createPlantSupply(member, community);
+
+        requestLatest(community, member, loginUser(member))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOTHING_ASSIGNED"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(1));
+    }
+
+    @Test
+    @DisplayName("ENM-007 without a published month, a member whose supplies are all plant supplies has a non-applicable ratio")
+    void withoutAPublishedMonthAMemberOfPlantSuppliesOnlyIsNotApplicable() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        createPlantSupply(member, community);
+
+        requestLatest(community, member, loginUser(member))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOT_APPLICABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(1));
+    }
+
+    /**
+     * The AC2 member: a regular supply and a plant supply, with the AC2 records on the given day, or
+     * none when the day is null.
+     */
+    private Supply[] writeAc2Day(User member, CommunityEntity community, String day) {
+        Supply regular = createRegularSupply(member, community);
+        Supply plant = createPlantSupply(member, community);
+        if (day != null) {
+            writeRecord(regular, day, "10:00", 10f, 100f, 100f);
+            writeRecord(plant, day, "11:00", 5f, 50f, 0f);
+        }
+        return new Supply[]{regular, plant};
+    }
+
+    private static void assertAc2(ResultActions result) throws Exception {
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$.selfConsumptionRatio").value(closeTo(0.5, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("AVAILABLE"))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.selfConsumptionKWh").value(closeTo(100.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.assignedProductionKWh").value(closeTo(200.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(1))
+                // Every total, the self-sufficiency ratio, coverage and savings still count the plant supply.
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(150.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.assignedProductionKWh").value(closeTo(250.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.totalConsumptionKWh").value(closeTo(165.0, TOLERANCE)))
+                .andExpect(jsonPath("$.selfSufficiencyRatio").value(closeTo(150.0 / 165.0, TOLERANCE)))
+                .andExpect(jsonPath("$.coverage.supplyCount").value(2))
+                .andExpect(jsonPath("$.coverage.suppliesWithData").value(2))
+                // 150 kWh * 0.15 = 22.50
+                .andExpect(jsonPath("$.savings.amountEur").value(22.5));
+    }
+
+    private Supply createRegularSupply(User owner, CommunityEntity community) {
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()),
+                community.getId());
+        writtenCups.add(supply.getCode());
+        return supply;
+    }
+
+    private Supply createPlantSupply(User owner, CommunityEntity community) {
+        Supply supply = createRegularSupply(owner, community);
+        createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
+        return supply;
+    }
+
+    private void writeRecord(Supply supply, String date, String time, Float gridImportKWh,
+                             Float selfConsumptionKWh, Float surplusKWh) {
+        influxFixture.write(List.of(hourlyRecord(supply.getCode(), date, time, gridImportKWh,
+                selfConsumptionKWh, surplusKWh)));
     }
 
     // --- fixtures ---

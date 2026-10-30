@@ -30,7 +30,7 @@ class SupplyCodeAvailabilityTest {
     private final SupplyCodeAvailability availability = new SupplyCodeAvailabilityImpl(getSupplyRepository);
 
     @Test
-    @DisplayName("SUP-005 a CUPS no supply has is available")
+    @DisplayName("SUP-007 a CUPS no supply has is available")
     void aCupsNoSupplyHas_isAvailable() {
         when(getSupplyRepository.findCommunityIdsByUpperCaseCodes(FORMS)).thenReturn(Set.of());
 
@@ -38,7 +38,7 @@ class SupplyCodeAvailabilityTest {
     }
 
     @Test
-    @DisplayName("SUP-005 a CUPS a supply of the community has already exists, even if other communities have it too")
+    @DisplayName("SUP-007 a CUPS a supply of the community has already exists, even if other communities have it too")
     void aCupsOfTheCommunity_alreadyExists() {
         when(getSupplyRepository.findCommunityIdsByUpperCaseCodes(FORMS))
                 .thenReturn(Set.of(OTHER_COMMUNITY, COMMUNITY));
@@ -48,7 +48,7 @@ class SupplyCodeAvailabilityTest {
     }
 
     @Test
-    @DisplayName("SUP-005 a CUPS only supplies of other communities have is registered in another community")
+    @DisplayName("SUP-007 a CUPS only supplies of other communities have is registered in another community")
     void aCupsOfOtherCommunitiesOnly_isRegisteredInAnotherCommunity() {
         when(getSupplyRepository.findCommunityIdsByUpperCaseCodes(FORMS)).thenReturn(Set.of(OTHER_COMMUNITY));
 
@@ -57,7 +57,7 @@ class SupplyCodeAvailabilityTest {
     }
 
     @Test
-    @DisplayName("SUP-005 for a code change, the supply itself is left out of the comparison")
+    @DisplayName("SUP-007 for a code change, the supply itself is left out of the comparison")
     void aCodeChange_leavesTheSupplyOut() {
         when(getSupplyRepository.findCommunityIdsByUpperCaseCodes(FORMS)).thenReturn(Set.of(COMMUNITY));
         when(getSupplyRepository.findCommunityIdsByUpperCaseCodes(FORMS, SUPPLY)).thenReturn(Set.of());
@@ -66,7 +66,7 @@ class SupplyCodeAvailabilityTest {
     }
 
     @Test
-    @DisplayName("SUP-005 for a code change, another supply of the community with the CUPS refuses it")
+    @DisplayName("SUP-007 for a code change, another supply of the community with the CUPS refuses it")
     void aCodeChange_toAnotherSupplysCups_alreadyExists() {
         when(getSupplyRepository.findCommunityIdsByUpperCaseCodes(FORMS, SUPPLY)).thenReturn(Set.of(COMMUNITY));
 

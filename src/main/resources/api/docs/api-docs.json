@@ -1189,6 +1189,7 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
+              "SUPPLY_ALREADY_HAS_PLANT",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -1420,6 +1421,7 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
+              "SUPPLY_ALREADY_HAS_PLANT",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -2039,13 +2041,27 @@
             "description" : "What the self-consumed energy of the membership's supplies was worth over the period."
           },
           "selfConsumptionRatio" : {
-            "description" : "Share of the energy assigned to the membership's supplies that they consumed rather than fed back to the grid, on a 0-1 scale, computed from the summed totals. Null when nothing was assigned to them in the period.",
+            "description" : "Share of the energy assigned to the membership's supplies that they consumed rather than fed back to the grid, on a 0-1 scale, computed from the summed energy of the supplies that are no plant's own supply, which it leaves out. Null when nothing was assigned to those supplies in the period, and when every supply is a plant's own supply: selfConsumptionRatioStatus says which. selfConsumptionRatioBasis holds the energy it was computed from.",
             "example" : 0.67,
             "format" : "double",
             "type" : [
               "number",
               "null"
             ]
+          },
+          "selfConsumptionRatioBasis" : {
+            "$ref" : "#/components/schemas/SelfConsumptionRatioBasisResponse",
+            "description" : "The energy selfConsumptionRatio was computed from, and the plant's own supplies it leaves out. Both figures are 0 when the status is NOT_APPLICABLE."
+          },
+          "selfConsumptionRatioStatus" : {
+            "description" : "Whether selfConsumptionRatio could be computed. AVAILABLE: it is. NOTHING_ASSIGNED: no energy was assigned to the supplies it covers, which includes a period without data. NOT_APPLICABLE: every supply of the membership is a plant's own supply.",
+            "enum" : [
+              "AVAILABLE",
+              "NOTHING_ASSIGNED",
+              "NOT_APPLICABLE"
+            ],
+            "example" : "AVAILABLE",
+            "type" : "string"
           },
           "selfSufficiencyRatio" : {
             "description" : "Share of the energy the membership's supplies consumed that came from the community rather than from the grid, on a 0-1 scale, computed from the summed totals. Null when nothing was consumed in the period.",
@@ -2063,6 +2079,8 @@
           "period",
           "savings",
           "selfConsumptionRatio",
+          "selfConsumptionRatioBasis",
+          "selfConsumptionRatioStatus",
           "selfSufficiencyRatio"
         ],
         "type" : "object"
@@ -3302,6 +3320,7 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
+              "SUPPLY_ALREADY_HAS_PLANT",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -3354,6 +3373,34 @@
         },
         "required" : [
           "message"
+        ],
+        "type" : "object"
+      },
+      "SelfConsumptionRatioBasisResponse" : {
+        "properties" : {
+          "assignedProductionKWh" : {
+            "description" : "Energy assigned to the supplies the ratio covers: selfConsumptionKWh plus surplus over the period, and the ratio's denominator. In kWh, rounded to 3 decimals after summing.",
+            "example" : 724.0,
+            "format" : "double",
+            "type" : "number"
+          },
+          "excludedPlantSupplyCount" : {
+            "description" : "How many supplies that are a plant's own supply the ratio leaves out. Their energy is in neither figure above.",
+            "example" : 1,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "selfConsumptionKWh" : {
+            "description" : "Energy produced by the community and consumed by the supplies the ratio covers over the period, as reported by the distributor: the ratio's numerator. In kWh, rounded to 3 decimals.",
+            "example" : 485.0,
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [
+          "assignedProductionKWh",
+          "excludedPlantSupplyCount",
+          "selfConsumptionKWh"
         ],
         "type" : "object"
       },
@@ -3452,6 +3499,7 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
+              "SUPPLY_ALREADY_HAS_PLANT",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -4123,13 +4171,27 @@
             "description" : "What the self-consumed energy of the period was worth."
           },
           "selfConsumptionRatio" : {
-            "description" : "Share of the energy assigned to this supply that it consumed rather than fed back to the grid, on a 0-1 scale. Null when nothing was assigned to the supply in the period.",
+            "description" : "Share of the energy assigned to this supply that it consumed rather than fed back to the grid, on a 0-1 scale. Null when nothing was assigned to the supply in the period, and for a plant's own supply, to which it does not apply: selfConsumptionRatioStatus says which.",
             "example" : 0.67,
             "format" : "double",
             "type" : [
               "number",
               "null"
             ]
+          },
+          "selfConsumptionRatioBasis" : {
+            "$ref" : "#/components/schemas/SelfConsumptionRatioBasisResponse",
+            "description" : "The energy selfConsumptionRatio was computed from, and the plant's own supplies it leaves out. Both figures are 0 when the status is NOT_APPLICABLE."
+          },
+          "selfConsumptionRatioStatus" : {
+            "description" : "Whether selfConsumptionRatio could be computed. AVAILABLE: it is. NOTHING_ASSIGNED: no energy was assigned to the supplies it covers, which includes a period without data. NOT_APPLICABLE: the supply is a plant's own supply, whose surplus is stored as 0.",
+            "enum" : [
+              "AVAILABLE",
+              "NOTHING_ASSIGNED",
+              "NOT_APPLICABLE"
+            ],
+            "example" : "AVAILABLE",
+            "type" : "string"
           },
           "selfSufficiencyRatio" : {
             "description" : "Share of the energy consumed that came from the community rather than from the grid, on a 0-1 scale. Null when nothing was consumed in the period.",
@@ -4151,6 +4213,8 @@
           "period",
           "savings",
           "selfConsumptionRatio",
+          "selfConsumptionRatioBasis",
+          "selfConsumptionRatioStatus",
           "selfSufficiencyRatio",
           "supply"
         ],
@@ -4320,6 +4384,14 @@
               "null"
             ]
           },
+          "plant" : {
+            "$ref" : "#/components/schemas/PlantReferenceResponse",
+            "description" : "The plant whose own supply this is: the supply its production is measured at. Null when the supply is no plant's own supply.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
           "shelly" : {
             "$ref" : "#/components/schemas/SupplyShellyResponse",
             "description" : "Shelly device information of the supply",
@@ -4349,6 +4421,7 @@
           "id",
           "name",
           "ownerRecord",
+          "plant",
           "shelly",
           "user"
         ],
@@ -9754,7 +9827,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics" : {
       "get" : {
-        "description" : "Aggregates the consumption data stored for **every** supply the member owns in\nthis community into energy totals and two ratios, on a 0-1 scale. Supplies in the\nmember's other communities are not counted.\n\n- `selfSufficiencyRatio`: self-consumed energy divided by total consumed energy.\n- `selfConsumptionRatio`: self-consumed energy divided by the assigned energy.\n\nEvery supply is computed over the same period, exactly as the per-supply\nenergy-metrics endpoint computes it, and the results are added up: the energy\ntotals are summed across supplies and each ratio is derived **once** from those\nsums, never by averaging the per-supply ratios. A ratio whose summed denominator\nis zero is returned as `null`, never as `0`.\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them, with an end after\nthe current hour clipped as described under **Period checks**.\n\n- `startDate` and `endDate`: an explicit period, with the same semantics as the\n  per-supply endpoint. They must be supplied together, and a `startDate` that\n  is not before the `endDate` is a bad request.\n- `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in\n  the community's time zone, that the distributor has published for any of the\n  member's supplies. The distributor publishes a month's self-consumed energy\n  only some days after it ends; until then the month's hourly records already\n  carry consumption and the surplus the meter measured, but no self-consumed\n  energy. An hourly record is therefore published when it carries self-consumed\n  energy, zero included, and surplus alone does not count. A month is published\n  for a supply when at least 90% of the hours it could have published carry it:\n  the hours of the month from the later of its first hour and the supply's first\n  published record, so a supply whose assigned production started mid-month is\n  judged from that point. A month published for one supply is resolved even if\n  another of the member's supplies is still unpublished. This is not necessarily\n  the previous month: an unpublished or partly published month is skipped and\n  the search continues backwards through the 24 complete months before the\n  current one. The current month is never a candidate. When no month in the\n  search window is published, no period is resolved. The period runs from\n  `00:00` of the first day of the month to `00:00` of the first day of the next\n  month. Combining it with `startDate` or `endDate` is a bad request.\n- Neither: from the earliest record stored for any of the member's supplies to\n  the end of the hour of the latest.\n\nWhen no period can be resolved -- no published month in the search window, no\nstored record at all, or no supplies to search -- the response is still\nsuccessful, with null period bounds, zero totals and null ratios.\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\n**Coverage:**\n`coverage.hoursWithData` counts the hourly records found across every supply.\n`coverage.expectedHours` is the number of hours the period spans **times the\nnumber of supplies of the membership**, so a single supply without any record\nlowers coverage even when every other supply is complete. `supplyCount` and\n`suppliesWithData` tell one silent supply apart from gaps spread across all of\nthem. Hours without a record are left out of the sums; they are never counted as\nzero.\n\n**Savings:**\n`savings.amountEur` is an **estimate** of what the self-consumed energy of all\nthe member's supplies was worth, pricing the **energy term before taxes** only,\nexactly as the per-supply endpoint does, and summed before being rounded.\nIt is `null` only when no period could be resolved; whenever a period exists it\nis a figure, `0.00` when nothing was priced. An explicit period always resolves,\nso it never yields `null`. `savings.tariffSource` is `ESTIMATE` when any part of\nany supply was priced with the estimate, and `savings.estimatedPrice` then carries\nthe estimated price; it is `null` when every supply was priced with its contracted\ntariff, and when nothing was priced with the estimate.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404.\n",
+        "description" : "Aggregates the consumption data stored for **every** supply the member owns in\nthis community into energy totals and two ratios, on a 0-1 scale. Supplies in the\nmember's other communities are not counted.\n\n- `selfSufficiencyRatio`: self-consumed energy divided by total consumed energy.\n- `selfConsumptionRatio`: self-consumed energy divided by the assigned energy, over\n  the supplies that are **not** a plant's own supply. A plant's own supply has its\n  surplus stored as 0, so it is left out of both figures; it still counts\n  in every total, in `selfSufficiencyRatio`, in coverage and in savings.\n  `selfConsumptionRatioBasis` reports the two figures the ratio was computed from\n  and how many plant supplies it left out, and `selfConsumptionRatioStatus` says\n  whether it is `AVAILABLE`, `NOTHING_ASSIGNED` (nothing was assigned to the\n  supplies it covers) or `NOT_APPLICABLE` (every supply is a plant's own supply,\n  which takes precedence).\n\nEvery supply is computed over the same period, exactly as the per-supply\nenergy-metrics endpoint computes it, and the results are added up: the energy\ntotals are summed across supplies and each ratio is derived **once** from those\nsums, never by averaging the per-supply ratios. A ratio whose summed denominator\nis zero is returned as `null`, never as `0`.\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them, with an end after\nthe current hour clipped as described under **Period checks**.\n\n- `startDate` and `endDate`: an explicit period, with the same semantics as the\n  per-supply endpoint. They must be supplied together, and a `startDate` that\n  is not before the `endDate` is a bad request.\n- `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in\n  the community's time zone, that the distributor has published for any of the\n  member's supplies. The distributor publishes a month's self-consumed energy\n  only some days after it ends; until then the month's hourly records already\n  carry consumption and the surplus the meter measured, but no self-consumed\n  energy. An hourly record is therefore published when it carries self-consumed\n  energy, zero included, and surplus alone does not count. A month is published\n  for a supply when at least 90% of the hours it could have published carry it:\n  the hours of the month from the later of its first hour and the supply's first\n  published record, so a supply whose assigned production started mid-month is\n  judged from that point. A month published for one supply is resolved even if\n  another of the member's supplies is still unpublished. This is not necessarily\n  the previous month: an unpublished or partly published month is skipped and\n  the search continues backwards through the 24 complete months before the\n  current one. The current month is never a candidate. When no month in the\n  search window is published, no period is resolved. The period runs from\n  `00:00` of the first day of the month to `00:00` of the first day of the next\n  month. Combining it with `startDate` or `endDate` is a bad request.\n- Neither: from the earliest record stored for any of the member's supplies to\n  the end of the hour of the latest.\n\nWhen no period can be resolved -- no published month in the search window, no\nstored record at all, or no supplies to search -- the response is still\nsuccessful, with null period bounds, zero totals and null ratios.\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\n**Coverage:**\n`coverage.hoursWithData` counts the hourly records found across every supply.\n`coverage.expectedHours` is the number of hours the period spans **times the\nnumber of supplies of the membership**, so a single supply without any record\nlowers coverage even when every other supply is complete. `supplyCount` and\n`suppliesWithData` tell one silent supply apart from gaps spread across all of\nthem. Hours without a record are left out of the sums; they are never counted as\nzero.\n\n**Savings:**\n`savings.amountEur` is an **estimate** of what the self-consumed energy of all\nthe member's supplies was worth, pricing the **energy term before taxes** only,\nexactly as the per-supply endpoint does, and summed before being rounded.\nIt is `null` only when no period could be resolved; whenever a period exists it\nis a figure, `0.00` when nothing was priced. An explicit period always resolves,\nso it never yields `null`. `savings.tariffSource` is `ESTIMATE` when any part of\nany supply was priced with the estimate, and `savings.estimatedPrice` then carries\nthe estimated price; it is `null` when every supply was priced with its contracted\ntariff, and when nothing was priced with the estimate.\n\nReadable by the member themself and by community admins of this community.\nPlatform admins are **not** granted access on that basis alone and are answered\n404, as is every other caller who may not read it, so the membership's existence\nis not disclosed. A membership without supplies is answered successfully, not\nwith 404.\n",
         "operationId" : "getMembershipEnergyMetrics",
         "parameters" : [
           {
@@ -14273,7 +14346,7 @@
     },
     "/api/v1/plants" : {
       "post" : {
-        "description" : "This endpoint facilitates the creation of a new plant within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the plants's\naddress, its code and any relevant parameters.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin**\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive\ndetails about the newly created plant, including its unique identifier.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptiv\nerror message, aiding the client in diagnosing and addressing the issue.\n",
+        "description" : "This endpoint facilitates the creation of a new plant within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the plants's\naddress, its code and any relevant parameters.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin**\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive\ndetails about the newly created plant, including its unique identifier.\n\nA supply is the supply of at most one plant: when the supply already has one, the request is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is created.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptiv\nerror message, aiding the client in diagnosing and addressing the issue.\n",
         "operationId" : "createPlant",
         "requestBody" : {
           "content" : {
@@ -14358,6 +14431,36 @@
               }
             },
             "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Supply already has a plant" : {
+                    "description" : "Supply already has a plant",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "SUPPLY_ALREADY_HAS_PLANT",
+                          "message" : "The supply with ID '9a7e3c51-2b4d-4f6e-8a1b-3c5d7e9f0a2b' is already the supply of a plant, so no other plant can use it.",
+                          "params" : {
+                            "supplyId" : "9a7e3c51-2b4d-4f6e-8a1b-3c5d7e9f0a2b"
+                          }
+                        }
+                      ],
+                      "message" : "The supply with ID '9a7e3c51-2b4d-4f6e-8a1b-3c5d7e9f0a2b' is already the supply of a plant, so no other plant can use it.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-29T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The supply is already the supply of another plant. Nothing is written."
           },
           "500" : {
             "content" : {
@@ -14677,7 +14780,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint enables the update of plant information by specifying the plant's unique identifier in the\nendpoint path.\n\nClients send a request containing the updated plant details, and authentication, through an\nauthentication token, is required for secure access.\n**Required: Community Admin**\n\nA successful update results in an HTTP status code of 200, indicating that the plant information has\nbeen successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their\nvalues will be updated with a null value.\n",
+        "description" : "This endpoint enables the update of plant information by specifying the plant's unique identifier in the\nendpoint path.\n\nClients send a request containing the updated plant details, and authentication, through an\nauthentication token, is required for secure access.\n**Required: Community Admin**\n\nA successful update results in an HTTP status code of 200, indicating that the plant information has\nbeen successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their\nvalues will be updated with a null value.\n\nA supply is the supply of at most one plant: moving the plant to a supply that already has one is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is updated.\n",
         "operationId" : "updatePlant",
         "parameters" : [
           {
@@ -14786,6 +14889,36 @@
               }
             },
             "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Supply already has a plant" : {
+                    "description" : "Supply already has a plant",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "SUPPLY_ALREADY_HAS_PLANT",
+                          "message" : "The supply with ID '9a7e3c51-2b4d-4f6e-8a1b-3c5d7e9f0a2b' is already the supply of a plant, so no other plant can use it.",
+                          "params" : {
+                            "supplyId" : "9a7e3c51-2b4d-4f6e-8a1b-3c5d7e9f0a2b"
+                          }
+                        }
+                      ],
+                      "message" : "The supply with ID '9a7e3c51-2b4d-4f6e-8a1b-3c5d7e9f0a2b' is already the supply of a plant, so no other plant can use it.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-29T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The supply is already the supply of another plant. Nothing is written."
           },
           "500" : {
             "content" : {
@@ -20093,7 +20226,7 @@
     },
     "/api/v1/supplies/{supplyId}/energy-metrics" : {
       "get" : {
-        "description" : "This endpoint aggregates the consumption data stored for a specific supply into energy\ntotals and two ratios, on a 0-1 scale:\n\n- `selfSufficiencyRatio`: self-consumed energy divided by total consumed energy.\n- `selfConsumptionRatio`: self-consumed energy divided by the energy assigned to the supply.\n\nBoth ratios are computed by summing every record first and dividing once, so hours of\ndifferent magnitude weigh differently. A ratio whose denominator is zero is returned as\n`null`, never as `0`.\n\n**Authorization Rules:**\n- Community Admins can retrieve energy metrics for any supply they administer\n- Supply owners can only retrieve energy metrics for their own supplies\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them, with an end after\nthe current hour clipped as described under **Period checks**.\n\n- `startDate` and `endDate`: an explicit period. They must be supplied together;\n  supplying exactly one of them is a bad request, as is a `startDate` that is not\n  before the `endDate`.\n- `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in the\n  supply's time zone, that the distributor has published for **this supply**. It is\n  resolved from this supply's records alone: a month published only for another supply\n  of the same owner is never chosen. An hourly record is published when it carries\n  self-consumed energy, zero included, and surplus alone does not count. A month is\n  published when at least 90% of the hours it could have published carry it: the hours\n  of the month from the later of its first hour and the supply's first published\n  record. An unpublished or partly published month is skipped and the search continues\n  backwards through the 24 complete months before the current one. The current month is\n  never a candidate. The period runs from `00:00` of the first day of the month to\n  `00:00` of the first day of the next month. Combining it with `startDate` or\n  `endDate` is a bad request.\n- Neither: from the supply's earliest stored record to the end of the hour of its\n  latest.\n\nWhen no period can be resolved -- no published month in the search window, or no\nstored record at all -- the response is still successful, with null period bounds,\nzero totals and null ratios.\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\nThe `coverage` object reports how many hourly records were found against how many hours\nthe period spans, so a partially synchronised period can be told apart from a genuinely\nlow ratio. Hours without a record are left out of the sums; they are never counted as\nzero.\n\n**Savings:**\n`savings.amountEur` is an **estimate** of what the self-consumed energy of the period\nwas worth. It prices the **energy term before taxes** only: the power term, access\ntolls, charges and electricity tax are all excluded, and VAT is applied only where the\nresolved tariff carries a rate. `savings.tariffSource` says where the prices came from\n-- `ESTIMATE` for a computed approximation, `REAL_TARIFF` for the supply's contracted\ntariff -- and a single estimated stretch of the period makes the whole amount an\nestimate.\n\nThe amount **does not distinguish missing data from genuine zeros**: an hour with no\nstored record contributes nothing, exactly as it contributes nothing to the energy\ntotals, so a partially synchronised period yields a proportionally low figure rather\nthan a flagged one. `coverage` is the field that tells the two apart. Consistently\nwith that, an explicitly requested period containing no record at all is worth `0.00`,\nwhile `null` is reserved for the case where no period could be resolved: a supply\nwith no stored record and no requested period, or no published month for\n`period=LATEST_PUBLISHED_MONTH`.\n",
+        "description" : "This endpoint aggregates the consumption data stored for a specific supply into energy\ntotals and two ratios, on a 0-1 scale:\n\n- `selfSufficiencyRatio`: self-consumed energy divided by total consumed energy.\n- `selfConsumptionRatio`: self-consumed energy divided by the energy assigned to the supply.\n  It does not apply to a plant's own supply, whose surplus is stored as 0:\n  it is then `null` with `selfConsumptionRatioStatus` `NOT_APPLICABLE`, while every\n  other figure is reported as usual. `NOTHING_ASSIGNED` means nothing was assigned to\n  the supply in the period, and `AVAILABLE` that the ratio is computed.\n  `selfConsumptionRatioBasis` reports the two figures it was computed from.\n\nBoth ratios are computed by summing every record first and dividing once, so hours of\ndifferent magnitude weigh differently. A ratio whose denominator is zero is returned as\n`null`, never as `0`.\n\n**Authorization Rules:**\n- Community Admins can retrieve energy metrics for any supply they administer\n- Supply owners can only retrieve energy metrics for their own supplies\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them, with an end after\nthe current hour clipped as described under **Period checks**.\n\n- `startDate` and `endDate`: an explicit period. They must be supplied together;\n  supplying exactly one of them is a bad request, as is a `startDate` that is not\n  before the `endDate`.\n- `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in the\n  supply's time zone, that the distributor has published for **this supply**. It is\n  resolved from this supply's records alone: a month published only for another supply\n  of the same owner is never chosen. An hourly record is published when it carries\n  self-consumed energy, zero included, and surplus alone does not count. A month is\n  published when at least 90% of the hours it could have published carry it: the hours\n  of the month from the later of its first hour and the supply's first published\n  record. An unpublished or partly published month is skipped and the search continues\n  backwards through the 24 complete months before the current one. The current month is\n  never a candidate. The period runs from `00:00` of the first day of the month to\n  `00:00` of the first day of the next month. Combining it with `startDate` or\n  `endDate` is a bad request.\n- Neither: from the supply's earliest stored record to the end of the hour of its\n  latest.\n\nWhen no period can be resolved -- no published month in the search window, or no\nstored record at all -- the response is still successful, with null period bounds,\nzero totals and null ratios.\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\nThe `coverage` object reports how many hourly records were found against how many hours\nthe period spans, so a partially synchronised period can be told apart from a genuinely\nlow ratio. Hours without a record are left out of the sums; they are never counted as\nzero.\n\n**Savings:**\n`savings.amountEur` is an **estimate** of what the self-consumed energy of the period\nwas worth. It prices the **energy term before taxes** only: the power term, access\ntolls, charges and electricity tax are all excluded, and VAT is applied only where the\nresolved tariff carries a rate. `savings.tariffSource` says where the prices came from\n-- `ESTIMATE` for a computed approximation, `REAL_TARIFF` for the supply's contracted\ntariff -- and a single estimated stretch of the period makes the whole amount an\nestimate.\n\nThe amount **does not distinguish missing data from genuine zeros**: an hour with no\nstored record contributes nothing, exactly as it contributes nothing to the energy\ntotals, so a partially synchronised period yields a proportionally low figure rather\nthan a flagged one. `coverage` is the field that tells the two apart. Consistently\nwith that, an explicitly requested period containing no record at all is worth `0.00`,\nwhile `null` is reserved for the case where no period could be resolved: a supply\nwith no stored record and no requested period, or no published month for\n`period=LATEST_PUBLISHED_MONTH`.\n",
         "operationId" : "getSupplyEnergyMetrics",
         "parameters" : [
           {

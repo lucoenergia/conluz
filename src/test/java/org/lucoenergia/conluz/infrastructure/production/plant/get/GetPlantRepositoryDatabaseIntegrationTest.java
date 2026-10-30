@@ -80,8 +80,11 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         supply = createSupplyRepository.create(supply, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
         Plant plantEntityOne = PlantMother.random(supply).build();
         createPlantRepository.create(plantEntityOne, SupplyId.of(supply.getId()));
-        Plant plantEntityTwo = PlantMother.random(supply).build();
-        createPlantRepository.create(plantEntityTwo, SupplyId.of(supply.getId()));
+        // A supply is the supply of at most one plant (PLT-002), so plant two gets its own
+        Supply supplyTwo = SupplyMother.random(user).build();
+        supplyTwo = createSupplyRepository.create(supplyTwo, UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        Plant plantEntityTwo = PlantMother.random(supplyTwo).build();
+        createPlantRepository.create(plantEntityTwo, SupplyId.of(supplyTwo.getId()));
 
         PagedRequest pagedRequest = PagedRequest.of(0, 10);
         PagedResult<Plant> pagedResult = getPlantRepositoryDatabase.findAll(pagedRequest);

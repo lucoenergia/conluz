@@ -25,7 +25,7 @@ class ImportSuppliesResponseMapperTest {
             new ImportSuppliesResponseMapper(new I18nConfiguration().messageSource());
 
     @Test
-    @DisplayName("SUP-003 the response carries the counts and one result per row, in order, with each outcome's code")
+    @DisplayName("SUP-005 the response carries the counts and one result per row, in order, with each outcome's code")
     void eachOutcome_isMappedToItsCode() {
         ImportSuppliesResponse response = mapper.toResponse(new ImportedSupplies(List.of(
                 ImportedSupplyRow.of(2, SupplyImportRowOutcome.CREATED),
@@ -58,7 +58,7 @@ class ImportSuppliesResponseMapperTest {
     }
 
     @Test
-    @DisplayName("SUP-003 an invalid row's errors carry each violation's column, constraint and parameters, and its "
+    @DisplayName("SUP-005 an invalid row's errors carry each violation's column, constraint and parameters, and its "
             + "message names each rule")
     void anInvalidRow_carriesItsErrors() {
         ImportSuppliesRowResponse row = mapper.toResponse(new ImportedSupplies(List.of(invalid(2,
@@ -75,7 +75,7 @@ class ImportSuppliesResponseMapperTest {
     }
 
     @Test
-    @DisplayName("SUP-003 the messages follow the request's language")
+    @DisplayName("SUP-005 the messages follow the request's language")
     void messages_followTheLanguage() {
         List<ImportSuppliesRowResponse> rows = mapper.toResponse(new ImportedSupplies(List.of(
                 invalid(2, ColumnViolation.of("code", SupplyImportConstraint.INVALID_CUPS)),

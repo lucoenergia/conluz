@@ -160,7 +160,7 @@ Table "plants" {
   "inverter_provider" text [not null]
   "total_power" doubleprecision [not null]
   "connection_date" date
-  "supply_id" uuid [not null]
+  "supply_id" uuid [unique, not null]
   "regulatory_code" text [unique, note: '''The identifier assigned by the regulator. In Spain this is the CAU (Codigo de Autoconsumo). It is not the provider\'s station code (provider_code) and not a CUPS.''']
 }
 

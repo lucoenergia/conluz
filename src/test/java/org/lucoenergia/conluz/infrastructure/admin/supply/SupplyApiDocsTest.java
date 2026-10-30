@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.test.web.servlet.MvcResult;
@@ -83,8 +84,21 @@ class SupplyApiDocsTest extends BaseControllerTest {
         }
         assertTrue(supplyResponse.path("properties").has("ownerRecord"), "ownerRecord arrived with #448");
         assertTrue(textValues(supplyResponse.path("required")).contains("ownerRecord"), "ownerRecord is required");
-        assertEquals(13, supplyResponse.path("properties").size(),
-                "SupplyResponse gains community and ownerRecord and nothing else: " + supplyResponse.path("properties"));
+        assertTrue(supplyResponse.path("properties").has("plant"), "plant arrived with #411");
+        assertEquals(14, supplyResponse.path("properties").size(),
+                "SupplyResponse gains community, ownerRecord and plant and nothing else: "
+                        + supplyResponse.path("properties"));
+    }
+
+    @Test
+    @DisplayName("SUP-004 SupplyResponse declares plant as a required, nullable reference to the plant")
+    void supplyResponseDeclaresPlantAsARequiredNullablePlantReference() throws Exception {
+        JsonNode supplyResponse = schemas().path("SupplyResponse");
+        JsonNode plant = supplyResponse.path("properties").path("plant");
+
+        assertTrue(textValues(supplyResponse.path("required")).contains("plant"), "plant is required");
+        assertTrue(plant.path("$ref").asText().endsWith("/PlantReferenceResponse"), "plant was: " + plant);
+        assertEquals(List.of("object", "null"), textValues(plant.path("type")), "plant was: " + plant);
     }
 
     /**

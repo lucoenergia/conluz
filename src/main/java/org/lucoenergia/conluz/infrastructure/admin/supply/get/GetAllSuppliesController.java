@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMembership;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PlantReference;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.pagination.PagedResult;
+import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyPlantAssembler;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyResponse;
 import org.lucoenergia.conluz.infrastructure.shared.pagination.PaginationRequestMapper;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -42,17 +44,20 @@ public class GetAllSuppliesController {
     private final PaginationRequestMapper paginationRequestMapper;
     private final SupplyCapabilitiesAssembler capabilitiesAssembler;
     private final MemberDataAssembler memberDataAssembler;
+    private final SupplyPlantAssembler supplyPlantAssembler;
     private final CommunityAccessGuard communityAccessGuard;
 
     public GetAllSuppliesController(GetSupplyService service, PaginationRequestMapper paginationRequestMapper,
                                     CommunityAccessGuard communityAccessGuard,
                                     SupplyCapabilitiesAssembler capabilitiesAssembler,
-                                    MemberDataAssembler memberDataAssembler) {
+                                    MemberDataAssembler memberDataAssembler,
+            SupplyPlantAssembler supplyPlantAssembler) {
         this.service = service;
         this.paginationRequestMapper = paginationRequestMapper;
         this.communityAccessGuard = communityAccessGuard;
         this.capabilitiesAssembler = capabilitiesAssembler;
         this.memberDataAssembler = memberDataAssembler;
+        this.supplyPlantAssembler = supplyPlantAssembler;
     }
 
 
@@ -100,10 +105,11 @@ public class GetAllSuppliesController {
         // One query for the member records of every owner on this page, not one per supply.
         Function<Supply, CommunityMembership> ownerRecords =
                 memberDataAssembler.recordsOfSupplyOwners(supplies.getItems());
+        Function<Supply, PlantReference> plants = supplyPlantAssembler.plantsOf(supplies.getItems());
 
         List<SupplyResponse> suppliesResponse = supplies.getItems().stream()
                 .map(supply -> new SupplyResponse(supply, capabilitiesAssembler.assemble(currentUser, supply),
-                        ownerRecords.apply(supply)))
+                        ownerRecords.apply(supply), plants.apply(supply)))
                 .toList();
 
         return new PagedResult<>(suppliesResponse, supplies.getSize(), supplies.getTotalElements(),

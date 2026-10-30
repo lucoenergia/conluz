@@ -2,12 +2,15 @@ package org.lucoenergia.conluz.domain.consumption;
 
 /**
  * The three stored energy totals of a period, together with the quantities derived from them: the
- * total consumption, the assigned production and the self-sufficiency / self-consumption ratios.
+ * total consumption, the assigned production and the self-sufficiency ratio.
  *
- * <p>The ratios are computed by summing every record first and dividing once, never by averaging
+ * <p>The ratio is computed by summing every record first and dividing once, never by averaging
  * per-record ratios: an hour consuming 100 kWh and an hour consuming 1 kWh must not weigh the
  * same. The same holds across supplies: {@link #plus(EnergyBalance)} adds the raw totals, and the
- * ratios of the sum are derived from those sums, never from the ratios of the parts.</p>
+ * ratio of the sum is derived from those sums, never from the ratios of the parts.</p>
+ *
+ * <p>The self-consumption ratio is not derived here: it leaves out the plant's own supplies, which
+ * a balance cannot tell apart, so {@link SelfConsumptionRatio} computes it.</p>
  */
 public class EnergyBalance {
 
@@ -17,7 +20,6 @@ public class EnergyBalance {
     private final double totalConsumptionKWh;
     private final double assignedProductionKWh;
     private final Double selfSufficiencyRatio;
-    private final Double selfConsumptionRatio;
 
     /**
      * @param gridImportKWh      the sum of the stored {@code consumption_kwh} field, which is
@@ -32,7 +34,6 @@ public class EnergyBalance {
         this.totalConsumptionKWh = gridImportKWh + selfConsumptionKWh;
         this.assignedProductionKWh = assignedProductionKWh(selfConsumptionKWh, surplusKWh);
         this.selfSufficiencyRatio = ratio(selfConsumptionKWh, this.totalConsumptionKWh);
-        this.selfConsumptionRatio = ratio(selfConsumptionKWh, this.assignedProductionKWh);
     }
 
     /**
@@ -48,14 +49,14 @@ public class EnergyBalance {
     }
 
     /**
-     * The balance of a period without any energy: every total zero and both ratios null.
+     * The balance of a period without any energy: every total zero and the ratio null.
      */
     public static EnergyBalance empty() {
         return new EnergyBalance(0d, 0d, 0d);
     }
 
     /**
-     * The balance of both sets of records together. The raw totals are added and the ratios are
+     * The balance of both sets of records together. The raw totals are added and the ratio is
      * derived again from the sums.
      */
     public EnergyBalance plus(EnergyBalance other) {
@@ -99,9 +100,5 @@ public class EnergyBalance {
 
     public Double getSelfSufficiencyRatio() {
         return selfSufficiencyRatio;
-    }
-
-    public Double getSelfConsumptionRatio() {
-        return selfConsumptionRatio;
     }
 }

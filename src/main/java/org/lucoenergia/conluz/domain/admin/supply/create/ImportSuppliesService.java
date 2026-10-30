@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.domain.admin.supply.create;
 import java.util.UUID;
 
 /**
- * Creates the supplies listed in a CSV file, each one as {@link CreateSupplyService} does (SUP-003). The whole file is
+ * Creates the supplies listed in a CSV file, each one as {@link CreateSupplyService} does (SUP-005). The whole file is
  * read and checked before any row is created; then each row is created in a transaction of its own, so a row that
  * fails keeps the rows created before and after it.
  *

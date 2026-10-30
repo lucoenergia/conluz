@@ -49,7 +49,15 @@ public class GetMembershipEnergyMetricsController {
                     member's other communities are not counted.
 
                     - `selfSufficiencyRatio`: self-consumed energy divided by total consumed energy.
-                    - `selfConsumptionRatio`: self-consumed energy divided by the assigned energy.
+                    - `selfConsumptionRatio`: self-consumed energy divided by the assigned energy, over
+                      the supplies that are **not** a plant's own supply. A plant's own supply has its
+                      surplus stored as 0, so it is left out of both figures; it still counts
+                      in every total, in `selfSufficiencyRatio`, in coverage and in savings.
+                      `selfConsumptionRatioBasis` reports the two figures the ratio was computed from
+                      and how many plant supplies it left out, and `selfConsumptionRatioStatus` says
+                      whether it is `AVAILABLE`, `NOTHING_ASSIGNED` (nothing was assigned to the
+                      supplies it covers) or `NOT_APPLICABLE` (every supply is a plant's own supply,
+                      which takes precedence).
 
                     Every supply is computed over the same period, exactly as the per-supply
                     energy-metrics endpoint computes it, and the results are added up: the energy

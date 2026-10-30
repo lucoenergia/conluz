@@ -933,6 +933,14 @@ ALTER TABLE ONLY public.plants
 
 
 --
+-- Name: plants plants_supply_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plants
+    ADD CONSTRAINT plants_supply_id_uq UNIQUE (supply_id);
+
+
+--
 -- Name: platform_admin_invitation platform_admin_invitation_id_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

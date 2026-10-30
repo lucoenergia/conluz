@@ -45,7 +45,7 @@ class ImportSuppliesServiceTest {
             createSupplyService);
 
     @Test
-    @DisplayName("SUP-003 each valid row is created as createSupply creates it, with the cells as they are and the "
+    @DisplayName("SUP-005 each valid row is created as createSupply creates it, with the cells as they are and the "
             + "empty optional ones as null")
     void aValidRow_isCreatedWithItsCells() {
         ImportedSupplies imported = service.importSupplies(COMMUNITY_ID, csv("code;address;personalId;addressRef;name\n"
@@ -74,7 +74,7 @@ class ImportSuppliesServiceTest {
     }
 
     @Test
-    @DisplayName("SUP-003 each refusal of createSupply is the row's outcome, and the next rows are still created")
+    @DisplayName("SUP-005 each refusal of createSupply is the row's outcome, and the next rows are still created")
     void eachRefusal_isARowOutcome() {
         when(createSupplyService.create(argThat(supply -> supply != null && supply.getAddress().equals("A")), any(),
                 any())).thenThrow(new SupplyOwnerNotFoundException());
@@ -94,7 +94,7 @@ class ImportSuppliesServiceTest {
     }
 
     @Test
-    @DisplayName("SUP-004 a row whose code is not a CUPS, or with an empty required cell, lists every rule broken in "
+    @DisplayName("SUP-006 a row whose code is not a CUPS, or with an empty required cell, lists every rule broken in "
             + "the order of the columns and is not created")
     void anInvalidRow_listsEveryRuleBroken_andIsNotCreated() {
         ImportedSupplies imported = service.importSupplies(COMMUNITY_ID, csv("personalId;address;code\n"
@@ -109,7 +109,7 @@ class ImportSuppliesServiceTest {
     }
 
     @Test
-    @DisplayName("SUP-003 a malformed row is not created")
+    @DisplayName("SUP-005 a malformed row is not created")
     void aMalformedRow_isNotCreated() {
         ImportedSupplies imported = service.importSupplies(COMMUNITY_ID, csv("code;address;personalId\n"
                 + CUPS + ";Calle\n"));
@@ -121,7 +121,7 @@ class ImportSuppliesServiceTest {
 
     @ParameterizedTest
     @EnumSource(CsvImportFileProblem.class)
-    @DisplayName("SUP-003 each refusal of the file is the supply import's own, with the same headers, and nothing is "
+    @DisplayName("SUP-005 each refusal of the file is the supply import's own, with the same headers, and nothing is "
             + "created")
     void eachFileRefusal_isMappedToTheSupplyImport(CsvImportFileProblem problem) {
         CsvImportFileReader reader = mock(CsvImportFileReader.class);
@@ -137,7 +137,7 @@ class ImportSuppliesServiceTest {
     }
 
     @Test
-    @DisplayName("SUP-003 the file accepts exactly the columns code, address, personalId, addressRef and name, of "
+    @DisplayName("SUP-005 the file accepts exactly the columns code, address, personalId, addressRef and name, of "
             + "which the first three are required, and at most 1000 rows")
     void theLayout_isTheSupplyColumns() {
         assertThatThrownBy(() -> service.importSupplies(COMMUNITY_ID, csv("code;address;personalId;partition\n")))

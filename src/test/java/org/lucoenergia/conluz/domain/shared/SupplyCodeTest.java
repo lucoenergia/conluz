@@ -44,7 +44,7 @@ class SupplyCodeTest {
     }
 
     @Test
-    @DisplayName("SUP-004 a code written to a supply is upper-cased and accepted with 20 or 22 characters")
+    @DisplayName("SUP-006 a code written to a supply is upper-cased and accepted with 20 or 22 characters")
     void ofCups_upperCasesAndAccepts() {
         assertThat(SupplyCode.ofCups("es0031300325733001fh")).contains(SupplyCode.of(SHORT_CUPS));
         assertThat(SupplyCode.ofCups("es0031300325733001fh0f")).contains(SupplyCode.of(CUPS));
@@ -52,7 +52,7 @@ class SupplyCodeTest {
     }
 
     @Test
-    @DisplayName("SUP-004 a code with whitespace, of another length, null or empty is not a CUPS")
+    @DisplayName("SUP-006 a code with whitespace, of another length, null or empty is not a CUPS")
     void ofCups_refusesAnythingElse() {
         assertThat(SupplyCode.ofCups("es0031300325733001f")).isEmpty();
         assertThat(SupplyCode.ofCups("ES0031300325733001FH0FX")).isEmpty();
@@ -63,20 +63,20 @@ class SupplyCodeTest {
     }
 
     @Test
-    @DisplayName("SUP-005 a CUPS ending in 0F is the same as its 20 first characters, in both directions")
+    @DisplayName("SUP-007 a CUPS ending in 0F is the same as its 20 first characters, in both directions")
     void sameCupsForms_includeBothLengths() {
         assertThat(SupplyCode.of(SHORT_CUPS).sameCupsForms()).containsExactly(CUPS, SHORT_CUPS);
         assertThat(SupplyCode.of(CUPS).sameCupsForms()).containsExactly(CUPS, SHORT_CUPS);
     }
 
     @Test
-    @DisplayName("SUP-005 a 22-character CUPS not ending in 0F has no 20-character form")
+    @DisplayName("SUP-007 a 22-character CUPS not ending in 0F has no 20-character form")
     void sameCupsForms_ofAFullCupsWithAnotherSuffix() {
         assertThat(SupplyCode.of(SHORT_CUPS + "1F").sameCupsForms()).containsExactly(SHORT_CUPS + "1F");
     }
 
     @Test
-    @DisplayName("SUP-005 the forms are upper-cased")
+    @DisplayName("SUP-007 the forms are upper-cased")
     void sameCupsForms_areUpperCase() {
         assertThat(SupplyCode.of("es0031300325733001fh").sameCupsForms()).containsExactly(CUPS, SHORT_CUPS);
     }

@@ -89,7 +89,7 @@ public class SupplyExceptionHandler {
     }
 
     /**
-     * A 400: another supply of the same community has the same CUPS, in either length and in any case (SUP-005).
+     * A 400: another supply of the same community has the same CUPS, in either length and in any case (SUP-007).
      */
     @ExceptionHandler(SupplyAlreadyExistsException.class)
     public ResponseEntity<RestError> handleException(SupplyAlreadyExistsException e) {
@@ -97,7 +97,7 @@ public class SupplyExceptionHandler {
     }
 
     /**
-     * A 400: a supply of another community has the same CUPS (SUP-005). The message names neither that community
+     * A 400: a supply of another community has the same CUPS (SUP-007). The message names neither that community
      * nor its owner.
      */
     @ExceptionHandler(SupplyRegisteredInAnotherCommunityException.class)
@@ -107,7 +107,7 @@ public class SupplyExceptionHandler {
     }
 
     /**
-     * A 400: the code written to a supply is not a CUPS (SUP-004).
+     * A 400: the code written to a supply is not a CUPS (SUP-006).
      */
     @ExceptionHandler(SupplyCodeInvalidException.class)
     public ResponseEntity<RestError> handleException(SupplyCodeInvalidException e) {
@@ -124,7 +124,7 @@ public class SupplyExceptionHandler {
     }
 
     /**
-     * A 400: the file of supplies is refused as a whole, and nothing was created (SUP-003). Not logged with the
+     * A 400: the file of supplies is refused as a whole, and nothing was created (SUP-005). Not logged with the
      * headers: a file without a header line holds a supply's data in its first line, and the service has already
      * logged the refusal without them.
      */

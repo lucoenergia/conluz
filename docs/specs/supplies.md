@@ -4,15 +4,16 @@
 | --- | --- |
 | **Prefix** | `SUP` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Supplies`; operations `createSupply`, `updateSupply`, `importSupplies`, `deleteSupply` |
+| **Contract** | OpenAPI snapshot → tag `Supplies`; operations `createSupply`, `importSupplies`, `deleteSupply`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `updateSupply`, `enableSupply`, `disableSupply` |
 | **Related ADRs** | — |
 | **Last reviewed against code** | #532 |
 
 ## Purpose
 
 A supply is a member's point of consumption (CUPS) in a community. This spec covers the rules that keep a supply
-tied to a member of its community, what deleting one does, how supplies are imported from a file, and which codes
-a supply may have. It covers only the rules #412 and #532 touched.
+tied to a member of its community, what deleting one does, who reads one, how it references its plant, how
+supplies are imported from a file, and which codes a supply may have. It covers only the rules #412, #411 and #532
+touched.
 
 ## Glossary
 
@@ -61,7 +62,35 @@ a supply may have. It covers only the rules #412 and #532 touched.
 - **Source:** #341, #412. #532 replaced `createSuppliesWithFile` with `importSupplies`, which creates each row as
   `createSupply` does.
 
-### SUP-003 — A community admin imports supplies from a CSV file, each row created as `createSupply` does
+### SUP-003 — A supply's owner reads it only while their membership in its community is active
+
+- **Status:** Active
+- **Rule:** The owner of a supply MUST be able to read it, and everything read through it, only while their
+  membership in the supply's community is active. An owner whose membership there is pending or disabled MUST be
+  answered exactly as someone with no membership in that community: 404 on `getSupply`, `getSupplyEnergyMetrics`,
+  the supply's consumption and production series, its partition coefficients and `createPlant`, and the supply left
+  out of `getSuppliesByUserId`, even when they ask for their own supplies. A community admin's access is unchanged.
+- **Rationale:** Owning a supply is not access (MEM-004). Before #411 ownership alone opened every supply read, so a
+  suspended or not yet accepted member kept reading their community's supply data through the supplies they own, and
+  a response gaining community data (such as the supply's plant) would have reached them too. The listing applies the
+  same rule as a single read, so it never carries a supply whose own read answers 404.
+- **Source:** #411, MEM-004
+
+### SUP-004 — A supply references its plant when it is a plant's own supply
+
+- **Status:** Active
+- **Rule:** Every operation that answers a supply (`getSupply`, `getAllSupplies`,
+  `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`) MUST
+  reference the plant whose own supply it is, and MUST answer no plant for any other supply. A
+  listing MUST read those plants with one query for the whole page, never one per supply. The plant
+  is shown to whoever may read the supply (SUP-003).
+- **Rationale:** Only a plant pointed at its supply, so a client could not label a supply as a plant's
+  supply, nor explain why its self-consumption ratio does not apply (SEM-003). A supply is the supply
+  of at most one plant (PLT-002), so the reference is a single plant. Every caller who may read a
+  supply is an active member of its community, who may also read its plants.
+- **Source:** #411
+
+### SUP-005 — A community admin imports supplies from a CSV file, each row created as `createSupply` does
 
 - **Status:** Active
 - **Rule:** Only an active community admin of the community MAY import supplies into it (`importSupplies`). The file
@@ -73,7 +102,7 @@ a supply may have. It covers only the rules #412 and #532 touched.
   isolation keeps a large file usable when a few rows fail.
 - **Source:** #532
 
-### SUP-004 — A supply code written to a supply is a CUPS, stored upper-cased
+### SUP-006 — A supply code written to a supply is a CUPS, stored upper-cased
 
 - **Status:** Active
 - **Rule:** A supply code MUST be upper-cased, MUST contain no whitespace and MUST be 20 or 22 characters long, on
@@ -83,7 +112,7 @@ a supply may have. It covers only the rules #412 and #532 touched.
   be filed. Validating on unchanged updates would lock legacy supplies out of editing.
 - **Source:** #532
 
-### SUP-005 — No two supplies have the same CUPS, in either length or case
+### SUP-007 — No two supplies have the same CUPS, in either length or case
 
 - **Status:** Active
 - **Rule:** A supply MUST NOT be created, or its code changed, if another supply has the same CUPS once both are
@@ -103,4 +132,4 @@ a supply may have. It covers only the rules #412 and #532 touched.
 | Exception | Reason | Expires when | Source |
 | --- | --- | --- | --- |
 | A deleted supply's consumption series stay in the time-series database, keyed by CUPS; a supply created again with the same CUPS shows them | The series are measurements of the point of consumption, and deleting them cannot be undone or made part of the database transaction | A rule decides what happens to the series of a deleted supply | #412 |
-| Two supplies with the same CUPS across lengths or case can be written after #532, by two creations or code changes running at the same time | SUP-005 is checked by the application before the write, without a lock or a database constraint, so two concurrent writes can both pass the check | A database constraint or a lock makes SUP-005 hold for concurrent writes | #532 |
+| Two supplies with the same CUPS across lengths or case can be written after #532, by two creations or code changes running at the same time | SUP-007 is checked by the application before the write, without a lock or a database constraint, so two concurrent writes can both pass the check | A database constraint or a lock makes SUP-007 hold for concurrent writes | #532 |
