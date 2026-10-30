@@ -11,7 +11,7 @@
 #   for Tomcat's base and multipart temp directories.
 # - TZ=UTC keeps the JVM default zone at UTC, as the previous base image's Etc/UTC did. @Scheduled
 #   crons declared without a zone depend on it; without TZ an Alpine image defaults to GMT.
-FROM eclipse-temurin:17.0.20.1_1-jre-alpine
+FROM eclipse-temurin:24.0.2_12-jre-alpine
 
 ENV TZ=UTC
 
