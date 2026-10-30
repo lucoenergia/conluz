@@ -69,15 +69,6 @@
         ],
         "type" : "object"
       },
-      "BulkErrorObject" : {
-        "properties" : {
-          "errorMessage" : {
-            "type" : "string"
-          },
-          "item" : { }
-        },
-        "type" : "object"
-      },
       "ChangePasswordBody" : {
         "properties" : {
           "currentPassword" : {
@@ -736,21 +727,6 @@
         ],
         "type" : "object"
       },
-      "CreationInBulkResponse" : {
-        "properties" : {
-          "created" : {
-            "items" : { },
-            "type" : "array"
-          },
-          "errors" : {
-            "items" : {
-              "$ref" : "#/components/schemas/BulkErrorObject"
-            },
-            "type" : "array"
-          }
-        },
-        "type" : "object"
-      },
       "CurrentCoefficientResponse" : {
         "properties" : {
           "coefficient" : {
@@ -1168,6 +1144,19 @@
               "MEMBERSHIP_IMPORT_ROW_INVALID",
               "MEMBERSHIP_IMPORT_ROW_MALFORMED",
               "COMMUNITY_ALREADY_EXISTS",
+              "SUPPLY_ALREADY_EXISTS",
+              "SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY",
+              "SUPPLY_CUPS_INVALID",
+              "SUPPLY_OWNER_NOT_FOUND",
+              "SUPPLY_IMPORT_INVALID_ENCODING",
+              "SUPPLY_IMPORT_AMBIGUOUS_SEPARATOR",
+              "SUPPLY_IMPORT_MALFORMED_FILE",
+              "SUPPLY_IMPORT_UNKNOWN_HEADERS",
+              "SUPPLY_IMPORT_DUPLICATED_HEADERS",
+              "SUPPLY_IMPORT_MISSING_HEADERS",
+              "SUPPLY_IMPORT_TOO_MANY_ROWS",
+              "SUPPLY_IMPORT_ROW_INVALID",
+              "SUPPLY_IMPORT_ROW_MALFORMED",
               "SUPPLY_HAS_PLANTS",
               "SUPPLY_HAS_PARTITION_COEFFICIENTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
@@ -1260,6 +1249,238 @@
             "description" : "REGISTERED if the member was registered, with a pending membership; FAILED if nothing was registered for this row.",
             "enum" : [
               "REGISTERED",
+              "FAILED"
+            ],
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "code",
+          "errors",
+          "line",
+          "message",
+          "outcome"
+        ],
+        "type" : "object"
+      },
+      "ImportSuppliesResponse" : {
+        "description" : "The outcome of importing a file of supplies.",
+        "properties" : {
+          "created" : {
+            "description" : "How many rows were created.",
+            "example" : 118,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "failed" : {
+            "description" : "How many rows were not created. Each has a code and a message in `rows`.",
+            "example" : 2,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rows" : {
+            "description" : "One result per data row of the file, in the order of the file. Rows whose cells are all empty are skipped and have no result.",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportSuppliesRowResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [
+          "created",
+          "failed",
+          "rows"
+        ],
+        "type" : "object"
+      },
+      "ImportSuppliesRowErrorResponse" : {
+        "description" : "A rule of the import that a value of the row breaks. It names the column and the rule, never the value.",
+        "properties" : {
+          "column" : {
+            "description" : "The header of the column whose value breaks the rule.",
+            "example" : "code",
+            "type" : "string"
+          },
+          "constraint" : {
+            "description" : "The rule broken: REQUIRED if a required value is empty or blank; INVALID_CUPS if the code, once upper-cased, holds whitespace or is neither 20 nor 22 characters long. A newer server may add rules, so a client must also handle one it does not know.",
+            "enum" : [
+              "REQUIRED",
+              "INVALID_CUPS"
+            ],
+            "example" : "INVALID_CUPS",
+            "type" : "string"
+          },
+          "params" : {
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "description" : "The rule's parameters, keyed in camelCase for use as i18n interpolation variables and formatted without a locale. Empty if the rule has none, as both rules today.",
+            "example" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [
+          "column",
+          "constraint",
+          "params"
+        ],
+        "type" : "object"
+      },
+      "ImportSuppliesRowResponse" : {
+        "description" : "The result of one data row of an imported file of supplies. It carries nothing the file held: neither the CUPS nor the personal ID.",
+        "properties" : {
+          "code" : {
+            "description" : "Why the row failed: SUPPLY_IMPORT_ROW_INVALID if a value breaks a rule of the import; SUPPLY_IMPORT_ROW_MALFORMED if the row does not have as many cells as the header; SUPPLY_OWNER_NOT_FOUND if the personal ID matches no member of this community, whether or not it matches a user; SUPPLY_ALREADY_EXISTS if a supply of this community already has the same CUPS, possibly from an earlier row of the same file; SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY if only a supply of another community has it. Null for a created row.",
+            "enum" : [
+              "USER_LAST_PLATFORM_ADMIN",
+              "USER_NOT_PLATFORM_ADMIN",
+              "USER_ALREADY_EXISTS",
+              "USER_PASSWORD_POLICY_VIOLATION",
+              "USER_CURRENT_PASSWORD_INCORRECT",
+              "USER_PASSWORD_UNCHANGED",
+              "USER_PASSWORD_CHANGE_REQUIRED",
+              "USER_PASSWORD_RESET_TOKEN_INVALID",
+              "USER_OWNS_SUPPLIES",
+              "USER_PERSONAL_ID_INVALID",
+              "USER_ALREADY_PLATFORM_ADMIN",
+              "PLATFORM_ADMIN_ALREADY_INVITED",
+              "PLATFORM_ADMIN_NOT_INVITED",
+              "PLATFORM_ADMIN_INVITATION_RESEND_LIMIT_REACHED",
+              "PLATFORM_ADMIN_INVITATION_CODE_INVALID",
+              "PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED",
+              "PLATFORM_ADMIN_INVITATION_UNAVAILABLE",
+              "PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED",
+              "AUTH_TOO_MANY_FAILED_ATTEMPTS",
+              "MEMBERSHIP_ALREADY_EXISTS",
+              "MEMBERSHIP_ALREADY_INVITED",
+              "MEMBERSHIP_WITHOUT_CONTACT_EMAIL",
+              "MEMBERSHIP_INVITATION_UNAVAILABLE",
+              "MEMBERSHIP_NOT_INVITED",
+              "MEMBERSHIP_DISABLED",
+              "MEMBERSHIP_INVITATION_RESEND_LIMIT_REACHED",
+              "MEMBERSHIP_INVITATION_SELECTION_EMPTY",
+              "MEMBERSHIP_INVITATION_SELECTION_TOO_LARGE",
+              "MEMBERSHIP_INVITATION_SELECTION_DUPLICATED",
+              "MEMBERSHIP_NOT_FOUND",
+              "MEMBERSHIP_INVITATION_TOKEN_INVALID",
+              "MEMBERSHIP_INVITATION_LOGIN_REQUIRED",
+              "MEMBERSHIP_OWNS_SUPPLIES",
+              "MEMBERSHIP_LAST_ACTIVE_ADMIN",
+              "MEMBERSHIP_IMPORT_INVALID_ENCODING",
+              "MEMBERSHIP_IMPORT_AMBIGUOUS_SEPARATOR",
+              "MEMBERSHIP_IMPORT_MALFORMED_FILE",
+              "MEMBERSHIP_IMPORT_UNKNOWN_HEADERS",
+              "MEMBERSHIP_IMPORT_DUPLICATED_HEADERS",
+              "MEMBERSHIP_IMPORT_MISSING_HEADERS",
+              "MEMBERSHIP_IMPORT_TOO_MANY_ROWS",
+              "MEMBERSHIP_IMPORT_ROW_INVALID",
+              "MEMBERSHIP_IMPORT_ROW_MALFORMED",
+              "COMMUNITY_ALREADY_EXISTS",
+              "SUPPLY_ALREADY_EXISTS",
+              "SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY",
+              "SUPPLY_CUPS_INVALID",
+              "SUPPLY_OWNER_NOT_FOUND",
+              "SUPPLY_IMPORT_INVALID_ENCODING",
+              "SUPPLY_IMPORT_AMBIGUOUS_SEPARATOR",
+              "SUPPLY_IMPORT_MALFORMED_FILE",
+              "SUPPLY_IMPORT_UNKNOWN_HEADERS",
+              "SUPPLY_IMPORT_DUPLICATED_HEADERS",
+              "SUPPLY_IMPORT_MISSING_HEADERS",
+              "SUPPLY_IMPORT_TOO_MANY_ROWS",
+              "SUPPLY_IMPORT_ROW_INVALID",
+              "SUPPLY_IMPORT_ROW_MALFORMED",
+              "SUPPLY_HAS_PLANTS",
+              "SUPPLY_HAS_PARTITION_COEFFICIENTS",
+              "SHARING_AGREEMENT_NOT_DRAFT",
+              "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
+              "SHARING_AGREEMENT_NOT_REVERTIBLE",
+              "SHARING_AGREEMENT_HAS_APPLIED_COEFFICIENTS",
+              "SHARING_AGREEMENT_DUPLICATE_CUPS",
+              "SHARING_AGREEMENT_DUPLICATE_SUPPLY",
+              "SHARING_AGREEMENT_NOT_PUBLISHED",
+              "SHARING_AGREEMENT_COEFFICIENT_NOT_IN_AGREEMENT",
+              "SHARING_AGREEMENT_DATE_IN_FUTURE",
+              "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_AFTER_PREDECESSOR",
+              "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR",
+              "SHARING_AGREEMENT_COEFFICIENT_HAS_SUCCESSOR",
+              "SHARING_AGREEMENT_COEFFICIENT_NOT_ACTIVE",
+              "SHARING_AGREEMENT_COEFFICIENT_OVERLAP_CONFLICT",
+              "SHARING_AGREEMENT_CLOSURE_DATE_NOT_AFTER_ACTIVATION",
+              "SHARING_AGREEMENT_COEFFICIENT_PERIOD_OVERLAP",
+              "DISTRIBUTOR_FILE_FILENAME_SHAPE_INVALID",
+              "DISTRIBUTOR_FILE_PLANT_REGULATORY_CODE_MISSING",
+              "DISTRIBUTOR_FILE_FILENAME_REGULATORY_CODE_MISMATCH",
+              "DISTRIBUTOR_FILE_VALUE_DECIMAL_SEPARATOR_INVALID",
+              "DISTRIBUTOR_FILE_VALUE_SCALE_INVALID",
+              "DISTRIBUTOR_FILE_CUPS_LENGTH_INVALID",
+              "DISTRIBUTOR_FILE_CUPS_DUPLICATE",
+              "DISTRIBUTOR_FILE_COEFFICIENT_SUM_INVALID",
+              "DISTRIBUTOR_FILE_CUPS_UNKNOWN",
+              "DISTRIBUTOR_FILE_LINE_MALFORMED",
+              "SHARING_AGREEMENT_COEFFICIENT_SUM_INVALID",
+              "PLANT_MISSING_REGULATORY_CODE",
+              "PLANT_HAS_SHARING_AGREEMENTS",
+              "PLANT_HAS_PARTITION_COEFFICIENTS",
+              "SUPPLY_ALREADY_HAS_PLANT",
+              "HUAWEI_CONFIG_PASSWORD_REQUIRED",
+              "SUPPLY_CUPS_NOT_NORMALIZABLE",
+              "SUPPLY_CUPS_COLLISION",
+              "DATADIS_CONFIG_PASSWORD_REQUIRED",
+              "HUAWEI_CONFIG_NOT_FOUND",
+              "HUAWEI_CONFIG_INCOMPLETE",
+              "DATADIS_CONFIG_NOT_FOUND",
+              "DATADIS_CONFIG_INCOMPLETE",
+              "ENERGY_METRICS_PERIOD_CONFLICTING",
+              "ENERGY_METRICS_PERIOD_INCOMPLETE",
+              "ENERGY_METRICS_PERIOD_START_AFTER_END",
+              "ENERGY_METRICS_PERIOD_START_IN_FUTURE",
+              "ENERGY_METRICS_PERIOD_TOO_LONG",
+              "PRICE_SYNC_PERIOD_START_AFTER_END",
+              "PRICE_SYNC_PERIOD_TOO_LONG",
+              "PRICE_SYNC_PERIOD_END_BEYOND_TOMORROW",
+              "CONTACT_CHANNELS_MISSING",
+              "CONTACT_CHANNELS_TOO_MANY",
+              "CONTACT_CHANNEL_TYPE_INVALID",
+              "CONTACT_CHANNEL_LABEL_BLANK",
+              "CONTACT_CHANNEL_LABEL_TOO_LONG",
+              "CONTACT_CHANNEL_VALUE_BLANK",
+              "CONTACT_CHANNEL_VALUE_TOO_LONG",
+              "CONTACT_CHANNEL_SCHEDULE_TOO_LONG",
+              "CONTACT_CHANNEL_NOTES_TOO_LONG",
+              "CONTACT_CHANNEL_EMAIL_INVALID",
+              "CONTACT_CHANNEL_PHONE_CHARACTERS_INVALID",
+              "CONTACT_CHANNEL_PHONE_TOO_FEW_DIGITS",
+              "REQUEST_PAYLOAD_TOO_LARGE"
+            ],
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "errors" : {
+            "description" : "For SUPPLY_IMPORT_ROW_INVALID, each rule broken, in the order of the columns, so that a client can write its own text; the same rules as `message`. Empty for any other row.",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportSuppliesRowErrorResponse"
+            },
+            "type" : "array"
+          },
+          "line" : {
+            "description" : "The line of the file the row starts on, the header being line 1.",
+            "example" : 2,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "message" : {
+            "description" : "Why the row failed, as a readable message in the language of the request's Accept-Language, naming the columns and rules broken but never their values. Null for a created row.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "outcome" : {
+            "description" : "CREATED if the supply was created; FAILED if nothing was created for this row.",
+            "enum" : [
+              "CREATED",
               "FAILED"
             ],
             "type" : "string"
@@ -3054,6 +3275,19 @@
               "MEMBERSHIP_IMPORT_ROW_INVALID",
               "MEMBERSHIP_IMPORT_ROW_MALFORMED",
               "COMMUNITY_ALREADY_EXISTS",
+              "SUPPLY_ALREADY_EXISTS",
+              "SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY",
+              "SUPPLY_CUPS_INVALID",
+              "SUPPLY_OWNER_NOT_FOUND",
+              "SUPPLY_IMPORT_INVALID_ENCODING",
+              "SUPPLY_IMPORT_AMBIGUOUS_SEPARATOR",
+              "SUPPLY_IMPORT_MALFORMED_FILE",
+              "SUPPLY_IMPORT_UNKNOWN_HEADERS",
+              "SUPPLY_IMPORT_DUPLICATED_HEADERS",
+              "SUPPLY_IMPORT_MISSING_HEADERS",
+              "SUPPLY_IMPORT_TOO_MANY_ROWS",
+              "SUPPLY_IMPORT_ROW_INVALID",
+              "SUPPLY_IMPORT_ROW_MALFORMED",
               "SUPPLY_HAS_PLANTS",
               "SUPPLY_HAS_PARTITION_COEFFICIENTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
@@ -3220,6 +3454,19 @@
               "MEMBERSHIP_IMPORT_ROW_INVALID",
               "MEMBERSHIP_IMPORT_ROW_MALFORMED",
               "COMMUNITY_ALREADY_EXISTS",
+              "SUPPLY_ALREADY_EXISTS",
+              "SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY",
+              "SUPPLY_CUPS_INVALID",
+              "SUPPLY_OWNER_NOT_FOUND",
+              "SUPPLY_IMPORT_INVALID_ENCODING",
+              "SUPPLY_IMPORT_AMBIGUOUS_SEPARATOR",
+              "SUPPLY_IMPORT_MALFORMED_FILE",
+              "SUPPLY_IMPORT_UNKNOWN_HEADERS",
+              "SUPPLY_IMPORT_DUPLICATED_HEADERS",
+              "SUPPLY_IMPORT_MISSING_HEADERS",
+              "SUPPLY_IMPORT_TOO_MANY_ROWS",
+              "SUPPLY_IMPORT_ROW_INVALID",
+              "SUPPLY_IMPORT_ROW_MALFORMED",
               "SUPPLY_HAS_PLANTS",
               "SUPPLY_HAS_PARTITION_COEFFICIENTS",
               "SHARING_AGREEMENT_NOT_DRAFT",
@@ -13311,6 +13558,215 @@
         ]
       }
     },
+    "/api/v1/communities/{communityId}/supplies/import" : {
+      "post" : {
+        "description" : "Creates a supply in the community for each data row of a CSV file, as `createSupply` does. Only an active community admin of the community may import supplies; a platform admin may not.\n\n**The file.** UTF-8 or Windows-1252, the two encodings Spanish Excel saves a CSV file in (\"CSV UTF-8\" and \"CSV\"), separated by `,` or `;`, told from the header line. A file starting with a UTF-8 byte order mark is read as UTF-8; one starting with a UTF-16 byte order mark is refused; any other is read as UTF-8 if it is valid UTF-8, and as Windows-1252 otherwise. The header line names the columns, in any order: `code`, `address` and `personalId` are required; `addressRef` and `name` are optional. No other column is accepted. At most 1000 data rows; rows whose cells are all empty are skipped.\n\n**Whole-file refusals.** If the file is neither UTF-8 nor Windows-1252, its separator cannot be told, it is not valid CSV, its header names an unknown column, a column twice or lacks a required one, or it has more than 1000 data rows, the response is 400 with a dedicated code, and nothing is created.\n\n**Rows.** Otherwise each row is created in a transaction of its own, so a row that fails keeps the others. The response has one result per row. An empty `addressRef` or `name` is stored as null. A row with an empty required value, or whose `code` is not a CUPS (once upper-cased, it holds whitespace or is neither 20 nor 22 characters long), fails with `SUPPLY_IMPORT_ROW_INVALID` and lists each rule broken in `errors`, by column and constraint code, for a client to write its own text. A row whose `personalId` matches no member of this community fails with `SUPPLY_OWNER_NOT_FOUND`, whether or not it matches a user; a member whose membership is pending is an owner. The code is stored upper-cased, and is the same CUPS as another once both are completed to 22 characters (a 20-character one with `0F`) and compared case-insensitively. A CUPS a supply of this community already has, including from an earlier row of the same file, fails with `SUPPLY_ALREADY_EXISTS`, so importing the same file again is safe: rows already created fail with that code, and the rest are created. A CUPS only a supply of another community has fails with `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY`. No result carries a value of the file. Every `message` is in the language of the request's Accept-Language.\n",
+        "operationId" : "importSupplies",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "file" : {
+                    "description" : "CSV file of supplies, UTF-8 or Windows-1252, separated by `,` or `;`, with a header line naming the columns code, address, personalId, addressRef and name.",
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [
+                  "file"
+                ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "created" : 1,
+                  "failed" : 1,
+                  "rows" : [
+                    {
+                      "code" : null,
+                      "errors" : [ ],
+                      "line" : 2,
+                      "message" : null,
+                      "outcome" : "CREATED"
+                    },
+                    {
+                      "code" : "SUPPLY_IMPORT_ROW_INVALID",
+                      "errors" : [
+                        {
+                          "column" : "code",
+                          "constraint" : "INVALID_CUPS",
+                          "params" : { }
+                        }
+                      ],
+                      "line" : 3,
+                      "message" : "The row has invalid values: code is not a CUPS: it must have 20 or 22 characters, without spaces.",
+                      "outcome" : "FAILED"
+                    }
+                  ]
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportSuppliesResponse"
+                }
+              }
+            },
+            "description" : "The file was read, and each row was created or failed."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "SUPPLY_IMPORT_MISSING_HEADERS",
+                      "message" : "The file lacks these required columns: 'personalId'. Nothing has been imported.",
+                      "params" : {
+                        "headers" : "personalId"
+                      }
+                    }
+                  ],
+                  "message" : "The file lacks these required columns: 'personalId'. Nothing has been imported.",
+                  "status" : 400,
+                  "timestamp" : "2026-10-29T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The file was refused as a whole and nothing was created. The code tells why: SUPPLY_IMPORT_INVALID_ENCODING, SUPPLY_IMPORT_AMBIGUOUS_SEPARATOR, SUPPLY_IMPORT_MALFORMED_FILE, SUPPLY_IMPORT_UNKNOWN_HEADERS, SUPPLY_IMPORT_DUPLICATED_HEADERS, SUPPLY_IMPORT_MISSING_HEADERS (each with the offending header names in `params.headers`, comma-separated) or SUPPLY_IMPORT_TOO_MANY_ROWS (with the limit in `params.maxRows`)."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "413" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "REQUEST_PAYLOAD_TOO_LARGE",
+                      "message" : "The file is larger than the maximum allowed size of 10 MB.",
+                      "params" : {
+                        "maxFileSizeBytes" : "10485760"
+                      }
+                    }
+                  ],
+                  "message" : "The file is larger than the maximum allowed size of 10 MB.",
+                  "status" : 413,
+                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The uploaded file is larger than allowed (`REQUEST_PAYLOAD_TOO_LARGE`), so nothing has been done with it. The maximum file size, in bytes, is given in `params.maxFileSizeBytes`."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Imports supplies into a community from a CSV file.",
+        "tags" : [
+          "Supplies"
+        ]
+      }
+    },
     "/api/v1/info" : {
       "get" : {
         "description" : "Returns the application version from the build. Does not require authentication.",
@@ -18376,7 +18832,7 @@
     },
     "/api/v1/supplies" : {
       "post" : {
-        "description" : "This endpoint is designed to create a new supply within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the supply's address, partition coefficient, and any relevant parameters.\n\nThe supply's community is provided in the body via the required `communityId` field.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin of the community. Returns 400 if `communityId` is missing, 404 if the\ncommunity does not exist or the caller is not a member of it, or 403 if the caller is a member but\nnot one of its admins.**\n\nThe owner identified by `personalId` must be a member of the supply's community. An owner who is\nnot a member of it is reported as not found (404), exactly like a `personalId` that matches no user.\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptive error message, aiding the client in diagnosing and addressing the issue. This endpoint plays a pivotal role in dynamically expanding the system's repertoire of energy supplies.\n",
+        "description" : "This endpoint is designed to create a new supply within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the supply's address, partition coefficient, and any relevant parameters.\n\nThe supply's community is provided in the body via the required `communityId` field.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin of the community. Returns 400 if `communityId` is missing, 404 if the\ncommunity does not exist or the caller is not a member of it, or 403 if the caller is a member but\nnot one of its admins.**\n\nThe owner identified by `personalId` must be a member of the supply's community. An owner who is\nnot a member of it is reported as not found (404, `SUPPLY_OWNER_NOT_FOUND`), exactly like a\n`personalId` that matches no user.\n\nThe `code` is the supply's CUPS. It is upper-cased and stored that way; it must then hold no\nwhitespace and be 20 or 22 characters long, or the request is refused with 400\n`SUPPLY_CUPS_INVALID`. A CUPS is the same as another once both are completed to 22 characters\n(a 20-character one with `0F`) and compared case-insensitively. If a supply of this community\nalready has the same CUPS, the request is refused with 400 `SUPPLY_ALREADY_EXISTS`; if only a\nsupply of another community has it, with 400 `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY`, which\nnames neither that community nor its owner.\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptive error message, aiding the client in diagnosing and addressing the issue. This endpoint plays a pivotal role in dynamically expanding the system's repertoire of energy supplies.\n",
         "operationId" : "createSupply",
         "requestBody" : {
           "content" : {
@@ -18495,165 +18951,6 @@
           }
         ],
         "summary" : "Creates a new supply within the system.",
-        "tags" : [
-          "Supplies"
-        ]
-      }
-    },
-    "/api/v1/supplies/import" : {
-      "post" : {
-        "description" : "This endpoint facilitates the creation of a set of supplies within the system by importing a\nCSV file.\n\nThis endpoint requires clients to send a request containing a file with essential details for each\nsupply, including code, address, users and any additional relevant information.\n\nAuthentication is mandated, utilizing an authentication token, to ensure secure access.\n**Required: Community Admin**\n\nUpon successful file processing, the server responds with an HTTP status code of 200, along with\ncomprehensive details about the result of the bulk operation, including what users have been created\nor any potential error.\n\nIn cases where the creation process encounters errors, the server responds with an appropriate error status code, accompanied by a descriptive error message to guide clients in addressing and resolving the issue.\n",
-        "operationId" : "createSuppliesWithFile",
-        "parameters" : [
-          {
-            "description" : "Target community UUID.",
-            "in" : "query",
-            "name" : "communityId",
-            "required" : true,
-            "schema" : {
-              "format" : "uuid",
-              "type" : "string"
-            }
-          }
-        ],
-        "requestBody" : {
-          "content" : {
-            "multipart/form-data" : {
-              "schema" : {
-                "properties" : {
-                  "file" : {
-                    "description" : "CSV file format: code(String), address(String), addressRef(String), personalId(String; the DNI/NIE/NIF of the existing owner, normalised before the lookup: whitespace, dots and hyphens removed, letters upper-cased). The owner must be a member of the target community: a row whose owner is not a member of it gets the same per-row \"user not found\" error as a row whose personalId matches no user.",
-                    "format" : "binary",
-                    "type" : "string"
-                  }
-                },
-                "required" : [
-                  "file"
-                ],
-                "type" : "object"
-              }
-            }
-          }
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/CreationInBulkResponse"
-                }
-              }
-            },
-            "description" : "File processed successfully"
-          },
-          "400" : {
-            "content" : {
-              "application/json" : {
-                "example" : {
-                  "message" : "The request contains invalid data.",
-                  "status" : 400,
-                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                }
-              }
-            },
-            "description" : "The request contains invalid data."
-          },
-          "401" : {
-            "content" : {
-              "application/json" : {
-                "example" : {
-                  "message" : "You are not authorized to make this request.",
-                  "status" : 401,
-                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                }
-              }
-            },
-            "description" : "You are not authorized to make this request."
-          },
-          "403" : {
-            "content" : {
-              "application/json" : {
-                "examples" : {
-                  "Not authorized" : {
-                    "description" : "Not authorized",
-                    "value" : {
-                      "message" : "You are not authorized to make this request.",
-                      "status" : 403,
-                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                    }
-                  },
-                  "Password change required" : {
-                    "description" : "Password change required",
-                    "value" : {
-                      "errors" : [
-                        {
-                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
-                          "message" : "You must change your password before you can continue.",
-                          "params" : null
-                        }
-                      ],
-                      "message" : "You must change your password before you can continue.",
-                      "status" : 403,
-                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
-                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                    }
-                  }
-                },
-                "schema" : {
-                  "$ref" : "#/components/schemas/RestError"
-                }
-              }
-            },
-            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
-          },
-          "413" : {
-            "content" : {
-              "application/json" : {
-                "example" : {
-                  "errors" : [
-                    {
-                      "code" : "REQUEST_PAYLOAD_TOO_LARGE",
-                      "message" : "The file is larger than the maximum allowed size of 10 MB.",
-                      "params" : {
-                        "maxFileSizeBytes" : "10485760"
-                      }
-                    }
-                  ],
-                  "message" : "The file is larger than the maximum allowed size of 10 MB.",
-                  "status" : 413,
-                  "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                },
-                "schema" : {
-                  "$ref" : "#/components/schemas/RestError"
-                }
-              }
-            },
-            "description" : "The uploaded file is larger than allowed (`REQUEST_PAYLOAD_TOO_LARGE`), so nothing has been done with it. The maximum file size, in bytes, is given in `params.maxFileSizeBytes`."
-          },
-          "500" : {
-            "content" : {
-              "application/json" : {
-                "example" : {
-                  "message" : "There was a problem processing your request.",
-                  "status" : 500,
-                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
-                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
-                }
-              }
-            },
-            "description" : "There was a problem processing your request."
-          }
-        },
-        "security" : [
-          {
-            "bearerToken" : [ ]
-          }
-        ],
-        "summary" : "Creates supplies in bulk importing a CSV file.",
         "tags" : [
           "Supplies"
         ]
@@ -18947,7 +19244,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint enables the update of supply information by specifying the supply's unique identifier in the endpoint path.\n\nClients send a request containing the updated supply details, and authentication, through an authentication token, is required for secure access.\n**Required: Community Admin of the supply's community.**\n\nA successful update results in an HTTP status code of 200, indicating that the supply information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.",
+        "description" : "This endpoint enables the update of supply information by specifying the supply's unique identifier in the endpoint path.\n\nClients send a request containing the updated supply details, and authentication, through an authentication token, is required for secure access.\n**Required: Community Admin of the supply's community.**\n\nA successful update results in an HTTP status code of 200, indicating that the supply information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.\n\nA `code` equal to the stored one is kept as it is, even if it was stored before the CUPS rules. A changed `code` follows the rules of `createSupply`: it is upper-cased, and refused with 400 `SUPPLY_CUPS_INVALID` if it is not a CUPS, `SUPPLY_ALREADY_EXISTS` if another supply of this community has the same CUPS, or `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY` if only a supply of another community has it.",
         "operationId" : "updateSupply",
         "parameters" : [
           {

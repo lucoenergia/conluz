@@ -55,6 +55,16 @@ public class GetSupplyRepositoryDatabase implements GetSupplyRepository {
     }
 
     @Override
+    public Set<UUID> findCommunityIdsByUpperCaseCodes(List<String> codes) {
+        return supplyRepository.findCommunityIdsByUpperCaseCodeIn(codes);
+    }
+
+    @Override
+    public Set<UUID> findCommunityIdsByUpperCaseCodes(List<String> codes, SupplyId excluded) {
+        return supplyRepository.findCommunityIdsByUpperCaseCodeInExcluding(codes, excluded.getId());
+    }
+
+    @Override
     public Optional<Supply> findByCode(SupplyCode code) {
         Optional<SupplyEntity> supplyEntity = supplyRepository.findByCode(code.getCode());
         if (supplyEntity.isEmpty()) {

@@ -3,7 +3,9 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.update;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyCodeAvailability;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyDto;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
@@ -22,7 +24,7 @@ class UpdateSupplyServiceTest {
     private final UpdateSupplyRepository updateSupplyRepository = Mockito.mock(UpdateSupplyRepository.class);
 
     private final UpdateSupplyService updateSupplyService = new UpdateSupplyServiceImpl(getSupplyRepository,
-            updateSupplyRepository);
+            updateSupplyRepository, Mockito.mock(SupplyCodeAvailability.class));
 
     @Test
     void testUpdate_Success() {
@@ -31,21 +33,22 @@ class UpdateSupplyServiceTest {
         SupplyId supplyId = SupplyId.of(supplyIdValue);
         Supply existingSupply = new Supply.Builder()
                 .withId(supplyIdValue)
-                .withCode("CODE123")
+                .withCode("ES0031300325733001FH0F")
                 .withName("Existing Supply")
                 .withAddress("123 Street")
                 .withEnabled(true)
+                .withCommunity(CommunityMother.random().build())
                 .build();
 
         UpdateSupplyDto updateSupplyDto = new UpdateSupplyDto.Builder()
-                .code("NEWCODE123")
+                .code("ES0031300325733002FH0F")
                 .name("Updated Supply")
                 .address("456 Avenue")
                 .build();
 
         Supply updatedSupply = new Supply.Builder()
                 .withId(supplyIdValue)
-                .withCode("NEWCODE123")
+                .withCode("ES0031300325733002FH0F")
                 .withName("Updated Supply")
                 .withAddress("456 Avenue")
                 .withEnabled(true)
@@ -59,7 +62,7 @@ class UpdateSupplyServiceTest {
 
         // Assert
         Assertions.assertNotNull(result);
-        Assertions.assertEquals("NEWCODE123", result.getCode());
+        Assertions.assertEquals("ES0031300325733002FH0F", result.getCode());
         Assertions.assertEquals("Updated Supply", result.getName());
         Assertions.assertEquals("456 Avenue", result.getAddress());
         verify(getSupplyRepository, times(1)).findById(supplyId);
@@ -102,9 +105,10 @@ class UpdateSupplyServiceTest {
                 .build();
 
         UpdateSupplyDto updateSupplyDto = mock(UpdateSupplyDto.class);
+        when(updateSupplyDto.getCode()).thenReturn("CODE123");
         Supply mappedSupply = new Supply.Builder()
                 .withId(supplyIdValue)
-                .withCode("MAPPEDCODE123")
+                .withCode("CODE123")
                 .withName("Mapped Supply")
                 .withAddress("Mapped Address")
                 .withEnabled(true)
@@ -119,7 +123,7 @@ class UpdateSupplyServiceTest {
 
         // Assert
         Assertions.assertNotNull(result);
-        Assertions.assertEquals("MAPPEDCODE123", result.getCode());
+        Assertions.assertEquals("CODE123", result.getCode());
         Assertions.assertEquals("Mapped Supply", result.getName());
         Assertions.assertEquals("Mapped Address", result.getAddress());
         verify(updateSupplyDto, times(1)).mapToSupply(any(Supply.Builder.class));

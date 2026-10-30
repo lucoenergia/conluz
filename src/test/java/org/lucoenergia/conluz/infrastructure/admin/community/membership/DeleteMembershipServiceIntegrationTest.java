@@ -1,12 +1,13 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.MembershipOwnsSuppliesException;
 import org.lucoenergia.conluz.domain.admin.community.membership.DeleteMembershipService;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.UserNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyOwnerNotFoundException;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.create.BaseSupplyCreationRaceTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,7 @@ class DeleteMembershipServiceIntegrationTest extends BaseSupplyCreationRaceTest 
     void deletionAfterAConcurrentSupplyCreationIsRefused() throws Exception {
         Community community = newCommunity();
         User owner = newMemberOf(community);
-        String code = "ES" + UUID.randomUUID();
+        String code = SupplyMother.randomCups();
 
         Throwable deletion = runWhileHeld(
                 () -> createSupply(owner, community, code),
@@ -53,13 +54,13 @@ class DeleteMembershipServiceIntegrationTest extends BaseSupplyCreationRaceTest 
     void supplyCreationAfterAConcurrentDeletionFindsTheMembershipGone() throws Exception {
         Community community = newCommunity();
         User owner = newMemberOf(community);
-        String code = "ES" + UUID.randomUUID();
+        String code = SupplyMother.randomCups();
 
         Throwable creation = runWhileHeld(
                 () -> deleteMembershipService.delete(community.getId(), owner.getId(), DELETED_BY),
                 () -> createSupply(owner, community, code));
 
-        assertThat(creation).isInstanceOf(UserNotFoundException.class);
+        assertThat(creation).isInstanceOf(SupplyOwnerNotFoundException.class);
         assertThat(count("SELECT count(*) FROM community_memberships WHERE user_id = ? AND community_id = ?",
                 owner.getId(), community.getId())).isZero();
         assertThat(count("SELECT count(*) FROM supplies WHERE code = ?", code)).isZero();

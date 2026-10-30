@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportFileProblem;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.MemberImportFileRefusedException;
+import org.lucoenergia.conluz.infrastructure.shared.io.CsvImportFileReaderImpl;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +23,7 @@ class MemberImportCsvReaderTest {
     private static final Map<String, String> WINDOWS_1252_ROW = Map.of("personalId", "12345678Z",
             "fullName", "Begoña Íñiguez Güell", "address", "Plaza de la Peña, cuota 10 €");
 
-    private final MemberImportCsvReader reader = new MemberImportCsvReader();
+    private final MemberImportCsvReader reader = new MemberImportCsvReader(new CsvImportFileReaderImpl());
 
     @Test
     @DisplayName("MEM-030 a semicolon-separated file with a byte order mark is read with its accents intact")

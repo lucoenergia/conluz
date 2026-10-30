@@ -55,7 +55,9 @@ public class UpdateSupplyController {
 
                 A successful update results in an HTTP status code of 200, indicating that the supply information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.
                 
-                If you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.""",
+                If you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.
+
+                A `code` equal to the stored one is kept as it is, even if it was stored before the CUPS rules. A changed `code` follows the rules of `createSupply`: it is upper-cased, and refused with 400 `SUPPLY_CUPS_INVALID` if it is not a CUPS, `SUPPLY_ALREADY_EXISTS` if another supply of this community has the same CUPS, or `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY` if only a supply of another community has it.""",
             tags = ApiTag.SUPPLIES,
             operationId = "updateSupply"
     )

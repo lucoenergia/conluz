@@ -168,7 +168,7 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
                 call(403, HttpMethod.POST, "/api/v1/supplies").body(Map.of("code", "ES" + UUID.randomUUID(),
                         "address", "Calle Mayor 2", "communityId", community.getId(),
                         "personalId", member.getPersonalId())),
-                call(403, HttpMethod.POST, "/api/v1/supplies/import").file(suppliesCsv()).param("communityId", "{c}"),
+                call(403, HttpMethod.POST, "/api/v1/communities/{c}/supplies/import").file(suppliesCsv()),
                 call(404, HttpMethod.GET, supplies),
                 call(404, HttpMethod.PUT, supplies).body(Map.of("code", supply.getCode(), "address", "Calle Mayor 3")),
                 call(404, HttpMethod.DELETE, supplies),

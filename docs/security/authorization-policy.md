@@ -174,8 +174,7 @@ where a guard-first order would have produced 404).
 
 So a guard can only see a null from a **request-body field with no validation annotation** or a
 `@RequestParam(required = false)`. Today that is `CreateUserBody.communityId` (deliberate — a platform
-admin may create a user attached to no community) and `CreateSuppliesWithFileController`'s optional
-`communityId`. Every other null-argument branch in the guards is defence in depth and is not
+admin may create a user attached to no community). Every other null-argument branch in the guards is defence in depth and is not
 reachable over HTTP; do not treat those branches as live behaviour, and do not add null guards for
 path variables.
 

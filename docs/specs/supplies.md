@@ -4,15 +4,16 @@
 | --- | --- |
 | **Prefix** | `SUP` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Supplies`; operations `createSupply`, `createSuppliesWithFile`, `deleteSupply`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `updateSupply`, `enableSupply`, `disableSupply` |
+| **Contract** | OpenAPI snapshot → tag `Supplies`; operations `createSupply`, `importSupplies`, `deleteSupply`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `updateSupply`, `enableSupply`, `disableSupply` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #411 |
+| **Last reviewed against code** | #532 |
 
 ## Purpose
 
 A supply is a member's point of consumption (CUPS) in a community. This spec covers the rules that keep a supply
-tied to a member of its community, what deleting one does, who reads one, and how it references its
-plant. It covers only the rules #412 and #411 touched.
+tied to a member of its community, what deleting one does, who reads one, how it references its plant, how
+supplies are imported from a file, and which codes a supply may have. It covers only the rules #412, #411 and #532
+touched.
 
 ## Glossary
 
@@ -21,6 +22,7 @@ plant. It covers only the rules #412 and #411 touched.
 | Supply | A point of consumption, identified by its CUPS code, owned by one user and belonging to one community. |
 | Plant | A generation installation attached to a supply. |
 | Partition coefficient | The share of a plant's production a sharing agreement assigns to a supply. |
+| CUPS | The code of a point of consumption, 22 characters long. It may be written with its first 20 characters only, which stand for the 22 obtained by adding `0F`. |
 
 ## Rules
 
@@ -49,7 +51,7 @@ plant. It covers only the rules #412 and #411 touched.
 ### SUP-002 — A supply is created only for a member of its community
 
 - **Status:** Active
-- **Rule:** Creating a supply (`createSupply`, `createSuppliesWithFile`) MUST lock the owner's account row and then
+- **Rule:** Creating a supply (`createSupply`, `importSupplies`) MUST lock the owner's account row and then
   check that the owner has a membership in the supply's community, in any state. An owner without one, or whose
   account or membership is deleted while the supply is being created, MUST be answered exactly like an unknown
   owner, and no supply MUST be created.
@@ -57,7 +59,8 @@ plant. It covers only the rules #412 and #411 touched.
   their membership (MEM-029) locks the same row first, so the creation and the deletion run one after the other:
   the deletion then sees the supply and is refused, or the creation finds the owner gone. Without the lock both
   could succeed and leave a supply whose owner is not a member, or the deletion could fail on a foreign key.
-- **Source:** #341, #412
+- **Source:** #341, #412. #532 replaced `createSuppliesWithFile` with `importSupplies`, which creates each row as
+  `createSupply` does.
 
 ### SUP-003 — A supply's owner reads it only while their membership in its community is active
 
@@ -87,6 +90,39 @@ plant. It covers only the rules #412 and #411 touched.
   supply is an active member of its community, who may also read its plants.
 - **Source:** #411
 
+### SUP-005 — A community admin imports supplies from a CSV file, each row created as `createSupply` does
+
+- **Status:** Active
+- **Rule:** Only an active community admin of the community MAY import supplies into it (`importSupplies`). The file
+  MUST follow the same encoding, separator, header, row-limit and empty-row rules as MEM-030, with its own
+  `SUPPLY_IMPORT_*` codes. Columns: `code`, `address`, `personalId` required; `addressRef`, `name` optional; no other.
+  Each row MUST be created as `createSupply` does, in a transaction of its own, and MUST get one result with its line,
+  outcome, code and the broken rules by column and constraint, never echoing the values.
+- **Rationale:** Same onboarding task as the member import, same files from Excel; one client implementation. Row
+  isolation keeps a large file usable when a few rows fail.
+- **Source:** #532
+
+### SUP-006 — A supply code written to a supply is a CUPS, stored upper-cased
+
+- **Status:** Active
+- **Rule:** A supply code MUST be upper-cased, MUST contain no whitespace and MUST be 20 or 22 characters long, on
+  `createSupply`, `importSupplies`, and `updateSupply` when the code changes. Codes stored before this rule are not
+  revalidated.
+- **Rationale:** Reuses the only CUPS rule the distributor file already enforces, so a code accepted at creation can
+  be filed. Validating on unchanged updates would lock legacy supplies out of editing.
+- **Source:** #532
+
+### SUP-007 — No two supplies have the same CUPS, in either length or case
+
+- **Status:** Active
+- **Rule:** A supply MUST NOT be created, or its code changed, if another supply has the same CUPS once both are
+  completed to 22 characters (`0F`) and compared case-insensitively. Same community → `SUPPLY_ALREADY_EXISTS`; another
+  community → `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY`, naming neither the community nor the owner. Accepted risk: the
+  second code reveals that the CUPS is registered on the platform.
+- **Rationale:** A supply belongs to one community and never moves; a duplicate across lengths breaks the distributor
+  file. The admin needs to know the CUPS cannot be registered here, and the creation would fail anyway.
+- **Source:** #532
+
 ## Impossible states
 
 - A supply whose owner has no membership in its community, created after #412 — prevented by SUP-002 and MEM-029.
@@ -96,3 +132,4 @@ plant. It covers only the rules #412 and #411 touched.
 | Exception | Reason | Expires when | Source |
 | --- | --- | --- | --- |
 | A deleted supply's consumption series stay in the time-series database, keyed by CUPS; a supply created again with the same CUPS shows them | The series are measurements of the point of consumption, and deleting them cannot be undone or made part of the database transaction | A rule decides what happens to the series of a deleted supply | #412 |
+| Two supplies with the same CUPS across lengths or case can be written after #532, by two creations or code changes running at the same time | SUP-007 is checked by the application before the write, without a lock or a database constraint, so two concurrent writes can both pass the check | A database constraint or a lock makes SUP-007 hold for concurrent writes | #532 |

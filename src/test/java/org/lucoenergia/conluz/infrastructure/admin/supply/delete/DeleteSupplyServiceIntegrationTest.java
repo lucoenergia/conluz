@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.delete;
 
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -83,7 +84,7 @@ class DeleteSupplyServiceIntegrationTest extends BaseSupplyCreationRaceTest {
     @DisplayName("SUP-001 a supply deleted while a plant is being attached to it is refused once the plant exists")
     void deletionAfterAConcurrentPlantCreationIsRefused() throws Exception {
         Community community = newCommunity();
-        Supply supply = createSupply(newMemberOf(community), community, "ES" + UUID.randomUUID());
+        Supply supply = createSupply(newMemberOf(community), community, SupplyMother.randomCups());
         supplies.add(supply.getId());
 
         Throwable deletion = runWhileHeld(
@@ -217,7 +218,7 @@ class DeleteSupplyServiceIntegrationTest extends BaseSupplyCreationRaceTest {
 
         Supply supply = new TransactionTemplate(transactionManager).execute(status -> {
             User owner = newMemberOf(community);
-            Supply created = createSupply(owner, community, "ES" + UUID.randomUUID());
+            Supply created = createSupply(owner, community, SupplyMother.randomCups());
             assertThat(getUserRepository.findById(UserId.of(owner.getId()))).isPresent();
             assertThat(getSupplyRepository.findById(SupplyId.of(created.getId()))).isPresent();
 
@@ -231,7 +232,7 @@ class DeleteSupplyServiceIntegrationTest extends BaseSupplyCreationRaceTest {
     }
 
     private Supply newSupply(Community community, User owner) {
-        Supply supply = createSupply(owner, community, "ES" + UUID.randomUUID());
+        Supply supply = createSupply(owner, community, SupplyMother.randomCups());
         supplies.add(supply.getId());
         return supply;
     }
